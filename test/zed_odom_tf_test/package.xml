@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+
+<!-- Package format 3 according to http://www.ros.org/reps/rep-0149.html -->
+<package format="3">
+  <name>stereolabs_zed_odom_tf_test</name>
+  <version>0.1.0</version>
+  <description>
+    This package is a test to check odom TF timestamps
+  </description>
+
+  <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
+  <license>MIT</license>
+
+  <url type="website">https://www.stereolabs.com/</url>
+  <url type="repository">https://github.com/stereolabs/zed-ros2-wrapper</url>
+  <url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>geometry_msg</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

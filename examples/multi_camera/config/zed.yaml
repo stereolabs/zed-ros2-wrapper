@@ -1,0 +1,79 @@
+# config/zed.yaml
+# Parameters for Stereolabs ZED camera
+---
+
+
+zed:
+    zed_node:
+        ros__parameters:
+            general:
+                camera_model: 0 # `0`: ZED, `1`: ZEDM
+                zed_id: 0
+                camera_timeout_sec: 5
+                camera_max_reconnect: 5
+                camera_reactivate: false                                        # set to false if there is an external node manager that activates the camera after a correct configure
+                camera_flip: false
+                serial_number: 0
+                resolution: 2                                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
+                verbose: true
+                mat_resize_factor: 1.0                                          # Dynamic
+                frame_rate: 30
+                gpu_id: -1
+                base_frame: 'base_link'                                         # must be equal to the frame_id used in the URDF file
+                camera_frame: 'zed_camera_center'                               # must be equal to the frame_id used in the URDF file
+                left_camera_frame: 'zed_left_camera_frame'                      # must be equal to the frame_id used in the URDF file
+                left_camera_optical_frame: 'zed_left_camera_optical_frame'      # must be equal to the frame_id used in the URDF file
+                right_camera_frame: 'zed_right_camera_frame'                    # must be equal to the frame_id used in the URDF file
+                right_camera_optical_frame: 'zed_right_camera_optical_frame'    # must be equal to the frame_id used in the URDF file
+            video:
+                auto_exposure: true                                             # Dynamic
+                exposure: 80                                                    # Dynamic
+                gain: 80                                                        # Dynamic
+                rgb_topic_root: "rgb"
+                left_topic_root: "left"
+                right_topic_root: "right"
+                qos_history: 0                                                  # '0': KEEP_LAST - '1': KEEP_ALL
+                qos_depth: 10                                                   # Queue size if using KEEP_LAST
+                qos_reliability: 1                                              # '0': BEST_EFFORT - '1': RELIABLE
+                qos_durability: 1                                               # '0': TRANSIENT_LOCAL - '1': VOLATILE
+            depth:
+                quality: 1                                                      # '0': NONE, '1': PERFORMANCE, '2': MEDIUM, '3': QUALITY, '4': ULTRA
+                sensing_mode: 0                                                 # '0': STANDARD, '1': FILL
+                confidence: 80                                                  # Dynamic
+                depth_stabilization: 1                                          # `0`: disabled, `1`: enabled
+                openni_depth_mode: 0                                            # '0': 32bit float meters, '1': 16bit uchar millimeters
+                depth_topic_root: "depth"
+                point_cloud_topic: "point_cloud/cloud_registered"
+                disparity_topic: "disparity/disparity_image"
+                confidence_root: "confidence"
+                confidence_img_topic: "confidence_image"
+                confidence_map_topic: "confidence_map"
+                qos_history: 0                                                  # '0': KEEP_LAST - '1': KEEP_ALL
+                qos_depth: 10                                                   # Queue size if using KEEP_LAST
+                qos_reliability: 1                                              # '0': BEST_EFFORT - '1': RELIABLE
+                qos_durability: 1                                               # '0': TRANSIENT_LOCAL - '1': VOLATILE
+                min_depth: 0.3                                                  # Min: 0.3, Max: 3.0
+                max_depth: 20.                                                  #Dynamic
+            tracking:
+                publish_tf: true
+                publish_map_tf: true
+                world_frame: 'map'
+                pose_frame: 'map'
+                odometry_frame: 'odom'
+                # odometry_db: 'odometry_db_path'
+                pose_smoothing: 0                                               # `0`: disabled, `1`: enabled
+                spatial_memory: false
+                floor_alignment: false
+                pose_topic: 'pose'
+                odometry_topic: 'odom'
+                init_odom_with_first_valid_pose: true
+                path_pub_rate: 2.0
+                path_max_count: -1
+                publish_pose_covariance: true
+                qos_history: 0                                                  # '0': KEEP_LAST - '1': KEEP_ALL
+                qos_depth: 10                                                   # Queue size if using KEEP_LAST
+                qos_reliability: 1                                              # '0': BEST_EFFORT - '1': RELIABLE
+                qos_durability: 1                                               # '0': TRANSIENT_LOCAL - '1': VOLATILE
+                initial_tracking_pose: [0.0,0.0,0.0, 0.0,0.0,0.0]               # [X, Y, Z, R, P, Y]
+
+

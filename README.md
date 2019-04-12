@@ -25,6 +25,7 @@ This package lets you use the ZED stereo camera with ROS2. It provides access to
   - Ubuntu 18.04 [[binaries](https://index.ros.org/doc/ros2/Installation/Linux-Install-Debians/) - [source](https://index.ros.org/doc/ros2/Installation/Linux-Development-Setup/)]
 
 ### Build the package
+
 The **zed_ros2_wrapper** is a [colcon](http://design.ros2.org/articles/build_tool.html) package. It depends on the following ROS2 packages:
 
   - ament_cmake
@@ -74,7 +75,8 @@ $ sudo rm /usr/lib/x86_64-linux-gnu/libEGL.so; sudo ln /usr/lib/x86_64-linux-gnu
 ```
 
 ## Starting the ZED node
-The ZED is available in ROS2 as a [lifecycle managed node](https://index.ros.org/doc/ros2/Tutorials/Managed-Nodes/) that publishes its data to topics. You can get the full list of the available topics [here](/integrations/ros2/zed_node/). 
+
+The ZED is available in ROS2 as a [lifecycle managed node](https://index.ros.org/doc/ros2/Tutorials/Managed-Nodes/) that publishes its data to topics. You can get the full list of the available topics [here](https://www.stereolabs.com/docs/ros2/zed_node/#published-topics).
 
 To start the ZED node, open a terminal and use the [CLI](https://index.ros.org/doc/ros2/Tutorials/Introspection-with-command-line-tools/) command `ros2 launch`:
 
@@ -90,6 +92,7 @@ For full descriptions of each parameter, follow the complete guide [here](https:
 ## Displaying ZED data
 
 ### Using RVIZ2
+
 RVIZ2 is a useful visualization tool in ROS2. Using RVIZ2, you can visualize the ZED left and right images, the depth image and the 3D colored point cloud.
 
 Launch the ZED wrapper along with RVIZ using the following command:
@@ -120,6 +123,7 @@ Here is the list of the available image topics:
 ![](https://cdn.stereolabs.com/docs/ros/images/rgb.jpg)
 
 ### Displaying Depth
+
 The depth map can be displayed in RVIZ with the following topic:
 
   - **zed/zed_node/depth/depth_registered**: 32-bit depth values in meters. RVIZ will normalize the depth map on 8-bit and display it as a grayscale depth image.
@@ -136,6 +140,7 @@ Add it in RVIZ2 with `point_cloud` -> `cloud` -> `PointCloud2`. Note that displa
 ![](https://cdn.stereolabs.com/docs/ros/images/point_cloud.jpg)
 
 ### Displaying position and path
+
 The ZED position and orientation in space over time is published to the following topics:
 
 - **zed/zed_node/odom**: Odometry pose referred to odometry frame (only visual odometry is applied for ZED, visual-inertial for ZED-M)
@@ -147,6 +152,7 @@ The ZED position and orientation in space over time is published to the followin
 **Important**: By default, RVIZ does not display odometry data correctly. Open the newly created Odometry object in the left list, and set Position Tolerance and Angle Tolerance to 0, and Keep to1.
 
 ## Launching with recorded SVO video
+
 With the ZED, you can record and play back stereo video using Stereolabs' .SVO file format. To record a sequence, open the **ZED Explorer** app (`/usr/local/zed/tools`) and click on the **REC** button.
 
 To launch the ROS wrapper with an SVO file, set the path of the SVO in the [launch parameter](https://www.stereolabs.com/docs/ros2/zed_node/#configuration-parameters) `general.svo_file` in the file `config/common.yaml`.
@@ -189,5 +195,6 @@ and the ZED node will report a warning message explaining the error type:
 ```
 
 ## Limitations
+
 The ROS2 wrapper is released as beta version. Many features available in the ROS wrapper are not yet introduced.
 Due to problems with TF2 in ROS2 Crystal Clemmys the visualization in RVIZ2 cannot result fluid due to timestamp synchronization.

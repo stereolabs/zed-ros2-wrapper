@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(stereolabs_zed_interfaces)
+project(zed_interfaces)
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
@@ -17,7 +17,7 @@ find_package(rosidl_default_generators REQUIRED)
 # Add all files in subdirectories of the project in
 # a dummy_target so qtcreator have access to all files
 FILE(GLOB_RECURSE extra_files ${CMAKE_SOURCE_DIR}/*)
-add_custom_target(${PROJECT_NAME}_files SOURCES ${extra_files})
+add_custom_target(all_${PROJECT_NAME}_files SOURCES ${extra_files})
 ###############################################################################
 
 rosidl_generate_interfaces(${PROJECT_NAME}

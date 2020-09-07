@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>stereolabs_zed_interfaces</name>
-  <version>0.1.0</version>
-  <description>Contains message and service definitions used by the ZED nodes.</description>
+  <name>zed_interfaces</name>
+  <version>0.2.0</version>
+  <description>Contains message and service definitions used by the ZED ROS2 nodes.</description>
   <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
   
   <license>MIT</license>

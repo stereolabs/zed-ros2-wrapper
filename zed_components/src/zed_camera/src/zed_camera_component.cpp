@@ -13,8 +13,12 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
     : Node("zed_node", options)
     , mVideoQos(10)
     , mDepthQos(10)
-    , mImuQos(10)
+    , mSensQos(10)
     , mPoseQos(10) {
+
+    std::string ros_namespace = get_namespace();
+    std::string node_name = get_name();
+
     RCLCPP_INFO(get_logger(), "*******************************");
     RCLCPP_INFO(get_logger(), " ZED Camera Component created");
     RCLCPP_INFO(get_logger(), "  * namespace: %s", get_namespace());
@@ -22,11 +26,7 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
     RCLCPP_INFO(get_logger(), "********************************");
 
     // ----> Parameters initialization
-    getParam( "general.debug_mode_active", mDebugMode, mDebugMode, " * DEBUG MODE: ");
-
-    std::string ros_namespace = get_namespace();
-    std::string node_name = get_name();
-
+    getParam( "general.debug_mode_active", mDebugMode, mDebugMode );
     if(mDebugMode) {
         std::string logger = ros_namespace.empty() ? "" : ros_namespace + ".";
         logger += node_name;
@@ -35,7 +35,7 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
         if (res != RCUTILS_RET_OK) {
             RCLCPP_INFO(get_logger(), "Error setting DEBUG logger");
         } else {
-            RCLCPP_INFO(get_logger(), "Debug Mode enabled");
+            RCLCPP_INFO(get_logger(), "*** Debug Mode enabled ***");
         }
     }
 
@@ -55,11 +55,11 @@ void ZedCamera::getParam(std::string paramName, T defValue, T& outVal, std::stri
     declare_parameter(paramName, rclcpp::ParameterValue(defValue) );
 
     if(!get_parameter(paramName, outVal)) {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+        RCLCPP_WARN_STREAM(get_logger(), "The parameter '" << paramName << "' is not available or is not valid, using the default value: " <<  defValue);
     }
 
     if( !log_info.empty() ) {
-        RCLCPP_INFO_STREAM(get_logger(), log_info << outVal);
+        RCLCPP_INFO_STREAM(get_logger(),  log_info << outVal );
     }
 }
 
@@ -74,10 +74,12 @@ void ZedCamera::initParameters() {
     getDepthParams();
 
     // POS. TRACKING parameters
-    getPosTrackingParams();
+    //getPosTrackingParams();
 
-    // IMU parameters
-    getSensorsParams();
+    // SENSORS parameters
+    if(mZedUserCamModel != sl::MODEL::ZED) {
+        //getSensorsParams();
+    }
 
     // Dynamic parameters callback
     set_on_parameters_set_callback(std::bind(&ZedCamera::paramChangeCallback, this, _1));
@@ -91,70 +93,53 @@ void ZedCamera::getGeneralParams() {
 
     RCLCPP_INFO(get_logger(), "*** GENERAL parameters ***");
 
-    getParam( "general.verbose", mVerbose, mVerbose,  " * SDK Verbose: ");
+    std::string camera_model = "zed";
+    getParam( "general.camera_model", camera_model, camera_model );
+    if (camera_model == "zed") {
+        mZedUserCamModel = sl::MODEL::ZED;
+    } else if (camera_model == "zedm") {
+        mZedUserCamModel = sl::MODEL::ZED_M;
+    } else if (camera_model == "zed2") {
+        mZedUserCamModel = sl::MODEL::ZED2;
+    } else {
+        RCLCPP_ERROR_STREAM(get_logger(), "Camera model not valid in parameter values: " << camera_model);
+    }
+    RCLCPP_INFO(get_logger(), " * Camera model: %s (%s)", camera_model.c_str(),
+                sl::toString(static_cast<sl::MODEL>(mZedUserCamModel)).c_str());
+
+    getParam( "general.sdk_verbose", mVerbose, mVerbose,  " * SDK Verbose: ");
     getParam( "general.svo_file", std::string(), mSvoFilepath, " * SVO: ");
     getParam( "general.camera_name", mCameraName, mCameraName,  " * Camera name: ");
-
-    // ----> Camera model must be handled differently
-    paramName = "general.camera_model";
-    declare_parameter(paramName, rclcpp::ParameterValue("zed") );
-
-    if (get_parameter(paramName, paramVal)) {
-        std::string camera_model = paramVal.as_string();
-
-        if (camera_model == "zed") {
-            mZedUserCamModel = sl::MODEL::ZED;
-        } else if (camera_model == "zedm") {
-            mZedUserCamModel = sl::MODEL::ZED_M;
-        } else if (camera_model == "zed2") {
-            mZedUserCamModel = sl::MODEL::ZED2;
-        } else {
-            RCLCPP_ERROR_STREAM(get_logger(), "Camera model not valid in parameter values: " << camera_model);
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Camera model: %d (%s)",
-                mZedUserCamModel, sl::toString(static_cast<sl::MODEL>(mZedUserCamModel)).c_str());
-    // <---- Camera model must be handled differently
-
+    getParam( "general.zed_id", mZedId, mZedId,  " * Camera ID: ");
+    getParam( "general.serial_number", mZedSerialNumber, mZedSerialNumber,  " * Camera SN: ");
     getParam( "general.camera_timeout_sec", mCamTimeoutSec, mCamTimeoutSec,  " * Camera timeout [sec]: ");
     getParam( "general.camera_reactivate", mZedReactivate, mZedReactivate,  " * Camera reconnection if disconnected: ");
     getParam( "general.camera_max_reconnect", mMaxReconnectTemp, mMaxReconnectTemp,  " * Camera reconnection temptatives: ");
-    getParam( "general.camera_flip", mCameraFlip, mCameraFlip,  " * Camera flip: ");
-    getParam( "general.zed_id", mZedId, mZedId,  " * Camera ID: ");
-    getParam( "general.serial_number", mZedSerialNumber, mZedSerialNumber,  " * Camera SN: ");
-    getParam( "general.resolution", mZedResol, mZedResol,  " * Camera resolution: ");
-
-    // ----> Mat resize factor must be handled differently
-    paramName = "general.mat_resize_factor";
-    declare_parameter(paramName, rclcpp::ParameterValue(mZedMatResizeFactor) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_DOUBLE) {
-            mZedMatResizeFactor = paramVal.as_double();
-
-            if (mZedMatResizeFactor < 0.1) {
-                mZedMatResizeFactor = 0.1;
-                RCLCPP_WARN(get_logger(), "The minimum value allowed for '%s' is 0.1", paramName.c_str());
-            } else if (mZedMatResizeFactor > 1.0) {
-                mZedMatResizeFactor = 1.0;
-                RCLCPP_WARN(get_logger(), "The maximum value allowed for '%s' is 1.0", paramName.c_str());
-            }
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a DOUBLE, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * [DYN] Data resize factor: %g ", mZedMatResizeFactor);
-    // <---- Mat resize factor must be handled differently
-
-    getParam( "general.frame_rate", mZedFrameRate, mZedFrameRate,  " * Camera framerate: ");
+    getParam( "general.grab_frame_rate", mZedFrameRate, mZedFrameRate,  " * Camera framerate: ");
     getParam( "general.gpu_id", mGpuId, mGpuId,  " * GPU ID: ");
     getParam( "general.base_frame", mBaseFrameId, mBaseFrameId,  " * Base frame id: ");
+
+    // TODO ADD SVO SAVE COMPRESSION PARAMETERS
+
+    int resol = static_cast<int>(mZedResol);
+    getParam( "general.resolution", resol, resol );
+    mZedResol = static_cast<sl::RESOLUTION>(resol);
+    RCLCPP_INFO(get_logger(), " * Camera resolution: %d (%s)", resol, sl::toString(mZedResol).c_str());
+
+    getParam( "general.self_calib", mCameraSelfCalib, mCameraSelfCalib );
+    RCLCPP_INFO(get_logger(), " * Camera self calibration: %s", mCameraSelfCalib?"TRUE":"FALSE");
+    getParam( "general.camera_flip", mCameraFlip, mCameraFlip );
+    RCLCPP_INFO(get_logger(), " * Camera flip: %s", mCameraFlip?"TRUE":"FALSE");
+
+    // Dynamic parameters
+
+
+    getParam( "general.pub_frame_rate", mPubFrameRate, mPubFrameRate );
+    if( mPubFrameRate>mZedFrameRate )
+    {
+        RCLCPP_WARN(get_logger(), "'pub_frame_rate' cannot be bigger than 'grab_frame_rate'", paramName.c_str());
+    }
+    RCLCPP_INFO(get_logger(), " * [DYN] Publish framerate [Hz]: %g ", mPubFrameRate);
 }
 
 void ZedCamera::getVideoParams() {
@@ -168,12 +153,33 @@ void ZedCamera::getVideoParams() {
     rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
-    getParam( "video.auto_exposure", mZedAutoExposure, mZedAutoExposure,  " * [DYN] Auto exposure: ");
-    if (mZedAutoExposure) {
+    getParam( "video.img_downsample_factor", mZedImgDownsampleFactor, mZedImgDownsampleFactor );
+    if (mZedImgDownsampleFactor < 0.1) {
+        mZedImgDownsampleFactor = 0.1;
+        RCLCPP_WARN(get_logger(), "The minimum value allowed for '%s' is 0.1", paramName.c_str());
+    } else if (mZedImgDownsampleFactor > 1.0) {
+        mZedImgDownsampleFactor = 1.0;
+        RCLCPP_WARN(get_logger(), "The maximum value allowed for '%s' is 1.0", paramName.c_str());
+    }
+    RCLCPP_INFO(get_logger(), " * Image downsample factor: %g ", mZedImgDownsampleFactor);
+
+    getParam( "video.brightness", mZedBrightness, mZedBrightness,  " * [DYN] Brightness: ");
+    getParam( "video.contrast", mZedContrast, mZedContrast,  " * [DYN] Contrast: ");
+    getParam( "video.hue", mZedHue, mZedHue,  " * [DYN] Hue: ");
+    getParam( "video.saturation", mZedSaturation, mZedSaturation,  " * [DYN] Saturation: ");
+    getParam( "video.sharpness", mZedSharpness, mZedSharpness,  " * [DYN] Sharpness: ");
+    getParam( "video.gamma", mZedGamma, mZedGamma,  " * [DYN] Gamma: ");
+    getParam( "video.auto_exposure_gain", mZedAutoExpGain, mZedAutoExpGain);
+    RCLCPP_INFO(get_logger(), " * [DYN] Auto Exposure/Gain: %s", mZedAutoExpGain?"TRUE":"FALSE");
+    if (mZedAutoExpGain) {
         mTriggerAutoExposure = true;
     }
     getParam( "video.exposure", mZedExposure, mZedExposure,  " * [DYN] Exposure: ");
     getParam( "video.gain", mZedGain, mZedGain,  " * [DYN] Gain: ");
+    getParam( "video.auto_whitebalance", mZedAutoWB, mZedAutoWB);
+    RCLCPP_INFO(get_logger(), " * [DYN] Auto White Balance: %s", mZedAutoWB?"TRUE":"FALSE");
+    getParam( "video.whitebalance_temperature", mZedWBTemp, mZedWBTemp,  " * [DYN] White Balance Temperature: ");
+
 
     // ------------------------------------------
 
@@ -245,50 +251,39 @@ void ZedCamera::getDepthParams() {
 
     RCLCPP_INFO(get_logger(), "*** DEPTH parameters ***");
 
+    getParam( "depth.depth_downsample_factor", mDepthDownsampleFactor, mDepthDownsampleFactor );
+    if (mDepthDownsampleFactor < 0.1) {
+        mDepthDownsampleFactor = 0.1;
+        RCLCPP_WARN(get_logger(), "The minimum value allowed for '%s' is 0.1", paramName.c_str());
+    } else if (mDepthDownsampleFactor > 1.0) {
+        mDepthDownsampleFactor = 1.0;
+        RCLCPP_WARN(get_logger(), "The maximum value allowed for '%s' is 1.0", paramName.c_str());
+    }
+    RCLCPP_INFO(get_logger(), " * Depth downsample factor: %g ", mDepthDownsampleFactor);
+
+    int depth_quality = static_cast<int>(mDepthQuality);
+    getParam( "depth.quality", depth_quality, depth_quality );
+    mDepthQuality = static_cast<sl::DEPTH_MODE>(depth_quality);
+    RCLCPP_INFO(get_logger(), " * Depth quality: %d (%s)", depth_quality, sl::toString(mDepthQuality).c_str());
+
     getParam( "depth.min_depth", mZedMinDepth, mZedMinDepth, " * Min depth [m]: ");
-    getParam( "depth.min_depth", mZedMaxDepth, mZedMaxDepth, " * Max depth [m]: ");
-    getParam( "depth.quality", mZedQuality, mZedQuality, " * Quality: ");
-    getParam( "depth.sensing_mode", mZedSensingMode, mZedSensingMode, " * Sensing mode: ");
+    getParam( "depth.max_depth", mZedMaxDepth, mZedMaxDepth, " * Max depth [m]: ");
 
-    paramName = "depth.sensing_mode";
-    declare_parameter(paramName, rclcpp::ParameterValue(mZedSensingMode) );
+    int sens_mode = static_cast<int>(mDepthSensingMode);
+    getParam( "depth.sensing_mode", sens_mode, sens_mode );
+    mDepthSensingMode = static_cast<sl::SENSING_MODE>(sens_mode);
+    RCLCPP_INFO(get_logger(), " * Depth Sensing Mode: %d (%s)", sens_mode, sl::toString(mDepthSensingMode).c_str());
 
-    paramName = "depth.confidence";
-    declare_parameter(paramName, rclcpp::ParameterValue(mZedConfidence) );
+    getParam( "depth.depth_stabilization", mDepthStabilization, mDepthStabilization );
+    RCLCPP_INFO(get_logger(), " * Depth Stabilization: %s", mDepthStabilization?"TRUE":"FALSE");
 
-    if (get_parameter(paramName, paramVal)) {
-        mZedConfidence = paramVal.as_int();
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
+    getParam( "depth.openni_depth_mode", mOpenniDepthMode, mOpenniDepthMode );
+    RCLCPP_INFO(get_logger(), " * OpenNI mode (16bit point cloud): %s", mOpenniDepthMode?"TRUE":"FALSE");
 
-    RCLCPP_INFO(get_logger(), " * Confidence: %d", mZedConfidence);
+    getParam( "depth.point_cloud_freq", mPcPubRate, mPcPubRate, " * [DYN] Point cloud rate [Hz]: " );
 
-    // ------------------------------------------
-
-    paramName = "depth.depth_stabilization";
-    declare_parameter(paramName, rclcpp::ParameterValue(mDepthStabilization) );
-
-    if (get_parameter(paramName, paramVal)) {
-        mDepthStabilization = paramVal.as_bool();
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Depth stabilization: %s", mDepthStabilization ? "ENABLED" : "DISABLED");
-
-    // ------------------------------------------
-
-    paramName = "depth.openni_depth_mode";
-    declare_parameter(paramName, rclcpp::ParameterValue(mOpenniDepthMode) );
-
-    if (get_parameter(paramName, paramVal)) {
-        mOpenniDepthMode = paramVal.as_bool();
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * OpenNI mode: %s", mOpenniDepthMode == 0 ? "DISABLED" : "ENABLED");
+    getParam( "depth.depth_confidence", mDepthConf, mDepthConf, " * [DYN] Depth Confidence: " );
+    getParam( "depth.depth_texture_conf", mDepthTextConf, mDepthTextConf, " * [DYN] Depth Texture Confidence: " );
 
     // ------------------------------------------
 
@@ -349,8 +344,7 @@ void ZedCamera::getDepthParams() {
     RCLCPP_INFO(get_logger(), " * Depth QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
 }
 
-rcl_interfaces::msg::SetParametersResult ZedCamera::paramChangeCallback(std::vector<rclcpp::Parameter>
-                                                                        parameters) {
+rcl_interfaces::msg::SetParametersResult ZedCamera::paramChangeCallback(std::vector<rclcpp::Parameter> parameters) {
 
     auto result = rcl_interfaces::msg::SetParametersResult();
     result.successful = false;
@@ -364,14 +358,14 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::paramChangeCallback(std::vec
                 double new_val = param.as_double();
 
                 if (new_val > 0.01 && new_val <= 1.0) {
-                    mZedMatResizeFactor = new_val;
-                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %g", param.get_name().c_str(), mZedMatResizeFactor);
+                    mZedImgDownsampleFactor = new_val;
+                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %g", param.get_name().c_str(), mZedImgDownsampleFactor);
                     result.successful = true;
 
                     // ----> Modify data sizes
                     mCamDataMutex.lock();
-                    mMatWidth = static_cast<size_t>(mCamWidth * mZedMatResizeFactor);
-                    mMatHeight = static_cast<size_t>(mCamHeight * mZedMatResizeFactor);
+                    mMatWidth = static_cast<size_t>(mCamWidth * mZedImgDownsampleFactor);
+                    mMatHeight = static_cast<size_t>(mCamHeight * mZedImgDownsampleFactor);
                     RCLCPP_INFO(get_logger(), "Data Mat size : %d x %d", sl::Resolution(mMatWidth, mMatHeight));
 
                     // Update Camera Info
@@ -392,17 +386,17 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::paramChangeCallback(std::vec
                 result.successful = false;
                 return result;
             }
-        } else if (param.get_name() == "video.auto_exposure") {
+        } else if (param.get_name() == "video.auto_exposure_gain") {
             if (param.get_type() == rclcpp::PARAMETER_BOOL) {
 
-                mZedAutoExposure = param.as_bool();
+                mZedAutoExpGain = param.as_bool();
 
-                if (mZedAutoExposure) {
+                if (mZedAutoExpGain) {
                     mTriggerAutoExposure = true;
                 }
 
                 RCLCPP_INFO(get_logger(), "The param '%s' has changed to %s", param.get_name().c_str(),
-                            mZedAutoExposure ? "ENABLED" : "DISABLED");
+                            mZedAutoExpGain ? "ENABLED" : "DISABLED");
                 result.successful = true;
             } else {
                 RCLCPP_WARN(get_logger(), "The param '%s' requires a BOOL value!", param.get_name().c_str());
@@ -452,8 +446,8 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::paramChangeCallback(std::vec
                 int new_val = param.as_int();
 
                 if (new_val > 0 && new_val <= 100) {
-                    mZedConfidence = new_val;
-                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %d", param.get_name().c_str(), mZedConfidence);
+                    mDepthConf = new_val;
+                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %d", param.get_name().c_str(), mDepthConf);
                     result.successful = true;
                 } else {
                     RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value in the range ]0,100]", param.get_name().c_str());
@@ -845,12 +839,12 @@ void ZedCamera::setTFCoordFrameNames()
 {
     // ----> Coordinate frames
     mCameraFrameId = mCameraName + "_camera_center";
-    mImuFrameId = mCameraName + "_imu_link";
     mLeftCamFrameId = mCameraName + "_left_camera_frame";
     mLeftCamOptFrameId = mCameraName + "_left_camera_optical_frame";
     mRightCamFrameId = mCameraName + "_right_camera_frame";
     mRightCamOptFrameId = mCameraName + "_right_camera_optical_frame";
 
+    mImuFrameId = mCameraName + "_imu_link";
     mBaroFrameId = mCameraName + "_baro_link";
     mMagFrameId = mCameraName + "_mag_link";
     mTempLeftFrameId = mCameraName + "_temp_left_link";
@@ -869,21 +863,36 @@ void ZedCamera::setTFCoordFrameNames()
     mConfidenceOptFrameId = mDepthOptFrameId;
 
     // Print TF frames
-    RCLCPP_INFO_STREAM(get_logger(), " * map_frame\t\t\t-> " << mMapFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * odometry_frame\t\t-> " << mOdometryFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * base_frame\t\t\t-> " << mBaseFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * camera_frame\t\t\t-> " << mCameraFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * imu_link\t\t\t-> " << mImuFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * left_camera_frame\t\t-> " << mLeftCamFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * left_camera_optical_frame\t-> " << mLeftCamOptFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * right_camera_frame\t\t-> " << mRightCamFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * right_camera_optical_frame\t-> " << mRightCamOptFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * depth_frame\t\t\t-> " << mDepthFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * depth_optical_frame\t\t-> " << mDepthOptFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * disparity_frame\t\t-> " << mDisparityFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * disparity_optical_frame\t-> " << mDisparityOptFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * confidence_frame\t\t-> " << mConfidenceFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * confidence_optical_frame\t-> " << mConfidenceOptFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), "*** TF FRAMES ***");
+    RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t\t-> " << mOdometryFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t\t-> " << mBaseFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t\t-> " << mCameraFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t\t-> " << mLeftCamFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Left Optical\t\t-> " << mLeftCamOptFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * RGB\t\t\t-> " << mRgbFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * RGB Optical\t\t-> " << mRgbFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Right\t\t\t-> " << mRightCamFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Right Optical\t\t-> " << mRightCamOptFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Depth\t\t\t-> " << mDepthFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Depth Optical\t\t-> " << mDepthOptFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Point Cloud\t\t-> " << mCloudFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Disparity\t\t\t-> " << mDisparityFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Disparity Optical\t\t-> " << mDisparityOptFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Confidence\t\t-> " << mConfidenceFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Confidence Optical\t-> " << mConfidenceOptFrameId);
+    if(mZedUserCamModel!=sl::MODEL::ZED)
+    {
+        RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t\t\t-> " << mImuFrameId);
+
+        if(mZedUserCamModel==sl::MODEL::ZED2)
+        {
+            RCLCPP_INFO_STREAM(get_logger(), " * Barometer\t\t\t\t-> " << mBaroFrameId);
+            RCLCPP_INFO_STREAM(get_logger(), " * Magnetometer\t\t\t\t-> " << mMagFrameId);
+            RCLCPP_INFO_STREAM(get_logger(), " * Left Temperature\t\t\t\t-> " << mTempLeftFrameId);
+            RCLCPP_INFO_STREAM(get_logger(), " * Right Temperature\t\t\t\t-> " << mTempRightFrameId);
+        }
+    }
     // <---- Coordinate frames
 }
 
@@ -891,79 +900,23 @@ void ZedCamera::fillCamInfo(sl::Camera& zed, std::shared_ptr<sensor_msgs::msg::C
                             std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg,
                             std::string leftFrameId, std::string rightFrameId,
                             bool rawParam /*= false*/) {
-    sl::CalibrationParameters zedParam;
+    // TODO SEE ROS1 WRAPPER
+}
 
-    if (rawParam) {
-        zedParam = zed.getCameraInformation(sl::Resolution(sl::Resolution(mMatWidth, mMatHeight)))
-                .calibration_parameters_raw;
-    } else {
-        zedParam = zed.getCameraInformation(sl::Resolution(sl::Resolution(mMatWidth, mMatHeight)))
-                .calibration_parameters;
-    }
+bool ZedCamera::startCamera() {
+    RCLCPP_INFO( get_logger(), "***** STARTING CAMERA *****");
 
-    float baseline = zedParam.T[0];
-    leftCamInfoMsg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
-    rightCamInfoMsg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
-    leftCamInfoMsg->d.resize(5);
-    rightCamInfoMsg->d.resize(5);
-    leftCamInfoMsg->d[0] = zedParam.left_cam.disto[0];   // k1
-    leftCamInfoMsg->d[1] = zedParam.left_cam.disto[1];   // k2
-    leftCamInfoMsg->d[2] = zedParam.left_cam.disto[4];   // k3
-    leftCamInfoMsg->d[3] = zedParam.left_cam.disto[2];   // p1
-    leftCamInfoMsg->d[4] = zedParam.left_cam.disto[3];   // p2
-    rightCamInfoMsg->d[0] = zedParam.right_cam.disto[0]; // k1
-    rightCamInfoMsg->d[1] = zedParam.right_cam.disto[1]; // k2
-    rightCamInfoMsg->d[2] = zedParam.right_cam.disto[4]; // k3
-    rightCamInfoMsg->d[3] = zedParam.right_cam.disto[2]; // p1
-    rightCamInfoMsg->d[4] = zedParam.right_cam.disto[3]; // p2
-    leftCamInfoMsg->k.fill(0.0);
-    rightCamInfoMsg->k.fill(0.0);
-    leftCamInfoMsg->k[0] = static_cast<double>(zedParam.left_cam.fx);
-    leftCamInfoMsg->k[2] = static_cast<double>(zedParam.left_cam.cx);
-    leftCamInfoMsg->k[4] = static_cast<double>(zedParam.left_cam.fy);
-    leftCamInfoMsg->k[5] = static_cast<double>(zedParam.left_cam.cy);
-    leftCamInfoMsg->k[8] = 1.0;
-    rightCamInfoMsg->k[0] = static_cast<double>(zedParam.right_cam.fx);
-    rightCamInfoMsg->k[2] = static_cast<double>(zedParam.right_cam.cx);
-    rightCamInfoMsg->k[4] = static_cast<double>(zedParam.right_cam.fy);
-    rightCamInfoMsg->k[5] = static_cast<double>(zedParam.right_cam.cy);
-    rightCamInfoMsg->k[8] = 1.0;
-    leftCamInfoMsg->r.fill(0.0);
-    rightCamInfoMsg->r.fill(0.0);
+    // ----> Check SDK version
+    RCLCPP_INFO(get_logger(), "SDK Version: %d.%d.%d - Build %d",
+                ZED_SDK_MAJOR_VERSION, ZED_SDK_MINOR_VERSION, ZED_SDK_PATCH_VERSION, ZED_SDK_BUILD_ID);
+#if (ZED_SDK_MAJOR_VERSION<3)
+    RCLCPP_ERROR(get_logger(), "ROS2 ZED node requires at least ZED SDK v3");
 
-    for (size_t i = 0; i < 3; i++) {
-        // identity
-        rightCamInfoMsg->r[i + i * 3] = 1;
-        leftCamInfoMsg->r[i + i * 3] = 1;
-    }
+    return false;
+#endif
+    // <---- Check SDK version
 
-    if (rawParam) {
-        std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
-        float* p = R_.data();
 
-        for (int i = 0; i < 9; i++) {
-            rightCamInfoMsg->r[i] = p[i];
-        }
-    }
-
-    leftCamInfoMsg->p.fill(0.0);
-    rightCamInfoMsg->p.fill(0.0);
-    leftCamInfoMsg->p[0] = static_cast<double>(zedParam.left_cam.fx);
-    leftCamInfoMsg->p[2] = static_cast<double>(zedParam.left_cam.cx);
-    leftCamInfoMsg->p[5] = static_cast<double>(zedParam.left_cam.fy);
-    leftCamInfoMsg->p[6] = static_cast<double>(zedParam.left_cam.cy);
-    leftCamInfoMsg->p[10] = 1.0;
-    // http://docs.ros.org/api/sensor_msgs/html/msg/CameraInfo.html
-    rightCamInfoMsg->p[3] = static_cast<double>(-1 * zedParam.left_cam.fx * baseline);
-    rightCamInfoMsg->p[0] = static_cast<double>(zedParam.right_cam.fx);
-    rightCamInfoMsg->p[2] = static_cast<double>(zedParam.right_cam.cx);
-    rightCamInfoMsg->p[5] = static_cast<double>(zedParam.right_cam.fy);
-    rightCamInfoMsg->p[6] = static_cast<double>(zedParam.right_cam.cy);
-    rightCamInfoMsg->p[10] = 1.0;
-    leftCamInfoMsg->width = rightCamInfoMsg->width = static_cast<uint32_t>(mMatWidth);
-    leftCamInfoMsg->height = rightCamInfoMsg->height = static_cast<uint32_t>(mMatHeight);
-    leftCamInfoMsg->header.frame_id = leftFrameId;
-    rightCamInfoMsg->header.frame_id = rightFrameId;
 }
 
 } // namespace stereolabs

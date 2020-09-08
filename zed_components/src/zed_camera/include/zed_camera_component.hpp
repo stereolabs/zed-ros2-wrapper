@@ -23,6 +23,7 @@ public:
     virtual ~ZedCamera();
 
 protected:
+    // ----> Parameters handling
     void initParameters();
 
     template<typename T>
@@ -36,7 +37,11 @@ protected:
 
     void setTFCoordFrameNames();
 
+    // Dynamic parameters callback
     rcl_interfaces::msg::SetParametersResult paramChangeCallback(std::vector<rclcpp::Parameter> parameters);
+    // ----> Parameters handling
+
+    bool startCamera();
 
     void fillCamInfo(sl::Camera& zed, std::shared_ptr<sensor_msgs::msg::CameraInfo> leftCamInfoMsg,
                      std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg,
@@ -56,26 +61,27 @@ private:
     sl::MODEL mZedUserCamModel = sl::MODEL::ZED;   // Camera model set by ROS Param
     sl::MODEL mZedRealCamModel; // Camera model requested to SDK
     std::string mCameraName = "zed";
-    int mZedFrameRate = 30;
+    int mZedFrameRate = 15;
     std::string mSvoFilepath = "";
     bool mSvoMode = false;
     bool mVerbose = true;
     int mGpuId = -1;
-    int mZedResol = 1; // Default resolution: RESOLUTION_HD720
-    int mZedQuality = 1; // Default quality: DEPTH_MODE_PERFORMANCE
+    sl::RESOLUTION mZedResol = sl::RESOLUTION::HD720; // Default resolution: RESOLUTION_HD720
+    sl::DEPTH_MODE mDepthQuality = sl::DEPTH_MODE::PERFORMANCE; // Default quality: DEPTH_MODE_PERFORMANCE
     bool mDepthStabilization = true;
     int mCamTimeoutSec = 5;
     int mMaxReconnectTemp = 5;
     bool mZedReactivate = false;
+    bool mCameraSelfCalib = true;
     bool mCameraFlip = false;
-    int mZedSensingMode = 0; // Default Sensing mode: SENSING_MODE_STANDARD
+    sl::SENSING_MODE mDepthSensingMode = sl::SENSING_MODE::STANDARD; // Default Sensing mode: SENSING_MODE_STANDARD
     bool mOpenniDepthMode = false; // 16 bit UC data in mm else 32F in m,
     // for more info -> http://www.ros.org/reps/rep-0118.html
 
     double mZedMinDepth = 0.2;
+    double mZedMaxDepth = 10.0;
 
-    double mImuPubRate = 500.0;
-    bool mImuTimestampSync = true;
+    bool mSensTimestampSync = true;
 
     bool mPublishTF = true;
     bool mPublishMapTF = true;
@@ -91,22 +97,32 @@ private:
     bool mPublishPoseCov = true;
     std::string mOdometryDb = "";
 
-
     // QoS profiles
     // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
     rclcpp::QoS mVideoQos;
     rclcpp::QoS mDepthQos;
-    rclcpp::QoS mImuQos;
+    rclcpp::QoS mSensQos;
     rclcpp::QoS mPoseQos;
 
-
     // ZED dynamic params
-    double mZedMatResizeFactor = 1.0;   // Dynamic...
-    int mZedConfidence = 80;            // Dynamic...
-    double mZedMaxDepth = 10.0;         // Dynamic...
-    bool mZedAutoExposure;              // Dynamic...
-    int mZedGain = 80;                  // Dynamic...
-    int mZedExposure = 80;              // Dynamic...
+    double mPubFrameRate = 15;
+    double mZedImgDownsampleFactor = 1.0;
+    int mZedBrightness = 4;
+    int mZedContrast = 4;
+    int mZedHue = 0;
+    int mZedSaturation = 4;
+    int mZedSharpness = 4;
+    int mZedGamma = 8;
+    bool mZedAutoExpGain;
+    int mZedGain = 80;
+    int mZedExposure = 80;
+    bool mZedAutoWB = true;
+    int mZedWBTemp = 42;
+    int mDepthConf = 50;
+    int mDepthTextConf = 100;
+    double mDepthDownsampleFactor = 1.0;
+    double mDepthPubRate = 15.0;
+    double mPcPubRate = 15.0;
 
     // Frame IDs
     std::string mRgbFrameId;

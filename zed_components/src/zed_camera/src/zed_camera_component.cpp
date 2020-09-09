@@ -1,4 +1,4 @@
-#include "zed_camera_component.hpp"
+﻿#include "zed_camera_component.hpp"
 #include "sl_tools.h"
 #include <type_traits>
 
@@ -1061,7 +1061,7 @@ void ZedCamera::initPublishers() {
     std::string rgb_raw_gray_topic = root + rgbTopicRoot + raw_suffix + img_raw_gray_topic_;
 
     // Set the disparity topic name
-    std::string disparityTopic = root + "disparity/disparity_image";
+    std::string disparity_topic = root + "disparity/disparity_image";
 
     // Set the depth topic names
     std::string depth_topic_root = "depth";
@@ -1083,11 +1083,11 @@ void ZedCamera::initPublishers() {
     std::string conf_map_topic = root + confImgRoot + "/" + conf_map_topic_name;
 
     // Set the positional tracking topic names
-    std::string poseTopic = root + "pose";
+    std::string pose_topic = root + "pose";
     std::string pose_cov_topic;
-    pose_cov_topic = root + poseTopic + "_with_covariance";
+    pose_cov_topic = root + pose_topic + "_with_covariance";
 
-    std::string odometryTopic = root + "odom";
+    std::string odometry_topic = root + "odom";
     std::string odom_path_topic = root + "path_odom";
     std::string map_path_topic = root + "path_map";
     // <---- Topics names definition
@@ -1140,6 +1140,26 @@ void ZedCamera::initPublishers() {
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRightGray.getTopic());
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRightGray.getInfoTopic());
     // <---- Camera publishers
+
+    // ----> Depth publishers
+    mPubConfMap = create_publisher<sensor_msgs::msg::Image>(conf_map_topic, mDepthQos);
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubConfMap->get_topic_name());
+    mPubDisparity = create_publisher<stereo_msgs::msg::DisparityImage>( disparity_topic, mDepthQos );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubDisparity->get_topic_name());
+    mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>( pointcloud_topic, mDepthQos );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubCloud->get_topic_name());
+    mPubFusedCloud = create_publisher<sensor_msgs::msg::PointCloud2>( pointcloud_fused_topic, mDepthQos );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubFusedCloud->get_topic_name());
+    // <---- Depth publishers
+
+    // ----> Pos Tracking
+    mPubPose = create_publisher<geometry_msgs::msg::PoseStamped>( pose_topic, mPoseQos );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubPose->get_topic_name());
+    mPubPoseCov = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>( pose_topic, mPoseQos );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubPoseCov->get_topic_name());
+    mPubOdom = create_publisher<nav_msgs::msg::Odometry>( odometry_topic, mPoseQos );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubOdom->get_topic_name());
+    // <---- Pos Tracking
 
 }
 

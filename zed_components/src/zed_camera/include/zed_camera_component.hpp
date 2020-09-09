@@ -256,13 +256,13 @@ private:
     image_transport::CameraPublisher mPubRightGray; //
     image_transport::CameraPublisher mPubRawRightGray; //
 
-    imagePub mPubConfMap;
-    disparityPub mPubDisparity;
-    pointcloudPub mPubCloud;
-    pointcloudPub mPubFusedCloud;
-    posePub mPubPose;
-    poseCovPub mPubPoseCov;
-    odomPub mPubOdom;
+    imagePub mPubConfMap; //
+    disparityPub mPubDisparity; //
+    pointcloudPub mPubCloud; //
+    pointcloudPub mPubFusedCloud; //
+    posePub mPubPose; //
+    poseCovPub mPubPoseCov; //
+    odomPub mPubOdom; //
     pathPub mPubOdomPath;
     pathPub mPubMapPath;
     imuPub mPubImu;

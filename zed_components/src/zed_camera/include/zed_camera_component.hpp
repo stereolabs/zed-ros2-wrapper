@@ -4,14 +4,63 @@
 #include "visibility_control.h"
 #include <rclcpp/rclcpp.hpp>
 #include <rcutils/logging_macros.h>
+
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <image_transport/image_transport.h>
+#include <image_transport/camera_publisher.h>
+#include <image_transport/publisher.h>
+#include <stereo_msgs/msg/disparity_image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/magnetic_field.hpp>
+#include <sensor_msgs/msg/fluid_pressure.hpp>
+#include <sensor_msgs/msg/temperature.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
 
 #include <sl/Camera.hpp>
 
 namespace stereolabs {
 
 // ----> Typedefs to simplify declarations
+
+typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> imagePub;
+typedef std::shared_ptr<rclcpp::Publisher<stereo_msgs::msg::DisparityImage>> disparityPub;
+
+typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>> pointcloudPub;
+
+typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Imu>> imuPub;
+typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::MagneticField>> magPub;
+typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::FluidPressure>> pressPub;
+typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Temperature>> tempPub;
+
+typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> posePub;
+typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>> poseCovPub;
+typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::Transform>> transfPub;
+typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odomPub;
+typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
+
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
+typedef std::shared_ptr<sensor_msgs::msg::PointCloud2> pointcloudMsgPtr;
+typedef std::shared_ptr<sensor_msgs::msg::Imu> imuMsgPtr;
+
+typedef std::shared_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
+typedef std::shared_ptr<geometry_msgs::msg::PoseWithCovarianceStamped> poseCovMsgPtr;
+typedef std::shared_ptr<geometry_msgs::msg::Transform> transfMsgPtr;
+typedef std::shared_ptr<nav_msgs::msg::Odometry> odomMsgPtr;
+typedef std::shared_ptr<nav_msgs::msg::Path> pathMsgPtr;
+
+//typedef rclcpp::Service<stereolabs_zed_interfaces::srv::ResetOdometry>::SharedPtr resetOdomSrvPtr;
+//typedef rclcpp::Service<stereolabs_zed_interfaces::srv::RestartTracking>::SharedPtr restartTrkSrvPtr;
+//typedef rclcpp::Service<stereolabs_zed_interfaces::srv::SetPose>::SharedPtr setPoseSrvPtr;
+//typedef rclcpp::Service<stereolabs_zed_interfaces::srv::StartSvoRecording>::SharedPtr startSvoRecSrvPtr;
+//typedef rclcpp::Service<stereolabs_zed_interfaces::srv::StopSvoRecording>::SharedPtr stopSvoRecSrvPtr;
 // <---- Typedefs to simplify declarations
 
 class ZedCamera : public rclcpp::Node
@@ -42,6 +91,8 @@ protected:
     // ----> Parameters handling
 
     bool startCamera();
+
+    void initPublishers();
 
     void fillCamInfo(sl::Camera& zed, std::shared_ptr<sensor_msgs::msg::CameraInfo> leftCamInfoMsg,
                      std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg,
@@ -83,6 +134,7 @@ private:
 
     bool mSensTimestampSync = true;
 
+    bool mUseOldExtrinsic = false;
     bool mPublishTF = true;
     bool mPublishMapTF = true;
     bool mPoseSmoothing = false;
@@ -163,10 +215,16 @@ private:
     // Mats
     int mCamWidth;  // Camera frame width
     int mCamHeight; // Camera frame height
-    int mMatWidth;  // Data width (mCamWidth*mZedMatResizeFactor)
-    int mMatHeight; // Data height (mCamHeight*mZedMatResizeFactor)
+    sl::Resolution mMatResolVideo;
+    sl::Resolution mMatResolDepth;
 
-    // Messages
+    // initialization Transform listener
+    std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
+    std::shared_ptr<tf2_ros::TransformListener> mTfListener;
+    std::shared_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
+    std::shared_ptr<tf2_ros::StaticTransformBroadcaster> mStaticTfBroadcaster;
+
+    // ----> Topics (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
     // Camera info
     camInfoMsgPtr mRgbCamInfoMsg;
     camInfoMsgPtr mLeftCamInfoMsg;
@@ -176,6 +234,49 @@ private:
     camInfoMsgPtr mRightCamInfoRawMsg;
     camInfoMsgPtr mDepthCamInfoMsg;
     camInfoMsgPtr mConfidenceCamInfoMsg;
+
+    transfMsgPtr mCameraImuTransfMgs;
+    // <---- Topics
+
+    // ----> Publishers
+    image_transport::CameraPublisher mPubRgb; //
+    image_transport::CameraPublisher mPubRawRgb; //
+    image_transport::CameraPublisher mPubLeft; //
+    image_transport::CameraPublisher mPubRawLeft; //
+    image_transport::CameraPublisher mPubRight; //
+    image_transport::CameraPublisher mPubRawRight; //
+    image_transport::CameraPublisher mPubDepth; //
+    image_transport::Publisher mPubStereo; //
+    image_transport::Publisher mPubRawStereo; //
+
+    image_transport::CameraPublisher mPubRgbGray; //
+    image_transport::CameraPublisher mPubRawRgbGray; //
+    image_transport::CameraPublisher mPubLeftGray; //
+    image_transport::CameraPublisher mPubRawLeftGray; //
+    image_transport::CameraPublisher mPubRightGray; //
+    image_transport::CameraPublisher mPubRawRightGray; //
+
+    imagePub mPubConfMap;
+    disparityPub mPubDisparity;
+    pointcloudPub mPubCloud;
+    pointcloudPub mPubFusedCloud;
+    posePub mPubPose;
+    poseCovPub mPubPoseCov;
+    odomPub mPubOdom;
+    pathPub mPubOdomPath;
+    pathPub mPubMapPath;
+    imuPub mPubImu;
+    imuPub mPubImuRaw;
+    tempPub mPubImuTemp;
+    magPub mPubImuMag;
+    //ros::Publisher mPubImuMagRaw;
+    pressPub mPubPressure;
+    tempPub mPubTempL;
+    tempPub mPubTempR;
+    transfPub mPubCamImuTransf;
+    // <---- Publishers
+
+
 };
 
 } // namespace stereolabs

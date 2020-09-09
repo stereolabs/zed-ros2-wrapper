@@ -43,6 +43,12 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
 
     initParameters();
     // <---- Parameters initialization
+
+    // Initialize Message Publishers
+    initPublishers();
+
+    // Start camera
+    startCamera();
 }
 
 ZedCamera::~ZedCamera() {
@@ -153,6 +159,9 @@ void ZedCamera::getVideoParams() {
     rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
+    getParam( "video.extrinsic_in_camera_frame", mUseOldExtrinsic, mUseOldExtrinsic,  " * Use old extrinsic parameters: ");
+
+
     getParam( "video.img_downsample_factor", mZedImgDownsampleFactor, mZedImgDownsampleFactor );
     if (mZedImgDownsampleFactor < 0.1) {
         mZedImgDownsampleFactor = 0.1;
@@ -161,7 +170,7 @@ void ZedCamera::getVideoParams() {
         mZedImgDownsampleFactor = 1.0;
         RCLCPP_WARN(get_logger(), "The maximum value allowed for '%s' is 1.0", paramName.c_str());
     }
-    RCLCPP_INFO(get_logger(), " * Image downsample factor: %g ", mZedImgDownsampleFactor);
+    RCLCPP_INFO(get_logger(), " * [DYN] Image downsample factor: %g ", mZedImgDownsampleFactor);
 
     getParam( "video.brightness", mZedBrightness, mZedBrightness,  " * [DYN] Brightness: ");
     getParam( "video.contrast", mZedContrast, mZedContrast,  " * [DYN] Contrast: ");
@@ -349,141 +358,141 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::paramChangeCallback(std::vec
     auto result = rcl_interfaces::msg::SetParametersResult();
     result.successful = false;
 
-    for (size_t i = 0; i < parameters.size(); i++) {
-        rclcpp::Parameter param = parameters[i];
+    //    for (size_t i = 0; i < parameters.size(); i++) {
+    //        rclcpp::Parameter param = parameters[i];
 
-        if (param.get_name() == "general.mat_resize_factor") {
-            if (param.get_type() == rclcpp::PARAMETER_DOUBLE) {
+    //        if (param.get_name() == "general.mat_resize_factor") {
+    //            if (param.get_type() == rclcpp::PARAMETER_DOUBLE) {
 
-                double new_val = param.as_double();
+    //                double new_val = param.as_double();
 
-                if (new_val > 0.01 && new_val <= 1.0) {
-                    mZedImgDownsampleFactor = new_val;
-                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %g", param.get_name().c_str(), mZedImgDownsampleFactor);
-                    result.successful = true;
+    //                if (new_val > 0.01 && new_val <= 1.0) {
+    //                    mZedImgDownsampleFactor = new_val;
+    //                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %g", param.get_name().c_str(), mZedImgDownsampleFactor);
+    //                    result.successful = true;
 
-                    // ----> Modify data sizes
-                    mCamDataMutex.lock();
-                    mMatWidth = static_cast<size_t>(mCamWidth * mZedImgDownsampleFactor);
-                    mMatHeight = static_cast<size_t>(mCamHeight * mZedImgDownsampleFactor);
-                    RCLCPP_INFO(get_logger(), "Data Mat size : %d x %d", sl::Resolution(mMatWidth, mMatHeight));
+    //                    // ----> Modify data sizes
+    //                    mCamDataMutex.lock();
+    //                    mMatWidth = static_cast<size_t>(mCamWidth * mZedImgDownsampleFactor);
+    //                    mMatHeight = static_cast<size_t>(mCamHeight * mZedImgDownsampleFactor);
+    //                    RCLCPP_INFO(get_logger(), "Data Mat size : %d x %d", sl::Resolution(mMatWidth, mMatHeight));
 
-                    // Update Camera Info
-                    fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId, mRightCamOptFrameId);
-                    fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId, mRightCamOptFrameId, true);
-                    mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg;
-                    mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
-                    mCamDataMutex.unlock();
-                    // <---- Modify data sizes
-                } else {
-                    RCLCPP_WARN(get_logger(), "The param '%s' requires a FLOATING POINT value in the range ]0.0,1.0]",
-                                param.get_name().c_str());
-                    result.successful = false;
-                    return result;
-                }
-            } else {
-                RCLCPP_WARN(get_logger(), "The param '%s' requires a FLOATING POINT positive value!", param.get_name().c_str());
-                result.successful = false;
-                return result;
-            }
-        } else if (param.get_name() == "video.auto_exposure_gain") {
-            if (param.get_type() == rclcpp::PARAMETER_BOOL) {
+    //                    // Update Camera Info
+    //                    fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId, mRightCamOptFrameId);
+    //                    fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId, mRightCamOptFrameId, true);
+    //                    mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg;
+    //                    mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
+    //                    mCamDataMutex.unlock();
+    //                    // <---- Modify data sizes
+    //                } else {
+    //                    RCLCPP_WARN(get_logger(), "The param '%s' requires a FLOATING POINT value in the range ]0.0,1.0]",
+    //                                param.get_name().c_str());
+    //                    result.successful = false;
+    //                    return result;
+    //                }
+    //            } else {
+    //                RCLCPP_WARN(get_logger(), "The param '%s' requires a FLOATING POINT positive value!", param.get_name().c_str());
+    //                result.successful = false;
+    //                return result;
+    //            }
+    //        } else if (param.get_name() == "video.auto_exposure_gain") {
+    //            if (param.get_type() == rclcpp::PARAMETER_BOOL) {
 
-                mZedAutoExpGain = param.as_bool();
+    //                mZedAutoExpGain = param.as_bool();
 
-                if (mZedAutoExpGain) {
-                    mTriggerAutoExposure = true;
-                }
+    //                if (mZedAutoExpGain) {
+    //                    mTriggerAutoExposure = true;
+    //                }
 
-                RCLCPP_INFO(get_logger(), "The param '%s' has changed to %s", param.get_name().c_str(),
-                            mZedAutoExpGain ? "ENABLED" : "DISABLED");
-                result.successful = true;
-            } else {
-                RCLCPP_WARN(get_logger(), "The param '%s' requires a BOOL value!", param.get_name().c_str());
-                result.successful = false;
-                return result;
-            }
-        } else if (param.get_name() == "video.exposure") {
-            if (param.get_type() == rclcpp::PARAMETER_INTEGER) {
+    //                RCLCPP_INFO(get_logger(), "The param '%s' has changed to %s", param.get_name().c_str(),
+    //                            mZedAutoExpGain ? "ENABLED" : "DISABLED");
+    //                result.successful = true;
+    //            } else {
+    //                RCLCPP_WARN(get_logger(), "The param '%s' requires a BOOL value!", param.get_name().c_str());
+    //                result.successful = false;
+    //                return result;
+    //            }
+    //        } else if (param.get_name() == "video.exposure") {
+    //            if (param.get_type() == rclcpp::PARAMETER_INTEGER) {
 
-                int new_val = param.as_int();
+    //                int new_val = param.as_int();
 
-                if (new_val > 0 && new_val <= 100) {
-                    mZedExposure = new_val;
-                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %d", param.get_name().c_str(), mZedExposure);
-                    result.successful = true;
-                } else {
-                    RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value in the range ]0,100]", param.get_name().c_str());
-                    result.successful = false;
-                    return result;
-                }
-            } else {
-                RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value!", param.get_name().c_str());
-                result.successful = false;
-                return result;
-            }
-        } else if (param.get_name() == "video.gain") {
-            if (param.get_type() == rclcpp::PARAMETER_INTEGER) {
+    //                if (new_val > 0 && new_val <= 100) {
+    //                    mZedExposure = new_val;
+    //                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %d", param.get_name().c_str(), mZedExposure);
+    //                    result.successful = true;
+    //                } else {
+    //                    RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value in the range ]0,100]", param.get_name().c_str());
+    //                    result.successful = false;
+    //                    return result;
+    //                }
+    //            } else {
+    //                RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value!", param.get_name().c_str());
+    //                result.successful = false;
+    //                return result;
+    //            }
+    //        } else if (param.get_name() == "video.gain") {
+    //            if (param.get_type() == rclcpp::PARAMETER_INTEGER) {
 
-                int new_val = param.as_int();
+    //                int new_val = param.as_int();
 
-                if (new_val > 0 && new_val <= 100) {
-                    mZedGain = new_val;
-                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %d", param.get_name().c_str(), mZedGain);
-                    result.successful = true;
-                } else {
-                    RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value in the range ]0,100]", param.get_name().c_str());
-                    result.successful = false;
-                    return result;
-                }
-            } else {
-                RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value!", param.get_name().c_str());
-                result.successful = false;
-                return result;
-            }
-        } else if (param.get_name() == "depth.confidence") {
-            if (param.get_type() == rclcpp::PARAMETER_INTEGER) {
-                int new_val = param.as_int();
+    //                if (new_val > 0 && new_val <= 100) {
+    //                    mZedGain = new_val;
+    //                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %d", param.get_name().c_str(), mZedGain);
+    //                    result.successful = true;
+    //                } else {
+    //                    RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value in the range ]0,100]", param.get_name().c_str());
+    //                    result.successful = false;
+    //                    return result;
+    //                }
+    //            } else {
+    //                RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value!", param.get_name().c_str());
+    //                result.successful = false;
+    //                return result;
+    //            }
+    //        } else if (param.get_name() == "depth.confidence") {
+    //            if (param.get_type() == rclcpp::PARAMETER_INTEGER) {
+    //                int new_val = param.as_int();
 
-                if (new_val > 0 && new_val <= 100) {
-                    mDepthConf = new_val;
-                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %d", param.get_name().c_str(), mDepthConf);
-                    result.successful = true;
-                } else {
-                    RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value in the range ]0,100]", param.get_name().c_str());
-                    result.successful = false;
-                    return result;
-                }
-            } else {
-                RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value!", param.get_name().c_str());
-                result.successful = false;
-                return result;
-            }
-        } else if (param.get_name() == "depth.max_depth") {
-            if (param.get_type() == rclcpp::PARAMETER_DOUBLE) {
+    //                if (new_val > 0 && new_val <= 100) {
+    //                    mDepthConf = new_val;
+    //                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %d", param.get_name().c_str(), mDepthConf);
+    //                    result.successful = true;
+    //                } else {
+    //                    RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value in the range ]0,100]", param.get_name().c_str());
+    //                    result.successful = false;
+    //                    return result;
+    //                }
+    //            } else {
+    //                RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value!", param.get_name().c_str());
+    //                result.successful = false;
+    //                return result;
+    //            }
+    //        } else if (param.get_name() == "depth.max_depth") {
+    //            if (param.get_type() == rclcpp::PARAMETER_DOUBLE) {
 
-                double new_val = param.as_double();
+    //                double new_val = param.as_double();
 
-                if (new_val > 0) {
-                    mZedMaxDepth = new_val;
-                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %g", param.get_name().c_str(), mZedMaxDepth);
-                    result.successful = true;
-                } else {
-                    RCLCPP_WARN(get_logger(), "The param '%s' requires a FLOATING POINT positive value", param.get_name().c_str());
-                    result.successful = false;
-                    return result;
-                }
-            } else {
-                RCLCPP_WARN(get_logger(), "The param '%s' requires a FLOATING POINT positive value!", param.get_name().c_str());
-                result.successful = false;
-                return result;
-            }
-        } else {
-            RCLCPP_WARN(get_logger(), "The param '%s' cannot be dinamically changed!", param.get_name().c_str());
-            result.successful = false;
-            return result;
-        }
-    }
+    //                if (new_val > 0) {
+    //                    mZedMaxDepth = new_val;
+    //                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %g", param.get_name().c_str(), mZedMaxDepth);
+    //                    result.successful = true;
+    //                } else {
+    //                    RCLCPP_WARN(get_logger(), "The param '%s' requires a FLOATING POINT positive value", param.get_name().c_str());
+    //                    result.successful = false;
+    //                    return result;
+    //                }
+    //            } else {
+    //                RCLCPP_WARN(get_logger(), "The param '%s' requires a FLOATING POINT positive value!", param.get_name().c_str());
+    //                result.successful = false;
+    //                return result;
+    //            }
+    //        } else {
+    //            RCLCPP_WARN(get_logger(), "The param '%s' cannot be dinamically changed!", param.get_name().c_str());
+    //            result.successful = false;
+    //            return result;
+    //        }
+    //    }
 
     return result;
 }
@@ -900,7 +909,238 @@ void ZedCamera::fillCamInfo(sl::Camera& zed, std::shared_ptr<sensor_msgs::msg::C
                             std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg,
                             std::string leftFrameId, std::string rightFrameId,
                             bool rawParam /*= false*/) {
-    // TODO SEE ROS1 WRAPPER
+    sl::CalibrationParameters zedParam;
+
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
+    if (rawParam) {
+        zedParam = zed.getCameraInformation(mMatResolVideo).calibration_parameters_raw; // ok
+    } else {
+        zedParam = zed.getCameraInformation(mMatResolVideo).calibration_parameters; // ok
+    }
+#else
+    if (rawParam) {
+        zedParam = zed.getCameraInformation(mMatResolVideo).camera_configuration.calibration_parameters_raw;
+    } else {
+        zedParam = zed.getCameraInformation(mMatResolVideo).camera_configuration.calibration_parameters;
+    }
+#endif
+
+    float baseline = zedParam.getCameraBaseline();
+    leftCamInfoMsg->distortion_model =
+            sensor_msgs::distortion_models::PLUMB_BOB;
+    rightCamInfoMsg->distortion_model =
+            sensor_msgs::distortion_models::PLUMB_BOB;
+    leftCamInfoMsg->d.resize(5);
+    rightCamInfoMsg->d.resize(5);
+    leftCamInfoMsg->d[0] = zedParam.left_cam.disto[0];   // k1
+    leftCamInfoMsg->d[1] = zedParam.left_cam.disto[1];   // k2
+    leftCamInfoMsg->d[2] = zedParam.left_cam.disto[4];   // k3
+    leftCamInfoMsg->d[3] = zedParam.left_cam.disto[2];   // p1
+    leftCamInfoMsg->d[4] = zedParam.left_cam.disto[3];   // p2
+    rightCamInfoMsg->d[0] = zedParam.right_cam.disto[0]; // k1
+    rightCamInfoMsg->d[1] = zedParam.right_cam.disto[1]; // k2
+    rightCamInfoMsg->d[2] = zedParam.right_cam.disto[4]; // k3
+    rightCamInfoMsg->d[3] = zedParam.right_cam.disto[2]; // p1
+    rightCamInfoMsg->d[4] = zedParam.right_cam.disto[3]; // p2
+    leftCamInfoMsg->k.fill(0.0);
+    rightCamInfoMsg->k.fill(0.0);
+    leftCamInfoMsg->k[0] = static_cast<double>(zedParam.left_cam.fx);
+    leftCamInfoMsg->k[2] = static_cast<double>(zedParam.left_cam.cx);
+    leftCamInfoMsg->k[4] = static_cast<double>(zedParam.left_cam.fy);
+    leftCamInfoMsg->k[5] = static_cast<double>(zedParam.left_cam.cy);
+    leftCamInfoMsg->k[8] = 1.0;
+    rightCamInfoMsg->k[0] = static_cast<double>(zedParam.right_cam.fx);
+    rightCamInfoMsg->k[2] = static_cast<double>(zedParam.right_cam.cx);
+    rightCamInfoMsg->k[4] = static_cast<double>(zedParam.right_cam.fy);
+    rightCamInfoMsg->k[5] = static_cast<double>(zedParam.right_cam.cy);
+    rightCamInfoMsg->k[8] = 1.0;
+    leftCamInfoMsg->r.fill(0.0);
+    rightCamInfoMsg->r.fill(0.0);
+
+    for (size_t i = 0; i < 3; i++) {
+        // identity
+        rightCamInfoMsg->r[i + i * 3] = 1;
+        leftCamInfoMsg->r[i + i * 3] = 1;
+    }
+
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
+    if (rawParam) {
+        std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
+        float* p = R_.data();
+
+        for (int i = 0; i < 9; i++) {
+            rightCamInfoMsg->r[i] = p[i];
+        }
+    }
+#else
+    if (rawParam) {
+        if(mUseOldExtrinsic) { // Camera frame (Z forward, Y down, X right)
+
+            std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
+            float* p = R_.data();
+
+            for (int i = 0; i < 9; i++) {
+                rightCamInfoMsg->r[i] = p[i];
+            }
+        } else { // ROS frame (X forward, Z up, Y left)
+            for (int i = 0; i < 9; i++) {
+                rightCamInfoMsg->r[i] = zedParam.stereo_transform.getRotationMatrix().r[i];
+            }
+        }
+    }
+#endif
+
+    leftCamInfoMsg->p.fill(0.0);
+    rightCamInfoMsg->p.fill(0.0);
+    leftCamInfoMsg->p[0] = static_cast<double>(zedParam.left_cam.fx);
+    leftCamInfoMsg->p[2] = static_cast<double>(zedParam.left_cam.cx);
+    leftCamInfoMsg->p[5] = static_cast<double>(zedParam.left_cam.fy);
+    leftCamInfoMsg->p[6] = static_cast<double>(zedParam.left_cam.cy);
+    leftCamInfoMsg->p[10] = 1.0;
+    // http://docs.ros.org/api/sensor_msgs/html/msg/CameraInfo.html
+    rightCamInfoMsg->p[3] = static_cast<double>(-1 * zedParam.left_cam.fx * baseline);
+    rightCamInfoMsg->p[0] = static_cast<double>(zedParam.right_cam.fx);
+    rightCamInfoMsg->p[2] = static_cast<double>(zedParam.right_cam.cx);
+    rightCamInfoMsg->p[5] = static_cast<double>(zedParam.right_cam.fy);
+    rightCamInfoMsg->p[6] = static_cast<double>(zedParam.right_cam.cy);
+    rightCamInfoMsg->p[10] = 1.0;
+    leftCamInfoMsg->width = rightCamInfoMsg->width = static_cast<uint32_t>(mMatResolVideo.width);
+    leftCamInfoMsg->height = rightCamInfoMsg->height = static_cast<uint32_t>(mMatResolVideo.height);
+    leftCamInfoMsg->header.frame_id = leftFrameId;
+    rightCamInfoMsg->header.frame_id = rightFrameId;
+}
+
+void ZedCamera::initPublishers() {
+    RCLCPP_INFO(get_logger(), "*** PUBLISHED TOPICS ***");
+
+    std::string topicPrefix = get_namespace();
+
+    if (topicPrefix.length() > 1) {
+        topicPrefix += "/";
+    }
+
+    topicPrefix += get_name();
+    topicPrefix += "/";
+
+    // ----> Create messages that do not change while running
+    mRgbCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mRgbCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mLeftCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mLeftCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mRightCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mRightCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mDepthCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mConfidenceCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mCameraImuTransfMgs = std::make_shared<geometry_msgs::msg::Transform>();
+    // <---- Create messages that do not change while running
+
+    // ----> Topics names definition
+    std::string root = "~/";
+    std::string rgbTopicRoot = "rgb";
+    std::string rightTopicRoot = "right";
+    std::string leftTopicRoot = "left";
+    std::string stereoTopicRoot = "stereo";
+    std::string img_topic = "/image_rect_color";
+    std::string img_raw_topic = "/image_raw_color";
+    std::string img_gray_topic = "/image_rect_gray";
+    std::string img_raw_gray_topic_ = "/image_raw_gray";
+    std::string raw_suffix = "_raw";
+    std::string left_topic = root + leftTopicRoot + img_topic;
+    std::string left_raw_topic = root + leftTopicRoot + raw_suffix + img_raw_topic;
+    std::string right_topic = root + rightTopicRoot + img_topic;
+    std::string right_raw_topic = root + rightTopicRoot + raw_suffix + img_raw_topic;
+    std::string rgb_topic = root + rgbTopicRoot + img_topic;
+    std::string rgb_raw_topic = root + rgbTopicRoot + raw_suffix + img_raw_topic;
+    std::string stereo_topic = root + stereoTopicRoot + img_topic;
+    std::string stereo_raw_topic = root + stereoTopicRoot + raw_suffix + img_raw_topic;
+    std::string left_gray_topic = root + leftTopicRoot + img_gray_topic;
+    std::string left_raw_gray_topic = root + leftTopicRoot + raw_suffix + img_raw_gray_topic_;
+    std::string right_gray_topic = root + rightTopicRoot + img_gray_topic;
+    std::string right_raw_gray_topic = root + rightTopicRoot + raw_suffix + img_raw_gray_topic_;
+    std::string rgb_gray_topic = root + rgbTopicRoot + img_gray_topic;
+    std::string rgb_raw_gray_topic = root + rgbTopicRoot + raw_suffix + img_raw_gray_topic_;
+
+    // Set the disparity topic name
+    std::string disparityTopic = root + "disparity/disparity_image";
+
+    // Set the depth topic names
+    std::string depth_topic_root = "depth";
+
+    if (mOpenniDepthMode) {
+        RCLCPP_INFO_STREAM( get_logger(), "Openni depth mode activated -> Units: mm, Encoding: MONO16");
+    }
+    std::string depth_topic = root + depth_topic_root + "/depth_registered";
+
+    std::string pointcloud_topic = root + "point_cloud/cloud_registered";
+    std::string pointcloud_fused_topic = root + "mapping/fused_cloud";
+
+    std::string object_det_topic_root = "obj_det";
+    std::string object_det_topic = root + object_det_topic_root + "/objects";
+    std::string object_det_rviz_topic = root + object_det_topic_root + "/object_markers";
+
+    std::string confImgRoot = "confidence";
+    std::string conf_map_topic_name = "confidence_map";
+    std::string conf_map_topic = root + confImgRoot + "/" + conf_map_topic_name;
+
+    // Set the positional tracking topic names
+    std::string poseTopic = root + "pose";
+    std::string pose_cov_topic;
+    pose_cov_topic = root + poseTopic + "_with_covariance";
+
+    std::string odometryTopic = root + "odom";
+    std::string odom_path_topic = root + "path_odom";
+    std::string map_path_topic = root + "path_map";
+    // <---- Topics names definition
+
+    // ----> Camera publishers
+    mPubRgb = image_transport::create_camera_publisher( this, rgb_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgb.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
+    mPubRawRgb = image_transport::create_camera_publisher( this, rgb_raw_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgb.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
+    mPubLeft = image_transport::create_camera_publisher( this, left_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeft.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeft.getInfoTopic());
+    mPubRawLeft = image_transport::create_camera_publisher( this, left_raw_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawLeft.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawLeft.getInfoTopic());
+    mPubRight = image_transport::create_camera_publisher( this, right_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRight.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRight.getInfoTopic());
+    mPubRawRight = image_transport::create_camera_publisher( this, right_raw_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRight.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRight.getInfoTopic());
+
+    mPubDepth = image_transport::create_camera_publisher( this, depth_topic, mDepthQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubDepth.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubDepth.getInfoTopic());
+
+    mPubStereo = image_transport::create_publisher( this, stereo_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubStereo.getTopic());
+    mPubRawStereo = image_transport::create_publisher( this, stereo_raw_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawStereo.getTopic());
+
+    mPubRgbGray = image_transport::create_camera_publisher( this, rgb_gray_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgbGray.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgbGray.getInfoTopic());
+    mPubRawRgbGray = image_transport::create_camera_publisher( this, rgb_raw_gray_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRgbGray.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRgbGray.getInfoTopic());
+    mPubLeftGray = image_transport::create_camera_publisher( this, left_gray_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeftGray.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeftGray.getInfoTopic());
+    mPubRawLeftGray = image_transport::create_camera_publisher( this, left_raw_gray_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeftGray.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeftGray.getInfoTopic());
+    mPubRightGray = image_transport::create_camera_publisher( this, right_gray_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRightGray.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRightGray.getInfoTopic());
+    mPubRawRightGray = image_transport::create_camera_publisher( this, right_raw_gray_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRightGray.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRightGray.getInfoTopic());
+    // <---- Camera publishers
+
 }
 
 bool ZedCamera::startCamera() {
@@ -915,6 +1155,17 @@ bool ZedCamera::startCamera() {
     return false;
 #endif
     // <---- Check SDK version
+
+    // ----> TF2 Transform
+    mTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
+    mTfBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+    mStaticTfBroadcaster = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
+    // <---- TF2 Transform
+
+
+
+
 
 
 }

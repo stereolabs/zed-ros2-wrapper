@@ -37,6 +37,13 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(stereo_msgs REQUIRED)
+find_package(image_transport REQUIRED)
 
 ###############################################################################
 #Add all files in subdirectories of the project in
@@ -94,12 +101,20 @@ add_library(zed_camera_component SHARED
     ${ZED_CAMERA_SRC}
 )
 target_compile_definitions(zed_camera_component
-    PRIVATE "COMPOSITION_BUILDING_DLL")
-    ament_target_dependencies(zed_camera_component
+    PRIVATE "COMPOSITION_BUILDING_DLL"
+)
+ament_target_dependencies(zed_camera_component
     "zed_interfaces"
     "rclcpp"
     "rclcpp_components"
     "std_msgs"
+    "tf2"
+    "tf2_ros"
+    "geometry_msgs"
+    "nav_msgs"
+    "sensor_msgs"
+    "stereo_msgs"
+    "image_transport"
 )
 target_link_libraries(zed_camera_component
   ${ZED_LINK_LIBS}

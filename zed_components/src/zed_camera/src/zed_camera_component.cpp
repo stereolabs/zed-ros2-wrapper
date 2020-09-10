@@ -44,9 +44,6 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
     initParameters();
     // <---- Parameters initialization
 
-    // Initialize Message Publishers
-    initPublishers();
-
     // Start camera
     startCamera();
 }
@@ -80,17 +77,19 @@ void ZedCamera::initParameters() {
     getDepthParams();
 
     // POS. TRACKING parameters
-    //getPosTrackingParams();
+    getPosTrackingParams();
 
     // SENSORS parameters
     if(mZedUserCamModel != sl::MODEL::ZED) {
         //getSensorsParams();
     }
 
+    // TODO MAPPING PARAMETERS
+
+    // TODO OD PARAMETERS
+
     // Dynamic parameters callback
     set_on_parameters_set_callback(std::bind(&ZedCamera::paramChangeCallback, this, _1));
-
-    setTFCoordFrameNames();
 }
 
 void ZedCamera::getGeneralParams() {
@@ -353,6 +352,116 @@ void ZedCamera::getDepthParams() {
     RCLCPP_INFO(get_logger(), " * Depth QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
 }
 
+void ZedCamera::getPosTrackingParams() {
+    rclcpp::Parameter paramVal;
+    std::string paramName;
+
+    rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+    size_t qos_depth = 10;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+    rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+
+    RCLCPP_INFO(get_logger(), "*** POSITIONAL TRACKING parameters ***");
+
+    getParam( "pos_tracking.path_pub_rate", mPathPubRate, mPathPubRate, " * [DYN] Path publishing rate: " );
+    getParam( "pos_tracking.path_max_count", mPathMaxCount, mPathMaxCount );
+    if (mPathMaxCount < 2 && mPathMaxCount != -1) {
+        mPathMaxCount = 2;
+    }
+    RCLCPP_INFO_STREAM(get_logger(), " * Path history lenght: " << mPathMaxCount);
+
+    paramName = "pos_tracking.initial_base_pose";
+    declare_parameter(paramName, rclcpp::ParameterValue(mInitialBasePose) );
+    if(!get_parameter(paramName, mInitialBasePose)) {
+        RCLCPP_WARN_STREAM(get_logger(), "The parameter '" << paramName << "' is not available or is not valid, using the default value");
+        mInitialBasePose = std::vector<double>(6, 0.0);
+    }
+    if(mInitialBasePose.size()<6)
+    {
+        RCLCPP_WARN_STREAM(get_logger(), "The parameter '" << paramName << "' must be a vector of 6 values of double type");
+        mInitialBasePose = std::vector<double>(6, 0.0);
+    }
+    RCLCPP_INFO(get_logger(), " * Initial pose: [%g,%g,%g,%g,%g,%g,]",
+                mInitialBasePose[0],mInitialBasePose[1],mInitialBasePose[2],
+            mInitialBasePose[3],mInitialBasePose[4],mInitialBasePose[5]);
+
+    getParam( "pos_tracking.area_memory", mAreaMemory, mAreaMemory );
+    RCLCPP_INFO_STREAM(get_logger(), " * Area Memory: " << (mAreaMemory?"TRUE":"FALSE") );
+    getParam( "pos_tracking.area_memory_db_path", mAreaMemoryDbPath, mAreaMemoryDbPath, " * Area Memory DB: " );
+    if(mZedUserCamModel != sl::MODEL::ZED) {
+        getParam( "pos_tracking.imu_fusion", mImuFusion, mImuFusion );
+        RCLCPP_INFO_STREAM(get_logger(), " * IMU Fusion: " << (mImuFusion?"TRUE":"FALSE") );
+    }
+    getParam( "pos_tracking.floor_alignment", mFloorAlignment, mFloorAlignment );
+    RCLCPP_INFO_STREAM(get_logger(), " * Floor Alignment: " << (mFloorAlignment?"TRUE":"FALSE") );
+    getParam( "pos_tracking.init_odom_with_first_valid_pose", mInitOdomWithPose, mInitOdomWithPose );
+    RCLCPP_INFO_STREAM(get_logger(), " * Init Odometry with first valid pose data: " << (mInitOdomWithPose?"TRUE":"FALSE") );
+    getParam( "pos_tracking.two_d_mode", mTwoDMode, mTwoDMode );
+    RCLCPP_INFO_STREAM(get_logger(), " * 2D mode: " << (mTwoDMode?"TRUE":"FALSE") );
+    if(mTwoDMode) {
+        getParam( "pos_tracking.fixed_z_value", mFixedZValue, mFixedZValue, " * Fixed Z value: " );
+    }
+
+    // ------------------------------------------
+
+    paramName = "tracking.qos_history";
+    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_hist = paramVal.as_int() == 0 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+        mPoseQos.history(qos_hist);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS History: '%s'", sl_tools::qos2str(qos_hist).c_str());
+
+    // ------------------------------------------
+
+    paramName = "tracking.qos_depth";
+    declare_parameter(paramName, rclcpp::ParameterValue(10) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_depth = paramVal.as_int();
+        mPoseQos.keep_last(qos_depth);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS History depth: '%d'", qos_depth);
+
+    // ------------------------------------------
+
+    paramName = "tracking.qos_reliability";
+    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT :
+                                                   RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+        mPoseQos.reliability(qos_reliability);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS Reliability: '%s'", sl_tools::qos2str(qos_reliability).c_str());
+
+    // ------------------------------------------
+
+    paramName = "tracking.qos_durability";
+    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_durability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+                                                  RMW_QOS_POLICY_DURABILITY_VOLATILE;
+        mPoseQos.durability(qos_durability);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
+
+}
+
 rcl_interfaces::msg::SetParametersResult ZedCamera::paramChangeCallback(std::vector<rclcpp::Parameter> parameters) {
 
     auto result = rcl_interfaces::msg::SetParametersResult();
@@ -497,352 +606,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::paramChangeCallback(std::vec
     return result;
 }
 
-void ZedCamera::getPosTrackingParams() {
-    rclcpp::Parameter paramVal;
-    std::string paramName;
 
-    rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-    size_t qos_depth = 10;
-    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
-    rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
-
-    RCLCPP_INFO(get_logger(), "*** POSITIONAL TRACKING parameters ***");
-
-    // ------------------------------------------
-
-    paramName = "tracking.publish_tf";
-    declare_parameter(paramName, rclcpp::ParameterValue(mPublishTF) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_BOOL) {
-            mPublishTF = paramVal.as_bool();
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a BOOL, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Publish TF: %s", mPublishTF ? "ENABLED" : "DISABLED");
-
-    //    if (mPublishTF) {
-    // ------------------------------------------
-
-    paramName = "tracking.publish_map_tf";
-    declare_parameter(paramName, rclcpp::ParameterValue(mPublishMapTF) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_BOOL) {
-            mPublishMapTF = paramVal.as_bool();
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a BOOL, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-    //    } else {
-    //        mPublishMapTF = false;
-    //    }
-
-    RCLCPP_INFO(get_logger(), " * Publish Map TF: %s", mPublishMapTF ? "ENABLED" : "DISABLED");
-
-    // ------------------------------------------
-
-    paramName = "tracking.pose_frame";
-    declare_parameter(paramName, rclcpp::ParameterValue(mMapFrameId) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_STRING) {
-            mMapFrameId = paramVal.as_string();
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a STRING, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Pose (map) frame: '%s'", mMapFrameId.c_str());
-
-    // ------------------------------------------
-
-    paramName = "tracking.odometry_frame";
-    declare_parameter(paramName, rclcpp::ParameterValue(mOdometryFrameId) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_STRING) {
-            mOdometryFrameId = paramVal.as_string();
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a STRING, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Odometry frame: '%s'", mOdometryFrameId.c_str());
-
-    // ------------------------------------------
-
-    // TODO Check how to handle the Odometry DB
-
-    // ------------------------------------------
-
-    paramName = "tracking.pose_smoothing";
-    declare_parameter(paramName, rclcpp::ParameterValue(mPoseSmoothing) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_BOOL) {
-            mPoseSmoothing = paramVal.as_bool();
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a BOOL, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Pose Smothing: %s", mPoseSmoothing ? "ENABLED" : "DISABLED");
-
-    // ------------------------------------------
-
-    paramName = "tracking.spatial_memory";
-    declare_parameter(paramName, rclcpp::ParameterValue(mSpatialMemory) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_BOOL) {
-            mSpatialMemory = paramVal.as_bool();
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a BOOL, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Spatial Memory: %s", mSpatialMemory ? "ENABLED" : "DISABLED");
-
-    // ------------------------------------------
-
-    paramName = "tracking.floor_alignment";
-    declare_parameter(paramName, rclcpp::ParameterValue(mFloorAlignment) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_BOOL) {
-            mFloorAlignment = paramVal.as_bool();
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a BOOL, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Floor Alignment: %s", mFloorAlignment ? "ENABLED" : "DISABLED");
-
-    // ------------------------------------------
-
-    paramName = "tracking.two_d_mode";
-    declare_parameter(paramName, rclcpp::ParameterValue(mTwoDMode) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_BOOL) {
-            mTwoDMode = paramVal.as_bool();
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a BOOL, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Force 2D mode: %s", mTwoDMode ? "ENABLED" : "DISABLED");
-
-    // ------------------------------------------
-
-    //if (mTwoDMode) {
-    paramName = "tracking.fixed_z_value";
-    declare_parameter(paramName, rclcpp::ParameterValue(mFixedZValue) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_DOUBLE) {
-            mFixedZValue = paramVal.as_double();
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a DOUBLE, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Fixed Z value: %g", mFixedZValue);
-    //}
-
-    // ------------------------------------------
-
-    paramName = "tracking.initial_tracking_pose";
-    declare_parameter(paramName, rclcpp::ParameterValue(mInitialBasePose) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_DOUBLE_ARRAY) {
-            mInitialBasePose = paramVal.as_double_array();
-
-            if (mInitialBasePose.size() != 6) {
-                mInitialBasePose.resize(6, 0.0);
-
-                RCLCPP_WARN(get_logger(), "The pose vector '%s' must contain SIX values, using the default value", paramName.c_str());
-            }
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be an ARRAY OF DOUBLE, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-
-        if (mInitialBasePose.size() != 6) {
-            mInitialBasePose.resize(6, 0.0);
-        }
-    }
-
-    RCLCPP_INFO(get_logger(), " * Initial pose: [%g,%g,%g, %g,%g,%g]",
-                mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
-            mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
-
-    // ------------------------------------------
-
-    paramName = "tracking.init_odom_with_first_valid_pose";
-    declare_parameter(paramName, rclcpp::ParameterValue(mInitOdomWithPose) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_BOOL) {
-            mInitOdomWithPose = paramVal.as_bool();
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a BOOL, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Init odometry with first valid pose: %s", mInitOdomWithPose ? "ENABLED" : "DISABLED");
-
-    // ------------------------------------------
-
-    paramName = "tracking.path_pub_rate";
-    declare_parameter(paramName, rclcpp::ParameterValue(mPathPubRate) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_DOUBLE) {
-            mPathPubRate = paramVal.as_double();
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a BOOL, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    if (mPathPubRate > 0.0) {
-        RCLCPP_INFO(get_logger(), " * Path publishing frequency: %g Hz", mPathPubRate);
-    } else {
-        RCLCPP_INFO(get_logger(), " * Path publishing: DISABLED (%g)", mPathPubRate);
-    }
-
-    // ------------------------------------------
-
-    paramName = "tracking.path_max_count";
-    declare_parameter(paramName, rclcpp::ParameterValue(mPathMaxCount) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_INTEGER) {
-            mPathMaxCount = paramVal.as_int();
-
-            if (mPathMaxCount == 0) {
-                RCLCPP_WARN(get_logger(),
-                            "The parameter '%s' cannot be '0'. To disable path publishing use please set 'path_pub_rate' to '0,0'. Using the default value",
-                            paramName.c_str());
-
-                mPathMaxCount = -1;
-            }
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a BOOL, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    if (mPathMaxCount > 0) {
-        RCLCPP_INFO(get_logger(), " * Path queue size: %d", mPathMaxCount);
-    } else {
-        RCLCPP_INFO(get_logger(), " * Path queue size: INFINITE (%d)", mPathMaxCount);
-    }
-
-    // ------------------------------------------
-
-    paramName = "tracking.publish_pose_covariance";
-    declare_parameter(paramName, rclcpp::ParameterValue(mPublishPoseCov) );
-
-    if (get_parameter(paramName, paramVal)) {
-        if (paramVal.get_type() == rclcpp::PARAMETER_BOOL) {
-            mPublishPoseCov = paramVal.as_bool();
-        } else {
-            RCLCPP_WARN(get_logger(), "The parameter '%s' must be a BOOL, using the default value", paramName.c_str());
-        }
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Pose with covariance topic: %s", mPublishPoseCov ? "ENABLED" : "DISABLED");
-
-    // ------------------------------------------
-
-    paramName = "tracking.qos_history";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
-
-    if (get_parameter(paramName, paramVal)) {
-        qos_hist = paramVal.as_int() == 0 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
-        mPoseQos.history(qos_hist);
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS History: '%s'", sl_tools::qos2str(qos_hist).c_str());
-
-    // ------------------------------------------
-
-    paramName = "tracking.qos_depth";
-    declare_parameter(paramName, rclcpp::ParameterValue(10) );
-
-    if (get_parameter(paramName, paramVal)) {
-        qos_depth = paramVal.as_int();
-        mPoseQos.keep_last(qos_depth);
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS History depth: '%d'", qos_depth);
-
-    // ------------------------------------------
-
-    paramName = "tracking.qos_reliability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
-
-    if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT :
-                                                   RMW_QOS_POLICY_RELIABILITY_RELIABLE;
-        mPoseQos.reliability(qos_reliability);
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS Reliability: '%s'", sl_tools::qos2str(qos_reliability).c_str());
-
-    // ------------------------------------------
-
-    paramName = "tracking.qos_durability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
-
-    if (get_parameter(paramName, paramVal)) {
-        qos_durability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
-                                                  RMW_QOS_POLICY_DURABILITY_VOLATILE;
-        mPoseQos.durability(qos_durability);
-    } else {
-        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
-    }
-
-    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
-
-}
 
 void ZedCamera::setTFCoordFrameNames()
 {
@@ -874,9 +638,9 @@ void ZedCamera::setTFCoordFrameNames()
     // Print TF frames
     RCLCPP_INFO_STREAM(get_logger(), "*** TF FRAMES ***");
     RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t\t-> " << mOdometryFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t-> " << mOdometryFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t\t-> " << mBaseFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t\t-> " << mCameraFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t-> " << mCameraFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t\t-> " << mLeftCamFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Left Optical\t\t-> " << mLeftCamOptFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * RGB\t\t\t-> " << mRgbFrameId);
@@ -886,11 +650,11 @@ void ZedCamera::setTFCoordFrameNames()
     RCLCPP_INFO_STREAM(get_logger(), " * Depth\t\t\t-> " << mDepthFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Depth Optical\t\t-> " << mDepthOptFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Point Cloud\t\t-> " << mCloudFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * Disparity\t\t\t-> " << mDisparityFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * Disparity Optical\t\t-> " << mDisparityOptFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Disparity\t\t-> " << mDisparityFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Disparity Optical\t-> " << mDisparityOptFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Confidence\t\t-> " << mConfidenceFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Confidence Optical\t-> " << mConfidenceOptFrameId);
-    if(mZedUserCamModel!=sl::MODEL::ZED)
+    if(mZedRealCamModel!=sl::MODEL::ZED)
     {
         RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t\t\t-> " << mImuFrameId);
 
@@ -1023,15 +787,15 @@ void ZedCamera::initPublishers() {
     topicPrefix += "/";
 
     // ----> Create messages that do not change while running
-    mRgbCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-    mRgbCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-    mLeftCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-    mLeftCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-    mRightCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-    mRightCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-    mDepthCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-    mConfidenceCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-    mCameraImuTransfMgs = std::make_shared<geometry_msgs::msg::Transform>();
+    mRgbCamInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>(); // TODO ARE THOSE MESSAGES USED???
+    mRgbCamInfoRawMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
+    mLeftCamInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
+    mLeftCamInfoRawMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
+    mRightCamInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
+    mRightCamInfoRawMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
+    mDepthCamInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
+    mConfidenceCamInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
+    mCameraImuTransfMgs = std::make_unique<geometry_msgs::msg::Transform>();
     // <---- Create messages that do not change while running
 
     // ----> Topics names definition
@@ -1090,26 +854,56 @@ void ZedCamera::initPublishers() {
     std::string odometry_topic = root + "odom";
     std::string odom_path_topic = root + "path_odom";
     std::string map_path_topic = root + "path_map";
+
+    // Set the Sensors topic names
+    std::string temp_topic_root = "temperature";
+    std::string imuTopicRoot = "imu";
+    std::string imu_topic_name = "data";
+    std::string imu_topic_raw_name = "data_raw";
+    std::string imu_topic_mag_name = "mag";
+    //std::string imu_topic_mag_raw_name = "mag_raw";
+    std::string pressure_topic_name = "atm_press";
+
+    std::string imu_topic = root + imuTopicRoot + "/" + imu_topic_name;
+    std::string imu_topic_raw = root + imuTopicRoot + "/" + imu_topic_raw_name;
+    std::string imu_temp_topic = root + temp_topic_root + "/" + imuTopicRoot;
+    std::string imu_mag_topic = root + imuTopicRoot + "/" + imu_topic_mag_name;
+    //std::string imu_mag_topic_raw = imuTopicRoot + "/" + imu_topic_mag_raw_name;
+    std::string pressure_topic = root + /*imuTopicRoot + "/" +*/ pressure_topic_name;
+    std::string temp_topic_left = root + temp_topic_root + "/left";
+    std::string temp_topic_right = root + temp_topic_root + "/right";
     // <---- Topics names definition
 
     // ----> Camera publishers
     mPubRgb = image_transport::create_camera_publisher( this, rgb_topic, mVideoQos.get_rmw_qos_profile() );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgb.getTopic());
+    mPubRgbGray = image_transport::create_camera_publisher( this, rgb_gray_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgbGray.getTopic());
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
     mPubRawRgb = image_transport::create_camera_publisher( this, rgb_raw_topic, mVideoQos.get_rmw_qos_profile() );
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgb.getTopic());
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRgb.getTopic());
+    mPubRawRgbGray = image_transport::create_camera_publisher( this, rgb_raw_gray_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRgbGray.getTopic());
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRgb.getInfoTopic());
     mPubLeft = image_transport::create_camera_publisher( this, left_topic, mVideoQos.get_rmw_qos_profile() );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeft.getTopic());
+    mPubLeftGray = image_transport::create_camera_publisher( this, left_gray_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeftGray.getTopic());
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeft.getInfoTopic());
     mPubRawLeft = image_transport::create_camera_publisher( this, left_raw_topic, mVideoQos.get_rmw_qos_profile() );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawLeft.getTopic());
+    mPubRawLeftGray = image_transport::create_camera_publisher( this, left_raw_gray_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawLeftGray.getTopic());
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawLeft.getInfoTopic());
     mPubRight = image_transport::create_camera_publisher( this, right_topic, mVideoQos.get_rmw_qos_profile() );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRight.getTopic());
+    mPubRightGray = image_transport::create_camera_publisher( this, right_gray_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRightGray.getTopic());
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRight.getInfoTopic());
     mPubRawRight = image_transport::create_camera_publisher( this, right_raw_topic, mVideoQos.get_rmw_qos_profile() );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRight.getTopic());
+    mPubRawRightGray = image_transport::create_camera_publisher( this, right_raw_gray_topic, mVideoQos.get_rmw_qos_profile() );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRightGray.getTopic());
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRight.getInfoTopic());
 
     mPubDepth = image_transport::create_camera_publisher( this, depth_topic, mDepthQos.get_rmw_qos_profile() );
@@ -1119,27 +913,7 @@ void ZedCamera::initPublishers() {
     mPubStereo = image_transport::create_publisher( this, stereo_topic, mVideoQos.get_rmw_qos_profile() );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubStereo.getTopic());
     mPubRawStereo = image_transport::create_publisher( this, stereo_raw_topic, mVideoQos.get_rmw_qos_profile() );
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawStereo.getTopic());
-
-    mPubRgbGray = image_transport::create_camera_publisher( this, rgb_gray_topic, mVideoQos.get_rmw_qos_profile() );
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgbGray.getTopic());
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRgbGray.getInfoTopic());
-    mPubRawRgbGray = image_transport::create_camera_publisher( this, rgb_raw_gray_topic, mVideoQos.get_rmw_qos_profile() );
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRgbGray.getTopic());
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRgbGray.getInfoTopic());
-    mPubLeftGray = image_transport::create_camera_publisher( this, left_gray_topic, mVideoQos.get_rmw_qos_profile() );
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeftGray.getTopic());
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeftGray.getInfoTopic());
-    mPubRawLeftGray = image_transport::create_camera_publisher( this, left_raw_gray_topic, mVideoQos.get_rmw_qos_profile() );
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeftGray.getTopic());
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubLeftGray.getInfoTopic());
-    mPubRightGray = image_transport::create_camera_publisher( this, right_gray_topic, mVideoQos.get_rmw_qos_profile() );
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRightGray.getTopic());
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRightGray.getInfoTopic());
-    mPubRawRightGray = image_transport::create_camera_publisher( this, right_raw_gray_topic, mVideoQos.get_rmw_qos_profile() );
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRightGray.getTopic());
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawRightGray.getInfoTopic());
-    // <---- Camera publishers
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawStereo.getTopic());// <---- Camera publishers
 
     // ----> Depth publishers
     mPubConfMap = create_publisher<sensor_msgs::msg::Image>(conf_map_topic, mDepthQos);
@@ -1148,18 +922,82 @@ void ZedCamera::initPublishers() {
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubDisparity->get_topic_name());
     mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>( pointcloud_topic, mDepthQos );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubCloud->get_topic_name());
-    mPubFusedCloud = create_publisher<sensor_msgs::msg::PointCloud2>( pointcloud_fused_topic, mDepthQos );
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubFusedCloud->get_topic_name());
     // <---- Depth publishers
 
     // ----> Pos Tracking
     mPubPose = create_publisher<geometry_msgs::msg::PoseStamped>( pose_topic, mPoseQos );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubPose->get_topic_name());
-    mPubPoseCov = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>( pose_topic, mPoseQos );
+    mPubPoseCov = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>( pose_cov_topic, mPoseQos );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubPoseCov->get_topic_name());
     mPubOdom = create_publisher<nav_msgs::msg::Odometry>( odometry_topic, mPoseQos );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubOdom->get_topic_name());
+    mPubPosePath = create_publisher<nav_msgs::msg::Path>( map_path_topic, mPoseQos );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubPosePath->get_topic_name());
+    mPubOdomPath = create_publisher<nav_msgs::msg::Path>( odom_path_topic, mPoseQos );
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubOdomPath->get_topic_name());
     // <---- Pos Tracking
+
+    // ----> Mapping
+    if (mMappingEnabled) {
+        mPubFusedCloud = create_publisher<sensor_msgs::msg::PointCloud2>( pointcloud_fused_topic, mDepthQos );
+        RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubFusedCloud->get_topic_name());
+    }
+    // <---- Mapping
+
+    // ----> Object Detection
+    // TODO SEE ROS1
+    // <---- Object Detection
+
+    // ----> Sensors
+    if(mZedRealCamModel != sl::MODEL::ZED) {
+        mPubImu = create_publisher<sensor_msgs::msg::Imu>( imu_topic, mPoseQos );
+        RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImu->get_topic_name());
+        mPubImuRaw = create_publisher<sensor_msgs::msg::Imu>( imu_topic_raw, mPoseQos );
+        RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImu->get_topic_name());
+        mPubImuTemp = create_publisher<sensor_msgs::msg::Temperature>( imu_temp_topic, mPoseQos );
+        RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuTemp->get_topic_name());
+
+        if(mZedRealCamModel == sl::MODEL::ZED2) {
+            mPubImuMag = create_publisher<sensor_msgs::msg::MagneticField>( imu_mag_topic, mPoseQos );
+            RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuMag->get_topic_name());
+            mPubPressure = create_publisher<sensor_msgs::msg::FluidPressure>( pressure_topic, mPoseQos );
+            RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubPressure->get_topic_name());
+            mPubTempL = create_publisher<sensor_msgs::msg::Temperature>( temp_topic_left, mPoseQos );
+            RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubTempL->get_topic_name());
+            mPubTempR = create_publisher<sensor_msgs::msg::Temperature>( temp_topic_right, mPoseQos );
+            RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubTempR->get_topic_name());
+        }
+
+        // ----> Publish latched camera/imu transform message
+        rclcpp::QoS transf_qos = mSensQos;
+        mSensQos.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL); // Latched topic
+        std::string cam_imu_tr_topic = root + "left_cam_imu_transform";
+        mPubCamImuTransf = create_publisher<geometry_msgs::msg::Transform>(cam_imu_tr_topic, transf_qos);
+
+        sl::Orientation sl_rot = mSlCamImuTransf.getOrientation();
+        sl::Translation sl_tr = mSlCamImuTransf.getTranslation();
+
+        mCameraImuTransfMgs = std::make_unique<geometry_msgs::msg::Transform>();
+
+        mCameraImuTransfMgs->rotation.x = sl_rot.ox;
+        mCameraImuTransfMgs->rotation.y = sl_rot.oy;
+        mCameraImuTransfMgs->rotation.z = sl_rot.oz;
+        mCameraImuTransfMgs->rotation.w = sl_rot.ow;
+
+        mCameraImuTransfMgs->translation.x = sl_tr.x;
+        mCameraImuTransfMgs->translation.y = sl_tr.y;
+        mCameraImuTransfMgs->translation.z = sl_tr.z;
+
+        RCLCPP_INFO( get_logger(), "Camera-IMU Rotation: \n %s", sl_rot.getRotationMatrix().getInfos().c_str() );
+        RCLCPP_INFO( get_logger(), "Camera-IMU Translation: \n %g %g %g", sl_tr.x, sl_tr.y, sl_tr.z );
+
+        mPubCamImuTransf->publish( std::move(mCameraImuTransfMgs) );
+
+        RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubCamImuTransf->get_topic_name() << " [LATCHED]");
+
+    }
+
+    // <---- Sensors
 
 }
 
@@ -1183,9 +1021,10 @@ bool ZedCamera::startCamera() {
     mStaticTfBroadcaster = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
     // <---- TF2 Transform
 
+    // TODO Open Camera
 
-
-
+    setTFCoordFrameNames(); // Requires mZedRealCamModel available only after camera opening
+    initPublishers(); // Requires mZedRealCamModel available only after camera opening
 
 
 }

@@ -50,11 +50,11 @@ typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::PointCloud2> pointcloudMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::Imu> imuMsgPtr;
 
-typedef std::shared_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
-typedef std::shared_ptr<geometry_msgs::msg::PoseWithCovarianceStamped> poseCovMsgPtr;
-typedef std::shared_ptr<geometry_msgs::msg::Transform> transfMsgPtr;
-typedef std::shared_ptr<nav_msgs::msg::Odometry> odomMsgPtr;
-typedef std::shared_ptr<nav_msgs::msg::Path> pathMsgPtr;
+typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
+typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped> poseCovMsgPtr;
+typedef std::unique_ptr<geometry_msgs::msg::Transform> transfMsgPtr;
+typedef std::unique_ptr<nav_msgs::msg::Odometry> odomMsgPtr;
+typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
 
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::ResetOdometry>::SharedPtr resetOdomSrvPtr;
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::RestartTracking>::SharedPtr restartTrkSrvPtr;
@@ -138,16 +138,20 @@ private:
     bool mPublishTF = true;
     bool mPublishMapTF = true;
     bool mPoseSmoothing = false;
-    bool mSpatialMemory = true;
+    bool mAreaMemory = true;
+    bool mImuFusion = true;
     bool mFloorAlignment = false;
     bool mTwoDMode = false;
     double mFixedZValue = 0.0;
-    std::vector<double> mInitialBasePose;
+    std::vector<double> mInitialBasePose = std::vector<double>(6, 0.0);
     bool mInitOdomWithPose = true;
     double mPathPubRate = 2.0;
     int mPathMaxCount = -1;
     bool mPublishPoseCov = true;
-    std::string mOdometryDb = "";
+    std::string mAreaMemoryDbPath = "";
+    bool mMappingEnabled = false;
+    bool mObjDetEnabled = false;
+
 
     // QoS profiles
     // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
@@ -224,6 +228,9 @@ private:
     std::shared_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
     std::shared_ptr<tf2_ros::StaticTransformBroadcaster> mStaticTfBroadcaster;
 
+    // Camera IMU transform
+    sl::Transform mSlCamImuTransf;
+
     // ----> Topics (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
     // Camera info
     camInfoMsgPtr mRgbCamInfoMsg;
@@ -263,16 +270,15 @@ private:
     posePub mPubPose; //
     poseCovPub mPubPoseCov; //
     odomPub mPubOdom; //
-    pathPub mPubOdomPath;
-    pathPub mPubMapPath;
-    imuPub mPubImu;
-    imuPub mPubImuRaw;
-    tempPub mPubImuTemp;
-    magPub mPubImuMag;
-    //ros::Publisher mPubImuMagRaw;
-    pressPub mPubPressure;
-    tempPub mPubTempL;
-    tempPub mPubTempR;
+    pathPub mPubOdomPath; //
+    pathPub mPubPosePath; //
+    imuPub mPubImu; //
+    imuPub mPubImuRaw; //
+    tempPub mPubImuTemp; //
+    magPub mPubImuMag; //
+    pressPub mPubPressure; //
+    tempPub mPubTempL; //
+    tempPub mPubTempR; //
     transfPub mPubCamImuTransf;
     // <---- Publishers
 

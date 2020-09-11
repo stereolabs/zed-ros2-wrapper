@@ -682,7 +682,7 @@ void ZedCamera::setTFCoordFrameNames()
     RCLCPP_INFO_STREAM(get_logger(), " * Confidence Optical\t-> " << mConfidenceOptFrameId);
     if(mCamRealCamModel!=sl::MODEL::ZED)
     {
-        RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t\t\t-> " << mImuFrameId);
+        RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t\t-> " << mImuFrameId);
 
         if(mCamUserCamModel==sl::MODEL::ZED2)
         {
@@ -875,7 +875,7 @@ void ZedCamera::initPublishers() {
     // Set the positional tracking topic names
     std::string pose_topic = root + "pose";
     std::string pose_cov_topic;
-    pose_cov_topic = root + pose_topic + "_with_covariance";
+    pose_cov_topic = pose_topic + "_with_covariance";
 
     std::string odometry_topic = root + "odom";
     std::string odom_path_topic = root + "path_odom";
@@ -979,7 +979,7 @@ void ZedCamera::initPublishers() {
         mPubImu = create_publisher<sensor_msgs::msg::Imu>( imu_topic, mPoseQos );
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImu->get_topic_name());
         mPubImuRaw = create_publisher<sensor_msgs::msg::Imu>( imu_topic_raw, mPoseQos );
-        RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImu->get_topic_name());
+        RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuRaw->get_topic_name());
         mPubImuTemp = create_publisher<sensor_msgs::msg::Temperature>( imu_temp_topic, mPoseQos );
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuTemp->get_topic_name());
 
@@ -996,7 +996,8 @@ void ZedCamera::initPublishers() {
 
         // ----> Publish latched camera/imu transform message
         rclcpp::QoS transf_qos = mSensQos;
-        mSensQos.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL); // Latched topic
+        transf_qos.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL); // Latched topic
+        transf_qos.keep_last(1);
         std::string cam_imu_tr_topic = root + "left_cam_imu_transform";
         mPubCamImuTransf = create_publisher<geometry_msgs::msg::Transform>(cam_imu_tr_topic, transf_qos);
 
@@ -1014,13 +1015,11 @@ void ZedCamera::initPublishers() {
         mCameraImuTransfMgs->translation.y = sl_tr.y;
         mCameraImuTransfMgs->translation.z = sl_tr.z;
 
-        RCLCPP_INFO( get_logger(), "Camera-IMU Rotation: \n %s", sl_rot.getRotationMatrix().getInfos().c_str() );
+        RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubCamImuTransf->get_topic_name() << " [LATCHED]");
         RCLCPP_INFO( get_logger(), "Camera-IMU Translation: \n %g %g %g", sl_tr.x, sl_tr.y, sl_tr.z );
+        RCLCPP_INFO( get_logger(), "Camera-IMU Rotation: \n %s", sl_rot.getRotationMatrix().getInfos().c_str() );
 
         mPubCamImuTransf->publish( std::move(mCameraImuTransfMgs) );
-
-        RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubCamImuTransf->get_topic_name() << " [LATCHED]");
-
     }
     // <---- Sensors
 
@@ -1265,9 +1264,6 @@ bool ZedCamera::startCamera() {
                 std::chrono::duration_cast<std::chrono::milliseconds>(videoDepthPubPeriod_msec),
                 std::bind(&ZedCamera::pubVideoDepthCallback, this) );
 
-
-
-
     return true;
 }
 
@@ -1281,19 +1277,170 @@ void ZedCamera::zedGrabThreadFunc() {
     mObjDetPeriodMean_msec = std::make_unique<sl_tools::CSmartMean>(mCamFrameRate);
     // <---- Initialize Diagnostic statistics
 
+    // ----> Grab Runtime parameters
+    sl::RuntimeParameters runParams;
+    runParams.sensing_mode = static_cast<sl::SENSING_MODE>(mDepthQuality);
+    runParams.enable_depth = false;
+    // <---- Grab Runtime parameters
 
+    // Infinite grab thread
+    while(1) {
+        // ----> Interruption check
+        if (!rclcpp::ok()) {
+            RCLCPP_INFO(get_logger(), "Ctrl+C received");
+            break;
+        }
 
+        if (mThreadStop) {
+            RCLCPP_INFO(get_logger(), "Grab thread stopped");
+            break;
+        }
+        // <---- Interruption check
+
+        // ZED grab
+        mGrabStatus = mZed.grab(runParams);
+
+        // ----> Timestamp
+        if (mSvoMode) {
+            mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+        } else {
+            mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+        }
+        // <---- Timestamp
+    }
 }
 
 void ZedCamera::pubVideoDepthCallback() {
     static sl::Timestamp lastZedTs = 0; // Used to calculate stable publish frequency
 
+    rclcpp::Time ros_ts = mFrameTimestamp; // Fix timestamp for images and depth to avoid async transmissions
 
-
+    // ----> Publish Video and Depth Data
+    mCamDataMutex.lock();
+    mPublishingData = false;
+    mPublishingData |= publishImages(ros_ts);
+    mPublishingData |= publishDepthData(ros_ts);
+    mCamDataMutex.unlock();
+    // <---- Publish Video and Depth Data
 }
 
 bool ZedCamera::publishImages(rclcpp::Time timeStamp) {
+    size_t rgbSubnumber = mPubRgb.getNumSubscribers();
+    size_t rgbRawSubnumber = mPubRawRgb.getNumSubscribers();
+    size_t rgbGraySubnumber = mPubRgbGray.getNumSubscribers();
+    size_t rgbRawGraySubnumber = mPubRawRgbGray.getNumSubscribers();
+    size_t leftSubnumber = mPubLeft.getNumSubscribers();
+    size_t leftRawSubnumber = mPubRawLeft.getNumSubscribers();
+    size_t leftGraySubnumber = mPubLeftGray.getNumSubscribers();
+    size_t leftRawGraySubnumber = mPubRawLeftGray.getNumSubscribers();
+    size_t rightSubnumber = mPubRight.getNumSubscribers();
+    size_t rightRawSubnumber = mPubRawRight.getNumSubscribers();
+    size_t rightGraySubNumber = mPubRightGray.getNumSubscribers();
+    size_t rightRawGraySubNumber = mPubRawRightGray.getNumSubscribers();
 
+    sl::Mat leftZEDMat, rightZEDMat;
+
+    // ----> Publish the left == rgb image if someone has subscribed to
+    if (leftSubnumber > 0 || rgbSubnumber > 0) {
+        // Retrieve RGBA Left image
+        mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
+
+        if (leftSubnumber > 0) {
+            publishImage( leftZEDMat, mPubLeft, std::move(mLeftCamInfoMsg), mLeftCamOptFrameId, timeStamp);
+        }
+
+        if (rgbSubnumber > 0) {
+            publishImage(leftZEDMat, mPubRgb, std::move(mLeftCamInfoMsg), mDepthOptFrameId, timeStamp);
+        }
+    }
+    // <---- Publish the left == rgb image if someone has subscribed to
+
+    // ----> Publish the left_raw == rgb_raw image if someone has subscribed to
+    if (leftRawSubnumber > 0 || rgbRawSubnumber > 0) {
+        // Retrieve RGBA Left image
+        mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+
+        if (leftRawSubnumber > 0) {
+            publishImage(leftZEDMat, mPubRawLeft, std::move(mLeftCamInfoRawMsg), mLeftCamOptFrameId, timeStamp);
+        }
+
+        if (rgbRawSubnumber > 0) {
+            publishImage(leftZEDMat, mPubRawRgb, std::move(mLeftCamInfoRawMsg), mDepthOptFrameId, timeStamp);
+        }
+    }
+    // <---- Publish the left_raw == rgb_raw image if someone has subscribed to
+
+    // ----> Publish the left_gray == rgb_gray image if someone has subscribed to
+    if (leftGraySubnumber > 0 || rgbGraySubnumber > 0) {
+        // Retrieve RGBA Left image
+        mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
+
+        if (leftGraySubnumber > 0) {
+            publishImage( leftZEDMat, mPubLeftGray, std::move(mLeftCamInfoMsg), mLeftCamOptFrameId, timeStamp);
+        }
+
+        if (rgbGraySubnumber > 0) {
+            publishImage(leftZEDMat, mPubRgbGray, std::move(mLeftCamInfoMsg), mDepthOptFrameId, timeStamp);
+        }
+    }
+    // <---- Publish the left_raw == rgb_raw image if someone has subscribed to
+
+    // ----> Publish the left_raw_gray == rgb_raw_gray image if someone has subscribed to
+    if (leftRawGraySubnumber > 0 || rgbRawGraySubnumber > 0) {
+        // Retrieve RGBA Left image
+        mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+
+        if (leftRawGraySubnumber > 0) {
+            publishImage( leftZEDMat, mPubRawLeftGray, std::move(mLeftCamInfoRawMsg), mLeftCamOptFrameId, timeStamp);
+        }
+
+        if (rgbRawGraySubnumber > 0) {
+            publishImage(leftZEDMat, mPubRawRgbGray, std::move(mLeftCamInfoRawMsg), mDepthOptFrameId, timeStamp);
+        }
+    }
+    // ----> Publish the left_raw_gray == rgb_raw_gray image if someone has subscribed to
+
+    // ----> Publish the right image if someone has subscribed to
+    if (rightSubnumber > 0) {
+        // Retrieve RGBA Right image
+        mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
+
+        publishImage( rightZEDMat, mPubRight, std::move(mRightCamInfoMsg), mRightCamOptFrameId, timeStamp);
+    }
+    // <---- Publish the right image if someone has subscribed to
+
+    // ----> Publish the right raw image if someone has subscribed to
+    if (rightRawSubnumber > 0) {
+        // Retrieve RGBA Right image
+        mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+
+        publishImage( rightZEDMat, mPubRawRight, std::move(mRightCamInfoRawMsg), mRightCamOptFrameId, timeStamp);
+    }
+    // <---- Publish the right raw image if someone has subscribed to
+
+    // ----> Publish the right gray image if someone has subscribed to
+    if (rightGraySubNumber > 0) {
+        // Retrieve RGBA Right image
+        mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
+
+        publishImage( rightZEDMat, mPubRightGray, std::move(mRightCamInfoMsg), mRightCamOptFrameId, timeStamp);
+    }
+    // <---- Publish the right gray image if someone has subscribed to
+
+    // ----> Publish the right raw gray image if someone has subscribed to
+    if (rightRawGraySubNumber > 0) {
+        // Retrieve RGBA Right image
+        mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+
+        publishImage( rightZEDMat, mPubRawRightGray, std::move(mRgbCamInfoRawMsg), mRightCamOptFrameId, timeStamp);
+    }
+    // <---- Publish the right raw gray image if someone has subscribed to
+}
+
+
+void ZedCamera::publishImage(sl::Mat& img, image_transport::CameraPublisher &pubImg, camInfoMsgPtr camInfoMsg,
+                             std::string imgFrameId, rclcpp::Time t) {
+    pubImg.publish(*sl_tools::imageToROSmsg(img, imgFrameId, t), *camInfoMsg, t); // TODO CHECK FOR ZERO-COPY
 }
 
 void ZedCamera::publishDepth(sl::Mat depth, rclcpp::Time t) {

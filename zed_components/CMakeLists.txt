@@ -20,6 +20,20 @@ IF(NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
+if(CMAKE_BUILD_TYPE MATCHES Release )
+    message(" * Release Mode")
+    add_compile_options(-Wno-deprecated-declarations)
+endif()
+
+if(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo )
+    message(" * Release with Debug Info Mode")
+    add_compile_options(-Wno-deprecated-declarations)
+endif()
+
+if(CMAKE_BUILD_TYPE MATCHES Debug )
+    message(" * Debug Mode")
+endif()
+
 #############################################
 # Dependencies
 find_package(ZED 3 REQUIRED)

@@ -171,9 +171,9 @@ namespace sl_tools {
         return rclcpp::Time(sec, nsec);
     }
 
-    std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat img, std::string frameId, rclcpp::Time t) {
+    std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat img, std::string frameId, rclcpp::Time t) {
 
-        std::shared_ptr<sensor_msgs::msg::Image> imgMessage = std::make_shared<sensor_msgs::msg::Image>();
+        std::unique_ptr<sensor_msgs::msg::Image> imgMessage = std::make_unique<sensor_msgs::msg::Image>();
 
         imgMessage->header.stamp = t;
         imgMessage->header.frame_id = frameId;

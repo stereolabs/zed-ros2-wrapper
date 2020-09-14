@@ -36,14 +36,14 @@ endif()
 
 #############################################
 # Dependencies
+find_package(ZED 3 REQUIRED)
+find_package(CUDA REQUIRED)
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(zed_components REQUIRED)
-
-find_package(ZED 3 REQUIRED)
-find_package(CUDA REQUIRED)
 
 ###############################################################################
 #Add all files in subdirectories of the project in
@@ -71,39 +71,33 @@ set(ZED_WRAPPER_SRC
 add_executable(zed_wrapper
     ${ZED_WRAPPER_SRC}
 )
-ament_target_dependencies(zed_wrapper
-  "zed_components"
-  "rclcpp"  
+ament_target_dependencies(zed_wrapper  
+  rclcpp
+  rclcpp_components
+  zed_components
 )
-
 install(TARGETS zed_wrapper
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
-# Install executable
-install(TARGETS
-    zed_wrapper
-    DESTINATION lib/${PROJECT_NAME}
-)
-
-# Install PARAMS files.
+# Install PARAMS files
 install(DIRECTORY
   params
   DESTINATION share/${PROJECT_NAME}
 )
 
-# Install URDF files.
+# Install URDF files
 install(DIRECTORY
   urdf
   DESTINATION share/${PROJECT_NAME}
 )
 
-# Install LAUNCH files.
+# Install LAUNCH files
 install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}
 )
 
-
+ament_package()

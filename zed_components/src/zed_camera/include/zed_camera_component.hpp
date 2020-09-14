@@ -51,7 +51,7 @@ typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odomPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
 
 typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
-typedef std::unique_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
+typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::PointCloud2> pointcloudMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::Imu> imuMsgPtr;
 
@@ -113,10 +113,12 @@ protected:
     bool publishImages(rclcpp::Time timeStamp);
     bool publishDepthData(rclcpp::Time timeStamp);
     void publishCameraImage(sl::Mat img, std::string imgFrameId, rclcpp::Time timeStamp);
-    void publishImage(sl::Mat &img, image_transport::CameraPublisher& pubImg, camInfoMsgPtr camInfoMsg,
-                      std::string imgFrameId, rclcpp::Time t);
+    void publishImage(sl::Mat& img,
+                       image_transport::CameraPublisher& pubImg,
+                       camInfoMsgPtr& camInfoMsg,
+                       std::string imgFrameId, rclcpp::Time t);
     void publishDepth(sl::Mat depth, rclcpp::Time timeStamp);
-    void publishDisparity(sl::Mat disparity, rclcpp::Time timestamp);
+    //void publishDisparity(sl::Mat disparity, rclcpp::Time timestamp);
     void publishPointCloud();
 
 

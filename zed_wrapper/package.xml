@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>zed-wrapper</name>
+  <name>zed_wrapper</name>
   <version>0.2.0</version>
-  <description>zed-wrapper loading zed-componets in a single process</description>
+  <description>zed_wrapper loading zed_components in a single process</description>
   <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
 
 	<license>MIT</license>

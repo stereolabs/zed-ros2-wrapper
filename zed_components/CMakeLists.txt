@@ -86,7 +86,7 @@ if(NOT DEFINED CUDA_NPP_LIBRARIES_ZED)
     set(CUDA_NPP_LIBRARIES_ZED ${CUDA_npp_LIBRARY} ${CUDA_npps_LIBRARY} ${CUDA_nppi_LIBRARY})
 endif()
 
-set(ZED_LINK_LIBS
+set(ZED_LIBS
   ${ZED_LIBRARIES}
   ${CUDA_LIBRARIES} ${CUDA_NPP_LIBRARIES_ZED}
 )
@@ -109,10 +109,10 @@ set(ZED_CAMERA_SRC
 
 ###############################################################################
 # Bin and Install
-set(DEPENDENCIES
-    zed_interfaces
+set(DEPENDENCIES        
     rclcpp
     rclcpp_components
+    image_transport
     std_msgs
     tf2
     tf2_ros
@@ -120,7 +120,7 @@ set(DEPENDENCIES
     nav_msgs
     sensor_msgs
     stereo_msgs
-    image_transport
+    zed_interfaces
 )
 
 add_library(zed_camera_component SHARED
@@ -131,12 +131,13 @@ add_library(zed_camera_component SHARED
 target_compile_definitions(zed_camera_component
     PRIVATE "COMPOSITION_BUILDING_DLL"
 )
+target_link_libraries(zed_camera_component
+  ${ZED_LIBS}
+)
 ament_target_dependencies(zed_camera_component
     ${DEPENDENCIES}
 )
-target_link_libraries(zed_camera_component
-  ${ZED_LINK_LIBS}
-)
+
 rclcpp_components_register_nodes(zed_camera_component "stereolabs::ZedCamera")
 set(node_plugins "${node_plugins}stereolabs::ZedCamera;$<TARGET_FILE:zed_camera_component>\n")
 

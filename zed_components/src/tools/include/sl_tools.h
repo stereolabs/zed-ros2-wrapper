@@ -62,7 +62,7 @@ namespace sl_tools {
      * \param frameId : the id of the reference frame of the image
      * \param t : the ros::Time to stamp the image
      */
-    std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat img, std::string frameId, rclcpp::Time t);
+    std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat img, std::string frameId, rclcpp::Time t);
 
     /*! \bried qos value to string
      * \param qos the value to convert

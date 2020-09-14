@@ -21,12 +21,12 @@ IF(NOT CMAKE_BUILD_TYPE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
 if(CMAKE_BUILD_TYPE MATCHES Release )
-    message(" * Release Mode")
+    #message(" * Release Mode")
     add_compile_options(-Wno-deprecated-declarations)
 endif()
 
 if(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo )
-    message(" * Release with Debug Info Mode")
+    #message(" * Release with Debug Info Mode")
     add_compile_options(-Wno-deprecated-declarations)
 endif()
 
@@ -109,6 +109,20 @@ set(ZED_CAMERA_SRC
 
 ###############################################################################
 # Bin and Install
+set(DEPENDENCIES
+    zed_interfaces
+    rclcpp
+    rclcpp_components
+    std_msgs
+    tf2
+    tf2_ros
+    geometry_msgs
+    nav_msgs
+    sensor_msgs
+    stereo_msgs
+    image_transport
+)
+
 add_library(zed_camera_component SHARED
     ${SL_TOOLS}
     ${ZED_CAMERA_INC}
@@ -118,17 +132,7 @@ target_compile_definitions(zed_camera_component
     PRIVATE "COMPOSITION_BUILDING_DLL"
 )
 ament_target_dependencies(zed_camera_component
-    "zed_interfaces"
-    "rclcpp"
-    "rclcpp_components"
-    "std_msgs"
-    "tf2"
-    "tf2_ros"
-    "geometry_msgs"
-    "nav_msgs"
-    "sensor_msgs"
-    "stereo_msgs"
-    "image_transport"
+    ${DEPENDENCIES}
 )
 target_link_libraries(zed_camera_component
   ${ZED_LINK_LIBS}
@@ -136,18 +140,18 @@ target_link_libraries(zed_camera_component
 rclcpp_components_register_nodes(zed_camera_component "stereolabs::ZedCamera")
 set(node_plugins "${node_plugins}stereolabs::ZedCamera;$<TARGET_FILE:zed_camera_component>\n")
 
-
 # Install components
-install(
-    TARGETS zed_camera_component
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
+install(TARGETS zed_camera_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
 # Install header files
 install(
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/include/
     DESTINATION include/${PROJECT_NAME}/
 )
 
@@ -162,4 +166,7 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+ament_export_include_directories(include)
+ament_export_libraries(zed_camera_component)
+ament_export_dependencies(${DEPENDENCIES})
 ament_package()

@@ -31,7 +31,7 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
     RCLCPP_INFO(get_logger(), "********************************");
 
     // ----> Parameters initialization
-    getParam( "general.debug_mode_active", mDebugMode, mDebugMode );
+    getParam( "general.debug_mode", mDebugMode, mDebugMode );
     if(mDebugMode) {
         rcutils_ret_t res = rcutils_logging_set_logger_level(get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
 

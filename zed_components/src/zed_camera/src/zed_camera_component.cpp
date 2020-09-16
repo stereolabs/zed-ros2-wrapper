@@ -809,19 +809,6 @@ void ZedCamera::initPublishers() {
 
     topicPrefix += get_name();
     topicPrefix += "/";
-
-    // ----> Create messages that do not change while running
-    mRgbCamInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>(); // TODO ARE THOSE MESSAGES USED???
-    mRgbCamInfoRawMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
-    mLeftCamInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
-    mLeftCamInfoRawMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
-    mRightCamInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
-    mRightCamInfoRawMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
-    mDepthCamInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
-    mConfidenceCamInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
-    mCameraImuTransfMgs = std::make_unique<geometry_msgs::msg::Transform>();
-    // <---- Create messages that do not change while running
-
     // ----> Topics names definition
     std::string root = "~/";
     std::string rgbTopicRoot = "rgb";
@@ -1198,17 +1185,17 @@ bool ZedCamera::startCamera() {
     // Firmwares
     if (!mSvoMode) {
 #if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
-        mCamFwVersion = mZed.getCameraInformation().camera_firmware_version;
+        mCamFwVersion = camInfo.camera_firmware_version;
 #else
-        mCamFwVersion = mZed.getCameraInformation().camera_configuration.firmware_version;
+        mCamFwVersion = camInfo.camera_configuration.firmware_version;
 #endif
 
         RCLCPP_INFO_STREAM(get_logger()," * Camera FW Version -> " << mCamFwVersion);
         if(mCamRealCamModel!=sl::MODEL::ZED) {
 #if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
-            mSensFwVersion = mZed.getCameraInformation().sensors_firmware_version;
+            mSensFwVersion = camInfo.sensors_firmware_version;
 #else
-            mSensFwVersion = mZed.getCameraInformation().sensors_configuration.firmware_version;
+            mSensFwVersion = camInfo.sensors_configuration.firmware_version;
 #endif
             RCLCPP_INFO_STREAM(get_logger()," * Sensors FW Version -> " << mSensFwVersion);
         }
@@ -1219,9 +1206,9 @@ bool ZedCamera::startCamera() {
     // Camera/IMU transform
     if (mCamRealCamModel != sl::MODEL::ZED) {
 #if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
-        mSlCamImuTransf = mZed.getCameraInformation().camera_imu_transform;
+        mSlCamImuTransf = camInfo.camera_imu_transform;
 #else
-        mSlCamImuTransf = mZed.getCameraInformation().sensors_configuration.camera_imu_transform;
+        mSlCamImuTransf = camInfo.sensors_configuration.camera_imu_transform;
 #endif
 
         RCLCPP_INFO( get_logger(), "Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str() );
@@ -1239,6 +1226,18 @@ bool ZedCamera::startCamera() {
     int d_h = static_cast<int>(mCamHeight * mDepthDownsampleFactor);
     mMatResolDepth = sl::Resolution(d_w,d_h);
     RCLCPP_DEBUG_STREAM( get_logger(),"Depth Mat size : " << mMatResolDepth.width << "x" << mMatResolDepth.height);
+    // <---- Camera information
+
+    // ----> Camera Info messages
+    mRgbCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>(); // TODO ARE THOSE MESSAGES USED???
+    mRgbCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mLeftCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mLeftCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mRightCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mRightCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mDepthCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mConfidenceCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+    mCameraImuTransfMgs = std::make_unique<geometry_msgs::msg::Transform>();
 
     fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId, mRightCamOptFrameId);
     fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId, mRightCamOptFrameId, true);
@@ -1246,7 +1245,7 @@ bool ZedCamera::startCamera() {
     mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
     mDepthCamInfoMsg = mLeftCamInfoMsg;
     mConfidenceCamInfoMsg = mLeftCamInfoMsg;
-    // <---- Camera information
+    // <---- Camera Info messages
 
     setTFCoordFrameNames(); // Requires mZedRealCamModel available only after camera opening
     initPublishers(); // Requires mZedRealCamModel available only after camera opening

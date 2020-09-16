@@ -13,6 +13,9 @@ def generate_launch_description():
     #  - 'zed2' for "ZED2" camera
     camera_model = 'zed2'
 
+    # Camera name
+    camera_name = 'zed2'
+
     # URDF file to be loaded by Robot State Publisher
     urdf = os.path.join(
         get_package_share_directory('zed_wrapper'),
@@ -31,27 +34,29 @@ def generate_launch_description():
     )
 
     # Set LOG format
-    os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = '{time}: [{name}] [{severity}] - {message}'
+    os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = '{time} [{name}] [{severity}] {message}'
 
-    return LaunchDescription([
-        # Robot State Publisher
-        Node(
-            package='robot_state_publisher',
-            node_namespace=camera_model,
-            node_executable='robot_state_publisher',
-            node_name=camera_model+'_state_publisher',
-            output='screen',
-            arguments=[urdf],
-        ),
-        Node(
-            package='zed_wrapper',
-            node_namespace=camera_model,
-            node_executable='zed_wrapper',
-            node_name='zed_node',
-            output='screen',
-            parameters=[
-                config_common,  # Common parameters
-                config_camera,  # Camera related parameters
-            ],
-        )
-    ])
+    # Robot State Publisher
+    rsp_node = Node(
+        package='robot_state_publisher',
+        node_namespace=camera_name,
+        node_executable='robot_state_publisher',
+        node_name=camera_name+'_state_publisher',
+        output='screen',
+        arguments=[urdf],
+    )
+
+    # ZED Wrapper
+    zed_wrapper_node = Node(
+        package='zed_wrapper',
+        node_namespace=camera_name,
+        node_executable='zed_wrapper',
+        node_name='zed_node',
+        output='screen',
+        parameters=[
+            config_common,  # Common parameters
+            config_camera,  # Camera related parameters
+        ],
+    )
+
+    return LaunchDescription([rsp_node,zed_wrapper_node])

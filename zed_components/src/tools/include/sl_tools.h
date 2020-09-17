@@ -60,9 +60,17 @@ namespace sl_tools {
     /*! \brief sl::Mat to ros message conversion
      * \param img : the image to publish
      * \param frameId : the id of the reference frame of the image
-     * \param t : the ros::Time to stamp the image
+     * \param t : rclcpp ros::Time to stamp the image
      */
     std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat img, std::string frameId, rclcpp::Time t);
+
+    /*! \brief sl::Mat to ros message conversion
+     * \param left : the left image to convert and stitch
+     * \param right : the right image to convert and stitch
+     * \param frameId : the id of the reference frame of the image
+     * \param t : rclcpp rclcpp::Time to stamp the image
+     */
+    std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(sl::Mat left, sl::Mat right, std::string frameId, rclcpp::Time t);
 
     /*! \bried qos value to string
      * \param qos the value to convert

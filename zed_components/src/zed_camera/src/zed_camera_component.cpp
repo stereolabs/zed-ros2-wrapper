@@ -1302,6 +1302,17 @@ void ZedCamera::zedGrabThreadFunc() {
         }
         // <---- Interruption check
 
+        // ----> Check for depth requirement
+        if( isDepthRequired() ) {
+            runParams.texture_confidence_threshold = mDepthTextConf;
+            runParams.confidence_threshold = mDepthConf;
+
+            runParams.enable_depth = true;
+        }  else {
+            runParams.enable_depth = false;
+        }
+        // <---- Check for depth requirement
+
         // ZED grab
         mGrabStatus = mZed.grab(runParams);
 
@@ -1348,30 +1359,34 @@ bool ZedCamera::publishImages(rclcpp::Time timeStamp) {
     uint32_t rightGraySubNumber = count_subscribers(mPubRightGray.getTopic());
     uint32_t rightRawGraySubNumber = count_subscribers(mPubRawRightGray.getTopic());
 
+    uint32_t stereoSubnumber = count_subscribers(mPubStereo.getTopic());
+    uint32_t stereoRawSubnumber = count_subscribers(mPubRawStereo.getTopic());
+
     uint32_t tot_sub = rgbSubnumber+rgbRawSubnumber+
             rgbGraySubnumber+rgbRawGraySubnumber+
             leftSubnumber+leftRawSubnumber+
             leftGraySubnumber+leftRawGraySubnumber+
             rightSubnumber+rightRawSubnumber+
-            rightGraySubNumber+rightRawGraySubNumber;
+            rightGraySubNumber+rightRawGraySubNumber+
+            stereoSubnumber+stereoRawSubnumber;
 
     if(tot_sub<1) {
         return false;
     }
 
-    sl::Mat leftZEDMat, rightZEDMat;
+    sl::Mat slMat;
 
     // ----> Publish the left == rgb image if someone has subscribed to
     if (leftSubnumber > 0 || rgbSubnumber > 0) {
         // Retrieve RGBA Left image
-        mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(slMat, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
 
         if (leftSubnumber > 0) {
-            publishImage( leftZEDMat, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, timeStamp);
+            publishImageWithInfo( slMat, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, timeStamp);
         }
 
         if (rgbSubnumber > 0) {
-            publishImage(leftZEDMat, mPubRgb, mLeftCamInfoMsg, mDepthOptFrameId, timeStamp);
+            publishImageWithInfo(slMat, mPubRgb, mLeftCamInfoMsg, mDepthOptFrameId, timeStamp);
         }
     }
     // <---- Publish the left == rgb image if someone has subscribed to
@@ -1379,14 +1394,14 @@ bool ZedCamera::publishImages(rclcpp::Time timeStamp) {
     // ----> Publish the left_raw == rgb_raw image if someone has subscribed to
     if (leftRawSubnumber > 0 || rgbRawSubnumber > 0) {
         // Retrieve RGBA Left image
-        mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(slMat, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
 
         if (leftRawSubnumber > 0) {
-            publishImage(leftZEDMat, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
+            publishImageWithInfo(slMat, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
         }
 
         if (rgbRawSubnumber > 0) {
-            publishImage(leftZEDMat, mPubRawRgb, mLeftCamInfoRawMsg, mDepthOptFrameId, timeStamp);
+            publishImageWithInfo(slMat, mPubRawRgb, mLeftCamInfoRawMsg, mDepthOptFrameId, timeStamp);
         }
     }
     // <---- Publish the left_raw == rgb_raw image if someone has subscribed to
@@ -1394,14 +1409,14 @@ bool ZedCamera::publishImages(rclcpp::Time timeStamp) {
     // ----> Publish the left_gray == rgb_gray image if someone has subscribed to
     if (leftGraySubnumber > 0 || rgbGraySubnumber > 0) {
         // Retrieve RGBA Left image
-        mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(slMat, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
 
         if (leftGraySubnumber > 0) {
-            publishImage( leftZEDMat, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId, timeStamp);
+            publishImageWithInfo( slMat, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId, timeStamp);
         }
 
         if (rgbGraySubnumber > 0) {
-            publishImage(leftZEDMat, mPubRgbGray, mLeftCamInfoMsg, mDepthOptFrameId, timeStamp);
+            publishImageWithInfo(slMat, mPubRgbGray, mLeftCamInfoMsg, mDepthOptFrameId, timeStamp);
         }
     }
     // <---- Publish the left_raw == rgb_raw image if someone has subscribed to
@@ -1409,14 +1424,14 @@ bool ZedCamera::publishImages(rclcpp::Time timeStamp) {
     // ----> Publish the left_raw_gray == rgb_raw_gray image if someone has subscribed to
     if (leftRawGraySubnumber > 0 || rgbRawGraySubnumber > 0) {
         // Retrieve RGBA Left image
-        mZed.retrieveImage(leftZEDMat, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(slMat, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
 
         if (leftRawGraySubnumber > 0) {
-            publishImage( leftZEDMat, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
+            publishImageWithInfo( slMat, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
         }
 
         if (rgbRawGraySubnumber > 0) {
-            publishImage(leftZEDMat, mPubRawRgbGray, mLeftCamInfoRawMsg, mDepthOptFrameId, timeStamp);
+            publishImageWithInfo(slMat, mPubRawRgbGray, mLeftCamInfoRawMsg, mDepthOptFrameId, timeStamp);
         }
     }
     // ----> Publish the left_raw_gray == rgb_raw_gray image if someone has subscribed to
@@ -1424,44 +1439,69 @@ bool ZedCamera::publishImages(rclcpp::Time timeStamp) {
     // ----> Publish the right image if someone has subscribed to
     if (rightSubnumber > 0) {
         // Retrieve RGBA Right image
-        mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(slMat, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
 
-        publishImage( rightZEDMat, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, timeStamp);
+        publishImageWithInfo( slMat, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, timeStamp);
     }
     // <---- Publish the right image if someone has subscribed to
 
     // ----> Publish the right raw image if someone has subscribed to
     if (rightRawSubnumber > 0) {
         // Retrieve RGBA Right image
-        mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(slMat, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
 
-        publishImage( rightZEDMat, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, timeStamp);
+        publishImageWithInfo( slMat, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, timeStamp);
     }
     // <---- Publish the right raw image if someone has subscribed to
 
     // ----> Publish the right gray image if someone has subscribed to
     if (rightGraySubNumber > 0) {
         // Retrieve RGBA Right image
-        mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(slMat, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
 
-        publishImage( rightZEDMat, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, timeStamp);
+        publishImageWithInfo( slMat, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, timeStamp);
     }
     // <---- Publish the right gray image if someone has subscribed to
 
     // ----> Publish the right raw gray image if someone has subscribed to
     if (rightRawGraySubNumber > 0) {
         // Retrieve RGBA Right image
-        mZed.retrieveImage(rightZEDMat, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(slMat, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
 
-        publishImage( rightZEDMat, mPubRawRightGray, mRgbCamInfoRawMsg, mRightCamOptFrameId, timeStamp);
+        publishImageWithInfo( slMat, mPubRawRightGray, mRgbCamInfoRawMsg, mRightCamOptFrameId, timeStamp);
     }
     // <---- Publish the right raw gray image if someone has subscribed to
+
+    sl::Mat left;
+    sl::Mat right;
+
+    // ----> Publish the side-by-side image if someone has subscribed to
+    if (stereoSubnumber > 0) {
+        // Retrieve RGBA RECTIFIED images
+        mZed.retrieveImage(left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
+
+        auto combined = sl_tools::imagesToROSmsg( left, right, mCameraFrameId, timeStamp );
+        mPubStereo.publish(combined);
+    }
+    // <---- Publish the side-by-side image if someone has subscribed to
+
+    // ----> Publish the side-by-side image if someone has subscribed to
+    if (stereoRawSubnumber > 0) {
+
+        // Retrieve RGBA UNRECTIFIED images
+        mZed.retrieveImage(left, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(right, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+
+        auto combined = sl_tools::imagesToROSmsg( left, right, mCameraFrameId, timeStamp );
+        mPubRawStereo.publish(combined);
+    }
+    // <---- Publish the side-by-side image if someone has subscribed to
 
     return true;
 }
 
-
-void ZedCamera::publishImage(sl::Mat& img,
+void ZedCamera::publishImageWithInfo(sl::Mat& img,
                              image_transport::CameraPublisher& pubImg,
                              camInfoMsgPtr& camInfoMsg,
                              std::string imgFrameId, rclcpp::Time t) {
@@ -1471,12 +1511,23 @@ void ZedCamera::publishImage(sl::Mat& img,
 
 }
 
-void ZedCamera::publishDepth(sl::Mat depth, rclcpp::Time t) {
+bool ZedCamera::isDepthRequired()
+{
+    uint32_t topics_sub = count_subscribers(mPubDepth.getTopic())
+            + mPubConfMap->get_subscription_count()
+            + mPubDisparity->get_subscription_count()
+            + mPubCloud->get_subscription_count();
+
+    return topics_sub>0 || mPosTrackingEnabled;
+}
+
+void ZedCamera::publishDepthMapWithInfo(sl::Mat& depth, rclcpp::Time t) {
 
     mDepthCamInfoMsg->header.stamp = t;
 
     if (!mOpenniDepthMode) {
-        mPubDepth.publish( sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t), mDepthCamInfoMsg ); // TODO CHECK FOR ZERO-COPY
+        auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t);
+        mPubDepth.publish( depth_img, mDepthCamInfoMsg ); // TODO CHECK FOR ZERO-COPY
         return;
     }
 
@@ -1525,7 +1576,7 @@ bool ZedCamera::publishDepthData(rclcpp::Time timeStamp) {
     // ---->  Publish the depth image if someone has subscribed to
     if (depthSub > 0) {
         mZed.retrieveMeasure(depthZEDMat, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
-        publishDepth(depthZEDMat, timeStamp);
+        publishDepthMapWithInfo(depthZEDMat, timeStamp);
     }
 
     // <----  Publish the depth image if someone has subscribed to

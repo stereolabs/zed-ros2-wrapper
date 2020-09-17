@@ -112,15 +112,16 @@ protected:
     // Publish functions
     bool publishImages(rclcpp::Time timeStamp);
     bool publishDepthData(rclcpp::Time timeStamp);
-    void publishCameraImage(sl::Mat img, std::string imgFrameId, rclcpp::Time timeStamp);
-    void publishImage(sl::Mat& img,
+
+    void publishImageWithInfo(sl::Mat& img,
                        image_transport::CameraPublisher& pubImg,
                        camInfoMsgPtr& camInfoMsg,
                        std::string imgFrameId, rclcpp::Time t);
-    void publishDepth(sl::Mat depth, rclcpp::Time timeStamp);
+    void publishDepthMapWithInfo(sl::Mat &depth, rclcpp::Time timeStamp);
     //void publishDisparity(sl::Mat disparity, rclcpp::Time timestamp);
     void publishPointCloud();
 
+    bool isDepthRequired();
 
 private:
     // ZED SDK
@@ -239,7 +240,6 @@ private:
     std::string mTempLeftFrameId;
     std::string mTempRightFrameId;
 
-
     // Mats
     int mCamWidth;  // Camera frame width
     int mCamHeight; // Camera frame height
@@ -329,6 +329,9 @@ private:
     std::condition_variable mPcDataReadyCondVar;
     bool mPcDataReady;
     bool mTriggerAutoExposure = false;
+
+    // Flags
+    bool mPosTrackingEnabled = false;
 
     // Diagnostic
     float mTempLeft = -273.15f;

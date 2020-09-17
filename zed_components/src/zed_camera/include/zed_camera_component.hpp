@@ -78,7 +78,7 @@ public:
     virtual ~ZedCamera();
 
 protected:
-    // ----> Parameters handling
+    // ----> Initialization functions
     void initParameters();
 
     template<typename T>
@@ -91,27 +91,26 @@ protected:
     void getSensorsParams();
 
     void setTFCoordFrameNames();
-
-    // Dynamic parameters callback
-    rcl_interfaces::msg::SetParametersResult paramChangeCallback(std::vector<rclcpp::Parameter> parameters);
-    // ----> Parameters handling
-
     void initPublishers();
-    bool startCamera();
-
-    // Callbacks
-    void pubVideoDepthCallback();
-
-    // Thread functions
-    void zedGrabThreadFunc();
-    void pointcloudThreadFunc();
-
     void fillCamInfo(sl::Camera& zed, std::shared_ptr<sensor_msgs::msg::CameraInfo> leftCamInfoMsg,
                      std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg,
                      std::string leftFrameId, std::string rightFrameId,
                      bool rawParam = false);
 
-    // Publish functions
+    bool startCamera();
+    // <---- Initialization functions
+
+    // ----> Callbacks
+    void callback_pubVideoDepth();
+    rcl_interfaces::msg::SetParametersResult callback_paramChange(std::vector<rclcpp::Parameter> parameters);
+    // <---- Callbacks
+
+    // ----> Thread functions
+    void threadFunc_zedGrab();
+    void threadFunc_pointcloudElab();
+    // <---- Thread functions
+
+    // ----> Publishing functions
     bool publishImages(rclcpp::Time timeStamp);
     bool publishDepthData(rclcpp::Time timeStamp);
 
@@ -122,16 +121,18 @@ protected:
     void publishDepthMapWithInfo(sl::Mat &depth, rclcpp::Time timeStamp);
     void publishDisparity(sl::Mat disparity, rclcpp::Time timestamp);
     void publishPointCloud();
+    // <---- Publishing functions
 
-
+    // ----> Utility functions
     bool isDepthRequired();
+    // <---- Utility functions
 
 private:
     // ZED SDK
     sl::Camera mZed;
-
-    // Params
     sl::InitParameters mInitParams;
+
+    // ----> Parameter variables
     bool mDebugMode=false;
     int mCamId = 0;
     int mCamSerialNumber = 0;
@@ -139,7 +140,6 @@ private:
     sl::MODEL mCamRealCamModel; // Camera model requested to SDK
     unsigned int mCamFwVersion;     // Camera FW version
     unsigned int mSensFwVersion;    // Sensors FW version
-
     std::string mCameraName = "zed";
     int mCamFrameRate = 15;
     std::string mSvoFilepath = "";
@@ -155,19 +155,16 @@ private:
     bool mCameraSelfCalib = true;
     bool mCameraFlip = false;
     sl::SENSING_MODE mDepthSensingMode = sl::SENSING_MODE::STANDARD; // Default Sensing mode: SENSING_MODE_STANDARD
-    bool mOpenniDepthMode = false; // 16 bit UC data in mm else 32F in m,
-    // for more info -> http://www.ros.org/reps/rep-0118.html
-
+    bool mOpenniDepthMode = false; // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
     double mCamMinDepth = 0.2;
     double mCamMaxDepth = 10.0;
-
     bool mSensTimestampSync = true;
-
     bool mUseOldExtrinsic = false;
     bool mPublishTF = true;
     bool mPublishMapTF = true;
     bool mPoseSmoothing = false;
     bool mAreaMemory = true;
+    std::string mAreaMemoryDbPath = "";
     bool mImuFusion = true;
     bool mFloorAlignment = false;
     bool mTwoDMode = false;
@@ -176,19 +173,18 @@ private:
     bool mInitOdomWithPose = true;
     double mPathPubRate = 2.0;
     int mPathMaxCount = -1;
-    bool mPublishPoseCov = true;
-    std::string mAreaMemoryDbPath = "";
+    bool mPublishPoseCov = true;    
     bool mMappingEnabled = false;
     bool mObjDetEnabled = false;
-
-    // QoS profiles
+    // QoS parameters
     // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
     rclcpp::QoS mVideoQos;
     rclcpp::QoS mDepthQos;
     rclcpp::QoS mSensQos;
     rclcpp::QoS mPoseQos;
+    // <---- Parameter variables
 
-    // ZED dynamic params
+    // ----> Dynamic params
     double mPubFrameRate = 15;
     double mImgDownsampleFactor = 1.0;
     int mCamBrightness = 4;
@@ -207,8 +203,9 @@ private:
     double mDepthDownsampleFactor = 1.0;
     double mDepthPubRate = 15.0;
     double mPcPubRate = 15.0;
+    // <---- Dynamic params
 
-    // Frame IDs
+    // ----> Frame IDs
     std::string mRgbFrameId;
     std::string mRgbOptFrameId;
 
@@ -239,12 +236,14 @@ private:
     std::string mMagFrameId;
     std::string mTempLeftFrameId;
     std::string mTempRightFrameId;
+    // <---- Frame IDs
 
-    // Mats
+    // ----> Stereolabs Mat Info
     int mCamWidth;  // Camera frame width
     int mCamHeight; // Camera frame height
     sl::Resolution mMatResolVideo;
     sl::Resolution mMatResolDepth;
+    // <---- Stereolabs Mat Info
 
     // initialization Transform listener
     std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
@@ -306,7 +305,7 @@ private:
     transfPub mPubCamImuTransf; //;
     // <---- Publishers
 
-    // Threads and Timers
+    // ----> Threads and Timers
     sl::ERROR_CODE mGrabStatus;
     std::thread mGrabThread;
     std::thread mPcThread; // Point Cloud thread
@@ -316,6 +315,7 @@ private:
     rclcpp::TimerBase::SharedPtr  mPathTimer;
     rclcpp::TimerBase::SharedPtr  mFusedPcTimer;
     rclcpp::TimerBase::SharedPtr  mVideoDepthTimer;
+    // <---- Threads and Timers
 
     // Thread Sync
     std::mutex mCloseZedMutex;

@@ -66,13 +66,13 @@ ZedCamera::~ZedCamera() {
             RCLCPP_WARN(get_logger(), "Grab thread joining exception: %s", e.what());
         }
 
-        /*try {
+        try {
             if (mPcThread.joinable()) {
                 mPcThread.join();
             }
         } catch (std::system_error& e) {
             RCLCPP_WARN(get_logger(), "Pointcloud thread joining exception: %s", e.what());
-        }*/
+        }
     }
 
     // <---- Verify that the grab thread is not active
@@ -115,7 +115,7 @@ void ZedCamera::initParameters() {
     // TODO OD PARAMETERS
 
     // Dynamic parameters callback
-    set_on_parameters_set_callback(std::bind(&ZedCamera::paramChangeCallback, this, _1));
+    set_on_parameters_set_callback(std::bind(&ZedCamera::callback_paramChange, this, _1));
 }
 
 void ZedCamera::getGeneralParams() {
@@ -488,7 +488,7 @@ void ZedCamera::getPosTrackingParams() {
 
 }
 
-rcl_interfaces::msg::SetParametersResult ZedCamera::paramChangeCallback(std::vector<rclcpp::Parameter> parameters) {
+rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters) {
 
     auto result = rcl_interfaces::msg::SetParametersResult();
     result.successful = false;
@@ -664,9 +664,9 @@ void ZedCamera::setTFCoordFrameNames()
     // Print TF frames
     RCLCPP_INFO_STREAM(get_logger(), "*** TF FRAMES ***");
     RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t-> " << mOdometryFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t\t-> " << mOdometryFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t\t-> " << mBaseFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t-> " << mCameraFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t\t-> " << mCameraFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t\t-> " << mLeftCamFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Left Optical\t\t-> " << mLeftCamOptFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * RGB\t\t\t-> " << mRgbFrameId);
@@ -686,10 +686,10 @@ void ZedCamera::setTFCoordFrameNames()
 
         if(mCamUserCamModel==sl::MODEL::ZED2)
         {
-            RCLCPP_INFO_STREAM(get_logger(), " * Barometer\t\t\t\t-> " << mBaroFrameId);
-            RCLCPP_INFO_STREAM(get_logger(), " * Magnetometer\t\t\t\t-> " << mMagFrameId);
-            RCLCPP_INFO_STREAM(get_logger(), " * Left Temperature\t\t\t\t-> " << mTempLeftFrameId);
-            RCLCPP_INFO_STREAM(get_logger(), " * Right Temperature\t\t\t\t-> " << mTempRightFrameId);
+            RCLCPP_INFO_STREAM(get_logger(), " * Barometer\t\t-> " << mBaroFrameId);
+            RCLCPP_INFO_STREAM(get_logger(), " * Magnetometer\t\t-> " << mMagFrameId);
+            RCLCPP_INFO_STREAM(get_logger(), " * Left Temperature\t\t-> " << mTempLeftFrameId);
+            RCLCPP_INFO_STREAM(get_logger(), " * Right Temperature\t-> " << mTempRightFrameId);
         }
     }
     // <---- Coordinate frames
@@ -1261,22 +1261,22 @@ bool ZedCamera::startCamera() {
     // ----> Start Pointcloud thread
     mPcDataReady = false;
     //RCLCPP_DEBUG(get_logger(), "on_activate -> mPcDataReady FALSE")
-    mPcThread = std::thread(&ZedCamera::pointcloudThreadFunc, this);
+    mPcThread = std::thread(&ZedCamera::threadFunc_pointcloudElab, this);
     // <---- Start Pointcloud thread
 
     // Start pool thread
-    mGrabThread = std::thread(&ZedCamera::zedGrabThreadFunc, this);
+    mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
 
     // Start data publishing timer
     std::chrono::milliseconds videoDepthPubPeriod_msec(static_cast<int>(1000.0 / mPubFrameRate));
     mVideoDepthTimer = create_wall_timer(
                 std::chrono::duration_cast<std::chrono::milliseconds>(videoDepthPubPeriod_msec),
-                std::bind(&ZedCamera::pubVideoDepthCallback, this) );
+                std::bind(&ZedCamera::callback_pubVideoDepth, this) );
 
     return true;
 }
 
-void ZedCamera::zedGrabThreadFunc() {
+void ZedCamera::threadFunc_zedGrab() {
     RCLCPP_DEBUG(get_logger(), "Grab thread started");
 
     // ----> Initialize Diagnostic statistics
@@ -1289,7 +1289,7 @@ void ZedCamera::zedGrabThreadFunc() {
 
     // ----> Grab Runtime parameters
     sl::RuntimeParameters runParams;
-    runParams.sensing_mode = static_cast<sl::SENSING_MODE>(mDepthQuality);
+    runParams.sensing_mode = static_cast<sl::SENSING_MODE>(mDepthSensingMode);
     runParams.enable_depth = false;
     // <---- Grab Runtime parameters
 
@@ -1328,10 +1328,20 @@ void ZedCamera::zedGrabThreadFunc() {
             mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
         }
         // <---- Timestamp
+
+        // ----> Grab freq calculation
+        static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+        double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
+        last_time = now;
+
+        mGrabPeriodMean_usec->addValue(elapsed_usec);
+        // <---- Grab freq calculation
     }
 }
 
-void ZedCamera::pointcloudThreadFunc() {
+void ZedCamera::threadFunc_pointcloudElab() {
     std::unique_lock<std::mutex> lock(mPcMutex);
 
     while (!mThreadStop) {
@@ -1350,6 +1360,8 @@ void ZedCamera::pointcloudThreadFunc() {
             }
         }
 
+        publishPointCloud();
+
         // ----> Check publishing frequency
         double pc_period_msec = 1000.0 / mPcPubRate;
 
@@ -1362,11 +1374,9 @@ void ZedCamera::pointcloudThreadFunc() {
             std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(pc_period_msec - elapsed_msec)));
         }
 
+        last_time = std::chrono::steady_clock::now();
         // <---- Check publishing frequency
 
-        last_time = std::chrono::steady_clock::now();
-
-        publishPointCloud();
         mPcDataReady = false;
         //RCLCPP_DEBUG(get_logger(), "pointcloudThreadFunc -> mPcDataReady FALSE")
     }
@@ -1374,16 +1384,18 @@ void ZedCamera::pointcloudThreadFunc() {
     //RCLCPP_DEBUG(get_logger(), "Pointcloud thread finished");
 }
 
-void ZedCamera::pubVideoDepthCallback() {
+void ZedCamera::callback_pubVideoDepth() {
     static sl::Timestamp lastZedTs = 0; // Used to calculate stable publish frequency
-
-    rclcpp::Time ros_ts = mFrameTimestamp; // Fix timestamp for images and depth to avoid async transmissions
 
     // ----> Publish Video and Depth Data
     mCamDataMutex.lock();
+
+    rclcpp::Time ros_ts = mFrameTimestamp; // Fix timestamp for images and depth to avoid async transmissions
+
     mPublishingData = false;
     mPublishingData |= publishImages(ros_ts);
     mPublishingData |= publishDepthData(ros_ts);
+
     mCamDataMutex.unlock();
     // <---- Publish Video and Depth Data
 

@@ -4,6 +4,8 @@
 
 #include <sensor_msgs/distortion_models.hpp>
 #include <sensor_msgs/image_encodings.hpp>
+#include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <sensor_msgs/msg/point_field.hpp>
 
 using namespace std::chrono_literals;
 using namespace std::placeholders;
@@ -1256,8 +1258,11 @@ bool ZedCamera::startCamera() {
 
     // TODO INITIALIZE SERVICES
 
-    // Start Pointcloud thread
-    //mPcThread = std::thread(&ZEDWrapperNodelet::pointcloud_thread_func, this);
+    // ----> Start Pointcloud thread
+    mPcDataReady = false;
+    //RCLCPP_DEBUG(get_logger(), "on_activate -> mPcDataReady FALSE")
+    mPcThread = std::thread(&ZedCamera::pointcloudThreadFunc, this);
+    // <---- Start Pointcloud thread
 
     // Start pool thread
     mGrabThread = std::thread(&ZedCamera::zedGrabThreadFunc, this);
@@ -1324,6 +1329,49 @@ void ZedCamera::zedGrabThreadFunc() {
         }
         // <---- Timestamp
     }
+}
+
+void ZedCamera::pointcloudThreadFunc() {
+    std::unique_lock<std::mutex> lock(mPcMutex);
+
+    while (!mThreadStop) {
+
+        //RCLCPP_DEBUG(get_logger(), "pointcloudThreadFunc -> mPcDataReady value: %s", mPcDataReady ? "TRUE" : "FALSE");
+
+        while (!mPcDataReady) { // loop to avoid spurious wakeups
+            if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
+                // Check thread stopping
+                if (mThreadStop) {
+                    return;
+                } else {
+                    //RCLCPP_DEBUG(get_logger(), "pointcloudThreadFunc -> WAIT FOR CLOUD DATA");
+                    continue;
+                }
+            }
+        }
+
+        // ----> Check publishing frequency
+        double pc_period_msec = 1000.0 / mPcPubRate;
+
+        static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+        double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time).count();
+
+        if (elapsed_msec < pc_period_msec) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(pc_period_msec - elapsed_msec)));
+        }
+
+        // <---- Check publishing frequency
+
+        last_time = std::chrono::steady_clock::now();
+
+        publishPointCloud();
+        mPcDataReady = false;
+        //RCLCPP_DEBUG(get_logger(), "pointcloudThreadFunc -> mPcDataReady FALSE")
+    }
+
+    //RCLCPP_DEBUG(get_logger(), "Pointcloud thread finished");
 }
 
 void ZedCamera::pubVideoDepthCallback() {
@@ -1502,9 +1550,9 @@ bool ZedCamera::publishImages(rclcpp::Time timeStamp) {
 }
 
 void ZedCamera::publishImageWithInfo(sl::Mat& img,
-                             image_transport::CameraPublisher& pubImg,
-                             camInfoMsgPtr& camInfoMsg,
-                             std::string imgFrameId, rclcpp::Time t) {
+                                     image_transport::CameraPublisher& pubImg,
+                                     camInfoMsgPtr& camInfoMsg,
+                                     std::string imgFrameId, rclcpp::Time t) {
     auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
     camInfoMsg->header.stamp = t;
     pubImg.publish(image, camInfoMsg); // TODO CHECK FOR ZERO-COPY
@@ -1564,7 +1612,7 @@ void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time timestamp) {
     sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResolDepth);
 
     std::shared_ptr<sensor_msgs::msg::Image> disparity_image =
-        sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, timestamp);
+            sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, timestamp);
 
     dispMsgPtr disparityMsg = std::make_unique<stereo_msgs::msg::DisparityImage>();
     disparityMsg->image = *disparity_image.get();
@@ -1641,6 +1689,56 @@ bool ZedCamera::publishDepthData(rclcpp::Time timeStamp) {
     // <---- Publish the point cloud if someone has subscribed to
 
     return true;
+}
+
+void ZedCamera::publishPointCloud() {
+
+    pointcloudMsgPtr pcMsg = std::make_unique<sensor_msgs::msg::PointCloud2>();
+
+    // Publish freq calculation
+    static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+    double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
+    last_time = now;
+
+    mPcPeriodMean_usec->addValue(elapsed_usec);
+
+    // Initialize Point Cloud message
+    // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
+
+    int width = mMatResolDepth.width;
+    int height = mMatResolDepth.height;
+
+    int ptsCount = width * height;
+    pcMsg->header.stamp = mPointCloudTime;
+
+    if (pcMsg->width != width || pcMsg->height != height) {
+        pcMsg->header.frame_id = mDepthFrameId; // Set the header values of the ROS message
+
+        pcMsg->is_bigendian = false;
+        pcMsg->is_dense = false;
+
+        pcMsg->width = width;
+        pcMsg->height = height;
+
+        sensor_msgs::PointCloud2Modifier modifier(*pcMsg);
+        modifier.setPointCloud2Fields(4,
+                                      "x", 1, sensor_msgs::msg::PointField::FLOAT32,
+                                      "y", 1, sensor_msgs::msg::PointField::FLOAT32,
+                                      "z", 1, sensor_msgs::msg::PointField::FLOAT32,
+                                      "rgb", 1, sensor_msgs::msg::PointField::FLOAT32);
+    }
+
+    sl::Vector4<float>* cpu_cloud = mCloud.getPtr<sl::float4>();
+
+    // Data copy
+    float* ptCloudPtr = (float*)(&pcMsg->data[0]);
+
+    memcpy(ptCloudPtr, (float*)cpu_cloud, ptsCount * 4 * sizeof(float));
+
+    // Pointcloud publishing
+    mPubCloud->publish(std::move(pcMsg));
 }
 
 } // namespace stereolabs

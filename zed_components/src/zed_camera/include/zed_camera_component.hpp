@@ -104,6 +104,7 @@ protected:
 
     // Thread functions
     void zedGrabThreadFunc();
+    void pointcloudThreadFunc();
 
     void fillCamInfo(sl::Camera& zed, std::shared_ptr<sensor_msgs::msg::CameraInfo> leftCamInfoMsg,
                      std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg,
@@ -326,7 +327,7 @@ private:
     std::mutex mMappingMutex;
     std::mutex mObjDetMutex;
     std::condition_variable mPcDataReadyCondVar;
-    bool mPcDataReady;    
+    bool mPcDataReady=false;
 
     // Status Flags
     bool mPosTrackingEnabled = false;

@@ -54,6 +54,7 @@ typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::PointCloud2> pointcloudMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::Imu> imuMsgPtr;
+typedef std::unique_ptr<stereo_msgs::msg::DisparityImage> dispMsgPtr;
 
 typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped> poseCovMsgPtr;
@@ -118,8 +119,9 @@ protected:
                        camInfoMsgPtr& camInfoMsg,
                        std::string imgFrameId, rclcpp::Time t);
     void publishDepthMapWithInfo(sl::Mat &depth, rclcpp::Time timeStamp);
-    //void publishDisparity(sl::Mat disparity, rclcpp::Time timestamp);
+    void publishDisparity(sl::Mat disparity, rclcpp::Time timestamp);
     void publishPointCloud();
+
 
     bool isDepthRequired();
 
@@ -177,9 +179,6 @@ private:
     std::string mAreaMemoryDbPath = "";
     bool mMappingEnabled = false;
     bool mObjDetEnabled = false;
-
-    bool mPublishingData = false;
-
 
     // QoS profiles
     // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
@@ -327,11 +326,12 @@ private:
     std::mutex mMappingMutex;
     std::mutex mObjDetMutex;
     std::condition_variable mPcDataReadyCondVar;
-    bool mPcDataReady;
-    bool mTriggerAutoExposure = false;
+    bool mPcDataReady;    
 
-    // Flags
+    // Status Flags
     bool mPosTrackingEnabled = false;
+    bool mPublishingData = false;
+    bool mTriggerAutoExposure = false;
 
     // Diagnostic
     float mTempLeft = -273.15f;

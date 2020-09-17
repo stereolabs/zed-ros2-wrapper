@@ -1560,6 +1560,28 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat& depth, rclcpp::Time t) {
     mPubDepth.publish( depthMessage, mDepthCamInfoMsg );
 }
 
+void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time timestamp) {
+    sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResolDepth);
+
+    std::shared_ptr<sensor_msgs::msg::Image> disparity_image =
+        sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, timestamp);
+
+    dispMsgPtr disparityMsg = std::make_unique<stereo_msgs::msg::DisparityImage>();
+    disparityMsg->image = *disparity_image.get();
+    disparityMsg->header = disparityMsg->image.header;
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
+    disparityMsg->f = zedParam.calibration_parameters.left_cam.fx;
+    disparityMsg->t = zedParam.calibration_parameters.T.x;
+#else
+    disparityMsg->f = zedParam.camera_configuration.calibration_parameters.left_cam.fx;
+    disparityMsg->t = zedParam.camera_configuration.calibration_parameters.getCameraBaseline();
+#endif
+    disparityMsg->min_disparity = disparityMsg->f * disparityMsg->t / mZed.getInitParameters().depth_minimum_distance;
+    disparityMsg->max_disparity = disparityMsg->f * disparityMsg->t / mZed.getInitParameters().depth_maximum_distance;
+
+    mPubDisparity->publish(std::move(disparityMsg));
+}
+
 bool ZedCamera::publishDepthData(rclcpp::Time timeStamp) {
 
     uint32_t depthSub = count_subscribers(mPubDepth.getTopic());
@@ -1591,10 +1613,10 @@ bool ZedCamera::publishDepthData(rclcpp::Time timeStamp) {
     // <----  Publish the confidence image and map if someone has subscribed to
 
     // ----> Publish the disparity image if someone has subscribed to
-//    if (dispSub > 0) {
-//        mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
-//        publishDisparity(disparityZEDMat, timeStamp);
-//    }
+    if (dispSub > 0) {
+        mZed.retrieveMeasure(disparityZEDMat, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
+        publishDisparity(disparityZEDMat, timeStamp);
+    }
     // <---- Publish the disparity image if someone has subscribed to
 
     // ----> Publish the point cloud if someone has subscribed to

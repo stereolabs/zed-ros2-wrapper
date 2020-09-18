@@ -109,6 +109,7 @@ protected:
     // ----> Thread functions
     void threadFunc_zedGrab();
     void threadFunc_pointcloudElab();
+    void threadFunc_zedReconnect();
     // <---- Thread functions
 
     // ----> Publishing functions
@@ -337,6 +338,7 @@ private:
 
     // ----> Threads and Timers
     sl::ERROR_CODE mGrabStatus;
+    sl::ERROR_CODE mConnStatus;
     std::thread mGrabThread;
     std::thread mPcThread; // Point Cloud thread
     bool mThreadStop = false;

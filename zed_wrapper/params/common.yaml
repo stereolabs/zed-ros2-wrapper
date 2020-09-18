@@ -9,11 +9,11 @@
         general:
             # To load a SVO file add the parameter `svo_file` and set a valid path
             # Note: you cannot set `svo_file` with an empty string
-            # svo_file: '/media/walter/Stereolabs-SSD/SVO/Stereolabs/sofa.svo'
+            svo_file:                   '/media/walter/Stereolabs-SSD/SVO/Stereolabs/well.svo'
             debug_mode:                 false
             camera_timeout_sec:         5
             camera_max_reconnect:       5
-            camera_reactivate:          false                               # set to false if there is an external node manager that activates the camera after a correct configure
+            camera_reactivate:          true                                # Set to true to try to recover from a camera disconnection event
             camera_flip:                false
             zed_id:                     0
             serial_number:              0

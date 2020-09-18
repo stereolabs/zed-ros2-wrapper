@@ -1102,22 +1102,22 @@ bool ZedCamera::startCamera() {
     while (1) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-        sl::ERROR_CODE err = mZed.open(mInitParams);
+        mConnStatus = mZed.open(mInitParams);
 
-        if (err == sl::ERROR_CODE::SUCCESS) {
+        if (mConnStatus == sl::ERROR_CODE::SUCCESS) {
             RCLCPP_DEBUG(get_logger(), "Opening successfull");
             break;
         }
 
         if (mSvoMode) {
-            RCLCPP_WARN(get_logger(), "Error opening SVO: %s", sl::toString(err).c_str());
+            RCLCPP_WARN(get_logger(), "Error opening SVO: %s", sl::toString(mConnStatus).c_str());
 
             return false;
         }
 
-        RCLCPP_WARN(get_logger(), "Error opening camera: %s", sl::toString(err).c_str());
+        RCLCPP_WARN(get_logger(), "Error opening camera: %s", sl::toString(mConnStatus).c_str());
 
-        if (err == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE && mCamUserCamModel == sl::MODEL::ZED_M) {
+        if (mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE && mCamUserCamModel == sl::MODEL::ZED_M) {
             RCLCPP_INFO(get_logger(), "Try to flip the USB3 Type-C connector");
         } else {
             RCLCPP_INFO(get_logger(), "Please verify the USB3 connection");
@@ -1371,23 +1371,23 @@ bool ZedCamera::getCamera2BaseTransform() {
         tf2::Matrix3x3(mCamera2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
         RCLCPP_INFO(get_logger(),"Static transform Camera Center to Base [%s -> %s]",
-                     mCameraFrameId.c_str(), mBaseFrameId.c_str());
+                    mCameraFrameId.c_str(), mBaseFrameId.c_str());
         RCLCPP_INFO(get_logger()," * Translation: {%.3f,%.3f,%.3f}",
-                     mCamera2BaseTransf.getOrigin().x(), mCamera2BaseTransf.getOrigin().y(), mCamera2BaseTransf.getOrigin().z());
+                    mCamera2BaseTransf.getOrigin().x(), mCamera2BaseTransf.getOrigin().y(), mCamera2BaseTransf.getOrigin().z());
         RCLCPP_INFO(get_logger()," * Rotation: {%.3f,%.3f,%.3f}",
-                     roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+                    roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
     } catch (tf2::TransformException& ex) {
         if(!first_error) {
             rclcpp::Clock steady_clock(RCL_STEADY_TIME);
             RCLCPP_DEBUG_THROTTLE(get_logger(),steady_clock,1.0, "Transform error: %s", ex.what());
             RCLCPP_WARN_THROTTLE(get_logger(),steady_clock,1.0, "The tf from '%s' to '%s' is not available.",
-                                  mCameraFrameId.c_str(), mBaseFrameId.c_str());
+                                 mCameraFrameId.c_str(), mBaseFrameId.c_str());
             RCLCPP_WARN_THROTTLE(get_logger(),steady_clock,1.0, "Note: one of the possible cause of the problem is the absense of an instance "
-                                       "of the `robot_state_publisher` node publishing the correct static TF transformations "
-                                       "or a modified URDF not correctly reproducing the ZED "
-                                       "TF chain '%s' -> '%s' -> '%s'",
-                                  mBaseFrameId.c_str(), mCameraFrameId.c_str(),mDepthFrameId.c_str());
+                                                                "of the `robot_state_publisher` node publishing the correct static TF transformations "
+                                                                "or a modified URDF not correctly reproducing the ZED "
+                                                                "TF chain '%s' -> '%s' -> '%s'",
+                                 mBaseFrameId.c_str(), mCameraFrameId.c_str(),mDepthFrameId.c_str());
             first_error=false;
         }
 
@@ -1426,22 +1426,22 @@ bool ZedCamera::getSens2CameraTransform() {
         tf2::Matrix3x3(mSensor2CameraTransf.getRotation()).getRPY(roll, pitch, yaw);
 
         RCLCPP_INFO(get_logger(),"Static transform Sensor to Camera Center [%s -> %s]",
-                     mDepthFrameId.c_str(), mCameraFrameId.c_str());
+                    mDepthFrameId.c_str(), mCameraFrameId.c_str());
         RCLCPP_INFO(get_logger()," * Translation: {%.3f,%.3f,%.3f}",
-                     mSensor2CameraTransf.getOrigin().x(), mSensor2CameraTransf.getOrigin().y(), mSensor2CameraTransf.getOrigin().z());
+                    mSensor2CameraTransf.getOrigin().x(), mSensor2CameraTransf.getOrigin().y(), mSensor2CameraTransf.getOrigin().z());
         RCLCPP_INFO(get_logger()," * Rotation: {%.3f,%.3f,%.3f}",
-                     roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+                    roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
     } catch (tf2::TransformException& ex) {
         if(!first_error) {
             rclcpp::Clock steady_clock(RCL_STEADY_TIME);
             RCLCPP_DEBUG_THROTTLE(get_logger(),steady_clock,1.0, "Transform error: %s", ex.what());
             RCLCPP_WARN_THROTTLE(get_logger(),steady_clock,1.0, "The tf from '%s' to '%s' is not available.",
-                                  mDepthFrameId.c_str(), mCameraFrameId.c_str());
+                                 mDepthFrameId.c_str(), mCameraFrameId.c_str());
             RCLCPP_WARN_THROTTLE(get_logger(),steady_clock,1.0, "Note: one of the possible cause of the problem is the absense of an instance "
-                                       "of the `robot_state_publisher` node publishing the correct static TF transformations "
-                                       "or a modified URDF not correctly reproducing the ZED "
-                                       "TF chain '%s' -> '%s' -> '%s'",
-                                  mBaseFrameId.c_str(), mCameraFrameId.c_str(),mDepthFrameId.c_str());
+                                                                "of the `robot_state_publisher` node publishing the correct static TF transformations "
+                                                                "or a modified URDF not correctly reproducing the ZED "
+                                                                "TF chain '%s' -> '%s' -> '%s'",
+                                 mBaseFrameId.c_str(), mCameraFrameId.c_str(),mDepthFrameId.c_str());
             first_error = false;
         }
 
@@ -1479,23 +1479,23 @@ bool ZedCamera::getSens2BaseTransform() {
         tf2::Matrix3x3(mSensor2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
         RCLCPP_INFO(get_logger(),"Static transform Sensor to Base [%s -> %s]",
-                     mDepthFrameId.c_str(), mBaseFrameId.c_str());
+                    mDepthFrameId.c_str(), mBaseFrameId.c_str());
         RCLCPP_INFO(get_logger()," * Translation: {%.3f,%.3f,%.3f}",
-                     mSensor2BaseTransf.getOrigin().x(), mSensor2BaseTransf.getOrigin().y(), mSensor2BaseTransf.getOrigin().z());
+                    mSensor2BaseTransf.getOrigin().x(), mSensor2BaseTransf.getOrigin().y(), mSensor2BaseTransf.getOrigin().z());
         RCLCPP_INFO(get_logger()," * Rotation: {%.3f,%.3f,%.3f}",
-                     roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+                    roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
     } catch (tf2::TransformException& ex) {
         if(!first_error) {
             rclcpp::Clock steady_clock(RCL_STEADY_TIME);
             RCLCPP_DEBUG_THROTTLE(get_logger(),steady_clock,1.0, "Transform error: %s", ex.what());
             RCLCPP_WARN_THROTTLE(get_logger(),steady_clock,1.0, "The tf from '%s' to '%s' is not available.",
-                                  mDepthFrameId.c_str(), mBaseFrameId.c_str());
+                                 mDepthFrameId.c_str(), mBaseFrameId.c_str());
             RCLCPP_WARN_THROTTLE(get_logger(),steady_clock,1.0, "Note: one of the possible cause of the problem is the absense of an instance "
-                                       "of the `robot_state_publisher` node publishing the correct static TF transformations "
-                                       "or a modified URDF not correctly reproducing the ZED "
-                                       "TF chain '%s' -> '%s' -> '%s'",
-                                  mBaseFrameId.c_str(), mCameraFrameId.c_str(),mDepthFrameId.c_str());
+                                                                "of the `robot_state_publisher` node publishing the correct static TF transformations "
+                                                                "or a modified URDF not correctly reproducing the ZED "
+                                                                "TF chain '%s' -> '%s' -> '%s'",
+                                 mBaseFrameId.c_str(), mCameraFrameId.c_str(),mDepthFrameId.c_str());
             first_error = false;
         }
 
@@ -1603,7 +1603,7 @@ void ZedCamera::publishStaticImuFrameAndTopic() {
     // Publish transformation
     mStaticTfBroadcaster->sendTransform(*(mCameraImuTransfMgs.get()));
 
-    RCLCPP_INFO_STREAM(get_logger(), "Published static transform '" << mImuFrameId << "' -> '" << mLeftCamFrameId << "'" );
+    RCLCPP_INFO_STREAM(get_logger(), "Published static TF: '" << mImuFrameId << "' -> '" << mLeftCamFrameId << "'" );
 
     mStaticImuFramePublished = true;
 }
@@ -1678,6 +1678,83 @@ void ZedCamera::threadFunc_zedGrab() {
 
         mGrabPeriodMean_usec->addValue(elapsed_usec);
         // <---- Grab freq calculation
+
+//        if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
+//            // Detect if a error occurred (for example:
+//            // the zed have been disconnected) and
+//            // re-initialize the ZED
+
+//            RCLCPP_WARN_STREAM_ONCE(get_logger(), "Grab error: " << sl::toString(mGrabStatus).c_str());
+
+//            rclcpp::Time now = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+
+//            rcl_time_point_value_t elapsed = (now - mPrevFrameTimestamp).nanoseconds();
+//            rcl_time_point_value_t timeout = rclcpp::Duration(mCamTimeoutSec, 0).nanoseconds();
+
+//            if (elapsed > timeout) {
+//                if (mSvoMode) {
+//                    RCLCPP_WARN(get_logger(), "The SVO reached the end");
+//                    break;
+//                }
+//                std::lock_guard<std::mutex> lock(mCloseZedMutex);
+//                mZed.close();
+//                mCloseZedMutex.unlock();
+
+//                mConnStatus = sl::ERROR_CODE::CAMERA_NOT_DETECTED;
+
+//                if(mCamReactivate) {
+//                    int reconnectCount=0;
+
+//                    while (mConnStatus != sl::ERROR_CODE::SUCCESS) {
+//                        if(+reconnectCount >= mMaxReconnectTemp) {
+//                            RCLCPP_WARN(get_logger(), "Camera no more available");
+//                            break;
+//                        }
+
+//                        // ----> Interruption check
+//                        if (!rclcpp::ok()) {
+//                            RCLCPP_INFO(get_logger(), "Ctrl+C received");
+//                            break;
+//                        }
+
+//                        if (mThreadStop) {
+//                            RCLCPP_INFO(get_logger(), "Grab thread stopped");
+//                            break;
+//                        }
+//                        // <---- Interruption check
+
+//                        //mDiagUpdater.force_update();
+//                        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+//                        int id = sl_tools::checkCameraReady(mCamSerialNumber);
+
+//                        if (id >= 0) {
+//                            mInitParams.input.setFromCameraID(id);
+//                            mConnStatus = mZed.open(mZedParams); // Try to initialize the ZED
+//                            RCLCPP_INFO_STREAM(get_logger(), toString(mConnStatus));
+//                        } else {
+//                            RCLCPP_INFO_STREAM(get_logger(),"Waiting for the ZED (S/N " << mCamSerialNumber << ") to be re-connected");
+//                        }
+//                    }
+//                } else {
+//                    break;
+//                }
+
+//                mPosTrackingEnabled = false;
+
+//                if(isPosTrackingRequired()) {
+//                    startPosTracking();
+//                }
+//            }
+
+//            std::this_thread::sleep_for(std::chrono::seconds(mCamTimeoutSec));
+//            continue;
+//        }
+
+        // Update previous frame timestamp
+        mPrevFrameTimestamp = mFrameTimestamp;
+
+
     }
 }
 

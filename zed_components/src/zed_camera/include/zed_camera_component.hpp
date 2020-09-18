@@ -46,7 +46,7 @@ typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Temperature>> tempPu
 
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> posePub;
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>> poseCovPub;
-typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::Transform>> transfPub;
+typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::TransformStamped>> transfPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odomPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
 
@@ -58,7 +58,7 @@ typedef std::unique_ptr<stereo_msgs::msg::DisparityImage> dispMsgPtr;
 
 typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped> poseCovMsgPtr;
-typedef std::unique_ptr<geometry_msgs::msg::Transform> transfMsgPtr;
+typedef std::shared_ptr<geometry_msgs::msg::TransformStamped> transfMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Odometry> odomMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
 
@@ -98,6 +98,7 @@ protected:
                      bool rawParam = false);
 
     bool startCamera();
+    bool startPosTracking();
     // <---- Initialization functions
 
     // ----> Callbacks
@@ -115,22 +116,32 @@ protected:
     bool publishDepthData(rclcpp::Time timeStamp);
 
     void publishImageWithInfo(sl::Mat& img,
-                       image_transport::CameraPublisher& pubImg,
-                       camInfoMsgPtr& camInfoMsg,
-                       std::string imgFrameId, rclcpp::Time t);
+                              image_transport::CameraPublisher& pubImg,
+                              camInfoMsgPtr& camInfoMsg,
+                              std::string imgFrameId, rclcpp::Time t);
     void publishDepthMapWithInfo(sl::Mat &depth, rclcpp::Time timeStamp);
     void publishDisparity(sl::Mat disparity, rclcpp::Time timestamp);
     void publishPointCloud();
+    void publishStaticImuFrameAndTopic();
     // <---- Publishing functions
 
     // ----> Utility functions
     bool isDepthRequired();
+    bool isPosTrackingRequired();
+
+    bool set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
+    void initTransforms();
+    bool getSens2BaseTransform();
+    bool getSens2CameraTransform();
+    bool getCamera2BaseTransform();
     // <---- Utility functions
 
 private:
     // ZED SDK
     sl::Camera mZed;
     sl::InitParameters mInitParams;
+
+    std::string mTopicRoot = "~/";
 
     // ----> Parameter variables
     bool mDebugMode=false;
@@ -162,6 +173,7 @@ private:
     bool mUseOldExtrinsic = false;
     bool mPublishTF = true;
     bool mPublishMapTF = true;
+    bool mPublishImuTf = true;
     bool mPoseSmoothing = false;
     bool mAreaMemory = true;
     std::string mAreaMemoryDbPath = "";
@@ -173,7 +185,7 @@ private:
     bool mInitOdomWithPose = true;
     double mPathPubRate = 2.0;
     int mPathMaxCount = -1;
-    bool mPublishPoseCov = true;    
+    bool mPublishPoseCov = true;
     bool mMappingEnabled = false;
     bool mObjDetEnabled = false;
     // QoS parameters
@@ -245,14 +257,32 @@ private:
     sl::Resolution mMatResolDepth;
     // <---- Stereolabs Mat Info
 
-    // initialization Transform listener
+    // Camera IMU transform
+    sl::Transform mSlCamImuTransf;
+
+    // ----> initialization Transform listener
     std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
     std::shared_ptr<tf2_ros::TransformListener> mTfListener;
     std::shared_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
     std::shared_ptr<tf2_ros::StaticTransformBroadcaster> mStaticTfBroadcaster;
+    // <---- initialization Transform listener
 
-    // Camera IMU transform
-    sl::Transform mSlCamImuTransf;
+    // ----> TF Transforms
+    tf2::Transform mMap2OdomTransf;         // Coordinates of the odometry frame in map frame
+    tf2::Transform mOdom2BaseTransf;        // Coordinates of the base in odometry frame
+    tf2::Transform mMap2BaseTransf;         // Coordinates of the base in map frame
+    tf2::Transform mMap2CameraTransf;       // Coordinates of the camera in base frame
+    tf2::Transform mSensor2BaseTransf;      // Coordinates of the base frame in sensor frame
+    tf2::Transform mSensor2CameraTransf;    // Coordinates of the camera frame in sensor frame
+    tf2::Transform mCamera2BaseTransf;      // Coordinates of the base frame in camera frame
+    // <---- TF Transforms
+
+    // ----> TF Transforms Flags
+    bool mSensor2BaseTransfValid = false;
+    bool mSensor2CameraTransfValid = false;
+    bool mCamera2BaseTransfValid = false;
+    bool mStaticImuFramePublished = false;
+    // <---- TF Transforms Flags
 
     // ----> Topics (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
     // Camera info
@@ -317,7 +347,7 @@ private:
     rclcpp::TimerBase::SharedPtr  mVideoDepthTimer;
     // <---- Threads and Timers
 
-    // Thread Sync
+    // ----> Thread Sync
     std::mutex mCloseZedMutex;
     std::mutex mCamDataMutex;
     std::mutex mPcMutex;
@@ -328,11 +358,21 @@ private:
     std::mutex mObjDetMutex;
     std::condition_variable mPcDataReadyCondVar;
     bool mPcDataReady=false;
+    // <---- Thread Sync
 
-    // Status Flags
+    // ----> Status Flags
     bool mPosTrackingEnabled = false;
     bool mPublishingData = false;
     bool mTriggerAutoExposure = false;
+    bool mStaticImuTopicPublished = false;
+    // <---- Status Flags
+
+    // ----> Positional Tracking
+    sl::Pose mLastZedPose; // Sensor to Map transform
+    sl::Transform mInitialPoseSl;
+    std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
+    std::vector<geometry_msgs::msg::PoseStamped> mMapPath;
+    // <---- Positional Tracking
 
     // Diagnostic
     float mTempLeft = -273.15f;

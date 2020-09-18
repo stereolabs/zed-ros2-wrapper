@@ -1027,7 +1027,7 @@ bool ZedCamera::startCamera() {
         RCLCPP_INFO(get_logger(), "*** SVO OPENING ***");
 
         mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
-        mInitParams.svo_real_time_mode = false;
+        mInitParams.svo_real_time_mode = true;
         mSvoMode = true;
     } else {
         RCLCPP_INFO(get_logger(), "*** CAMERA OPENING ***");
@@ -1173,6 +1173,12 @@ bool ZedCamera::startCamera() {
     RCLCPP_INFO_STREAM(get_logger(), " * Serial Number\t-> " << mCamSerialNumber);
 
     RCLCPP_INFO_STREAM( get_logger(), " * Input type\t-> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
+    if(mSvoMode) {
+        RCLCPP_INFO(get_logger(), " * SVO resolution\t-> %dx%d",
+                    mZed.getCameraInformation().camera_configuration.resolution.width,
+                    mZed.getCameraInformation().camera_configuration.resolution.height);
+        RCLCPP_INFO_STREAM(get_logger(), " * SVO framerate\t-> " << (mZed.getCameraInformation().camera_configuration.fps) );
+    }
 
     // Firmwares
     if (!mSvoMode) {
@@ -1255,7 +1261,7 @@ bool ZedCamera::startCamera() {
     mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
 
     // Start data publishing timer
-    std::chrono::milliseconds videoDepthPubPeriod_msec(static_cast<int>(1000.0 / mPubFrameRate));
+    std::chrono::milliseconds videoDepthPubPeriod_msec(static_cast<int>(1000.0 / (mPubFrameRate)));
     mVideoDepthTimer = create_wall_timer(
                 std::chrono::duration_cast<std::chrono::milliseconds>(videoDepthPubPeriod_msec),
                 std::bind(&ZedCamera::callback_pubVideoDepth, this) );
@@ -1677,6 +1683,9 @@ void ZedCamera::threadFunc_zedGrab() {
         last_time = now;
 
         mGrabPeriodMean_usec->addValue(elapsed_usec);
+
+        //        RCLCPP_INFO_STREAM( get_logger(), "Grab period: " << mGrabPeriodMean_usec->getMean()/1e6 <<
+        //                            " Freq: " << 1e6/mGrabPeriodMean_usec->getMean() );
         // <---- Grab freq calculation
 
         if( mSvoMode && mGrabStatus==sl::ERROR_CODE::END_OF_SVOFILE_REACHED )
@@ -1764,8 +1773,6 @@ void ZedCamera::threadFunc_zedGrab() {
 
         // Update previous frame timestamp
         mPrevFrameTimestamp = mFrameTimestamp;
-
-
     }
 }
 
@@ -1813,27 +1820,34 @@ void ZedCamera::threadFunc_pointcloudElab() {
 }
 
 void ZedCamera::callback_pubVideoDepth() {
-    static sl::Timestamp lastZedTs = 0; // Used to calculate stable publish frequency
-
     // ----> Publish Video and Depth Data
-    mCamDataMutex.lock();
+    std::lock_guard<std::mutex> lock(mCloseZedMutex);
+
+    static rclcpp::Time prev_ts=rclcpp::Time(0);
 
     rclcpp::Time ros_ts = mFrameTimestamp; // Fix timestamp for images and depth to avoid async transmissions
 
     mPublishingData = false;
     mPublishingData |= publishImages(ros_ts);
     mPublishingData |= publishDepthData(ros_ts);
-
-    mCamDataMutex.unlock();
     // <---- Publish Video and Depth Data
 
     if( !mPublishingData )
     {
         RCLCPP_DEBUG( get_logger(), "No subscribers" );
+        return;
     }
+
+    if(prev_ts!=rclcpp::Time(0)) {
+        double mean = mVideoDepthPeriodMean_sec->addValue( (ros_ts-prev_ts).seconds() );
+        RCLCPP_INFO_STREAM( get_logger(),"Pub freq: " << 1.0/mean );
+    }
+    prev_ts = ros_ts;
 }
 
 bool ZedCamera::publishImages(rclcpp::Time timeStamp) {
+    static sl::Timestamp lastTs_img;
+
     uint32_t rgbSubnumber = count_subscribers(mPubRgb.getTopic());
     uint32_t rgbRawSubnumber = count_subscribers(mPubRawRgb.getTopic());
     uint32_t rgbGraySubnumber = count_subscribers(mPubRgbGray.getTopic());
@@ -1864,11 +1878,21 @@ bool ZedCamera::publishImages(rclcpp::Time timeStamp) {
 
     sl::Mat slMat;
 
+    // ----> Update img timestamp
+    sl::Timestamp img_ts;
+    mZed.retrieveImage(slMat, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
+    img_ts = slMat.timestamp;
+
+    if(img_ts==lastTs_img) {
+        // Image not updated
+        return true;
+    }
+    //    RCLCPP_INFO_STREAM( get_logger(),"Pub freq: " << 1e9/static_cast<double>(img_ts-lastTs_img) );
+    lastTs_img=img_ts;
+    // <---- Update img timestamp
+
     // ----> Publish the left == rgb image if someone has subscribed to
     if (leftSubnumber > 0 || rgbSubnumber > 0) {
-        // Retrieve RGBA Left image
-        mZed.retrieveImage(slMat, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
-
         if (leftSubnumber > 0) {
             publishImageWithInfo( slMat, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, timeStamp);
         }
@@ -2106,6 +2130,8 @@ void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time timestamp) {
 
 bool ZedCamera::publishDepthData(rclcpp::Time timeStamp) {
 
+    static sl::Timestamp lastTs_depth;
+
     uint32_t depthSub = count_subscribers(mPubDepth.getTopic());
     uint32_t confMapSub = mPubConfMap->get_subscription_count();
     uint32_t dispSub = mPubDisparity->get_subscription_count();
@@ -2117,12 +2143,22 @@ bool ZedCamera::publishDepthData(rclcpp::Time timeStamp) {
         return false;
     }
 
+    // ----> Update img timestamp
+    sl::Timestamp depth_ts;
+    mZed.retrieveImage(depthZEDMat, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
+    depth_ts = depthZEDMat.timestamp;
+
+    if(depth_ts==lastTs_depth) {
+        // Image not updated
+        return true;
+    }
+    lastTs_depth=depth_ts;
+    // <---- Update img timestamp
+
     // ---->  Publish the depth image if someone has subscribed to
     if (depthSub > 0) {
-        mZed.retrieveMeasure(depthZEDMat, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
         publishDepthMapWithInfo(depthZEDMat, timeStamp);
     }
-
     // <----  Publish the depth image if someone has subscribed to
 
     // ---->  Publish the confidence image and map if someone has subscribed to

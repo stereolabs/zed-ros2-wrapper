@@ -7,7 +7,7 @@
 /**:
     ros__parameters:
         general:
-            svo_file:                   '' #'/home/walter/Desktop/HD2K_SN28946376_11-31-00_Walter_outdoor_loop_closing.svo'
+            svo_file:                   '/home/walter/Desktop/HD2K_SN28946376_11-31-00_Walter_outdoor_loop_closing.svo'
             svo_loop:                   false                               # Enable loop mode when using an SVO as input source
             debug_mode:                 false
             camera_timeout_sec:         5

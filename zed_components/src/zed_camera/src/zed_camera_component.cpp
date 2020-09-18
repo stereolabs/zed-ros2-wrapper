@@ -1805,6 +1805,8 @@ void ZedCamera::threadFunc_pointcloudElab() {
 
         double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time).count();
 
+
+
         if (elapsed_msec < pc_period_msec) {
             std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(pc_period_msec - elapsed_msec)));
         }
@@ -1840,7 +1842,7 @@ void ZedCamera::callback_pubVideoDepth() {
 
     if(prev_ts!=rclcpp::Time(0)) {
         double mean = mVideoDepthPeriodMean_sec->addValue( (ros_ts-prev_ts).seconds() );
-        RCLCPP_INFO_STREAM( get_logger(),"Pub freq: " << 1.0/mean );
+        //RCLCPP_INFO_STREAM( get_logger(),"Pub freq: " << 1.0/mean );
     }
     prev_ts = ros_ts;
 }
@@ -2205,15 +2207,6 @@ void ZedCamera::publishPointCloud() {
 
     pointcloudMsgPtr pcMsg = std::make_unique<sensor_msgs::msg::PointCloud2>();
 
-    // Publish freq calculation
-    static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
-    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-
-    double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
-    last_time = now;
-
-    mPcPeriodMean_usec->addValue(elapsed_usec);
-
     // Initialize Point Cloud message
     // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
@@ -2232,7 +2225,7 @@ void ZedCamera::publishPointCloud() {
         pcMsg->width = width;
         pcMsg->height = height;
 
-        sensor_msgs::PointCloud2Modifier modifier(*pcMsg);
+        sensor_msgs::PointCloud2Modifier modifier(*(pcMsg.get()));
         modifier.setPointCloud2Fields(4,
                                       "x", 1, sensor_msgs::msg::PointField::FLOAT32,
                                       "y", 1, sensor_msgs::msg::PointField::FLOAT32,
@@ -2244,11 +2237,20 @@ void ZedCamera::publishPointCloud() {
 
     // Data copy
     float* ptCloudPtr = (float*)(&pcMsg->data[0]);
-
     memcpy(ptCloudPtr, (float*)cpu_cloud, ptsCount * 4 * sizeof(float));
 
     // Pointcloud publishing
     mPubCloud->publish(std::move(pcMsg));
+
+    // Publish freq calculation
+    static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+    double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
+    last_time = now;
+
+    double mean = mPcPeriodMean_usec->addValue(elapsed_usec);
+    RCLCPP_INFO_STREAM(get_logger(), "Point cloud freq: " << 1e6/mean);
 }
 
 } // namespace stereolabs

@@ -155,6 +155,7 @@ private:
     std::string mCameraName = "zed";
     int mCamFrameRate = 15;
     std::string mSvoFilepath = "";
+    bool mSvoLoop = false;
     bool mSvoMode = false;
     bool mVerbose = true;
     int mGpuId = -1;

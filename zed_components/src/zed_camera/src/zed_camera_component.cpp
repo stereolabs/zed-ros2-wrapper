@@ -145,6 +145,8 @@ void ZedCamera::getGeneralParams() {
 
     getParam( "general.sdk_verbose", mVerbose, mVerbose,  " * SDK Verbose: ");
     getParam( "general.svo_file", std::string(), mSvoFilepath, " * SVO: ");
+    getParam( "general.svo_loop", mSvoLoop, mSvoLoop);
+    RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop?"TRUE":"FALSE");
     getParam( "general.camera_name", mCameraName, mCameraName,  " * Camera name: ");
     getParam( "general.zed_id", mCamId, mCamId,  " * Camera ID: ");
     getParam( "general.serial_number", mCamSerialNumber, mCamSerialNumber,  " * Camera SN: ");
@@ -1025,7 +1027,7 @@ bool ZedCamera::startCamera() {
         RCLCPP_INFO(get_logger(), "*** SVO OPENING ***");
 
         mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
-        mInitParams.svo_real_time_mode = true;
+        mInitParams.svo_real_time_mode = false;
         mSvoMode = true;
     } else {
         RCLCPP_INFO(get_logger(), "*** CAMERA OPENING ***");
@@ -1059,43 +1061,41 @@ bool ZedCamera::startCamera() {
     INIT_TIMER;
     START_TIMER;
 
-    if (mSvoFilepath != "") {
-        mSvoMode = true;
-    }
-
     mThreadStop = false;
 
-    if (mCamSerialNumber == 0) {
-        mInitParams.input.setFromCameraID(mCamId);
-    } else {
-        bool waiting_for_camera = true;
+    if(!mSvoMode) {
+        if (mCamSerialNumber == 0) {
+            mInitParams.input.setFromCameraID(mCamId);
+        } else {
+            bool waiting_for_camera = true;
 
-        while (waiting_for_camera) {
-            // Ctrl+C check
-            if (!rclcpp::ok()) {
-                return false;
+            while (waiting_for_camera) {
+                // Ctrl+C check
+                if (!rclcpp::ok()) {
+                    return false;
+                }
+
+                sl::DeviceProperties prop = sl_tools::getZEDFromSN(mCamSerialNumber);
+
+                if (prop.id < -1 || prop.camera_state == sl::CAMERA_STATE::NOT_AVAILABLE) {
+                    std::string msg = "Camera with SN " + std::to_string(mCamSerialNumber) +
+                            " not detected! Please verify the connection.";
+                    RCLCPP_INFO(get_logger(), msg.c_str());
+                } else {
+                    waiting_for_camera = false;
+                    mInitParams.input.setFromCameraID(prop.id);
+                }
+
+                TIMER_ELAPSED; // Initialize a variable named "elapsed" with the msec elapsed from the latest "START_TIMER" call
+
+                if (elapsed >= mMaxReconnectTemp * mCamTimeoutSec * 1000) {
+                    RCLCPP_ERROR(get_logger(), "Camera detection timeout");
+
+                    return false;
+                }
+
+                std::this_thread::sleep_for(std::chrono::seconds(mCamTimeoutSec));
             }
-
-            sl::DeviceProperties prop = sl_tools::getZEDFromSN(mCamSerialNumber);
-
-            if (prop.id < -1 || prop.camera_state == sl::CAMERA_STATE::NOT_AVAILABLE) {
-                std::string msg = "Camera with SN " + std::to_string(mCamSerialNumber) +
-                        " not detected! Please verify the connection.";
-                RCLCPP_INFO(get_logger(), msg.c_str());
-            } else {
-                waiting_for_camera = false;
-                mInitParams.input.setFromCameraID(prop.id);
-            }
-
-            TIMER_ELAPSED; // Initialize a variable named "elapsed" with the msec elapsed from the latest "START_TIMER" call
-
-            if (elapsed >= mMaxReconnectTemp * mCamTimeoutSec * 1000) {
-                RCLCPP_ERROR(get_logger(), "Camera detection timeout");
-
-                return false;
-            }
-
-            std::this_thread::sleep_for(std::chrono::seconds(mCamTimeoutSec));
         }
     }
 
@@ -1168,9 +1168,11 @@ bool ZedCamera::startCamera() {
         }
     }
 
-    RCLCPP_INFO_STREAM(get_logger(), " * CAMERA MODEL\t -> " << sl::toString(mCamRealCamModel).c_str());
+    RCLCPP_INFO_STREAM(get_logger(), " * Camera Model\t-> " << sl::toString(mCamRealCamModel).c_str());
     mCamSerialNumber = camInfo.serial_number;
-    RCLCPP_INFO_STREAM(get_logger(), " * Serial Number -> " << mCamSerialNumber);
+    RCLCPP_INFO_STREAM(get_logger(), " * Serial Number\t-> " << mCamSerialNumber);
+
+    RCLCPP_INFO_STREAM( get_logger(), " * Input type\t-> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
 
     // Firmwares
     if (!mSvoMode) {
@@ -1189,8 +1191,6 @@ bool ZedCamera::startCamera() {
 #endif
             RCLCPP_INFO_STREAM(get_logger()," * Sensors FW Version -> " << mSensFwVersion);
         }
-    } else {
-        RCLCPP_INFO_STREAM( get_logger(), " * Input type\t -> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
     }
 
     // Camera/IMU transform
@@ -1679,77 +1679,88 @@ void ZedCamera::threadFunc_zedGrab() {
         mGrabPeriodMean_usec->addValue(elapsed_usec);
         // <---- Grab freq calculation
 
-//        if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
-//            // Detect if a error occurred (for example:
-//            // the zed have been disconnected) and
-//            // re-initialize the ZED
+        if( mSvoMode && mGrabStatus==sl::ERROR_CODE::END_OF_SVOFILE_REACHED )
+        {
+            if( mSvoLoop ) {
+                mZed.setSVOPosition(0);
+                RCLCPP_WARN(get_logger(), "SVO reached the end and has been restarted.");
+            } else {
+                RCLCPP_WARN(get_logger(), "SVO reached the end. The node has been stopped.");
+                break;
+            }
+        }
 
-//            RCLCPP_WARN_STREAM_ONCE(get_logger(), "Grab error: " << sl::toString(mGrabStatus).c_str());
+        //        if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
+        //            // Detect if a error occurred (for example:
+        //            // the zed have been disconnected) and
+        //            // re-initialize the ZED
 
-//            rclcpp::Time now = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+        //            RCLCPP_WARN_STREAM_ONCE(get_logger(), "Grab error: " << sl::toString(mGrabStatus).c_str());
 
-//            rcl_time_point_value_t elapsed = (now - mPrevFrameTimestamp).nanoseconds();
-//            rcl_time_point_value_t timeout = rclcpp::Duration(mCamTimeoutSec, 0).nanoseconds();
+        //            rclcpp::Time now = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
 
-//            if (elapsed > timeout) {
-//                if (mSvoMode) {
-//                    RCLCPP_WARN(get_logger(), "The SVO reached the end");
-//                    break;
-//                }
-//                std::lock_guard<std::mutex> lock(mCloseZedMutex);
-//                mZed.close();
-//                mCloseZedMutex.unlock();
+        //            rcl_time_point_value_t elapsed = (now - mPrevFrameTimestamp).nanoseconds();
+        //            rcl_time_point_value_t timeout = rclcpp::Duration(mCamTimeoutSec, 0).nanoseconds();
 
-//                mConnStatus = sl::ERROR_CODE::CAMERA_NOT_DETECTED;
+        //            if (elapsed > timeout) {
+        //                if (mSvoMode) {
+        //                    RCLCPP_WARN(get_logger(), "The SVO reached the end");
+        //                    break;
+        //                }
+        //                std::lock_guard<std::mutex> lock(mCloseZedMutex);
+        //                mZed.close();
+        //                mCloseZedMutex.unlock();
 
-//                if(mCamReactivate) {
-//                    int reconnectCount=0;
+        //                mConnStatus = sl::ERROR_CODE::CAMERA_NOT_DETECTED;
 
-//                    while (mConnStatus != sl::ERROR_CODE::SUCCESS) {
-//                        if(+reconnectCount >= mMaxReconnectTemp) {
-//                            RCLCPP_WARN(get_logger(), "Camera no more available");
-//                            break;
-//                        }
+        //                if(mCamReactivate) {
+        //                    int reconnectCount=0;
 
-//                        // ----> Interruption check
-//                        if (!rclcpp::ok()) {
-//                            RCLCPP_INFO(get_logger(), "Ctrl+C received");
-//                            break;
-//                        }
+        //                    while (mConnStatus != sl::ERROR_CODE::SUCCESS) {
+        //                        if(+reconnectCount >= mMaxReconnectTemp) {
+        //                            RCLCPP_WARN(get_logger(), "Camera no more available");
+        //                            break;
+        //                        }
 
-//                        if (mThreadStop) {
-//                            RCLCPP_INFO(get_logger(), "Grab thread stopped");
-//                            break;
-//                        }
-//                        // <---- Interruption check
+        //                        // ----> Interruption check
+        //                        if (!rclcpp::ok()) {
+        //                            RCLCPP_INFO(get_logger(), "Ctrl+C received");
+        //                            break;
+        //                        }
 
-//                        //mDiagUpdater.force_update();
-//                        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        //                        if (mThreadStop) {
+        //                            RCLCPP_INFO(get_logger(), "Grab thread stopped");
+        //                            break;
+        //                        }
+        //                        // <---- Interruption check
 
-//                        int id = sl_tools::checkCameraReady(mCamSerialNumber);
+        //                        //mDiagUpdater.force_update();
+        //                        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-//                        if (id >= 0) {
-//                            mInitParams.input.setFromCameraID(id);
-//                            mConnStatus = mZed.open(mZedParams); // Try to initialize the ZED
-//                            RCLCPP_INFO_STREAM(get_logger(), toString(mConnStatus));
-//                        } else {
-//                            RCLCPP_INFO_STREAM(get_logger(),"Waiting for the ZED (S/N " << mCamSerialNumber << ") to be re-connected");
-//                        }
-//                    }
-//                } else {
-//                    break;
-//                }
+        //                        int id = sl_tools::checkCameraReady(mCamSerialNumber);
 
-//                mPosTrackingEnabled = false;
+        //                        if (id >= 0) {
+        //                            mInitParams.input.setFromCameraID(id);
+        //                            mConnStatus = mZed.open(mZedParams); // Try to initialize the ZED
+        //                            RCLCPP_INFO_STREAM(get_logger(), toString(mConnStatus));
+        //                        } else {
+        //                            RCLCPP_INFO_STREAM(get_logger(),"Waiting for the ZED (S/N " << mCamSerialNumber << ") to be re-connected");
+        //                        }
+        //                    }
+        //                } else {
+        //                    break;
+        //                }
 
-//                if(isPosTrackingRequired()) {
-//                    startPosTracking();
-//                }
-//            }
+        //                mPosTrackingEnabled = false;
 
-//            std::this_thread::sleep_for(std::chrono::seconds(mCamTimeoutSec));
-//            continue;
-//        }
+        //                if(isPosTrackingRequired()) {
+        //                    startPosTracking();
+        //                }
+        //            }
+
+        //            std::this_thread::sleep_for(std::chrono::seconds(mCamTimeoutSec));
+        //            continue;
+        //        }
 
         // Update previous frame timestamp
         mPrevFrameTimestamp = mFrameTimestamp;

@@ -109,7 +109,6 @@ protected:
     // ----> Thread functions
     void threadFunc_zedGrab();
     void threadFunc_pointcloudElab();
-    void threadFunc_zedReconnect();
     // <---- Thread functions
 
     // ----> Publishing functions
@@ -124,11 +123,20 @@ protected:
     void publishDisparity(sl::Mat disparity, rclcpp::Time timestamp);
     void publishPointCloud();
     void publishStaticImuFrameAndTopic();
+
+    void publishOdom(tf2::Transform& odom2baseTransf, sl::Pose& slPose, rclcpp::Time t);
+    void publishPose();
     // <---- Publishing functions
 
     // ----> Utility functions
     bool isDepthRequired();
     bool isPosTrackingRequired();
+
+    void applyVideoSettings();
+    void applyDepthSettings();
+
+    void processOdometry();
+    void processPose();
 
     bool set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
     void initTransforms();
@@ -141,26 +149,35 @@ private:
     // ZED SDK
     sl::Camera mZed;
     sl::InitParameters mInitParams;
+    sl::RuntimeParameters mRunParams;
 
+    uint64_t mFrameCount = 0;
+
+    // ----> Topics
     std::string mTopicRoot = "~/";
+    std::string mOdomTopic;
+    std::string mPoseTopic;
+    std::string mPoseCovTopic;
+    // <---- Topics
+
 
     // ----> Parameter variables
     bool mDebugMode=false;
     int mCamId = 0;
     int mCamSerialNumber = 0;
-    sl::MODEL mCamUserCamModel = sl::MODEL::ZED;   // Camera model set by ROS Param
-    sl::MODEL mCamRealCamModel; // Camera model requested to SDK
-    unsigned int mCamFwVersion;     // Camera FW version
-    unsigned int mSensFwVersion;    // Sensors FW version
-    std::string mCameraName = "zed";
+    sl::MODEL mCamUserCamModel = sl::MODEL::ZED2;   // Default camera model: ZED2
+    sl::MODEL mCamRealCamModel;                     // Camera model requested to SDK
+    unsigned int mCamFwVersion;                     // Camera FW version
+    unsigned int mSensFwVersion;                    // Sensors FW version
+    std::string mCameraName = "zed2";               // Default camera name: "zed2"
     int mCamFrameRate = 15;
     std::string mSvoFilepath = "";
     bool mSvoLoop = false;
     bool mSvoMode = false;
     bool mVerbose = true;
     int mGpuId = -1;
-    sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720; // Default resolution: RESOLUTION_HD720
-    sl::DEPTH_MODE mDepthQuality = sl::DEPTH_MODE::PERFORMANCE; // Default quality: DEPTH_MODE_PERFORMANCE
+    sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720;           // Default resolution: RESOLUTION_HD720
+    sl::DEPTH_MODE mDepthQuality = sl::DEPTH_MODE::PERFORMANCE; // Default depth mode: DEPTH_MODE_PERFORMANCE
     bool mDepthStabilization = true;
     int mCamTimeoutSec = 5;
     int mMaxReconnectTemp = 5;
@@ -207,7 +224,7 @@ private:
     int mCamSaturation = 4;
     int mCamSharpness = 4;
     int mCamGamma = 8;
-    bool mCamAutoExpGain;
+    bool mCamAutoExpGain=true;
     int mCamGain = 80;
     int mCamExposure = 80;
     bool mCamAutoWB = true;
@@ -236,7 +253,7 @@ private:
     std::string mPointCloudFrameId;
 
     std::string mMapFrameId = "map";
-    std::string mOdometryFrameId = "odom";
+    std::string mOdomFrameId = "odom";
     std::string mBaseFrameId = "base_link";
 
     std::string mCameraFrameId;
@@ -286,7 +303,7 @@ private:
     bool mStaticImuFramePublished = false;
     // <---- TF Transforms Flags
 
-    // ----> Topics (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
+    // ----> Messages (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
     // Camera info
     camInfoMsgPtr mRgbCamInfoMsg;
     camInfoMsgPtr mLeftCamInfoMsg;
@@ -295,10 +312,9 @@ private:
     camInfoMsgPtr mLeftCamInfoRawMsg;
     camInfoMsgPtr mRightCamInfoRawMsg;
     camInfoMsgPtr mDepthCamInfoMsg;
-    camInfoMsgPtr mConfidenceCamInfoMsg;
 
     transfMsgPtr mCameraImuTransfMgs;
-    // <---- Topics
+    // <---- Messages
 
     // ----> Publishers
     image_transport::CameraPublisher mPubRgb; //
@@ -366,8 +382,14 @@ private:
     // ----> Status Flags
     bool mPosTrackingEnabled = false;
     bool mPublishingData = false;
-    bool mTriggerAutoExposure = false;
+    bool mTriggerAutoExpGain = true;    // Triggered on start
+    bool mTriggerAutoWB = true;         // Triggered on start
     bool mStaticImuTopicPublished = false;
+    bool mRecording=false;
+    bool mTrackingReady=false;
+    bool mRecStatus=false;
+    sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
+    bool mResetOdom=false;
     // <---- Status Flags
 
     // ----> Positional Tracking

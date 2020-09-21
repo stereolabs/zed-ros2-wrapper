@@ -119,13 +119,16 @@ protected:
                               image_transport::CameraPublisher& pubImg,
                               camInfoMsgPtr& camInfoMsg,
                               std::string imgFrameId, rclcpp::Time t);
-    void publishDepthMapWithInfo(sl::Mat &depth, rclcpp::Time timeStamp);
-    void publishDisparity(sl::Mat disparity, rclcpp::Time timestamp);
+    void publishDepthMapWithInfo(sl::Mat &depth, rclcpp::Time t);
+    void publishDisparity(sl::Mat disparity, rclcpp::Time t);
     void publishPointCloud();
     void publishStaticImuFrameAndTopic();
 
     void publishOdom(tf2::Transform& odom2baseTransf, sl::Pose& slPose, rclcpp::Time t);
     void publishPose();
+    void publishTFs(rclcpp::Time t);
+    void publishOdomTF(rclcpp::Time t);
+    void publishPoseTF(rclcpp::Time t);
     // <---- Publishing functions
 
     // ----> Utility functions
@@ -165,8 +168,8 @@ private:
     bool mDebugMode=false;
     int mCamId = 0;
     int mCamSerialNumber = 0;
-    sl::MODEL mCamUserCamModel = sl::MODEL::ZED2;   // Default camera model: ZED2
-    sl::MODEL mCamRealCamModel;                     // Camera model requested to SDK
+    sl::MODEL mCamUserModel = sl::MODEL::ZED2;   // Default camera model: ZED2
+    sl::MODEL mCamRealModel;                     // Camera model requested to SDK
     unsigned int mCamFwVersion;                     // Camera FW version
     unsigned int mSensFwVersion;                    // Sensors FW version
     std::string mCameraName = "zed2";               // Default camera name: "zed2"
@@ -192,7 +195,7 @@ private:
     bool mUseOldExtrinsic = false;
     bool mPublishTF = true;
     bool mPublishMapTF = true;
-    bool mPublishImuTf = true;
+    bool mPublishImuTF = true;
     bool mPoseSmoothing = false;
     bool mAreaMemory = true;
     std::string mAreaMemoryDbPath = "";

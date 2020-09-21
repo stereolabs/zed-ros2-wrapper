@@ -111,7 +111,7 @@ void ZedCamera::initParameters() {
     getPosTrackingParams();
 
     // SENSORS parameters
-    if (mCamUserCamModel != sl::MODEL::ZED) {
+    if (mCamUserModel != sl::MODEL::ZED) {
         //getSensorsParams();
     }
 
@@ -132,16 +132,16 @@ void ZedCamera::getGeneralParams() {
     std::string camera_model = "zed";
     getParam( "general.camera_model", camera_model, camera_model );
     if (camera_model == "zed") {
-        mCamUserCamModel = sl::MODEL::ZED;
+        mCamUserModel = sl::MODEL::ZED;
     } else if (camera_model == "zedm") {
-        mCamUserCamModel = sl::MODEL::ZED_M;
+        mCamUserModel = sl::MODEL::ZED_M;
     } else if (camera_model == "zed2") {
-        mCamUserCamModel = sl::MODEL::ZED2;
+        mCamUserModel = sl::MODEL::ZED2;
     } else {
         RCLCPP_ERROR_STREAM(get_logger(), "Camera model not valid in parameter values: " << camera_model);
     }
     RCLCPP_INFO(get_logger(), " * Camera model: %s (%s)", camera_model.c_str(),
-                sl::toString(static_cast<sl::MODEL>(mCamUserCamModel)).c_str());
+                sl::toString(static_cast<sl::MODEL>(mCamUserModel)).c_str());
 
     getParam( "general.sdk_verbose", mVerbose, mVerbose,  " * SDK Verbose: ");
     getParam( "general.svo_file", std::string(), mSvoFilepath, " * SVO: ");
@@ -404,8 +404,8 @@ void ZedCamera::getPosTrackingParams() {
     if (mPublishTF) {
         getParam( "pos_tracking.publish_map_tf", mPublishMapTF, mPublishMapTF );
         RCLCPP_INFO_STREAM(get_logger(), " * Broadcast Pose TF: " << (mPublishMapTF?"TRUE":"FALSE") );
-        getParam( "pos_tracking.publish_imu_tf", mPublishImuTf, mPublishImuTf );
-        RCLCPP_INFO_STREAM(get_logger(), " * Broadcast Static IMU TF [not for ZED]: " << (mPublishImuTf?"TRUE":"FALSE") );
+        getParam( "pos_tracking.publish_imu_tf", mPublishImuTF, mPublishImuTF );
+        RCLCPP_INFO_STREAM(get_logger(), " * Broadcast Static IMU TF [not for ZED]: " << (mPublishImuTF?"TRUE":"FALSE") );
     }
 
     getParam( "pos_tracking.path_pub_rate", mPathPubRate, mPathPubRate, " * [DYN] Path publishing rate: " );
@@ -697,11 +697,11 @@ void ZedCamera::setTFCoordFrameNames()
     RCLCPP_INFO_STREAM(get_logger(), " * Disparity Optical\t-> " << mDisparityOptFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Confidence\t\t-> " << mConfidenceFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Confidence Optical\t-> " << mConfidenceOptFrameId);
-    if (mCamRealCamModel!=sl::MODEL::ZED)
+    if (mCamRealModel!=sl::MODEL::ZED)
     {
         RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t\t-> " << mImuFrameId);
 
-        if (mCamUserCamModel==sl::MODEL::ZED2)
+        if (mCamUserModel==sl::MODEL::ZED2)
         {
             RCLCPP_INFO_STREAM(get_logger(), " * Barometer\t\t-> " << mBaroFrameId);
             RCLCPP_INFO_STREAM(get_logger(), " * Magnetometer\t\t-> " << mMagFrameId);
@@ -977,7 +977,7 @@ void ZedCamera::initPublishers() {
     // <---- Object Detection
 
     // ----> Sensors
-    if (mCamRealCamModel != sl::MODEL::ZED) {
+    if (mCamRealModel != sl::MODEL::ZED) {
         mPubImu = create_publisher<sensor_msgs::msg::Imu>( imu_topic, mPoseQos );
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImu->get_topic_name());
         mPubImuRaw = create_publisher<sensor_msgs::msg::Imu>( imu_topic_raw, mPoseQos );
@@ -985,7 +985,7 @@ void ZedCamera::initPublishers() {
         mPubImuTemp = create_publisher<sensor_msgs::msg::Temperature>( imu_temp_topic, mPoseQos );
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuTemp->get_topic_name());
 
-        if (mCamRealCamModel == sl::MODEL::ZED2) {
+        if (mCamRealModel == sl::MODEL::ZED2) {
             mPubImuMag = create_publisher<sensor_msgs::msg::MagneticField>( imu_mag_topic, mPoseQos );
             RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuMag->get_topic_name());
             mPubPressure = create_publisher<sensor_msgs::msg::FluidPressure>( pressure_topic, mPoseQos );
@@ -1119,7 +1119,7 @@ bool ZedCamera::startCamera() {
 
         RCLCPP_WARN(get_logger(), "Error opening camera: %s", sl::toString(mConnStatus).c_str());
 
-        if (mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE && mCamUserCamModel == sl::MODEL::ZED_M) {
+        if (mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE && mCamUserModel == sl::MODEL::ZED_M) {
             RCLCPP_INFO(get_logger(), "Try to flip the USB3 Type-C connector");
         } else {
             RCLCPP_INFO(get_logger(), "Please verify the USB3 connection");
@@ -1151,26 +1151,26 @@ bool ZedCamera::startCamera() {
     sl::CameraInformation camInfo = mZed.getCameraInformation();
 
     // Camera model
-    mCamRealCamModel = camInfo.camera_model;
+    mCamRealModel = camInfo.camera_model;
 
-    if (mCamRealCamModel == sl::MODEL::ZED) {
-        if (mCamUserCamModel != sl::MODEL::ZED) {
+    if (mCamRealModel == sl::MODEL::ZED) {
+        if (mCamUserModel != sl::MODEL::ZED) {
             RCLCPP_WARN(get_logger(), "Camera model does not match user parameter. Please modify "
                                       "the value of the parameter 'general.camera_model' to 'zed'");
         }
-    } else if (mCamRealCamModel == sl::MODEL::ZED_M) {
-        if (mCamUserCamModel != sl::MODEL::ZED_M) {
+    } else if (mCamRealModel == sl::MODEL::ZED_M) {
+        if (mCamUserModel != sl::MODEL::ZED_M) {
             RCLCPP_WARN(get_logger(), "Camera model does not match user parameter. Please modify "
                                       "the value of the parameter 'general.camera_model' to 'zedm'");
         }
-    } else if (mCamRealCamModel == sl::MODEL::ZED2) {
-        if (mCamUserCamModel != sl::MODEL::ZED2) {
+    } else if (mCamRealModel == sl::MODEL::ZED2) {
+        if (mCamUserModel != sl::MODEL::ZED2) {
             RCLCPP_WARN(get_logger(), "Camera model does not match user parameter. Please modify "
                                       "the value of the parameter 'general.camera_model' to 'zed2'");
         }
     }
 
-    RCLCPP_INFO_STREAM(get_logger(), " * Camera Model\t-> " << sl::toString(mCamRealCamModel).c_str());
+    RCLCPP_INFO_STREAM(get_logger(), " * Camera Model\t-> " << sl::toString(mCamRealModel).c_str());
     mCamSerialNumber = camInfo.serial_number;
     RCLCPP_INFO_STREAM(get_logger(), " * Serial Number\t-> " << mCamSerialNumber);
 
@@ -1191,7 +1191,7 @@ bool ZedCamera::startCamera() {
 #endif
 
         RCLCPP_INFO_STREAM(get_logger()," * Camera FW Version -> " << mCamFwVersion);
-        if (mCamRealCamModel!=sl::MODEL::ZED) {
+        if (mCamRealModel!=sl::MODEL::ZED) {
 #if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
             mSensFwVersion = camInfo.sensors_firmware_version;
 #else
@@ -1202,7 +1202,7 @@ bool ZedCamera::startCamera() {
     }
 
     // Camera/IMU transform
-    if (mCamRealCamModel != sl::MODEL::ZED) {
+    if (mCamRealModel != sl::MODEL::ZED) {
 #if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
         mSlCamImuTransf = camInfo.camera_imu_transform;
 #else
@@ -1601,7 +1601,7 @@ void ZedCamera::publishStaticImuFrameAndTopic() {
     }
 
     // Publish IMU TF as static TF
-    if ( !mPublishImuTf ) {
+    if ( !mPublishImuTF ) {
         return;
     }
 
@@ -1729,6 +1729,10 @@ void ZedCamera::threadFunc_zedGrab() {
         if (mPosTrackingEnabled) {
             processOdometry();
             processPose();
+
+            if(mCamRealModel == sl::MODEL::ZED || !mPublishImuTF) {
+                publishTFs(mFrameTimestamp);
+            }
         }
 
         //        if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
@@ -1806,6 +1810,88 @@ void ZedCamera::threadFunc_zedGrab() {
         // Update previous frame timestamp
         mPrevFrameTimestamp = mFrameTimestamp;
     }
+}
+
+void ZedCamera::publishTFs(rclcpp::Time t) {
+    // Publish pose tf only if enabled
+    if(mPublishTF) {
+        publishOdomTF(t); // publish the base Frame in odometry frame
+
+        if(mPublishMapTF) {
+            publishPoseTF(t); // publish the odometry Frame in map frame
+        }
+
+        if(mPublishImuTF && !mStaticImuFramePublished )
+        {
+            publishStaticImuFrameAndTopic();
+        }
+    }
+}
+
+void ZedCamera::publishOdomTF(rclcpp::Time t) {
+    if (!mSensor2BaseTransfValid) {
+        getSens2BaseTransform();
+    }
+
+    if (!mSensor2CameraTransfValid) {
+        getSens2CameraTransform();
+    }
+
+    if (!mCamera2BaseTransfValid) {
+        getCamera2BaseTransform();
+    }
+
+    transfMsgPtr transformStamped = std::make_shared<geometry_msgs::msg::TransformStamped>();
+
+    transformStamped->header.stamp = t;
+    transformStamped->header.frame_id = mOdomFrameId;
+    transformStamped->child_frame_id = mBaseFrameId;
+    // conversion from Tranform to message
+    tf2::Vector3 translation = mOdom2BaseTransf.getOrigin();
+    tf2::Quaternion quat = mOdom2BaseTransf.getRotation();
+    transformStamped->transform.translation.x = translation.x();
+    transformStamped->transform.translation.y = translation.y();
+    transformStamped->transform.translation.z = translation.z();
+    transformStamped->transform.rotation.x = quat.x();
+    transformStamped->transform.rotation.y = quat.y();
+    transformStamped->transform.rotation.z = quat.z();
+    transformStamped->transform.rotation.w = quat.w();
+
+    // Publish transformation
+    mTfBroadcaster->sendTransform(*(transformStamped.get()));
+}
+
+void ZedCamera::publishPoseTF(rclcpp::Time t) {
+    if (!mSensor2BaseTransfValid) {
+        getSens2BaseTransform();
+    }
+
+    if (!mSensor2CameraTransfValid) {
+        getSens2CameraTransform();
+    }
+
+    if (!mCamera2BaseTransfValid) {
+        getCamera2BaseTransform();
+    }
+
+    transfMsgPtr transformStamped = std::make_shared<geometry_msgs::msg::TransformStamped>();
+
+    transformStamped->header.stamp = t;
+    transformStamped->header.frame_id = mMapFrameId;
+    transformStamped->child_frame_id = mOdomFrameId;
+    // conversion from Tranform to message
+    tf2::Vector3 translation = mMap2OdomTransf.getOrigin();
+    tf2::Quaternion quat = mMap2OdomTransf.getRotation();
+    transformStamped->transform.translation.x = translation.x();
+    transformStamped->transform.translation.y = translation.y();
+    transformStamped->transform.translation.z = translation.z();
+    transformStamped->transform.rotation.x = quat.x();
+    transformStamped->transform.rotation.y = quat.y();
+    transformStamped->transform.rotation.z = quat.z();
+    transformStamped->transform.rotation.w = quat.w();
+
+    // Publish transformation
+    mTfBroadcaster->sendTransform(*(transformStamped.get()));
 }
 
 void ZedCamera::threadFunc_pointcloudElab() {
@@ -2506,11 +2592,11 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat& depth, rclcpp::Time t) {
     mPubDepth.publish( openniDepthMsg, mDepthCamInfoMsg );
 }
 
-void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time timestamp) {
+void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t) {
     sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResolDepth);
 
     std::shared_ptr<sensor_msgs::msg::Image> disparity_image =
-            sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, timestamp);
+            sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, t);
 
     dispMsgPtr disparityMsg = std::make_unique<stereo_msgs::msg::DisparityImage>();
     disparityMsg->image = *disparity_image.get();

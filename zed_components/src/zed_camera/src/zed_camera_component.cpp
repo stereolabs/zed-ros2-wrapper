@@ -1,4 +1,4 @@
-﻿#include "zed_camera_component.hpp"
+#include "zed_camera_component.hpp"
 #include "sl_tools.h"
 #include <type_traits>
 
@@ -23,10 +23,10 @@ namespace stereolabs {
 
 ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
     : Node("zed_node", options)
-    , mVideoQos(10)
-    , mDepthQos(10)
-    , mSensQos(10)
-    , mPoseQos(10) {
+    , mVideoQos(1)
+    , mDepthQos(1)
+    , mSensQos(1)
+    , mPoseQos(1) {
 
     std::string ros_namespace = get_namespace();
     std::string node_name = get_name();
@@ -992,21 +992,21 @@ void ZedCamera::initPublishers() {
 
     // ----> Sensors
     if (mCamRealModel != sl::MODEL::ZED) {
-        mPubImu = create_publisher<sensor_msgs::msg::Imu>( imu_topic, mPoseQos );
+        mPubImu = create_publisher<sensor_msgs::msg::Imu>( imu_topic, mSensQos );
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImu->get_topic_name());
-        mPubImuRaw = create_publisher<sensor_msgs::msg::Imu>( imu_topic_raw, mPoseQos );
+        mPubImuRaw = create_publisher<sensor_msgs::msg::Imu>( imu_topic_raw, mSensQos );
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuRaw->get_topic_name());
-        mPubImuTemp = create_publisher<sensor_msgs::msg::Temperature>( imu_temp_topic, mPoseQos );
+        mPubImuTemp = create_publisher<sensor_msgs::msg::Temperature>( imu_temp_topic, mSensQos );
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuTemp->get_topic_name());
 
         if (mCamRealModel == sl::MODEL::ZED2) {
-            mPubImuMag = create_publisher<sensor_msgs::msg::MagneticField>( imu_mag_topic, mPoseQos );
+            mPubImuMag = create_publisher<sensor_msgs::msg::MagneticField>( imu_mag_topic, mSensQos );
             RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuMag->get_topic_name());
-            mPubPressure = create_publisher<sensor_msgs::msg::FluidPressure>( pressure_topic, mPoseQos );
+            mPubPressure = create_publisher<sensor_msgs::msg::FluidPressure>( pressure_topic, mSensQos );
             RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubPressure->get_topic_name());
-            mPubTempL = create_publisher<sensor_msgs::msg::Temperature>( temp_topic_left, mPoseQos );
+            mPubTempL = create_publisher<sensor_msgs::msg::Temperature>( temp_topic_left, mSensQos );
             RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubTempL->get_topic_name());
-            mPubTempR = create_publisher<sensor_msgs::msg::Temperature>( temp_topic_right, mPoseQos );
+            mPubTempR = create_publisher<sensor_msgs::msg::Temperature>( temp_topic_right, mSensQos );
             RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubTempR->get_topic_name());
         }
 
@@ -2043,10 +2043,7 @@ void ZedCamera::callback_pubSensorsData() {
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
     }
 
-    if(!totSub<0 && !mPublishImuTF) {
-        return; // Nothing to publish
-    }
-
+    // ----> Sensors freq for diagnostic
     if( new_imu_data) {
         RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback: IMU FREQ");
         static std::chrono::steady_clock::time_point imu_last_time = std::chrono::steady_clock::now();
@@ -2082,109 +2079,131 @@ void ZedCamera::callback_pubSensorsData() {
         double mean = mMagPeriodMean_usec->addValue(elapsed_usec);
         //RCLCPP_INFO_STREAM(get_logger(), "Magnetometer freq: " << 1e6/mean);
     }
+    // <---- Sensors freq for diagnostic
 
-    if(imu_SubNumber>0) {
-        imuMsgPtr imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
-
-        imuMsg->header.stamp = ts_imu;
-        imuMsg->header.frame_id = mImuFrameId;
-
-        imuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
-        imuMsg->orientation.y = sens_data.imu.pose.getOrientation()[1];
-        imuMsg->orientation.z = sens_data.imu.pose.getOrientation()[2];
-        imuMsg->orientation.w = sens_data.imu.pose.getOrientation()[3];
-
-        imuMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
-        imuMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
-        imuMsg->angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
-
-        imuMsg->linear_acceleration.x = sens_data.imu.linear_acceleration[0];
-        imuMsg->linear_acceleration.y = sens_data.imu.linear_acceleration[1];
-        imuMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
-
-        // ----> Covariances copy
-        // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses float
-        for (int i = 0; i < 3; ++i) {
-            int r = 0;
-
-            if (i == 0) {
-                r = 0;
-            } else if (i == 1) {
-                r = 1;
-            } else {
-                r = 2;
-            }
-
-            imuMsg->orientation_covariance[i * 3 + 0] =
-                    sens_data.imu.pose_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
-            imuMsg->orientation_covariance[i * 3 + 1] =
-                    sens_data.imu.pose_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
-            imuMsg->orientation_covariance[i * 3 + 2] =
-                    sens_data.imu.pose_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
-
-            imuMsg->linear_acceleration_covariance[i * 3 + 0] =
-                    sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
-            imuMsg->linear_acceleration_covariance[i * 3 + 1] =
-                    sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
-            imuMsg->linear_acceleration_covariance[i * 3 + 2] =
-                    sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
-
-            imuMsg->angular_velocity_covariance[i * 3 + 0] =
-                    sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
-            imuMsg->angular_velocity_covariance[i * 3 + 1] =
-                    sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
-            imuMsg->angular_velocity_covariance[i * 3 + 2] =
-                    sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
-        }
-        // <---- Covariances copy
-
-        mPubImu->publish(std::move(imuMsg));
+    if(!totSub<0 && !mPublishImuTF) {
+        return; // Nothing to publish
     }
 
-    if(imu_RawSubNumber>0) {
-        imuMsgPtr imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
+    // ----> Sensors data publishing
+    if(new_imu_data) {
+        if(imu_SubNumber>0) {
+            imuMsgPtr imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
-        imuRawMsg->header.stamp = ts_imu;
-        imuRawMsg->header.frame_id = mImuFrameId;
+            imuMsg->header.stamp = ts_imu;
+            imuMsg->header.frame_id = mImuFrameId;
 
-        imuRawMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
-        imuRawMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
-        imuRawMsg->angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
+            imuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
+            imuMsg->orientation.y = sens_data.imu.pose.getOrientation()[1];
+            imuMsg->orientation.z = sens_data.imu.pose.getOrientation()[2];
+            imuMsg->orientation.w = sens_data.imu.pose.getOrientation()[3];
 
-        imuRawMsg->linear_acceleration.x = sens_data.imu.linear_acceleration[0];
-        imuRawMsg->linear_acceleration.y = sens_data.imu.linear_acceleration[1];
-        imuRawMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
+            imuMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
+            imuMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
+            imuMsg->angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
 
-        // ----> Covariances copy
-        // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses float
-        for (int i = 0; i < 3; ++i) {
-            int r = 0;
+            imuMsg->linear_acceleration.x = sens_data.imu.linear_acceleration[0];
+            imuMsg->linear_acceleration.y = sens_data.imu.linear_acceleration[1];
+            imuMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
 
-            if (i == 0) {
-                r = 0;
-            } else if (i == 1) {
-                r = 1;
-            } else {
-                r = 2;
+            // ----> Covariances copy
+            // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses float
+            for (int i = 0; i < 3; ++i) {
+                int r = 0;
+
+                if (i == 0) {
+                    r = 0;
+                } else if (i == 1) {
+                    r = 1;
+                } else {
+                    r = 2;
+                }
+
+                imuMsg->orientation_covariance[i * 3 + 0] =
+                        sens_data.imu.pose_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
+                imuMsg->orientation_covariance[i * 3 + 1] =
+                        sens_data.imu.pose_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
+                imuMsg->orientation_covariance[i * 3 + 2] =
+                        sens_data.imu.pose_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
+
+                imuMsg->linear_acceleration_covariance[i * 3 + 0] =
+                        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
+                imuMsg->linear_acceleration_covariance[i * 3 + 1] =
+                        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
+                imuMsg->linear_acceleration_covariance[i * 3 + 2] =
+                        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
+
+                imuMsg->angular_velocity_covariance[i * 3 + 0] =
+                        sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
+                imuMsg->angular_velocity_covariance[i * 3 + 1] =
+                        sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
+                imuMsg->angular_velocity_covariance[i * 3 + 2] =
+                        sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
             }
+            // <---- Covariances copy
 
-            imuRawMsg->linear_acceleration_covariance[i * 3 + 0] =
-                    sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
-            imuRawMsg->linear_acceleration_covariance[i * 3 + 1] =
-                    sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
-            imuRawMsg->linear_acceleration_covariance[i * 3 + 2] =
-                    sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
-
-            imuRawMsg->angular_velocity_covariance[i * 3 + 0] =
-                    sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
-            imuRawMsg->angular_velocity_covariance[i * 3 + 1] =
-                    sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
-            imuRawMsg->angular_velocity_covariance[i * 3 + 2] =
-                    sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
+            mPubImu->publish(std::move(imuMsg));
         }
-        // <---- Covariances copy
 
-        mPubImuRaw->publish(std::move(imuRawMsg));
+        if(imu_RawSubNumber>0) {
+            imuMsgPtr imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
+
+            imuRawMsg->header.stamp = ts_imu;
+            imuRawMsg->header.frame_id = mImuFrameId;
+
+            imuRawMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
+            imuRawMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
+            imuRawMsg->angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
+
+            imuRawMsg->linear_acceleration.x = sens_data.imu.linear_acceleration[0];
+            imuRawMsg->linear_acceleration.y = sens_data.imu.linear_acceleration[1];
+            imuRawMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
+
+            // ----> Covariances copy
+            // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses float
+            for (int i = 0; i < 3; ++i) {
+                int r = 0;
+
+                if (i == 0) {
+                    r = 0;
+                } else if (i == 1) {
+                    r = 1;
+                } else {
+                    r = 2;
+                }
+
+                imuRawMsg->linear_acceleration_covariance[i * 3 + 0] =
+                        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
+                imuRawMsg->linear_acceleration_covariance[i * 3 + 1] =
+                        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
+                imuRawMsg->linear_acceleration_covariance[i * 3 + 2] =
+                        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
+
+                imuRawMsg->angular_velocity_covariance[i * 3 + 0] =
+                        sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
+                imuRawMsg->angular_velocity_covariance[i * 3 + 1] =
+                        sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
+                imuRawMsg->angular_velocity_covariance[i * 3 + 2] =
+                        sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
+            }
+            // <---- Covariances copy
+
+            mPubImuRaw->publish(std::move(imuRawMsg));
+        }
+
+        if (imu_TempSubNumber>0) {
+            tempMsgPtr imuTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+
+            imuTempMsg->header.stamp = ts_imu;
+
+            imuTempMsg->header.frame_id = mImuFrameId;
+            float imu_temp;
+            sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, imu_temp);
+            imuTempMsg->temperature = static_cast<double>(imu_temp);
+            imuTempMsg->variance = 0.0;
+
+            mPubImuTemp->publish(std::move(imuTempMsg));
+        }
     }
 
     if( sens_data.barometer.is_available && new_baro_data ) {
@@ -2193,14 +2212,62 @@ void ZedCamera::callback_pubSensorsData() {
                 pressMsgPtr pressMsg = std::make_unique<sensor_msgs::msg::FluidPressure>();
 
                 pressMsg->header.stamp = ts_baro;
-                pressMsg->header.frame_id = mCameraFrameId; //mBaroFrameId;
+                pressMsg->header.frame_id = mBaroFrameId;
                 pressMsg->fluid_pressure = sens_data.barometer.pressure * 1e-2; // Pascal
                 pressMsg->variance = 1.0585e-2;
 
                 mPubPressure->publish(std::move(pressMsg));
             }
         }
+
+        if (tempLeftSubNumber>0) {
+            tempMsgPtr leftTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+
+            leftTempMsg->header.stamp = ts_baro;
+
+            leftTempMsg->header.frame_id = mLeftCamFrameId;
+            leftTempMsg->temperature = static_cast<double>(mTempLeft);
+            leftTempMsg->variance = 0.0;
+
+            mPubTempL->publish(std::move(leftTempMsg));
+        }
+
+        if (tempRightSubNumber>0) {
+            tempMsgPtr rightTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+
+            rightTempMsg->header.stamp = ts_baro;
+
+            rightTempMsg->header.frame_id = mRightCamFrameId;
+            rightTempMsg->temperature = static_cast<double>(mTempRight);
+            rightTempMsg->variance = 0.0;
+
+            mPubTempR->publish(std::move(rightTempMsg));
+        }
     }
+
+    if( sens_data.magnetometer.is_available && new_mag_data ) {
+        if( imu_MagSubNumber>0) {
+            magMsgPtr magMsg = std::make_unique<sensor_msgs::msg::MagneticField>();
+
+            magMsg->header.stamp = ts_mag;
+            magMsg->header.frame_id = mMagFrameId;
+            magMsg->magnetic_field.x = sens_data.magnetometer.magnetic_field_calibrated.x*1e-6; // Tesla
+            magMsg->magnetic_field.y = sens_data.magnetometer.magnetic_field_calibrated.y*1e-6; // Tesla
+            magMsg->magnetic_field.z = sens_data.magnetometer.magnetic_field_calibrated.z*1e-6; // Tesla
+            magMsg->magnetic_field_covariance[0] = 0.039e-6;
+            magMsg->magnetic_field_covariance[1] = 0.0f;
+            magMsg->magnetic_field_covariance[2] = 0.0f;
+            magMsg->magnetic_field_covariance[3] = 0.0f;
+            magMsg->magnetic_field_covariance[4] = 0.037e-6;
+            magMsg->magnetic_field_covariance[5] = 0.0f;
+            magMsg->magnetic_field_covariance[6] = 0.0f;
+            magMsg->magnetic_field_covariance[7] = 0.0f;
+            magMsg->magnetic_field_covariance[8] = 0.047e-6;
+
+            mPubImuMag->publish(std::move(magMsg));
+        }
+    }
+    // <---- Sensors data publishing
 
 
     // Publish TF at the same frequency of IMU data, so they are always synchronized

@@ -15,7 +15,7 @@
 
         pos_tracking:
             imu_fusion:                 true            # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
-            publish_imu_tf:             false           # enable/disable the static IMU TF broadcasting
+            publish_imu_tf:             true           # enable/disable the static IMU TF broadcasting
 
         sensors:
             sensors_timestamp_sync:     false           # Synchronize Sensors messages timestamp with latest received frame

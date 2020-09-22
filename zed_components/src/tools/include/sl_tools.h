@@ -54,8 +54,9 @@ namespace sl_tools {
 
     /*! \brief Convert StereoLabs timestamp to ROS timestamp
      *  \param t : Stereolabs timestamp to be converted
+     *  \param t : ROS2 clock type
      */
-    rclcpp::Time slTime2Ros(sl::Timestamp t);
+    rclcpp::Time slTime2Ros(sl::Timestamp t, rcl_clock_type_t clock_type = RCL_ROS_TIME);
 
     /*! \brief sl::Mat to ros message conversion
      * \param img : the image to publish
@@ -94,9 +95,9 @@ namespace sl_tools {
          * Tutorial:
          * https://www.myzhar.com/blog/tutorials/tutorial-exponential-weighted-average-good-moving-windows-average/
          */
-    class CSmartMean {
+    class SmartMean {
       public:
-        CSmartMean(int winSize);
+        SmartMean(int winSize);
 
         int getValCount() {
             return mValCount;   ///< Return the number of values in the sequence

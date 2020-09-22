@@ -103,6 +103,7 @@ protected:
 
     // ----> Callbacks
     void callback_pubVideoDepth();
+    void callback_pubSensorsData();
     rcl_interfaces::msg::SetParametersResult callback_paramChange(std::vector<rclcpp::Parameter> parameters);
     // <---- Callbacks
 
@@ -156,13 +157,14 @@ private:
 
     uint64_t mFrameCount = 0;
 
+    const double mSensPubRate = 400.;
+
     // ----> Topics
     std::string mTopicRoot = "~/";
     std::string mOdomTopic;
     std::string mPoseTopic;
     std::string mPoseCovTopic;
     // <---- Topics
-
 
     // ----> Parameter variables
     bool mDebugMode=false;
@@ -191,7 +193,7 @@ private:
     bool mOpenniDepthMode = false; // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
     double mCamMinDepth = 0.2;
     double mCamMaxDepth = 10.0;
-    bool mSensTimestampSync = true;
+    bool mSensTimestampSync = false;
     bool mUseOldExtrinsic = false;
     bool mPublishTF = true;
     bool mPublishMapTF = true;
@@ -293,7 +295,6 @@ private:
     tf2::Transform mMap2OdomTransf;         // Coordinates of the odometry frame in map frame
     tf2::Transform mOdom2BaseTransf;        // Coordinates of the base in odometry frame
     tf2::Transform mMap2BaseTransf;         // Coordinates of the base in map frame
-    tf2::Transform mMap2CameraTransf;       // Coordinates of the camera in base frame
     tf2::Transform mSensor2BaseTransf;      // Coordinates of the base frame in sensor frame
     tf2::Transform mSensor2CameraTransf;    // Coordinates of the camera frame in sensor frame
     tf2::Transform mCamera2BaseTransf;      // Coordinates of the base frame in camera frame
@@ -362,7 +363,6 @@ private:
     std::thread mGrabThread;
     std::thread mPcThread; // Point Cloud thread
     bool mThreadStop = false;
-    bool mRunGrabLoop = false;
     rclcpp::TimerBase::SharedPtr  mSensTimer;
     rclcpp::TimerBase::SharedPtr  mPathTimer;
     rclcpp::TimerBase::SharedPtr  mFusedPcTimer;
@@ -389,7 +389,7 @@ private:
     bool mTriggerAutoWB = true;         // Triggered on start
     bool mStaticImuTopicPublished = false;
     bool mRecording=false;
-    bool mTrackingReady=false;
+    bool mPosTrackingReady=false;
     bool mRecStatus=false;
     sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
     bool mResetOdom=false;
@@ -405,12 +405,14 @@ private:
     // Diagnostic
     float mTempLeft = -273.15f;
     float mTempRight = -273.15f;
-    std::unique_ptr<sl_tools::CSmartMean> mElabPeriodMean_sec;
-    std::unique_ptr<sl_tools::CSmartMean> mGrabPeriodMean_usec;
-    std::unique_ptr<sl_tools::CSmartMean> mVideoDepthPeriodMean_sec;
-    std::unique_ptr<sl_tools::CSmartMean> mPcPeriodMean_usec;
-    std::unique_ptr<sl_tools::CSmartMean> mSensPeriodMean_usec;
-    std::unique_ptr<sl_tools::CSmartMean> mObjDetPeriodMean_msec;
+    std::unique_ptr<sl_tools::SmartMean> mElabPeriodMean_sec;
+    std::unique_ptr<sl_tools::SmartMean> mGrabPeriodMean_usec;
+    std::unique_ptr<sl_tools::SmartMean> mVideoDepthPeriodMean_sec;
+    std::unique_ptr<sl_tools::SmartMean> mPcPeriodMean_usec;
+    std::unique_ptr<sl_tools::SmartMean> mImuPeriodMean_usec;
+    std::unique_ptr<sl_tools::SmartMean> mBaroPeriodMean_usec;
+    std::unique_ptr<sl_tools::SmartMean> mMagPeriodMean_usec;
+    std::unique_ptr<sl_tools::SmartMean> mObjDetPeriodMean_msec;
 
     // Last frame time
     rclcpp::Time mPrevFrameTimestamp;

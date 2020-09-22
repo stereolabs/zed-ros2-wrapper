@@ -164,11 +164,11 @@ std::string getSDKVersion(int& major, int& minor, int& sub_minor) {
     return ver;
 }
 
-rclcpp::Time slTime2Ros(sl::Timestamp t) {
+rclcpp::Time slTime2Ros(sl::Timestamp t, rcl_clock_type_t clock_type) {
     uint64_t ts_nsec = t.getNanoseconds();
     uint32_t sec = static_cast<uint32_t>(ts_nsec / 1000000000);
     uint32_t nsec = static_cast<uint32_t>(ts_nsec % 1000000000);
-    return rclcpp::Time(sec, nsec);
+    return rclcpp::Time(sec, nsec, clock_type);
 }
 
 std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat img, std::string frameId, rclcpp::Time t) {
@@ -374,7 +374,7 @@ std::string qos2str(rmw_qos_durability_policy_t qos) {
     return "Unknown QoS value";
 }
 
-CSmartMean::CSmartMean(int winSize) {
+SmartMean::SmartMean(int winSize) {
     mValCount = 0;
 
     mMeanCorr = 0.0;
@@ -384,7 +384,7 @@ CSmartMean::CSmartMean(int winSize) {
     mGamma = (static_cast<double>(mWinSize) - 1.) / static_cast<double>(mWinSize);
 }
 
-double CSmartMean::addValue(double val) {
+double SmartMean::addValue(double val) {
     mValCount++;
 
     mMeanCorr = mGamma * mMeanCorr + (1. - mGamma) * val;

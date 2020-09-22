@@ -2187,6 +2187,23 @@ void ZedCamera::callback_pubSensorsData() {
         mPubImuRaw->publish(std::move(imuRawMsg));
     }
 
+    if( sens_data.barometer.is_available && new_baro_data ) {
+        if(pressSubNumber>0) {
+            if( pressSubNumber>0 ) {
+                pressMsgPtr pressMsg = std::make_unique<sensor_msgs::msg::FluidPressure>();
+
+                pressMsg->header.stamp = ts_baro;
+                pressMsg->header.frame_id = mCameraFrameId; //mBaroFrameId;
+                pressMsg->fluid_pressure = sens_data.barometer.pressure * 1e-2; // Pascal
+                pressMsg->variance = 1.0585e-2;
+
+                mPubPressure->publish(std::move(pressMsg));
+            }
+        }
+    }
+
+
+    // Publish TF at the same frequency of IMU data, so they are always synchronized
     if(new_imu_data && mPublishImuTF) {
         publishTFs(ts_imu);
     }

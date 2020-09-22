@@ -54,6 +54,7 @@ typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::PointCloud2> pointcloudMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::Imu> imuMsgPtr;
+typedef std::unique_ptr<sensor_msgs::msg::FluidPressure> pressMsgPtr;
 typedef std::unique_ptr<stereo_msgs::msg::DisparityImage> dispMsgPtr;
 
 typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;

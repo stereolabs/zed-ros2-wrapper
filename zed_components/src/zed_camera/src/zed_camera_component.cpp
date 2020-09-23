@@ -236,8 +236,9 @@ void ZedCamera::getVideoParams() {
     if (mCamAutoWB) {
         mTriggerAutoWB = true;
     }
-    getParam( "video.whitebalance_temperature", mCamWBTemp, mCamWBTemp,  " * [DYN] White Balance Temperature: ");
-
+    int wb=42;
+    getParam( "video.whitebalance_temperature", wb, wb,  " * [DYN] White Balance Temperature: ");
+    mCamWBTemp = wb*100;
 
     // ------------------------------------------
 
@@ -609,7 +610,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
 
     rcl_interfaces::msg::SetParametersResult result;
     result.successful = false;
-    result.reason = "unknown";
+    result.reason = "Not supported";
 
     for (const auto &param : parameters) {
         if(param.get_name() == "general.pub_frame_rate" ) {
@@ -762,7 +763,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
 
             bool val = param.as_bool();
 
-            if(val && ! mCamAutoExpGain) {
+            if(val && !mCamAutoExpGain) {
                 mTriggerAutoExpGain = true;
             }
 
@@ -820,8 +821,52 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
-        }
+        } else if(param.get_name() == "video.auto_whitebalance" ) {
 
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            bool val = param.as_bool();
+
+            if(val && !mCamAutoWB) {
+                mTriggerAutoWB = true;
+            }
+
+            mCamAutoWB = val;
+
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if(param.get_name() == "video.whitebalance_temperature" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            int val = param.as_int();
+
+            if( (val < 28) || (val > 65) ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a positive integer in the range [28,65]";
+                return result;
+            }
+
+            mCamWBTemp = val*100;
+            mCamAutoWB = false;
+
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        }
     }
 
     return result;
@@ -3020,9 +3065,9 @@ void ZedCamera::applyVideoSettings() {
                 mTriggerAutoWB = false;
             }
         } else {
-            int wb = mZed.getCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE)/100;
+            int wb = mZed.getCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE);
             if (wb != mCamWBTemp) {
-                mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, mCamWBTemp*100);
+                mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, mCamWBTemp);
             }
         }
         int brgt = mZed.getCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS);

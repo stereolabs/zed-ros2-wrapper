@@ -18,7 +18,7 @@
                 publish_imu_tf:             true
 
             sensors:
-                sensors_timestamp_sync:     false           # Synchronize Sensors messages timestamp with latest received frame
+                sensors_image_sync:         false           # Synchronize Sensors messages publication with camera images/depth
                 qos_history:                0               # '0': KEEP_LAST - '1': KEEP_ALL
                 qos_depth:                  10              # Queue size if using KEEP_LAST
                 qos_reliability:            1               # '0': BEST_EFFORT - '1': RELIABLE

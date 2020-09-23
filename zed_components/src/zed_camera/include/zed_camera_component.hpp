@@ -84,9 +84,6 @@ protected:
     // ----> Initialization functions
     void initParameters();
 
-    template<typename T>
-    void getParam(std::string paramName, T defValue, T& outVal, std::string log_info=std::string());
-
     void getGeneralParams();
     void getVideoParams();
     void getDepthParams();
@@ -150,6 +147,11 @@ protected:
     bool getSens2BaseTransform();
     bool getSens2CameraTransform();
     bool getCamera2BaseTransform();
+
+    void startVideoDepthTimer(double pubFrameRate);
+
+    template<typename T>
+    void getParam(std::string paramName, T defValue, T& outVal, std::string log_info=std::string());
     // <---- Utility functions
 
 private:
@@ -196,7 +198,7 @@ private:
     bool mOpenniDepthMode = false; // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
     double mCamMinDepth = 0.2;
     double mCamMaxDepth = 10.0;
-    bool mSensTimestampSync = false;
+    bool mSensCameraSync = false;
     bool mUseOldExtrinsic = false;
     bool mPublishTF = true;
     bool mPublishMapTF = true;
@@ -265,12 +267,13 @@ private:
     std::string mBaseFrameId = "base_link";
 
     std::string mCameraFrameId;
+
     std::string mRightCamFrameId;
     std::string mRightCamOptFrameId;
     std::string mLeftCamFrameId;
     std::string mLeftCamOptFrameId;
-    std::string mImuFrameId;
 
+    std::string mImuFrameId;
     std::string mBaroFrameId;
     std::string mMagFrameId;
     std::string mTempLeftFrameId;

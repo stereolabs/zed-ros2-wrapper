@@ -112,6 +112,7 @@ void ZedCamera::getParam(std::string paramName, T defValue, T& outVal, std::stri
 }
 
 void ZedCamera::initParameters() {
+
     // GENERAL parameters
     getGeneralParams();
 
@@ -125,8 +126,8 @@ void ZedCamera::initParameters() {
     getPosTrackingParams();
 
     // SENSORS parameters
-    if (mCamUserModel != sl::MODEL::ZED) {
-        //getSensorsParams();
+    if(mCamUserModel!=sl::MODEL::ZED) {
+        getSensorsParams();
     }
 
     // TODO MAPPING PARAMETERS
@@ -169,7 +170,6 @@ void ZedCamera::getGeneralParams() {
     getParam( "general.camera_max_reconnect", mMaxReconnectTemp, mMaxReconnectTemp,  " * Camera reconnection temptatives: ");
     getParam( "general.grab_frame_rate", mCamFrameRate, mCamFrameRate,  " * Camera framerate: ");
     getParam( "general.gpu_id", mGpuId, mGpuId,  " * GPU ID: ");
-    getParam( "general.base_frame", mBaseFrameId, mBaseFrameId,  " * Base frame id: ");
 
     // TODO ADD SVO SAVE COMPRESSION PARAMETERS
 
@@ -201,7 +201,7 @@ void ZedCamera::getVideoParams() {
     RCLCPP_INFO(get_logger(), "*** VIDEO parameters ***");
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-    size_t qos_depth = 10;
+    size_t qos_depth = 1;
     rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
@@ -303,7 +303,7 @@ void ZedCamera::getDepthParams() {
     std::string paramName;
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-    size_t qos_depth = 10;
+    size_t qos_depth = 1;
     rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
@@ -402,16 +402,102 @@ void ZedCamera::getDepthParams() {
     RCLCPP_INFO(get_logger(), " * Depth QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
 }
 
+void ZedCamera::getSensorsParams() {
+    /*
+    sensors_timestamp_sync
+    qos_history
+    qos_depth
+    qos_reliability
+    qos_durability
+    */
+
+    rclcpp::Parameter paramVal;
+    std::string paramName;
+
+    rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+    size_t qos_depth = 1;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+    rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+
+    RCLCPP_INFO(get_logger(), "*** SENSORS STACK parameters ***");
+
+    getParam( "sensors.sensors_image_sync", mSensCameraSync, mSensCameraSync );
+    RCLCPP_INFO_STREAM(get_logger(), " * Sensors Camera Sync: " << (mSensCameraSync?"TRUE":"FALSE") );
+
+    // ------------------------------------------
+
+    paramName = "sensors.qos_history";
+    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_hist = paramVal.as_int() == 0 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+        mSensQos.history(qos_hist);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Sensors QoS History: '%s'", sl_tools::qos2str(qos_hist).c_str());
+
+    // ------------------------------------------
+
+    paramName = "sensors.qos_depth";
+    declare_parameter(paramName, rclcpp::ParameterValue(10) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_depth = paramVal.as_int();
+        mSensQos.keep_last(qos_depth);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Sensors QoS History depth: '%d'", qos_depth);
+
+    // ------------------------------------------
+
+    paramName = "sensors.qos_reliability";
+    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT :
+                                                   RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+        mSensQos.reliability(qos_reliability);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Sensors QoS Reliability: '%s'", sl_tools::qos2str(qos_reliability).c_str());
+
+    // ------------------------------------------
+
+    paramName = "sensors.qos_durability";
+    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_durability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+                                                  RMW_QOS_POLICY_DURABILITY_VOLATILE;
+        mSensQos.durability(qos_durability);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Sensors QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
+
+}
+
 void ZedCamera::getPosTrackingParams() {
     rclcpp::Parameter paramVal;
     std::string paramName;
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-    size_t qos_depth = 10;
+    size_t qos_depth = 1;
     rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
     RCLCPP_INFO(get_logger(), "*** POSITIONAL TRACKING parameters ***");
+
+    getParam( "pos_tracking.base_frame", mBaseFrameId, mBaseFrameId,  " * Base frame id: ");
+    getParam( "pos_tracking.map_frame", mMapFrameId, mMapFrameId,  " * Map frame id: ");
+    getParam( "pos_tracking.odometry_frame", mOdomFrameId, mOdomFrameId,  " * Odometry frame id: ");
 
     getParam( "pos_tracking.publish_tf", mPublishTF, mPublishTF );
     RCLCPP_INFO_STREAM(get_logger(), " * Broadcast Odometry TF: " << (mPublishTF?"TRUE":"FALSE") );
@@ -521,144 +607,60 @@ void ZedCamera::getPosTrackingParams() {
 
 rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters) {
 
-    auto result = rcl_interfaces::msg::SetParametersResult();
+    rcl_interfaces::msg::SetParametersResult result;
     result.successful = false;
+    result.reason = "unknown";
 
-    //    for (size_t i = 0; i < parameters.size(); i++) {
-    //        rclcpp::Parameter param = parameters[i];
+    for (const auto &param : parameters) {
+        if(param.get_name() == "general.pub_frame_rate" ) {
 
-    //        if (param.get_name() == "general.mat_resize_factor") {
-    //            if (param.get_type() == rclcpp::PARAMETER_DOUBLE) {
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
 
-    //                double new_val = param.as_double();
+            double val = param.as_double();
 
-    //                if (new_val > 0.01 && new_val <= 1.0) {
-    //                    mZedImgDownsampleFactor = new_val;
-    //                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %g", param.get_name().c_str(), mZedImgDownsampleFactor);
-    //                    result.successful = true;
+            if( (val <= 0.0) || (val > mCamFrameRate) ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be positive and minor of `grab_frame_rate`";
+                return result;
+            }
 
-    //                    // ----> Modify data sizes
-    //                    mCamDataMutex.lock();
-    //                    mMatWidth = static_cast<size_t>(mCamWidth * mZedImgDownsampleFactor);
-    //                    mMatHeight = static_cast<size_t>(mCamHeight * mZedImgDownsampleFactor);
-    //                    RCLCPP_INFO(get_logger(), "Data Mat size : %d x %d", mMatResolDepth);
+            mPubFrameRate = val;
+            startVideoDepthTimer(mPubFrameRate);
 
-    //                    // Update Camera Info
-    //                    fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId, mRightCamOptFrameId);
-    //                    fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId, mRightCamOptFrameId, true);
-    //                    mRgbCamInfoMsg = mDepthCamInfoMsg = mLeftCamInfoMsg;
-    //                    mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
-    //                    mCamDataMutex.unlock();
-    //                    // <---- Modify data sizes
-    //                } else {
-    //                    RCLCPP_WARN(get_logger(), "The param '%s' requires a FLOATING POINT value in the range ]0.0,1.0]",
-    //                                param.get_name().c_str());
-    //                    result.successful = false;
-    //                    return result;
-    //                }
-    //            } else {
-    //                RCLCPP_WARN(get_logger(), "The param '%s' requires a FLOATING POINT positive value!", param.get_name().c_str());
-    //                result.successful = false;
-    //                return result;
-    //            }
-    //        } else if (param.get_name() == "video.auto_exposure_gain") {
-    //            if (param.get_type() == rclcpp::PARAMETER_BOOL) {
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if(param.get_name() == "video.brightness" ) {
 
-    //                mZedAutoExpGain = param.as_bool();
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
 
-    //                if (mZedAutoExpGain) {
-    //                    mTriggerAutoExposure = true;
-    //                }
+            int val = param.as_int();
 
-    //                RCLCPP_INFO(get_logger(), "The param '%s' has changed to %s", param.get_name().c_str(),
-    //                            mZedAutoExpGain ? "ENABLED" : "DISABLED");
-    //                result.successful = true;
-    //            } else {
-    //                RCLCPP_WARN(get_logger(), "The param '%s' requires a BOOL value!", param.get_name().c_str());
-    //                result.successful = false;
-    //                return result;
-    //            }
-    //        } else if (param.get_name() == "video.exposure") {
-    //            if (param.get_type() == rclcpp::PARAMETER_INTEGER) {
+            if( (val < 0) || (val > 8) ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
+                return result;
+            }
 
-    //                int new_val = param.as_int();
+            mCamBrightness = val;
 
-    //                if (new_val > 0 && new_val <= 100) {
-    //                    mZedExposure = new_val;
-    //                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %d", param.get_name().c_str(), mZedExposure);
-    //                    result.successful = true;
-    //                } else {
-    //                    RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value in the range ]0,100]", param.get_name().c_str());
-    //                    result.successful = false;
-    //                    return result;
-    //                }
-    //            } else {
-    //                RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value!", param.get_name().c_str());
-    //                result.successful = false;
-    //                return result;
-    //            }
-    //        } else if (param.get_name() == "video.gain") {
-    //            if (param.get_type() == rclcpp::PARAMETER_INTEGER) {
-
-    //                int new_val = param.as_int();
-
-    //                if (new_val > 0 && new_val <= 100) {
-    //                    mZedGain = new_val;
-    //                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %d", param.get_name().c_str(), mZedGain);
-    //                    result.successful = true;
-    //                } else {
-    //                    RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value in the range ]0,100]", param.get_name().c_str());
-    //                    result.successful = false;
-    //                    return result;
-    //                }
-    //            } else {
-    //                RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value!", param.get_name().c_str());
-    //                result.successful = false;
-    //                return result;
-    //            }
-    //        } else if (param.get_name() == "depth.confidence") {
-    //            if (param.get_type() == rclcpp::PARAMETER_INTEGER) {
-    //                int new_val = param.as_int();
-
-    //                if (new_val > 0 && new_val <= 100) {
-    //                    mDepthConf = new_val;
-    //                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %d", param.get_name().c_str(), mDepthConf);
-    //                    result.successful = true;
-    //                } else {
-    //                    RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value in the range ]0,100]", param.get_name().c_str());
-    //                    result.successful = false;
-    //                    return result;
-    //                }
-    //            } else {
-    //                RCLCPP_WARN(get_logger(), "The param '%s' requires an INTEGER value!", param.get_name().c_str());
-    //                result.successful = false;
-    //                return result;
-    //            }
-    //        } else if (param.get_name() == "depth.max_depth") {
-    //            if (param.get_type() == rclcpp::PARAMETER_DOUBLE) {
-
-    //                double new_val = param.as_double();
-
-    //                if (new_val > 0) {
-    //                    mZedMaxDepth = new_val;
-    //                    RCLCPP_INFO(get_logger(), "The param '%s' has changed to %g", param.get_name().c_str(), mZedMaxDepth);
-    //                    result.successful = true;
-    //                } else {
-    //                    RCLCPP_WARN(get_logger(), "The param '%s' requires a FLOATING POINT positive value", param.get_name().c_str());
-    //                    result.successful = false;
-    //                    return result;
-    //                }
-    //            } else {
-    //                RCLCPP_WARN(get_logger(), "The param '%s' requires a FLOATING POINT positive value!", param.get_name().c_str());
-    //                result.successful = false;
-    //                return result;
-    //            }
-    //        } else {
-    //            RCLCPP_WARN(get_logger(), "The param '%s' cannot be dinamically changed!", param.get_name().c_str());
-    //            result.successful = false;
-    //            return result;
-    //        }
-    //    }
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        }
+    }
 
     return result;
 }
@@ -1032,7 +1034,7 @@ bool ZedCamera::startCamera() {
 
     // ----> TF2 Transform
     mTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-    mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);
+    mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer); // Start TF Listener thread
     mTfBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
     mStaticTfBroadcaster = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
     // <---- TF2 Transform
@@ -1287,10 +1289,7 @@ bool ZedCamera::startCamera() {
     mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
 
     // Start data publishing timer
-    std::chrono::milliseconds videoDepthPubPeriod_msec(static_cast<int>(1000.0 / (mPubFrameRate)));
-    mVideoDepthTimer = create_wall_timer(
-                std::chrono::duration_cast<std::chrono::milliseconds>(videoDepthPubPeriod_msec),
-                std::bind(&ZedCamera::callback_pubVideoDepth, this) );
+    startVideoDepthTimer(mPubFrameRate);
 
     if (mCamRealModel != sl::MODEL::ZED) {
         mFrameTimestamp = now(); // Initialialized timestamp to avoid wrong sensors data
@@ -1302,6 +1301,17 @@ bool ZedCamera::startCamera() {
     }
 
     return true;
+}
+
+void ZedCamera::startVideoDepthTimer(double pubFrameRate) {
+    if(mVideoDepthTimer!=nullptr) {
+        mVideoDepthTimer->cancel();
+    }
+
+    std::chrono::milliseconds videoDepthPubPeriod_msec(static_cast<int>(1000.0 / (pubFrameRate)));
+    mVideoDepthTimer = create_wall_timer(
+                std::chrono::duration_cast<std::chrono::milliseconds>(videoDepthPubPeriod_msec),
+                std::bind(&ZedCamera::callback_pubVideoDepth, this) );
 }
 
 bool ZedCamera::startPosTracking() {
@@ -2005,7 +2015,7 @@ void ZedCamera::callback_pubSensorsData() {
         ts_mag = now();
         //ts_mag_raw = now();
     } else {
-        if ( mSensTimestampSync) {
+        if ( mSensCameraSync) {
             if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE) != sl::ERROR_CODE::SUCCESS ) {
                 return;
             }

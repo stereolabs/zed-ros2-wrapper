@@ -84,7 +84,7 @@ install(TARGETS zed_wrapper
 
 # Install PARAMS files
 install(DIRECTORY
-  params
+  config
   DESTINATION share/${PROJECT_NAME}
 )
 

@@ -20,12 +20,11 @@
             sdk_verbose:                true
             grab_frame_rate:            30
             pub_frame_rate:             10.0                                # Dynamic - frequency of publishing of video and depth data
-            gpu_id:                     -1
-            base_frame:                 'base_link'                         # must be equal to the frame_id used in the URDF file
+            gpu_id:                     -1            
 
         video:
             extrinsic_in_camera_frame:  false                               # if `false` extrinsic parameter in `camera_info` will use ROS native frame (X FORWARD, Z UP) instead of the camera frame (Z FORWARD, Y DOWN) [`true` use old behavior as for version < v3.1]
-            img_downsample_factor:      1.0                                 # Dynamic - Resample factor for image data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices
+            img_downsample_factor:      1.0                                 # Resample factor for image data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices
             brightness:                 4                                   # Dynamic
             contrast:                   4                                   # Dynamic
             hue:                        0                                   # Dynamic
@@ -47,7 +46,7 @@
             sensing_mode:               0                                   # '0': STANDARD, '1': FILL
             depth_stabilization:        true
             openni_depth_mode:          false                               # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
-            depth_downsample_factor:    1.0                                 # Dynamic - Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
+            depth_downsample_factor:    1.0                                 # Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
             point_cloud_freq:           10.0                                # Dynamic - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
             depth_confidence:           50                                  # Dynamic
             depth_texture_conf:         100                                 # Dynamic
@@ -59,6 +58,7 @@
         pos_tracking:
             publish_tf:                 true                                # publish `odom -> base_link` TF
             publish_map_tf:             true                                # publish `map -> odom` TF
+            base_frame:                 'base_link'                         # must be equal to the frame_id used in the URDF file
             map_frame:                  'map'
             odometry_frame:             'odom'
             area_memory_db_path:        ''

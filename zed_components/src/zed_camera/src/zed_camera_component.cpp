@@ -890,6 +890,52 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
+        } else if(param.get_name() == "depth.depth_confidence" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            int val = param.as_int();
+
+            if( (val < 0) || (val > 100) ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+                return result;
+            }
+
+            mDepthConf = val;
+
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if(param.get_name() == "depth.depth_texture_conf" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            int val = param.as_int();
+
+            if( (val < 0) || (val > 100) ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+                return result;
+            }
+
+            mDepthTextConf = val;
+
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
         }
     }
 

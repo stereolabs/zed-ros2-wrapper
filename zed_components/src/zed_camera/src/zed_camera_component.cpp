@@ -866,6 +866,30 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
+        } else if(param.get_name() == "depth.point_cloud_freq" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            double val = param.as_double();
+
+            if( (val <= 0.0) || (val > mCamFrameRate) ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be positive and minor of `grab_frame_rate`";
+                return result;
+            }
+
+            mPubFrameRate = val;
+            startVideoDepthTimer(mPubFrameRate);
+
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
         }
     }
 

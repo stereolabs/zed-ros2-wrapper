@@ -751,6 +751,75 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
+        } else if(param.get_name() == "video.auto_exposure_gain" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            bool val = param.as_bool();
+
+            if(val && ! mCamAutoExpGain) {
+                mTriggerAutoExpGain = true;
+            }
+
+            mCamAutoExpGain = val;
+
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if(param.get_name() == "video.exposure" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            int val = param.as_int();
+
+            if( (val < 0) || (val > 100) ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+                return result;
+            }
+
+            mCamExposure = val;
+            mCamAutoExpGain = false;
+
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if(param.get_name() == "video.gain" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            int val = param.as_int();
+
+            if( (val < 0) || (val > 100) ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+                return result;
+            }
+
+            mCamGain = val;
+            mCamAutoExpGain = false;
+
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
         }
 
     }

@@ -659,7 +659,31 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
+        } else if(param.get_name() == "video.contrast" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            int val = param.as_int();
+
+            if( (val < 0) || (val > 8) ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
+                return result;
+            }
+
+            mCamContrast = val;
+
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
         }
+
     }
 
     return result;
@@ -677,10 +701,10 @@ void ZedCamera::setTFCoordFrameNames()
     mRightCamOptFrameId = mCameraName + "_right_camera_optical_frame";
 
     mImuFrameId = mCameraName + "_imu_link";
-    mBaroFrameId = mCameraName + "_baro_link";
-    mMagFrameId = mCameraName + "_mag_link";
-    mTempLeftFrameId = mCameraName + "_temp_left_link";
-    mTempRightFrameId = mCameraName + "_temp_right_link";
+    mBaroFrameId = mCameraFrameId; // mCameraName + "_baro_link";   // TODO fix when XACRO is available
+    mMagFrameId = mImuFrameId; // mCameraName + "_mag_link"; // TODO fix when XACRO is available
+    mTempLeftFrameId = mLeftCamFrameId; // mCameraName + "_temp_left_link"; // TODO fix when XACRO is available
+    mTempRightFrameId = mRightCamFrameId; //mCameraName + "_temp_right_link"; // TODO fix when XACRO is available
 
     mDepthFrameId = mLeftCamFrameId;
     mDepthOptFrameId = mLeftCamOptFrameId;
@@ -2235,7 +2259,7 @@ void ZedCamera::callback_pubSensorsData() {
 
             leftTempMsg->header.stamp = ts_baro;
 
-            leftTempMsg->header.frame_id = mLeftCamFrameId;
+            leftTempMsg->header.frame_id = mTempLeftFrameId;
             leftTempMsg->temperature = static_cast<double>(mTempLeft);
             leftTempMsg->variance = 0.0;
 
@@ -2247,7 +2271,7 @@ void ZedCamera::callback_pubSensorsData() {
 
             rightTempMsg->header.stamp = ts_baro;
 
-            rightTempMsg->header.frame_id = mRightCamFrameId;
+            rightTempMsg->header.frame_id = mTempRightFrameId;
             rightTempMsg->temperature = static_cast<double>(mTempRight);
             rightTempMsg->variance = 0.0;
 

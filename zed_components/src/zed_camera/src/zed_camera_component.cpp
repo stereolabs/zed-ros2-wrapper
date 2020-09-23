@@ -705,7 +705,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
-        }else if(param.get_name() == "video.saturation" ) {
+        }else if(param.get_name() == "video.sharpness" ) {
 
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
             if( param.get_type() != correctType ) {
@@ -722,7 +722,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
                 return result;
             }
 
-            mCamSaturation = val;
+            mCamSharpness = val;
 
             RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
             result.successful = true;

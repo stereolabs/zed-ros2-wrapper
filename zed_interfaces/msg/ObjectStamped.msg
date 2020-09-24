@@ -1,0 +1,55 @@
+# Standard Header
+std_msgs/Header header
+
+# Object label
+string label
+
+# Object label ID
+int16 label_id
+
+# Object confidence level (1-99)
+float32 confidence
+
+# Object centroid position
+geometry_msgs/Point32 position
+
+# Position covariance
+float32[6] position_covariance
+
+# Object velocity
+geometry_msgs/Point32 linear_vel
+
+# Tracking state
+# 0 -> OFF (object not valid)
+# 1 -> OK
+# 2 -> SEARCHING (occlusion occurred, trajectory is estimated)
+int8 tracking_state
+
+# Action state
+# 0 -> IDLE
+# 2 -> MOVING
+int8 action_state
+
+# 2D Bounding box projected to Camera image
+zed_interfaces/BoundingBox2d bbox_2d
+
+# 3D Bounding box in world frame
+zed_interfaces/BoundingBox3d bbox_3d
+
+# 3D dimensions (width, height, lenght)
+geometry_msgs/Point32 dimensions_3d
+
+# 2D Bounding box projected to Camera image of the person head
+zed_interfaces/BoundingBox2d head_bounding_box_2d
+
+# 3D Bounding box in world frame of the person head
+zed_interfaces/BoundingBox3d head_bounding_box_3d
+
+# 3D position of the centroid of the person head
+geometry_msgs/Point32 head_position
+
+# 2D Person skeleton projected to Camera image
+zed_interfaces/Skeleton skeleton_2d
+
+# 3D Person skeleton in world frame
+zed_interfaces/Skeleton skeleton_3d

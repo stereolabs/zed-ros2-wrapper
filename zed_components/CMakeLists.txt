@@ -45,11 +45,28 @@ endif()
 
 find_package(CUDA REQUIRED)
 
+set(DEPENDENCIES
+    rclcpp
+    rclcpp_components
+    image_transport
+    builtin_interfaces
+    std_msgs
+    tf2
+    tf2_ros
+    tf2_geometry_msgs
+    geometry_msgs
+    nav_msgs
+    sensor_msgs
+    stereo_msgs
+    zed_interfaces
+)
+
 find_package(ament_cmake REQUIRED)
+find_package(rcutils REQUIRED)
 find_package(zed_interfaces)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(rcutils REQUIRED)
+find_package(builtin_interfaces REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -59,6 +76,7 @@ find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
 find_package(image_transport REQUIRED)
+
 
 ###############################################################################
 #Add all files in subdirectories of the project in
@@ -110,20 +128,6 @@ set(ZED_CAMERA_SRC
 
 ###############################################################################
 # Bin and Install
-set(DEPENDENCIES        
-    rclcpp
-    rclcpp_components
-    image_transport
-    std_msgs
-    tf2
-    tf2_ros
-    tf2_geometry_msgs
-    geometry_msgs
-    nav_msgs
-    sensor_msgs
-    stereo_msgs
-    zed_interfaces
-)
 
 add_library(zed_camera_component SHARED
     ${SL_TOOLS}

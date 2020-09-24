@@ -27,10 +27,8 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
     , mDepthQos(1)
     , mSensQos(1)
     , mPoseQos(1)
-    , mMappingQos(1) {
-
-    std::string ros_namespace = get_namespace();
-    std::string node_name = get_name();
+    , mMappingQos(1)
+    , mObjDetQos(1) {
 
     RCLCPP_INFO(get_logger(), "********************************");
     RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
@@ -1871,8 +1869,8 @@ void ZedCamera::stop3dMapping() {
 }
 
 bool ZedCamera::startObjDetect() {
-    if(mZedRealCamModel!=sl::MODEL::ZED2) {
-        RCLCPP_ERROR(get_logger(), "Object detection not started. OD is available only using a ZED2 camera model");
+    if(mCamRealModel!=sl::MODEL::ZED2) {
+        RCLCPP_ERROR(get_logger(), "Object detection not started. The module is available only using a ZED2 camera");
         return false;
     }
 
@@ -1890,8 +1888,16 @@ bool ZedCamera::startObjDetect() {
     sl::ObjectDetectionParameters od_p;
     od_p.enable_mask_output = false;
     od_p.enable_tracking = mObjDetTracking;
-    //od_p.image_sync = true;
-    od_p.image_sync = false; // Asynchronous object detection
+    od_p.image_sync = true;
+    od_p.detection_model = mObjDetModel;
+
+    mObjDetFilter.clear();
+    if(mObjDetPeopleEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+    }
+    if(mObjDetVehiclesEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+    }
 
     sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
 
@@ -1902,26 +1908,10 @@ bool ZedCamera::startObjDetect() {
         return false;
     }
 
-    if(mPubObjDet.getTopic().empty()) {
-        string object_det_topic_root = "obj_det";
-        string object_det_topic = object_det_topic_root + "/objects";
-        string object_det_rviz_topic = object_det_topic_root + "/object_markers";
-
-        mPubObjDet = mNhNs.advertise<zed_interfaces::Objects>(mObjectDetTopic, 1);
-        RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic " << mPubObjDet.getTopic());
-        mPubObjDetViz = mNhNs.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
-        RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic " << mPubObjDetViz.getTopic());
+    if(!mPubObjDet) {
+        mPubObjDet = create_publisher<zed_interfaces::msg::Objects>(mObjectDetTopic, mObjDetQos);
+        RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic " << mPubObjDet->get_topic_name());
     }
-
-    mObjDetFilter.clear();
-    if(mObjDetPeople) {
-        mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
-    }
-    if(mObjDetVehicles) {
-        mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
-    }
-
-
 
     mObjDetRunning = true;
     return false;

@@ -28,7 +28,8 @@
 
 #include <sl/Camera.hpp>
 
-
+#include <zed_interfaces/msg/objects.hpp>
+#include <zed_interfaces/msg/object_stamped.hpp>
 
 
 namespace stereolabs {
@@ -50,6 +51,8 @@ typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseWithCovariance
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::TransformStamped>> transfPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odomPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
+
+typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::Objects>> objPub;
 
 typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
@@ -229,6 +232,11 @@ private:
     float mMappingRes = 0.05f;
     float mMappingRangeMax = 10.0f;
     bool mObjDetEnabled = false;    
+    bool mObjDetTracking = true;
+    std::vector<sl::OBJECT_CLASS> mObjDetFilter;
+    bool mObjDetPeopleEnable = true;
+    bool mObjDetVehiclesEnable = true;
+    sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::HUMAN_BODY_FAST;
     // QoS parameters
     // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
     rclcpp::QoS mVideoQos;
@@ -236,6 +244,7 @@ private:
     rclcpp::QoS mSensQos;
     rclcpp::QoS mPoseQos;
     rclcpp::QoS mMappingQos;
+    rclcpp::QoS mObjDetQos;
     // <---- Parameter variables
 
     // ----> Dynamic params
@@ -375,6 +384,7 @@ private:
     tempPub mPubTempL; //
     tempPub mPubTempR; //
     transfPub mPubCamImuTransf; //;
+    objPub mPubObjDet;
     // <---- Publishers
 
     // ----> Threads and Timers

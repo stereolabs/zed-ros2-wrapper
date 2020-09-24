@@ -89,6 +89,7 @@ protected:
     void getDepthParams();
     void getPosTrackingParams();
     void getSensorsParams();
+    void getMappingParams();
 
     void setTFCoordFrameNames();
     void initPublishers();
@@ -99,11 +100,14 @@ protected:
 
     bool startCamera();
     bool startPosTracking();
+    bool start3dMapping();
+    void stop3dMapping();
     // <---- Initialization functions
 
     // ----> Callbacks
     void callback_pubVideoDepth();
     void callback_pubSensorsData();
+    void callback_pubFusedPc();
     rcl_interfaces::msg::SetParametersResult callback_paramChange(std::vector<rclcpp::Parameter> parameters);
     // <---- Callbacks
 
@@ -149,6 +153,7 @@ protected:
     bool getCamera2BaseTransform();
 
     void startVideoDepthTimer(double pubFrameRate);
+    void startFusedPcTimer(double fusedPcRate);
 
     template<typename T>
     void getParam(std::string paramName, T defValue, T& outVal, std::string log_info=std::string());
@@ -169,6 +174,7 @@ private:
     std::string mOdomTopic;
     std::string mPoseTopic;
     std::string mPoseCovTopic;
+    std::string mPointcloudFusedTopic;
     // <---- Topics
 
     // ----> Parameter variables
@@ -216,13 +222,16 @@ private:
     int mPathMaxCount = -1;
     bool mPublishPoseCov = true;
     bool mMappingEnabled = false;
-    bool mObjDetEnabled = false;
+    float mMappingRes = 0.05f;
+    float mMappingRangeMax = 10.0f;
+    bool mObjDetEnabled = false;    
     // QoS parameters
     // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
     rclcpp::QoS mVideoQos;
     rclcpp::QoS mDepthQos;
     rclcpp::QoS mSensQos;
     rclcpp::QoS mPoseQos;
+    rclcpp::QoS mMappingQos;
     // <---- Parameter variables
 
     // ----> Dynamic params
@@ -244,6 +253,7 @@ private:
     double mDepthDownsampleFactor = 1.0;
     double mDepthPubRate = 15.0;
     double mPcPubRate = 15.0;
+    double mFusedPcPubRate = 1.0;
     // <---- Dynamic params
 
     // ----> Frame IDs
@@ -399,6 +409,7 @@ private:
     bool mRecStatus=false;
     sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
     bool mResetOdom=false;
+    bool mMappingRunning = false;
     // <---- Status Flags
 
     // ----> Positional Tracking

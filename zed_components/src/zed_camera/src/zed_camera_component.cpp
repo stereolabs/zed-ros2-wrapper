@@ -26,7 +26,8 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
     , mVideoQos(1)
     , mDepthQos(1)
     , mSensQos(1)
-    , mPoseQos(1) {
+    , mPoseQos(1)
+    , mMappingQos(1) {
 
     std::string ros_namespace = get_namespace();
     std::string node_name = get_name();
@@ -130,7 +131,7 @@ void ZedCamera::initParameters() {
         getSensorsParams();
     }
 
-    // TODO MAPPING PARAMETERS
+    getMappingParams();
 
     // TODO OD PARAMETERS
 
@@ -202,7 +203,7 @@ void ZedCamera::getVideoParams() {
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
     size_t qos_depth = 1;
-    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
     getParam( "video.extrinsic_in_camera_frame", mUseOldExtrinsic, mUseOldExtrinsic,  " * Use old extrinsic parameters: ");
@@ -305,7 +306,7 @@ void ZedCamera::getDepthParams() {
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
     size_t qos_depth = 1;
-    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
     RCLCPP_INFO(get_logger(), "*** DEPTH parameters ***");
@@ -417,7 +418,7 @@ void ZedCamera::getSensorsParams() {
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
     size_t qos_depth = 1;
-    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
     RCLCPP_INFO(get_logger(), "*** SENSORS STACK parameters ***");
@@ -482,7 +483,88 @@ void ZedCamera::getSensorsParams() {
     }
 
     RCLCPP_INFO(get_logger(), " * Sensors QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
+}
 
+void ZedCamera::getMappingParams() {
+    rclcpp::Parameter paramVal;
+    std::string paramName;
+
+    rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+    size_t qos_depth = 1;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+    rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+
+    RCLCPP_INFO(get_logger(), "*** 3D MAPPING parameters ***");
+
+    getParam( "mapping.mapping_enabled", mMappingEnabled, mMappingEnabled );
+    RCLCPP_INFO_STREAM(get_logger(), " * 3D Mapping Enabled: " << (mMappingEnabled?"TRUE":"FALSE") );
+
+    getParam( "mapping.resolution", mMappingRes, mMappingRes, " * 3D Mapping resolution [m]: " );
+    getParam( "mapping.max_mapping_range", mMappingRangeMax, mMappingRangeMax );
+    if( mMappingRangeMax==-1.0f ) {
+        RCLCPP_INFO(get_logger(), " * 3D Max Mapping range: AUTO" );
+    } else {
+        RCLCPP_INFO_STREAM(get_logger(), " * 3D Max Mapping range [m]: " << mMappingRangeMax );
+    }
+    getParam( "mapping.fused_pointcloud_freq", mFusedPcPubRate, mFusedPcPubRate, " * Map publishing rate [Hz]: " );
+
+    // ------------------------------------------
+
+    paramName = "mapping.qos_history";
+    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_hist = paramVal.as_int() == 0 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+        mMappingQos.history(qos_hist);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Sensors QoS History: '%s'", sl_tools::qos2str(qos_hist).c_str());
+
+    // ------------------------------------------
+
+    paramName = "mapping.qos_depth";
+    declare_parameter(paramName, rclcpp::ParameterValue(10) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_depth = paramVal.as_int();
+        mMappingQos.keep_last(qos_depth);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Sensors QoS History depth: '%d'", qos_depth);
+
+    // ------------------------------------------
+
+    paramName = "mapping.qos_reliability";
+    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT :
+                                                   RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+        mMappingQos.reliability(qos_reliability);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Sensors QoS Reliability: '%s'", sl_tools::qos2str(qos_reliability).c_str());
+
+    // ------------------------------------------
+
+    paramName = "mapping.qos_durability";
+    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_durability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+                                                  RMW_QOS_POLICY_DURABILITY_VOLATILE;
+        mMappingQos.durability(qos_durability);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Sensors QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
 }
 
 void ZedCamera::getPosTrackingParams() {
@@ -491,7 +573,7 @@ void ZedCamera::getPosTrackingParams() {
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
     size_t qos_depth = 1;
-    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
     RCLCPP_INFO(get_logger(), "*** POSITIONAL TRACKING parameters ***");
@@ -936,13 +1018,35 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
+        } else if(param.get_name() == "mapping.fused_pointcloud_freq" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            double val = param.as_double();
+
+            if( (val <= 0.0) || (val > mPcPubRate) ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be positive and minor of `point_cloud_freq`";
+                return result;
+            }
+
+            mPcPubRate = val;
+            startFusedPcTimer(mPcPubRate);
+
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
         }
     }
 
     return result;
 }
-
-
 
 void ZedCamera::setTFCoordFrameNames()
 {
@@ -1158,7 +1262,7 @@ void ZedCamera::initPublishers() {
     std::string depth_topic = mTopicRoot + depth_topic_root + "/depth_registered";
 
     std::string pointcloud_topic = mTopicRoot + "point_cloud/cloud_registered";
-    std::string pointcloud_fused_topic = mTopicRoot + "mapping/fused_cloud";
+    mPointcloudFusedTopic = mTopicRoot + "mapping/fused_cloud";
 
     std::string object_det_topic_root = "obj_det";
     std::string object_det_topic = mTopicRoot + object_det_topic_root + "/objects";
@@ -1260,8 +1364,8 @@ void ZedCamera::initPublishers() {
 
     // ----> Mapping
     if (mMappingEnabled) {
-        mPubFusedCloud = create_publisher<sensor_msgs::msg::PointCloud2>( pointcloud_fused_topic, mDepthQos );
-        RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubFusedCloud->get_topic_name());
+        mPubFusedCloud = create_publisher<sensor_msgs::msg::PointCloud2>( mPointcloudFusedTopic, mMappingQos );
+        RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic " << mPubFusedCloud->get_topic_name() << " @ " << mFusedPcPubRate << " Hz");
     }
     // <---- Mapping
 
@@ -1591,6 +1695,18 @@ void ZedCamera::startVideoDepthTimer(double pubFrameRate) {
                 std::bind(&ZedCamera::callback_pubVideoDepth, this) );
 }
 
+void ZedCamera::startFusedPcTimer(double fusedPcRate) {
+
+    if(mFusedPcTimer!=nullptr) {
+        mFusedPcTimer->cancel();
+    }
+
+    std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0 / (fusedPcRate)));
+    mFusedPcTimer = create_wall_timer(
+                std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
+                std::bind(&ZedCamera::callback_pubFusedPc, this) );
+}
+
 bool ZedCamera::startPosTracking() {
     RCLCPP_INFO_STREAM(get_logger(),"*** Starting Positional Tracking ***");
 
@@ -1657,6 +1773,89 @@ bool ZedCamera::startPosTracking() {
 
         RCLCPP_WARN(get_logger(),"Tracking not activated: %s", sl::toString(err).c_str());
     }
+}
+
+bool ZedCamera::start3dMapping() {
+    if (!mMappingEnabled) {
+        return false;
+    }
+
+    RCLCPP_INFO_STREAM(get_logger(), "*** Starting Spatial Mapping ***");
+
+    sl::SpatialMappingParameters params;
+    params.map_type = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::FUSED_POINT_CLOUD;
+    params.use_chunk_only = true;
+
+    sl::SpatialMappingParameters spMapPar;
+
+    float lRes = spMapPar.allowed_resolution.first;
+    float hRes = spMapPar.allowed_resolution.second;
+
+    if(mMappingRes < lRes) {
+        RCLCPP_WARN_STREAM(get_logger(), "'mapping.resolution' value (" << mMappingRes << " m) is lower than the allowed resolution values. Fixed automatically" );
+        mMappingRes = lRes;
+    }
+    if(mMappingRes > hRes) {
+        RCLCPP_WARN_STREAM(get_logger(), "'mapping.resolution' value (" << mMappingRes << " m) is higher than the allowed resolution values. Fixed automatically" );
+        mMappingRes = hRes;
+    }
+
+    params.resolution_meter = mMappingRes;
+
+    float lRng = spMapPar.allowed_range.first;
+    float hRng = spMapPar.allowed_range.second;
+
+    if(mMappingRangeMax < 0) {
+        mMappingRangeMax = sl::SpatialMappingParameters::getRecommendedRange( mMappingRes, mZed );
+        RCLCPP_INFO_STREAM(get_logger(), "Mapping: max range set to " << mMappingRangeMax << " m for a resolution of " << mMappingRes << " m"  );
+    } else if(mMappingRangeMax < lRng) {
+        RCLCPP_WARN_STREAM(get_logger(), "'mapping.max_mapping_range_m' value (" << mMappingRangeMax << " m) is lower than the allowed resolution values. Fixed automatically" );
+        mMappingRangeMax = lRng;
+    } else if(mMappingRangeMax > hRng) {
+        RCLCPP_WARN_STREAM(get_logger(), "'mapping.max_mapping_range_m' value (" << mMappingRangeMax << " m) is higher than the allowed resolution values. Fixed automatically" );
+        mMappingRangeMax = hRng;
+    }
+
+    params.range_meter = mMappingRangeMax;
+
+    sl::ERROR_CODE err = mZed.enableSpatialMapping(params);
+
+    if (err == sl::ERROR_CODE::SUCCESS) {
+        if(mPubFusedCloud==nullptr) {;
+            mPubFusedCloud = create_publisher<sensor_msgs::msg::PointCloud2>( mPointcloudFusedTopic, mMappingQos );
+            RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic " << mPubFusedCloud->get_topic_name() << " @ " << mFusedPcPubRate << " Hz");
+        }
+
+        mMappingRunning = true;
+
+        startFusedPcTimer(mFusedPcPubRate);
+
+        RCLCPP_INFO_STREAM(get_logger(), " * Resolution: " << params.resolution_meter << " m");
+        RCLCPP_INFO_STREAM(get_logger(), " * Max Mapping Range: " << params.range_meter << " m");
+        RCLCPP_INFO_STREAM(get_logger(), " * Map point cloud publishing rate: " << mFusedPcPubRate << " Hz");
+
+        return true;
+    } else {
+        mMappingRunning = false;
+        if(mFusedPcTimer) {
+            mFusedPcTimer->cancel();
+        }
+
+        RCLCPP_WARN(get_logger(), "Mapping not activated: %s", sl::toString(err).c_str());
+
+        return false;
+    }
+}
+
+void ZedCamera::stop3dMapping() {
+    if(mFusedPcTimer) {
+        mFusedPcTimer->cancel();
+    }
+    mMappingRunning = false;
+    mMappingEnabled = false;
+    mZed.disableSpatialMapping();
+
+    RCLCPP_INFO(get_logger(),"*** Spatial Mapping stopped ***");
 }
 
 void ZedCamera::initTransforms() {
@@ -1974,6 +2173,14 @@ void ZedCamera::threadFunc_zedGrab() {
             startPosTracking();
         }
         // ----> Check for Positional Tracking requirement
+
+        // ----> Check for 3D Mapping requirement
+        mMappingMutex.lock();
+        if (mMappingEnabled && !mMappingRunning) {
+            start3dMapping();
+        }
+        mMappingMutex.unlock();
+        // <---- Check for 3D Mapping requirement
 
         // ZED grab
         mGrabStatus = mZed.grab(mRunParams);
@@ -3403,6 +3610,97 @@ void ZedCamera::publishPointCloud() {
 
     double mean = mPcPeriodMean_usec->addValue(elapsed_usec);
     //RCLCPP_INFO_STREAM(get_logger(), "Point cloud freq: " << 1e6/mean);
+}
+
+void ZedCamera::callback_pubFusedPc() {
+
+    pointcloudMsgPtr pointcloudFusedMsg = std::make_unique<sensor_msgs::msg::PointCloud2>();
+
+    uint32_t fusedCloudSubnumber = count_subscribers(mPubFusedCloud->get_topic_name());
+
+    if (fusedCloudSubnumber == 0) {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(mCloseZedMutex);
+
+    if (!mZed.isOpened()) {
+        return;
+    }
+
+    mZed.requestSpatialMapAsync();
+
+    while (mZed.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::FAILURE) {
+        //Mesh is still generating
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    sl::ERROR_CODE res = mZed.retrieveSpatialMapAsync(mFusedPC);
+
+    if (res != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_WARN_STREAM(get_logger(), "Fused point cloud not extracted: " << sl::toString(res).c_str());
+        return;
+    }
+
+    size_t ptsCount = mFusedPC.getNumberOfPoints();
+    bool resized = false;
+
+    if (pointcloudFusedMsg->width != ptsCount || pointcloudFusedMsg->height != 1) {
+        // Initialize Point Cloud message
+        // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
+        pointcloudFusedMsg->header.frame_id = mMapFrameId; // Set the header values of the ROS message
+        pointcloudFusedMsg->is_bigendian = false;
+        pointcloudFusedMsg->is_dense = false;
+        pointcloudFusedMsg->width = ptsCount;
+        pointcloudFusedMsg->height = 1;
+
+        sensor_msgs::PointCloud2Modifier modifier(*pointcloudFusedMsg);
+        modifier.setPointCloud2Fields(4,
+                                      "x", 1, sensor_msgs::msg::PointField::FLOAT32,
+                                      "y", 1, sensor_msgs::msg::PointField::FLOAT32,
+                                      "z", 1, sensor_msgs::msg::PointField::FLOAT32,
+                                      "rgb", 1, sensor_msgs::msg::PointField::FLOAT32);
+
+        resized = true;
+    }
+
+    std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+
+    //NODELET_INFO_STREAM("Chunks: " << mFusedPC.chunks.size());
+
+    int index = 0;
+    float* ptCloudPtr = (float*)(&pointcloudFusedMsg->data[0]);
+    int updated = 0;
+
+    for (int c = 0; c < mFusedPC.chunks.size(); c++) {
+        if (mFusedPC.chunks[c].has_been_updated || resized) {
+            updated++;
+            size_t chunkSize = mFusedPC.chunks[c].vertices.size();
+
+            if (chunkSize > 0) {
+                float* cloud_pts = (float*)(mFusedPC.chunks[c].vertices.data());
+                memcpy(ptCloudPtr, cloud_pts, 4 * chunkSize * sizeof(float));
+                ptCloudPtr += 4 * chunkSize;
+                pointcloudFusedMsg->header.stamp = sl_tools::slTime2Ros(mFusedPC.chunks[c].timestamp);
+            }
+        } else {
+            index += mFusedPC.chunks[c].vertices.size();
+        }
+    }
+
+    std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+
+    //NODELET_INFO_STREAM("Updated: " << updated);
+
+
+    //double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+
+
+    //        NODELET_INFO_STREAM("Data copy: " << elapsed_usec << " usec [" << ptsCount << "] - " << (static_cast<double>
+    //                        (ptsCount) / elapsed_usec) << " pts/usec");
+
+    // Pointcloud publishing
+    mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
 }
 
 } // namespace stereolabs

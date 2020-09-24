@@ -1918,7 +1918,12 @@ bool ZedCamera::startObjDetect() {
 }
 
 void ZedCamera::stopObjDetect() {
-
+    if (mObjDetRunning) {
+        RCLCPP_INFO(get_logger(), "*** Stopping Object Detection ***");
+        mObjDetRunning = false;
+        mObjDetEnabled = false;
+        mZed.disableObjectDetection();
+    }
 }
 
 void ZedCamera::initTransforms() {
@@ -2248,7 +2253,7 @@ void ZedCamera::threadFunc_zedGrab() {
         // ----> Check for Object Detection requirement
         mObjDetMutex.lock();
         if (mObjDetEnabled && !mObjDetRunning) {
-            start3dMapping();
+            startObjDetect();
         }
         mObjDetMutex.unlock();
         // ----> Check for Object Detection requirement
@@ -2324,6 +2329,17 @@ void ZedCamera::threadFunc_zedGrab() {
                 publishTFs(mFrameTimestamp);
             }
         }
+
+        mObjDetMutex.lock();
+        if (mObjDetRunning) {
+            //std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+            detectObjects(mFrameTimestamp);
+            //std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+            //double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+            //mObjDetPeriodMean_msec->addValue(elapsed_msec);
+        }
+        mObjDetMutex.unlock();
 
         // Update previous frame timestamp
         mPrevFrameTimestamp = mFrameTimestamp;
@@ -3352,6 +3368,78 @@ void ZedCamera::publishPose() {
             mPubPoseCov->publish(std::move(poseCov));
         }
     }
+}
+
+void ZedCamera::detectObjects(rclcpp::Time t) {
+    size_t objdet_sub_count = count_subscribers(mPubObjDet->get_topic_name());
+
+    if(objdet_sub_count<1) {
+        return;
+    }
+
+    static std::chrono::steady_clock::time_point old_time = std::chrono::steady_clock::now();
+
+    sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
+    objectTracker_parameters_rt.detection_confidence_threshold = mObjDetConfidence;
+    objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
+
+    sl::Objects objects;
+
+    sl::ERROR_CODE objDetRes = mZed.retrieveObjects(objects, objectTracker_parameters_rt);
+
+    if (objDetRes != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_WARN_STREAM(get_logger(), "Object Detection error: " << sl::toString(objDetRes));
+        return;
+    }
+
+    if(!objects.is_new) // Async object detection. Update data only if new detection is available
+    {
+        return;
+    }
+
+    // ----> Diagnostic information update
+    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+    double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - old_time).count();
+    mObjDetPeriodMean_msec->addValue(elapsed_msec);
+    old_time = now;
+    // <---- Diagnostic information update
+
+    RCLCPP_DEBUG_STREAM(get_logger(), "Detected " << objects.object_list.size() << " objects");
+
+    size_t objCount = objects.object_list.size();
+
+    objDetMsgPtr objMsg = std::make_unique<zed_interfaces::msg::Objects>();
+
+    objMsg->objects.resize(objCount);
+
+    std_msgs::msg::Header header;
+    header.stamp = t;
+    header.frame_id = mLeftCamFrameId;
+
+    size_t idx = 0;
+    for (auto data : objects.object_list) {
+
+        objMsg->objects[idx].header = header;
+
+        objMsg->objects[idx].label = sl::toString(data.label).c_str();
+        objMsg->objects[idx].label_id = data.id;
+        objMsg->objects[idx].confidence = data.confidence;
+
+        objMsg->objects[idx].tracking_state = static_cast<int8_t>(data.tracking_state);
+        objMsg->objects[idx].action_state = static_cast<int8_t>(data.action_state);
+
+        memcpy(&(objMsg->objects[idx].position[0]), &(data.position[0]), 3*sizeof(float));
+        memcpy(&(objMsg->objects[idx].position_covariance[0]), &(data.position_covariance[0]), 6*sizeof(float));
+        memcpy(&(objMsg->objects[idx].velocity[0]), &(data.velocity[0]), 3*sizeof(float));
+
+        memcpy(&(objMsg->objects[idx].bounding_box_2d.corners[0]), &(data.bounding_box_2d[0]), 8*sizeof(unsigned int));
+        memcpy(&(objMsg->objects[idx].bounding_box_3d.corners[0]), &(data.bounding_box[0]), 24*sizeof(float));
+
+        // at the end of the loop
+        idx++;
+    }
+
+    mPubObjDet->publish(std::move(objMsg));
 }
 
 bool ZedCamera::isDepthRequired() {

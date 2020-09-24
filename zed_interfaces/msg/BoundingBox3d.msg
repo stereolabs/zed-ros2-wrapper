@@ -5,4 +5,4 @@
 #    | 5.......| 6
 #    |.        |/
 #    4 ------- 7
-geometry_msgs/Point32[8] corners
+zed_interfaces/Keypoint3d[8] corners

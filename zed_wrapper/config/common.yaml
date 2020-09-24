@@ -76,7 +76,7 @@
             qos_durability:             1                                   # '0': TRANSIENT_LOCAL - '1': VOLATILE
 
         mapping:
-            mapping_enabled:            true                               # True to enable mapping and fused point cloud pubblication
+            mapping_enabled:            false                               # True to enable mapping and fused point cloud pubblication
             resolution:                 0.01                                # maps resolution in meters [0.01f, 0.2f]
             max_mapping_range:          -1.0                                  # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
             fused_pointcloud_freq:      0.5                                 # frequency of the publishing of the fused colored point cloud

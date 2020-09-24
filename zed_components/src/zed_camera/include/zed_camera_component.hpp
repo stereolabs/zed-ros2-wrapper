@@ -69,6 +69,8 @@ typedef std::shared_ptr<geometry_msgs::msg::TransformStamped> transfMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Odometry> odomMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
 
+typedef std::unique_ptr<zed_interfaces::msg::Objects> objDetMsgPtr;
+
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::ResetOdometry>::SharedPtr resetOdomSrvPtr;
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::RestartTracking>::SharedPtr restartTrkSrvPtr;
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::SetPose>::SharedPtr setPoseSrvPtr;
@@ -152,6 +154,8 @@ protected:
     void processOdometry();
     void processPose();
 
+    void detectObjects(rclcpp::Time t);
+
     bool set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
     void initTransforms();
     bool getSens2BaseTransform();
@@ -231,8 +235,9 @@ private:
     bool mMappingEnabled = false;
     float mMappingRes = 0.05f;
     float mMappingRangeMax = 10.0f;
-    bool mObjDetEnabled = false;    
+    bool mObjDetEnabled = true;
     bool mObjDetTracking = true;
+    float mObjDetConfidence = 40.0f;
     std::vector<sl::OBJECT_CLASS> mObjDetFilter;
     bool mObjDetPeopleEnable = true;
     bool mObjDetVehiclesEnable = true;

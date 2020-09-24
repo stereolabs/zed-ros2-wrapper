@@ -11,13 +11,13 @@ int16 label_id
 float32 confidence
 
 # Object centroid position
-geometry_msgs/Point32 position
+float32[3] position
 
 # Position covariance
 float32[6] position_covariance
 
 # Object velocity
-geometry_msgs/Point32 linear_vel
+float32[3] velocity
 
 # Tracking state
 # 0 -> OFF (object not valid)
@@ -31,10 +31,10 @@ int8 tracking_state
 int8 action_state
 
 # 2D Bounding box projected to Camera image
-zed_interfaces/BoundingBox2d bbox_2d
+zed_interfaces/BoundingBox2d bounding_box_2d
 
 # 3D Bounding box in world frame
-zed_interfaces/BoundingBox3d bbox_3d
+zed_interfaces/BoundingBox3d bounding_box_3d
 
 # 3D dimensions (width, height, lenght)
 geometry_msgs/Point32 dimensions_3d

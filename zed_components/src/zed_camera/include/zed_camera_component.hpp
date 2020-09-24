@@ -30,6 +30,7 @@
 
 
 
+
 namespace stereolabs {
 
 // ----> Typedefs to simplify declarations
@@ -102,6 +103,8 @@ protected:
     bool startPosTracking();
     bool start3dMapping();
     void stop3dMapping();
+    bool startObjDetect();
+    void stopObjDetect();
     // <---- Initialization functions
 
     // ----> Callbacks
@@ -175,6 +178,7 @@ private:
     std::string mPoseTopic;
     std::string mPoseCovTopic;
     std::string mPointcloudFusedTopic;
+    std::string mObjectDetTopic;
     // <---- Topics
 
     // ----> Parameter variables
@@ -410,6 +414,7 @@ private:
     sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
     bool mResetOdom=false;
     bool mMappingRunning = false;
+    bool mObjDetRunning = false;
     // <---- Status Flags
 
     // ----> Positional Tracking
@@ -430,6 +435,7 @@ private:
     std::unique_ptr<sl_tools::SmartMean> mBaroPeriodMean_usec;
     std::unique_ptr<sl_tools::SmartMean> mMagPeriodMean_usec;
     std::unique_ptr<sl_tools::SmartMean> mObjDetPeriodMean_msec;
+    std::unique_ptr<sl_tools::SmartMean> mPubFusedCloudPeriodMean_sec;
 
     // Last frame time
     rclcpp::Time mPrevFrameTimestamp;

@@ -71,6 +71,19 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
 ZedCamera::~ZedCamera() {
     RCLCPP_DEBUG(get_logger(), "Destroying node");
 
+    if(mSensTimer) {
+        mSensTimer->cancel();
+    }
+    if(mPathTimer) {
+        mPathTimer->cancel();
+    }
+    if(mFusedPcTimer) {
+        mFusedPcTimer->cancel();
+    }
+    if(mVideoDepthTimer) {
+        mVideoDepthTimer->cancel();
+    }
+
     // ----> Verify that all the threads are not active
     if (!mThreadStop) {
         mThreadStop = true;
@@ -1265,8 +1278,7 @@ void ZedCamera::initPublishers() {
     mPointcloudFusedTopic = mTopicRoot + "mapping/fused_cloud";
 
     std::string object_det_topic_root = "obj_det";
-    std::string object_det_topic = mTopicRoot + object_det_topic_root + "/objects";
-    std::string object_det_rviz_topic = mTopicRoot + object_det_topic_root + "/object_markers";
+    mObjectDetTopic = mTopicRoot + object_det_topic_root + "/objects";
 
     std::string confImgRoot = "confidence";
     std::string conf_map_topic_name = "confidence_map";
@@ -1658,6 +1670,7 @@ bool ZedCamera::startCamera() {
     mImuPeriodMean_usec = std::make_unique<sl_tools::SmartMean>(mSensPubRate);
     mBaroPeriodMean_usec = std::make_unique<sl_tools::SmartMean>(mSensPubRate);
     mMagPeriodMean_usec = std::make_unique<sl_tools::SmartMean>(mSensPubRate);
+    mPubFusedCloudPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(10);
     // <---- Initialize Diagnostic statistics
 
     // ----> Start Pointcloud thread
@@ -1696,7 +1709,6 @@ void ZedCamera::startVideoDepthTimer(double pubFrameRate) {
 }
 
 void ZedCamera::startFusedPcTimer(double fusedPcRate) {
-
     if(mFusedPcTimer!=nullptr) {
         mFusedPcTimer->cancel();
     }
@@ -1856,6 +1868,67 @@ void ZedCamera::stop3dMapping() {
     mZed.disableSpatialMapping();
 
     RCLCPP_INFO(get_logger(),"*** Spatial Mapping stopped ***");
+}
+
+bool ZedCamera::startObjDetect() {
+    if(mZedRealCamModel!=sl::MODEL::ZED2) {
+        RCLCPP_ERROR(get_logger(), "Object detection not started. OD is available only using a ZED2 camera model");
+        return false;
+    }
+
+    if(!mObjDetEnabled) {
+        return false;
+    }
+
+    if( !mCamera2BaseTransfValid || !mSensor2CameraTransfValid || !mSensor2BaseTransfValid) {
+        RCLCPP_DEBUG(get_logger(),  "Tracking transforms not yet ready, OD starting postponed");
+        return false;
+    }
+
+    RCLCPP_INFO(get_logger(), "*** Starting Object Detection ***");
+
+    sl::ObjectDetectionParameters od_p;
+    od_p.enable_mask_output = false;
+    od_p.enable_tracking = mObjDetTracking;
+    //od_p.image_sync = true;
+    od_p.image_sync = false; // Asynchronous object detection
+
+    sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
+
+    if (objDetError != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_ERROR_STREAM(get_logger(), "Object detection error: " << sl::toString(objDetError));
+
+        mObjDetRunning = false;
+        return false;
+    }
+
+    if(mPubObjDet.getTopic().empty()) {
+        string object_det_topic_root = "obj_det";
+        string object_det_topic = object_det_topic_root + "/objects";
+        string object_det_rviz_topic = object_det_topic_root + "/object_markers";
+
+        mPubObjDet = mNhNs.advertise<zed_interfaces::Objects>(mObjectDetTopic, 1);
+        RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic " << mPubObjDet.getTopic());
+        mPubObjDetViz = mNhNs.advertise<visualization_msgs::MarkerArray>(object_det_rviz_topic, 1);
+        RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic " << mPubObjDetViz.getTopic());
+    }
+
+    mObjDetFilter.clear();
+    if(mObjDetPeople) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+    }
+    if(mObjDetVehicles) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+    }
+
+
+
+    mObjDetRunning = true;
+    return false;
+}
+
+void ZedCamera::stopObjDetect() {
+
 }
 
 void ZedCamera::initTransforms() {
@@ -2181,6 +2254,14 @@ void ZedCamera::threadFunc_zedGrab() {
         }
         mMappingMutex.unlock();
         // <---- Check for 3D Mapping requirement
+
+        // ----> Check for Object Detection requirement
+        mObjDetMutex.lock();
+        if (mObjDetEnabled && !mObjDetRunning) {
+            start3dMapping();
+        }
+        mObjDetMutex.unlock();
+        // ----> Check for Object Detection requirement
 
         // ZED grab
         mGrabStatus = mZed.grab(mRunParams);
@@ -3613,6 +3694,9 @@ void ZedCamera::publishPointCloud() {
 }
 
 void ZedCamera::callback_pubFusedPc() {
+    RCLCPP_DEBUG_ONCE(get_logger(), "Mapping callback called");
+
+    static rclcpp::Time prev_ts=rclcpp::Time(0,0,RCL_ROS_TIME);
 
     pointcloudMsgPtr pointcloudFusedMsg = std::make_unique<sensor_msgs::msg::PointCloud2>();
 
@@ -3664,10 +3748,6 @@ void ZedCamera::callback_pubFusedPc() {
         resized = true;
     }
 
-    std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
-
-    //NODELET_INFO_STREAM("Chunks: " << mFusedPC.chunks.size());
-
     int index = 0;
     float* ptCloudPtr = (float*)(&pointcloudFusedMsg->data[0]);
     int updated = 0;
@@ -3688,16 +3768,13 @@ void ZedCamera::callback_pubFusedPc() {
         }
     }
 
-    std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+    rclcpp::Time ros_ts = now();
 
-    //NODELET_INFO_STREAM("Updated: " << updated);
-
-
-    //double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
-
-
-    //        NODELET_INFO_STREAM("Data copy: " << elapsed_usec << " usec [" << ptsCount << "] - " << (static_cast<double>
-    //                        (ptsCount) / elapsed_usec) << " pts/usec");
+    if (prev_ts!=rclcpp::Time(0,0,RCL_ROS_TIME)) {
+        double mean = mPubFusedCloudPeriodMean_sec->addValue( (ros_ts-prev_ts).seconds() );
+        // RCLCPP_INFO_STREAM( get_logger(),"Fused Cloud Pub freq: " << 1.0/mean );
+    }
+    prev_ts = ros_ts;
 
     // Pointcloud publishing
     mPubFusedCloud->publish(std::move(pointcloudFusedMsg));

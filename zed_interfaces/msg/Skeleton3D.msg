@@ -18,4 +18,4 @@
 #            |   |
 #            |   |
 #           10   13
-geometry_msgs/Point32[18] keypoint
+zed_interfaces/Keypoint3D[18] keypoints

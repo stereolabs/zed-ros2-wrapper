@@ -1,4 +1,4 @@
-#include "zed_camera_component.hpp"
+﻿#include "zed_camera_component.hpp"
 #include "sl_tools.h"
 #include <type_traits>
 
@@ -2332,12 +2332,7 @@ void ZedCamera::threadFunc_zedGrab() {
 
         mObjDetMutex.lock();
         if (mObjDetRunning) {
-            //std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-            detectObjects(mFrameTimestamp);
-            //std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-
-            //double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
-            //mObjDetPeriodMean_msec->addValue(elapsed_msec);
+            processDetectedObjects(mFrameTimestamp);
         }
         mObjDetMutex.unlock();
 
@@ -3370,7 +3365,7 @@ void ZedCamera::publishPose() {
     }
 }
 
-void ZedCamera::detectObjects(rclcpp::Time t) {
+void ZedCamera::processDetectedObjects(rclcpp::Time t) {
     size_t objdet_sub_count = count_subscribers(mPubObjDet->get_topic_name());
 
     if(objdet_sub_count<1) {
@@ -3418,22 +3413,38 @@ void ZedCamera::detectObjects(rclcpp::Time t) {
 
     size_t idx = 0;
     for (auto data : objects.object_list) {
-
         objMsg->objects[idx].header = header;
 
         objMsg->objects[idx].label = sl::toString(data.label).c_str();
         objMsg->objects[idx].label_id = data.id;
         objMsg->objects[idx].confidence = data.confidence;
 
-        objMsg->objects[idx].tracking_state = static_cast<int8_t>(data.tracking_state);
-        objMsg->objects[idx].action_state = static_cast<int8_t>(data.action_state);
-
         memcpy(&(objMsg->objects[idx].position[0]), &(data.position[0]), 3*sizeof(float));
         memcpy(&(objMsg->objects[idx].position_covariance[0]), &(data.position_covariance[0]), 6*sizeof(float));
         memcpy(&(objMsg->objects[idx].velocity[0]), &(data.velocity[0]), 3*sizeof(float));
 
+        objMsg->objects[idx].tracking_state = static_cast<int8_t>(data.tracking_state);
+        objMsg->objects[idx].action_state = static_cast<int8_t>(data.action_state);
+
         memcpy(&(objMsg->objects[idx].bounding_box_2d.corners[0]), &(data.bounding_box_2d[0]), 8*sizeof(unsigned int));
         memcpy(&(objMsg->objects[idx].bounding_box_3d.corners[0]), &(data.bounding_box[0]), 24*sizeof(float));
+
+        memcpy(&(objMsg->objects[idx].dimensions_3d[0]), &(data.dimensions[0]), 3*sizeof(float));
+
+        if(mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE ||
+                mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_FAST ) {
+            objMsg->objects[idx].skeleton_available = true;
+
+            memcpy(&(objMsg->objects[idx].head_bounding_box_2d.corners[0]), &(data.head_bounding_box_2d[0]), 8*sizeof(unsigned int));
+            memcpy(&(objMsg->objects[idx].head_bounding_box_3d.corners[0]), &(data.head_bounding_box[0]), 24*sizeof(float));
+            memcpy(&(objMsg->objects[idx].head_position[0]), &(data.head_position[0]), 3*sizeof(float));
+
+            memcpy(&(objMsg->objects[idx].skeleton_2d.keypoints[0]), &(data.keypoint_2d[0]), 36*sizeof(float));
+            memcpy(&(objMsg->objects[idx].skeleton_3d.keypoints[0]), &(data.keypoint[0]), 54*sizeof(float));
+        } else {
+            objMsg->objects[idx].skeleton_available = false;
+        }
+
 
         // at the end of the loop
         idx++;

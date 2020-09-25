@@ -5,4 +5,4 @@
 #    | 5.......| 6
 #    |.        |/
 #    4 ------- 7
-zed_interfaces/Keypoint3d[8] corners
+zed_interfaces/Keypoint3D[8] corners

@@ -31,25 +31,28 @@ int8 tracking_state
 int8 action_state
 
 # 2D Bounding box projected to Camera image
-zed_interfaces/BoundingBox2d bounding_box_2d
+zed_interfaces/BoundingBox2Di bounding_box_2d
 
 # 3D Bounding box in world frame
-zed_interfaces/BoundingBox3d bounding_box_3d
+zed_interfaces/BoundingBox3D bounding_box_3d
 
 # 3D dimensions (width, height, lenght)
-geometry_msgs/Point32 dimensions_3d
+float32[3] dimensions_3d
+
+# Is skeleton available?
+bool skeleton_available
 
 # 2D Bounding box projected to Camera image of the person head
-zed_interfaces/BoundingBox2d head_bounding_box_2d
+zed_interfaces/BoundingBox2Df head_bounding_box_2d
 
 # 3D Bounding box in world frame of the person head
-zed_interfaces/BoundingBox3d head_bounding_box_3d
+zed_interfaces/BoundingBox3D head_bounding_box_3d
 
 # 3D position of the centroid of the person head
-geometry_msgs/Point32 head_position
+float32[3] head_position
 
 # 2D Person skeleton projected to Camera image
-zed_interfaces/Skeleton skeleton_2d
+zed_interfaces/Skeleton2D skeleton_2d
 
 # 3D Person skeleton in world frame
-zed_interfaces/Skeleton skeleton_3d
+zed_interfaces/Skeleton3D skeleton_3d

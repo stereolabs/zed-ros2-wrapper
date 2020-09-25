@@ -154,7 +154,7 @@ protected:
     void processOdometry();
     void processPose();
 
-    void detectObjects(rclcpp::Time t);
+    void processDetectedObjects(rclcpp::Time t);
 
     bool set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
     void initTransforms();

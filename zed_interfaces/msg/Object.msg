@@ -1,6 +1,3 @@
-# Standard Header
-std_msgs/Header header
-
 # Object label
 string label
 

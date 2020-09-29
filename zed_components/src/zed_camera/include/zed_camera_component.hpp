@@ -28,8 +28,8 @@
 
 #include <sl/Camera.hpp>
 
-#include <zed_interfaces/msg/objects.hpp>
-#include <zed_interfaces/msg/object_stamped.hpp>
+#include <zed_interfaces/msg/objects_stamped.hpp>
+#include <zed_interfaces/msg/object.hpp>
 
 
 namespace stereolabs {
@@ -52,7 +52,7 @@ typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::TransformStamped>>
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odomPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
 
-typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::Objects>> objPub;
+typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::ObjectsStamped>> objPub;
 
 typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
@@ -69,7 +69,7 @@ typedef std::shared_ptr<geometry_msgs::msg::TransformStamped> transfMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Odometry> odomMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
 
-typedef std::unique_ptr<zed_interfaces::msg::Objects> objDetMsgPtr;
+typedef std::unique_ptr<zed_interfaces::msg::ObjectsStamped> objDetMsgPtr;
 
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::ResetOdometry>::SharedPtr resetOdomSrvPtr;
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::RestartTracking>::SharedPtr restartTrkSrvPtr;

@@ -23,8 +23,8 @@ add_custom_target(all_${PROJECT_NAME}_files SOURCES ${extra_files})
 ###############################################################################
 
 set(MSG_FILES
-    "msg/Objects.msg"
-    "msg/ObjectStamped.msg"
+    "msg/Object.msg"
+    "msg/ObjectsStamped.msg"
     "msg/Keypoint2Di.msg"
     "msg/Keypoint2Df.msg"
     "msg/Keypoint3D.msg"

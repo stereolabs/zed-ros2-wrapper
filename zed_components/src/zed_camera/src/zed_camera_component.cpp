@@ -1435,7 +1435,7 @@ bool ZedCamera::startCamera() {
         RCLCPP_INFO(get_logger(), "*** SVO OPENING ***");
 
         mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
-        mInitParams.svo_real_time_mode = true;
+        mInitParams.svo_real_time_mode = false;
         mSvoMode = true;
     } else {
         RCLCPP_INFO(get_logger(), "*** CAMERA OPENING ***");
@@ -1909,7 +1909,7 @@ bool ZedCamera::startObjDetect() {
     }
 
     if(!mPubObjDet) {
-        mPubObjDet = create_publisher<zed_interfaces::msg::Objects>(mObjectDetTopic, mObjDetQos);
+        mPubObjDet = create_publisher<zed_interfaces::msg::ObjectsStamped>(mObjectDetTopic, mObjDetQos);
         RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic " << mPubObjDet->get_topic_name());
     }
 
@@ -2325,7 +2325,7 @@ void ZedCamera::threadFunc_zedGrab() {
             processOdometry();
             processPose();
 
-            if(mCamRealModel == sl::MODEL::ZED || !mPublishImuTF) {
+            if(mCamRealModel == sl::MODEL::ZED || !mPublishImuTF || mSvoMode) {
                 publishTFs(mFrameTimestamp);
             }
         }
@@ -2847,7 +2847,7 @@ void ZedCamera::callback_pubSensorsData() {
 
 
     // Publish TF at the same frequency of IMU data, so they are always synchronized
-    if(new_imu_data && mPublishImuTF) {
+    if(new_imu_data && mPublishImuTF && !mSvoMode) {
         publishTFs(ts_imu);
     }
 }
@@ -3403,18 +3403,15 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t) {
 
     size_t objCount = objects.object_list.size();
 
-    objDetMsgPtr objMsg = std::make_unique<zed_interfaces::msg::Objects>();
+    objDetMsgPtr objMsg = std::make_unique<zed_interfaces::msg::ObjectsStamped>();
+
+    objMsg->header.stamp = t;
+    objMsg->header.frame_id = mLeftCamFrameId;
 
     objMsg->objects.resize(objCount);
 
-    std_msgs::msg::Header header;
-    header.stamp = t;
-    header.frame_id = mLeftCamFrameId;
-
     size_t idx = 0;
     for (auto data : objects.object_list) {
-        objMsg->objects[idx].header = header;
-
         objMsg->objects[idx].label = sl::toString(data.label).c_str();
         objMsg->objects[idx].label_id = data.id;
         objMsg->objects[idx].confidence = data.confidence;

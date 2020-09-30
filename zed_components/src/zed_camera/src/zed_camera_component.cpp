@@ -139,9 +139,14 @@ void ZedCamera::initServices() {
     RCLCPP_INFO(get_logger(), " * '%s'", mResetOdomSrv->get_service_name());
     srv_name = srv_prefix + "reset_pos_tracking";
     mResetPosTrkSrv = create_service<std_srvs::srv::Trigger>(srv_name,
-                                                           std::bind(&ZedCamera::callback_resetPosTracking,
-                                                                     this, _1, _2, _3));
+                                                             std::bind(&ZedCamera::callback_resetPosTracking,
+                                                                       this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mResetPosTrkSrv->get_service_name());
+    srv_name = srv_prefix + "set_pose";
+    mSetPoseSrv = create_service<zed_interfaces::srv::SetPose>(srv_name,
+                                                               std::bind(&ZedCamera::callback_setPose,
+                                                                         this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mSetPoseSrv->get_service_name());
 
 }
 
@@ -3950,6 +3955,52 @@ void ZedCamera::callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t
     startPosTracking();
 
     res->message = "Positional tracking reset OK";
+    res->success = true;
+}
+
+void ZedCamera::callback_setPose(const std::shared_ptr<rmw_request_id_t> request_header,
+                                 const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
+                                 std::shared_ptr<zed_interfaces::srv::SetPose_Response> res) {
+    (void)request_header;
+
+    RCLCPP_INFO(get_logger(), "Set Pose service called");
+    RCLCPP_INFO_STREAM(get_logger(), "New pose: [" <<
+                       req->pos[0] << "," << req->pos[1] << "," << req->pos[2] << ", "
+                                   << req->orient[0] << "," << req->orient[1] << "," << req->orient[2] << "]"  );
+
+    if(!mPosTrackingEnabled) {
+        RCLCPP_WARN(get_logger(), "Pos. Tracking was not active");
+        res->message = "Positional tracking not active";
+        res->success = false;
+        return;
+    }
+
+    mInitialBasePose[0] = req->pos[0];
+    mInitialBasePose[1] = req->pos[1];
+    mInitialBasePose[2] = req->pos[2];
+
+    mInitialBasePose[3] = req->orient[0];
+    mInitialBasePose[4] = req->orient[1];
+    mInitialBasePose[5] = req->orient[2];
+
+    if (!set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+                  mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) {
+        res->message = "Error setting initial pose";
+        RCLCPP_WARN(get_logger(), "Error setting initial pose");
+        res->success = false;
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(mPosTrkMutex);
+
+    // Disable tracking
+    mPosTrackingEnabled = false;
+    mZed.disablePositionalTracking();
+
+    // Restart tracking
+    startPosTracking();
+
+    res->message = "Positional Tracking new pose OK";
     res->success = true;
 }
 

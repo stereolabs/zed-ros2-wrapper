@@ -35,13 +35,9 @@ set(MSG_FILES
     "msg/Skeleton3D.msg"
 )
 
-#set(SRV_FILES
-#    #"srv/ResetOdometry.srv"
-#    #"srv/RestartTracking.srv"
-#    #"srv/SetPose.srv"
-#    #"srv/StartSvoRecording.srv"
-#    #"srv/StopSvoRecording.srv"
-#}
+set(SRV_FILES
+    "srv/SetPose.srv"
+)
 
 rosidl_generate_interfaces(${PROJECT_NAME}    
     ${MSG_FILES}

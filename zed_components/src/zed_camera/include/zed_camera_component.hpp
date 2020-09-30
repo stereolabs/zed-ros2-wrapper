@@ -33,6 +33,7 @@
 
 #include <zed_interfaces/msg/objects_stamped.hpp>
 #include <zed_interfaces/msg/object.hpp>
+#include <zed_interfaces/srv/set_pose.hpp>
 
 
 namespace stereolabs {
@@ -76,7 +77,7 @@ typedef std::unique_ptr<zed_interfaces::msg::ObjectsStamped> objDetMsgPtr;
 
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetOdomSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetPosTrkSrvPtr;
-//typedef rclcpp::Service<stereolabs_zed_interfaces::srv::SetPose>::SharedPtr setPoseSrvPtr;
+typedef rclcpp::Service<zed_interfaces::srv::SetPose>::SharedPtr setPoseSrvPtr;
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::StartSvoRecording>::SharedPtr startSvoRecSrvPtr;
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::StopSvoRecording>::SharedPtr stopSvoRecSrvPtr;
 // <---- Typedefs to simplify declarations
@@ -128,6 +129,9 @@ protected:
     void callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t> request_header,
                                 const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
                                 std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+    void callback_setPose(const std::shared_ptr<rmw_request_id_t> request_header,
+                          const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
+                          std::shared_ptr<zed_interfaces::srv::SetPose_Response> res);
     // <---- Callbacks
 
     // ----> Thread functions
@@ -478,6 +482,7 @@ private:
     // ----> Services
     resetOdomSrvPtr mResetOdomSrv;
     resetPosTrkSrvPtr mResetPosTrkSrv;
+    setPoseSrvPtr mSetPoseSrv;
     // <---- Services
 };
 

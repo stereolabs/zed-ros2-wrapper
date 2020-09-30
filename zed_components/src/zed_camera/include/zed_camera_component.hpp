@@ -26,6 +26,9 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 
+#include <std_srvs/srv/trigger.hpp>
+#include <std_srvs/srv/set_bool.hpp>
+
 #include <sl/Camera.hpp>
 
 #include <zed_interfaces/msg/objects_stamped.hpp>
@@ -71,7 +74,7 @@ typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
 
 typedef std::unique_ptr<zed_interfaces::msg::ObjectsStamped> objDetMsgPtr;
 
-//typedef rclcpp::Service<stereolabs_zed_interfaces::srv::ResetOdometry>::SharedPtr resetOdomSrvPtr;
+typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetOdomSrvPtr;
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::RestartTracking>::SharedPtr restartTrkSrvPtr;
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::SetPose>::SharedPtr setPoseSrvPtr;
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::StartSvoRecording>::SharedPtr startSvoRecSrvPtr;
@@ -89,6 +92,7 @@ public:
 protected:
     // ----> Initialization functions
     void initParameters();
+    void initServices();
 
     void getGeneralParams();
     void getVideoParams();
@@ -117,6 +121,10 @@ protected:
     void callback_pubSensorsData();
     void callback_pubFusedPc();
     rcl_interfaces::msg::SetParametersResult callback_paramChange(std::vector<rclcpp::Parameter> parameters);
+
+    void callback_resetOdometry(const std::shared_ptr<rmw_request_id_t> request_header,
+                                const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+                                std::shared_ptr<std_srvs::srv::Trigger_Response> res);
     // <---- Callbacks
 
     // ----> Thread functions
@@ -235,7 +243,7 @@ private:
     bool mMappingEnabled = false;
     float mMappingRes = 0.05f;
     float mMappingRangeMax = 10.0f;
-    bool mObjDetEnabled = true;
+    bool mObjDetEnabled = false;
     bool mObjDetTracking = true;
     float mObjDetConfidence = 40.0f;
     std::vector<sl::OBJECT_CLASS> mObjDetFilter;
@@ -342,7 +350,7 @@ private:
     // <---- TF Transforms Flags
 
     // ----> Messages (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
-    // Camera info
+    // Camera infos
     camInfoMsgPtr mRgbCamInfoMsg;
     camInfoMsgPtr mLeftCamInfoMsg;
     camInfoMsgPtr mRightCamInfoMsg;
@@ -351,6 +359,7 @@ private:
     camInfoMsgPtr mRightCamInfoRawMsg;
     camInfoMsgPtr mDepthCamInfoMsg;
 
+    // Transforms
     transfMsgPtr mCameraImuTransfMgs;
     // <---- Messages
 
@@ -452,14 +461,20 @@ private:
     std::unique_ptr<sl_tools::SmartMean> mObjDetPeriodMean_msec;
     std::unique_ptr<sl_tools::SmartMean> mPubFusedCloudPeriodMean_sec;
 
-    // Last frame time
+    // ----> Timestamps
     rclcpp::Time mPrevFrameTimestamp;
     rclcpp::Time mFrameTimestamp;
+    // <---- Timestamps
 
-    // Point cloud variables
+    // ----> Point cloud variables
     sl::Mat mCloud;
     sl::FusedPointCloud mFusedPC;
     rclcpp::Time mPointCloudTime;
+    // <---- Point cloud variables
+
+    // ----> Services
+    resetOdomSrvPtr mResetOdomSrv;
+    // <---- Services
 };
 
 } // namespace stereolabs

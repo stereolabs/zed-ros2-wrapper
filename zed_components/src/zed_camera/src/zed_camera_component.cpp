@@ -62,6 +62,9 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
     initParameters();
     // <---- Parameters initialization
 
+    // Init services
+    initServices();
+
     // Start camera
     startCamera();
 }
@@ -107,6 +110,33 @@ ZedCamera::~ZedCamera() {
         RCLCPP_DEBUG(get_logger(), "... Point Cloud thread stopped");
     }
     // <---- Verify that the grab thread is not active
+}
+
+void ZedCamera::initServices() {
+    RCLCPP_INFO(get_logger(), "*** SERVICES ***");
+
+    std::string srv_name;
+
+    /*std::string srv_name;
+    std::string srv_prefix = get_namespace();
+
+    if (srv_prefix.length() > 1) {
+        srv_prefix += "/";
+    }
+
+    if ('/' != srv_prefix.at(0)) {
+        srv_prefix = '/'  + srv_prefix;
+    }
+
+    srv_prefix += get_name();*/
+    std::string srv_prefix = "~/";
+
+    // ResetOdometry
+    srv_name = srv_prefix + "reset_odometry";
+    mResetOdomSrv = create_service<std_srvs::srv::Trigger>(srv_name,
+                                                           std::bind(&ZedCamera::callback_resetOdometry,
+                                                                     this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mResetOdomSrv->get_service_name());
 }
 
 template<typename T>
@@ -3864,6 +3894,18 @@ void ZedCamera::callback_pubFusedPc() {
 
     // Pointcloud publishing
     mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
+}
+
+void ZedCamera::callback_resetOdometry(const std::shared_ptr<rmw_request_id_t> request_header,
+                                       const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+                                       std::shared_ptr<std_srvs::srv::Trigger_Response> res) {
+    (void)request_header;
+    (void)req;
+
+    RCLCPP_INFO(get_logger(), "Reset Odometry service called");
+    mResetOdom = true;
+    res->message = "Odometry reset OK";
+    res->success = true;
 }
 
 } // namespace stereolabs

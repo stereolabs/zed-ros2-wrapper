@@ -59,6 +59,7 @@ set(DEPENDENCIES
     sensor_msgs
     stereo_msgs
     zed_interfaces
+    std_srvs
 )
 
 find_package(ament_cmake REQUIRED)
@@ -76,6 +77,7 @@ find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
 find_package(image_transport REQUIRED)
+find_package(std_srvs REQUIRED)
 
 
 ###############################################################################

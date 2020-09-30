@@ -137,6 +137,12 @@ void ZedCamera::initServices() {
                                                            std::bind(&ZedCamera::callback_resetOdometry,
                                                                      this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mResetOdomSrv->get_service_name());
+    srv_name = srv_prefix + "reset_pos_tracking";
+    mResetPosTrkSrv = create_service<std_srvs::srv::Trigger>(srv_name,
+                                                           std::bind(&ZedCamera::callback_resetPosTracking,
+                                                                     this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mResetPosTrkSrv->get_service_name());
+
 }
 
 template<typename T>
@@ -2248,7 +2254,7 @@ void ZedCamera::threadFunc_zedGrab() {
     while(1) {
         // ----> Interruption check
         if (!rclcpp::ok()) {
-            RCLCPP_INFO(get_logger(), "Ctrl+C received");
+            RCLCPP_INFO(get_logger(), "Ctrl+C received: stopping grab thread");
             break;
         }
 
@@ -2257,6 +2263,9 @@ void ZedCamera::threadFunc_zedGrab() {
             break;
         }
         // <---- Interruption check
+
+        // Wait for operations on Positional Tracking
+        std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
         // ----> Apply depth settings
         applyDepthSettings();
@@ -2466,7 +2475,7 @@ void ZedCamera::threadFunc_pointcloudElab() {
 
     while (1) {
         if (!rclcpp::ok()) {
-            RCLCPP_INFO(get_logger(), "Ctrl+C received");
+            RCLCPP_INFO(get_logger(), "Ctrl+C received: stopping point cloud thread");
             break;
         }
 
@@ -3905,6 +3914,42 @@ void ZedCamera::callback_resetOdometry(const std::shared_ptr<rmw_request_id_t> r
     RCLCPP_INFO(get_logger(), "Reset Odometry service called");
     mResetOdom = true;
     res->message = "Odometry reset OK";
+    res->success = true;
+}
+
+void ZedCamera::callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t> request_header,
+                                          const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+                                          std::shared_ptr<std_srvs::srv::Trigger_Response> res) {
+    (void)request_header;
+    (void)req;
+
+    RCLCPP_INFO(get_logger(), "Reset Pos. Tracking service called");
+
+    if(!mPosTrackingEnabled) {
+        RCLCPP_WARN(get_logger(), "Pos. Tracking was not active");
+        res->message = "Positional tracking not active";
+        res->success = false;
+        return;
+    }
+
+    if (!set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+                  mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) {
+        res->message = "Error setting initial pose";
+        RCLCPP_WARN(get_logger(), "Error setting initial pose");
+        res->success = false;
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(mPosTrkMutex);
+
+    // Disable tracking
+    mPosTrackingEnabled = false;
+    mZed.disablePositionalTracking();
+
+    // Restart tracking
+    startPosTracking();
+
+    res->message = "Positional tracking reset OK";
     res->success = true;
 }
 

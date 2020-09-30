@@ -75,7 +75,7 @@ typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
 typedef std::unique_ptr<zed_interfaces::msg::ObjectsStamped> objDetMsgPtr;
 
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetOdomSrvPtr;
-//typedef rclcpp::Service<stereolabs_zed_interfaces::srv::RestartTracking>::SharedPtr restartTrkSrvPtr;
+typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetPosTrkSrvPtr;
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::SetPose>::SharedPtr setPoseSrvPtr;
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::StartSvoRecording>::SharedPtr startSvoRecSrvPtr;
 //typedef rclcpp::Service<stereolabs_zed_interfaces::srv::StopSvoRecording>::SharedPtr stopSvoRecSrvPtr;
@@ -123,6 +123,9 @@ protected:
     rcl_interfaces::msg::SetParametersResult callback_paramChange(std::vector<rclcpp::Parameter> parameters);
 
     void callback_resetOdometry(const std::shared_ptr<rmw_request_id_t> request_header,
+                                const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+                                std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+    void callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t> request_header,
                                 const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
                                 std::shared_ptr<std_srvs::srv::Trigger_Response> res);
     // <---- Callbacks
@@ -474,6 +477,7 @@ private:
 
     // ----> Services
     resetOdomSrvPtr mResetOdomSrv;
+    resetPosTrkSrvPtr mResetPosTrkSrv;
     // <---- Services
 };
 

@@ -207,8 +207,7 @@ void ZedCamera::getGeneralParams() {
     } else {
         RCLCPP_ERROR_STREAM(get_logger(), "Camera model not valid in parameter values: " << camera_model);
     }
-    RCLCPP_INFO(get_logger(), " * Camera model: %s (%s)", camera_model.c_str(),
-                sl::toString(static_cast<sl::MODEL>(mCamUserModel)).c_str());
+    RCLCPP_INFO_STREAM(get_logger(), " * Camera model: " << camera_model << " - " << mCamUserModel );
 
     getParam( "general.sdk_verbose", mVerbose, mVerbose,  " * SDK Verbose: ");
     getParam( "general.svo_file", std::string(), mSvoFilepath, " * SVO: ");
@@ -228,7 +227,7 @@ void ZedCamera::getGeneralParams() {
     int resol = static_cast<int>(mCamResol);
     getParam( "general.resolution", resol, resol );
     mCamResol = static_cast<sl::RESOLUTION>(resol);
-    RCLCPP_INFO(get_logger(), " * Camera resolution: %d (%s)", resol, sl::toString(mCamResol).c_str());
+    RCLCPP_INFO_STREAM(get_logger(), " * Camera resolution: " << resol << " - " << mCamResol );
 
     getParam( "general.self_calib", mCameraSelfCalib, mCameraSelfCalib );
     RCLCPP_INFO(get_logger(), " * Camera self calibration: %s", mCameraSelfCalib?"TRUE":"FALSE");
@@ -304,7 +303,7 @@ void ZedCamera::getVideoParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Video QoS History: '%s'", sl_tools::qos2str(qos_hist).c_str());
+    RCLCPP_INFO(get_logger(), " * Video QoS History: %s", sl_tools::qos2str(qos_hist).c_str());
 
     // ------------------------------------------
 
@@ -333,7 +332,7 @@ void ZedCamera::getVideoParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Video QoS Reliability: '%s'", sl_tools::qos2str(qos_reliability).c_str());
+    RCLCPP_INFO(get_logger(), " * Video QoS Reliability: %s", sl_tools::qos2str(qos_reliability).c_str());
 
     // ------------------------------------------
 
@@ -348,7 +347,7 @@ void ZedCamera::getVideoParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Video QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
+    RCLCPP_INFO(get_logger(), " * Video QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 }
 
 void ZedCamera::getDepthParams() {
@@ -375,7 +374,7 @@ void ZedCamera::getDepthParams() {
     int depth_quality = static_cast<int>(mDepthQuality);
     getParam( "depth.quality", depth_quality, depth_quality );
     mDepthQuality = static_cast<sl::DEPTH_MODE>(depth_quality);
-    RCLCPP_INFO(get_logger(), " * Depth quality: %d (%s)", depth_quality, sl::toString(mDepthQuality).c_str());
+    RCLCPP_INFO_STREAM(get_logger(), " * Depth quality: " << depth_quality << " - " << mDepthQuality );
 
     getParam( "depth.min_depth", mCamMinDepth, mCamMinDepth, " * Min depth [m]: ");
     getParam( "depth.max_depth", mCamMaxDepth, mCamMaxDepth, " * Max depth [m]: ");
@@ -383,7 +382,7 @@ void ZedCamera::getDepthParams() {
     int sens_mode = static_cast<int>(mDepthSensingMode);
     getParam( "depth.sensing_mode", sens_mode, sens_mode );
     mDepthSensingMode = static_cast<sl::SENSING_MODE>(sens_mode);
-    RCLCPP_INFO(get_logger(), " * Depth Sensing Mode: %d (%s)", sens_mode, sl::toString(mDepthSensingMode).c_str());
+    RCLCPP_INFO_STREAM(get_logger(), " * Depth Sensing Mode: " << sens_mode << " - " << mDepthSensingMode );
 
     getParam( "depth.depth_stabilization", mDepthStabilization, mDepthStabilization );
     RCLCPP_INFO(get_logger(), " * Depth Stabilization: %s", mDepthStabilization?"TRUE":"FALSE");
@@ -408,7 +407,7 @@ void ZedCamera::getDepthParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Depth QoS History: '%s'", sl_tools::qos2str(qos_hist).c_str());
+    RCLCPP_INFO(get_logger(), " * Depth QoS History: %s", sl_tools::qos2str(qos_hist).c_str());
 
     // ------------------------------------------
 
@@ -437,7 +436,7 @@ void ZedCamera::getDepthParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Depth QoS Reliability: '%s'", sl_tools::qos2str(qos_reliability).c_str());
+    RCLCPP_INFO(get_logger(), " * Depth QoS Reliability: %s", sl_tools::qos2str(qos_reliability).c_str());
 
     // ------------------------------------------
 
@@ -452,7 +451,7 @@ void ZedCamera::getDepthParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Depth QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
+    RCLCPP_INFO(get_logger(), " * Depth QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 }
 
 void ZedCamera::getSensorsParams() {
@@ -486,7 +485,7 @@ void ZedCamera::getSensorsParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Sensors QoS History: '%s'", sl_tools::qos2str(qos_hist).c_str());
+    RCLCPP_INFO(get_logger(), " * Sensors QoS History: %s", sl_tools::qos2str(qos_hist).c_str());
 
     // ------------------------------------------
 
@@ -515,7 +514,7 @@ void ZedCamera::getSensorsParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Sensors QoS Reliability: '%s'", sl_tools::qos2str(qos_reliability).c_str());
+    RCLCPP_INFO(get_logger(), " * Sensors QoS Reliability: %s", sl_tools::qos2str(qos_reliability).c_str());
 
     // ------------------------------------------
 
@@ -530,7 +529,7 @@ void ZedCamera::getSensorsParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Sensors QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
+    RCLCPP_INFO(get_logger(), " * Sensors QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 }
 
 void ZedCamera::getMappingParams() {
@@ -568,7 +567,7 @@ void ZedCamera::getMappingParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Sensors QoS History: '%s'", sl_tools::qos2str(qos_hist).c_str());
+    RCLCPP_INFO(get_logger(), " * Sensors QoS History: %s", sl_tools::qos2str(qos_hist).c_str());
 
     // ------------------------------------------
 
@@ -597,7 +596,7 @@ void ZedCamera::getMappingParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Sensors QoS Reliability: '%s'", sl_tools::qos2str(qos_reliability).c_str());
+    RCLCPP_INFO(get_logger(), " * Sensors QoS Reliability: %s", sl_tools::qos2str(qos_reliability).c_str());
 
     // ------------------------------------------
 
@@ -612,7 +611,7 @@ void ZedCamera::getMappingParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Sensors QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
+    RCLCPP_INFO(get_logger(), " * Sensors QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 }
 
 void ZedCamera::getPosTrackingParams() {
@@ -678,7 +677,7 @@ void ZedCamera::getPosTrackingParams() {
 
     // ------------------------------------------
 
-    paramName = "tracking.qos_history";
+    paramName = "pos_tracking.qos_history";
     declare_parameter(paramName, rclcpp::ParameterValue(0) );
 
     if (get_parameter(paramName, paramVal)) {
@@ -688,11 +687,11 @@ void ZedCamera::getPosTrackingParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS History: '%s'", sl_tools::qos2str(qos_hist).c_str());
+    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS History: %s", sl_tools::qos2str(qos_hist).c_str());
 
     // ------------------------------------------
 
-    paramName = "tracking.qos_depth";
+    paramName = "pos_tracking.qos_depth";
     declare_parameter(paramName, rclcpp::ParameterValue(10) );
 
     if (get_parameter(paramName, paramVal)) {
@@ -706,7 +705,7 @@ void ZedCamera::getPosTrackingParams() {
 
     // ------------------------------------------
 
-    paramName = "tracking.qos_reliability";
+    paramName = "pos_tracking.qos_reliability";
     declare_parameter(paramName, rclcpp::ParameterValue(0) );
 
     if (get_parameter(paramName, paramVal)) {
@@ -717,11 +716,11 @@ void ZedCamera::getPosTrackingParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS Reliability: '%s'", sl_tools::qos2str(qos_reliability).c_str());
+    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS Reliability: %s", sl_tools::qos2str(qos_reliability).c_str());
 
     // ------------------------------------------
 
-    paramName = "tracking.qos_durability";
+    paramName = "pos_tracking.qos_durability";
     declare_parameter(paramName, rclcpp::ParameterValue(0) );
 
     if (get_parameter(paramName, paramVal)) {
@@ -732,7 +731,7 @@ void ZedCamera::getPosTrackingParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
+    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 }
 
 void ZedCamera::getOdParams() {
@@ -775,7 +774,7 @@ void ZedCamera::getOdParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS History: '%s'", sl_tools::qos2str(qos_hist).c_str());
+    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS History: %s", sl_tools::qos2str(qos_hist).c_str());
 
     // ------------------------------------------
 
@@ -804,7 +803,7 @@ void ZedCamera::getOdParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS Reliability: '%s'", sl_tools::qos2str(qos_reliability).c_str());
+    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS Reliability: %s", sl_tools::qos2str(qos_reliability).c_str());
 
     // ------------------------------------------
 
@@ -819,7 +818,7 @@ void ZedCamera::getOdParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
+    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 }
 
 rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters) {

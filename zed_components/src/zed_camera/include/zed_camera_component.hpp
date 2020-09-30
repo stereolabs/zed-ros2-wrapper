@@ -101,6 +101,7 @@ protected:
     void getPosTrackingParams();
     void getSensorsParams();
     void getMappingParams();
+    void getOdParams();
 
     void setTFCoordFrameNames();
     void initPublishers();
@@ -171,7 +172,7 @@ protected:
 
     void processDetectedObjects(rclcpp::Time t);
 
-    bool set_pose(float xt, float yt, float zt, float rr, float pr, float yr);
+    bool setPose(float xt, float yt, float zt, float rr, float pr, float yr);
     void initTransforms();
     bool getSens2BaseTransform();
     bool getSens2CameraTransform();

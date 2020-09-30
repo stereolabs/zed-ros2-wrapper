@@ -179,13 +179,12 @@ void ZedCamera::initParameters() {
     getPosTrackingParams();
 
     // SENSORS parameters
-    if(mCamUserModel!=sl::MODEL::ZED) {
-        getSensorsParams();
-    }
+    getSensorsParams();
 
     getMappingParams();
 
     // TODO OD PARAMETERS
+    getOdParams();
 
     // Dynamic parameters callback
     set_on_parameters_set_callback(std::bind(&ZedCamera::callback_paramChange, this, _1));
@@ -457,13 +456,6 @@ void ZedCamera::getDepthParams() {
 }
 
 void ZedCamera::getSensorsParams() {
-    /*
-    sensors_timestamp_sync
-    qos_history
-    qos_depth
-    qos_reliability
-    qos_durability
-    */
 
     rclcpp::Parameter paramVal;
     std::string paramName;
@@ -474,6 +466,10 @@ void ZedCamera::getSensorsParams() {
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
     RCLCPP_INFO(get_logger(), "*** SENSORS STACK parameters ***");
+    if(mCamUserModel==sl::MODEL::ZED) {
+        RCLCPP_WARN(get_logger(), "!!! SENSORS parameters are not used with ZED !!!");
+    }
+
 
     getParam( "sensors.sensors_image_sync", mSensCameraSync, mSensCameraSync );
     RCLCPP_INFO_STREAM(get_logger(), " * Sensors Camera Sync: " << (mSensCameraSync?"TRUE":"FALSE") );
@@ -737,7 +733,93 @@ void ZedCamera::getPosTrackingParams() {
     }
 
     RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
+}
 
+void ZedCamera::getOdParams() {
+    rclcpp::Parameter paramVal;
+    std::string paramName;
+
+    rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+    size_t qos_depth = 1;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+
+    RCLCPP_INFO(get_logger(), "*** OBJECT DETECTION parameters ***");
+    if(mCamUserModel==sl::MODEL::ZED || mCamUserModel==sl::MODEL::ZED_M) {
+        RCLCPP_WARN(get_logger(), "!!! OD parameters are not used with ZED and ZED Mini !!!");
+    }
+
+    getParam( "object_detection.od_enabled", mObjDetEnabled, mObjDetEnabled );
+    RCLCPP_INFO_STREAM(get_logger(), " * Object Detection enabled: " << (mObjDetEnabled?"TRUE":"FALSE") );
+    getParam( "object_detection.confidence_threshold", mObjDetConfidence, mObjDetConfidence, " * OD min. confidence: " );
+    //getParam( "object_detection.object_tracking_enabled", mObjDetTracking, mObjDetTracking );
+    //RCLCPP_INFO_STREAM(get_logger(), " * OD tracking: " << (mObjDetTracking?"TRUE":"FALSE") );
+    int model = 0;
+    getParam( "object_detection.model", model, model );
+    mObjDetModel = static_cast<sl::DETECTION_MODEL>(model);
+    RCLCPP_INFO_STREAM(get_logger(), " * Object Detection model: " << model << " - " << mObjDetModel );
+    getParam( "object_detection.mc_people", mObjDetPeopleEnable, mObjDetPeopleEnable );
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox people: " << (mObjDetPeopleEnable?"TRUE":"FALSE") );
+    getParam( "object_detection.mc_vehicle", mObjDetVehiclesEnable, mObjDetVehiclesEnable );
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox people: " << (mObjDetVehiclesEnable?"TRUE":"FALSE") );
+
+    // ------------------------------------------
+
+    paramName = "object_detection.qos_history";
+    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_hist = paramVal.as_int() == 0 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+        mObjDetQos.history(qos_hist);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS History: '%s'", sl_tools::qos2str(qos_hist).c_str());
+
+    // ------------------------------------------
+
+    paramName = "object_detection.qos_depth";
+    declare_parameter(paramName, rclcpp::ParameterValue(10) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_depth = paramVal.as_int();
+        mObjDetQos.keep_last(qos_depth);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS History depth: '%d'", qos_depth);
+
+    // ------------------------------------------
+
+    paramName = "object_detection.qos_reliability";
+    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT :
+                                                   RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+        mObjDetQos.reliability(qos_reliability);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS Reliability: '%s'", sl_tools::qos2str(qos_reliability).c_str());
+
+    // ------------------------------------------
+
+    paramName = "object_detection.qos_durability";
+    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_durability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+                                                  RMW_QOS_POLICY_DURABILITY_VOLATILE;
+        mObjDetQos.durability(qos_durability);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS Durability: '%s'", sl_tools::qos2str(qos_durability).c_str());
 }
 
 rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters) {
@@ -1770,7 +1852,7 @@ bool ZedCamera::startPosTracking() {
     auto start = std::chrono::high_resolution_clock::now();
 
     do {
-        transformOk = set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+        transformOk = setPose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
                 mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
 
         elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() -
@@ -2145,7 +2227,7 @@ bool ZedCamera::getSens2BaseTransform() {
     return true;
 }
 
-bool ZedCamera::set_pose(float xt, float yt, float zt, float rr, float pr, float yr) {
+bool ZedCamera::setPose(float xt, float yt, float zt, float rr, float pr, float yr) {
     initTransforms();
 
     if (!mSensor2BaseTransfValid) {
@@ -2168,7 +2250,7 @@ bool ZedCamera::set_pose(float xt, float yt, float zt, float rr, float pr, float
     quat.setRPY(rr, pr, yr);
     initPose.setRotation(quat);
 
-    initPose = initPose * mSensor2BaseTransf.inverse();
+    initPose = initPose * mSensor2BaseTransf.inverse(); // TODO Check this transformation. Rotation seems wrong
 
     // SL pose
     sl::float3 t_vec;
@@ -2188,7 +2270,6 @@ bool ZedCamera::set_pose(float xt, float yt, float zt, float rr, float pr, float
     mInitialPoseSl.setOrientation(orient);
 
     return (mSensor2BaseTransfValid & mSensor2CameraTransfValid & mCamera2BaseTransfValid);
-
 }
 
 void ZedCamera::publishStaticImuFrameAndTopic() {
@@ -3937,7 +4018,7 @@ void ZedCamera::callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t
         return;
     }
 
-    if (!set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+    if (!setPose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
                   mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) {
         res->message = "Error setting initial pose";
         RCLCPP_WARN(get_logger(), "Error setting initial pose");
@@ -3983,7 +4064,7 @@ void ZedCamera::callback_setPose(const std::shared_ptr<rmw_request_id_t> request
     mInitialBasePose[4] = req->orient[1];
     mInitialBasePose[5] = req->orient[2];
 
-    if (!set_pose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+    if (!setPose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
                   mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) {
         res->message = "Error setting initial pose";
         RCLCPP_WARN(get_logger(), "Error setting initial pose");

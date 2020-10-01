@@ -124,6 +124,7 @@ protected:
     void callback_pubVideoDepth();
     void callback_pubSensorsData();
     void callback_pubFusedPc();
+    void callback_pubPaths();
     rcl_interfaces::msg::SetParametersResult callback_paramChange(std::vector<rclcpp::Parameter> parameters);
 
     void callback_resetOdometry(const std::shared_ptr<rmw_request_id_t> request_header,
@@ -188,6 +189,7 @@ protected:
 
     void startVideoDepthTimer(double pubFrameRate);
     void startFusedPcTimer(double fusedPcRate);
+    void startPathPubTimer(double pathTimerRate);
 
     template<typename T>
     void getParam(std::string paramName, T defValue, T& outVal, std::string log_info=std::string());
@@ -210,6 +212,8 @@ private:
     std::string mPoseCovTopic;
     std::string mPointcloudFusedTopic;
     std::string mObjectDetTopic;
+    std::string mOdomPathTopic;
+    std::string mMapPathTopic;
     // <---- Topics
 
     // ----> Parameter variables

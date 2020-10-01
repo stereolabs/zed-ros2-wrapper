@@ -161,13 +161,13 @@ void ZedCamera::initServices() {
     RCLCPP_INFO(get_logger(), " * '%s'", mSetPoseSrv->get_service_name());
     srv_name = srv_prefix + "enable_obj_det";
     mEnableObjDetSrv = create_service<std_srvs::srv::SetBool>(srv_name,
-                                                                    std::bind(&ZedCamera::callback_enableObjDet,
-                                                                              this, _1, _2, _3));
+                                                              std::bind(&ZedCamera::callback_enableObjDet,
+                                                                        this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mEnableObjDetSrv->get_service_name());
     srv_name = srv_prefix + "enable_mapping";
     mEnableMappingSrv = create_service<std_srvs::srv::SetBool>(srv_name,
-                                                                    std::bind(&ZedCamera::callback_enableMapping,
-                                                                              this, _1, _2, _3));
+                                                               std::bind(&ZedCamera::callback_enableMapping,
+                                                                         this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mEnableMappingSrv->get_service_name());
 
 
@@ -1191,8 +1191,8 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
                 return result;
             }
 
-            mPcPubRate = val;
-            startFusedPcTimer(mPcPubRate);
+            mFusedPcPubRate = val;
+            startFusedPcTimer(mFusedPcPubRate);
 
             RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
             result.successful = true;
@@ -1489,8 +1489,8 @@ void ZedCamera::initPublishers() {
     mPoseCovTopic = mPoseTopic + "_with_covariance";
 
     mOdomTopic = mTopicRoot + "odom";
-    std::string odom_path_topic = mTopicRoot + "path_odom";
-    std::string map_path_topic = mTopicRoot + "path_map";
+    mOdomPathTopic = mTopicRoot + "path_odom";
+    mMapPathTopic = mTopicRoot + "path_map";
 
     // Set the Sensors topic names
     std::string temp_topic_root = "temperature";
@@ -1568,9 +1568,9 @@ void ZedCamera::initPublishers() {
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubPoseCov->get_topic_name());
     mPubOdom = create_publisher<nav_msgs::msg::Odometry>( mOdomTopic, mPoseQos );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubOdom->get_topic_name());
-    mPubPosePath = create_publisher<nav_msgs::msg::Path>( map_path_topic, mPoseQos );
+    mPubPosePath = create_publisher<nav_msgs::msg::Path>( mMapPathTopic, mPoseQos );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubPosePath->get_topic_name());
-    mPubOdomPath = create_publisher<nav_msgs::msg::Path>( odom_path_topic, mPoseQos );
+    mPubOdomPath = create_publisher<nav_msgs::msg::Path>( mOdomPathTopic, mPoseQos );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubOdomPath->get_topic_name());
     // <---- Pos Tracking
 
@@ -1580,10 +1580,6 @@ void ZedCamera::initPublishers() {
         RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic " << mPubFusedCloud->get_topic_name() << " @ " << mFusedPcPubRate << " Hz");
     }
     // <---- Mapping
-
-    // ----> Object Detection
-    // TODO SEE ROS1
-    // <---- Object Detection
 
     // ----> Sensors
     if (mCamRealModel != sl::MODEL::ZED) {
@@ -1919,6 +1915,34 @@ void ZedCamera::startFusedPcTimer(double fusedPcRate) {
                 std::bind(&ZedCamera::callback_pubFusedPc, this) );
 }
 
+void ZedCamera::startPathPubTimer(double pathTimerRate) {
+    if(mPathTimer!=nullptr) {
+        mPathTimer->cancel();
+    }
+
+    if(pathTimerRate > 0) {
+        std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0 / (pathTimerRate)));
+        mPathTimer = create_wall_timer(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
+                    std::bind(&ZedCamera::callback_pubPaths, this) );
+
+        if( mOdomPath.size()==0 && mMapPath.size()==0) {
+            if (mPathMaxCount != -1) {
+                RCLCPP_DEBUG_STREAM(get_logger(), "Path vectors reserved " << mPathMaxCount << " poses.");
+                mOdomPath.reserve(mPathMaxCount);
+                mMapPath.reserve(mPathMaxCount);
+
+                RCLCPP_DEBUG_STREAM(get_logger(), "Path vector sizes: " << mOdomPath.size() << " " << mMapPath.size());
+            }
+        }
+    } else {
+        mOdomPath.clear();
+        mMapPath.clear();
+        mPathTimer->cancel();
+        RCLCPP_INFO_STREAM(get_logger(), "Path topics not published -> Pub. rate: " << pathTimerRate << " Hz");
+    }
+}
+
 bool ZedCamera::startPosTracking() {
     RCLCPP_INFO_STREAM(get_logger(),"*** Starting Positional Tracking ***");
 
@@ -1985,6 +2009,8 @@ bool ZedCamera::startPosTracking() {
 
         RCLCPP_WARN(get_logger(),"Tracking not activated: %s", sl::toString(err).c_str());
     }
+
+    startPathPubTimer( mPathPubRate );
 }
 
 bool ZedCamera::start3dMapping() {
@@ -4119,6 +4145,82 @@ void ZedCamera::callback_pubFusedPc() {
     mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
 }
 
+void ZedCamera::callback_pubPaths() {
+    uint32_t mapPathSub = 0;
+    uint32_t odomPathSub = 0;
+
+    try {
+        mapPathSub = count_subscribers(mMapPathTopic);
+        odomPathSub = count_subscribers(mOdomPathTopic);
+    }
+    catch(...) {
+        rcutils_reset_error();
+        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        return;
+    }
+
+    geometry_msgs::msg::PoseStamped odomPose;
+    geometry_msgs::msg::PoseStamped mapPose;
+
+    odomPose.header.stamp = mFrameTimestamp;
+    odomPose.header.frame_id = mMapFrameId; // map_frame
+    odomPose.pose.position.x = mOdom2BaseTransf.getOrigin().x();
+    odomPose.pose.position.y = mOdom2BaseTransf.getOrigin().y();
+    odomPose.pose.position.z = mOdom2BaseTransf.getOrigin().z();
+    odomPose.pose.orientation.x = mOdom2BaseTransf.getRotation().x();
+    odomPose.pose.orientation.y = mOdom2BaseTransf.getRotation().y();
+    odomPose.pose.orientation.z = mOdom2BaseTransf.getRotation().z();
+    odomPose.pose.orientation.w = mOdom2BaseTransf.getRotation().w();
+
+    mapPose.header.stamp = mFrameTimestamp;
+    mapPose.header.frame_id = mMapFrameId; // map_frame
+    mapPose.pose.position.x = mMap2BaseTransf.getOrigin().x();
+    mapPose.pose.position.y = mMap2BaseTransf.getOrigin().y();
+    mapPose.pose.position.z = mMap2BaseTransf.getOrigin().z();
+    mapPose.pose.orientation.x = mMap2BaseTransf.getRotation().x();
+    mapPose.pose.orientation.y = mMap2BaseTransf.getRotation().y();
+    mapPose.pose.orientation.z = mMap2BaseTransf.getRotation().z();
+    mapPose.pose.orientation.w = mMap2BaseTransf.getRotation().w();
+
+    // Circular vector
+    if (mPathMaxCount != -1) {
+        if (mOdomPath.size() == mPathMaxCount) {
+            RCLCPP_DEBUG(get_logger(), "Path vectors full: rotating ");
+            std::rotate(mOdomPath.begin(), mOdomPath.begin() + 1, mOdomPath.end());
+            std::rotate(mMapPath.begin(), mMapPath.begin() + 1, mMapPath.end());
+
+            mMapPath[mPathMaxCount - 1] = mapPose;
+            mOdomPath[mPathMaxCount - 1] = odomPose;
+        } else {
+            //RCLCPP_DEBUG(get_logger(), "Path vectors adding last available poses");
+            mMapPath.push_back(mapPose);
+            mOdomPath.push_back(odomPose);
+        }
+    } else {
+        //RCLCPP_DEBUG(get_logger(), "No limit path vectors, adding last available poses");
+        mMapPath.push_back(mapPose);
+        mOdomPath.push_back(odomPose);
+    }
+
+    if (mapPathSub > 0) {
+        pathMsgPtr mapPath = std::make_unique<nav_msgs::msg::Path>();
+        mapPath->header.frame_id = mMapFrameId;
+        mapPath->header.stamp = mFrameTimestamp;
+        mapPath->poses = mMapPath;
+
+        mPubPosePath->publish(std::move(mapPath));
+    }
+
+    if (odomPathSub > 0) {
+        pathMsgPtr odomPath = std::make_unique<nav_msgs::msg::Path>();
+        odomPath->header.frame_id = mMapFrameId;
+        odomPath->header.stamp = mFrameTimestamp;
+        odomPath->poses = mOdomPath;
+
+        mPubOdomPath->publish(std::move(odomPath));
+    }
+}
+
 void ZedCamera::callback_resetOdometry(const std::shared_ptr<rmw_request_id_t> request_header,
                                        const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
                                        std::shared_ptr<std_srvs::srv::Trigger_Response> res) {
@@ -4269,8 +4371,8 @@ void ZedCamera::callback_enableObjDet(const std::shared_ptr<rmw_request_id_t> re
 }
 
 void ZedCamera::callback_enableMapping(const std::shared_ptr<rmw_request_id_t> request_header,
-                            const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
-                            std::shared_ptr<std_srvs::srv::SetBool_Response> res) {
+                                       const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+                                       std::shared_ptr<std_srvs::srv::SetBool_Response> res) {
     (void)request_header;
 
     RCLCPP_INFO(get_logger(), "** Enable Spatial Mapping service called **");

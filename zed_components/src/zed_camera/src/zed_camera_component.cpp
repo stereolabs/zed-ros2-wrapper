@@ -72,6 +72,18 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
 ZedCamera::~ZedCamera() {
     RCLCPP_DEBUG(get_logger(), "Destroying node");
 
+    if(mObjDetRunning) {
+        std::lock_guard<std::mutex> lock(mObjDetMutex);
+        stopObjDetect();
+    }
+
+    if(mMappingRunning) {
+        std::lock_guard<std::mutex> lock(mMappingMutex);
+        stop3dMapping();
+    }
+
+    std::lock_guard<std::mutex> lock(mCloseZedMutex);
+
     if(mSensTimer) {
         mSensTimer->cancel();
     }
@@ -151,7 +163,13 @@ void ZedCamera::initServices() {
     mEnableObjDetSrv = create_service<std_srvs::srv::SetBool>(srv_name,
                                                                     std::bind(&ZedCamera::callback_enableObjDet,
                                                                               this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mSetPoseSrv->get_service_name());
+    RCLCPP_INFO(get_logger(), " * '%s'", mEnableObjDetSrv->get_service_name());
+    srv_name = srv_prefix + "enable_mapping";
+    mEnableMappingSrv = create_service<std_srvs::srv::SetBool>(srv_name,
+                                                                    std::bind(&ZedCamera::callback_enableMapping,
+                                                                              this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mEnableMappingSrv->get_service_name());
+
 
 }
 
@@ -546,12 +564,12 @@ void ZedCamera::getMappingParams() {
     rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
-    RCLCPP_INFO(get_logger(), "*** 3D MAPPING parameters ***");
+    RCLCPP_INFO(get_logger(), "*** Spatial Mapping parameters ***");
 
     getParam( "mapping.mapping_enabled", mMappingEnabled, mMappingEnabled );
-    RCLCPP_INFO_STREAM(get_logger(), " * 3D Mapping Enabled: " << (mMappingEnabled?"TRUE":"FALSE") );
+    RCLCPP_INFO_STREAM(get_logger(), " * Spatial Mapping Enabled: " << (mMappingEnabled?"TRUE":"FALSE") );
 
-    getParam( "mapping.resolution", mMappingRes, mMappingRes, " * 3D Mapping resolution [m]: " );
+    getParam( "mapping.resolution", mMappingRes, mMappingRes, " * Spatial Mapping resolution [m]: " );
     getParam( "mapping.max_mapping_range", mMappingRangeMax, mMappingRangeMax );
     if( mMappingRangeMax==-1.0f ) {
         RCLCPP_INFO(get_logger(), " * 3D Max Mapping range: AUTO" );
@@ -2439,13 +2457,13 @@ void ZedCamera::threadFunc_zedGrab() {
         }
         // ----> Check for Positional Tracking requirement
 
-        // ----> Check for 3D Mapping requirement
+        // ----> Check for Spatial Mapping requirement
         mMappingMutex.lock();
         if (mMappingEnabled && !mMappingRunning) {
             start3dMapping();
         }
         mMappingMutex.unlock();
-        // <---- Check for 3D Mapping requirement
+        // <---- Check for Spatial Mapping requirement
 
         // ----> Check for Object Detection requirement
         mObjDetMutex.lock();
@@ -4107,7 +4125,7 @@ void ZedCamera::callback_resetOdometry(const std::shared_ptr<rmw_request_id_t> r
     (void)request_header;
     (void)req;
 
-    RCLCPP_INFO(get_logger(), "Reset Odometry service called");
+    RCLCPP_INFO(get_logger(), "** Reset Odometry service called **");
     mResetOdom = true;
     res->message = "Odometry reset OK";
     res->success = true;
@@ -4119,7 +4137,7 @@ void ZedCamera::callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t
     (void)request_header;
     (void)req;
 
-    RCLCPP_INFO(get_logger(), "Reset Pos. Tracking service called");
+    RCLCPP_INFO(get_logger(), "** Reset Pos. Tracking service called **");
 
     if(!mPosTrackingEnabled) {
         RCLCPP_WARN(get_logger(), "Pos. Tracking was not active");
@@ -4154,7 +4172,7 @@ void ZedCamera::callback_setPose(const std::shared_ptr<rmw_request_id_t> request
                                  std::shared_ptr<zed_interfaces::srv::SetPose_Response> res) {
     (void)request_header;
 
-    RCLCPP_INFO(get_logger(), "Set Pose service called");
+    RCLCPP_INFO(get_logger(), "** Set Pose service called **");
     RCLCPP_INFO_STREAM(get_logger(), "New pose: [" <<
                        req->pos[0] << "," << req->pos[1] << "," << req->pos[2] << ", "
                                    << req->orient[0] << "," << req->orient[1] << "," << req->orient[2] << "]"  );
@@ -4200,7 +4218,7 @@ void ZedCamera::callback_enableObjDet(const std::shared_ptr<rmw_request_id_t> re
                                       std::shared_ptr<std_srvs::srv::SetBool_Response> res) {
     (void)request_header;
 
-    RCLCPP_INFO(get_logger(), "Enable Object Detection service called");
+    RCLCPP_INFO(get_logger(), "** Enable Object Detection service called **");
 
     std::lock_guard<std::mutex> lock(mObjDetMutex);
 
@@ -4212,6 +4230,7 @@ void ZedCamera::callback_enableObjDet(const std::shared_ptr<rmw_request_id_t> re
     }
 
     if(req->data) {
+        RCLCPP_INFO(get_logger(), "Starting Object Detection");
         // Start
         if(mObjDetEnabled && mObjDetRunning) {
             RCLCPP_WARN(get_logger(), "Object Detection is just running");
@@ -4227,13 +4246,15 @@ void ZedCamera::callback_enableObjDet(const std::shared_ptr<rmw_request_id_t> re
             res->success = true;
             return;
         } else {
-            res->message = "Error occurred starting Object Detection";
+            res->message = "Error occurred starting Object Detection. See log for more info";
             res->success = false;
             return;
         }
     } else {
+        RCLCPP_INFO(get_logger(), "Stopping Object Detection");
         // Stop
         if(!mObjDetEnabled || !mObjDetRunning) {
+            RCLCPP_WARN(get_logger(), "Object Detection was not running");
             res->message = "Object Detection was not running";
             res->success = false;
             return;
@@ -4242,6 +4263,54 @@ void ZedCamera::callback_enableObjDet(const std::shared_ptr<rmw_request_id_t> re
         stopObjDetect();
 
         res->message = "Object Detection stopped";
+        res->success = true;
+        return;
+    }
+}
+
+void ZedCamera::callback_enableMapping(const std::shared_ptr<rmw_request_id_t> request_header,
+                            const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+                            std::shared_ptr<std_srvs::srv::SetBool_Response> res) {
+    (void)request_header;
+
+    RCLCPP_INFO(get_logger(), "** Enable Spatial Mapping service called **");
+
+    std::lock_guard<std::mutex> lock(mMappingMutex);
+
+    if(req->data) {
+        RCLCPP_INFO(get_logger(), "Starting Spatial Mapping");
+        // Start
+        if(mMappingEnabled && mMappingRunning) {
+            RCLCPP_WARN(get_logger(), "Spatial Mapping is just running");
+            res->message = "Spatial Mapping is just running";
+            res->success = false;
+            return;
+        }
+
+        mMappingEnabled = true;
+
+        if(start3dMapping()) {
+            res->message = "Spatial Mapping started";
+            res->success = true;
+            return;
+        } else {
+            res->message = "Error occurred starting Spatial Mapping. See log for more info";
+            res->success = false;
+            return;
+        }
+    } else {
+        RCLCPP_INFO(get_logger(), "Stopping Spatial Mapping");
+        // Stop
+        if(!mMappingEnabled || !mMappingRunning) {
+            RCLCPP_WARN(get_logger(), "Spatial Mapping was not running");
+            res->message = "Spatial Mapping was not running";
+            res->success = false;
+            return;
+        }
+
+        stop3dMapping();
+
+        res->message = "Spatial Mapping stopped";
         res->success = true;
         return;
     }

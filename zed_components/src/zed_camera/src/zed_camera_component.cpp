@@ -147,6 +147,11 @@ void ZedCamera::initServices() {
                                                                std::bind(&ZedCamera::callback_setPose,
                                                                          this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mSetPoseSrv->get_service_name());
+    srv_name = srv_prefix + "enable_obj_det";
+    mEnableObjDetSrv = create_service<std_srvs::srv::SetBool>(srv_name,
+                                                                    std::bind(&ZedCamera::callback_enableObjDet,
+                                                                              this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mSetPoseSrv->get_service_name());
 
 }
 
@@ -2093,7 +2098,7 @@ bool ZedCamera::startObjDetect() {
     }
 
     mObjDetRunning = true;
-    return false;
+    return true;
 }
 
 void ZedCamera::stopObjDetect() {
@@ -2102,6 +2107,17 @@ void ZedCamera::stopObjDetect() {
         mObjDetRunning = false;
         mObjDetEnabled = false;
         mZed.disableObjectDetection();
+
+        // ----> Send an empty message to indicate that no more objects are tracked (e.g clean Rviz2)
+        objDetMsgPtr objMsg = std::make_unique<zed_interfaces::msg::ObjectsStamped>();
+
+        objMsg->header.stamp = mFrameTimestamp;
+        objMsg->header.frame_id = mLeftCamFrameId;
+
+        objMsg->objects.clear();
+
+        mPubObjDet->publish(std::move(objMsg));
+        // <---- Send an empty message to indicate that no more objects are tracked (e.g clean Rviz2)
     }
 }
 
@@ -3547,7 +3563,16 @@ void ZedCamera::publishPose() {
 }
 
 void ZedCamera::processDetectedObjects(rclcpp::Time t) {
-    size_t objdet_sub_count = count_subscribers(mPubObjDet->get_topic_name());
+    size_t objdet_sub_count = 0;
+
+    try {
+        objdet_sub_count = count_subscribers(mPubObjDet->get_topic_name());
+    }
+    catch(...) {
+        rcutils_reset_error();
+        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        return;
+    }
 
     if(objdet_sub_count<1) {
         return;
@@ -3988,7 +4013,15 @@ void ZedCamera::callback_pubFusedPc() {
 
     pointcloudMsgPtr pointcloudFusedMsg = std::make_unique<sensor_msgs::msg::PointCloud2>();
 
-    uint32_t fusedCloudSubnumber = count_subscribers(mPubFusedCloud->get_topic_name());
+    uint32_t fusedCloudSubnumber = 0;
+    try {
+        fusedCloudSubnumber = count_subscribers(mPubFusedCloud->get_topic_name());
+    }
+    catch(...) {
+        rcutils_reset_error();
+        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        return;
+    }
 
     if (fusedCloudSubnumber == 0) {
         return;
@@ -4160,6 +4193,58 @@ void ZedCamera::callback_setPose(const std::shared_ptr<rmw_request_id_t> request
 
     res->message = "Positional Tracking new pose OK";
     res->success = true;
+}
+
+void ZedCamera::callback_enableObjDet(const std::shared_ptr<rmw_request_id_t> request_header,
+                                      const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+                                      std::shared_ptr<std_srvs::srv::SetBool_Response> res) {
+    (void)request_header;
+
+    RCLCPP_INFO(get_logger(), "Enable Object Detection service called");
+
+    std::lock_guard<std::mutex> lock(mObjDetMutex);
+
+    if( mCamRealModel == sl::MODEL::ZED || mCamRealModel == sl::MODEL::ZED_M ) {
+        RCLCPP_WARN(get_logger(), "Object Detection not available for ZED or ZED Mini");
+        res->message = "Object Detection not available for ZED or ZED Mini";
+        res->success = false;
+        return;
+    }
+
+    if(req->data) {
+        // Start
+        if(mObjDetEnabled && mObjDetRunning) {
+            RCLCPP_WARN(get_logger(), "Object Detection is just running");
+            res->message = "Object Detection is just running";
+            res->success = false;
+            return;
+        }
+
+        mObjDetEnabled = true;
+
+        if(startObjDetect()) {
+            res->message = "Object Detection started";
+            res->success = true;
+            return;
+        } else {
+            res->message = "Error occurred starting Object Detection";
+            res->success = false;
+            return;
+        }
+    } else {
+        // Stop
+        if(!mObjDetEnabled || !mObjDetRunning) {
+            res->message = "Object Detection was not running";
+            res->success = false;
+            return;
+        }
+
+        stopObjDetect();
+
+        res->message = "Object Detection stopped";
+        res->success = true;
+        return;
+    }
 }
 
 } // namespace stereolabs

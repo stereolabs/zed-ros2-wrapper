@@ -25,7 +25,7 @@
             qos_durability:             1               # '0': TRANSIENT_LOCAL - '1': VOLATILE
 
         object_detection:
-            od_enabled:                 TRUE           # True to enable Object Detection [only ZED 2]
+            od_enabled:                 false           # True to enable Object Detection [only ZED 2]
             confidence_threshold:       50.0            # [DYNAMIC] - Minimum value of the detection confidence of an object [0,100]
             # object_tracking_enabled:    true            # - NOT SUPPORTED - Enable/disable the tracking of the detected objects
             model:                      0               # '0': MULTI_CLASS_BOX - '1': HUMAN_BODY_FAST - '2': HUMAN_BODY_ACCURATE

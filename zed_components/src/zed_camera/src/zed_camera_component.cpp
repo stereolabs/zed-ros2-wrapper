@@ -317,7 +317,7 @@ void ZedCamera::getVideoParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Video QoS History depth: '%d'", qos_depth);
+    RCLCPP_INFO(get_logger(), " * Video QoS History depth: %d", qos_depth);
 
     // ------------------------------------------
 
@@ -421,7 +421,7 @@ void ZedCamera::getDepthParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Depth QoS History depth: '%d'", qos_depth);
+    RCLCPP_INFO(get_logger(), " * Depth QoS History depth: %d", qos_depth);
 
     // ------------------------------------------
 
@@ -499,7 +499,7 @@ void ZedCamera::getSensorsParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Sensors QoS History depth: '%d'", qos_depth);
+    RCLCPP_INFO(get_logger(), " * Sensors QoS History depth: %d", qos_depth);
 
     // ------------------------------------------
 
@@ -581,7 +581,7 @@ void ZedCamera::getMappingParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Sensors QoS History depth: '%d'", qos_depth);
+    RCLCPP_INFO(get_logger(), " * Sensors QoS History depth: %d", qos_depth);
 
     // ------------------------------------------
 
@@ -701,7 +701,7 @@ void ZedCamera::getPosTrackingParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS History depth: '%d'", qos_depth);
+    RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS History depth: %d", qos_depth);
 
     // ------------------------------------------
 
@@ -788,7 +788,7 @@ void ZedCamera::getOdParams() {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
     }
 
-    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS History depth: '%d'", qos_depth);
+    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS History depth: %d", qos_depth);
 
     // ------------------------------------------
 
@@ -1172,6 +1172,63 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             startFusedPcTimer(mPcPubRate);
 
             RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if(param.get_name() == "object_detection.confidence_threshold" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            double val = param.as_double();
+
+            if( (val < 0.0) || (val > 100.0) ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be positive double value in the range [0.0,100.0]";
+                return result;
+            }
+
+            mObjDetConfidence = val;
+
+            RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if(param.get_name() == "object_detection.mc_people" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            mObjDetPeopleEnable = param.as_bool();
+
+            RCLCPP_INFO_STREAM(get_logger(),
+                               "Parameter '" << param.get_name() << "' correctly set to " <<
+                               (mObjDetPeopleEnable?"TRUE":"FALSE"));
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if(param.get_name() == "object_detection.mc_vehicle" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            mObjDetVehiclesEnable = param.as_bool();
+
+            RCLCPP_INFO_STREAM(get_logger(),
+                               "Parameter '" << param.get_name() << "' correctly set to " <<
+                               (mObjDetVehiclesEnable?"TRUE":"FALSE"));
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
@@ -3499,8 +3556,18 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t) {
     static std::chrono::steady_clock::time_point old_time = std::chrono::steady_clock::now();
 
     sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
+
+    // ----> Process realtime dynamic parameters
     objectTracker_parameters_rt.detection_confidence_threshold = mObjDetConfidence;
+    mObjDetFilter.clear();
+    if(mObjDetPeopleEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+    }
+    if(mObjDetVehiclesEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+    }
     objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
+    // <---- Process realtime dynamic parameters
 
     sl::Objects objects;
 
@@ -4018,7 +4085,7 @@ void ZedCamera::callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t
     }
 
     if (!setPose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
-                  mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) {
+                 mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) {
         res->message = "Error setting initial pose";
         RCLCPP_WARN(get_logger(), "Error setting initial pose");
         res->success = false;
@@ -4064,7 +4131,7 @@ void ZedCamera::callback_setPose(const std::shared_ptr<rmw_request_id_t> request
     mInitialBasePose[5] = req->orient[2];
 
     if (!setPose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
-                  mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) {
+                 mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5])) {
         res->message = "Error setting initial pose";
         RCLCPP_WARN(get_logger(), "Error setting initial pose");
         res->success = false;

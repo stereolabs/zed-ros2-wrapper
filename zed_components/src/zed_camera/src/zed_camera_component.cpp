@@ -3614,8 +3614,12 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t) {
         objMsg->objects[idx].tracking_state = static_cast<int8_t>(data.tracking_state);
         objMsg->objects[idx].action_state = static_cast<int8_t>(data.action_state);
 
-        memcpy(&(objMsg->objects[idx].bounding_box_2d.corners[0]), &(data.bounding_box_2d[0]), 8*sizeof(unsigned int));
-        memcpy(&(objMsg->objects[idx].bounding_box_3d.corners[0]), &(data.bounding_box[0]), 24*sizeof(float));
+        if(data.bounding_box_2d.size()==4) {
+            memcpy(&(objMsg->objects[idx].bounding_box_2d.corners[0]), &(data.bounding_box_2d[0]), 8*sizeof(unsigned int));
+        }
+        if(data.bounding_box.size()==8) {
+            memcpy(&(objMsg->objects[idx].bounding_box_3d.corners[0]), &(data.bounding_box[0]), 24*sizeof(float));
+        }
 
         memcpy(&(objMsg->objects[idx].dimensions_3d[0]), &(data.dimensions[0]), 3*sizeof(float));
 
@@ -3623,16 +3627,23 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t) {
                 mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_FAST ) {
             objMsg->objects[idx].skeleton_available = true;
 
-            memcpy(&(objMsg->objects[idx].head_bounding_box_2d.corners[0]), &(data.head_bounding_box_2d[0]), 8*sizeof(unsigned int));
-            memcpy(&(objMsg->objects[idx].head_bounding_box_3d.corners[0]), &(data.head_bounding_box[0]), 24*sizeof(float));
+            if(data.head_bounding_box_2d.size()==4) {
+                memcpy(&(objMsg->objects[idx].head_bounding_box_2d.corners[0]), &(data.head_bounding_box_2d[0]), 8*sizeof(unsigned int));
+            }
+            if(data.head_bounding_box.size()==8) {
+                memcpy(&(objMsg->objects[idx].head_bounding_box_3d.corners[0]), &(data.head_bounding_box[0]), 24*sizeof(float));
+            }
             memcpy(&(objMsg->objects[idx].head_position[0]), &(data.head_position[0]), 3*sizeof(float));
 
-            memcpy(&(objMsg->objects[idx].skeleton_2d.keypoints[0]), &(data.keypoint_2d[0]), 36*sizeof(float));
-            memcpy(&(objMsg->objects[idx].skeleton_3d.keypoints[0]), &(data.keypoint[0]), 54*sizeof(float));
+            if(data.keypoint_2d.size()==18) {
+                memcpy(&(objMsg->objects[idx].skeleton_2d.keypoints[0]), &(data.keypoint_2d[0]), 36*sizeof(float));
+            }
+            if(data.keypoint_2d.size()==18) {
+                memcpy(&(objMsg->objects[idx].skeleton_3d.keypoints[0]), &(data.keypoint[0]), 54*sizeof(float));
+            }
         } else {
             objMsg->objects[idx].skeleton_available = false;
         }
-
 
         // at the end of the loop
         idx++;

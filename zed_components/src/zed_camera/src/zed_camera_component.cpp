@@ -149,6 +149,7 @@ void ZedCamera::initServices() {
                                                            std::bind(&ZedCamera::callback_resetOdometry,
                                                                      this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mResetOdomSrv->get_service_name());
+
     srv_name = srv_prefix + "reset_pos_tracking";
     mResetPosTrkSrv = create_service<std_srvs::srv::Trigger>(srv_name,
                                                              std::bind(&ZedCamera::callback_resetPosTracking,
@@ -159,16 +160,33 @@ void ZedCamera::initServices() {
                                                                std::bind(&ZedCamera::callback_setPose,
                                                                          this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mSetPoseSrv->get_service_name());
+
     srv_name = srv_prefix + "enable_obj_det";
     mEnableObjDetSrv = create_service<std_srvs::srv::SetBool>(srv_name,
                                                               std::bind(&ZedCamera::callback_enableObjDet,
                                                                         this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mEnableObjDetSrv->get_service_name());
+
     srv_name = srv_prefix + "enable_mapping";
     mEnableMappingSrv = create_service<std_srvs::srv::SetBool>(srv_name,
                                                                std::bind(&ZedCamera::callback_enableMapping,
                                                                          this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mEnableMappingSrv->get_service_name());
+
+
+    srv_name = srv_prefix + "start_svo_rec";
+    mStartSvoRec = create_service<zed_interfaces::srv::StartSvoRec>(srv_name,
+                                                                    std::bind(&ZedCamera::callback_startSvoRec,
+                                                                              this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mStartSvoRec->get_service_name());
+    srv_name = srv_prefix + "stop_svo_rec";
+    mStopSvoRec = create_service<std_srvs::srv::Trigger>(srv_name,
+                                                         std::bind(&ZedCamera::callback_stopSvoRec,
+                                                                   this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mStopSvoRec->get_service_name());
+
+
+
 
 
 }
@@ -242,7 +260,7 @@ void ZedCamera::getGeneralParams() {
     getParam( "general.camera_timeout_sec", mCamTimeoutSec, mCamTimeoutSec,  " * Camera timeout [sec]: ");
     getParam( "general.camera_reactivate", mCamReactivate, mCamReactivate,  " * Camera reconnection if disconnected: ");
     getParam( "general.camera_max_reconnect", mMaxReconnectTemp, mMaxReconnectTemp,  " * Camera reconnection temptatives: ");
-    getParam( "general.grab_frame_rate", mCamFrameRate, mCamFrameRate,  " * Camera framerate: ");
+    getParam( "general.grab_frame_rate", mCamGrabFrameRate, mCamGrabFrameRate,  " * Camera framerate: ");
     getParam( "general.gpu_id", mGpuId, mGpuId,  " * GPU ID: ");
 
     // TODO ADD SVO SAVE COMPRESSION PARAMETERS
@@ -261,7 +279,7 @@ void ZedCamera::getGeneralParams() {
 
 
     getParam( "general.pub_frame_rate", mPubFrameRate, mPubFrameRate );
-    if ( mPubFrameRate>mCamFrameRate )
+    if ( mPubFrameRate>mCamGrabFrameRate )
     {
         RCLCPP_WARN(get_logger(), "'pub_frame_rate' cannot be bigger than 'grab_frame_rate'", paramName.c_str());
     }
@@ -862,7 +880,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
 
             double val = param.as_double();
 
-            if( (val <= 0.0) || (val > mCamFrameRate) ) {
+            if( (val <= 0.0) || (val > mCamGrabFrameRate) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be positive and minor of `grab_frame_rate`";
                 return result;
@@ -1115,7 +1133,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
 
             double val = param.as_double();
 
-            if( (val <= 0.0) || (val > mCamFrameRate) ) {
+            if( (val <= 0.0) || (val > mCamGrabFrameRate) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be positive and minor of `grab_frame_rate`";
                 return result;
@@ -1638,7 +1656,7 @@ bool ZedCamera::startCamera() {
     } else {
         RCLCPP_INFO(get_logger(), "*** CAMERA OPENING ***");
 
-        mInitParams.camera_fps = mCamFrameRate;
+        mInitParams.camera_fps = mCamGrabFrameRate;
         mInitParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
 
         if (mCamSerialNumber == 0) {
@@ -1748,11 +1766,18 @@ bool ZedCamera::startCamera() {
     // <---- Try to open ZED camera or to load SVO
 
     // ----> Camera information
+    sl::CameraInformation camInfo = mZed.getCameraInformation();
+
+    float realFps = camInfo.camera_configuration.fps;
+    if( realFps != static_cast<float>(mCamGrabFrameRate)) {
+        RCLCPP_WARN_STREAM(get_logger(), "!!! `general.grab_frame_rate` value is not valid: '" << mCamGrabFrameRate <<
+                           "'. Automatically replaced with '" << realFps << "'. Please fix the parameter !!!");
+        mCamGrabFrameRate = realFps;
+    }
+
     //CUdevice devid;
     cuCtxGetDevice(&mGpuId);
     RCLCPP_INFO_STREAM( get_logger(), "ZED SDK running on GPU #" << mGpuId);
-
-    sl::CameraInformation camInfo = mZed.getCameraInformation();
 
     // Camera model
     mCamRealModel = camInfo.camera_model;
@@ -1813,7 +1838,7 @@ bool ZedCamera::startCamera() {
         mSlCamImuTransf = camInfo.sensors_configuration.camera_imu_transform;
 #endif
 
-        RCLCPP_INFO( get_logger(), "Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str() );
+        RCLCPP_DEBUG( get_logger(), "Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str() );
     }
 
     mCamWidth = camInfo.camera_configuration.resolution.width;
@@ -1855,14 +1880,12 @@ bool ZedCamera::startCamera() {
     // Force parameters with a dummy grab
     mZed.grab();
 
-    // TODO INITIALIZE SERVICES
-
     // ----> Initialize Diagnostic statistics
-    mElabPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamFrameRate);
-    mGrabPeriodMean_usec = std::make_unique<sl_tools::SmartMean>(mCamFrameRate);
-    mVideoDepthPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamFrameRate);
-    mPcPeriodMean_usec = std::make_unique<sl_tools::SmartMean>(mCamFrameRate);
-    mObjDetPeriodMean_msec = std::make_unique<sl_tools::SmartMean>(mCamFrameRate);
+    mElabPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
+    mGrabPeriodMean_usec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
+    mVideoDepthPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
+    mPcPeriodMean_usec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
+    mObjDetPeriodMean_msec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
     mImuPeriodMean_usec = std::make_unique<sl_tools::SmartMean>(mSensPubRate);
     mBaroPeriodMean_usec = std::make_unique<sl_tools::SmartMean>(mSensPubRate);
     mMagPeriodMean_usec = std::make_unique<sl_tools::SmartMean>(mSensPubRate);
@@ -2165,6 +2188,36 @@ void ZedCamera::stopObjDetect() {
     }
 }
 
+bool ZedCamera::startSvoRecording(std::string& errMsg) {
+
+    sl::RecordingParameters params;
+
+    params.bitrate = mSvoRecBitrate;
+    params.compression_mode = mSvoRecCompr;
+    params.target_framerate = mSvoRecFramerate;
+    params.transcode_streaming_input = mSvoRecTranscode;
+    params.video_filename = mSvoRecFilename.c_str();
+
+    sl::ERROR_CODE err = mZed.enableRecording(params);
+    errMsg = sl::toString(err);
+
+    if(err!=sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_ERROR_STREAM(get_logger(), "Error starting SVO recording: " << errMsg);
+        return false;
+    }
+
+    mRecording = true;
+
+    return true;
+}
+
+void ZedCamera::stopSvoRecording() {
+    if(mRecording) {
+        mRecording=false;
+        mZed.disableRecording();
+    }
+}
+
 void ZedCamera::initTransforms() {
     // According to REP 105 -> http://www.ros.org/reps/rep-0105.html
 
@@ -2456,12 +2509,12 @@ void ZedCamera::threadFunc_zedGrab() {
     while(1) {
         // ----> Interruption check
         if (!rclcpp::ok()) {
-            RCLCPP_INFO(get_logger(), "Ctrl+C received: stopping grab thread");
+            RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping grab thread");
             break;
         }
 
         if (mThreadStop) {
-            RCLCPP_INFO(get_logger(), "Grab thread stopped");
+            RCLCPP_DEBUG(get_logger(), "Grab thread stopped");
             break;
         }
         // <---- Interruption check
@@ -2551,7 +2604,7 @@ void ZedCamera::threadFunc_zedGrab() {
         if (mRecording) {
             mRecStatus = mZed.getRecordingStatus().status;
 
-            if (!mRecStatus) {
+            if (!mRecStatus/*.status*/) {
                 rclcpp::Clock steady_clock(RCL_STEADY_TIME);
                 RCLCPP_ERROR_THROTTLE(get_logger(), steady_clock, 1.0, "Error saving frame to SVO");
             }
@@ -2677,12 +2730,7 @@ void ZedCamera::threadFunc_pointcloudElab() {
 
     while (1) {
         if (!rclcpp::ok()) {
-            RCLCPP_INFO(get_logger(), "Ctrl+C received: stopping point cloud thread");
-            break;
-        }
-
-        if (mThreadStop) {
-            RCLCPP_INFO(get_logger(), "Point Cloud thread stopped");
+            RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping point cloud thread");
             break;
         }
 
@@ -2691,14 +2739,24 @@ void ZedCamera::threadFunc_pointcloudElab() {
         while (!mPcDataReady) { // loop to avoid spurious wakeups
             if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
                 // Check thread stopping
+                if (!rclcpp::ok()) {
+                    RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping point cloud thread");
+                    mThreadStop = true;
+                    break;
+                }
                 if (mThreadStop) {
-                    RCLCPP_INFO(get_logger(), "Point Cloud thread stopped");
+                    RCLCPP_DEBUG(get_logger(), "threadFunc_pointcloudElab (2): Point Cloud thread stopped");
                     break;
                 } else {
                     //RCLCPP_DEBUG(get_logger(), "pointcloudThreadFunc -> WAIT FOR CLOUD DATA");
                     continue;
                 }
             }
+        }
+
+        if (mThreadStop) {
+            RCLCPP_DEBUG(get_logger(), "threadFunc_pointcloudElab (1): Point Cloud thread stopped");
+            break;
         }
 
         publishPointCloud();
@@ -2790,7 +2848,7 @@ void ZedCamera::callback_pubSensorsData() {
     }
     catch(...) {
         rcutils_reset_error();
-        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        RCLCPP_DEBUG(get_logger(), "pubSensorsData: Exception while counting subscribers");
         return;
     }
     // <---- Subscribers count
@@ -3129,7 +3187,7 @@ bool ZedCamera::publishImages(rclcpp::Time timeStamp) {
     }
     catch(...) {
         rcutils_reset_error();
-        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        RCLCPP_DEBUG(get_logger(), "publishImages: Exception while counting subscribers");
         return false;
     }
 
@@ -3434,7 +3492,7 @@ void ZedCamera::processPose() {
     }
     catch(...) {
         rcutils_reset_error();
-        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        RCLCPP_DEBUG(get_logger(), "processPose: Exception while counting subscribers");
         return;
     }
 
@@ -3544,7 +3602,7 @@ void ZedCamera::publishPose() {
     }
     catch(...) {
         rcutils_reset_error();
-        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        RCLCPP_DEBUG(get_logger(), "publishPose: Exception while counting subscribers");
         return;
     }
 
@@ -3614,7 +3672,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t) {
     }
     catch(...) {
         rcutils_reset_error();
-        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        RCLCPP_DEBUG(get_logger(), "processDetectedObjects: Exception while counting subscribers");
         return;
     }
 
@@ -3735,7 +3793,7 @@ bool ZedCamera::isDepthRequired() {
     }
     catch(...) {
         rcutils_reset_error();
-        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        RCLCPP_DEBUG(get_logger(), "isDepthRequired: Exception while counting subscribers");
         return false;
     }
 
@@ -3842,7 +3900,7 @@ bool ZedCamera::isPosTrackingRequired() {
     }
     catch(...) {
         rcutils_reset_error();
-        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        RCLCPP_DEBUG(get_logger(), "isPosTrackingRequired: Exception while counting subscribers");
         return false;
     }
 
@@ -3932,7 +3990,7 @@ bool ZedCamera::publishDepthData(rclcpp::Time timeStamp) {
     }
     catch(...) {
         rcutils_reset_error();
-        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        RCLCPP_DEBUG(get_logger(), "publishDepthData: Exception while counting subscribers");
         return false;
     }
 
@@ -4063,7 +4121,7 @@ void ZedCamera::callback_pubFusedPc() {
     }
     catch(...) {
         rcutils_reset_error();
-        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        RCLCPP_DEBUG(get_logger(), "pubFusedPc: Exception while counting subscribers");
         return;
     }
 
@@ -4155,7 +4213,7 @@ void ZedCamera::callback_pubPaths() {
     }
     catch(...) {
         rcutils_reset_error();
-        RCLCPP_DEBUG(get_logger(), "Exception while counting subscribers");
+        RCLCPP_DEBUG(get_logger(), "pubPaths: Exception while counting subscribers");
         return;
     }
 
@@ -4416,6 +4474,87 @@ void ZedCamera::callback_enableMapping(const std::shared_ptr<rmw_request_id_t> r
         res->success = true;
         return;
     }
+}
+
+void ZedCamera::callback_startSvoRec(const std::shared_ptr<rmw_request_id_t> request_header,
+                                     const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
+                                     std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res) {
+    (void)request_header;
+
+    RCLCPP_INFO(get_logger(), "** Start SVO Recording service called **");
+
+    std::lock_guard<std::mutex> lock(mRecMutex);
+
+    if(mRecording) {
+        RCLCPP_WARN(get_logger(), "SVO Recording is just enabled");
+        res->message = "SVO Recording is just enabled";
+        res->success = false;
+        return;
+    }
+
+    mSvoRecBitrate = req->bitrate;
+    if( (mSvoRecBitrate!=0) && ((mSvoRecBitrate<1000) || (mSvoRecBitrate>60000))) {
+        RCLCPP_WARN(get_logger(), "'bitrate' value not valid. Please use a value in range [1000,60000], or 0 for default");
+        res->message = "'bitrate' value not valid. Please use a value in range [1000,60000], or 0 for default";
+        res->success = false;
+        return;
+    }
+    mSvoRecCompr = static_cast<sl::SVO_COMPRESSION_MODE>(req->compression_mode);
+    if(mSvoRecCompr>=sl::SVO_COMPRESSION_MODE::LAST) {
+        RCLCPP_WARN(get_logger(), "'compression_mode' mode not valid. Please use a value in range [0,2]");
+        res->message = "'compression_mode' mode not valid. Please use a value in range [0,2]";
+        res->success = false;
+        return;
+    }
+    mSvoRecFramerate = req->target_framerate;
+    mSvoRecTranscode = req->input_transcode;
+    mSvoRecFilename = req->svo_filename;
+
+    if(mSvoRecFilename.empty()) {
+        mSvoRecFilename = "zed.svo";
+    }
+
+    std::string err;
+
+    if(!startSvoRecording(err)) {
+        res->message = "Error starting SVO recording: " + err;
+        res->success = false;
+        return;
+    }
+
+    RCLCPP_INFO(get_logger(), "SVO Recording started: " );
+    RCLCPP_INFO_STREAM(get_logger(), " * Bitrate: " << mSvoRecBitrate );
+    RCLCPP_INFO_STREAM(get_logger(), " * Compression: " << mSvoRecCompr );
+    RCLCPP_INFO_STREAM(get_logger(), " * Framerate: " << mSvoRecFramerate );
+    RCLCPP_INFO_STREAM(get_logger(), " * Input Transcode: " << (mSvoRecTranscode?"TRUE":"FALSE") );
+    RCLCPP_INFO_STREAM(get_logger(), " * Filename: " << (mSvoRecFilename.empty()?"zed.svo":mSvoRecFilename) );
+
+    res->message = "SVO Recording started";
+    res->success = true;
+}
+
+void ZedCamera::callback_stopSvoRec(const std::shared_ptr<rmw_request_id_t> request_header,
+                                    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+                                    std::shared_ptr<std_srvs::srv::Trigger_Response> res) {
+    (void)request_header;
+    (void)req;
+
+    RCLCPP_INFO(get_logger(), "** Stop SVO Recording service called **");
+
+    std::lock_guard<std::mutex> lock(mRecMutex);
+
+    if(!mRecording) {
+        RCLCPP_WARN(get_logger(), "SVO Recording is NOT enabled");
+        res->message = "SVO Recording is NOT enabled";
+        res->success = false;
+        return;
+    }
+
+    stopSvoRecording();
+
+    RCLCPP_WARN(get_logger(), "SVO Recording stopped");
+    res->message = "SVO Recording stopped";
+    res->success = true;
 }
 
 } // namespace stereolabs

@@ -37,6 +37,7 @@ set(MSG_FILES
 
 set(SRV_FILES
     "srv/SetPose.srv"
+    "srv/StartSvoRec.srv"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}    

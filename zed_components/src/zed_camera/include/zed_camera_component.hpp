@@ -34,6 +34,7 @@
 #include <zed_interfaces/msg/objects_stamped.hpp>
 #include <zed_interfaces/msg/object.hpp>
 #include <zed_interfaces/srv/set_pose.hpp>
+#include <zed_interfaces/srv/start_svo_rec.hpp>
 
 
 namespace stereolabs {
@@ -80,8 +81,8 @@ typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetPosTrkSrvPtr;
 typedef rclcpp::Service<zed_interfaces::srv::SetPose>::SharedPtr setPoseSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableObjDetPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;
-//typedef rclcpp::Service<stereolabs_zed_interfaces::srv::StartSvoRecording>::SharedPtr startSvoRecSrvPtr;
-//typedef rclcpp::Service<stereolabs_zed_interfaces::srv::StopSvoRecording>::SharedPtr stopSvoRecSrvPtr;
+typedef rclcpp::Service<zed_interfaces::srv::StartSvoRec>::SharedPtr startSvoRecSrvPtr;
+typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 // <---- Typedefs to simplify declarations
 
 class ZedCamera : public rclcpp::Node
@@ -118,6 +119,8 @@ protected:
     void stop3dMapping();
     bool startObjDetect();
     void stopObjDetect();
+    bool startSvoRecording(std::string &errMsg);
+    void stopSvoRecording();
     // <---- Initialization functions
 
     // ----> Callbacks
@@ -142,6 +145,13 @@ protected:
     void callback_enableMapping(const std::shared_ptr<rmw_request_id_t> request_header,
                                 const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
                                 std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+    void callback_startSvoRec(const std::shared_ptr<rmw_request_id_t> request_header,
+                                const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
+                                std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
+    void callback_stopSvoRec(const std::shared_ptr<rmw_request_id_t> request_header,
+                                const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+                                std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+
     // <---- Callbacks
 
     // ----> Thread functions
@@ -225,7 +235,7 @@ private:
     unsigned int mCamFwVersion;                     // Camera FW version
     unsigned int mSensFwVersion;                    // Sensors FW version
     std::string mCameraName = "zed2";               // Default camera name: "zed2"
-    int mCamFrameRate = 15;
+    int mCamGrabFrameRate = 15;
     std::string mSvoFilepath = "";
     bool mSvoLoop = false;
     bool mSvoMode = false;
@@ -452,9 +462,10 @@ private:
     bool mTriggerAutoExpGain = true;    // Triggered on start
     bool mTriggerAutoWB = true;         // Triggered on start
     bool mStaticImuTopicPublished = false;
-    bool mRecording=false;
+    bool mRecording=false;    
+    //sl::RecordingStatus mRecStatus = sl::RecordingStatus(); // TODO replace when fixed in SDK
+    bool mRecStatus = false;
     bool mPosTrackingReady=false;
-    bool mRecStatus=false;
     sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
     bool mResetOdom=false;
     bool mMappingRunning = false;
@@ -492,12 +503,22 @@ private:
     rclcpp::Time mPointCloudTime;
     // <---- Point cloud variables
 
+    // ----> SVO Recording parameters
+    unsigned int mSvoRecBitrate = 0;
+    sl::SVO_COMPRESSION_MODE mSvoRecCompr = sl::SVO_COMPRESSION_MODE::H264;
+    unsigned int mSvoRecFramerate = 0;
+    bool mSvoRecTranscode = false;
+    std::string mSvoRecFilename;
+    // <---- SVO Recording parameters
+
     // ----> Services
     resetOdomSrvPtr mResetOdomSrv;
     resetPosTrkSrvPtr mResetPosTrkSrv;
     setPoseSrvPtr mSetPoseSrv;
     enableObjDetPtr mEnableObjDetSrv;
     enableMappingPtr mEnableMappingSrv;
+    startSvoRecSrvPtr mStartSvoRec;
+    stopSvoRecSrvPtr mStopSvoRec;
     // <---- Services
 };
 

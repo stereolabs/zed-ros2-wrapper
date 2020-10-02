@@ -230,11 +230,11 @@ private:
     bool mDebugMode=false;
     int mCamId = 0;
     int mCamSerialNumber = 0;
-    sl::MODEL mCamUserModel = sl::MODEL::ZED2;   // Default camera model: ZED2
+    sl::MODEL mCamUserModel = sl::MODEL::ZED;   // Default camera model
     sl::MODEL mCamRealModel;                     // Camera model requested to SDK
     unsigned int mCamFwVersion;                     // Camera FW version
     unsigned int mSensFwVersion;                    // Sensors FW version
-    std::string mCameraName = "zed2";               // Default camera name: "zed2"
+    std::string mCameraName = "zed";               // Default camera name
     int mCamGrabFrameRate = 15;
     std::string mSvoFilepath = "";
     bool mSvoLoop = false;

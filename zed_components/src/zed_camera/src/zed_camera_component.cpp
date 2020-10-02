@@ -1880,6 +1880,9 @@ bool ZedCamera::startCamera() {
     // Force parameters with a dummy grab
     mZed.grab();
 
+    // Initialialized timestamp to avoid wrong initial data
+    mFrameTimestamp = now();
+
     // ----> Initialize Diagnostic statistics
     mElabPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
     mGrabPeriodMean_usec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
@@ -1905,7 +1908,6 @@ bool ZedCamera::startCamera() {
     startVideoDepthTimer(mPubFrameRate);
 
     if (mCamRealModel != sl::MODEL::ZED) {
-        mFrameTimestamp = now(); // Initialialized timestamp to avoid wrong sensors data
 
         std::chrono::milliseconds sensorsPubPeriod_msec(static_cast<int>(1000.0 / (mSensPubRate*1.5)));
         mSensTimer = create_wall_timer(
@@ -2650,9 +2652,10 @@ void ZedCamera::publishTFs(rclcpp::Time t) {
             publishPoseTF(t); // publish the odometry Frame in map frame
         }
 
-        if(mPublishImuTF && !mStaticImuFramePublished )
-        {
-            publishStaticImuFrameAndTopic();
+        if(mCamRealModel != sl::MODEL::ZED) {
+            if(mPublishImuTF && !mStaticImuFramePublished ) {
+                publishStaticImuFrameAndTopic();
+            }
         }
     }
 }

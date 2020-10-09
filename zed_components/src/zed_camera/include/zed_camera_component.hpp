@@ -134,8 +134,8 @@ protected:
                                 const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
                                 std::shared_ptr<std_srvs::srv::Trigger_Response> res);
     void callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t> request_header,
-                                const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-                                std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+                                   const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+                                   std::shared_ptr<std_srvs::srv::Trigger_Response> res);
     void callback_setPose(const std::shared_ptr<rmw_request_id_t> request_header,
                           const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
                           std::shared_ptr<zed_interfaces::srv::SetPose_Response> res);
@@ -146,11 +146,11 @@ protected:
                                 const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
                                 std::shared_ptr<std_srvs::srv::SetBool_Response> res);
     void callback_startSvoRec(const std::shared_ptr<rmw_request_id_t> request_header,
-                                const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
-                                std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
+                              const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
+                              std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
     void callback_stopSvoRec(const std::shared_ptr<rmw_request_id_t> request_header,
-                                const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-                                std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+                             const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+                             std::shared_ptr<std_srvs::srv::Trigger_Response> res);
 
     // <---- Callbacks
 
@@ -160,8 +160,7 @@ protected:
     // <---- Thread functions
 
     // ----> Publishing functions
-    bool publishImages(rclcpp::Time timeStamp);
-    bool publishDepthData(rclcpp::Time timeStamp);
+    bool publishVideoDepth();
 
     void publishImageWithInfo(sl::Mat& img,
                               image_transport::CameraPublisher& pubImg,
@@ -454,15 +453,18 @@ private:
     std::mutex mObjDetMutex;
     std::condition_variable mPcDataReadyCondVar;
     bool mPcDataReady=false;
+    std::condition_variable mRgbDepthDataRetrievedCondVar;
+    bool mRgbDepthDataRetrieved=true;
     // <---- Thread Sync
 
     // ----> Status Flags
     bool mPosTrackingEnabled = false;
     bool mPublishingData = false;
+    bool mPcPublishing = false;
     bool mTriggerAutoExpGain = true;    // Triggered on start
     bool mTriggerAutoWB = true;         // Triggered on start
     bool mStaticImuTopicPublished = false;
-    bool mRecording=false;    
+    bool mRecording=false;
     //sl::RecordingStatus mRecStatus = sl::RecordingStatus(); // TODO replace when fixed in SDK
     bool mRecStatus = false;
     bool mPosTrackingReady=false;
@@ -498,9 +500,8 @@ private:
     // <---- Timestamps
 
     // ----> Point cloud variables
-    sl::Mat mCloud;
+    sl::Mat mMatCloud;
     sl::FusedPointCloud mFusedPC;
-    rclcpp::Time mPointCloudTime;
     // <---- Point cloud variables
 
     // ----> SVO Recording parameters

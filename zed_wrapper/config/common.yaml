@@ -7,7 +7,7 @@
 /**:
     ros__parameters:
         general:
-            svo_file:                   '' #'/media/walter/Stereolabs-SSD/SVO/Walter_outdoor/HD2K_SN28946376_11-31-00_Walter_outdoor_loop_closing.svo'
+            svo_file:                   ''
             svo_loop:                   false                               # Enable loop mode when using an SVO as input source
             debug_mode:                 false
             camera_timeout_sec:         5
@@ -17,8 +17,8 @@
             serial_number:              0
             resolution:                 2                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
             sdk_verbose:                true
-            grab_frame_rate:            30                                  # ZED SDK internal grabbing rate
-            pub_frame_rate:             15.0                                # [DYNAMIC] - frequency of publishing of visual images and depth images
+            grab_frame_rate:            15                                  # ZED SDK internal grabbing rate
+            pub_frame_rate:             10.0                                # [DYNAMIC] - frequency of publishing of visual images and depth images
             gpu_id:                     -1            
 
         video:

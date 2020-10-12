@@ -293,7 +293,7 @@ void ZedCamera::getVideoParams() {
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
     size_t qos_depth = 1;
-    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
     getParam( "video.extrinsic_in_camera_frame", mUseOldExtrinsic, mUseOldExtrinsic,  " * Use old extrinsic parameters: ");
@@ -365,7 +365,7 @@ void ZedCamera::getVideoParams() {
     declare_parameter(paramName, rclcpp::ParameterValue(0) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT :
+        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
                                                    RMW_QOS_POLICY_RELIABILITY_RELIABLE;
         mVideoQos.reliability(qos_reliability);
     } else {
@@ -396,7 +396,7 @@ void ZedCamera::getDepthParams() {
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
     size_t qos_depth = 1;
-    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
     RCLCPP_INFO(get_logger(), "*** DEPTH parameters ***");
@@ -469,7 +469,7 @@ void ZedCamera::getDepthParams() {
     declare_parameter(paramName, rclcpp::ParameterValue(0) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT :
+        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
                                                    RMW_QOS_POLICY_RELIABILITY_RELIABLE;
         mDepthQos.reliability(qos_reliability);
     } else {
@@ -501,7 +501,7 @@ void ZedCamera::getSensorsParams() {
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
     size_t qos_depth = 1;
-    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
     RCLCPP_INFO(get_logger(), "*** SENSORS STACK parameters ***");
@@ -547,7 +547,7 @@ void ZedCamera::getSensorsParams() {
     declare_parameter(paramName, rclcpp::ParameterValue(0) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT :
+        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
                                                    RMW_QOS_POLICY_RELIABILITY_RELIABLE;
         mSensQos.reliability(qos_reliability);
     } else {
@@ -629,7 +629,7 @@ void ZedCamera::getMappingParams() {
     declare_parameter(paramName, rclcpp::ParameterValue(0) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT :
+        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
                                                    RMW_QOS_POLICY_RELIABILITY_RELIABLE;
         mMappingQos.reliability(qos_reliability);
     } else {
@@ -660,7 +660,7 @@ void ZedCamera::getPosTrackingParams() {
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
     size_t qos_depth = 1;
-    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
     RCLCPP_INFO(get_logger(), "*** POSITIONAL TRACKING parameters ***");
@@ -749,7 +749,7 @@ void ZedCamera::getPosTrackingParams() {
     declare_parameter(paramName, rclcpp::ParameterValue(0) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT :
+        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
                                                    RMW_QOS_POLICY_RELIABILITY_RELIABLE;
         mPoseQos.reliability(qos_reliability);
     } else {
@@ -780,7 +780,7 @@ void ZedCamera::getOdParams() {
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
     size_t qos_depth = 1;
-    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
     RCLCPP_INFO(get_logger(), "*** OBJECT DETECTION parameters ***");
@@ -836,7 +836,7 @@ void ZedCamera::getOdParams() {
     declare_parameter(paramName, rclcpp::ParameterValue(0) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT :
+        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
                                                    RMW_QOS_POLICY_RELIABILITY_RELIABLE;
         mObjDetQos.reliability(qos_reliability);
     } else {
@@ -1651,7 +1651,7 @@ bool ZedCamera::startCamera() {
         RCLCPP_INFO(get_logger(), "*** SVO OPENING ***");
 
         mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
-        mInitParams.svo_real_time_mode = false;
+        mInitParams.svo_real_time_mode = true;
         mSvoMode = true;
     } else {
         RCLCPP_INFO(get_logger(), "*** CAMERA OPENING ***");
@@ -2685,7 +2685,9 @@ void ZedCamera::threadFunc_zedGrab() {
 }
 
 void ZedCamera::publishTFs(rclcpp::Time t) {
+    //RCLCPP_DEBUG(get_logger(), "publishTFs");
     if(t==rclcpp::Time(0,0,RCL_ROS_TIME)) {
+        RCLCPP_DEBUG(get_logger(), "Time zero: not publishing TFs");
         return;
     }
 
@@ -2706,6 +2708,8 @@ void ZedCamera::publishTFs(rclcpp::Time t) {
 }
 
 void ZedCamera::publishOdomTF(rclcpp::Time t) {
+    //RCLCPP_DEBUG(get_logger(), "publishOdomTF");
+
     if (!mSensor2BaseTransfValid) {
         getSens2BaseTransform();
     }
@@ -2739,6 +2743,8 @@ void ZedCamera::publishOdomTF(rclcpp::Time t) {
 }
 
 void ZedCamera::publishPoseTF(rclcpp::Time t) {
+    //RCLCPP_DEBUG(get_logger(), "publishPoseTF");
+
     if (!mSensor2BaseTransfValid) {
         getSens2BaseTransform();
     }
@@ -3343,7 +3349,12 @@ bool ZedCamera::publishVideoDepth() {
     lastZedTs = grab_ts;
     // <---- Check if a grab has been done before publishing the same images
 
-    rclcpp::Time timeStamp = sl_tools::slTime2Ros(grab_ts);
+    rclcpp::Time timeStamp;
+    if(!mSvoMode) {
+        timeStamp = sl_tools::slTime2Ros(grab_ts);
+    } else {
+        timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));;
+    }
 
     // ----> Publish the left == rgb image if someone has subscribed to
     if (leftSubnumber > 0) {
@@ -4084,7 +4095,12 @@ void ZedCamera::publishPointCloud() {
     int height = mMatResolDepth.height;
 
     int ptsCount = width * height;
-    pcMsg->header.stamp = sl_tools::slTime2Ros(mMatCloud.timestamp);
+
+    if(!mSvoMode) {
+        pcMsg->header.stamp = sl_tools::slTime2Ros(mMatCloud.timestamp);
+    } else {
+        pcMsg->header.stamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));;
+    }
 
     if (pcMsg->width != width || pcMsg->height != height) {
         pcMsg->header.frame_id = mPointCloudFrameId; // Set the header values of the ROS message

@@ -245,7 +245,6 @@ private:
     bool mDepthStabilization = true;
     int mCamTimeoutSec = 5;
     int mMaxReconnectTemp = 5;
-    bool mCamReactivate = false;
     bool mCameraSelfCalib = true;
     bool mCameraFlip = false;
     sl::SENSING_MODE mDepthSensingMode = sl::SENSING_MODE::STANDARD; // Default Sensing mode: SENSING_MODE_STANDARD

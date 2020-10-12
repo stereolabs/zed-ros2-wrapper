@@ -12,7 +12,6 @@
             debug_mode:                 false
             camera_timeout_sec:         5
             camera_max_reconnect:       5
-            camera_reactivate:          true                                # Set to true to try to recover from a camera disconnection event
             camera_flip:                false
             zed_id:                     0
             serial_number:              0

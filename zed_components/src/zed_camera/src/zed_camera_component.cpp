@@ -258,7 +258,6 @@ void ZedCamera::getGeneralParams() {
     getParam( "general.zed_id", mCamId, mCamId,  " * Camera ID: ");
     getParam( "general.serial_number", mCamSerialNumber, mCamSerialNumber,  " * Camera SN: ");
     getParam( "general.camera_timeout_sec", mCamTimeoutSec, mCamTimeoutSec,  " * Camera timeout [sec]: ");
-    getParam( "general.camera_reactivate", mCamReactivate, mCamReactivate,  " * Camera reconnection if disconnected: ");
     getParam( "general.camera_max_reconnect", mMaxReconnectTemp, mMaxReconnectTemp,  " * Camera reconnection temptatives: ");
     getParam( "general.grab_frame_rate", mCamGrabFrameRate, mCamGrabFrameRate,  " * Camera framerate: ");
     getParam( "general.gpu_id", mGpuId, mGpuId,  " * GPU ID: ");

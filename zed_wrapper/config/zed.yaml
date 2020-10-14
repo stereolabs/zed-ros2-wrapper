@@ -4,6 +4,7 @@
 
 /**:
     ros__parameters:
+
         general:
             camera_model:       'zed'
             camera_name:        'zed'

@@ -237,7 +237,7 @@ private:
     int mCamGrabFrameRate = 15;
     std::string mSvoFilepath = "";
     bool mSvoLoop = false;
-    bool mSvoMode = false;
+    bool mSvoRealtime = false;
     bool mVerbose = true;
     int mGpuId = -1;
     sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720;           // Default resolution: RESOLUTION_HD720
@@ -457,6 +457,7 @@ private:
     // <---- Thread Sync
 
     // ----> Status Flags
+    bool mSvoMode = false;
     bool mPosTrackingEnabled = false;
     bool mPublishingData = false;
     bool mPcPublishing = false;
@@ -494,7 +495,6 @@ private:
     std::unique_ptr<sl_tools::SmartMean> mPubFusedCloudPeriodMean_sec;
 
     // ----> Timestamps
-    rclcpp::Time mPrevFrameTimestamp;
     rclcpp::Time mFrameTimestamp;
     // <---- Timestamps
 

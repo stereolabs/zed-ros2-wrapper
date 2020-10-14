@@ -254,6 +254,8 @@ void ZedCamera::getGeneralParams() {
     getParam( "general.svo_file", std::string(), mSvoFilepath, " * SVO: ");
     getParam( "general.svo_loop", mSvoLoop, mSvoLoop);
     RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop?"TRUE":"FALSE");
+    getParam( "general.svo_realtime", mSvoRealtime, mSvoRealtime);
+    RCLCPP_INFO(get_logger(), " * SVO Realtime: %s", mSvoRealtime?"TRUE":"FALSE");
     getParam( "general.camera_name", mCameraName, mCameraName,  " * Camera name: ");
     getParam( "general.zed_id", mCamId, mCamId,  " * Camera ID: ");
     getParam( "general.serial_number", mCamSerialNumber, mCamSerialNumber,  " * Camera SN: ");
@@ -1651,7 +1653,7 @@ bool ZedCamera::startCamera() {
         RCLCPP_INFO(get_logger(), "*** SVO OPENING ***");
 
         mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
-        mInitParams.svo_real_time_mode = true;
+        mInitParams.svo_real_time_mode = mSvoRealtime;
         mSvoMode = true;
     } else {
         RCLCPP_INFO(get_logger(), "*** CAMERA OPENING ***");
@@ -1881,7 +1883,13 @@ bool ZedCamera::startCamera() {
     mZed.grab();
 
     // Initialialized timestamp to avoid wrong initial data
-    mFrameTimestamp = now();
+    // ----> Timestamp
+    if (mSvoMode) {
+        mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+    } else {
+        mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+    }
+    // <---- Timestamp
 
     // ----> Initialize Diagnostic statistics
     mElabPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
@@ -2551,6 +2559,9 @@ void ZedCamera::threadFunc_zedGrab() {
         mObjDetMutex.lock();
         if (mObjDetEnabled && !mObjDetRunning) {
             startObjDetect();
+            if(mCamRealModel!=sl::MODEL::ZED2) {
+                mObjDetEnabled = false;
+            }
         }
         mObjDetMutex.unlock();
         // ----> Check for Object Detection requirement
@@ -2569,6 +2580,37 @@ void ZedCamera::threadFunc_zedGrab() {
         }
         mRgbDepthDataRetrieved = false;
         // <---- Wait for RGB/Depth synchronization before grabbing
+
+        // ----> Grab freq calculation
+        static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+        double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
+        last_time = now;
+
+        mGrabPeriodMean_usec->addValue(elapsed_usec);
+
+        //        RCLCPP_INFO_STREAM( get_logger(), "Grab period: " << mGrabPeriodMean_usec->getMean()/1e6 <<
+        //                            " Freq: " << 1e6/mGrabPeriodMean_usec->getMean() );
+        // <---- Grab freq calculation
+
+
+        if(mSvoMode && !mSvoRealtime) {
+            static bool first = true;
+
+            double grab_period_usec = (1./mPubFrameRate)*1e6;
+            int64_t residual_period_usec = grab_period_usec-elapsed_usec;
+
+            if( residual_period_usec>0 ) {
+                if(first) {
+                    first = false;
+                }
+                else {
+                    RCLCPP_DEBUG_STREAM(get_logger(), "Sleeping for " << residual_period_usec << "usec" );
+                    std::this_thread::sleep_for (std::chrono::microseconds(residual_period_usec));
+                }
+            }
+        }
 
         // ZED grab
         mGrabStatus = mZed.grab(mRunParams);
@@ -2603,19 +2645,6 @@ void ZedCamera::threadFunc_zedGrab() {
             mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
         }
         // <---- Timestamp
-
-        // ----> Grab freq calculation
-        static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
-        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-
-        double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - last_time).count();
-        last_time = now;
-
-        mGrabPeriodMean_usec->addValue(elapsed_usec);
-
-        //        RCLCPP_INFO_STREAM( get_logger(), "Grab period: " << mGrabPeriodMean_usec->getMean()/1e6 <<
-        //                            " Freq: " << 1e6/mGrabPeriodMean_usec->getMean() );
-        // <---- Grab freq calculation
 
         // ----> Check recording status
         mRecMutex.lock();
@@ -2676,9 +2705,6 @@ void ZedCamera::threadFunc_zedGrab() {
             processDetectedObjects(mFrameTimestamp);
         }
         mObjDetMutex.unlock();
-
-        // Update previous frame timestamp
-        mPrevFrameTimestamp = mFrameTimestamp;
     }
 
     RCLCPP_DEBUG(get_logger(), "Grab thread finished");
@@ -2856,7 +2882,7 @@ void ZedCamera::callback_pubSensorsData() {
     static rclcpp::Time prev_ts=rclcpp::Time(0,0,RCL_ROS_TIME);
 
     std::lock_guard<std::mutex> lock(mCloseZedMutex);
-    rclcpp::Time ros_ts = mFrameTimestamp; // Fix timestamp for images and depth to avoid async transmissions
+    rclcpp::Time ros_ts = mFrameTimestamp;
 
     if (!mZed.isOpened()) {
         return;
@@ -3828,7 +3854,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t) {
     old_time = now;
     // <---- Diagnostic information update
 
-    RCLCPP_DEBUG_STREAM(get_logger(), "Detected " << objects.object_list.size() << " objects");
+    //RCLCPP_DEBUG_STREAM(get_logger(), "Detected " << objects.object_list.size() << " objects");
 
     size_t objCount = objects.object_list.size();
 

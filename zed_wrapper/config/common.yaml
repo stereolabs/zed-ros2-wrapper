@@ -9,7 +9,8 @@
         general:
             svo_file:                   ''
             svo_loop:                   false                               # Enable loop mode when using an SVO as input source
-            debug_mode:                 false
+            svo_realtime:               false                               # if true SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
+            debug_mode:                 true
             camera_timeout_sec:         5
             camera_max_reconnect:       5
             camera_flip:                false
@@ -17,7 +18,7 @@
             serial_number:              0
             resolution:                 2                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
             sdk_verbose:                true
-            grab_frame_rate:            15                                  # ZED SDK internal grabbing rate
+            grab_frame_rate:            30                                  # ZED SDK internal grabbing rate
             pub_frame_rate:             10.0                                # [DYNAMIC] - frequency of publishing of visual images and depth images
             gpu_id:                     -1            
 

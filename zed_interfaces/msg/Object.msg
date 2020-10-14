@@ -4,6 +4,9 @@ string label
 # Object label ID
 int16 label_id
 
+# Object sub
+string sublabel
+
 # Object confidence level (1-99)
 float32 confidence
 

@@ -83,6 +83,7 @@ typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableObjDetPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;
 typedef rclcpp::Service<zed_interfaces::srv::StartSvoRec>::SharedPtr startSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
+typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoPtr;
 // <---- Typedefs to simplify declarations
 
 class ZedCamera : public rclcpp::Node
@@ -151,6 +152,9 @@ protected:
     void callback_stopSvoRec(const std::shared_ptr<rmw_request_id_t> request_header,
                              const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
                              std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+    void callback_pauseSvoInput(const std::shared_ptr<rmw_request_id_t> request_header,
+                                const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+                                std::shared_ptr<std_srvs::srv::Trigger_Response> res);
 
     // <---- Callbacks
 
@@ -277,6 +281,11 @@ private:
     std::vector<sl::OBJECT_CLASS> mObjDetFilter;
     bool mObjDetPeopleEnable = true;
     bool mObjDetVehiclesEnable = true;
+    bool mObjDetBagsEnable = true;
+    bool mObjDetAnimalsEnable = true;
+    bool mObjDetElectronicsEnable = true;
+    bool mObjDetFruitsEnable = true;
+    bool mBodyFitting = false;
     sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::HUMAN_BODY_FAST;
     // QoS parameters
     // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
@@ -458,6 +467,7 @@ private:
 
     // ----> Status Flags
     bool mSvoMode = false;
+    bool mSvoPause = false;
     bool mPosTrackingEnabled = false;
     bool mPublishingData = false;
     bool mPcPublishing = false;
@@ -517,8 +527,9 @@ private:
     setPoseSrvPtr mSetPoseSrv;
     enableObjDetPtr mEnableObjDetSrv;
     enableMappingPtr mEnableMappingSrv;
-    startSvoRecSrvPtr mStartSvoRec;
-    stopSvoRecSrvPtr mStopSvoRec;
+    startSvoRecSrvPtr mStartSvoRecSrv;
+    stopSvoRecSrvPtr mStopSvoRecSrv;
+    pauseSvoPtr mPauseSvoSrv;
     // <---- Services
 };
 

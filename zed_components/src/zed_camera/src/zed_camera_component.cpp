@@ -37,6 +37,13 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
     RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
     RCLCPP_INFO(get_logger(), "********************************");
 
+    if (ZED_SDK_MAJOR_VERSION<3 || (ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<3)) {
+        RCLCPP_ERROR(get_logger(), "The ZED ROS2 wrapper is designed to work with ZED SDK v3.3 or newer.");
+        RCLCPP_INFO_STREAM(get_logger(), "* Detected SDK v" << ZED_SDK_MAJOR_VERSION << "." << ZED_SDK_MINOR_VERSION << "." << ZED_SDK_PATCH_VERSION << "-" << ZED_SDK_BUILD_ID );
+        RCLCPP_INFO(get_logger(), "Node stopped");
+        exit(EXIT_FAILURE);
+    }
+
     // ----> Parameters initialization
     getParam( "general.debug_mode", mDebugMode, mDebugMode );
     if (mDebugMode) {
@@ -52,8 +59,6 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
 
         if (res != RCUTILS_RET_OK) {
             RCLCPP_INFO(get_logger(), "Error setting INFO level for logger");
-        } else {
-            RCLCPP_INFO(get_logger(), "*** Debug Mode enabled ***");
         }
     }
 
@@ -175,15 +180,21 @@ void ZedCamera::initServices() {
 
 
     srv_name = srv_prefix + "start_svo_rec";
-    mStartSvoRec = create_service<zed_interfaces::srv::StartSvoRec>(srv_name,
-                                                                    std::bind(&ZedCamera::callback_startSvoRec,
-                                                                              this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mStartSvoRec->get_service_name());
+    mStartSvoRecSrv = create_service<zed_interfaces::srv::StartSvoRec>(srv_name,
+                                                                       std::bind(&ZedCamera::callback_startSvoRec,
+                                                                                 this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mStartSvoRecSrv->get_service_name());
     srv_name = srv_prefix + "stop_svo_rec";
-    mStopSvoRec = create_service<std_srvs::srv::Trigger>(srv_name,
-                                                         std::bind(&ZedCamera::callback_stopSvoRec,
-                                                                   this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mStopSvoRec->get_service_name());
+    mStopSvoRecSrv = create_service<std_srvs::srv::Trigger>(srv_name,
+                                                            std::bind(&ZedCamera::callback_stopSvoRec,
+                                                                      this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mStopSvoRecSrv->get_service_name());
+    srv_name = srv_prefix + "toggle_svo_pause";
+    mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(srv_name,
+                                                          std::bind(&ZedCamera::callback_pauseSvoInput,
+                                                                    this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+
 
 
 
@@ -802,8 +813,17 @@ void ZedCamera::getOdParams() {
     getParam( "object_detection.mc_people", mObjDetPeopleEnable, mObjDetPeopleEnable );
     RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox people: " << (mObjDetPeopleEnable?"TRUE":"FALSE") );
     getParam( "object_detection.mc_vehicle", mObjDetVehiclesEnable, mObjDetVehiclesEnable );
-    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox people: " << (mObjDetVehiclesEnable?"TRUE":"FALSE") );
-
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox vehicles: " << (mObjDetVehiclesEnable?"TRUE":"FALSE") );
+    getParam( "object_detection.mc_bag", mObjDetBagsEnable, mObjDetBagsEnable );
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox bags: " << (mObjDetBagsEnable?"TRUE":"FALSE") );
+    getParam( "object_detection.mc_animal", mObjDetAnimalsEnable, mObjDetAnimalsEnable );
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox animals: " << (mObjDetAnimalsEnable?"TRUE":"FALSE") );
+    getParam( "object_detection.mc_electronics", mObjDetElectronicsEnable, mObjDetElectronicsEnable );
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox electronics: " << (mObjDetElectronicsEnable?"TRUE":"FALSE") );
+    getParam( "object_detection.mc_fruit_vegetable", mObjDetFruitsEnable, mObjDetFruitsEnable );
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox fruits and vegetables: " << (mObjDetFruitsEnable?"TRUE":"FALSE") );
+    getParam( "object_detection.body_fitting", mBodyFitting, mBodyFitting );
+    RCLCPP_INFO_STREAM(get_logger(), " * Skeleton fitting: " << (mBodyFitting?"TRUE":"FALSE") );
     // ------------------------------------------
 
     paramName = "object_detection.qos_history";
@@ -1271,6 +1291,74 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             RCLCPP_INFO_STREAM(get_logger(),
                                "Parameter '" << param.get_name() << "' correctly set to " <<
                                (mObjDetVehiclesEnable?"TRUE":"FALSE"));
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if(param.get_name() == "object_detection.mc_bag" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            mObjDetBagsEnable = param.as_bool();
+
+            RCLCPP_INFO_STREAM(get_logger(),
+                               "Parameter '" << param.get_name() << "' correctly set to " <<
+                               (mObjDetBagsEnable?"TRUE":"FALSE"));
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if(param.get_name() == "object_detection.mc_animal" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            mObjDetAnimalsEnable= param.as_bool();
+
+            RCLCPP_INFO_STREAM(get_logger(),
+                               "Parameter '" << param.get_name() << "' correctly set to " <<
+                               (mObjDetAnimalsEnable?"TRUE":"FALSE"));
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if(param.get_name() == "object_detection.mc_electronics" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            mObjDetElectronicsEnable = param.as_bool();
+
+            RCLCPP_INFO_STREAM(get_logger(),
+                               "Parameter '" << param.get_name() << "' correctly set to " <<
+                               (mObjDetElectronicsEnable?"TRUE":"FALSE"));
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if(param.get_name() == "object_detection.mc_fruit_vegetable" ) {
+
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+            if( param.get_type() != correctType ) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                return result;
+            }
+
+            mObjDetFruitsEnable = param.as_bool();
+
+            RCLCPP_INFO_STREAM(get_logger(),
+                               "Parameter '" << param.get_name() << "' correctly set to " <<
+                               (mObjDetFruitsEnable?"TRUE":"FALSE"));
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
@@ -2151,6 +2239,7 @@ bool ZedCamera::startObjDetect() {
     od_p.enable_tracking = mObjDetTracking;
     od_p.image_sync = true;
     od_p.detection_model = mObjDetModel;
+    od_p.enable_body_fitting = mBodyFitting;
 
     mObjDetFilter.clear();
     if(mObjDetPeopleEnable) {
@@ -2158,6 +2247,18 @@ bool ZedCamera::startObjDetect() {
     }
     if(mObjDetVehiclesEnable) {
         mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+    }
+    if(mObjDetBagsEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
+    }
+    if(mObjDetAnimalsEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
+    }
+    if(mObjDetElectronicsEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
+    }
+    if(mObjDetFruitsEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
     }
 
     sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
@@ -2199,7 +2300,6 @@ void ZedCamera::stopObjDetect() {
 }
 
 bool ZedCamera::startSvoRecording(std::string& errMsg) {
-
     sl::RecordingParameters params;
 
     params.bitrate = mSvoRecBitrate;
@@ -2606,65 +2706,69 @@ void ZedCamera::threadFunc_zedGrab() {
                     first = false;
                 }
                 else {
-                    RCLCPP_DEBUG_STREAM(get_logger(), "Sleeping for " << residual_period_usec << "usec" );
+                    //RCLCPP_DEBUG_STREAM(get_logger(), "Sleeping for " << residual_period_usec << "usec" );
                     std::this_thread::sleep_for (std::chrono::microseconds(residual_period_usec));
                 }
             }
         }
 
-        // ZED grab
-        mGrabStatus = mZed.grab(mRunParams);
+        if(!mSvoPause) {
+            // ZED grab
+            mGrabStatus = mZed.grab(mRunParams);
 
-        // ----> Check SVO status
-        if ( mSvoMode && mGrabStatus==sl::ERROR_CODE::END_OF_SVOFILE_REACHED )
-        {
-            if ( mSvoLoop ) {
-                mZed.setSVOPosition(0);
-                RCLCPP_WARN(get_logger(), "SVO reached the end and has been restarted.");
+            // ----> Check SVO status
+            if ( mSvoMode && mGrabStatus==sl::ERROR_CODE::END_OF_SVOFILE_REACHED )
+            {
+                if ( mSvoLoop ) {
+                    mZed.setSVOPosition(0);
+                    RCLCPP_WARN(get_logger(), "SVO reached the end and has been restarted.");
+                } else {
+                    RCLCPP_WARN(get_logger(), "SVO reached the end. The node has been stopped.");
+                    break;
+                }
+            }
+            // <---- Check SVO status
+
+            // ----> Grab errors?
+            // Note: disconnection are automatically handled by the ZED SDK
+            if(mGrabStatus!=sl::ERROR_CODE::SUCCESS) {
+                RCLCPP_ERROR_STREAM( get_logger(), "Camera error: " << sl::toString(mGrabStatus).c_str());
+                break; // TODO verify what to do in case of grab errors
+            }
+            // <---- Grab errors?
+
+            mFrameCount++;
+
+            // ----> Timestamp
+            if (mSvoMode) {
+                mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
             } else {
-                RCLCPP_WARN(get_logger(), "SVO reached the end. The node has been stopped.");
-                break;
+                mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
             }
-        }
-        // <---- Check SVO status
+            // <---- Timestamp
 
-        // ----> Grab errors?
-        // Note: disconnection are automatically handled by the ZED SDK
-        if(mGrabStatus!=sl::ERROR_CODE::SUCCESS) {
-            RCLCPP_ERROR_STREAM( get_logger(), "Camera error: " << sl::toString(mGrabStatus).c_str());
-            break; // TODO verify what to do in case of grab errors
-        }
-        // <---- Grab errors?
+            // ----> Check recording status
+            mRecMutex.lock();
+            if (mRecording) {
+                mRecStatus = mZed.getRecordingStatus().status;
 
-        mFrameCount++;
+                if (!mRecStatus/*.status*/) {
+                    rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+                    RCLCPP_ERROR_THROTTLE(get_logger(), steady_clock, 1.0, "Error saving frame to SVO");
+                }
 
-        // ----> Timestamp
-        if (mSvoMode) {
-            mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
-        } else {
-            mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
-        }
-        // <---- Timestamp
-
-        // ----> Check recording status
-        mRecMutex.lock();
-        if (mRecording) {
-            mRecStatus = mZed.getRecordingStatus().status;
-
-            if (!mRecStatus/*.status*/) {
-                rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-                RCLCPP_ERROR_THROTTLE(get_logger(), steady_clock, 1.0, "Error saving frame to SVO");
+                // TODO update disgnostic
+                //mDiagUpdater.force_update();
             }
-
-            // TODO update disgnostic
-            //mDiagUpdater.force_update();
+            mRecMutex.unlock();
+            // <---- Check recording status
         }
-        mRecMutex.unlock();
-        // <---- Check recording status
 
         if (mPosTrackingEnabled) {
-            processOdometry();
-            processPose();
+            if(!mSvoPause) {
+                processOdometry();
+                processPose();
+            }
 
             if(mCamRealModel == sl::MODEL::ZED || !mPublishImuTF || mSvoMode) {
                 publishTFs(mFrameTimestamp);
@@ -3830,6 +3934,18 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t) {
     if(mObjDetVehiclesEnable) {
         mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
     }
+    if(mObjDetBagsEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
+    }
+    if(mObjDetAnimalsEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
+    }
+    if(mObjDetElectronicsEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
+    }
+    if(mObjDetFruitsEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
+    }
     objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
     // <---- Process realtime dynamic parameters
 
@@ -3868,6 +3984,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t) {
     size_t idx = 0;
     for (auto data : objects.object_list) {
         objMsg->objects[idx].label = sl::toString(data.label).c_str();
+        objMsg->objects[idx].sublabel = sl::toString(data.sublabel).c_str();
         objMsg->objects[idx].label_id = data.id;
         objMsg->objects[idx].confidence = data.confidence;
 
@@ -4000,12 +4117,11 @@ void ZedCamera::applyVideoSettings() {
         if (sharp != mCamSharpness) {
             mZed.setCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS, mCamSharpness);
         }
-#if (ZED_SDK_MAJOR_VERSION>3 || (ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION>=1))
         int gamma = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAMMA);
         if (gamma != mCamGamma) {
             mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAMMA, mCamGamma);
         }
-#endif
+
         mDynParMutex.unlock();
     }
 }
@@ -4540,6 +4656,13 @@ void ZedCamera::callback_startSvoRec(const std::shared_ptr<rmw_request_id_t> req
 
     RCLCPP_INFO(get_logger(), "** Start SVO Recording service called **");
 
+    if(mSvoMode) {
+        RCLCPP_WARN(get_logger(), "Cannot start SVO recording while playing SVO as input");
+        res->message = "Cannot start SVO recording while playing SVO as input";
+        res->success = false;
+        return;
+    }
+
     std::lock_guard<std::mutex> lock(mRecMutex);
 
     if(mRecording) {
@@ -4611,6 +4734,42 @@ void ZedCamera::callback_stopSvoRec(const std::shared_ptr<rmw_request_id_t> requ
 
     RCLCPP_WARN(get_logger(), "SVO Recording stopped");
     res->message = "SVO Recording stopped";
+    res->success = true;
+}
+
+void ZedCamera::callback_pauseSvoInput(const std::shared_ptr<rmw_request_id_t> request_header,
+                                       const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+                                       std::shared_ptr<std_srvs::srv::Trigger_Response> res) {
+    (void)request_header;
+
+    RCLCPP_INFO(get_logger(), "** Pause SVO Input service called **");
+
+    std::lock_guard<std::mutex> lock(mRecMutex);
+
+    if(!mSvoMode) {
+        RCLCPP_WARN(get_logger(), "The node is not using an SVO as input");
+        res->message = "The node is not using an SVO as inpu";
+        res->success = false;
+        return;
+    }
+
+    if(mSvoRealtime) {
+        RCLCPP_WARN(get_logger(), "SVO input can be paused only if SVO is not in RealTime mode");
+        res->message = "SVO input can be paused only if SVO is not in RealTime mode";
+        res->success = false;
+        mSvoPause = false;
+        return;
+    }
+
+    if(!mSvoPause) {
+        RCLCPP_WARN(get_logger(), "SVO is paused");
+        res->message = "SVO is paused";
+        mSvoPause = true;
+    } else {
+        RCLCPP_WARN(get_logger(), "SVO is playing");
+        res->message = "SVO is playing";
+        mSvoPause = false;
+    }
     res->success = true;
 }
 

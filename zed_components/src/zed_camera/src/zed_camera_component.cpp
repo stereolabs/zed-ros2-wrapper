@@ -149,47 +149,47 @@ void ZedCamera::initServices() {
     std::string srv_prefix = "~/";
 
     // ResetOdometry
-    srv_name = srv_prefix + "reset_odometry";
+    srv_name = srv_prefix + mSrvResetOdomName;
     mResetOdomSrv = create_service<std_srvs::srv::Trigger>(srv_name,
                                                            std::bind(&ZedCamera::callback_resetOdometry,
                                                                      this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mResetOdomSrv->get_service_name());
 
-    srv_name = srv_prefix + "reset_pos_tracking";
+    srv_name = srv_prefix + mSrvResetPoseName;
     mResetPosTrkSrv = create_service<std_srvs::srv::Trigger>(srv_name,
                                                              std::bind(&ZedCamera::callback_resetPosTracking,
                                                                        this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mResetPosTrkSrv->get_service_name());
-    srv_name = srv_prefix + "set_pose";
+    srv_name = srv_prefix + mSrvSetPoseName;
     mSetPoseSrv = create_service<zed_interfaces::srv::SetPose>(srv_name,
                                                                std::bind(&ZedCamera::callback_setPose,
                                                                          this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mSetPoseSrv->get_service_name());
 
-    srv_name = srv_prefix + "enable_obj_det";
+    srv_name = srv_prefix + mSrvEnableObjDetName;
     mEnableObjDetSrv = create_service<std_srvs::srv::SetBool>(srv_name,
                                                               std::bind(&ZedCamera::callback_enableObjDet,
                                                                         this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mEnableObjDetSrv->get_service_name());
 
-    srv_name = srv_prefix + "enable_mapping";
+    srv_name = srv_prefix + mSrvEnableMappingName;
     mEnableMappingSrv = create_service<std_srvs::srv::SetBool>(srv_name,
                                                                std::bind(&ZedCamera::callback_enableMapping,
                                                                          this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mEnableMappingSrv->get_service_name());
 
 
-    srv_name = srv_prefix + "start_svo_rec";
+    srv_name = srv_prefix + mSrvStartSvoRecName;
     mStartSvoRecSrv = create_service<zed_interfaces::srv::StartSvoRec>(srv_name,
                                                                        std::bind(&ZedCamera::callback_startSvoRec,
                                                                                  this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mStartSvoRecSrv->get_service_name());
-    srv_name = srv_prefix + "stop_svo_rec";
+    srv_name = srv_prefix + mSrvStopSvoRecName;
     mStopSvoRecSrv = create_service<std_srvs::srv::Trigger>(srv_name,
                                                             std::bind(&ZedCamera::callback_stopSvoRec,
                                                                       this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mStopSvoRecSrv->get_service_name());
-    srv_name = srv_prefix + "toggle_svo_pause";
+    srv_name = srv_prefix + mSrvToggleSvoPauseName;
     mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(srv_name,
                                                           std::bind(&ZedCamera::callback_pauseSvoInput,
                                                                     this, _1, _2, _3));
@@ -2003,7 +2003,7 @@ bool ZedCamera::startCamera() {
     // Start data publishing timer
     startVideoDepthTimer(mPubFrameRate);
 
-    if (mCamRealModel != sl::MODEL::ZED) {
+    if(!mSvoMode && mCamRealModel != sl::MODEL::ZED ) {
 
         std::chrono::milliseconds sensorsPubPeriod_msec(static_cast<int>(1000.0 / (mSensPubRate*1.5)));
         mSensTimer = create_wall_timer(
@@ -2355,7 +2355,7 @@ bool ZedCamera::getCamera2BaseTransform() {
     try {
         // Save the transformation
         geometry_msgs::msg::TransformStamped c2b =
-                mTfBuffer->lookupTransform(mCameraFrameId, mBaseFrameId, rclcpp::Time(0,0,RCL_ROS_TIME), rclcpp::Duration(0.1));
+                mTfBuffer->lookupTransform(mCameraFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(0.1));
 
         // Get the TF2 transformation
         //tf2::fromMsg(c2b.transform, mCamera2BaseTransf);
@@ -2409,7 +2409,7 @@ bool ZedCamera::getSens2CameraTransform() {
     try {
         // Save the transformation
         geometry_msgs::msg::TransformStamped s2c =
-                mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, rclcpp::Time(0,0,RCL_ROS_TIME), rclcpp::Duration(0.1));
+                mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, TIMEZERO_SYS, rclcpp::Duration(0.1));
 
         // Get the TF2 transformation
         //tf2::fromMsg(s2c.transform, mSensor2CameraTransf);
@@ -2463,7 +2463,7 @@ bool ZedCamera::getSens2BaseTransform() {
     try {
         // Save the transformation
         geometry_msgs::msg::TransformStamped s2b =
-                mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, rclcpp::Time(0,0,RCL_ROS_TIME), rclcpp::Duration(0.1));
+                mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(0.1));
 
         // Get the TF2 transformation
         //tf2::fromMsg(s2b.transform, mSensor2BaseTransf);
@@ -2557,7 +2557,8 @@ void ZedCamera::publishStaticImuFrameAndTopic() {
 
     mCameraImuTransfMgs = std::make_shared<geometry_msgs::msg::TransformStamped>();
 
-    mCameraImuTransfMgs->header.stamp = now();
+    mCameraImuTransfMgs->header.stamp = get_clock()->now();
+
     mCameraImuTransfMgs->header.frame_id = mLeftCamFrameId;
     mCameraImuTransfMgs->child_frame_id = mImuFrameId;
 
@@ -2814,184 +2815,7 @@ void ZedCamera::threadFunc_zedGrab() {
     RCLCPP_DEBUG(get_logger(), "Grab thread finished");
 }
 
-void ZedCamera::publishTFs(rclcpp::Time t) {
-    //RCLCPP_DEBUG(get_logger(), "publishTFs");
-    if(t==rclcpp::Time(0,0,RCL_ROS_TIME)) {
-        RCLCPP_DEBUG(get_logger(), "Time zero: not publishing TFs");
-        return;
-    }
-
-    // Publish pose tf only if enabled
-    if(mPublishTF) {
-        publishOdomTF(t); // publish the base Frame in odometry frame
-
-        if(mPublishMapTF) {
-            publishPoseTF(t); // publish the odometry Frame in map frame
-        }
-
-        if(mCamRealModel != sl::MODEL::ZED) {
-            if(mPublishImuTF && !mStaticImuFramePublished ) {
-                publishStaticImuFrameAndTopic();
-            }
-        }
-    }
-}
-
-void ZedCamera::publishOdomTF(rclcpp::Time t) {
-    //RCLCPP_DEBUG(get_logger(), "publishOdomTF");
-
-    if (!mSensor2BaseTransfValid) {
-        getSens2BaseTransform();
-    }
-
-    if (!mSensor2CameraTransfValid) {
-        getSens2CameraTransform();
-    }
-
-    if (!mCamera2BaseTransfValid) {
-        getCamera2BaseTransform();
-    }
-
-    transfMsgPtr transformStamped = std::make_shared<geometry_msgs::msg::TransformStamped>();
-
-    transformStamped->header.stamp = t;
-    transformStamped->header.frame_id = mOdomFrameId;
-    transformStamped->child_frame_id = mBaseFrameId;
-    // conversion from Tranform to message
-    tf2::Vector3 translation = mOdom2BaseTransf.getOrigin();
-    tf2::Quaternion quat = mOdom2BaseTransf.getRotation();
-    transformStamped->transform.translation.x = translation.x();
-    transformStamped->transform.translation.y = translation.y();
-    transformStamped->transform.translation.z = translation.z();
-    transformStamped->transform.rotation.x = quat.x();
-    transformStamped->transform.rotation.y = quat.y();
-    transformStamped->transform.rotation.z = quat.z();
-    transformStamped->transform.rotation.w = quat.w();
-
-    // Publish transformation
-    mTfBroadcaster->sendTransform(*(transformStamped.get()));
-}
-
-void ZedCamera::publishPoseTF(rclcpp::Time t) {
-    //RCLCPP_DEBUG(get_logger(), "publishPoseTF");
-
-    if (!mSensor2BaseTransfValid) {
-        getSens2BaseTransform();
-    }
-
-    if (!mSensor2CameraTransfValid) {
-        getSens2CameraTransform();
-    }
-
-    if (!mCamera2BaseTransfValid) {
-        getCamera2BaseTransform();
-    }
-
-    transfMsgPtr transformStamped = std::make_shared<geometry_msgs::msg::TransformStamped>();
-
-    transformStamped->header.stamp = t;
-    transformStamped->header.frame_id = mMapFrameId;
-    transformStamped->child_frame_id = mOdomFrameId;
-    // conversion from Tranform to message
-    tf2::Vector3 translation = mMap2OdomTransf.getOrigin();
-    tf2::Quaternion quat = mMap2OdomTransf.getRotation();
-    transformStamped->transform.translation.x = translation.x();
-    transformStamped->transform.translation.y = translation.y();
-    transformStamped->transform.translation.z = translation.z();
-    transformStamped->transform.rotation.x = quat.x();
-    transformStamped->transform.rotation.y = quat.y();
-    transformStamped->transform.rotation.z = quat.z();
-    transformStamped->transform.rotation.w = quat.w();
-
-    // Publish transformation
-    mTfBroadcaster->sendTransform(*(transformStamped.get()));
-}
-
-void ZedCamera::threadFunc_pointcloudElab() {
-    std::unique_lock<std::mutex> lock(mPcMutex);
-
-    RCLCPP_DEBUG(get_logger(), "Point Cloud thread started");
-
-    while (1) {
-        if (!rclcpp::ok()) {
-            RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping point cloud thread");
-            break;
-        }
-
-        //RCLCPP_DEBUG(get_logger(), "pointcloudThreadFunc -> mPcDataReady value: %s", mPcDataReady ? "TRUE" : "FALSE");
-
-        while (!mPcDataReady) { // loop to avoid spurious wakeups
-            if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
-                // Check thread stopping
-                if (!rclcpp::ok()) {
-                    RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping point cloud thread");
-                    mThreadStop = true;
-                    break;
-                }
-                if (mThreadStop) {
-                    RCLCPP_DEBUG(get_logger(), "threadFunc_pointcloudElab (2): Point Cloud thread stopped");
-                    break;
-                } else {
-                    //RCLCPP_DEBUG(get_logger(), "pointcloudThreadFunc -> WAIT FOR CLOUD DATA");
-                    continue;
-                }
-            }
-        }
-
-        if (mThreadStop) {
-            RCLCPP_DEBUG(get_logger(), "threadFunc_pointcloudElab (1): Point Cloud thread stopped");
-            break;
-        }
-
-        publishPointCloud();
-
-        // ----> Check publishing frequency
-        double pc_period_msec = 1000.0 / mPcPubRate;
-
-        static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
-        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-
-        double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time).count();
-
-
-
-        if (elapsed_msec < pc_period_msec) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(pc_period_msec - elapsed_msec)));
-        }
-
-        last_time = std::chrono::steady_clock::now();
-        // <---- Check publishing frequency
-
-        mPcDataReady = false;
-        //RCLCPP_DEBUG(get_logger(), "pointcloudThreadFunc -> mPcDataReady FALSE")
-    }
-
-    RCLCPP_DEBUG(get_logger(), "Pointcloud thread finished");
-}
-
-void ZedCamera::callback_pubVideoDepth() {
-    RCLCPP_DEBUG_ONCE(get_logger(), "Video Depth callback called");
-
-    static rclcpp::Time prev_ts=rclcpp::Time(0,0,RCL_ROS_TIME);
-
-    std::lock_guard<std::mutex> lock(mCloseZedMutex);
-    mPublishingData = false;
-
-    mPublishingData = publishVideoDepth();
-}
-
-void ZedCamera::callback_pubSensorsData() {
-    RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback called");
-
-    static rclcpp::Time prev_ts=rclcpp::Time(0,0,RCL_ROS_TIME);
-
-    std::lock_guard<std::mutex> lock(mCloseZedMutex);
-    rclcpp::Time ros_ts = mFrameTimestamp;
-
-    if (!mZed.isOpened()) {
-        return;
-    }
-
+rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t) {
     // ----> Subscribers count
     RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback: counting subscribers");
 
@@ -3015,7 +2839,6 @@ void ZedCamera::callback_pubSensorsData() {
         if( mCamRealModel == sl::MODEL::ZED2 ) {
             imu_TempSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
             imu_MagSubNumber = count_subscribers(mPubImuMag->get_topic_name());
-            //imu_MagRawSubNumber = count_subscribers(mPubImuMagRaw->get_topic_name());
             pressSubNumber = count_subscribers(mPubPressure->get_topic_name());
             tempLeftSubNumber = count_subscribers(mPubTempL->get_topic_name());
             tempRightSubNumber = count_subscribers(mPubTempR->get_topic_name());
@@ -3024,11 +2847,11 @@ void ZedCamera::callback_pubSensorsData() {
     catch(...) {
         rcutils_reset_error();
         RCLCPP_DEBUG(get_logger(), "pubSensorsData: Exception while counting subscribers");
-        return;
+        return TIMEZERO_ROS;
     }
     // <---- Subscribers count
 
-    int totSub = imu_SubNumber + imu_RawSubNumber + imu_TempSubNumber + imu_MagSubNumber + /*imu_MagRawSubNumber +*/
+    int totSub = imu_SubNumber + imu_RawSubNumber + imu_TempSubNumber + imu_MagSubNumber +
             pressSubNumber + tempLeftSubNumber + tempRightSubNumber;
 
     // ----> Grab data and setup timestamps
@@ -3036,39 +2859,34 @@ void ZedCamera::callback_pubSensorsData() {
     rclcpp::Time ts_imu;
     rclcpp::Time ts_baro;
     rclcpp::Time ts_mag;
-    //ros::Time ts_mag_raw;
 
-    static rclcpp::Time lastTs_imu = now();
-    static rclcpp::Time lastTs_baro = now();
-    static rclcpp::Time lastTs_mag = now();
-    //static ros::Time lastT_mag_raw = ros::Time();
+    rclcpp::Time now = get_clock()->now();
+
+    static rclcpp::Time lastTs_imu = now;
+    static rclcpp::Time lastTs_baro = now;
+    static rclcpp::Time lastTs_mag = now;
 
     sl::SensorsData sens_data;
 
-    if(mSvoMode) {
+    if(mSvoMode || mSensCameraSync) {
         if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE) != sl::ERROR_CODE::SUCCESS ) {
-            return;
+            return TIMEZERO_ROS;
         }
-
-        ts_imu = now();
-        ts_baro = now();
-        ts_mag = now();
-        //ts_mag_raw = now();
     } else {
-        if ( mSensCameraSync) {
-            if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE) != sl::ERROR_CODE::SUCCESS ) {
-                return;
-            }
-        } else {
-            if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT) != sl::ERROR_CODE::SUCCESS ) {
-                return;
-            }
+        if( mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT) != sl::ERROR_CODE::SUCCESS ) {
+            return TIMEZERO_ROS;
         }
     }
-    ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
-    ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
-    ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
-    //ts_mag_raw = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
+
+    if(mSensCameraSync) {
+        ts_imu = t;
+        ts_baro = t;
+        ts_mag = t;
+    } else {
+        ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
+        ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
+        ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
+    }
     // <---- Grab data and setup timestamps
 
     // ----> Check for duplicated data
@@ -3079,9 +2897,8 @@ void ZedCamera::callback_pubSensorsData() {
     bool new_mag_data = ts_mag!=lastTs_mag;
     lastTs_mag = ts_mag;
 
-
     if( !new_imu_data && !new_baro_data && !new_mag_data) {
-        return;
+        return TIMEZERO_ROS;
     }
     // <---- Check for duplicated data
 
@@ -3131,8 +2948,8 @@ void ZedCamera::callback_pubSensorsData() {
     }
     // <---- Sensors freq for diagnostic
 
-    if(!totSub<0 && !mPublishImuTF) {
-        return; // Nothing to publish
+    if(!totSub<0) {
+        return TIMEZERO_ROS; // Nothing to publish
     }
 
     // ----> Sensors data publishing
@@ -3319,14 +3136,204 @@ void ZedCamera::callback_pubSensorsData() {
     }
     // <---- Sensors data publishing
 
+    return ts_imu;
+}
 
-    // Publish TF at the same frequency of IMU data, so they are always synchronized
-    if(new_imu_data && mPublishImuTF && !mSvoMode) {
-        publishTFs(ts_imu);
+void ZedCamera::publishTFs(rclcpp::Time t) {
+    //RCLCPP_DEBUG(get_logger(), "publishTFs");
+
+    //RCLCPP_INFO_STREAM(get_logger(), "publishTFs - t type:" << t.get_clock_type());
+
+    if(t==TIMEZERO_ROS) {
+        RCLCPP_DEBUG(get_logger(), "Time zero: not publishing TFs");
+        return;
+    }
+
+    // Publish pose tf only if enabled
+    if(mPublishTF) {
+        publishOdomTF(t); // publish the base Frame in odometry frame
+
+        if(mPublishMapTF) {
+            publishPoseTF(t); // publish the odometry Frame in map frame
+        }
+
+        if(mCamRealModel != sl::MODEL::ZED) {
+            if(mPublishImuTF && !mStaticImuFramePublished ) {
+                publishStaticImuFrameAndTopic();
+            }
+        }
     }
 }
 
-bool ZedCamera::publishVideoDepth() {
+void ZedCamera::publishOdomTF(rclcpp::Time t) {
+    //RCLCPP_DEBUG(get_logger(), "publishOdomTF");
+
+    if (!mSensor2BaseTransfValid) {
+        getSens2BaseTransform();
+    }
+
+    if (!mSensor2CameraTransfValid) {
+        getSens2CameraTransform();
+    }
+
+    if (!mCamera2BaseTransfValid) {
+        getCamera2BaseTransform();
+    }
+
+    transfMsgPtr transformStamped = std::make_shared<geometry_msgs::msg::TransformStamped>();
+
+    transformStamped->header.stamp = t;
+    transformStamped->header.frame_id = mOdomFrameId;
+    transformStamped->child_frame_id = mBaseFrameId;
+    // conversion from Tranform to message
+    tf2::Vector3 translation = mOdom2BaseTransf.getOrigin();
+    tf2::Quaternion quat = mOdom2BaseTransf.getRotation();
+    transformStamped->transform.translation.x = translation.x();
+    transformStamped->transform.translation.y = translation.y();
+    transformStamped->transform.translation.z = translation.z();
+    transformStamped->transform.rotation.x = quat.x();
+    transformStamped->transform.rotation.y = quat.y();
+    transformStamped->transform.rotation.z = quat.z();
+    transformStamped->transform.rotation.w = quat.w();
+
+    // Publish transformation
+    mTfBroadcaster->sendTransform(*(transformStamped.get()));
+}
+
+void ZedCamera::publishPoseTF(rclcpp::Time t) {
+    //RCLCPP_DEBUG(get_logger(), "publishPoseTF");
+
+    if (!mSensor2BaseTransfValid) {
+        getSens2BaseTransform();
+    }
+
+    if (!mSensor2CameraTransfValid) {
+        getSens2CameraTransform();
+    }
+
+    if (!mCamera2BaseTransfValid) {
+        getCamera2BaseTransform();
+    }
+
+    transfMsgPtr transformStamped = std::make_shared<geometry_msgs::msg::TransformStamped>();
+
+    transformStamped->header.stamp = t;
+    transformStamped->header.frame_id = mMapFrameId;
+    transformStamped->child_frame_id = mOdomFrameId;
+    // conversion from Tranform to message
+    tf2::Vector3 translation = mMap2OdomTransf.getOrigin();
+    tf2::Quaternion quat = mMap2OdomTransf.getRotation();
+    transformStamped->transform.translation.x = translation.x();
+    transformStamped->transform.translation.y = translation.y();
+    transformStamped->transform.translation.z = translation.z();
+    transformStamped->transform.rotation.x = quat.x();
+    transformStamped->transform.rotation.y = quat.y();
+    transformStamped->transform.rotation.z = quat.z();
+    transformStamped->transform.rotation.w = quat.w();
+
+    // Publish transformation
+    mTfBroadcaster->sendTransform(*(transformStamped.get()));
+}
+
+void ZedCamera::threadFunc_pointcloudElab() {
+    std::unique_lock<std::mutex> lock(mPcMutex);
+
+    RCLCPP_DEBUG(get_logger(), "Point Cloud thread started");
+
+    while (1) {
+        if (!rclcpp::ok()) {
+            RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping point cloud thread");
+            break;
+        }
+
+        //RCLCPP_DEBUG(get_logger(), "pointcloudThreadFunc -> mPcDataReady value: %s", mPcDataReady ? "TRUE" : "FALSE");
+
+        while (!mPcDataReady) { // loop to avoid spurious wakeups
+            if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
+                // Check thread stopping
+                if (!rclcpp::ok()) {
+                    RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping point cloud thread");
+                    mThreadStop = true;
+                    break;
+                }
+                if (mThreadStop) {
+                    RCLCPP_DEBUG(get_logger(), "threadFunc_pointcloudElab (2): Point Cloud thread stopped");
+                    break;
+                } else {
+                    //RCLCPP_DEBUG(get_logger(), "pointcloudThreadFunc -> WAIT FOR CLOUD DATA");
+                    continue;
+                }
+            }
+        }
+
+        if (mThreadStop) {
+            RCLCPP_DEBUG(get_logger(), "threadFunc_pointcloudElab (1): Point Cloud thread stopped");
+            break;
+        }
+
+        publishPointCloud();
+
+        // ----> Check publishing frequency
+        double pc_period_msec = 1000.0 / mPcPubRate;
+
+        static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+        double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time).count();
+
+        if (elapsed_msec < pc_period_msec) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(pc_period_msec - elapsed_msec)));
+        }
+
+        last_time = std::chrono::steady_clock::now();
+        // <---- Check publishing frequency
+
+        mPcDataReady = false;
+        //RCLCPP_DEBUG(get_logger(), "pointcloudThreadFunc -> mPcDataReady FALSE")
+    }
+
+    RCLCPP_DEBUG(get_logger(), "Pointcloud thread finished");
+}
+
+void ZedCamera::callback_pubVideoDepth() {
+    RCLCPP_DEBUG_ONCE(get_logger(), "Video Depth callback called");
+
+    static rclcpp::Time prev_ts=TIMEZERO_ROS;
+
+    std::lock_guard<std::mutex> lock(mCloseZedMutex);
+    mPublishingData = false;
+
+    rclcpp::Time pub_ts;
+    mPublishingData = publishVideoDepth(pub_ts);
+
+    //RCLCPP_INFO_STREAM(get_logger(), "callback_pubVideoDepth - pub_ts type:" << pub_ts.get_clock_type());
+
+    if(mPublishingData && pub_ts!=TIMEZERO_ROS) {
+        if(mSensCameraSync || mSvoMode) {
+            publishSensorsData(pub_ts);
+        }
+    }
+}
+
+void ZedCamera::callback_pubSensorsData() {
+    RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback called");
+
+    std::lock_guard<std::mutex> lock(mCloseZedMutex);
+    if (!mZed.isOpened()) {
+        return;
+    }
+
+    rclcpp::Time sens_ts = publishSensorsData();
+
+    //RCLCPP_INFO_STREAM(get_logger(), "callback_pubSensorsData - sens_ts type:" << sens_ts.get_clock_type());
+
+    // Publish TF at the same frequency of IMU data, so they are always synchronized
+    if(sens_ts != TIMEZERO_ROS) {
+        publishTFs(sens_ts);
+    }
+}
+
+bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
     static sl::Timestamp lastZedTs = 0; // Used to calculate stable publish frequency
 
     size_t rgbSubnumber = 0;
@@ -3346,7 +3353,6 @@ bool ZedCamera::publishVideoDepth() {
     size_t depthSubnumber = 0;
     size_t confMapSubnumber = 0;
     size_t disparitySubnumber = 0;
-    size_t cloudSubNumber = 0;
 
     try {
         rgbSubnumber = count_subscribers(mPubRgb.getTopic());
@@ -3461,11 +3467,13 @@ bool ZedCamera::publishVideoDepth() {
 
     if(!retrieved) {
         lastZedTs = 0;
+        out_pub_ts = TIMEZERO_ROS;
         return false;
     }
 
     // ----> Check if a grab has been done before publishing the same images
     if( grab_ts.data_ns==lastZedTs.data_ns ) {
+        out_pub_ts = TIMEZERO_ROS;
         // Data not updated by a grab calling in the grab thread
         return true;
     }
@@ -3481,10 +3489,12 @@ bool ZedCamera::publishVideoDepth() {
 
     rclcpp::Time timeStamp;
     if(!mSvoMode) {
-        timeStamp = sl_tools::slTime2Ros(grab_ts);
+        timeStamp = sl_tools::slTime2Ros(grab_ts,get_clock()->get_clock_type());
     } else {
-        timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));;
+        timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT),get_clock()->get_clock_type());
     }
+
+    out_pub_ts = timeStamp;
 
     // ----> Publish the left == rgb image if someone has subscribed to
     if (leftSubnumber > 0) {
@@ -4284,7 +4294,7 @@ void ZedCamera::publishPointCloud() {
 void ZedCamera::callback_pubFusedPc() {
     RCLCPP_DEBUG_ONCE(get_logger(), "Mapping callback called");
 
-    static rclcpp::Time prev_ts=rclcpp::Time(0,0,RCL_ROS_TIME);
+    static rclcpp::Time prev_ts=TIMEZERO_ROS;
 
     pointcloudMsgPtr pointcloudFusedMsg = std::make_unique<sensor_msgs::msg::PointCloud2>();
 
@@ -4364,9 +4374,11 @@ void ZedCamera::callback_pubFusedPc() {
         }
     }
 
-    rclcpp::Time ros_ts = now();
+    rclcpp::Time ros_ts = get_clock()->now();
 
-    if (prev_ts!=rclcpp::Time(0,0,RCL_ROS_TIME)) {
+    //RCLCPP_INFO_STREAM(get_logger(), "callback_pubFusedPc - prev_ts type:" << prev_ts.get_clock_type());
+
+    if (prev_ts!=TIMEZERO_ROS) {
         double mean = mPubFusedCloudPeriodMean_sec->addValue( (ros_ts-prev_ts).seconds() );
         // RCLCPP_INFO_STREAM( get_logger(),"Fused Cloud Pub freq: " << 1.0/mean );
     }

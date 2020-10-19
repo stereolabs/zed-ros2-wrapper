@@ -36,6 +36,8 @@
 #include <zed_interfaces/srv/set_pose.hpp>
 #include <zed_interfaces/srv/start_svo_rec.hpp>
 
+#define TIMEZERO_ROS rclcpp::Time(0,0,RCL_ROS_TIME)
+#define TIMEZERO_SYS rclcpp::Time(0,0,RCL_SYSTEM_TIME)
 
 namespace stereolabs {
 
@@ -88,6 +90,7 @@ typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoPtr;
 
 class ZedCamera : public rclcpp::Node
 {
+
 public:
     ZED_COMPONENTS_PUBLIC
     explicit ZedCamera(const rclcpp::NodeOptions & options);
@@ -164,7 +167,7 @@ protected:
     // <---- Thread functions
 
     // ----> Publishing functions
-    bool publishVideoDepth();
+    bool publishVideoDepth(rclcpp::Time &out_pub_ts);
 
     void publishImageWithInfo(sl::Mat& img,
                               image_transport::CameraPublisher& pubImg,
@@ -180,6 +183,7 @@ protected:
     void publishTFs(rclcpp::Time t);
     void publishOdomTF(rclcpp::Time t);
     void publishPoseTF(rclcpp::Time t);
+    rclcpp::Time publishSensorsData(rclcpp::Time t=TIMEZERO_ROS);
     // <---- Publishing functions
 
     // ----> Utility functions
@@ -209,6 +213,7 @@ protected:
     // <---- Utility functions
 
 private:
+
     // ZED SDK
     sl::Camera mZed;
     sl::InitParameters mInitParams;
@@ -531,6 +536,17 @@ private:
     stopSvoRecSrvPtr mStopSvoRecSrv;
     pauseSvoPtr mPauseSvoSrv;
     // <---- Services
+
+    // ----> Services names
+    const std::string mSrvResetOdomName = "reset_odometry";
+    const std::string mSrvResetPoseName = "reset_pos_tracking";
+    const std::string mSrvSetPoseName = "set_pose";
+    const std::string mSrvEnableObjDetName = "enable_obj_det";
+    const std::string mSrvEnableMappingName = "enable_mapping";
+    const std::string mSrvStartSvoRecName = "start_svo_rec";
+    const std::string mSrvStopSvoRecName = "stop_svo_rec";
+    const std::string mSrvToggleSvoPauseName = "toggle_svo_pause";
+    // <---- Services names
 };
 
 } // namespace stereolabs

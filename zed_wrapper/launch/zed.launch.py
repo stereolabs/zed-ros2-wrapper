@@ -43,7 +43,7 @@ def generate_launch_description():
     # Robot State Publisher node
     rsp_node = Node(
         package='robot_state_publisher',
-        node_namespace=camera_name,
+        node_namespace="/"+camera_name,
         node_executable='robot_state_publisher',
         node_name=camera_name+'_state_publisher',
         output='screen',
@@ -53,7 +53,7 @@ def generate_launch_description():
     # ZED Wrapper node
     zed_wrapper_node = Node(
         package='zed_wrapper',
-        node_namespace=camera_name,
+        node_namespace="/"+camera_name,
         node_executable='zed_wrapper',
         node_name='zed_node',
         output='screen',

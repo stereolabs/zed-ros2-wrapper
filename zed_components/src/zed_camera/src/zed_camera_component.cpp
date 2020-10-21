@@ -305,7 +305,7 @@ void ZedCamera::getVideoParams() {
     RCLCPP_INFO(get_logger(), "*** VIDEO parameters ***");
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-    size_t qos_depth = 1;
+    int qos_depth = 1;
     rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
@@ -347,10 +347,10 @@ void ZedCamera::getVideoParams() {
     // ------------------------------------------
 
     paramName = "video.qos_history";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_hist) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_hist = paramVal.as_int() == 0 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+        qos_hist = paramVal.as_int() == 1 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
         mVideoQos.history(qos_hist);
     } else {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
@@ -361,7 +361,7 @@ void ZedCamera::getVideoParams() {
     // ------------------------------------------
 
     paramName = "video.qos_depth";
-    declare_parameter(paramName, rclcpp::ParameterValue(10) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_depth) );
 
     if (get_parameter(paramName, paramVal)) {
         qos_depth = paramVal.as_int();
@@ -375,11 +375,12 @@ void ZedCamera::getVideoParams() {
     // ------------------------------------------
 
     paramName = "video.qos_reliability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
-                                                   RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+        qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+                                                   RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+
         mVideoQos.reliability(qos_reliability);
     } else {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
@@ -390,7 +391,7 @@ void ZedCamera::getVideoParams() {
     // ------------------------------------------
 
     paramName = "video.qos_durability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_durability) );
 
     if (get_parameter(paramName, paramVal)) {
         qos_durability= paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
@@ -408,7 +409,7 @@ void ZedCamera::getDepthParams() {
     std::string paramName;
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-    size_t qos_depth = 1;
+    int qos_depth = 1;
     rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
@@ -451,10 +452,10 @@ void ZedCamera::getDepthParams() {
     // ------------------------------------------
 
     paramName = "depth.qos_history";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_hist) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_hist = paramVal.as_int() == 0 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+        qos_hist = paramVal.as_int() == 1 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
         mDepthQos.history(qos_hist);
     } else {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
@@ -465,7 +466,7 @@ void ZedCamera::getDepthParams() {
     // ------------------------------------------
 
     paramName = "depth.qos_depth";
-    declare_parameter(paramName, rclcpp::ParameterValue(10) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_depth) );
 
     if (get_parameter(paramName, paramVal)) {
         qos_depth  = paramVal.as_int();
@@ -479,11 +480,11 @@ void ZedCamera::getDepthParams() {
     // ------------------------------------------
 
     paramName = "depth.qos_reliability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
-                                                   RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+        qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+                                                   RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
         mDepthQos.reliability(qos_reliability);
     } else {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
@@ -494,10 +495,10 @@ void ZedCamera::getDepthParams() {
     // ------------------------------------------
 
     paramName = "depth.qos_durability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_durability) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_durability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+        qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
                                                   RMW_QOS_POLICY_DURABILITY_VOLATILE;
         mDepthQos.durability(qos_durability);
     } else {
@@ -513,7 +514,7 @@ void ZedCamera::getSensorsParams() {
     std::string paramName;
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-    size_t qos_depth = 1;
+    int qos_depth = 1;
     rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
@@ -529,10 +530,10 @@ void ZedCamera::getSensorsParams() {
     // ------------------------------------------
 
     paramName = "sensors.qos_history";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_hist) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_hist = paramVal.as_int() == 0 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+        qos_hist = paramVal.as_int() == 1 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
         mSensQos.history(qos_hist);
     } else {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
@@ -543,7 +544,7 @@ void ZedCamera::getSensorsParams() {
     // ------------------------------------------
 
     paramName = "sensors.qos_depth";
-    declare_parameter(paramName, rclcpp::ParameterValue(10) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_depth) );
 
     if (get_parameter(paramName, paramVal)) {
         qos_depth = paramVal.as_int();
@@ -557,11 +558,11 @@ void ZedCamera::getSensorsParams() {
     // ------------------------------------------
 
     paramName = "sensors.qos_reliability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
-                                                   RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+        qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+                                                   RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
         mSensQos.reliability(qos_reliability);
     } else {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
@@ -572,10 +573,10 @@ void ZedCamera::getSensorsParams() {
     // ------------------------------------------
 
     paramName = "sensors.qos_durability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_durability) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_durability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+        qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
                                                   RMW_QOS_POLICY_DURABILITY_VOLATILE;
         mSensQos.durability(qos_durability);
     } else {
@@ -590,7 +591,7 @@ void ZedCamera::getMappingParams() {
     std::string paramName;
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-    size_t qos_depth = 1;
+    int qos_depth = 1;
     rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
@@ -611,10 +612,10 @@ void ZedCamera::getMappingParams() {
     // ------------------------------------------
 
     paramName = "mapping.qos_history";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_hist) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_hist = paramVal.as_int() == 0 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+        qos_hist = paramVal.as_int() == 1 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
         mMappingQos.history(qos_hist);
     } else {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
@@ -625,7 +626,7 @@ void ZedCamera::getMappingParams() {
     // ------------------------------------------
 
     paramName = "mapping.qos_depth";
-    declare_parameter(paramName, rclcpp::ParameterValue(10) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_depth) );
 
     if (get_parameter(paramName, paramVal)) {
         qos_depth = paramVal.as_int();
@@ -639,11 +640,11 @@ void ZedCamera::getMappingParams() {
     // ------------------------------------------
 
     paramName = "mapping.qos_reliability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
-                                                   RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+        qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+                                                   RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
         mMappingQos.reliability(qos_reliability);
     } else {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
@@ -654,10 +655,10 @@ void ZedCamera::getMappingParams() {
     // ------------------------------------------
 
     paramName = "mapping.qos_durability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_durability) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_durability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+        qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
                                                   RMW_QOS_POLICY_DURABILITY_VOLATILE;
         mMappingQos.durability(qos_durability);
     } else {
@@ -672,7 +673,7 @@ void ZedCamera::getPosTrackingParams() {
     std::string paramName;
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-    size_t qos_depth = 1;
+    int qos_depth = 1;
     rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
@@ -731,10 +732,10 @@ void ZedCamera::getPosTrackingParams() {
     // ------------------------------------------
 
     paramName = "pos_tracking.qos_history";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_hist) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_hist = paramVal.as_int() == 0 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+        qos_hist = paramVal.as_int() == 1 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
         mPoseQos.history(qos_hist);
     } else {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
@@ -745,7 +746,7 @@ void ZedCamera::getPosTrackingParams() {
     // ------------------------------------------
 
     paramName = "pos_tracking.qos_depth";
-    declare_parameter(paramName, rclcpp::ParameterValue(10) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_depth) );
 
     if (get_parameter(paramName, paramVal)) {
         qos_depth = paramVal.as_int();
@@ -759,11 +760,11 @@ void ZedCamera::getPosTrackingParams() {
     // ------------------------------------------
 
     paramName = "pos_tracking.qos_reliability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
-                                                   RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+        qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+                                                   RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
         mPoseQos.reliability(qos_reliability);
     } else {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
@@ -774,10 +775,10 @@ void ZedCamera::getPosTrackingParams() {
     // ------------------------------------------
 
     paramName = "pos_tracking.qos_durability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_durability) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_durability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+        qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
                                                   RMW_QOS_POLICY_DURABILITY_VOLATILE;
         mPoseQos.durability(qos_durability);
     } else {
@@ -792,7 +793,7 @@ void ZedCamera::getOdParams() {
     std::string paramName;
 
     rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-    size_t qos_depth = 1;
+    int qos_depth = 1;
     rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
@@ -827,10 +828,10 @@ void ZedCamera::getOdParams() {
     // ------------------------------------------
 
     paramName = "object_detection.qos_history";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_hist) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_hist = paramVal.as_int() == 0 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+        qos_hist = paramVal.as_int() == 1 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
         mObjDetQos.history(qos_hist);
     } else {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
@@ -841,7 +842,7 @@ void ZedCamera::getOdParams() {
     // ------------------------------------------
 
     paramName = "object_detection.qos_depth";
-    declare_parameter(paramName, rclcpp::ParameterValue(10) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_depth) );
 
     if (get_parameter(paramName, paramVal)) {
         qos_depth = paramVal.as_int();
@@ -855,11 +856,11 @@ void ZedCamera::getOdParams() {
     // ------------------------------------------
 
     paramName = "object_detection.qos_reliability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_reliability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
-                                                   RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+        qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+                                                   RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
         mObjDetQos.reliability(qos_reliability);
     } else {
         RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
@@ -870,10 +871,10 @@ void ZedCamera::getOdParams() {
     // ------------------------------------------
 
     paramName = "object_detection.qos_durability";
-    declare_parameter(paramName, rclcpp::ParameterValue(0) );
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_durability) );
 
     if (get_parameter(paramName, paramVal)) {
-        qos_durability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+        qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
                                                   RMW_QOS_POLICY_DURABILITY_VOLATILE;
         mObjDetQos.durability(qos_durability);
     } else {
@@ -1719,15 +1720,10 @@ void ZedCamera::initPublishers() {
 bool ZedCamera::startCamera() {
     RCLCPP_INFO( get_logger(), "***** STARTING CAMERA *****");
 
-    // ----> Check SDK version
+    // ----> SDK version
     RCLCPP_INFO(get_logger(), "SDK Version: %d.%d.%d - Build %s",
                 ZED_SDK_MAJOR_VERSION, ZED_SDK_MINOR_VERSION, ZED_SDK_PATCH_VERSION, ZED_SDK_BUILD_ID);
-#if (ZED_SDK_MAJOR_VERSION<3)
-    RCLCPP_ERROR(get_logger(), "ROS2 ZED node requires at least ZED SDK v3");
-
-    return false;
-#endif
-    // <---- Check SDK version
+    // <---- SDK version
 
     // ----> TF2 Transform
     mTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());

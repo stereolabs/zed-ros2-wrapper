@@ -24,7 +24,7 @@ This package lets you use the ZED stereo cameras with ROS2. It provides access t
 - [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.3 or later
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - ROS2 Eloquent Elusor: 
-  - [Ubuntu 18.04](https://index.ros.org/doc/ros2/Installation/Eloquent/Linux-Development-Setup/)
+  - [Ubuntu 18.04](https://index.ros.org/doc/ros2/Installation/Eloquent/)
 
 ### Build the package
 
@@ -73,11 +73,11 @@ The `zed.launch.py`, `zedm.launch.py` and `zed2.launch.py` are three Python scri
 For full descriptions of each parameter, follow the complete guide [here](https://www.stereolabs.com/docs/ros2/zed_node#configuration-parameters).
 
 ### Rviz visualization
-Example launch files to start a pre-configured Rviz environment to visualize the data of ZED, ZED Mini and ZED 2 cameras are provided in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz)
+Example launch files to start a pre-configured Rviz environment to visualize the data of ZED, ZED Mini and ZED 2 cameras are provided in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
     
 ### SVO recording
-[SVO recording](https://www.stereolabs.com/docs/video/#video-recording) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.
-[More information](https://www.stereolabs.com/docs/ros/zed_node/#services)
+[SVO recording](https://www.stereolabs.com/docs/video/recording/) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.
+[More information](https://www.stereolabs.com/docs/ros2/zed_node/#services)
 
 ### Object Detection
 The SDK v3.0 introduces the Object Detection and Tracking module. **The Object Detection module is available only with a ZED 2 camera**. 

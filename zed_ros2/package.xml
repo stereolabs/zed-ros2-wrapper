@@ -3,8 +3,8 @@
   href="http://download.ros.org/schema/package_format2.xsd"
   schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="2">
-  <name>stereolabs_zed_ros2</name>
-  <version>0.1.0</version>
+  <name>zed_ros2</name>
+  <version>0.2.0</version>
   <description>Stereolabs zed-ros2-wrapper support meta package</description>
 
   <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
@@ -16,10 +16,9 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <exec_depend>stereolabs_zed_interfaces</exec_depend>
-  <exec_depend>stereolabs_zed</exec_depend>
-  <exec_depend>stereolabs_zed_rviz</exec_depend>  
-
+  <exec_depend>zed_interfaces</exec_depend>
+  <exec_depend>zed_components</exec_depend>
+  <exec_depend>zed_wrapper</exec_depend>
   <export>
     <build_type>ament_cmake</build_type>
   </export>

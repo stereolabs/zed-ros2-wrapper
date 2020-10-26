@@ -1,3 +1,0 @@
-# Reset odometry to the current pose in map frame
----
-bool reset_done

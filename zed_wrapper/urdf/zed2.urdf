@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" ?>
 <!--
 Copyright (c) 2019, STEREOLABS.
 
@@ -16,64 +16,62 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
-<robot name="zed_camera">
+<robot name="zed2_camera">
 
-<!-- base_link -->
+    <!-- base_link -->
     <link name="base_link" />
 
-<!-- Camera Center -->
-    <joint name="zed_camera_center_joint" type="fixed">
+    <!-- Camera Center -->
+    <joint name="zed2_camera_center_joint" type="fixed">
         <parent link="base_link"/>
-        <child link="zed_camera_center"/>
+        <child link="zed2_camera_center"/>
         <origin xyz="0 0 0" rpy="0 0 0" />
     </joint>
 
-    <link name="zed_camera_center">
+    <link name="zed2_camera_center">
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-                <mesh filename="package://zed_wrapper/urdf/models/zed.stl" />
+                <mesh filename="package://zed_wrapper/urdf/models/zed2.stl" />
             </geometry>
-            <material name="light_grey">
-                <color rgba="0.8 0.8 0.8 0.8"/>
+            <material name="black">
+                <color rgba="0 0 0 0.9"/>
             </material>
         </visual>
     </link>
 
-<!-- Left Camera -->
-
-    <joint name="zed_left_camera_joint" type="fixed">
-        <parent link="zed_camera_center"/>
-        <child link="zed_left_camera_frame"/>
+    <!-- Left Camera -->
+    <joint name="zed2_left_camera_joint" type="fixed">
+        <parent link="zed2_camera_center"/>
+        <child link="zed2_left_camera_frame"/>
         <origin xyz="0 0.06 0" rpy="0 0 0" />
     </joint>
 
-    <link name="zed_left_camera_frame" />
+    <link name="zed2_left_camera_frame" />
 
-    <joint name="zed_left_camera_optical_joint" type="fixed">
+    <joint name="zed2_left_camera_optical_joint" type="fixed">
         <origin xyz="0 0 0" rpy="-1.57079632679 0.0 -1.57079632679"/>
-        <parent link="zed_left_camera_frame"/>
-        <child link="zed_left_camera_optical_frame"/>
+        <parent link="zed2_left_camera_frame"/>
+        <child link="zed2_left_camera_optical_frame"/>
     </joint>
 
-    <link name="zed_left_camera_optical_frame"/>
+    <link name="zed2_left_camera_optical_frame"/>
 
-<!-- Right Camera -->
-
-    <joint name="zed_right_camera_joint" type="fixed">
-        <parent link="zed_camera_center"/>
-        <child link="zed_right_camera_frame"/>
+    <!-- Right Camera -->
+    <joint name="zed2_right_camera_joint" type="fixed">
+        <parent link="zed2_camera_center"/>
+        <child link="zed2_right_camera_frame"/>
         <origin xyz="0 -0.06 0" rpy="0 0 0" />
     </joint>
 
-    <link name="zed_right_camera_frame" />
+    <link name="zed2_right_camera_frame" />
 
-    <joint name="zed_right_camera_optical_joint" type="fixed">
+    <joint name="zed2_right_camera_optical_joint" type="fixed">
         <origin xyz="0 0 0" rpy="-1.57079632679 0.0 -1.57079632679"/>
-        <parent link="zed_right_camera_frame"/>
-        <child link="zed_right_camera_optical_frame"/>
+        <parent link="zed2_right_camera_frame"/>
+        <child link="zed2_right_camera_optical_frame"/>
     </joint>
 
-    <link name="zed_right_camera_optical_frame"/>
-    
+    <link name="zed2_right_camera_optical_frame"/>
+
 </robot>

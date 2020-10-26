@@ -1,7 +1,0 @@
-# Start SVO recording
-
-# Full path is required. No relative paths allowed
-string svo_filename 
----
-bool result
-string info

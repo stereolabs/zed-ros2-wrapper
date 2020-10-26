@@ -2,11 +2,13 @@
 # Parameters for Stereolabs ZED camera
 ---
 
-zed:
-    zed_node:
-        ros__parameters:
-            general:
-                camera_model:       0       # `0`: ZED, `1`: ZEDM
-            depth:
-                min_depth:          0.3     # Min: 0.3, Max: 3.0
-                max_depth:          20.     # Dynamic
+/**:
+    ros__parameters:
+
+        general:
+            camera_model:       'zed'
+            camera_name:        'zed'
+
+        depth:
+            min_depth:          0.3     # Min: 0.3, Max: 3.0
+            max_depth:          20.     # Dynamic

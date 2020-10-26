@@ -5,4 +5,5 @@ float32[3] pos
 # Orientation RPY [radians]
 float32[3] orient
 ---
-bool done
+bool success   # indicate successful run of service
+string message # informational, e.g. for error messages

@@ -96,12 +96,17 @@ The value of the coordinate Z for odometry and pose will have a fixed value (par
 Roll and pitch and relative velocities will be fixed to zero.
 
 ## Examples and Tutorials
-Examples and tutorials are provided to better understand how to use the ZED wrapper and how to integrate it in the ROS framework.
+Examples and tutorials are provided to better understand how to use the ZED wrapper and how to integrate it in the ROS2 framework.
 See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples)
+
+### Rviz2 visualization examples
+
+ - Example launch files to start a preconfigured instance of Rviz displaying all the ZED Wrapper node information: [zed_display_rviz2](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
+ - ROS2 plugin for ZED2 to visualize the results of the Object Detection module (bounding boxes and skeletons): [rviz-plugin-zed-od](https://github.com/stereolabs/zed-ros2-examples/tree/master/rviz-plugin-zed-od)
 
 ### Tutorials
 
-A few tutorials are provided to understand how to use the ZED node in the ROS environment :
-
- - [Image subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_video_sub_tutorial/README.md)
- - [Depth subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_depth_sub_tutorial/README.md)
+ - [Images subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_video_tutorial)
+ - [Depth subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_depth_tutorial)
+ - [Pose/Odometry subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_pose_tutorial)
+ - [ROS2 Composition + BGRA2BGR conversion tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_rgb_convert)

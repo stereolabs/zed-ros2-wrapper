@@ -3328,7 +3328,7 @@ void ZedCamera::callback_pubVideoDepth() {
 
     //RCLCPP_INFO_STREAM(get_logger(), "callback_pubVideoDepth - pub_ts type:" << pub_ts.get_clock_type());
 
-    if(mPublishingData && pub_ts!=TIMEZERO_ROS) {
+    if(mCamRealModel != sl::MODEL::ZED && mPublishingData && pub_ts!=TIMEZERO_ROS) {
         if(mSensCameraSync || mSvoMode) {
             publishSensorsData(pub_ts);
         }

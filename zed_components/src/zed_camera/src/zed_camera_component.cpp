@@ -3773,6 +3773,10 @@ void ZedCamera::processPose() {
     sl::Translation translation = mLastZedPose.getTranslation();
     sl::Orientation quat = mLastZedPose.getOrientation();
 
+    if (quat.sum() == 0) {
+        return;
+    }
+
 #if 0 // Enable for TF checking
     double roll, pitch, yaw;
     tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);

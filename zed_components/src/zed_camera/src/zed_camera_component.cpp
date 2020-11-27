@@ -1,18 +1,18 @@
 /******************************************************************************** 
  * MIT License
- * 
+ *
  * Copyright (c) 2020 Stereolabs
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -3457,7 +3457,16 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
             grab_ts=mat_right_raw_gray.timestamp;
         }
         if(depthSubnumber>0) {
+#if (ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<4)
             mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
+#else
+            if(!mOpenniDepthMode) {
+                mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
+            } else {
+                mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH_U16_MM, sl::MEM::CPU, mMatResolDepth);
+                RCLCPP_INFO("DEPTH_U16_MM");
+            }
+#endif
             retrieved = true;
             grab_ts=mat_depth.timestamp;
 
@@ -4205,6 +4214,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat& depth, rclcpp::Time t) {
         return;
     }
 
+#if (ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<4)
     // OPENNI CONVERSION (meter -> millimeters - float32 -> uint16)
     std::shared_ptr<sensor_msgs::msg::Image> openniDepthMsg = std::make_shared<sensor_msgs::msg::Image>();
 
@@ -4232,6 +4242,11 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat& depth, rclcpp::Time t) {
     }
 
     mPubDepth.publish( openniDepthMsg, mDepthCamInfoMsg );
+#else
+    auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t);
+    mPubDepth.publish( depth_img, mDepthCamInfoMsg ); // TODO CHECK FOR ZERO-COPY
+    RCLCPP_INFO("mOpenniDepthMode");
+#endif
 }
 
 void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t) {

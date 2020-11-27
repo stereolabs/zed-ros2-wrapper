@@ -234,6 +234,12 @@ std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat img, std::string 
         imgMessage->encoding = sensor_msgs::image_encodings::BGRA8;
         memcpy((char*)(&imgMessage->data[0]), img.getPtr<sl::uchar4>(), size);
         break;
+
+    case sl::MAT_TYPE::U16_C1: /**< unsigned short 1 channels.*/
+        imgMessage->encoding = sensor_msgs::image_encodings::MONO16;
+        memcpy((char*)(&imgMessage->data[0]), img.getPtr<sl::ushort1>(), size);
+        RCLCPP_INFO("U16_C1");
+        break;
     }
 
     return imgMessage;

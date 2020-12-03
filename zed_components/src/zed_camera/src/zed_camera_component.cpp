@@ -40,7 +40,7 @@ using namespace std::placeholders;
 #define TIMER_ELAPSED double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count()
 #endif
 
-#define TIMER_TIME_FACTOR   2.0
+#define TIMER_TIME_FACTOR   1.5
 
 namespace stereolabs {
 
@@ -553,6 +553,9 @@ void ZedCamera::getSensorsParams() {
 
 
     getParam( "sensors.sensors_image_sync", mSensCameraSync, mSensCameraSync );
+    RCLCPP_INFO_STREAM(get_logger(), " * Sensors Camera Sync: " << (mSensCameraSync?"TRUE":"FALSE") );
+
+    getParam( "sensors.sensors_pub_rate", mSensPubRate, mSensPubRate );
     RCLCPP_INFO_STREAM(get_logger(), " * Sensors Camera Sync: " << (mSensCameraSync?"TRUE":"FALSE") );
 
     // ------------------------------------------
@@ -2029,7 +2032,11 @@ bool ZedCamera::startCamera() {
 
     if(!mSvoMode && mCamRealModel != sl::MODEL::ZED ) {
 
-        std::chrono::milliseconds sensorsPubPeriod_msec(static_cast<int>(1000.0 / (mSensPubRate*TIMER_TIME_FACTOR)));
+        if(mSensPubRate==400.) {
+            mSensPubRate *= TIMER_TIME_FACTOR;
+        }
+
+        std::chrono::milliseconds sensorsPubPeriod_msec(static_cast<int>(1000.0 / (mSensPubRate)));
         mSensTimer = create_wall_timer(
                     std::chrono::duration_cast<std::chrono::milliseconds>(sensorsPubPeriod_msec),
                     std::bind(&ZedCamera::callback_pubSensorsData, this) );

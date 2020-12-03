@@ -245,8 +245,6 @@ private:
 
     uint64_t mFrameCount = 0;
 
-
-
     // ----> Topics
     std::string mTopicRoot = "~/";
     std::string mOdomTopic;

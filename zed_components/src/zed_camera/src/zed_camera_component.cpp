@@ -551,12 +551,14 @@ void ZedCamera::getSensorsParams() {
         RCLCPP_WARN(get_logger(), "!!! SENSORS parameters are not used with ZED !!!");
     }
 
-
     getParam( "sensors.sensors_image_sync", mSensCameraSync, mSensCameraSync );
     RCLCPP_INFO_STREAM(get_logger(), " * Sensors Camera Sync: " << (mSensCameraSync?"TRUE":"FALSE") );
 
     getParam( "sensors.sensors_pub_rate", mSensPubRate, mSensPubRate );
-    RCLCPP_INFO_STREAM(get_logger(), " * Sensors Camera Sync: " << (mSensCameraSync?"TRUE":"FALSE") );
+    if(mSensPubRate<mCamGrabFrameRate) {
+        mSensPubRate=mCamGrabFrameRate;
+    }
+    RCLCPP_INFO_STREAM(get_logger(), " * Sensors publishing rate: " << mSensPubRate << " Hz" );
 
     // ------------------------------------------
 

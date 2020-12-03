@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <vector>
 
+#include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 
 #include <float.h>
@@ -190,49 +191,58 @@ std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat img, std::string 
     imgMessage->step = img.getStepBytes();
 
     size_t size = imgMessage->step * imgMessage->height;
-    imgMessage->data.resize(size);
+
+    uint8_t* data_ptr=nullptr;
 
     sl::MAT_TYPE dataType = img.getDataType();
 
     switch (dataType) {
     case sl::MAT_TYPE::F32_C1: /**< float 1 channel.*/
         imgMessage->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
-        memcpy((char*)(&imgMessage->data[0]), img.getPtr<sl::float1>(), size);
+        data_ptr = (uint8_t*)img.getPtr<sl::float1>();
+        imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr+size);
         break;
 
     case sl::MAT_TYPE::F32_C2: /**< float 2 channels.*/
         imgMessage->encoding = sensor_msgs::image_encodings::TYPE_32FC2;
-        memcpy((char*)(&imgMessage->data[0]), img.getPtr<sl::float2>(), size);
+        data_ptr = (uint8_t*)img.getPtr<sl::float2>();
+        imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr+size);
         break;
 
     case sl::MAT_TYPE::F32_C3: /**< float 3 channels.*/
         imgMessage->encoding = sensor_msgs::image_encodings::TYPE_32FC3;
-        memcpy((char*)(&imgMessage->data[0]), img.getPtr<sl::float3>(), size);
+        data_ptr = (uint8_t*)img.getPtr<sl::float3>();
+        imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr+size);
         break;
 
     case sl::MAT_TYPE::F32_C4: /**< float 4 channels.*/
         imgMessage->encoding = sensor_msgs::image_encodings::TYPE_32FC4;
-        memcpy((char*)(&imgMessage->data[0]), img.getPtr<sl::float4>(), size);
+        data_ptr = (uint8_t*)img.getPtr<sl::float4>();
+        imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr+size);
         break;
 
     case sl::MAT_TYPE::U8_C1: /**< unsigned char 1 channel.*/
         imgMessage->encoding = sensor_msgs::image_encodings::MONO8;
-        memcpy((char*)(&imgMessage->data[0]), img.getPtr<sl::uchar1>(), size);
+        data_ptr = (uint8_t*)img.getPtr<sl::uchar1>();
+        imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr+size);
         break;
 
     case sl::MAT_TYPE::U8_C2: /**< unsigned char 2 channels.*/
         imgMessage->encoding = sensor_msgs::image_encodings::TYPE_8UC2;
-        memcpy((char*)(&imgMessage->data[0]), img.getPtr<sl::uchar2>(), size);
+        data_ptr = (uint8_t*)img.getPtr<sl::uchar2>();
+        imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr+size);
         break;
 
     case sl::MAT_TYPE::U8_C3: /**< unsigned char 3 channels.*/
-        imgMessage->encoding = sensor_msgs::image_encodings::BGR8;
-        memcpy((char*)(&imgMessage->data[0]), img.getPtr<sl::uchar3>(), size);
+        imgMessage->encoding = sensor_msgs::image_encodings::BGR8;        
+        data_ptr = (uint8_t*)img.getPtr<sl::uchar3>();
+        imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr+size);
         break;
 
     case sl::MAT_TYPE::U8_C4: /**< unsigned char 4 channels.*/
         imgMessage->encoding = sensor_msgs::image_encodings::BGRA8;
-        memcpy((char*)(&imgMessage->data[0]), img.getPtr<sl::uchar4>(), size);
+        data_ptr = (uint8_t*)img.getPtr<sl::uchar4>();
+        imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr+size);
         break;
     }
 

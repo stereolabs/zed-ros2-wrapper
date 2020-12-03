@@ -31,6 +31,8 @@
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
 
+#include <rclcpp/time.hpp>
+
 using namespace std::chrono_literals;
 using namespace std::placeholders;
 
@@ -38,7 +40,7 @@ using namespace std::placeholders;
 #define TIMER_ELAPSED double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count()
 #endif
 
-#define TIMER_TIME_FACTOR   1.5
+#define TIMER_TIME_FACTOR   2.0
 
 namespace stereolabs {
 
@@ -2913,7 +2915,13 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t) {
 
     // ----> Check for duplicated data
     bool new_imu_data = ts_imu!=lastTs_imu;
-    lastTs_imu = ts_imu;
+    double sens_period = 1./mSensPubRate;
+    double dT = ts_imu.seconds()-lastTs_imu.seconds();
+
+    /*if(dT<sens_period) {
+        new_imu_data = false;
+    }*/
+
     bool new_baro_data = ts_baro!=lastTs_baro;
     lastTs_baro = ts_baro;
     bool new_mag_data = ts_mag!=lastTs_mag;
@@ -2923,6 +2931,10 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t) {
         return TIMEZERO_ROS;
     }
     // <---- Check for duplicated data
+
+    lastTs_imu = ts_imu;
+
+    RCLCPP_DEBUG_STREAM(get_logger(), "SENSOR LAST PERIOD: " << dT << " sec @" << 1./dT << " Hz");
 
     RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback: temperatures");
 
@@ -2942,7 +2954,8 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t) {
         imu_last_time = now;
 
         double mean = mImuPeriodMean_usec->addValue(elapsed_usec);
-        //RCLCPP_INFO_STREAM(get_logger(), "IMU freq: " << 1e6/mean);
+
+        RCLCPP_DEBUG_STREAM(get_logger(), "IMU MEAN freq: " << 1e6/mean);
     }
 
     if( new_baro_data) {
@@ -3502,10 +3515,10 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
 
     if(lastZedTs.data_ns!=0) {
         double period_sec = static_cast<double>(grab_ts.data_ns - lastZedTs.data_ns)/1e9;
-        RCLCPP_DEBUG_STREAM(get_logger(), "VIDEO/DEPTH RETRIEVE PERIOD: " << period_sec << " sec @" << 1./period_sec << " Hz");
+        RCLCPP_DEBUG_STREAM(get_logger(), "VIDEO/DEPTH PUB LAST PERIOD: " << period_sec << " sec @" << 1./period_sec << " Hz");
 
         mVideoDepthPeriodMean_sec->addValue(period_sec);
-        RCLCPP_DEBUG_STREAM(get_logger(), "VIDEO/DEPTH MEAN PUBLISHING PERIOD: " << mVideoDepthPeriodMean_sec->getMean() << " sec @" << 1./mVideoDepthPeriodMean_sec->getMean() << " Hz") ;
+        RCLCPP_DEBUG_STREAM(get_logger(), "VIDEO/DEPTH PUB MEAN PERIOD: " << mVideoDepthPeriodMean_sec->getMean() << " sec @" << 1./mVideoDepthPeriodMean_sec->getMean() << " Hz") ;
     }
     lastZedTs = grab_ts;
     // <---- Check if a grab has been done before publishing the same images

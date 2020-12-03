@@ -176,7 +176,7 @@ rclcpp::Time slTime2Ros(sl::Timestamp t, rcl_clock_type_t clock_type) {
     return rclcpp::Time(sec, nsec, clock_type);
 }
 
-std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat img, std::string frameId, rclcpp::Time t) {
+std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat& img, std::string frameId, rclcpp::Time t) {
 
     std::shared_ptr<sensor_msgs::msg::Image> imgMessage = std::make_shared<sensor_msgs::msg::Image>();
 
@@ -249,7 +249,7 @@ std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat img, std::string 
     return imgMessage;
 }
 
-std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(sl::Mat left, sl::Mat right, std::string frameId, rclcpp::Time t)
+std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(sl::Mat& left, sl::Mat& right, std::string frameId, rclcpp::Time t)
 {
     std::shared_ptr<sensor_msgs::msg::Image> imgMsgPtr = std::make_shared<sensor_msgs::msg::Image>();
 

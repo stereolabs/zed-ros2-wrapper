@@ -3620,7 +3620,6 @@ void ZedCamera::publishImageWithInfo(sl::Mat& img,
     auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
     camInfoMsg->header.stamp = t;
     pubImg.publish(image, camInfoMsg); // TODO CHECK FOR ZERO-COPY
-
 }
 
 void ZedCamera::processOdometry() {

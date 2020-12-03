@@ -19,8 +19,8 @@
             resolution:                 2                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
             sdk_verbose:                true
             grab_frame_rate:            30                                  # ZED SDK internal grabbing rate
-            pub_frame_rate:             10.0                                # [DYNAMIC] - frequency of publishing of visual images and depth images
-            gpu_id:                     -1            
+            pub_frame_rate:             15.0                                # [DYNAMIC] - frequency of publishing of visual images and depth images
+            gpu_id:                     -1
 
         video:
             extrinsic_in_camera_frame:  false                               # if `false` extrinsic parameter in `camera_info` will use ROS native frame (X FORWARD, Z UP) instead of the camera frame (Z FORWARD, Y DOWN) [`true` use old behavior as for version < v3.1]
@@ -41,8 +41,8 @@
             qos_reliability:            1                                   # '1': RELIABLE - '2': BEST_EFFORT -
             qos_durability:             2                                   # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
-        depth:            
-            quality:                    3                                   # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+        depth:
+            quality:                    1                                   # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             sensing_mode:               0                                   # '0': STANDARD, '1': FILL
             depth_stabilization:        true
             openni_depth_mode:          false                               # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
@@ -84,20 +84,3 @@
             qos_depth:                  1                                   # Queue size if using KEEP_LAST
             qos_reliability:            1                                   # '1': RELIABLE - '2': BEST_EFFORT -
             qos_durability:             2                                   # '1': TRANSIENT_LOCAL - '2': VOLATILE
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

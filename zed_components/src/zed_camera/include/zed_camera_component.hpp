@@ -245,8 +245,6 @@ private:
 
     uint64_t mFrameCount = 0;
 
-    const double mSensPubRate = 400.;
-
     // ----> Topics
     std::string mTopicRoot = "~/";
     std::string mOdomTopic;
@@ -285,6 +283,7 @@ private:
     double mCamMinDepth = 0.2;
     double mCamMaxDepth = 10.0;
     bool mSensCameraSync = false;
+    double mSensPubRate = 400.;
     bool mUseOldExtrinsic = false;
     bool mPublishTF = true;
     bool mPublishMapTF = true;

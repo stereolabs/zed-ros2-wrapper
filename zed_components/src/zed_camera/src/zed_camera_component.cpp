@@ -3499,9 +3499,17 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
         // Data not updated by a grab calling in the grab thread
         return true;
     }
+
     if(lastZedTs.data_ns!=0) {
         double period_sec = static_cast<double>(grab_ts.data_ns - lastZedTs.data_ns)/1e9;
-        RCLCPP_DEBUG_STREAM(get_logger(), "PUBLISHING PERIOD: " << period_sec << " sec @" << 1./period_sec << " Hz") ;
+        RCLCPP_DEBUG_STREAM(get_logger(), "PUBLISHING PERIOD: " << period_sec << " sec @" << 1./period_sec << " Hz");
+
+        // ----> Try to respect the `pub_frame_rate` parameter
+        if( period_sec < 1./mPubFrameRate )
+        {
+            return true;
+        }
+        // <---- Try to respect the `pub_frame_rate` parameter
 
         mVideoDepthPeriodMean_sec->addValue(period_sec);
         RCLCPP_DEBUG_STREAM(get_logger(), "MEAN PUBLISHING PERIOD: " << mVideoDepthPeriodMean_sec->getMean() << " sec @" << 1./mVideoDepthPeriodMean_sec->getMean() << " Hz") ;

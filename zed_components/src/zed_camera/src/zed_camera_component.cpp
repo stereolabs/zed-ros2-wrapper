@@ -2041,7 +2041,7 @@ void ZedCamera::startVideoDepthTimer(double pubFrameRate) {
         mVideoDepthTimer->cancel();
     }
 
-    std::chrono::milliseconds videoDepthPubPeriod_msec(static_cast<int>(1000.0 / (pubFrameRate*TIMER_TIME_FACTOR)));
+    std::chrono::milliseconds videoDepthPubPeriod_msec(static_cast<int>(1000.0 / (pubFrameRate)));
     mVideoDepthTimer = create_wall_timer(
                 std::chrono::duration_cast<std::chrono::milliseconds>(videoDepthPubPeriod_msec),
                 std::bind(&ZedCamera::callback_pubVideoDepth, this) );
@@ -3502,17 +3502,10 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
 
     if(lastZedTs.data_ns!=0) {
         double period_sec = static_cast<double>(grab_ts.data_ns - lastZedTs.data_ns)/1e9;
-        RCLCPP_DEBUG_STREAM(get_logger(), "PUBLISHING PERIOD: " << period_sec << " sec @" << 1./period_sec << " Hz");
-
-        // ----> Try to respect the `pub_frame_rate` parameter
-        if( period_sec < 1./mPubFrameRate )
-        {
-            return true;
-        }
-        // <---- Try to respect the `pub_frame_rate` parameter
+        RCLCPP_DEBUG_STREAM(get_logger(), "VIDEO/DEPTH RETRIEVE PERIOD: " << period_sec << " sec @" << 1./period_sec << " Hz");
 
         mVideoDepthPeriodMean_sec->addValue(period_sec);
-        RCLCPP_DEBUG_STREAM(get_logger(), "MEAN PUBLISHING PERIOD: " << mVideoDepthPeriodMean_sec->getMean() << " sec @" << 1./mVideoDepthPeriodMean_sec->getMean() << " Hz") ;
+        RCLCPP_DEBUG_STREAM(get_logger(), "VIDEO/DEPTH MEAN PUBLISHING PERIOD: " << mVideoDepthPeriodMean_sec->getMean() << " sec @" << 1./mVideoDepthPeriodMean_sec->getMean() << " Hz") ;
     }
     lastZedTs = grab_ts;
     // <---- Check if a grab has been done before publishing the same images
@@ -3526,41 +3519,41 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
 
     out_pub_ts = timeStamp;
 
-    // ----> Publish the left == rgb image if someone has subscribed to
+    // ----> Publish the left=rgb image if someone has subscribed to
     if (leftSubnumber > 0) {
         publishImageWithInfo( mat_left, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, timeStamp);
     }
     if (rgbSubnumber > 0) {
         publishImageWithInfo(mat_left, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, timeStamp);
     }
-    // <---- Publish the left == rgb image if someone has subscribed to
+    // <---- Publish the left=rgb image if someone has subscribed to
 
-    // ----> Publish the left_raw == rgb_raw image if someone has subscribed to
+    // ----> Publish the left_raw=rgb_raw image if someone has subscribed to
     if (leftRawSubnumber > 0) {
         publishImageWithInfo(mat_left_raw, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
     }
     if (rgbRawSubnumber > 0) {
         publishImageWithInfo(mat_left_raw, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId, timeStamp);
     }
-    // <---- Publish the left_raw == rgb_raw image if someone has subscribed to
+    // <---- Publish the left_raw=rgb_raw image if someone has subscribed to
 
-    // ----> Publish the left_gray == rgb_gray image if someone has subscribed to
+    // ----> Publish the left_gray=rgb_gray image if someone has subscribed to
     if (leftGraySubnumber > 0) {
         publishImageWithInfo( mat_left_gray, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId, timeStamp);
     }
     if (rgbGraySubnumber > 0) {
         publishImageWithInfo(mat_left_gray, mPubRgbGray, mRgbCamInfoMsg, mDepthOptFrameId, timeStamp);
     }
-    // <---- Publish the left_raw == rgb_raw image if someone has subscribed to
+    // <---- Publish the left_raw=rgb_raw image if someone has subscribed to
 
-    // ----> Publish the left_raw_gray == rgb_raw_gray image if someone has subscribed to
+    // ----> Publish the left_raw_gray=rgb_raw_gray image if someone has subscribed to
     if (leftGrayRawSubnumber > 0) {
         publishImageWithInfo( mat_left_raw_gray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
     }
     if (rgbGrayRawSubnumber > 0) {
         publishImageWithInfo(mat_left_raw_gray, mPubRawRgbGray, mRgbCamInfoRawMsg, mDepthOptFrameId, timeStamp);
     }
-    // ----> Publish the left_raw_gray == rgb_raw_gray image if someone has subscribed to
+    // ----> Publish the left_raw_gray=rgb_raw_gray image if someone has subscribed to
 
     // ----> Publish the right image if someone has subscribed to
     if (rightSubnumber > 0) {

@@ -37,9 +37,9 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <image_transport/image_transport.h>
-#include <image_transport/camera_publisher.h>
-#include <image_transport/publisher.h>
+#include <image_transport/image_transport.hpp>
+#include <image_transport/camera_publisher.hpp>
+#include <image_transport/publisher.hpp>
 #include <stereo_msgs/msg/disparity_image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>

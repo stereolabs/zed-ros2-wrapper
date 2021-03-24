@@ -2164,7 +2164,12 @@ bool ZedCamera::startPosTracking() {
         RCLCPP_WARN(get_logger(),"Tracking not activated: %s", sl::toString(err).c_str());
     }
 
-    startPathPubTimer( mPathPubRate );
+    if(mPosTrackingEnabled)
+    {
+        startPathPubTimer( mPathPubRate );
+    }
+
+    return mPosTrackingEnabled;
 }
 
 bool ZedCamera::start3dMapping() {

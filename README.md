@@ -1,6 +1,6 @@
 ![](./images/Picto+STEREOLABS_Black.jpg)
 
-# Stereolabs ZED Camera - ROS2 Eloquent Elusor
+# Stereolabs ZED Camera - ROS2 Foxy Fitzroy
 
 This package lets you use the ZED stereo cameras with ROS2. It provides access to the following data:
 
@@ -23,8 +23,8 @@ This package lets you use the ZED stereo cameras with ROS2. It provides access t
 - Ubuntu Ubuntu 18.04
 - [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.3 or later
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
-- ROS2 Eloquent Elusor: 
-  - [Ubuntu 18.04](https://index.ros.org/doc/ros2/Installation/Eloquent/)
+- ROS2 Foxy Fitxroy: 
+  - [Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html)
 
 ### Build the package
 

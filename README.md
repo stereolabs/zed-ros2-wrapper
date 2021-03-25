@@ -16,6 +16,14 @@ This package lets you use the ZED stereo cameras with ROS2. It provides access t
 
 ![](https://cdn.stereolabs.com/docs/ros/images/PointCloud_Depth_ROS.jpg)
 
+## Known issues
+
+The `image_transport_plugins` package is not correctly working with ROS2 Foxy (see [here](https://github.com/stereolabs/zed-ros2-wrapper/issues/31), [here](https://github.com/ros-perception/image_common/issues/184), [here](https://github.com/stereolabs/zed-ros2-wrapper/issues/31), and [here](https://github.com/ros-perception/image_transport_plugins/pull/58)). We suggest you remove it to avoid many annoying warning messages until the ROS2 developers do not fix it or we find a workaround:
+
+```
+$ sudo apt remove ros-foxy-image-transport-plugins ros-foxy-compressed-depth-image-transport ros-foxy-compressed-image-transport
+```
+
 ## Installation
 
 ### Prerequisites

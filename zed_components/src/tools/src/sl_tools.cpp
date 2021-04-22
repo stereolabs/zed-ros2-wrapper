@@ -369,7 +369,7 @@ std::string qos2str(rmw_qos_reliability_policy_t qos) {
         return "RELIABLE";
     }
 
-    if (qos == RMW_QOS_POLICY_RELIABILITY_RELIABLE) {
+    if (qos == RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT) {
         return "BEST_EFFORT";
     }
 

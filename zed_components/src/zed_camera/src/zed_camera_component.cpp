@@ -2756,6 +2756,7 @@ void ZedCamera::threadFunc_zedGrab() {
                 if ( mSvoLoop ) {
                     mZed.setSVOPosition(0);
                     RCLCPP_WARN(get_logger(), "SVO reached the end and has been restarted.");
+                    continue;
                 } else {
                     RCLCPP_WARN(get_logger(), "SVO reached the end. The node has been stopped.");
                     break;

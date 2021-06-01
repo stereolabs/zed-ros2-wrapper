@@ -38,7 +38,7 @@
             whitebalance_temperature:   42                                  # [DYNAMIC] - [28,65] works only if `auto_whitebalance` is false
             qos_history:                1                                   # '1': KEEP_LAST - '2': KEEP_ALL
             qos_depth:                  1                                   # Queue size if using KEEP_LAST
-            qos_reliability:            1                                   # '1': RELIABLE - '2': BEST_EFFORT -
+            qos_reliability:            2                                   # '1': RELIABLE - '2': BEST_EFFORT -
             qos_durability:             2                                   # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         depth:
@@ -52,7 +52,7 @@
             depth_texture_conf:         100                                 # [DYNAMIC]
             qos_history:                1                                   # '1': KEEP_LAST - '2': KEEP_ALL
             qos_depth:                  1                                   # Queue size if using KEEP_LAST
-            qos_reliability:            1                                   # '1': RELIABLE - '2': BEST_EFFORT -
+            qos_reliability:            2                                   # '1': RELIABLE - '2': BEST_EFFORT -
             qos_durability:             2                                   # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         pos_tracking:
@@ -72,15 +72,15 @@
             fixed_z_value:              0.00                                # Value to be used for Z coordinate if `two_d_mode` is true
             qos_history:                1                                   # '1': KEEP_LAST - '2': KEEP_ALL
             qos_depth:                  1                                   # Queue size if using KEEP_LAST
-            qos_reliability:            1                                   # '1': RELIABLE - '2': BEST_EFFORT -
+            qos_reliability:            2                                   # '1': RELIABLE - '2': BEST_EFFORT -
             qos_durability:             2                                   # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         mapping:
             mapping_enabled:            false                               # True to enable mapping and fused point cloud pubblication
-            resolution:                 0.01                                # maps resolution in meters [0.01f, 0.2f]
-            max_mapping_range:          -1.0                                  # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
+            resolution:                 0.1                                # maps resolution in meters [0.01f, 0.2f]
+            max_mapping_range:          20.0                                  # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
             fused_pointcloud_freq:      0.5                                 # frequency of the publishing of the fused colored point cloud
             qos_history:                1                                   # '1': KEEP_LAST - '2': KEEP_ALL
             qos_depth:                  1                                   # Queue size if using KEEP_LAST
-            qos_reliability:            1                                   # '1': RELIABLE - '2': BEST_EFFORT -
+            qos_reliability:            2                                   # '1': RELIABLE - '2': BEST_EFFORT -
             qos_durability:             2                                   # '1': TRANSIENT_LOCAL - '2': VOLATILE

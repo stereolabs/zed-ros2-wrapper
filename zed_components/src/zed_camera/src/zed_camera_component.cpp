@@ -99,7 +99,10 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
     initServices();
 
     // Start camera
-    startCamera();
+    if( !startCamera() )
+    {
+        exit(EXIT_FAILURE);
+    }
 }
 
 ZedCamera::~ZedCamera() {
@@ -222,12 +225,6 @@ void ZedCamera::initServices() {
                                                           std::bind(&ZedCamera::callback_pauseSvoInput,
                                                                     this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
-
-
-
-
-
-
 }
 
 template<typename T>
@@ -263,7 +260,7 @@ void ZedCamera::initParameters() {
 
     getMappingParams();
 
-    // TODO OD PARAMETERS
+    // OD PARAMETERS
     getOdParams();
 
     // Dynamic parameters callback
@@ -284,6 +281,8 @@ void ZedCamera::getGeneralParams() {
         mCamUserModel = sl::MODEL::ZED_M;
     } else if (camera_model == "zed2") {
         mCamUserModel = sl::MODEL::ZED2;
+    } else if (camera_model == "zed2i") {
+        mCamUserModel = sl::MODEL::ZED2i;
     } else {
         RCLCPP_ERROR_STREAM(get_logger(), "Camera model not valid in parameter values: " << camera_model);
     }
@@ -1453,7 +1452,7 @@ void ZedCamera::setTFCoordFrameNames()
     {
         RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t\t-> " << mImuFrameId);
 
-        if (mCamUserModel==sl::MODEL::ZED2)
+        if (mCamUserModel==sl::MODEL::ZED2 || mCamUserModel==sl::MODEL::ZED2i)
         {
             RCLCPP_INFO_STREAM(get_logger(), " * Barometer\t\t-> " << mBaroFrameId);
             RCLCPP_INFO_STREAM(get_logger(), " * Magnetometer\t\t-> " << mMagFrameId);
@@ -1692,7 +1691,8 @@ void ZedCamera::initPublishers() {
     mPubStereo = image_transport::create_publisher( this, stereo_topic, mVideoQos.get_rmw_qos_profile() );
     RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubStereo.getTopic());
     mPubRawStereo = image_transport::create_publisher( this, stereo_raw_topic, mVideoQos.get_rmw_qos_profile() );
-    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawStereo.getTopic());// <---- Camera publishers
+    RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubRawStereo.getTopic());
+    // <---- Camera publishers
 
     // ----> Depth publishers
     mPubConfMap = create_publisher<sensor_msgs::msg::Image>(conf_map_topic, mDepthQos);
@@ -1732,7 +1732,7 @@ void ZedCamera::initPublishers() {
         mPubImuTemp = create_publisher<sensor_msgs::msg::Temperature>( imu_temp_topic, mSensQos );
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuTemp->get_topic_name());
 
-        if (mCamRealModel == sl::MODEL::ZED2) {
+        if (mCamRealModel == sl::MODEL::ZED2 || mCamUserModel==sl::MODEL::ZED2i) {
             mPubImuMag = create_publisher<sensor_msgs::msg::MagneticField>( imu_mag_topic, mSensQos );
             RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuMag->get_topic_name());
             mPubPressure = create_publisher<sensor_msgs::msg::FluidPressure>( pressure_topic, mSensQos );
@@ -1915,6 +1915,11 @@ bool ZedCamera::startCamera() {
         if (mCamUserModel != sl::MODEL::ZED2) {
             RCLCPP_WARN(get_logger(), "Camera model does not match user parameter. Please modify "
                                       "the value of the parameter 'general.camera_model' to 'zed2'");
+        }
+    } else if (mCamRealModel == sl::MODEL::ZED2i) {
+        if (mCamUserModel != sl::MODEL::ZED2i) {
+            RCLCPP_WARN(get_logger(), "Camera model does not match user parameter. Please modify "
+                                      "the value of the parameter 'general.camera_model' to 'zed2i'");
         }
     }
 
@@ -2256,8 +2261,8 @@ void ZedCamera::stop3dMapping() {
 }
 
 bool ZedCamera::startObjDetect() {
-    if(mCamRealModel!=sl::MODEL::ZED2) {
-        RCLCPP_ERROR(get_logger(), "Object detection not started. The module is available only using a ZED2 camera");
+    if(mCamRealModel!=sl::MODEL::ZED2 && mCamRealModel!=sl::MODEL::ZED2i) {
+        RCLCPP_ERROR(get_logger(), "Object detection not started. The module is available only using a ZED2 and ZED2i cameras");
         return false;
     }
 
@@ -2698,7 +2703,7 @@ void ZedCamera::threadFunc_zedGrab() {
         mObjDetMutex.lock();
         if (mObjDetEnabled && !mObjDetRunning) {
             startObjDetect();
-            if(mCamRealModel!=sl::MODEL::ZED2) {
+            if(mCamRealModel!=sl::MODEL::ZED2 && mCamRealModel!=sl::MODEL::ZED2i) {
                 mObjDetEnabled = false;
             }
         }
@@ -2874,7 +2879,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t) {
         tempLeftSubNumber = 0;
         tempRightSubNumber = 0;
 
-        if( mCamRealModel == sl::MODEL::ZED2 ) {
+        if( mCamRealModel == sl::MODEL::ZED2 || mCamRealModel == sl::MODEL::ZED2i ) {
             imu_TempSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
             imu_MagSubNumber = count_subscribers(mPubImuMag->get_topic_name());
             pressSubNumber = count_subscribers(mPubPressure->get_topic_name());
@@ -2952,7 +2957,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t) {
 
     RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback: temperatures");
 
-    if( mCamRealModel == sl::MODEL::ZED2 ) {
+    if(mCamRealModel==sl::MODEL::ZED2 || mCamRealModel==sl::MODEL::ZED2i) {
         // Update temperatures for Diagnostic
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_LEFT, mTempLeft);
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
@@ -3217,6 +3222,16 @@ void ZedCamera::publishTFs(rclcpp::Time t) {
 void ZedCamera::publishOdomTF(rclcpp::Time t) {
     //RCLCPP_DEBUG(get_logger(), "publishOdomTF");
 
+    // ----> Avoid duplicated TF publishing
+    static rclcpp::Time last_stamp=TIMEZERO_ROS;
+
+    if( t==last_stamp )
+    {
+        return;
+    }
+    last_stamp = t;
+    // <---- Avoid duplicated TF publishing 
+
     if (!mSensor2BaseTransfValid) {
         getSens2BaseTransform();
     }
@@ -3251,6 +3266,16 @@ void ZedCamera::publishOdomTF(rclcpp::Time t) {
 
 void ZedCamera::publishPoseTF(rclcpp::Time t) {
     //RCLCPP_DEBUG(get_logger(), "publishPoseTF");
+
+    // ----> Avoid duplicated TF publishing
+    static rclcpp::Time last_stamp=TIMEZERO_ROS;
+
+    if( t==last_stamp )
+    {
+        return;
+    }
+    last_stamp = t;
+    // <---- Avoid duplicated TF publishing 
 
     if (!mSensor2BaseTransfValid) {
         getSens2BaseTransform();
@@ -3404,21 +3429,21 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
     size_t disparitySubnumber = 0;
 
     try {
-        rgbSubnumber = count_subscribers(mPubRgb.getTopic());
-        rgbRawSubnumber = count_subscribers(mPubRawRgb.getTopic());
-        rgbGraySubnumber = count_subscribers(mPubRgbGray.getTopic());
-        rgbGrayRawSubnumber = count_subscribers(mPubRawRgbGray.getTopic());
-        leftSubnumber = count_subscribers(mPubLeft.getTopic());
-        leftRawSubnumber = count_subscribers(mPubRawLeft.getTopic());
-        leftGraySubnumber = count_subscribers(mPubLeftGray.getTopic());
-        leftGrayRawSubnumber = count_subscribers(mPubRawLeftGray.getTopic());
-        rightSubnumber = count_subscribers(mPubRight.getTopic());
-        rightRawSubnumber = count_subscribers(mPubRawRight.getTopic());
-        rightGraySubnumber = count_subscribers(mPubRightGray.getTopic());
-        rightGrayRawSubnumber = count_subscribers(mPubRawRightGray.getTopic());
-        stereoSubnumber = count_subscribers(mPubStereo.getTopic());
-        stereoRawSubnumber = count_subscribers(mPubRawStereo.getTopic());
-        depthSubnumber = count_subscribers(mPubDepth.getTopic());
+        rgbSubnumber = mPubRgb.getNumSubscribers();
+        rgbRawSubnumber = mPubRawRgb.getNumSubscribers();
+        rgbGraySubnumber = mPubRgbGray.getNumSubscribers();
+        rgbGrayRawSubnumber = mPubRawRgbGray.getNumSubscribers();
+        leftSubnumber = mPubLeft.getNumSubscribers();
+        leftRawSubnumber = mPubRawLeft.getNumSubscribers();
+        leftGraySubnumber = mPubLeftGray.getNumSubscribers();
+        leftGrayRawSubnumber = mPubRawLeftGray.getNumSubscribers();
+        rightSubnumber = mPubRight.getNumSubscribers();
+        rightRawSubnumber = mPubRawRight.getNumSubscribers();
+        rightGraySubnumber = mPubRightGray.getNumSubscribers();
+        rightGrayRawSubnumber = mPubRawRightGray.getNumSubscribers();
+        stereoSubnumber = mPubStereo.getNumSubscribers();
+        stereoRawSubnumber = mPubRawStereo.getNumSubscribers();
+        depthSubnumber = mPubDepth.getNumSubscribers();
         confMapSubnumber = count_subscribers(mPubConfMap->get_topic_name());
         disparitySubnumber = count_subscribers(mPubDisparity->get_topic_name());
     }
@@ -4068,6 +4093,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t) {
         memcpy(&(objMsg->objects[idx].dimensions_3d[0]), &(data.dimensions[0]), 3*sizeof(float));
 
         if(mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE ||
+                mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM ||
                 mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_FAST ) {
             objMsg->objects[idx].skeleton_available = true;
 

@@ -37,7 +37,11 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#ifdef ROS_ELOQUENT
+#include <image_transport/image_transport.h>
+#else
 #include <image_transport/image_transport.hpp>
+#endif
 #include <image_transport/camera_publisher.hpp>
 #include <image_transport/publisher.hpp>
 #include <stereo_msgs/msg/disparity_image.hpp>

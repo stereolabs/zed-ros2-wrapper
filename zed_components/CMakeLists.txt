@@ -79,6 +79,11 @@ find_package(stereo_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
 
+# Add a define to fix compile errors under "eloquent"
+if($ENV{ROS_DISTRO} STREQUAL "eloquent")
+    add_definitions(-DROS_ELOQUENT)
+endif()
+
 
 ###############################################################################
 #Add all files in subdirectories of the project in

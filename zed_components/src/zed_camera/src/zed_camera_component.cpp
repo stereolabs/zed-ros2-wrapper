@@ -710,6 +710,9 @@ void ZedCamera::getPosTrackingParams() {
     rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
 
     RCLCPP_INFO(get_logger(), "*** POSITIONAL TRACKING parameters ***");
+    
+    getParam( "pos_tracking.pos_tracking_enabled", mPosTrackingEnabled, mPosTrackingEnabled );
+    RCLCPP_INFO_STREAM(get_logger(), " * Positional tracking enabled: " << (mPosTrackingEnabled?"TRUE":"FALSE") );
 
     getParam( "pos_tracking.base_frame", mBaseFrameId, mBaseFrameId,  " * Base frame id: ");
     getParam( "pos_tracking.map_frame", mMapFrameId, mMapFrameId,  " * Map frame id: ");
@@ -2162,19 +2165,19 @@ bool ZedCamera::startPosTracking() {
     sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
 
     if (err == sl::ERROR_CODE::SUCCESS) {
-        mPosTrackingEnabled = true;
+        mPosTrackingStarted = true;
     } else {
-        mPosTrackingEnabled = false;
+        mPosTrackingStarted = false;
 
-        RCLCPP_WARN(get_logger(),"Tracking not activated: %s", sl::toString(err).c_str());
+        RCLCPP_WARN(get_logger(),"Tracking not started: %s", sl::toString(err).c_str());
     }
 
-    if(mPosTrackingEnabled)
+    if(mPosTrackingStarted)
     {
         startPathPubTimer( mPathPubRate );
     }
 
-    return mPosTrackingEnabled;
+    return mPosTrackingStarted;
 }
 
 bool ZedCamera::start3dMapping() {
@@ -2686,7 +2689,7 @@ void ZedCamera::threadFunc_zedGrab() {
         // <---- Apply video dynamic parameters
 
         // ----> Check for Positional Tracking requirement
-        if ( isPosTrackingRequired() && !mPosTrackingEnabled ) {
+        if ( isPosTrackingRequired() && !mPosTrackingStarted ) {
             startPosTracking();
         }
         // ----> Check for Positional Tracking requirement
@@ -2808,7 +2811,7 @@ void ZedCamera::threadFunc_zedGrab() {
             // <---- Check recording status
         }
 
-        if (mPosTrackingEnabled) {
+        if (mPosTrackingStarted) {
             if(!mSvoPause) {
                 processOdometry();
                 processPose();
@@ -4220,6 +4223,11 @@ bool ZedCamera::isPosTrackingRequired() {
         return false;
     }
 
+    if(mPosTrackingEnabled)
+    {
+        return true;
+    }
+
     if (mPublishTF) {
         return true;
     }
@@ -4563,8 +4571,8 @@ void ZedCamera::callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t
 
     RCLCPP_INFO(get_logger(), "** Reset Pos. Tracking service called **");
 
-    if(!mPosTrackingEnabled) {
-        RCLCPP_WARN(get_logger(), "Pos. Tracking was not active");
+    if(!mPosTrackingStarted) {
+        RCLCPP_WARN(get_logger(), "Pos. Tracking was not started");
         res->message = "Positional tracking not active";
         res->success = false;
         return;
@@ -4581,7 +4589,7 @@ void ZedCamera::callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t
     std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
     // Disable tracking
-    mPosTrackingEnabled = false;
+    mPosTrackingStarted = false;
     mZed.disablePositionalTracking();
 
     // Restart tracking
@@ -4601,7 +4609,7 @@ void ZedCamera::callback_setPose(const std::shared_ptr<rmw_request_id_t> request
                        req->pos[0] << "," << req->pos[1] << "," << req->pos[2] << ", "
                                    << req->orient[0] << "," << req->orient[1] << "," << req->orient[2] << "]"  );
 
-    if(!mPosTrackingEnabled) {
+    if(!mPosTrackingStarted) {
         RCLCPP_WARN(get_logger(), "Pos. Tracking was not active");
         res->message = "Positional tracking not active";
         res->success = false;
@@ -4627,7 +4635,7 @@ void ZedCamera::callback_setPose(const std::shared_ptr<rmw_request_id_t> request
     std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
     // Disable tracking
-    mPosTrackingEnabled = false;
+    mPosTrackingStarted = false;
     mZed.disablePositionalTracking();
 
     // Restart tracking

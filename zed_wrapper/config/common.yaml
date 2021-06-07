@@ -56,6 +56,7 @@
             qos_durability:             2                                   # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         pos_tracking:
+            pos_tracking_enabled:       true                                # True to enable positional tracking from start
             publish_tf:                 true                                # publish `odom -> base_link` TF
             publish_map_tf:             true                                # publish `map -> odom` TF
             base_frame:                 'base_link'                         # use the same name as in the URDF file

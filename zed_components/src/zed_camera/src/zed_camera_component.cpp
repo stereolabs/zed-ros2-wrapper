@@ -4588,6 +4588,8 @@ void ZedCamera::callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t
 
     std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
+    mInitOdomWithPose = true;
+
     // Disable tracking
     mPosTrackingStarted = false;
     mZed.disablePositionalTracking();
@@ -4615,6 +4617,8 @@ void ZedCamera::callback_setPose(const std::shared_ptr<rmw_request_id_t> request
         res->success = false;
         return;
     }
+
+    mInitOdomWithPose = true;
 
     mInitialBasePose[0] = req->pos[0];
     mInitialBasePose[1] = req->pos[1];

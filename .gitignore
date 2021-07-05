@@ -89,3 +89,5 @@ Makefile*
 # QtCtreator CMake
 CMakeLists.txt.user*
 
+# VSCode
+.vscode

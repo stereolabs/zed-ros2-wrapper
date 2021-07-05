@@ -285,6 +285,7 @@ private:
     bool mSensCameraSync = false;
     double mSensPubRate = 400.;
     bool mUseOldExtrinsic = false;
+    bool mPosTrackingEnabled = false;
     bool mPublishTF = true;
     bool mPublishMapTF = true;
     bool mPublishImuTF = true;
@@ -496,7 +497,7 @@ private:
     // ----> Status Flags
     bool mSvoMode = false;
     bool mSvoPause = false;
-    bool mPosTrackingEnabled = false;
+    bool mPosTrackingStarted = false;
     bool mPublishingData = false;
     bool mPcPublishing = false;
     bool mTriggerAutoExpGain = true;    // Triggered on start

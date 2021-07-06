@@ -62,6 +62,8 @@ namespace sl_tools {
     */
     sl::DeviceProperties getZEDFromSN(unsigned int serial_number);
 
+
+
     std::vector<float> convertRodrigues(sl::float3 r);
 
     /*! \brief Test if a file exist
@@ -97,17 +99,17 @@ namespace sl_tools {
      */
     std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(sl::Mat& left, sl::Mat& right, std::string frameId, rclcpp::Time t);
 
-    /*! \bried qos value to string
+    /*! \brief qos value to string
      * \param qos the value to convert
      */
     std::string qos2str(rmw_qos_history_policy_t qos);
 
-    /*! \bried qos value to string
+    /*! \brief qos value to string
      * \param qos the value to convert
      */
     std::string qos2str(rmw_qos_reliability_policy_t qos);
 
-    /*! \bried qos value to string
+    /*! \brief qos value to string
      * \param qos the value to convert
      */
     std::string qos2str(rmw_qos_durability_policy_t qos);
@@ -148,6 +150,11 @@ namespace sl_tools {
 
         double mGamma; ///< Weight value
     };
+
+  /*! \brief check if ZED2 or ZED2i
+  * \param camModel the model to check
+  */
+  bool isZED2OrZED2i(sl::MODEL camModel);
 
 } // namespace
 

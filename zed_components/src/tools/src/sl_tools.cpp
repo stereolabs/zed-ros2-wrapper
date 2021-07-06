@@ -407,4 +407,16 @@ double SmartMean::addValue(double val) {
     return mMean;
 }
 
+bool isZED2OrZED2i(sl::MODEL camModel){
+    if (camModel == sl::MODEL::ZED2){
+        return true;
+    }
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION>=5
+    if (camModel == sl::MODEL::ZED2i){
+        return true;
+    }
+#endif
+    return false;
+}
+
 } // namespace

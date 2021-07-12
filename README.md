@@ -2,15 +2,18 @@
 
 # Stereolabs ZED Camera - ROS2 Eloquent Elusor
 
+**Note:** The branch `eloquent` is active and will be maintained and update until Nvidia will release a Jetpack for the Jetson embedded boards based on Ubuntu 20.04. The release of ROS2 Eloquent Elusor reached its EOL in November 2020 and it will no more receive any update from ROS2 developers.
+You can get the latest version of the ZED ROS2 wrapper for the current stable version of ROS2 in the `master` branch.
+
 This package lets you use the ZED stereo cameras with ROS2. It provides access to the following data:
 
   - Left and right rectified/unrectified images
   - Depth data
   - Colored 3D point cloud
   - Position and Mapping
-  - Sensors data (if available)
-  - Detected objects (if available)
-  - Persons skeleton (if available)
+  - Sensors data (not available with ZED)
+  - Detected objects (Not available with ZED and ZED Mini)
+  - Persons skeleton (Not available with ZED and ZED Mini)
 
 [More information](https://www.stereolabs.com/docs/ros2/getting-started/)
 
@@ -20,8 +23,8 @@ This package lets you use the ZED stereo cameras with ROS2. It provides access t
 
 ### Prerequisites
 
-- Ubuntu Ubuntu 18.04
-- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.3 or later
+- [Ubuntu 18.04 (Bionic Beaver)](https://releases.ubuntu.com/18.04.5/)
+- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.5 or later
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - ROS2 Eloquent Elusor: 
   - [Ubuntu 18.04](https://index.ros.org/doc/ros2/Installation/Eloquent/)

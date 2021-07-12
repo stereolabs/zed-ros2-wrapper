@@ -5,6 +5,7 @@ LATEST CHANGES
 ----------
 - Fixed tab error in `zedm.yaml`
 - Fixed compatibility issue with ZED SDK older than v3.5 - Thanks @PhilippPolterauer
+- Moved to branch `eloquent'
 
 v3.5.x (2021-07-05)
 -------------------

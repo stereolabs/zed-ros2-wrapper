@@ -2,7 +2,7 @@
 
 # Stereolabs ZED Camera - ROS2 Foxy Fitzroy (Ubuntu 20.04)
 
-**Note:** if you are searching for a version of the ROS2 wrapper running on an Nvidia Jetson based on Ubuntu 18.04 that does not require recompiling ROS2 from source, please check out the `eloquent` branch, the official ROS2 version running on Ubuntu 18.04.
+#### **Note:** if you are searching for a version of the ROS2 wrapper running on an Nvidia Jetson based on Ubuntu 18.04 that does not require recompiling ROS2 from source, please check out the `eloquent` branch, the official ROS2 version running on Ubuntu 18.04.
 
 This package lets you use the ZED stereo cameras with ROS2. It provides access to the following data:
 

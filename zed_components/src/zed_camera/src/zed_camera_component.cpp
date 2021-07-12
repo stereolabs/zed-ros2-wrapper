@@ -1932,6 +1932,11 @@ bool ZedCamera::startCamera() {
             RCLCPP_WARN(get_logger(), "Camera model does not match user parameter. Please modify "
                                       "the value of the parameter 'general.camera_model' to 'zed2'");
         }
+    } else if (mCamRealModel == sl::MODEL::ZED2i) {
+        if (mCamUserModel != sl::MODEL::ZED2i) {
+            RCLCPP_WARN(get_logger(), "Camera model does not match user parameter. Please modify "
+                                      "the value of the parameter 'general.camera_model' to 'zed2i'");
+        }
     }
 #if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION>=5
     else if (mCamRealModel == sl::MODEL::ZED2i) {
@@ -3481,21 +3486,21 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
     size_t disparitySubnumber = 0;
 
     try {
-        rgbSubnumber = count_subscribers(mPubRgb.getTopic());
-        rgbRawSubnumber = count_subscribers(mPubRawRgb.getTopic());
-        rgbGraySubnumber = count_subscribers(mPubRgbGray.getTopic());
-        rgbGrayRawSubnumber = count_subscribers(mPubRawRgbGray.getTopic());
-        leftSubnumber = count_subscribers(mPubLeft.getTopic());
-        leftRawSubnumber = count_subscribers(mPubRawLeft.getTopic());
-        leftGraySubnumber = count_subscribers(mPubLeftGray.getTopic());
-        leftGrayRawSubnumber = count_subscribers(mPubRawLeftGray.getTopic());
-        rightSubnumber = count_subscribers(mPubRight.getTopic());
-        rightRawSubnumber = count_subscribers(mPubRawRight.getTopic());
-        rightGraySubnumber = count_subscribers(mPubRightGray.getTopic());
-        rightGrayRawSubnumber = count_subscribers(mPubRawRightGray.getTopic());
-        stereoSubnumber = count_subscribers(mPubStereo.getTopic());
-        stereoRawSubnumber = count_subscribers(mPubRawStereo.getTopic());
-        depthSubnumber = count_subscribers(mPubDepth.getTopic());
+        rgbSubnumber = mPubRgb.getNumSubscribers();
+        rgbRawSubnumber = mPubRawRgb.getNumSubscribers();
+        rgbGraySubnumber = mPubRgbGray.getNumSubscribers();
+        rgbGrayRawSubnumber = mPubRawRgbGray.getNumSubscribers();
+        leftSubnumber = mPubLeft.getNumSubscribers();
+        leftRawSubnumber = mPubRawLeft.getNumSubscribers();
+        leftGraySubnumber = mPubLeftGray.getNumSubscribers();
+        leftGrayRawSubnumber = mPubRawLeftGray.getNumSubscribers();
+        rightSubnumber = mPubRight.getNumSubscribers();
+        rightRawSubnumber = mPubRawRight.getNumSubscribers();
+        rightGraySubnumber = mPubRightGray.getNumSubscribers();
+        rightGrayRawSubnumber = mPubRawRightGray.getNumSubscribers();
+        stereoSubnumber = mPubStereo.getNumSubscribers();
+        stereoRawSubnumber = mPubRawStereo.getNumSubscribers();
+        depthSubnumber = mPubDepth.getNumSubscribers();
         confMapSubnumber = count_subscribers(mPubConfMap->get_topic_name());
         disparitySubnumber = count_subscribers(mPubDisparity->get_topic_name());
     }

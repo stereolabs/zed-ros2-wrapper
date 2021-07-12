@@ -44,7 +44,7 @@
         depth:
             quality:                    1                                   # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             sensing_mode:               0                                   # '0': STANDARD, '1': FILL
-            depth_stabilization:        true
+            depth_stabilization:        true                                # Forces positional tracking to start if 'true'
             openni_depth_mode:          false                               # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
             depth_downsample_factor:    0.5                                 # Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
             point_cloud_freq:           10.0                                # [DYNAMIC] - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)

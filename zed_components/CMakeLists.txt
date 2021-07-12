@@ -79,6 +79,11 @@ find_package(stereo_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
 
+# Add a define to fix compile errors under "eloquent"
+if($ENV{ROS_DISTRO} STREQUAL "eloquent")
+    add_definitions(-DROS_ELOQUENT)
+endif()
+
 
 ###############################################################################
 #Add all files in subdirectories of the project in
@@ -102,14 +107,9 @@ set(node_plugins "")
 link_directories(${ZED_LIBRARY_DIR})
 link_directories(${CUDA_LIBRARY_DIRS})
 
-if(NOT DEFINED CUDA_NPP_LIBRARIES_ZED)
-    #To deal with cuda 9 nppi libs and previous versions of ZED SDK
-    set(CUDA_NPP_LIBRARIES_ZED ${CUDA_npp_LIBRARY} ${CUDA_npps_LIBRARY} ${CUDA_nppi_LIBRARY})
-endif()
-
 set(ZED_LIBS
   ${ZED_LIBRARIES}
-  ${CUDA_LIBRARIES} ${CUDA_NPP_LIBRARIES_ZED}
+  ${CUDA_LIBRARIES}
 )
 
 ###############################################################################

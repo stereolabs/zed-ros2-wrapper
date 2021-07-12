@@ -1,6 +1,6 @@
 ![](./images/Picto+STEREOLABS_Black.jpg)
 
-# Stereolabs ZED Camera - ROS2 Eloquent Elusor
+# Stereolabs ZED Camera - ROS2 Foxy Fitzroy
 
 This package lets you use the ZED stereo cameras with ROS2. It provides access to the following data:
 
@@ -16,6 +16,31 @@ This package lets you use the ZED stereo cameras with ROS2. It provides access t
 
 ![](https://cdn.stereolabs.com/docs/ros/images/PointCloud_Depth_ROS.jpg)
 
+## Known issues
+
+### Image Transport and topic subscriptions
+
+There is an issue with the function `CameraPublisher::getNumSubscribers` preventing the correct counting of the number of nodes subscribing one of the topics published by an `image_transport::CameraPublisher` object.
+
+We suggest to install the the version [v3.0.0](https://github.com/ros-perception/image_common/releases/tag/3.0.0), published on 2021-05-26, that contains the fix for this issue.
+
+To install the latest version from sources:
+
+    $ cd <colcon_workspace>/src # Access the source folder of your colcon workspace
+    $ git clone https://github.com/ros-perception/image_common.git -b ros2 # clone the "ros" branch of the "image_common" repository
+    $ cd <colcon_workspace> # Go back to the root of your colcon workspace
+    $ colcon build --symlink-install # Compile everything and install
+
+Close the console and re-open it to apply the modifications.
+
+### Image Transport Plugins and compressed topics
+
+The `image_transport_plugins` package is not correctly working with ROS2 Foxy (see [here](https://github.com/stereolabs/zed-ros2-wrapper/issues/31), [here](https://github.com/ros-perception/image_common/issues/184), [here](https://github.com/stereolabs/zed-ros2-wrapper/issues/31), and [here](https://github.com/ros-perception/image_transport_plugins/pull/58)). We suggest you remove it to avoid many annoying warning messages until the ROS2 developers do not fix it or we find a workaround:
+
+```
+$ sudo apt remove ros-foxy-image-transport-plugins ros-foxy-compressed-depth-image-transport ros-foxy-compressed-image-transport
+```
+
 ## Installation
 
 ### Prerequisites
@@ -23,8 +48,8 @@ This package lets you use the ZED stereo cameras with ROS2. It provides access t
 - Ubuntu Ubuntu 18.04
 - [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.3 or later
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
-- ROS2 Eloquent Elusor: 
-  - [Ubuntu 18.04](https://index.ros.org/doc/ros2/Installation/Eloquent/)
+- ROS2 Foxy Fitxroy: 
+  - [Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html)
 
 ### Build the package
 
@@ -43,6 +68,10 @@ $ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release
 $ echo source $(pwd)/install/local_setup.bash >> ~/.bashrc
 $ source ~/.bashrc
 ```
+
+**Note:** If `rosdep` is missing you can install it with:
+
+  ```$ sudo apt-get install python-rosdep python-rosinstall-generator python-vcstool python-rosinstall build-essential```
 
 **Note:** The option `--symlink-install` is very important, it allows to use symlinks instead of copying files to the ROS2 folders during the installation, where possible. Each package in ROS2 must be installed and all the files used by the nodes must be copied into the installation folders. Using symlinks allows you to modify them in your workspace, reflecting the modification during the next executions without the needing to issue a new `colcon build` command. This is true only for all the files that don't need to be compiled (Python scripts, configurations, etc.).
 
@@ -67,22 +96,27 @@ ZED 2:
 $ ros2 launch zed_wrapper zed2.launch.py
 ```
 
-The `zed.launch.py`, `zedm.launch.py` and `zed2.launch.py` are three Python scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/), loading the parameters from the correct "YAML files" and creating the camera model from the correct "URDF file".
+ZED 2i:
+```bash
+$ ros2 launch zed_wrapper zed2i.launch.py
+```
 
-**Note:** You can set your own configurations modifying the parameters in the files **common.yaml**, **zed.yaml** and **zedm.yaml** available in the folder `zed_wrapper/config`.
+The `zed.launch.py`, `zedm.launch.py`, `zed2.launch.py` and `zed2i.launch.py` are three Python scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/), loading the parameters from the correct "YAML files" and creating the camera model from the correct "URDF file".
+
+**Note:** You can set your own configurations modifying the parameters in the files **common.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml** and **zed2i.yaml** available in the folder `zed_wrapper/config`.
 For full descriptions of each parameter, follow the complete guide [here](https://www.stereolabs.com/docs/ros2/zed_node#configuration-parameters).
 
 ### Rviz visualization
-Example launch files to start a pre-configured Rviz environment to visualize the data of ZED, ZED Mini and ZED 2 cameras are provided in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
+Example launch files to start a pre-configured Rviz environment to visualize the data of ZED, ZED Mini, ZED2, and ZED2i cameras are provided in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
     
 ### SVO recording
 [SVO recording](https://www.stereolabs.com/docs/video/recording/) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.
 [More information](https://www.stereolabs.com/docs/ros2/zed_node/#services)
 
 ### Object Detection
-The SDK v3.0 introduces the Object Detection and Tracking module. **The Object Detection module is available only with a ZED 2 camera**. 
+The SDK v3.0 introduces the Object Detection and Tracking module. **The Object Detection module is available only with a ZED 2 or ZED 2i camera**. 
 
-The Object Detection can be enabled *automatically* when the node start setting the parameter `object_detection/od_enabled` to `true` in the file `zed2.yaml`.
+The Object Detection can be enabled *automatically* when the node start setting the parameter `object_detection/od_enabled` to `true` in the file `zed2.yaml` or `zed2i.yaml`.
 
 The Object Detection can be enabled/disabled *manually* calling the services `enable_obj_det`.
 

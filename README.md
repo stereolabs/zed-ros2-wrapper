@@ -2,8 +2,7 @@
 
 # Stereolabs ZED Camera - ROS2 Eloquent Elusor
 
-**Note:** The branch `eloquent` is active and will be maintained and update until Nvidia will release a Jetpack for the Jetson embedded boards based on Ubuntu 20.04. The release of ROS2 Eloquent Elusor reached its EOL in November 2020 and it will no more receive any update from ROS2 developers.
-You can get the latest version of the ZED ROS2 wrapper for the current stable version of ROS2 in the `master` branch.
+#### **Note:** The branch `eloquent` is active and will be maintained and updated until Nvidia will release a Jetpack for the Jetson embedded boards based on Ubuntu 20.04. ROS2 Eloquent Elusor reached EOL in November 2020 and it will no more receive any update from ROS2 developers. You can get the latest version of the ZED ROS2 wrapper for the current stable version of ROS2 in the `master` branch.
 
 This package lets you use the ZED stereo cameras with ROS2. It provides access to the following data:
 

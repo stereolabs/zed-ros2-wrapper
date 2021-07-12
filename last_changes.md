@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2020-07-12
+----------
+- Fixed tab error in `zedm.yaml`
+
 v3.5.x (2021-07-05)
 -------------------
 - Add support for SDK v3.5

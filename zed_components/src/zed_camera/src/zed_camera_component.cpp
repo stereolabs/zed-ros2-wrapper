@@ -927,8 +927,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
 
     rcl_interfaces::msg::SetParametersResult result;
     result.successful = false;
-    result.reason = "Not supported";
-
+    
     for (const auto &param : parameters) {
         if(param.get_name() == "general.pub_frame_rate" ) {
 
@@ -936,6 +935,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -943,7 +943,8 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
 
             if( (val <= 0.0) || (val > mCamGrabFrameRate) ) {
                 result.successful = false;
-                result.reason = param.get_name() + " must be positive and minor of `grab_frame_rate`";
+                result.reason = param.get_name() + " must be positive and minor or equal to `grab_frame_rate`";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -960,6 +961,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -968,6 +970,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val < 0) || (val > 8) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -983,6 +986,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -991,6 +995,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val < 0) || (val > 8) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1006,6 +1011,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1014,6 +1020,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val < 0) || (val > 11) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a positive integer in the range [0,11]";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1029,6 +1036,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1037,6 +1045,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val < 0) || (val > 8) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1052,6 +1061,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1060,6 +1070,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val < 0) || (val > 8) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1075,6 +1086,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1096,6 +1108,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1104,6 +1117,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val < 0) || (val > 100) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1120,6 +1134,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1128,6 +1143,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val < 0) || (val > 100) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1144,6 +1160,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1165,6 +1182,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1173,6 +1191,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val < 28) || (val > 65) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a positive integer in the range [28,65]";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1189,6 +1208,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1197,6 +1217,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val <= 0.0) || (val > mCamGrabFrameRate) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be positive and minor of `grab_frame_rate`";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1213,6 +1234,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1221,6 +1243,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val < 0) || (val > 100) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1236,6 +1259,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1244,6 +1268,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val < 0) || (val > 100) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1259,6 +1284,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1267,6 +1293,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val <= 0.0) || (val > mPcPubRate) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be positive and minor of `point_cloud_freq`";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1283,6 +1310,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1291,6 +1319,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( (val < 0.0) || (val > 100.0) ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be positive double value in the range [0.0,100.0]";
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1306,6 +1335,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1323,6 +1353,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1340,6 +1371,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1357,6 +1389,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1374,6 +1407,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1391,6 +1425,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             if( param.get_type() != correctType ) {
                 result.successful = false;
                 result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason );
                 return result;
             }
 
@@ -1402,9 +1437,12 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
+        } else {
+            result.reason = param.get_name() + " is not a dynamic parameter";
         }
     }
 
+    RCLCPP_WARN_STREAM(get_logger(), result.reason );
     return result;
 }
 
@@ -2004,7 +2042,7 @@ bool ZedCamera::startCamera() {
     // <---- Camera information
 
     // ----> Camera Info messages
-    mRgbCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>(); // TODO ARE THOSE MESSAGES USED???
+    mRgbCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
     mRgbCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
     mLeftCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
     mLeftCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();

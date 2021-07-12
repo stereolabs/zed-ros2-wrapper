@@ -4,6 +4,7 @@ LATEST CHANGES
 2020-07-12
 ----------
 - Fixed tab error in `zedm.yaml`
+- Fixed compatibility issue with ZED SDK older than v3.5 - Thanks @PhilippPolterauer
 
 v3.5.x (2021-07-05)
 -------------------

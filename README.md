@@ -1,6 +1,8 @@
 ![](./images/Picto+STEREOLABS_Black.jpg)
 
-# Stereolabs ZED Camera - ROS2 Foxy Fitzroy
+# Stereolabs ZED Camera - ROS2 Foxy Fitzroy (Ubuntu 20.04)
+
+**Note:** if you are searching for a version of the ROS2 wrapper running on an Nvidia Jetson based on Ubuntu 18.04 that does not require recompiling ROS2 from source, please check out the `eloquent` branch, the official ROS2 version running on Ubuntu 18.04.
 
 This package lets you use the ZED stereo cameras with ROS2. It provides access to the following data:
 
@@ -8,9 +10,9 @@ This package lets you use the ZED stereo cameras with ROS2. It provides access t
   - Depth data
   - Colored 3D point cloud
   - Position and Mapping
-  - Sensors data (if available)
-  - Detected objects (if available)
-  - Persons skeleton (if available)
+  - Sensors data (not available with ZED)
+  - Detected objects (not available with ZED and ZED Mini)
+  - Persons skeleton (not available with ZED and ZED Mini)
 
 [More information](https://www.stereolabs.com/docs/ros2/getting-started/)
 
@@ -45,8 +47,8 @@ $ sudo apt remove ros-foxy-image-transport-plugins ros-foxy-compressed-depth-ima
 
 ### Prerequisites
 
-- Ubuntu Ubuntu 18.04
-- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.3 or later
+- [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/)
+- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.5
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - ROS2 Foxy Fitxroy: 
   - [Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html)

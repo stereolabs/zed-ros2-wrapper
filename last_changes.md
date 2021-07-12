@@ -5,6 +5,7 @@ LATEST CHANGES
 ----------
 - Fixed tab error in `zedm.yaml`
 - Fixed compatibility issue with ZED SDK older than v3.5 - Thanks @PhilippPolterauer
+- Migration to ROS2 Foxy Fitzroy
 
 v3.5.x (2021-07-05)
 -------------------

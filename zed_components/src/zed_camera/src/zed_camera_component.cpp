@@ -281,9 +281,13 @@ void ZedCamera::getGeneralParams() {
         mCamUserModel = sl::MODEL::ZED_M;
     } else if (camera_model == "zed2") {
         mCamUserModel = sl::MODEL::ZED2;
-    } else if (camera_model == "zed2i") {
+    } 
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION>=5
+    else if (camera_model == "zed2i") {
         mCamUserModel = sl::MODEL::ZED2i;
-    } else {
+    }
+#endif
+    else {
         RCLCPP_ERROR_STREAM(get_logger(), "Camera model not valid in parameter values: " << camera_model);
     }
     RCLCPP_INFO_STREAM(get_logger(), " * Camera model: " << camera_model << " - " << mCamUserModel );
@@ -1455,7 +1459,7 @@ void ZedCamera::setTFCoordFrameNames()
     {
         RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t\t-> " << mImuFrameId);
 
-        if (mCamUserModel==sl::MODEL::ZED2 || mCamUserModel==sl::MODEL::ZED2i)
+        if ( sl_tools::isZED2OrZED2i(mCamUserModel) )
         {
             RCLCPP_INFO_STREAM(get_logger(), " * Barometer\t\t-> " << mBaroFrameId);
             RCLCPP_INFO_STREAM(get_logger(), " * Magnetometer\t\t-> " << mMagFrameId);
@@ -1744,7 +1748,7 @@ void ZedCamera::initPublishers() {
         mPubImuTemp = create_publisher<sensor_msgs::msg::Temperature>( imu_temp_topic, mSensQos );
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuTemp->get_topic_name());
 
-        if (mCamRealModel == sl::MODEL::ZED2 || mCamUserModel==sl::MODEL::ZED2i) {
+        if ( sl_tools::isZED2OrZED2i(mCamRealModel) ){
             mPubImuMag = create_publisher<sensor_msgs::msg::MagneticField>( imu_mag_topic, mSensQos );
             RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuMag->get_topic_name());
             mPubPressure = create_publisher<sensor_msgs::msg::FluidPressure>( pressure_topic, mSensQos );
@@ -1928,12 +1932,15 @@ bool ZedCamera::startCamera() {
             RCLCPP_WARN(get_logger(), "Camera model does not match user parameter. Please modify "
                                       "the value of the parameter 'general.camera_model' to 'zed2'");
         }
-    } else if (mCamRealModel == sl::MODEL::ZED2i) {
+    }
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION>=5
+    else if (mCamRealModel == sl::MODEL::ZED2i) {
         if (mCamUserModel != sl::MODEL::ZED2i) {
             RCLCPP_WARN(get_logger(), "Camera model does not match user parameter. Please modify "
                                       "the value of the parameter 'general.camera_model' to 'zed2i'");
         }
     }
+#endif
 
     RCLCPP_INFO_STREAM(get_logger(), " * Camera Model\t-> " << sl::toString(mCamRealModel).c_str());
     mCamSerialNumber = camInfo.serial_number;
@@ -1941,7 +1948,7 @@ bool ZedCamera::startCamera() {
 
     RCLCPP_INFO_STREAM( get_logger(), " * Input type\t-> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
     if (mSvoMode) {
-        RCLCPP_INFO(get_logger(), " * SVO resolution\t-> %dx%d",
+        RCLCPP_INFO(get_logger(), " * SVO resolution\t-> %ldx%ld",
                     mZed.getCameraInformation().camera_configuration.resolution.width,
                     mZed.getCameraInformation().camera_configuration.resolution.height);
         RCLCPP_INFO_STREAM(get_logger(), " * SVO framerate\t-> " << (mZed.getCameraInformation().camera_configuration.fps) );
@@ -2289,7 +2296,8 @@ void ZedCamera::stop3dMapping() {
 }
 
 bool ZedCamera::startObjDetect() {
-    if(mCamRealModel!=sl::MODEL::ZED2 && mCamRealModel!=sl::MODEL::ZED2i) {
+    
+    if( !sl_tools::isZED2OrZED2i(mCamRealModel) ){
         RCLCPP_ERROR(get_logger(), "Object detection not started. The module is available only using a ZED2 and ZED2i cameras");
         return false;
     }
@@ -2740,7 +2748,7 @@ void ZedCamera::threadFunc_zedGrab() {
             mObjDetMutex.lock();
             if (mObjDetEnabled && !mObjDetRunning) {
                 startObjDetect();
-                if(mCamRealModel!=sl::MODEL::ZED2 && mCamRealModel!=sl::MODEL::ZED2i) {
+                if(!sl_tools::isZED2OrZED2i(mCamRealModel)) {
                     mObjDetEnabled = false;
                 }
             }
@@ -2923,7 +2931,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t) {
         tempLeftSubNumber = 0;
         tempRightSubNumber = 0;
 
-        if( mCamRealModel == sl::MODEL::ZED2 || mCamRealModel == sl::MODEL::ZED2i ) {
+        if( sl_tools::isZED2OrZED2i(mCamRealModel) ) {
             imu_TempSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
             imu_MagSubNumber = count_subscribers(mPubImuMag->get_topic_name());
             pressSubNumber = count_subscribers(mPubPressure->get_topic_name());
@@ -3001,7 +3009,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t) {
 
     RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback: temperatures");
 
-    if(mCamRealModel==sl::MODEL::ZED2 || mCamRealModel==sl::MODEL::ZED2i) {
+    if( sl_tools::isZED2OrZED2i(mCamRealModel) ){
         // Update temperatures for Diagnostic
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_LEFT, mTempLeft);
         sens_data.temperature.get( sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
@@ -4137,7 +4145,9 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t) {
         memcpy(&(objMsg->objects[idx].dimensions_3d[0]), &(data.dimensions[0]), 3*sizeof(float));
 
         if(mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE ||
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION>=5
                 mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM ||
+#endif
                 mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_FAST ) {
             objMsg->objects[idx].skeleton_available = true;
 

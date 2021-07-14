@@ -60,6 +60,8 @@ set(DEPENDENCIES
     stereo_msgs
     zed_interfaces
     std_srvs
+    diagnostic_msgs
+    diagnostic_updater
 )
 
 find_package(ament_cmake REQUIRED)
@@ -78,12 +80,8 @@ find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
-
-# Add a define to fix compile errors under "eloquent"
-if($ENV{ROS_DISTRO} STREQUAL "eloquent")
-    add_definitions(-DROS_ELOQUENT)
-endif()
-
+find_package(diagnostic_msgs REQUIRED)
+find_package(diagnostic_updater REQUIRED)
 
 ###############################################################################
 #Add all files in subdirectories of the project in

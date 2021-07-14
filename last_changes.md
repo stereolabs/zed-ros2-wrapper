@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2020-07-14
+----------
+- Enabled Diagnostic status publishing
+
 2020-07-12
 ----------
 - Fixed tab error in `zedm.yaml`

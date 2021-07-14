@@ -29,6 +29,9 @@
     <build_depend>tf2_geometry_msgs</build_depend>
     <build_depend>image_transport</build_depend>
     <build_depend>std_srvs</build_depend>
+    <build_depend>diagnostic_msgs</build_depend>
+    <build_depend>diagnostic_updater</build_depend>
+
 
     <exec_depend>launch_ros</exec_depend>
     <exec_depend>zed_interfaces</exec_depend>
@@ -45,6 +48,8 @@
     <exec_depend>tf2_ros</exec_depend>
     <exec_depend>tf2_geometry_msgs</exec_depend>
     <exec_depend>image_transport</exec_depend>
+    <exec_depend>diagnostic_msgs</exec_depend>
+    <exec_depend>diagnostic_updater</exec_depend>
 
     <test_depend>ament_cmake_pytest</test_depend>
     <test_depend>ament_lint_auto</test_depend>

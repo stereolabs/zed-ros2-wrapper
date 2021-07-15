@@ -1,9 +1,16 @@
 LATEST CHANGES
 ==============
 
+2020-07-15
+----------
+- Improved diagnostic information adding elaboration time on all the main tasks
+- Improved diagnostic time and frequencies calculation
+- Added StopWatch to sl_tools
+
 2020-07-14
 ----------
 - Enabled Diagnostic status publishing
+- Changed the default values of the QoS parameter reliability for all topics from BEST_EFFORT to RELIABLE to guarantee compatibility with all ROS2 tools
 
 2020-07-12
 ----------

@@ -30,8 +30,11 @@
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
+#include <iostream>
 
 #include <rclcpp/time.hpp>
+#include <tf2_ros/buffer_interface.h>
+#include <sstream>
 
 using namespace std::chrono_literals;
 using namespace std::placeholders;
@@ -48,6 +51,14 @@ namespace stereolabs {
 #define DEG2RAD 0.017453293
 #define RAD2DEG 57.295777937
 #endif
+
+#define RCLCPP_INFO_STREAM(a, b) std::cout << b;
+#define RCLCPP_WARN_STREAM(a, b) std::cout << b;
+#define RCLCPP_ERROR_STREAM(a, b) std::cout << b;
+#define RCLCPP_DEBUG_STREAM(a, b) std::cout << b;
+#define RCLCPP_DEBUG_THROTTLE(...)
+#define RCLCPP_ERROR_THROTTLE(...)
+#define RCLCPP_WARN_THROTTLE(...)
 
 ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
     : Node("zed_node", options)
@@ -2444,8 +2455,7 @@ bool ZedCamera::getCamera2BaseTransform() {
     // Sensor to Base link
     try {
         // Save the transformation
-        geometry_msgs::msg::TransformStamped c2b =
-                mTfBuffer->lookupTransform(mCameraFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(0.1));
+        auto c2b = mTfBuffer->lookupTransform(mCameraFrameId, mBaseFrameId, tf2::TimePointZero, tf2::Duration(std::chrono::nanoseconds(rclcpp::Duration(0.1).nanoseconds())));
 
         // Get the TF2 transformation
         //tf2::fromMsg(c2b.transform, mCamera2BaseTransf);
@@ -2498,8 +2508,7 @@ bool ZedCamera::getSens2CameraTransform() {
     // Sensor to Camera Center
     try {
         // Save the transformation
-        geometry_msgs::msg::TransformStamped s2c =
-                mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, TIMEZERO_SYS, rclcpp::Duration(0.1));
+        auto s2c = mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, tf2::TimePointZero, tf2::Duration(std::chrono::nanoseconds(rclcpp::Duration(0.1).nanoseconds())));
 
         // Get the TF2 transformation
         //tf2::fromMsg(s2c.transform, mSensor2CameraTransf);
@@ -2552,8 +2561,7 @@ bool ZedCamera::getSens2BaseTransform() {
     // Sensor to Base link
     try {
         // Save the transformation
-        geometry_msgs::msg::TransformStamped s2b =
-                mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(0.1));
+        auto s2b = mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, tf2::TimePointZero, tf2::Duration(std::chrono::nanoseconds(rclcpp::Duration(0.1).nanoseconds())));
 
         // Get the TF2 transformation
         //tf2::fromMsg(s2b.transform, mSensor2BaseTransf);

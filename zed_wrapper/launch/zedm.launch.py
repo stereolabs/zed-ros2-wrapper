@@ -1,70 +1,72 @@
+#!/usr/bin/env python3
+
 import os
 
 from launch import LaunchDescription
-from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
+from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
-    # Define LaunchDescription variable
-    ld = LaunchDescription()
 
     # use:
     #  - 'zed' for "ZED" camera
     #  - 'zedm' for "ZED mini" camera
     #  - 'zed2' for "ZED2" camera
+    #  - 'zed2i' for "ZED2i" camera
     camera_model = 'zedm'
 
     # Camera name
     camera_name = 'zedm'
 
-    # URDF file to be loaded by Robot State Publisher
-    urdf = os.path.join(
-        get_package_share_directory('zed_wrapper'),
-        'urdf', camera_model + '.urdf'
-    )
+    # Publish URDF
+    publish_urdf = 'true'
 
     # ZED Configurations to be loaded by ZED Node
-    config_common = os.path.join(
+    config_common_path = os.path.join(
         get_package_share_directory('zed_wrapper'),
         'config',
         'common.yaml'
     )
 
-    config_camera = os.path.join(
+    if(camera_model != 'zed'):
+        config_camera_path = os.path.join(
+            get_package_share_directory('zed_wrapper'),
+            'config',
+            camera_model + '.yaml'
+        )
+    else:
+        config_camera_path = ''
+
+        # URDF/xacro file to be loaded by the Robot State Publisher node
+    xacro_path = os.path.join(
         get_package_share_directory('zed_wrapper'),
-        'config',
-        camera_model + '.yaml'
-    )
-
-    # Set LOG format
-    os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = '{time} [{name}] [{severity}] {message}'
-
-    # Robot State Publisher node
-    rsp_node = Node(
-        package='robot_state_publisher',
-        namespace="/"+camera_name,
-        executable='robot_state_publisher',
-        name=camera_name+'_state_publisher',
-        output='screen',
-        arguments=[urdf],
+        'urdf', 'zed_descr.urdf.xacro'
     )
 
     # ZED Wrapper node
-    zed_wrapper_node = Node(
-        package='zed_wrapper',
-        namespace="/"+camera_name,
-        executable='zed_wrapper',
-        name='zed_node',
-        output='screen',
-        parameters=[
-            config_common,  # Common parameters
-            config_camera,  # Camera related parameters
-        ]
+    zed_wrapper_launch = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource([
+            get_package_share_directory('zed_wrapper'),
+            '/launch/include/zed_camera.launch.py'
+        ]),
+        launch_arguments={
+            'camera_model': camera_model,
+            'camera_name': camera_name,
+            'config_common_path': config_common_path,
+            'config_camera_path': config_camera_path,
+            'publish_urdf': publish_urdf,
+            'xacro_path': xacro_path
+
+        }.items()
     )
 
-    # Add noded to LaunchDescription
-    ld.add_action(rsp_node)
-    ld.add_action(zed_wrapper_node)
+    # Define LaunchDescription variable
+    ld = LaunchDescription()
+
+    # Add nodes to LaunchDescription
+    ld.add_action(zed_wrapper_launch)
 
     return ld

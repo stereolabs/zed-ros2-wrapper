@@ -12,9 +12,7 @@ from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
 
-    # Launch configuration variables
-    svo_path = LaunchConfiguration('svo_path')
-
+    # Camera model
     # use:
     #  - 'zed' for "ZED" camera
     #  - 'zedm' for "ZED mini" camera
@@ -22,14 +20,28 @@ def generate_launch_description():
     #  - 'zed2i' for "ZED2i" camera
     camera_model = 'zed2'
 
-    # Camera name
+    # Launch configuration variables (can be changed by CLI command)
+    svo_path = LaunchConfiguration('svo_path')
+
+    # Configuration variables
+    # Camera name. Can be different from camera model, used to distinguish camera in multi-camera systems
     camera_name = 'zed2'
-
-    # Zed Node name
-    node_name = 'zed_node'
-
-    # Publish URDF
-    publish_urdf = 'true'
+    node_name = 'zed_node'  # Zed Node name
+    publish_urdf = 'true'  # Publish static frames from camera URDF
+    # Robot base frame. Note: overrides the parameter `pos_tracking.base_frame` in `common.yaml`.
+    base_frame = 'base_link'
+    # Position X of the camera with respect to the base frame [m].
+    cam_pos_x = '0.0'
+    # Position Y of the camera with respect to the base frame [m].
+    cam_pos_y = '0.0'
+    # Position Z of the camera with respect to the base frame [m].
+    cam_pos_z = '0.0'
+    # Roll orientation of the camera with respect to the base frame [rad].
+    cam_roll = '0.0'
+    # Pitch orientation of the camera with respect to the base frame [rad].
+    cam_pitch = '0.0'
+    # Yaw orientation of the camera with respect to the base frame [rad].
+    cam_yaw = '0.0'
 
     # ZED Configurations to be loaded by ZED Node
     config_common_path = os.path.join(
@@ -67,7 +79,14 @@ def generate_launch_description():
             'config_camera_path': config_camera_path,
             'publish_urdf': publish_urdf,
             'xacro_path': xacro_path,
-            'svo_path': svo_path
+            'svo_path': svo_path,
+            'base_frame': base_frame,
+            'cam_pos_x': cam_pos_x,
+            'cam_pos_y': cam_pos_y,
+            'cam_pos_z': cam_pos_z,
+            'cam_roll': cam_roll,
+            'cam_pitch': cam_pitch,
+            'cam_yaw': cam_yaw
         }.items()
     )
 

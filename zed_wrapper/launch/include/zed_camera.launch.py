@@ -16,14 +16,26 @@ def generate_launch_description():
     wrapper_dir = get_package_share_directory('zed_wrapper')
 
     # Launch configuration variables
+    svo_path = LaunchConfiguration('svo_path')
+
     camera_name = LaunchConfiguration('camera_name')
     camera_model = LaunchConfiguration('camera_model')
+
     node_name = LaunchConfiguration('node_name')
+
     config_common_path = LaunchConfiguration('config_common_path')
     config_camera_path = LaunchConfiguration('config_camera_path')
+
+    base_frame = LaunchConfiguration('base_frame')
+    cam_pos_x = LaunchConfiguration('cam_pos_x')
+    cam_pos_y = LaunchConfiguration('cam_pos_y')
+    cam_pos_z = LaunchConfiguration('cam_pos_z')
+    cam_roll = LaunchConfiguration('cam_roll')
+    cam_pitch = LaunchConfiguration('cam_pitch')
+    cam_yaw = LaunchConfiguration('cam_yaw')
+
     publish_urdf = LaunchConfiguration('publish_urdf')
     xacro_path = LaunchConfiguration('xacro_path')
-    svo_path = LaunchConfiguration('svo_path')
 
     # ZED Configurations to be loaded by ZED Node
     default_config_common = os.path.join(
@@ -69,6 +81,41 @@ def generate_launch_description():
         default_value='',
         description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.')
 
+    declare_base_frame_cmd = DeclareLaunchArgument(
+        'base_frame',
+        default_value='base_link',
+        description='Name of the base link.')
+
+    declare_pos_x_cmd = DeclareLaunchArgument(
+        'cam_pos_x',
+        default_value='0.0',
+        description='Position X of the camera with respect to the base frame.')
+
+    declare_pos_y_cmd = DeclareLaunchArgument(
+        'cam_pos_y',
+        default_value='0.0',
+        description='Position Y of the camera with respect to the base frame.')
+
+    declare_pos_z_cmd = DeclareLaunchArgument(
+        'cam_pos_z',
+        default_value='0.0',
+        description='Position Z of the camera with respect to the base frame.')
+
+    declare_roll_cmd = DeclareLaunchArgument(
+        'cam_roll',
+        default_value='0.0',
+        description='Roll orientation of the camera with respect to the base frame.')
+
+    declare_pitch_cmd = DeclareLaunchArgument(
+        'cam_pitch',
+        default_value='0.0',
+        description='Pitch orientation of the camera with respect to the base frame.')
+
+    declare_yaw_cmd = DeclareLaunchArgument(
+        'cam_yaw',
+        default_value='0.0',
+        description='Yaw orientation of the camera with respect to the base frame.')
+
     # Robot State Publisher node
     rsp_node = Node(
         condition=IfCondition(publish_urdf),
@@ -82,7 +129,14 @@ def generate_launch_description():
                 [
                     'xacro', ' ', xacro_path, ' ',
                     'camera_name:=', camera_name, ' ',
-                    'camera_model:=', camera_model
+                    'camera_model:=', camera_model, ' ',
+                    'base_frame:=', base_frame, ' ',
+                    'cam_pos_x:=', cam_pos_x, ' ',
+                    'cam_pos_y:=', cam_pos_y, ' ',
+                    'cam_pos_z:=', cam_pos_z, ' ',
+                    'cam_roll:=', cam_roll, ' ',
+                    'cam_pitch:=', cam_pitch, ' ',
+                    'cam_yaw:=', cam_yaw
                 ])
         }]
     )
@@ -103,7 +157,8 @@ def generate_launch_description():
             config_camera_path,  # Camera related parameters
             # Overriding
             {
-                'general.svo_file': svo_path
+                'general.svo_file': svo_path,
+                'pos_tracking.base_frame': base_frame
             }
         ]
     )
@@ -119,6 +174,13 @@ def generate_launch_description():
     ld.add_action(declare_config_camera_path_cmd)
     ld.add_action(declare_xacro_path_cmd)
     ld.add_action(declare_svo_path_cmd)
+    ld.add_action(declare_base_frame_cmd)
+    ld.add_action(declare_pos_x_cmd)
+    ld.add_action(declare_pos_y_cmd)
+    ld.add_action(declare_pos_z_cmd)
+    ld.add_action(declare_roll_cmd)
+    ld.add_action(declare_pitch_cmd)
+    ld.add_action(declare_yaw_cmd)
 
     ld.add_action(rsp_node)
     ld.add_action(zed_wrapper_node)

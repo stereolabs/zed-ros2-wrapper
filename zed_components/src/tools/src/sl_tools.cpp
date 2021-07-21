@@ -419,4 +419,21 @@ bool isZED2OrZED2i(sl::MODEL camModel){
     return false;
 }
 
+StopWatch::StopWatch()
+{
+    tic(); // Start the timer at creation
+}
+
+void StopWatch::tic()
+{
+    mStartTime = std::chrono::steady_clock::now(); // Set the start time point
+}
+
+double StopWatch::toc()
+{
+    auto now = std::chrono::steady_clock::now();
+    double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - mStartTime).count();
+    return elapsed_usec/1e6;
+}
+
 } // namespace

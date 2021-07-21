@@ -1,6 +1,13 @@
 LATEST CHANGES
 ==============
 
+2020-07-21
+----------
+- Add xacro support for automatic URDF configuration
+- Reworked launch files to support xacro and launch parameters
+    - Use `ros2 launch zed_wrapper <launch_file> -s` to retrieve all the available parameters
+- Add `svo_path:=<full path to SVO file>` as input for all the launch files to start the node using an SVO as input without modifying 'common.yaml`
+
 2020-07-15
 ----------
 - Improved diagnostic information adding elaboration time on all the main tasks

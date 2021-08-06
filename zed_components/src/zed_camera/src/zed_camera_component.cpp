@@ -3238,6 +3238,8 @@ void ZedCamera::threadFunc_zedGrab()
         {
           mZed.setSVOPosition(0);
           RCLCPP_WARN(get_logger(), "SVO reached the end and has been restarted.");
+          std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(mGrabPeriodMean_sec->getMean()*1000.f)));
+          continue;
         }
         else
         {

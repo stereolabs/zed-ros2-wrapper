@@ -8,7 +8,7 @@
     ros__parameters:
         general:
             svo_file:                   ''
-            svo_loop:                   false                               # Enable loop mode when using an SVO as input source
+            svo_loop:                   true                               # Enable loop mode when using an SVO as input source
             svo_realtime:               false                               # if true SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
             camera_timeout_sec:         5
             camera_max_reconnect:       5

@@ -1,25 +1,29 @@
 LATEST CHANGES
 ==============
 
-2020-07-21
+2021-08-06
+----------
+- Fix SVO LOOP wrong behavior. Thx @kevinanschau
+
+2021-07-21
 ----------
 - Add xacro support for automatic URDF configuration
 - Reworked launch files to support xacro and launch parameters
     - Use `ros2 launch zed_wrapper <launch_file> -s` to retrieve all the available parameters
 - Add `svo_path:=<full path to SVO file>` as input for all the launch files to start the node using an SVO as input without modifying 'common.yaml`
 
-2020-07-15
+2021-07-15
 ----------
 - Improved diagnostic information adding elaboration time on all the main tasks
 - Improved diagnostic time and frequencies calculation
 - Added StopWatch to sl_tools
 
-2020-07-14
+2021-07-14
 ----------
 - Enabled Diagnostic status publishing
 - Changed the default values of the QoS parameter reliability for all topics from BEST_EFFORT to RELIABLE to guarantee compatibility with all ROS2 tools
 
-2020-07-12
+2021-07-12
 ----------
 - Fixed tab error in `zedm.yaml`
 - Fixed compatibility issue with ZED SDK older than v3.5 - Thanks @PhilippPolterauer

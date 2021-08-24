@@ -10,7 +10,7 @@
             camera_name:                'zedm'
 
         depth:
-            min_depth:                  0.35            # Min: 0.1, Max: 3.0 - Default 0.3 - Note: reducing this value wil require more computational power and GPU memory
+            min_depth:                  0.3            # Min: 0.1, Max: 3.0 - Default 0.3 - Note: reducing this value wil require more computational power and GPU memory
             max_depth:                  10.0            # Max: 20.0
 
         pos_tracking:

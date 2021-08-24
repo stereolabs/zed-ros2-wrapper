@@ -15,15 +15,15 @@
             camera_flip:                false
             zed_id:                     0
             serial_number:              0
-            resolution:                 2                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
+            resolution:                 3                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
             sdk_verbose:                true
-            grab_frame_rate:            30                                  # ZED SDK internal grabbing rate
-            pub_frame_rate:             15.0                                # [DYNAMIC] - frequency of publishing of visual images and depth images
+            grab_frame_rate:            60                                  # ZED SDK internal grabbing rate
+            pub_frame_rate:             60.0                                # [DYNAMIC] - frequency of publishing of visual images and depth images
             gpu_id:                     -1
 
         video:
             extrinsic_in_camera_frame:  false                               # if `false` extrinsic parameter in `camera_info` will use ROS native frame (X FORWARD, Z UP) instead of the camera frame (Z FORWARD, Y DOWN) [`true` use old behavior as for version < v3.1]
-            img_downsample_factor:      0.5                                 # Resample factor for image data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices
+            img_downsample_factor:      1.0                                 # Resample factor for image data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices
             brightness:                 4                                   # [DYNAMIC]
             contrast:                   4                                   # [DYNAMIC]
             hue:                        0                                   # [DYNAMIC]
@@ -43,10 +43,10 @@
         depth:
             quality:                    1                                   # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             sensing_mode:               0                                   # '0': STANDARD, '1': FILL
-            depth_stabilization:        true                                # Forces positional tracking to start if 'true'
+            depth_stabilization:        false                                # Forces positional tracking to start if 'true'
             openni_depth_mode:          false                               # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
-            depth_downsample_factor:    0.5                                 # Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
-            point_cloud_freq:           10.0                                # [DYNAMIC] - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
+            depth_downsample_factor:    0.6                               # Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
+            point_cloud_freq:           60.0                                # [DYNAMIC] - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
             depth_confidence:           50                                  # [DYNAMIC]
             depth_texture_conf:         100                                 # [DYNAMIC]
             qos_history:                1                                   # '1': KEEP_LAST - '2': KEEP_ALL

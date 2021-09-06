@@ -366,7 +366,7 @@ private:
 
     std::string mMapFrameId = "map";
     std::string mOdomFrameId = "odom";
-    std::string mBaseFrameId = "zed_link";
+    std::string mBaseFrameId = "base_link";
 
     std::string mCameraFrameId;
 

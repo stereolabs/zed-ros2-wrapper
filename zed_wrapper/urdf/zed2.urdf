@@ -19,11 +19,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <robot name="zed2_camera">
 
     <!-- base_link -->
-    <link name="base_link" />
+    <link name="zed_link" />
 
     <!-- Camera Center -->
     <joint name="zed2_camera_center_joint" type="fixed">
-        <parent link="base_link"/>
+        <parent link="zed_link"/>
         <child link="zed2_camera_center"/>
         <origin xyz="0 0 0" rpy="0 0 0" />
     </joint>

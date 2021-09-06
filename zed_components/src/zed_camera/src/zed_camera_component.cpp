@@ -2079,12 +2079,12 @@ void ZedCamera::startVideoDepthTimer(double pubFrameRate) {
         mVideoDepthTimer->cancel();
     }
 
-    /*
+    
     std::chrono::milliseconds videoDepthPubPeriod_msec(static_cast<int>(1000.0 / (pubFrameRate)));
     mVideoDepthTimer = create_wall_timer(
                 std::chrono::duration_cast<std::chrono::milliseconds>(videoDepthPubPeriod_msec),
                 std::bind(&ZedCamera::callback_pubVideoDepth, this) );
-    */
+    
 }
 
 void ZedCamera::startFusedPcTimer(double fusedPcRate) {

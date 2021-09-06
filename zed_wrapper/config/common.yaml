@@ -42,7 +42,7 @@
             qos_durability:             2                                   # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         depth:
-            quality:                    0                                   # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            quality:                    1                                   # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             sensing_mode:               0                                   # '0': STANDARD, '1': FILL
             depth_stabilization:        true
             openni_depth_mode:          false                               # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
@@ -63,7 +63,7 @@
             map_frame:                  'map'
             odometry_frame:             'odom'
             area_memory_db_path:        ''
-            area_memory:                true                                # Enable to detect loop closure
+            area_memory:                false                                # Enable to detect loop closure
             floor_alignment:            false                               # Enable to automatically calculate camera/floor offset
             initial_base_pose:          [0.0,0.0,0.0, 0.0,0.0,0.0]          # Initial position of the `base_frame` -> [X, Y, Z, R, P, Y]
             init_odom_with_first_valid_pose: true                           # Enable to initialize the odometry with the first valid pose

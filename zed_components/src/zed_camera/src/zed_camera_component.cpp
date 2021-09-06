@@ -2226,7 +2226,7 @@ bool ZedCamera::start3dMapping() {
     sl::SpatialMappingParameters params;
     params.map_type = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH;
     params.use_chunk_only = true;
-    params.save_texture = false ;  // Scene texture will NOT be recorded
+    params.save_texture = true ;  // Scene texture will be recorded
 
     sl::SpatialMappingParameters spMapPar;
 

@@ -2103,6 +2103,7 @@ void ZedCamera::startPathPubTimer(double pathTimerRate) {
         mPathTimer->cancel();
     }
 
+    /*
     if(pathTimerRate > 0) {
         std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0 / (pathTimerRate)));
         mPathTimer = create_wall_timer(
@@ -2124,6 +2125,7 @@ void ZedCamera::startPathPubTimer(double pathTimerRate) {
         mPathTimer->cancel();
         RCLCPP_INFO_STREAM(get_logger(), "Path topics not published -> Pub. rate: " << pathTimerRate << " Hz");
     }
+    */
 }
 
 bool ZedCamera::startPosTracking() {

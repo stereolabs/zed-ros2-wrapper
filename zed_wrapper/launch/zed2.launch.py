@@ -60,7 +60,13 @@ def generate_launch_description():
         parameters=[
             config_common,  # Common parameters
             config_camera,  # Camera related parameters
-        ]
+        ],
+        remappings=[
+                    ("/zed2/zed_node/imu/data_raw", "/zed_camera/imu"),
+                    ("/zed2/zed_node/left_raw/image_raw_gray", "/zed_camera/raw_frame"),
+                    ("/zed2/zed_node/odom", "/zed_camera/odom"),
+                    ("/zed2/zed_node/point_cloud/cloud_registered", "/zed_camera/point_cloud"),
+                   ]
     )
 
     # Add nodes to LaunchDescription

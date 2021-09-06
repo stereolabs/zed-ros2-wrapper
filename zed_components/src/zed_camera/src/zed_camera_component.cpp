@@ -2078,12 +2078,11 @@ void ZedCamera::startVideoDepthTimer(double pubFrameRate) {
     if(mVideoDepthTimer!=nullptr) {
         mVideoDepthTimer->cancel();
     }
-    
+
     std::chrono::milliseconds videoDepthPubPeriod_msec(static_cast<int>(1000.0 / (pubFrameRate)));
     mVideoDepthTimer = create_wall_timer(
                 std::chrono::duration_cast<std::chrono::milliseconds>(videoDepthPubPeriod_msec),
                 std::bind(&ZedCamera::callback_pubVideoDepth, this) );
-    
 }
 
 void ZedCamera::startFusedPcTimer(double fusedPcRate) {
@@ -2103,7 +2102,7 @@ void ZedCamera::startPathPubTimer(double pathTimerRate) {
     if(mPathTimer!=nullptr) {
         mPathTimer->cancel();
     }
-    /*
+
     if(pathTimerRate > 0) {
         std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0 / (pathTimerRate)));
         mPathTimer = create_wall_timer(
@@ -2125,7 +2124,6 @@ void ZedCamera::startPathPubTimer(double pathTimerRate) {
         mPathTimer->cancel();
         RCLCPP_INFO_STREAM(get_logger(), "Path topics not published -> Pub. rate: " << pathTimerRate << " Hz");
     }
-    */
 }
 
 bool ZedCamera::startPosTracking() {
@@ -2226,7 +2224,6 @@ bool ZedCamera::start3dMapping() {
     sl::SpatialMappingParameters params;
     params.map_type = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH;
     params.use_chunk_only = true;
-    params.save_texture = true ;  // Scene texture will be recorded
 
     sl::SpatialMappingParameters spMapPar;
 
@@ -2863,7 +2860,7 @@ void ZedCamera::threadFunc_zedGrab() {
             if (mPosTrackingStarted) {
                 if(!mSvoPause) {
                     processOdometry();
-                    // processPose();
+                    processPose();
                 }
 
                 if(mCamRealModel == sl::MODEL::ZED || !mPublishImuTF || mSvoMode) {

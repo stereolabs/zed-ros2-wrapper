@@ -260,6 +260,9 @@ void ZedCamera::initParameters() {
 
     getMappingParams();
 
+    // OD PARAMETERS
+    getOdParams();
+
     // Dynamic parameters callback
     set_on_parameters_set_callback(std::bind(&ZedCamera::callback_paramChange, this, _1));
 }
@@ -824,6 +827,101 @@ void ZedCamera::getPosTrackingParams() {
     RCLCPP_INFO(get_logger(), " * Pose/Odometry QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 }
 
+void ZedCamera::getOdParams() {
+    rclcpp::Parameter paramVal;
+    std::string paramName;
+
+    rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+    int qos_depth = 1;
+    rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+    rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+
+    RCLCPP_INFO(get_logger(), "*** OBJECT DETECTION parameters ***");
+    if(mCamUserModel==sl::MODEL::ZED || mCamUserModel==sl::MODEL::ZED_M) {
+        RCLCPP_WARN(get_logger(), "!!! OD parameters are not used with ZED and ZED Mini !!!");
+    }
+
+    getParam( "object_detection.od_enabled", mObjDetEnabled, mObjDetEnabled );
+    RCLCPP_INFO_STREAM(get_logger(), " * Object Detection enabled: " << (mObjDetEnabled?"TRUE":"FALSE") );
+    getParam( "object_detection.confidence_threshold", mObjDetConfidence, mObjDetConfidence, " * OD min. confidence: " );
+    //getParam( "object_detection.object_tracking_enabled", mObjDetTracking, mObjDetTracking );
+    //RCLCPP_INFO_STREAM(get_logger(), " * OD tracking: " << (mObjDetTracking?"TRUE":"FALSE") );
+    int model = 0;
+    getParam( "object_detection.model", model, model );
+    mObjDetModel = static_cast<sl::DETECTION_MODEL>(model);
+    RCLCPP_INFO_STREAM(get_logger(), " * Object Detection model: " << model << " - " << mObjDetModel );
+    getParam( "object_detection.mc_people", mObjDetPeopleEnable, mObjDetPeopleEnable );
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox people: " << (mObjDetPeopleEnable?"TRUE":"FALSE") );
+    getParam( "object_detection.mc_vehicle", mObjDetVehiclesEnable, mObjDetVehiclesEnable );
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox vehicles: " << (mObjDetVehiclesEnable?"TRUE":"FALSE") );
+    getParam( "object_detection.mc_bag", mObjDetBagsEnable, mObjDetBagsEnable );
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox bags: " << (mObjDetBagsEnable?"TRUE":"FALSE") );
+    getParam( "object_detection.mc_animal", mObjDetAnimalsEnable, mObjDetAnimalsEnable );
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox animals: " << (mObjDetAnimalsEnable?"TRUE":"FALSE") );
+    getParam( "object_detection.mc_electronics", mObjDetElectronicsEnable, mObjDetElectronicsEnable );
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox electronics: " << (mObjDetElectronicsEnable?"TRUE":"FALSE") );
+    getParam( "object_detection.mc_fruit_vegetable", mObjDetFruitsEnable, mObjDetFruitsEnable );
+    RCLCPP_INFO_STREAM(get_logger(), " * MultiClassBox fruits and vegetables: " << (mObjDetFruitsEnable?"TRUE":"FALSE") );
+    getParam( "object_detection.body_fitting", mBodyFitting, mBodyFitting );
+    RCLCPP_INFO_STREAM(get_logger(), " * Skeleton fitting: " << (mBodyFitting?"TRUE":"FALSE") );
+    // ------------------------------------------
+
+    paramName = "object_detection.qos_history";
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_hist) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_hist = paramVal.as_int() == 1 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+        mObjDetQos.history(qos_hist);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS History: %s", sl_tools::qos2str(qos_hist).c_str());
+
+    // ------------------------------------------
+
+    paramName = "object_detection.qos_depth";
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_depth) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_depth = paramVal.as_int();
+        mObjDetQos.keep_last(qos_depth);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS History depth: %d", qos_depth);
+
+    // ------------------------------------------
+
+    paramName = "object_detection.qos_reliability";
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+                                                   RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+        mObjDetQos.reliability(qos_reliability);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS Reliability: %s", sl_tools::qos2str(qos_reliability).c_str());
+
+    // ------------------------------------------
+
+    paramName = "object_detection.qos_durability";
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_durability) );
+
+    if (get_parameter(paramName, paramVal)) {
+        qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+                                                  RMW_QOS_POLICY_DURABILITY_VOLATILE;
+        mObjDetQos.durability(qos_durability);
+    } else {
+        RCLCPP_WARN(get_logger(), "The parameter '%s' is not available, using the default value", paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Obj. Det. QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
+}
 
 rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters) {
 
@@ -1513,6 +1611,9 @@ void ZedCamera::initPublishers() {
     std::string rgb_gray_topic = mTopicRoot + rgbTopicRoot + img_gray_topic;
     std::string rgb_raw_gray_topic = mTopicRoot + rgbTopicRoot + raw_suffix + img_raw_gray_topic_;
 
+    // Set the disparity topic name
+    std::string disparity_topic = mTopicRoot + "disparity/disparity_image";
+
     // Set the depth topic names
     std::string depth_topic_root = "depth";
 
@@ -1551,6 +1652,8 @@ void ZedCamera::initPublishers() {
     std::string imu_topic = mTopicRoot + imuTopicRoot + "/" + imu_topic_name;
     std::string imu_topic_raw = mTopicRoot + imuTopicRoot + "/" + imu_topic_raw_name;
     std::string imu_temp_topic = mTopicRoot + temp_topic_root + "/" + imuTopicRoot;
+    std::string imu_mag_topic = mTopicRoot + imuTopicRoot + "/" + imu_topic_mag_name;
+    //std::string imu_mag_topic_raw = imuTopicRoot + "/" + imu_topic_mag_raw_name;
     std::string pressure_topic = mTopicRoot + /*imuTopicRoot + "/" +*/ pressure_topic_name;
     std::string temp_topic_left = mTopicRoot + temp_topic_root + "/left";
     std::string temp_topic_right = mTopicRoot + temp_topic_root + "/right";
@@ -1606,6 +1709,8 @@ void ZedCamera::initPublishers() {
     {
         mPubConfMap = create_publisher<sensor_msgs::msg::Image>(conf_map_topic, mDepthQos);
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubConfMap->get_topic_name());
+        mPubDisparity = create_publisher<stereo_msgs::msg::DisparityImage>( disparity_topic, mDepthQos );
+        RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubDisparity->get_topic_name());
         mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>( pointcloud_topic, mDepthQos );
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubCloud->get_topic_name());
     }
@@ -1642,6 +1747,17 @@ void ZedCamera::initPublishers() {
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuRaw->get_topic_name());
         mPubImuTemp = create_publisher<sensor_msgs::msg::Temperature>( imu_temp_topic, mSensQos );
         RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuTemp->get_topic_name());
+
+        if ( sl_tools::isZED2OrZED2i(mCamRealModel) ){
+            mPubImuMag = create_publisher<sensor_msgs::msg::MagneticField>( imu_mag_topic, mSensQos );
+            RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubImuMag->get_topic_name());
+            mPubPressure = create_publisher<sensor_msgs::msg::FluidPressure>( pressure_topic, mSensQos );
+            RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubPressure->get_topic_name());
+            mPubTempL = create_publisher<sensor_msgs::msg::Temperature>( temp_topic_left, mSensQos );
+            RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubTempL->get_topic_name());
+            mPubTempR = create_publisher<sensor_msgs::msg::Temperature>( temp_topic_right, mSensQos );
+            RCLCPP_INFO_STREAM( get_logger(), "Advertised on topic: " << mPubTempR->get_topic_name());
+        }
 
         // ----> Publish latched camera/imu transform message
         publishStaticImuFrameAndTopic();
@@ -1978,6 +2094,34 @@ void ZedCamera::startFusedPcTimer(double fusedPcRate) {
     mFusedPcTimer = create_wall_timer(
                 std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
                 std::bind(&ZedCamera::callback_pubFusedPc, this) );
+}
+
+void ZedCamera::startPathPubTimer(double pathTimerRate) {
+    if(mPathTimer!=nullptr) {
+        mPathTimer->cancel();
+    }
+
+    if(pathTimerRate > 0) {
+        std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0 / (pathTimerRate)));
+        mPathTimer = create_wall_timer(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
+                    std::bind(&ZedCamera::callback_pubPaths, this) );
+
+        if( mOdomPath.size()==0 && mMapPath.size()==0) {
+            if (mPathMaxCount != -1) {
+                RCLCPP_DEBUG_STREAM(get_logger(), "Path vectors reserved " << mPathMaxCount << " poses.");
+                mOdomPath.reserve(mPathMaxCount);
+                mMapPath.reserve(mPathMaxCount);
+
+                RCLCPP_DEBUG_STREAM(get_logger(), "Path vector sizes: " << mOdomPath.size() << " " << mMapPath.size());
+            }
+        }
+    } else {
+        mOdomPath.clear();
+        mMapPath.clear();
+        mPathTimer->cancel();
+        RCLCPP_INFO_STREAM(get_logger(), "Path topics not published -> Pub. rate: " << pathTimerRate << " Hz");
+    }
 }
 
 bool ZedCamera::startPosTracking() {
@@ -2754,6 +2898,13 @@ void ZedCamera::threadFunc_zedGrab() {
             }
         }
 
+        if(mDepthQuality!=sl::DEPTH_MODE::NONE) {
+            mObjDetMutex.lock();
+            if (mObjDetRunning) {
+                processDetectedObjects(mFrameTimestamp);
+            }
+            mObjDetMutex.unlock();
+        }
     }
 
     RCLCPP_DEBUG(get_logger(), "Grab thread finished");
@@ -2782,6 +2933,10 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t) {
 
         if( sl_tools::isZED2OrZED2i(mCamRealModel) ) {
             imu_TempSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
+            imu_MagSubNumber = count_subscribers(mPubImuMag->get_topic_name());
+            pressSubNumber = count_subscribers(mPubPressure->get_topic_name());
+            tempLeftSubNumber = count_subscribers(mPubTempL->get_topic_name());
+            tempRightSubNumber = count_subscribers(mPubTempR->get_topic_name());
         }
     }
     catch(...) {
@@ -3024,6 +3179,67 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t) {
         }
     }
 
+    if( sens_data.barometer.is_available && new_baro_data ) {
+        if(pressSubNumber>0) {
+            if( pressSubNumber>0 ) {
+                pressMsgPtr pressMsg = std::make_unique<sensor_msgs::msg::FluidPressure>();
+
+                pressMsg->header.stamp = ts_baro;
+                pressMsg->header.frame_id = mBaroFrameId;
+                pressMsg->fluid_pressure = sens_data.barometer.pressure * 1e-2; // Pascal
+                pressMsg->variance = 1.0585e-2;
+
+                mPubPressure->publish(std::move(pressMsg));
+            }
+        }
+
+        if (tempLeftSubNumber>0) {
+            tempMsgPtr leftTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+
+            leftTempMsg->header.stamp = ts_baro;
+
+            leftTempMsg->header.frame_id = mTempLeftFrameId;
+            leftTempMsg->temperature = static_cast<double>(mTempLeft);
+            leftTempMsg->variance = 0.0;
+
+            mPubTempL->publish(std::move(leftTempMsg));
+        }
+
+        if (tempRightSubNumber>0) {
+            tempMsgPtr rightTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+
+            rightTempMsg->header.stamp = ts_baro;
+
+            rightTempMsg->header.frame_id = mTempRightFrameId;
+            rightTempMsg->temperature = static_cast<double>(mTempRight);
+            rightTempMsg->variance = 0.0;
+
+            mPubTempR->publish(std::move(rightTempMsg));
+        }
+    }
+
+    if( sens_data.magnetometer.is_available && new_mag_data ) {
+        if( imu_MagSubNumber>0) {
+            magMsgPtr magMsg = std::make_unique<sensor_msgs::msg::MagneticField>();
+
+            magMsg->header.stamp = ts_mag;
+            magMsg->header.frame_id = mMagFrameId;
+            magMsg->magnetic_field.x = sens_data.magnetometer.magnetic_field_calibrated.x*1e-6; // Tesla
+            magMsg->magnetic_field.y = sens_data.magnetometer.magnetic_field_calibrated.y*1e-6; // Tesla
+            magMsg->magnetic_field.z = sens_data.magnetometer.magnetic_field_calibrated.z*1e-6; // Tesla
+            magMsg->magnetic_field_covariance[0] = 0.039e-6;
+            magMsg->magnetic_field_covariance[1] = 0.0f;
+            magMsg->magnetic_field_covariance[2] = 0.0f;
+            magMsg->magnetic_field_covariance[3] = 0.0f;
+            magMsg->magnetic_field_covariance[4] = 0.037e-6;
+            magMsg->magnetic_field_covariance[5] = 0.0f;
+            magMsg->magnetic_field_covariance[6] = 0.0f;
+            magMsg->magnetic_field_covariance[7] = 0.0f;
+            magMsg->magnetic_field_covariance[8] = 0.047e-6;
+
+            mPubImuMag->publish(std::move(magMsg));
+        }
+    }
     // <---- Sensors data publishing
 
     return ts_imu;
@@ -3262,6 +3478,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
     size_t stereoRawSubnumber = 0;
     size_t depthSubnumber = 0;
     size_t confMapSubnumber = 0;
+    size_t disparitySubnumber = 0;
 
     try {
         rgbSubnumber = count_subscribers(mPubRgb.getTopic());
@@ -3280,6 +3497,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
         stereoRawSubnumber = count_subscribers(mPubRawStereo.getTopic());
         depthSubnumber = count_subscribers(mPubDepth.getTopic());
         confMapSubnumber = count_subscribers(mPubConfMap->get_topic_name());
+        disparitySubnumber = count_subscribers(mPubDisparity->get_topic_name());
     }
     catch(...) {
         rcutils_reset_error();
@@ -3354,6 +3572,11 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
             if( ts_rgb.data_ns!=0 && (ts_depth.data_ns!=ts_rgb.data_ns) ) {
                 RCLCPP_WARN_STREAM(get_logger(), "!!!!! DEPTH/RGB ASYNC !!!!! - Delta: " << 1e-9*static_cast<double>(ts_depth-ts_rgb) << " sec");
             }
+        }
+        if(disparitySubnumber>0) {
+            mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
+            retrieved = true;
+            grab_ts=mat_disp.timestamp;
         }
         if(confMapSubnumber>0) {
             mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
@@ -3485,6 +3708,12 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
         mPubConfMap->publish(*sl_tools::imageToROSmsg(mat_conf, mDepthOptFrameId, timeStamp));
     }
     // <----  Publish the confidence image and map if someone has subscribed to
+
+    // ----> Publish the disparity image if someone has subscribed to
+    if (disparitySubnumber > 0) {
+        publishDisparity(mat_disp, timeStamp);
+    }
+    // <---- Publish the disparity image if someone has subscribed to
 
     return true;
 }
@@ -3816,6 +4045,136 @@ void ZedCamera::publishPose() {
     }
 }
 
+void ZedCamera::processDetectedObjects(rclcpp::Time t) {
+    size_t objdet_sub_count = 0;
+
+    try {
+        objdet_sub_count = count_subscribers(mPubObjDet->get_topic_name());
+    }
+    catch(...) {
+        rcutils_reset_error();
+        RCLCPP_DEBUG(get_logger(), "processDetectedObjects: Exception while counting subscribers");
+        return;
+    }
+
+    if(objdet_sub_count<1) {
+        return;
+    }
+
+    static std::chrono::steady_clock::time_point old_time = std::chrono::steady_clock::now();
+
+    sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
+
+    // ----> Process realtime dynamic parameters
+    objectTracker_parameters_rt.detection_confidence_threshold = mObjDetConfidence;
+    mObjDetFilter.clear();
+    if(mObjDetPeopleEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+    }
+    if(mObjDetVehiclesEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+    }
+    if(mObjDetBagsEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
+    }
+    if(mObjDetAnimalsEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
+    }
+    if(mObjDetElectronicsEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
+    }
+    if(mObjDetFruitsEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
+    }
+    objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
+    // <---- Process realtime dynamic parameters
+
+    sl::Objects objects;
+
+    sl::ERROR_CODE objDetRes = mZed.retrieveObjects(objects, objectTracker_parameters_rt);
+
+    if (objDetRes != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_WARN_STREAM(get_logger(), "Object Detection error: " << sl::toString(objDetRes));
+        return;
+    }
+
+    if(!objects.is_new) // Async object detection. Update data only if new detection is available
+    {
+        return;
+    }
+
+    // ----> Diagnostic information update
+    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+    double elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - old_time).count();
+    mObjDetPeriodMean_msec->addValue(elapsed_msec);
+    old_time = now;
+    // <---- Diagnostic information update
+
+    //RCLCPP_DEBUG_STREAM(get_logger(), "Detected " << objects.object_list.size() << " objects");
+
+    size_t objCount = objects.object_list.size();
+
+    objDetMsgPtr objMsg = std::make_unique<zed_interfaces::msg::ObjectsStamped>();
+
+    objMsg->header.stamp = t;
+    objMsg->header.frame_id = mLeftCamFrameId;
+
+    objMsg->objects.resize(objCount);
+
+    size_t idx = 0;
+    for (auto data : objects.object_list) {
+        objMsg->objects[idx].label = sl::toString(data.label).c_str();
+        objMsg->objects[idx].sublabel = sl::toString(data.sublabel).c_str();
+        objMsg->objects[idx].label_id = data.id;
+        objMsg->objects[idx].confidence = data.confidence;
+
+        memcpy(&(objMsg->objects[idx].position[0]), &(data.position[0]), 3*sizeof(float));
+        memcpy(&(objMsg->objects[idx].position_covariance[0]), &(data.position_covariance[0]), 6*sizeof(float));
+        memcpy(&(objMsg->objects[idx].velocity[0]), &(data.velocity[0]), 3*sizeof(float));
+
+        objMsg->objects[idx].tracking_state = static_cast<int8_t>(data.tracking_state);
+        objMsg->objects[idx].action_state = static_cast<int8_t>(data.action_state);
+
+        if(data.bounding_box_2d.size()==4) {
+            memcpy(&(objMsg->objects[idx].bounding_box_2d.corners[0]), &(data.bounding_box_2d[0]), 8*sizeof(unsigned int));
+        }
+        if(data.bounding_box.size()==8) {
+            memcpy(&(objMsg->objects[idx].bounding_box_3d.corners[0]), &(data.bounding_box[0]), 24*sizeof(float));
+        }
+
+        memcpy(&(objMsg->objects[idx].dimensions_3d[0]), &(data.dimensions[0]), 3*sizeof(float));
+
+        if(mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE ||
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION>=5
+                mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM ||
+#endif
+                mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_FAST ) {
+            objMsg->objects[idx].skeleton_available = true;
+
+            if(data.head_bounding_box_2d.size()==4) {
+                memcpy(&(objMsg->objects[idx].head_bounding_box_2d.corners[0]), &(data.head_bounding_box_2d[0]), 8*sizeof(unsigned int));
+            }
+            if(data.head_bounding_box.size()==8) {
+                memcpy(&(objMsg->objects[idx].head_bounding_box_3d.corners[0]), &(data.head_bounding_box[0]), 24*sizeof(float));
+            }
+            memcpy(&(objMsg->objects[idx].head_position[0]), &(data.head_position[0]), 3*sizeof(float));
+
+            if(data.keypoint_2d.size()==18) {
+                memcpy(&(objMsg->objects[idx].skeleton_2d.keypoints[0]), &(data.keypoint_2d[0]), 36*sizeof(float));
+            }
+            if(data.keypoint_2d.size()==18) {
+                memcpy(&(objMsg->objects[idx].skeleton_3d.keypoints[0]), &(data.keypoint[0]), 54*sizeof(float));
+            }
+        } else {
+            objMsg->objects[idx].skeleton_available = false;
+        }
+
+        // at the end of the loop
+        idx++;
+    }
+
+    mPubObjDet->publish(std::move(objMsg));
+}
 
 bool ZedCamera::isDepthRequired() {
     if ( mDepthQuality==sl::DEPTH_MODE::NONE ) {
@@ -3826,6 +4185,7 @@ bool ZedCamera::isDepthRequired() {
     try {
         topics_sub = count_subscribers(mPubDepth.getTopic())
                 + count_subscribers(mPubConfMap->get_topic_name())
+                + count_subscribers(mPubDisparity->get_topic_name())
                 + count_subscribers(mPubCloud->get_topic_name());
     }
     catch(...) {
@@ -3992,6 +4352,28 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat& depth, rclcpp::Time t) {
     mPubDepth.publish( openniDepthMsg, mDepthCamInfoMsg );
 }
 
+void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t) {
+    sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResolDepth);
+
+    std::shared_ptr<sensor_msgs::msg::Image> disparity_image =
+            sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, t);
+
+    dispMsgPtr disparityMsg = std::make_unique<stereo_msgs::msg::DisparityImage>();
+    disparityMsg->image = *disparity_image.get();
+    disparityMsg->header = disparityMsg->image.header;
+#if ZED_SDK_MAJOR_VERSION==3 && ZED_SDK_MINOR_VERSION<1
+    disparityMsg->f = zedParam.calibration_parameters.left_cam.fx;
+    disparityMsg->t = zedParam.calibration_parameters.T.x;
+#else
+    disparityMsg->f = zedParam.camera_configuration.calibration_parameters.left_cam.fx;
+    disparityMsg->t = zedParam.camera_configuration.calibration_parameters.getCameraBaseline();
+#endif
+    disparityMsg->min_disparity = disparityMsg->f * disparityMsg->t / mZed.getInitParameters().depth_minimum_distance;
+    disparityMsg->max_disparity = disparityMsg->f * disparityMsg->t / mZed.getInitParameters().depth_maximum_distance;
+
+    mPubDisparity->publish(std::move(disparityMsg));
+}
+
 void ZedCamera::publishPointCloud() {
 
     pointcloudMsgPtr pcMsg = std::make_unique<sensor_msgs::msg::PointCloud2>();
@@ -4144,6 +4526,81 @@ void ZedCamera::callback_pubFusedPc() {
     mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
 }
 
+void ZedCamera::callback_pubPaths() {
+    uint32_t mapPathSub = 0;
+    uint32_t odomPathSub = 0;
+
+    try {
+        mapPathSub = count_subscribers(mMapPathTopic);
+        odomPathSub = count_subscribers(mOdomPathTopic);
+    }
+    catch(...) {
+        rcutils_reset_error();
+        RCLCPP_DEBUG(get_logger(), "pubPaths: Exception while counting subscribers");
+        return;
+    }
+
+    geometry_msgs::msg::PoseStamped odomPose;
+    geometry_msgs::msg::PoseStamped mapPose;
+
+    odomPose.header.stamp = mFrameTimestamp;
+    odomPose.header.frame_id = mMapFrameId; // map_frame
+    odomPose.pose.position.x = mOdom2BaseTransf.getOrigin().x();
+    odomPose.pose.position.y = mOdom2BaseTransf.getOrigin().y();
+    odomPose.pose.position.z = mOdom2BaseTransf.getOrigin().z();
+    odomPose.pose.orientation.x = mOdom2BaseTransf.getRotation().x();
+    odomPose.pose.orientation.y = mOdom2BaseTransf.getRotation().y();
+    odomPose.pose.orientation.z = mOdom2BaseTransf.getRotation().z();
+    odomPose.pose.orientation.w = mOdom2BaseTransf.getRotation().w();
+
+    mapPose.header.stamp = mFrameTimestamp;
+    mapPose.header.frame_id = mMapFrameId; // map_frame
+    mapPose.pose.position.x = mMap2BaseTransf.getOrigin().x();
+    mapPose.pose.position.y = mMap2BaseTransf.getOrigin().y();
+    mapPose.pose.position.z = mMap2BaseTransf.getOrigin().z();
+    mapPose.pose.orientation.x = mMap2BaseTransf.getRotation().x();
+    mapPose.pose.orientation.y = mMap2BaseTransf.getRotation().y();
+    mapPose.pose.orientation.z = mMap2BaseTransf.getRotation().z();
+    mapPose.pose.orientation.w = mMap2BaseTransf.getRotation().w();
+
+    // Circular vector
+    if (mPathMaxCount != -1) {
+        if (mOdomPath.size() == mPathMaxCount) {
+            RCLCPP_DEBUG(get_logger(), "Path vectors full: rotating ");
+            std::rotate(mOdomPath.begin(), mOdomPath.begin() + 1, mOdomPath.end());
+            std::rotate(mMapPath.begin(), mMapPath.begin() + 1, mMapPath.end());
+
+            mMapPath[mPathMaxCount - 1] = mapPose;
+            mOdomPath[mPathMaxCount - 1] = odomPose;
+        } else {
+            //RCLCPP_DEBUG(get_logger(), "Path vectors adding last available poses");
+            mMapPath.push_back(mapPose);
+            mOdomPath.push_back(odomPose);
+        }
+    } else {
+        //RCLCPP_DEBUG(get_logger(), "No limit path vectors, adding last available poses");
+        mMapPath.push_back(mapPose);
+        mOdomPath.push_back(odomPose);
+    }
+
+    if (mapPathSub > 0) {
+        pathMsgPtr mapPath = std::make_unique<nav_msgs::msg::Path>();
+        mapPath->header.frame_id = mMapFrameId;
+        mapPath->header.stamp = mFrameTimestamp;
+        mapPath->poses = mMapPath;
+
+        mPubPosePath->publish(std::move(mapPath));
+    }
+
+    if (odomPathSub > 0) {
+        pathMsgPtr odomPath = std::make_unique<nav_msgs::msg::Path>();
+        odomPath->header.frame_id = mMapFrameId;
+        odomPath->header.stamp = mFrameTimestamp;
+        odomPath->poses = mOdomPath;
+
+        mPubOdomPath->publish(std::move(odomPath));
+    }
+}
 
 void ZedCamera::callback_resetOdometry(const std::shared_ptr<rmw_request_id_t> request_header,
                                        const std::shared_ptr<std_srvs::srv::Trigger_Request> req,

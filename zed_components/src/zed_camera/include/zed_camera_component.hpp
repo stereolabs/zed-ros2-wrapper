@@ -51,6 +51,7 @@
 #include <nav_msgs/msg/path.hpp>
 
 #include <std_srvs/srv/trigger.hpp>
+#include <std_srvs/srv/empty.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
 #include <sl/Camera.hpp>

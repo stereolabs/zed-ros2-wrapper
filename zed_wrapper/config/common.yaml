@@ -18,8 +18,8 @@
             serial_number:              0
             resolution:                 2                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
             sdk_verbose:                true
-            grab_frame_rate:            30                                  # ZED SDK internal grabbing rate
-            pub_frame_rate:             15.0                                # [DYNAMIC] - frequency of publishing of visual images and depth images
+            grab_frame_rate:            100                                  # ZED SDK internal grabbing rate
+            pub_frame_rate:             25.0                                # [DYNAMIC] - frequency of publishing of visual images and depth images
             gpu_id:                     -1
 
         video:
@@ -42,12 +42,12 @@
             qos_durability:             2                                   # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         depth:
-            quality:                    1                                   # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            quality:                    0                                   # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             sensing_mode:               0                                   # '0': STANDARD, '1': FILL
             depth_stabilization:        true
             openni_depth_mode:          false                               # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
             depth_downsample_factor:    0.5                                 # Resample factor for depth data matrices [0.01,1.0] The SDK works with native data sizes, but publishes rescaled matrices (depth map, point cloud, ...)
-            point_cloud_freq:           10.0                                # [DYNAMIC] - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
+            point_cloud_freq:           20.0                                # [DYNAMIC] - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
             depth_confidence:           50                                  # [DYNAMIC]
             depth_texture_conf:         100                                 # [DYNAMIC]
             qos_history:                1                                   # '1': KEEP_LAST - '2': KEEP_ALL
@@ -58,8 +58,8 @@
         pos_tracking:
             pos_tracking_enabled:       true                                # True to enable positional tracking from start
             publish_tf:                 true                                # publish `odom -> base_link` TF
-            publish_map_tf:             true                                # publish `map -> odom` TF
-            base_frame:                 'base_link'                         # use the same name as in the URDF file
+            publish_map_tf:             false                                # publish `map -> odom` TF
+            base_frame:                 'zed_link'                         # use the same name as in the URDF file
             map_frame:                  'map'
             odometry_frame:             'odom'
             area_memory_db_path:        ''
@@ -77,7 +77,7 @@
             qos_durability:             2                                   # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         mapping:
-            mapping_enabled:            false                               # True to enable mapping and fused point cloud pubblication
+            mapping_enabled:            true                               # True to enable mapping and fused point cloud pubblication
             resolution:                 0.1                                # maps resolution in meters [0.01f, 0.2f]
             max_mapping_range:          20.0                                  # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
             fused_pointcloud_freq:      0.5                                 # frequency of the publishing of the fused colored point cloud

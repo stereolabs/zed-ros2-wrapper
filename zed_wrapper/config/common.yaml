@@ -58,8 +58,8 @@
         pos_tracking:
             pos_tracking_enabled:       true                                # True to enable positional tracking from start
             publish_tf:                 true                                # publish `odom -> base_link` TF
-            publish_map_tf:             false                                # publish `map -> odom` TF
-            base_frame:                 'zed_link'                         # use the same name as in the URDF file
+            publish_map_tf:             false                               # publish `map -> odom` TF
+            base_frame:                 'zed_link'                          # use the same name as in the URDF file
             map_frame:                  'map'
             odometry_frame:             'odom'
             area_memory_db_path:        ''

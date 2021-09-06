@@ -1889,7 +1889,7 @@ bool ZedCamera::startCamera() {
             RCLCPP_INFO(get_logger(), "Please verify the USB3 connection");
         }
 
-        if (!rclcpp::ok() || mThreadStop) {
+        if (!rclcpp::ok() || mThreadStop || request_for_destroy) {
             RCLCPP_INFO(get_logger(), "ZED activation interrupted");
 
             return false;
@@ -3380,7 +3380,7 @@ void ZedCamera::threadFunc_pointcloudElab() {
     RCLCPP_DEBUG(get_logger(), "Point Cloud thread started");
 
     while (1) {
-        if (!rclcpp::ok()) {
+        if (!rclcpp::ok() or request_for_destroy) {
             RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping point cloud thread");
             break;
         }
@@ -3390,7 +3390,7 @@ void ZedCamera::threadFunc_pointcloudElab() {
         while (!mPcDataReady) { // loop to avoid spurious wakeups
             if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
                 // Check thread stopping
-                if (!rclcpp::ok()) {
+                if (!rclcpp::ok() or request_for_destroy) {
                     RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping point cloud thread");
                     mThreadStop = true;
                     break;

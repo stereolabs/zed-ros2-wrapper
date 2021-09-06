@@ -183,6 +183,9 @@ protected:
     void callback_pauseSvoInput(const std::shared_ptr<rmw_request_id_t> request_header,
                                 const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
                                 std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+    void callback_stopSlam(const std::shared_ptr<rmw_request_id_t> request_header,
+                           const std::shared_ptr<std_srvs::srv::Empty_Request> req,
+                           std::shared_ptr<std_srvs::srv::Empty_Response> res);
 
     // <---- Callbacks
 

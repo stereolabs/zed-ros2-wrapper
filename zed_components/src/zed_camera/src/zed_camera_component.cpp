@@ -2220,7 +2220,7 @@ bool ZedCamera::start3dMapping() {
     RCLCPP_INFO_STREAM(get_logger(), "*** Starting Spatial Mapping ***");
 
     sl::SpatialMappingParameters params;
-    params.map_type = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::FUSED_POINT_CLOUD;
+    params.map_type = sl::SpatialMappingParameters::SPATIAL_MAP_TYPE::MESH;
     params.use_chunk_only = true;
 
     sl::SpatialMappingParameters spMapPar;

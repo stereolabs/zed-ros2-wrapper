@@ -68,14 +68,10 @@ namespace stereolabs {
 // ----> Typedefs to simplify declarations
 
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> imagePub;
-typedef std::shared_ptr<rclcpp::Publisher<stereo_msgs::msg::DisparityImage>> disparityPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>> pointcloudPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Imu>> imuPub;
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::MagneticField>> magPub;
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::FluidPressure>> pressPub;
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Temperature>> tempPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> posePub;
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>> poseCovPub;
@@ -83,16 +79,10 @@ typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::TransformStamped>>
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odomPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
 
-typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::ObjectsStamped>> objPub;
-
 typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::PointCloud2> pointcloudMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::Imu> imuMsgPtr;
-typedef std::unique_ptr<sensor_msgs::msg::FluidPressure> pressMsgPtr;
-typedef std::unique_ptr<sensor_msgs::msg::Temperature> tempMsgPtr;
-typedef std::unique_ptr<sensor_msgs::msg::MagneticField> magMsgPtr;
-typedef std::unique_ptr<stereo_msgs::msg::DisparityImage> dispMsgPtr;
 
 typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped> poseCovMsgPtr;
@@ -132,7 +122,6 @@ protected:
     void getPosTrackingParams();
     void getSensorsParams();
     void getMappingParams();
-    void getOdParams();
 
     void setTFCoordFrameNames();
     void initPublishers();
@@ -198,7 +187,6 @@ protected:
                               camInfoMsgPtr& camInfoMsg,
                               std::string imgFrameId, rclcpp::Time t);
     void publishDepthMapWithInfo(sl::Mat &depth, rclcpp::Time t);
-    void publishDisparity(sl::Mat disparity, rclcpp::Time t);
     void publishPointCloud();
     void publishStaticImuFrameAndTopic();
 
@@ -219,8 +207,6 @@ protected:
 
     void processOdometry();
     void processPose();
-
-    void processDetectedObjects(rclcpp::Time t);
 
     bool setPose(float xt, float yt, float zt, float rr, float pr, float yr);
     void initTransforms();
@@ -448,7 +434,6 @@ private:
     image_transport::CameraPublisher mPubRawRightGray; //
 
     imagePub mPubConfMap; //
-    disparityPub mPubDisparity; //
     pointcloudPub mPubCloud; //
     pointcloudPub mPubFusedCloud; //
     posePub mPubPose; //
@@ -458,13 +443,7 @@ private:
     pathPub mPubPosePath; //
     imuPub mPubImu; //
     imuPub mPubImuRaw; //
-    tempPub mPubImuTemp; //
-    magPub mPubImuMag; //
-    pressPub mPubPressure; //
-    tempPub mPubTempL; //
-    tempPub mPubTempR; //
     transfPub mPubCamImuTransf; //;
-    objPub mPubObjDet;
     // <---- Publishers
 
     // ----> Threads and Timers

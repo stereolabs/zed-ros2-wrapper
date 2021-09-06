@@ -16,7 +16,7 @@
             camera_flip:                false
             zed_id:                     0
             serial_number:              0
-            resolution:                 2                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
+            resolution:                 1                                   # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
             sdk_verbose:                true
             grab_frame_rate:            60                                  # ZED SDK internal grabbing rate
             pub_frame_rate:             25.0                                # [DYNAMIC] - frequency of publishing of visual images and depth images

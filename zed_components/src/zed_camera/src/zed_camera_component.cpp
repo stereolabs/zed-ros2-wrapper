@@ -225,6 +225,11 @@ void ZedCamera::initServices() {
                                                           std::bind(&ZedCamera::callback_pauseSvoInput,
                                                                     this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+
+    mStopSlamSrv = create_service<std_srvs::srv::Empty>(mSrvStopNode,
+                                                          std::bind(&ZedCamera::callback_stopSlam,
+                                                                    this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
 }
 
 template<typename T>
@@ -4931,6 +4936,16 @@ void ZedCamera::callback_pauseSvoInput(const std::shared_ptr<rmw_request_id_t> r
         mSvoPause = false;
     }
     res->success = true;
+}
+
+void ZedCamera::callback_stopSlam(const std::shared_ptr<rmw_request_id_t> request_header,
+                                  const std::shared_ptr<std_srvs::srv::Empty_Request> req,
+                                  std::shared_ptr<std_srvs::srv::Empty_Response> res) {
+    (void)request_header;
+
+    RCLCPP_INFO(get_logger(), "** Stop Slam service called **");
+
+    
 }
 
 } // namespace stereolabs

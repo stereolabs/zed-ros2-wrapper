@@ -110,6 +110,7 @@ typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;
 typedef rclcpp::Service<zed_interfaces::srv::StartSvoRec>::SharedPtr startSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoPtr;
+typedef rclcpp::Service<std_srvs::srv::Empty>::SharedPtr stopSlamPtr;
 // <---- Typedefs to simplify declarations
 
 class ZedCamera : public rclcpp::Node
@@ -559,6 +560,8 @@ private:
     startSvoRecSrvPtr mStartSvoRecSrv;
     stopSvoRecSrvPtr mStopSvoRecSrv;
     pauseSvoPtr mPauseSvoSrv;
+    stopSlamPtr mStopSlamSrv;
+
     // <---- Services
 
     // ----> Services names
@@ -570,6 +573,7 @@ private:
     const std::string mSrvStartSvoRecName = "start_svo_rec";
     const std::string mSrvStopSvoRecName = "stop_svo_rec";
     const std::string mSrvToggleSvoPauseName = "toggle_svo_pause";
+    const std::string mSrvStopNode = "/zed_camera/stop_slam";
     // <---- Services names
 };
 

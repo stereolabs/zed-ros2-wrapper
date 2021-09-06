@@ -249,6 +249,7 @@ private:
     sl::RuntimeParameters mRunParams;
 
     uint64_t mFrameCount = 0;
+    bool request_for_destroy = false;
 
     // ----> Topics
     std::string mTopicRoot = "~/";

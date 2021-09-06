@@ -58,6 +58,8 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions &options)
     , mMappingQos(1)
     , mObjDetQos(1) {
 
+    request_for_destroy = false;
+
     RCLCPP_INFO(get_logger(), "********************************");
     RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
     RCLCPP_INFO(get_logger(), "********************************");
@@ -2716,7 +2718,7 @@ void ZedCamera::threadFunc_zedGrab() {
     // Infinite grab thread
     while(1) {
         // ----> Interruption check
-        if (!rclcpp::ok()) {
+        if (!rclcpp::ok() or request_for_destroy) {
             RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping grab thread");
             break;
         }
@@ -4944,6 +4946,8 @@ void ZedCamera::callback_stopSlam(const std::shared_ptr<rmw_request_id_t> reques
     (void)request_header;
 
     RCLCPP_INFO(get_logger(), "** Stop Slam service called **");
+
+    request_for_destroy = true;
 
     
 }

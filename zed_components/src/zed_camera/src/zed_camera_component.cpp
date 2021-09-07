@@ -157,6 +157,7 @@ ZedCamera::~ZedCamera() {
         } catch (std::system_error& e) {
             RCLCPP_WARN(get_logger(), "Pointcloud thread joining exception: %s", e.what());
         }
+
         RCLCPP_DEBUG(get_logger(), "... Point Cloud thread stopped");
     }
     // <---- Verify that the grab thread is not active
@@ -2715,6 +2716,15 @@ void ZedCamera::threadFunc_zedGrab() {
     mRunParams.measure3D_reference_frame = sl::REFERENCE_FRAME::CAMERA;
     // <---- Grab Runtime parameters
 
+
+    // ----> Apply depth settings
+    applyDepthSettings();
+    // <---- Apply depth settings
+
+    // ----> Apply video dynamic parameters
+    applyVideoSettings();
+    // <---- Apply video dynamic parameters
+
     // Infinite grab thread
     while(1) {
         // ----> Interruption check
@@ -2732,14 +2742,6 @@ void ZedCamera::threadFunc_zedGrab() {
         // Wait for operations on Positional Tracking
         std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
-        // ----> Apply depth settings
-        applyDepthSettings();
-        // <---- Apply depth settings
-
-        // ----> Apply video dynamic parameters
-        applyVideoSettings();
-        // <---- Apply video dynamic parameters
-
         // ----> Check for Positional Tracking requirement
         if ( isPosTrackingRequired() && !mPosTrackingStarted ) {
             startPosTracking();
@@ -2756,6 +2758,7 @@ void ZedCamera::threadFunc_zedGrab() {
         }
         // <---- Check for Spatial Mapping requirement
 
+        /*
         // ----> Check for Object Detection requirement
         if(mDepthQuality!=sl::DEPTH_MODE::NONE) {
             mObjDetMutex.lock();
@@ -2767,6 +2770,7 @@ void ZedCamera::threadFunc_zedGrab() {
             }
             mObjDetMutex.unlock();
         }
+        */
         // ----> Check for Object Detection requirement
 
         // ----> Wait for RGB/Depth synchronization before grabbing

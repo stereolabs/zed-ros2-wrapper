@@ -2801,7 +2801,7 @@ void ZedCamera::threadFunc_zedGrab() {
         //                            " Freq: " << 1e6/mGrabPeriodMean_usec->getMean() );
         // <---- Grab freq calculation
 
-
+        /*
         if(mSvoMode && !mSvoRealtime) {
             static bool first = true;
 
@@ -2818,6 +2818,7 @@ void ZedCamera::threadFunc_zedGrab() {
                 }
             }
         }
+        */
 
         if(!mSvoPause) {
             // ZED grab
@@ -2855,11 +2856,12 @@ void ZedCamera::threadFunc_zedGrab() {
             // <---- Timestamp
 
             // ----> Check recording status
+            /*
             mRecMutex.lock();
             if (mRecording) {
                 mRecStatus = mZed.getRecordingStatus().status;
 
-                if (!mRecStatus/*.status*/) {
+                if (!mRecStatus.status) {
                     rclcpp::Clock steady_clock(RCL_STEADY_TIME);
                     RCLCPP_ERROR_THROTTLE(get_logger(), steady_clock, 1.0, "Error saving frame to SVO");
                 }
@@ -2868,6 +2870,7 @@ void ZedCamera::threadFunc_zedGrab() {
                 //mDiagUpdater.force_update();
             }
             mRecMutex.unlock();
+            */
             // <---- Check recording status
         }
 
@@ -2914,7 +2917,7 @@ void ZedCamera::threadFunc_zedGrab() {
                 mPcPublishing = false;
             }
         }
-
+        /*
         if(mDepthQuality!=sl::DEPTH_MODE::NONE) {
             mObjDetMutex.lock();
             if (mObjDetRunning) {
@@ -2922,6 +2925,7 @@ void ZedCamera::threadFunc_zedGrab() {
             }
             mObjDetMutex.unlock();
         }
+        */
     }
 
     RCLCPP_DEBUG(get_logger(), "Grab thread finished");

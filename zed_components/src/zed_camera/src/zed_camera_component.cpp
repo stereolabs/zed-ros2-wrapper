@@ -2749,6 +2749,7 @@ void ZedCamera::threadFunc_zedGrab() {
         // ----> Check for Positional Tracking requirement
 
         // ----> Check for Spatial Mapping requirement
+        /*
         if(mDepthQuality!=sl::DEPTH_MODE::NONE) {
             mMappingMutex.lock();
             if (mMappingEnabled && !mMappingRunning) {
@@ -2756,6 +2757,7 @@ void ZedCamera::threadFunc_zedGrab() {
             }
             mMappingMutex.unlock();
         }
+        */
         // <---- Check for Spatial Mapping requirement
 
         /*

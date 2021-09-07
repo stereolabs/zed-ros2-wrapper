@@ -2906,7 +2906,7 @@ void ZedCamera::threadFunc_zedGrab() {
                 std::unique_lock<std::mutex> lock(mPcMutex, std::defer_lock);
 
                 if (lock.try_lock()) {
-                    mZed.retrieveMeasure(mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mMatResolDepth);
+                    mZed.retrieveMeasure(mMatCloud, sl::MEASURE::XYZ, sl::MEM::CPU, mMatResolDepth);
 
                     // Signal Pointcloud thread that a new pointcloud is ready
                     mPcDataReadyCondVar.notify_one();

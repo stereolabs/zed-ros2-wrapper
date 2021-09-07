@@ -4949,6 +4949,10 @@ void ZedCamera::callback_stopSlam(const std::shared_ptr<rmw_request_id_t> reques
 
     request_for_destroy = true;
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+    rclcpp::shutdown();
+
     
 }
 

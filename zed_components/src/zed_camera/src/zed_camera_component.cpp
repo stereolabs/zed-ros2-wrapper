@@ -2696,7 +2696,7 @@ void ZedCamera::publishStaticImuFrameAndTopic() {
     }
 
     // Publish transformation
-    mStaticTfBroadcaster->sendTransform(*(mCameraImuTransfMgs.get()));
+    // mStaticTfBroadcaster->sendTransform(*(mCameraImuTransfMgs.get()));
 
     RCLCPP_INFO_STREAM(get_logger(), "Published static TF: '" << mImuFrameId << "' -> '" << mLeftCamFrameId << "'" );
 
@@ -3268,6 +3268,7 @@ void ZedCamera::publishTFs(rclcpp::Time t) {
         return;
     }
 
+    /*
     // Publish pose tf only if enabled
     if(mDepthQuality!=sl::DEPTH_MODE::NONE && mPublishTF) {
         publishOdomTF(t); // publish the base Frame in odometry frame
@@ -3282,6 +3283,7 @@ void ZedCamera::publishTFs(rclcpp::Time t) {
             }
         }
     }
+    */
 }
 
 void ZedCamera::publishOdomTF(rclcpp::Time t) {

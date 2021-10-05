@@ -316,7 +316,7 @@ void ZedCamera::getGeneralParams() {
     getParam( "force_publish_image_depth", force_depth_image_pub, force_depth_image_pub,  " * Force Publish Depth Image: ");
     getParam( "force_publish_image_stream", force_image_pub, force_image_pub, " * Force Publish Image: ");
 
-    RCLCPP_INFO(get_logger(), " * force_publish_image_depth: %s", force_publish_image_depth?"TRUE":"FALSE");
+    RCLCPP_INFO(get_logger(), " * force_depth_image_pub: %s", force_depth_image_pub?"TRUE":"FALSE");
     RCLCPP_INFO(get_logger(), " * force_image_pub: %s", force_image_pub?"TRUE":"FALSE");
     // TODO ADD SVO SAVE COMPRESSION PARAMETERS
 

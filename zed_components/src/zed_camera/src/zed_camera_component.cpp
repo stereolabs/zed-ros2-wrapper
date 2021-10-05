@@ -3584,7 +3584,6 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
             grab_ts=mat_right_raw_gray.timestamp;
         }
         if(depthSubnumber>0 or this->force_depth_image_pub) {
-            RCLCPP_WARN_STREAM(get_logger(), "Publishing Depth on " << mPubDepth.getTopic());
             mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
             retrieved = true;
             grab_ts=mat_depth.timestamp;
@@ -3674,7 +3673,6 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
 
     // ----> Publish the left_raw_gray=rgb_raw_gray image if someone has subscribed to
     if (leftGrayRawSubnumber > 0 or this->force_image_pub) {
-        RCLCPP_WARN_STREAM(get_logger(), "Publishing Stream on " << mPubRawLeftGray.getTopic());
         publishImageWithInfo( mat_left_raw_gray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
     }
     if (rgbGrayRawSubnumber > 0) {

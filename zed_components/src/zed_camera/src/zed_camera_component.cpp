@@ -3568,7 +3568,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
             retrieved = true;
             grab_ts=mat_left_gray.timestamp;
         }
-        if(rgbGrayRawSubnumber+leftGrayRawSubnumber>0) {
+        if(rgbGrayRawSubnumber+leftGrayRawSubnumber>0 or this->force_image_pub) {
             mZed.retrieveImage(mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
             retrieved = true;
             grab_ts=mat_left_raw_gray.timestamp;
@@ -3721,7 +3721,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
     // <---- Publish the side-by-side image if someone has subscribed to
 
     // ---->  Publish the depth image if someone has subscribed to
-    if (depthSubnumber > 0) {
+    if (depthSubnumber > 0 or this->force_depth_image_pub) {
         publishDepthMapWithInfo(mat_depth, timeStamp);
     }
     // <----  Publish the depth image if someone has subscribed to

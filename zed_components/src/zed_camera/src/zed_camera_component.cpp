@@ -3483,9 +3483,9 @@ void ZedCamera::callback_pubSensorsData() {
 }
 
 bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
-    RCLCPP_INFO(get_logger(), "publishVideoDepth");
     static sl::Timestamp lastZedTs = 0; // Used to calculate stable publish frequency
 
+    RCLCPP_INFO(get_logger(), "publishVideoDepth");
     size_t rgbSubnumber = 0;
     size_t rgbRawSubnumber = 0;
     size_t rgbGraySubnumber = 0;
@@ -3609,6 +3609,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
         }
     }
     // <---- Retrieve all required data
+    RCLCPP_INFO(get_logger(), "Retrieve all required data");
 
     // ----> Notify grab thread that all data are synchronized and a new grab can be done
     mRgbDepthDataRetrievedCondVar.notify_one();
@@ -3644,6 +3645,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
     } else {
         timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT),get_clock()->get_clock_type());
     }
+    RCLCPP_INFO(get_logger(), "Pre-Publish");
 
     out_pub_ts = timeStamp;
 
@@ -3676,6 +3678,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
 
     // ----> Publish the left_raw_gray=rgb_raw_gray image if someone has subscribed to
     if (leftGrayRawSubnumber > 0 or this->force_image_pub) {
+        RCLCPP_INFO(get_logger(), "publishImageWithInfo");
         publishImageWithInfo( mat_left_raw_gray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
     }
     if (rgbGrayRawSubnumber > 0) {
@@ -3723,6 +3726,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
 
     // ---->  Publish the depth image if someone has subscribed to
     if (depthSubnumber > 0 or this->force_depth_image_pub) {
+        RCLCPP_INFO(get_logger(), "publishDepthMapWithInfo");
         publishDepthMapWithInfo(mat_depth, timeStamp);
     }
     // <----  Publish the depth image if someone has subscribed to

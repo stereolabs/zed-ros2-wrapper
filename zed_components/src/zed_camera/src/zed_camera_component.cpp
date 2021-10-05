@@ -3483,7 +3483,7 @@ void ZedCamera::callback_pubSensorsData() {
 }
 
 bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
-    RCLCPP_DEBUG(get_logger(), "publishVideoDepth");
+    RCLCPP_INFO(get_logger(), "publishVideoDepth");
     static sl::Timestamp lastZedTs = 0; // Used to calculate stable publish frequency
 
     size_t rgbSubnumber = 0;

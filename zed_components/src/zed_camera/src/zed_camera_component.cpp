@@ -313,6 +313,9 @@ void ZedCamera::getGeneralParams() {
     getParam( "general.grab_frame_rate", mCamGrabFrameRate, mCamGrabFrameRate,  " * Camera framerate: ");
     getParam( "general.gpu_id", mGpuId, mGpuId,  " * GPU ID: ");
 
+    getParam( "force_publish_image_depth", force_depth_image_pub, force_depth_image_pub,  " * Force Publish Depth Image: ");
+    getParam( "force_publish_image_stream", force_image_pub, force_image_pub, " * Force Publish Image: ");
+
     // TODO ADD SVO SAVE COMPRESSION PARAMETERS
 
     int resol = static_cast<int>(mCamResol);
@@ -1418,13 +1421,13 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
 void ZedCamera::setTFCoordFrameNames()
 {
     // ----> Coordinate frames
-    mCameraFrameId = "zed_link";
-    mLeftCamFrameId = "zed_link";
-    mLeftCamOptFrameId = "zed_link";
-    mRightCamFrameId = "zed_link";
-    mRightCamOptFrameId = "zed_link";
+    mCameraFrameId = mBaseFrameId;
+    mLeftCamFrameId = mBaseFrameId;
+    mLeftCamOptFrameId = mBaseFrameId;
+    mRightCamFrameId = mBaseFrameId;
+    mRightCamOptFrameId = mBaseFrameId;
 
-    mImuFrameId = "zed_link";
+    mImuFrameId = mBaseFrameId;
     mBaroFrameId = mCameraFrameId; // mCameraName + "_baro_link";   // TODO fix when XACRO is available
     mMagFrameId = mImuFrameId; // mCameraName + "_mag_link"; // TODO fix when XACRO is available
     mTempLeftFrameId = mLeftCamFrameId; // mCameraName + "_temp_left_link"; // TODO fix when XACRO is available
@@ -3577,7 +3580,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
             retrieved = true;
             grab_ts=mat_right_raw_gray.timestamp;
         }
-        if(depthSubnumber>0) {
+        if(depthSubnumber>0 or this->force_depth_image_pub) {
             mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
             retrieved = true;
             grab_ts=mat_depth.timestamp;
@@ -3666,7 +3669,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
     // <---- Publish the left_raw=rgb_raw image if someone has subscribed to
 
     // ----> Publish the left_raw_gray=rgb_raw_gray image if someone has subscribed to
-    if (leftGrayRawSubnumber > 0) {
+    if (leftGrayRawSubnumber > 0 or this->force_image_pub) {
         publishImageWithInfo( mat_left_raw_gray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
     }
     if (rgbGrayRawSubnumber > 0) {

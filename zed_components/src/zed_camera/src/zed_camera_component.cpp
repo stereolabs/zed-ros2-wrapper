@@ -2072,6 +2072,7 @@ bool ZedCamera::startCamera() {
     // Start data publishing timer
     startVideoDepthTimer(mPubFrameRate);
 
+    /*
     if(!mSvoMode && mCamRealModel != sl::MODEL::ZED ) {
 
         if(mSensPubRate==400.) {
@@ -2083,6 +2084,7 @@ bool ZedCamera::startCamera() {
                     std::chrono::duration_cast<std::chrono::milliseconds>(sensorsPubPeriod_msec),
                     std::bind(&ZedCamera::callback_pubSensorsData, this) );
     }
+    */
 
     return true;
 }
@@ -3447,7 +3449,7 @@ void ZedCamera::callback_pubVideoDepth() {
 
     static rclcpp::Time prev_ts=TIMEZERO_ROS;
 
-    std::lock_guard<std::mutex> lock(mCloseZedMutex);
+    // std::lock_guard<std::mutex> lock(mCloseZedMutex);
     mPublishingData = false;
 
     rclcpp::Time pub_ts;
@@ -3481,6 +3483,7 @@ void ZedCamera::callback_pubSensorsData() {
 }
 
 bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
+    RCLCPP_DEBUG(get_logger(), "publishVideoDepth");
     static sl::Timestamp lastZedTs = 0; // Used to calculate stable publish frequency
 
     size_t rgbSubnumber = 0;

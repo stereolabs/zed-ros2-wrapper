@@ -316,8 +316,9 @@ void ZedCamera::getGeneralParams() {
     getParam( "force_publish_image_depth", force_depth_image_pub, force_depth_image_pub,  " * Force Publish Depth Image: ");
     getParam( "force_publish_image_stream", force_image_pub, force_image_pub, " * Force Publish Image: ");
 
-    RCLCPP_INFO(get_logger(), " * force_depth_image_pub: %s", force_depth_image_pub?"TRUE":"FALSE");
-    RCLCPP_INFO(get_logger(), " * force_image_pub: %s", force_image_pub?"TRUE":"FALSE");
+    RCLCPP_INFO(get_logger(), " * Force Publish Image Depth: %s", force_depth_image_pub?"TRUE":"FALSE");
+    RCLCPP_INFO(get_logger(), " * Force Publish Image Stream: %s", force_image_pub?"TRUE":"FALSE");
+
     // TODO ADD SVO SAVE COMPRESSION PARAMETERS
 
     int resol = static_cast<int>(mCamResol);
@@ -3583,6 +3584,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
             grab_ts=mat_right_raw_gray.timestamp;
         }
         if(depthSubnumber>0 or this->force_depth_image_pub) {
+            RCLCPP_WARN_STREAM(get_logger(), "Publishing Depth on " << mPubDepth.getTopic());
             mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
             retrieved = true;
             grab_ts=mat_depth.timestamp;
@@ -3672,6 +3674,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
 
     // ----> Publish the left_raw_gray=rgb_raw_gray image if someone has subscribed to
     if (leftGrayRawSubnumber > 0 or this->force_image_pub) {
+        RCLCPP_WARN_STREAM(get_logger(), "Publishing Stream on " << mPubRawLeftGray.getTopic());
         publishImageWithInfo( mat_left_raw_gray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
     }
     if (rgbGrayRawSubnumber > 0) {

@@ -3617,6 +3617,7 @@ bool ZedCamera::publishVideoDepth( rclcpp::Time& out_pub_ts) {
     // <---- Notify grab thread that all data are synchronized and a new grab can be done
 
     if(!retrieved) {
+        RCLCPP_INFO(get_logger(), "Not Retrived!");
         lastZedTs = 0;
         out_pub_ts = TIMEZERO_ROS;
         return false;

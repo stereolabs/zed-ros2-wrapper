@@ -1424,19 +1424,19 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
 void ZedCamera::setTFCoordFrameNames()
 {
     // ----> Coordinate frames
-    mCameraFrameId = mBaseFrameId;
-    mLeftCamFrameId = mBaseFrameId;
-    mLeftCamOptFrameId = mBaseFrameId;
-    mRightCamFrameId = mBaseFrameId;
-    mRightCamOptFrameId = mBaseFrameId;
+    mCameraFrameId = "zed_link";
+    mLeftCamFrameId = mCameraFrameId;
+    mLeftCamOptFrameId = mCameraFrameId;
+    mRightCamFrameId = mCameraFrameId;
+    mRightCamOptFrameId = mCameraFrameId;
 
-    mImuFrameId = mBaseFrameId;
+    mImuFrameId = mCameraFrameId;
     mBaroFrameId = mCameraFrameId; // mCameraName + "_baro_link";   // TODO fix when XACRO is available
     mMagFrameId = mImuFrameId; // mCameraName + "_mag_link"; // TODO fix when XACRO is available
     mTempLeftFrameId = mLeftCamFrameId; // mCameraName + "_temp_left_link"; // TODO fix when XACRO is available
     mTempRightFrameId = mRightCamFrameId; //mCameraName + "_temp_right_link"; // TODO fix when XACRO is available
 
-    mDepthFrameId = mLeftCamFrameId;
+    mDepthFrameId = "mLeftCamFrameId";
     mDepthOptFrameId = mLeftCamOptFrameId;
     mPointCloudFrameId = mDepthFrameId;
 
@@ -3838,8 +3838,8 @@ void ZedCamera::publishOdom(tf2::Transform& odom2baseTransf, sl::Pose& slPose, r
     odomMsgPtr odomMsg = std::make_unique<nav_msgs::msg::Odometry>();
 
     odomMsg->header.stamp = t;
-    odomMsg->header.frame_id = mOdomFrameId; // frame
-    odomMsg->child_frame_id = mBaseFrameId;      // camera_frame
+    odomMsg->header.frame_id = mOdomFrameId;        // frame
+    odomMsg->child_frame_id = mBaseFrameId;         // camera_frame
 
     // Add all value in odometry message
     odomMsg->pose.pose.position.x = odom2baseTransf.getOrigin().x();

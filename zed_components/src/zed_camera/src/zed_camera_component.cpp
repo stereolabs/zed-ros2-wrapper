@@ -734,6 +734,7 @@ void ZedCamera::getPosTrackingParams() {
     getParam( "pos_tracking.base_frame", mBaseFrameId, mBaseFrameId,  " * Base frame id: ");
     getParam( "pos_tracking.map_frame", mMapFrameId, mMapFrameId,  " * Map frame id: ");
     getParam( "pos_tracking.odometry_frame", mOdomFrameId, mOdomFrameId,  " * Odometry frame id: ");
+    getParam( "pos_tracking.camera_frame", mCameraFrameId, mCameraFrameId,  " * Camera frame id: ");
 
     getParam( "pos_tracking.publish_tf", mPublishTF, mPublishTF );
     RCLCPP_INFO_STREAM(get_logger(), " * Broadcast Odometry TF: " << (mPublishTF?"TRUE":"FALSE") );
@@ -1424,8 +1425,6 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
 void ZedCamera::setTFCoordFrameNames()
 {
     // ----> Coordinate frames
-    mBaseFrameId = "base_link";
-    mCameraFrameId = "zed_link";
     mLeftCamFrameId = mCameraFrameId;
     mLeftCamOptFrameId = mCameraFrameId;
     mRightCamFrameId = mCameraFrameId;

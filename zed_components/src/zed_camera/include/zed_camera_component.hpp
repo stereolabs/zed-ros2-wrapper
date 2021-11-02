@@ -374,7 +374,7 @@ private:
     std::string mOdomFrameId = "odom";
     std::string mBaseFrameId = "base_link";
 
-    std::string mCameraFrameId;
+    std::string mCameraFrameId = "zed_link";
 
     std::string mRightCamFrameId;
     std::string mRightCamOptFrameId;

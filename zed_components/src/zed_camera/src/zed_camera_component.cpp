@@ -1424,7 +1424,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
 void ZedCamera::setTFCoordFrameNames()
 {
     // ----> Coordinate frames
-    mBaseFrameId = "base_link"
+    mBaseFrameId = "base_link";
     mCameraFrameId = "zed_link";
     mLeftCamFrameId = mCameraFrameId;
     mLeftCamOptFrameId = mCameraFrameId;

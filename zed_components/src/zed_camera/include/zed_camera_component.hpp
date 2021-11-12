@@ -35,11 +35,15 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+
+#include <diagnostic_updater/diagnostic_updater.hpp>
+#include <diagnostic_msgs/msg/diagnostic_status.hpp>
+
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <image_transport/image_transport.h>
-#include <image_transport/camera_publisher.h>
-#include <image_transport/publisher.h>
+#include <image_transport/image_transport.hpp>
+#include <image_transport/camera_publisher.hpp>
+#include <image_transport/publisher.hpp>
 #include <stereo_msgs/msg/disparity_image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -126,6 +130,7 @@ protected:
     void initParameters();
     void initServices();
 
+    void getDebugParams();
     void getGeneralParams();
     void getVideoParams();
     void getDepthParams();
@@ -157,6 +162,7 @@ protected:
     void callback_pubFusedPc();
     void callback_pubPaths();
     rcl_interfaces::msg::SetParametersResult callback_paramChange(std::vector<rclcpp::Parameter> parameters);
+    void callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat);
 
     void callback_resetOdometry(const std::shared_ptr<rmw_request_id_t> request_header,
                                 const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
@@ -272,6 +278,7 @@ private:
     int mGpuId = -1;
     sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720;           // Default resolution: RESOLUTION_HD720
     sl::DEPTH_MODE mDepthQuality = sl::DEPTH_MODE::PERFORMANCE; // Default depth mode: DEPTH_MODE_PERFORMANCE
+    bool mDepthDisabled=false; // Indicates if depth calculation is not required (DEPTH_MODE::NONE se for )
     bool mDepthStabilization = true;
     int mCamTimeoutSec = 5;
     int mMaxReconnectTemp = 5;
@@ -503,8 +510,7 @@ private:
     bool mTriggerAutoWB = true;         // Triggered on start
     bool mStaticImuTopicPublished = false;
     bool mRecording=false;
-    //sl::RecordingStatus mRecStatus = sl::RecordingStatus(); // TODO replace when fixed in SDK
-    bool mRecStatus = false;
+    sl::RecordingStatus mRecStatus = sl::RecordingStatus();
     bool mPosTrackingReady=false;
     sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
     bool mResetOdom=false;
@@ -523,14 +529,23 @@ private:
     float mTempLeft = -273.15f;
     float mTempRight = -273.15f;
     std::unique_ptr<sl_tools::SmartMean> mElabPeriodMean_sec;
-    std::unique_ptr<sl_tools::SmartMean> mGrabPeriodMean_usec;
+    std::unique_ptr<sl_tools::SmartMean> mGrabPeriodMean_sec;
     std::unique_ptr<sl_tools::SmartMean> mVideoDepthPeriodMean_sec;
-    std::unique_ptr<sl_tools::SmartMean> mPcPeriodMean_usec;
-    std::unique_ptr<sl_tools::SmartMean> mImuPeriodMean_usec;
-    std::unique_ptr<sl_tools::SmartMean> mBaroPeriodMean_usec;
-    std::unique_ptr<sl_tools::SmartMean> mMagPeriodMean_usec;
-    std::unique_ptr<sl_tools::SmartMean> mObjDetPeriodMean_msec;
+    std::unique_ptr<sl_tools::SmartMean> mVideoDepthElabMean_sec;
+    std::unique_ptr<sl_tools::SmartMean> mPcPeriodMean_sec;
+    std::unique_ptr<sl_tools::SmartMean> mPcProcMean_sec;
+    std::unique_ptr<sl_tools::SmartMean> mImuPeriodMean_sec;
+    std::unique_ptr<sl_tools::SmartMean> mBaroPeriodMean_sec;
+    std::unique_ptr<sl_tools::SmartMean> mMagPeriodMean_sec;
+    std::unique_ptr<sl_tools::SmartMean> mObjDetPeriodMean_sec;
+    std::unique_ptr<sl_tools::SmartMean> mObjDetElabMean_sec;
     std::unique_ptr<sl_tools::SmartMean> mPubFusedCloudPeriodMean_sec;
+    bool mImuPublishing=false;
+    bool mMagPublishing=false;
+    bool mBaroPublishing=false;
+    bool mObjDetSubscribed=false;
+
+    diagnostic_updater::Updater mDiagUpdater;  // Diagnostic Updater
 
     // ----> Timestamps
     rclcpp::Time mFrameTimestamp;

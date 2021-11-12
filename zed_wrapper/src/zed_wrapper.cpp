@@ -38,7 +38,7 @@ int main(int argc, char * argv[])
 
     // Create an executor that will be responsible for execution of callbacks for a set of nodes.
     // With this version, all callbacks will be called from within this thread (the main one).
-    rclcpp::executors::MultiThreadedExecutor exec;
+    rclcpp::executors::SingleThreadedExecutor exec;
     rclcpp::NodeOptions options;
 
     // Add zed_camera node

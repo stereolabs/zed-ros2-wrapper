@@ -51,7 +51,6 @@
 #include <nav_msgs/msg/path.hpp>
 
 #include <std_srvs/srv/trigger.hpp>
-#include <std_srvs/srv/empty.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 
 #include <sl/Camera.hpp>
@@ -111,7 +110,6 @@ typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;
 typedef rclcpp::Service<zed_interfaces::srv::StartSvoRec>::SharedPtr startSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoPtr;
-typedef rclcpp::Service<std_srvs::srv::Empty>::SharedPtr stopSlamPtr;
 // <---- Typedefs to simplify declarations
 
 class ZedCamera : public rclcpp::Node
@@ -184,10 +182,6 @@ protected:
     void callback_pauseSvoInput(const std::shared_ptr<rmw_request_id_t> request_header,
                                 const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
                                 std::shared_ptr<std_srvs::srv::Trigger_Response> res);
-    void callback_stopSlam(const std::shared_ptr<rmw_request_id_t> request_header,
-                           const std::shared_ptr<std_srvs::srv::Empty_Request> req,
-                           std::shared_ptr<std_srvs::srv::Empty_Response> res);
-
     // <---- Callbacks
 
     // ----> Thread functions
@@ -197,17 +191,6 @@ protected:
 
     // ----> Publishing functions
     bool publishVideoDepth(rclcpp::Time &out_pub_ts);
-
-
-    sl::Mat mat_left,mat_left_raw;
-    sl::Mat mat_right,mat_right_raw;
-    sl::Mat mat_left_gray,mat_left_raw_gray;
-    sl::Mat mat_right_gray,mat_right_raw_gray;
-    sl::Mat mat_depth,mat_disp,mat_conf;
-    sl::Timestamp ts_rgb=0;       // used to check RGB/Depth sync
-    sl::Timestamp ts_depth=0;     // used to check RGB/Depth sync
-    sl::Timestamp grab_ts=0;
-    rclcpp::Time timeStamp;
 
     void publishImageWithInfo(sl::Mat& img,
                               image_transport::CameraPublisher& pubImg,
@@ -260,7 +243,6 @@ private:
     sl::RuntimeParameters mRunParams;
 
     uint64_t mFrameCount = 0;
-    bool request_for_destroy = false;
 
     // ----> Topics
     std::string mTopicRoot = "~/";
@@ -385,7 +367,7 @@ private:
     std::string mOdomFrameId = "odom";
     std::string mBaseFrameId = "base_link";
 
-    std::string mCameraFrameId = "zed_link";
+    std::string mCameraFrameId;
 
     std::string mRightCamFrameId;
     std::string mRightCamOptFrameId;
@@ -530,9 +512,6 @@ private:
     bool mObjDetRunning = false;
     // <---- Status Flags
 
-    bool force_image_pub = false;
-    bool force_depth_image_pub = false;
-
     // ----> Positional Tracking
     sl::Pose mLastZedPose; // Sensor to Map transform
     sl::Transform mInitialPoseSl;
@@ -579,8 +558,6 @@ private:
     startSvoRecSrvPtr mStartSvoRecSrv;
     stopSvoRecSrvPtr mStopSvoRecSrv;
     pauseSvoPtr mPauseSvoSrv;
-    stopSlamPtr mStopSlamSrv;
-
     // <---- Services
 
     // ----> Services names
@@ -592,8 +569,18 @@ private:
     const std::string mSrvStartSvoRecName = "start_svo_rec";
     const std::string mSrvStopSvoRecName = "stop_svo_rec";
     const std::string mSrvToggleSvoPauseName = "toggle_svo_pause";
-    const std::string mSrvStopNode = "/zed_camera/stop_slam";
     // <---- Services names
+
+    sl::Mat mat_left,mat_left_raw;
+    sl::Mat mat_right,mat_right_raw;
+    sl::Mat mat_left_gray,mat_left_raw_gray;
+    sl::Mat mat_right_gray,mat_right_raw_gray;
+    sl::Mat mat_depth,mat_disp,mat_conf;
+    sl::Timestamp ts_rgb=0;       // used to check RGB/Depth sync
+    sl::Timestamp ts_depth=0;     // used to check RGB/Depth sync
+    sl::Timestamp grab_ts=0;
+    rclcpp::Time timeStamp;
+
 };
 
 } // namespace stereolabs

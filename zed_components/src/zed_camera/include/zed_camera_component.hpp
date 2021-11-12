@@ -198,6 +198,17 @@ protected:
     // ----> Publishing functions
     bool publishVideoDepth(rclcpp::Time &out_pub_ts);
 
+
+    sl::Mat mat_left,mat_left_raw;
+    sl::Mat mat_right,mat_right_raw;
+    sl::Mat mat_left_gray,mat_left_raw_gray;
+    sl::Mat mat_right_gray,mat_right_raw_gray;
+    sl::Mat mat_depth,mat_disp,mat_conf;
+    sl::Timestamp ts_rgb=0;       // used to check RGB/Depth sync
+    sl::Timestamp ts_depth=0;     // used to check RGB/Depth sync
+    sl::Timestamp grab_ts=0;
+    rclcpp::Time timeStamp;
+
     void publishImageWithInfo(sl::Mat& img,
                               image_transport::CameraPublisher& pubImg,
                               camInfoMsgPtr& camInfoMsg,
@@ -487,7 +498,7 @@ private:
 
     // ----> Thread Sync
     std::mutex mCloseZedMutex;
-    std::mutex mCamDataMutex;
+    std::timed_mutex mCamDataMutex;
     std::mutex mPcMutex;
     std::mutex mRecMutex;
     std::mutex mPosTrkMutex;
@@ -496,7 +507,7 @@ private:
     std::mutex mObjDetMutex;
     std::condition_variable mPcDataReadyCondVar;
     bool mPcDataReady=false;
-    std::condition_variable mRgbDepthDataRetrievedCondVar;
+    std::condition_variable_any mRgbDepthDataRetrievedCondVar;
     bool mRgbDepthDataRetrieved=true;
     // <---- Thread Sync
 

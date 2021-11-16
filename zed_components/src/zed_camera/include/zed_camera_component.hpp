@@ -70,6 +70,7 @@
 namespace stereolabs {
 
 // ----> Typedefs to simplify declarations
+
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> imagePub;
 typedef std::shared_ptr<rclcpp::Publisher<stereo_msgs::msg::DisparityImage>> disparityPub;
 
@@ -187,7 +188,6 @@ protected:
     void callback_pauseSvoInput(const std::shared_ptr<rmw_request_id_t> request_header,
                                 const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
                                 std::shared_ptr<std_srvs::srv::Trigger_Response> res);
-
     // <---- Callbacks
 
     // ----> Thread functions
@@ -349,6 +349,7 @@ private:
     int mDepthConf = 50;
     int mDepthTextConf = 100;
     double mDepthDownsampleFactor = 1.0;
+    double mDepthPubRate = 15.0;
     double mPcPubRate = 15.0;
     double mFusedPcPubRate = 1.0;
     // <---- Dynamic params
@@ -486,7 +487,7 @@ private:
 
     // ----> Thread Sync
     std::mutex mCloseZedMutex;
-    std::mutex mCamDataMutex;
+    std::timed_mutex mCamDataMutex;
     std::mutex mPcMutex;
     std::mutex mRecMutex;
     std::mutex mPosTrkMutex;
@@ -495,7 +496,7 @@ private:
     std::mutex mObjDetMutex;
     std::condition_variable mPcDataReadyCondVar;
     bool mPcDataReady=false;
-    std::condition_variable mRgbDepthDataRetrievedCondVar;
+    std::condition_variable_any mRgbDepthDataRetrievedCondVar;
     bool mRgbDepthDataRetrieved=true;
     // <---- Thread Sync
 

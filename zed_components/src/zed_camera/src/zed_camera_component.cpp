@@ -3173,7 +3173,7 @@ void ZedCamera::threadFunc_zedGrab()
     // ----> Check for Object Detection requirement
 
     // ----> Wait for RGB/Depth synchronization before grabbing
-    std::unique_lock<std::mutex> datalock(mCamDataMutex);
+    std::unique_lock<std::timed_mutex> datalock(mCamDataMutex);
     while (!mRgbDepthDataRetrieved)
     {  // loop to avoid spurious wakeups
       if (mRgbDepthDataRetrievedCondVar.wait_for(datalock, std::chrono::milliseconds(500)) == std::cv_status::timeout)
@@ -3996,23 +3996,23 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
 
   static sl::Timestamp lastZedTs = 0;  // Used to calculate stable publish frequency
 
-  size_t rgbSubnumber = 0;
-  size_t rgbRawSubnumber = 0;
-  size_t rgbGraySubnumber = 0;
-  size_t rgbGrayRawSubnumber = 0;
-  size_t leftSubnumber = 0;
-  size_t leftRawSubnumber = 0;
-  size_t leftGraySubnumber = 0;
-  size_t leftGrayRawSubnumber = 0;
-  size_t rightSubnumber = 0;
-  size_t rightRawSubnumber = 0;
-  size_t rightGraySubnumber = 0;
-  size_t rightGrayRawSubnumber = 0;
-  size_t stereoSubnumber = 0;
-  size_t stereoRawSubnumber = 0;
-  size_t depthSubnumber = 0;
-  size_t confMapSubnumber = 0;
-  size_t disparitySubnumber = 0;
+  static size_t rgbSubnumber = 0;
+  static size_t rgbRawSubnumber = 0;
+  static size_t rgbGraySubnumber = 0;
+  static size_t rgbGrayRawSubnumber = 0;
+  static size_t leftSubnumber = 0;
+  static size_t leftRawSubnumber = 0;
+  static size_t leftGraySubnumber = 0;
+  static size_t leftGrayRawSubnumber = 0;
+  static size_t rightSubnumber = 0;
+  static size_t rightRawSubnumber = 0;
+  static size_t rightGraySubnumber = 0;
+  static size_t rightGrayRawSubnumber = 0;
+  static size_t stereoSubnumber = 0;
+  static size_t stereoRawSubnumber = 0;
+  static size_t depthSubnumber = 0;
+  static size_t confMapSubnumber = 0;
+  static size_t disparitySubnumber = 0;
 
   try
   {
@@ -4043,74 +4043,65 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
 
   bool retrieved = false;
 
-  sl::Mat mat_left, mat_left_raw;
-  sl::Mat mat_right, mat_right_raw;
-  sl::Mat mat_left_gray, mat_left_raw_gray;
-  sl::Mat mat_right_gray, mat_right_raw_gray;
-  sl::Mat mat_depth, mat_disp, mat_conf;
+  static sl::Mat mat_left,mat_left_raw;
+  static sl::Mat mat_right,mat_right_raw;
+  static sl::Mat mat_left_gray,mat_left_raw_gray;
+  static sl::Mat mat_right_gray,mat_right_raw_gray;
+  static sl::Mat mat_depth,mat_disp,mat_conf;
 
-  sl::Timestamp ts_rgb = 0;    // used to check RGB/Depth sync
-  sl::Timestamp ts_depth = 0;  // used to check RGB/Depth sync
-  sl::Timestamp grab_ts = 0;
+  static sl::Timestamp ts_rgb=0;       // used to check RGB/Depth sync
+  static sl::Timestamp ts_depth=0;     // used to check RGB/Depth sync
+  static sl::Timestamp grab_ts=0;
 
   // ----> Retrieve all required data
-  std::unique_lock<std::mutex> lock(mCamDataMutex, std::defer_lock);
+  std::unique_lock<std::timed_mutex> lock(mCamDataMutex, std::defer_lock);
 
-  if (lock.try_lock())
+  if (lock.try_lock_for(std::chrono::milliseconds(1000/mCamGrabFrameRate)))
   {
     if (rgbSubnumber + leftSubnumber + stereoSubnumber > 0)
     {
-      mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
-      retrieved = true;
+      retrieved = sl::ERROR_CODE::SUCCESS ==  mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
       ts_rgb = mat_left.timestamp;
       grab_ts = mat_left.timestamp;
     }
     if (rgbRawSubnumber + leftRawSubnumber + stereoRawSubnumber > 0)
     {
-      mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
-      retrieved = true;
+      retrieved = sl::ERROR_CODE::SUCCESS ==  mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
       grab_ts = mat_left_raw.timestamp;
     }
     if (rightSubnumber + stereoSubnumber > 0)
     {
-      mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
-      retrieved = true;
+      retrieved = sl::ERROR_CODE::SUCCESS ==  mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
       grab_ts = mat_right.timestamp;
     }
     if (rightRawSubnumber + stereoRawSubnumber > 0)
     {
-      mZed.retrieveImage(mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
-      retrieved = true;
+      retrieved = sl::ERROR_CODE::SUCCESS ==  mZed.retrieveImage(mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
       grab_ts = mat_right_raw.timestamp;
     }
     if (rgbGraySubnumber + leftGraySubnumber > 0)
     {
-      mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
-      retrieved = true;
+      retrieved = sl::ERROR_CODE::SUCCESS ==  mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
       grab_ts = mat_left_gray.timestamp;
     }
     if (rgbGrayRawSubnumber + leftGrayRawSubnumber > 0)
     {
-      mZed.retrieveImage(mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
-      retrieved = true;
+      retrieved = sl::ERROR_CODE::SUCCESS ==  mZed.retrieveImage(mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
       grab_ts = mat_left_raw_gray.timestamp;
     }
     if (rightGraySubnumber > 0)
     {
-      mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
-      retrieved = true;
+      retrieved = sl::ERROR_CODE::SUCCESS ==  mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
       grab_ts = mat_right_gray.timestamp;
     }
     if (rightGrayRawSubnumber > 0)
     {
-      mZed.retrieveImage(mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
-      retrieved = true;
+      retrieved = sl::ERROR_CODE::SUCCESS ==  mZed.retrieveImage(mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
       grab_ts = mat_right_raw_gray.timestamp;
     }
     if (depthSubnumber > 0)
     {
-      mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
-      retrieved = true;
+      retrieved = sl::ERROR_CODE::SUCCESS ==  mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
       grab_ts = mat_depth.timestamp;
 
       ts_depth = mat_depth.timestamp;
@@ -4123,16 +4114,16 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
     }
     if (disparitySubnumber > 0)
     {
-      mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
-      retrieved = true;
+      retrieved = sl::ERROR_CODE::SUCCESS ==  mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
       grab_ts = mat_disp.timestamp;
     }
     if (confMapSubnumber > 0)
     {
-      mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
-      retrieved = true;
+      retrieved = sl::ERROR_CODE::SUCCESS ==  mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
       grab_ts = mat_conf.timestamp;
     }
+  } else {
+    RCLCPP_INFO(get_logger(), "Lock timeout");
   }
   // <---- Retrieve all required data
 
@@ -4170,7 +4161,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
   lastZedTs = grab_ts;
   // <---- Check if a grab has been done before publishing the same images
 
-  rclcpp::Time timeStamp;
+  static rclcpp::Time timeStamp;
   if (!mSvoMode)
   {
     timeStamp = sl_tools::slTime2Ros(grab_ts, get_clock()->get_clock_type());

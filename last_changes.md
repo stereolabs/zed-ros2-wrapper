@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2021-11-16
+----------
+- Fix performances drop on slower platforms. Thx @roncapat
+
 2021-08-06
 ----------
 - Fix SVO LOOP wrong behavior. Thx @kevinanschau

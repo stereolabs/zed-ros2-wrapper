@@ -4043,9 +4043,15 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
 
   bool retrieved = false;
 
-  ts_rgb = 0;    // used to check RGB/Depth sync
-  ts_depth = 0;  // used to check RGB/Depth sync
-  grab_ts = 0;
+  static sl::Mat mat_left,mat_left_raw;
+  static sl::Mat mat_right,mat_right_raw;
+  static sl::Mat mat_left_gray,mat_left_raw_gray;
+  static sl::Mat mat_right_gray,mat_right_raw_gray;
+  static sl::Mat mat_depth,mat_disp,mat_conf;
+
+  static sl::Timestamp ts_rgb=0;       // used to check RGB/Depth sync
+  static sl::Timestamp ts_depth=0;     // used to check RGB/Depth sync
+  static sl::Timestamp grab_ts=0;
 
   // ----> Retrieve all required data
   std::unique_lock<std::timed_mutex> lock(mCamDataMutex, std::defer_lock);
@@ -4155,6 +4161,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
   lastZedTs = grab_ts;
   // <---- Check if a grab has been done before publishing the same images
 
+  static rclcpp::Time timeStamp;
   if (!mSvoMode)
   {
     timeStamp = sl_tools::slTime2Ros(grab_ts, get_clock()->get_clock_type());

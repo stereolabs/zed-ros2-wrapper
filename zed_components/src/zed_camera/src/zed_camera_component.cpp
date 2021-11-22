@@ -3671,7 +3671,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
 
       pressMsg->header.stamp = ts_baro;
       pressMsg->header.frame_id = mBaroFrameId;
-      pressMsg->fluid_pressure = sens_data.barometer.pressure * 1e-2;  // Pascal
+      pressMsg->fluid_pressure = sens_data.barometer.pressure * 1e2;  // Pascal
       pressMsg->variance = 1.0585e-2;
 
       mPubPressure->publish(std::move(pressMsg));

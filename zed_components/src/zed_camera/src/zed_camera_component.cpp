@@ -1119,15 +1119,15 @@ void ZedCamera::getOdParams()
         mObjDetConfidence,
         mObjDetConfidence,
         " * OD min. confidence: ");
-    // getParam( "object_detection.object_tracking_enabled", mObjDetTracking,
-    // mObjDetTracking ); RCLCPP_INFO_STREAM(get_logger(), " * OD tracking: " <<
-    // (mObjDetTracking?"TRUE":"FALSE") );
+    getParam("object_detection.object_tracking_enabled", mObjDetTracking,
+        mObjDetTracking);
+    RCLCPP_INFO_STREAM(get_logger(), " * OD tracking: " << (mObjDetTracking ? "TRUE" : "FALSE"));
     int model = 0;
     getParam("object_detection.model", model, model);
     mObjDetModel = static_cast<sl::DETECTION_MODEL>(model);
     RCLCPP_INFO_STREAM(get_logger(),
         " * Object Detection model: " << model << " - "
-                                      << mObjDetModel);
+                                      << sl::toString(mObjDetModel).c_str());
     getParam(
         "object_detection.mc_people", mObjDetPeopleEnable, mObjDetPeopleEnable);
     RCLCPP_INFO_STREAM(
@@ -1160,9 +1160,14 @@ void ZedCamera::getOdParams()
     RCLCPP_INFO_STREAM(get_logger(),
         " * MultiClassBox fruits and vegetables: "
             << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
-    getParam("object_detection.body_fitting", mBodyFitting, mBodyFitting);
+    getParam("object_detection.body_fitting", mObjDetBodyFitting, mObjDetBodyFitting);
     RCLCPP_INFO_STREAM(
-        get_logger(), " * Skeleton fitting: " << (mBodyFitting ? "TRUE" : "FALSE"));
+        get_logger(), " * Skeleton fitting: " << (mObjDetBodyFitting ? "TRUE" : "FALSE"));
+    int bodyFormat = 0;
+    getParam("object_detection.body_format", bodyFormat, bodyFormat);
+    mObjDetBodyFmt = static_cast<sl::BODY_FORMAT>(bodyFormat);
+    //RCLCPP_INFO_STREAM(get_logger(), " * Body format: " << bodyFormat << " - " << sl::toString(mObjDetBodyFmt).c_str());
+    RCLCPP_INFO_STREAM(get_logger(), " * Body format: " << bodyFormat);
     // ------------------------------------------
 
     paramName = "object_detection.qos_history";
@@ -2899,7 +2904,8 @@ bool ZedCamera::startObjDetect()
     od_p.enable_tracking = mObjDetTracking;
     od_p.image_sync = true;
     od_p.detection_model = mObjDetModel;
-    od_p.enable_body_fitting = mBodyFitting;
+    od_p.enable_body_fitting = mObjDetBodyFitting;
+    od_p.body_format = mObjDetBodyFmt;
 
     mObjDetFilter.clear();
     if (mObjDetPeopleEnable) {
@@ -4916,6 +4922,8 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
             &(data.dimensions[0]),
             3 * sizeof(float));
 
+        objMsg->objects[idx].body_format = static_cast<uint8_t>(mObjDetBodyFmt);
+
         if (mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE ||
 #if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
             mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM ||
@@ -4937,15 +4945,16 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
                 &(data.head_position[0]),
                 3 * sizeof(float));
 
-            if (data.keypoint_2d.size() == 18) {
+            uint8_t kp_size = data.keypoint_2d.size();
+            if (kp_size == 18 || kp_size == 34) {
+
                 memcpy(&(objMsg->objects[idx].skeleton_2d.keypoints[0]),
                     &(data.keypoint_2d[0]),
-                    36 * sizeof(float));
-            }
-            if (data.keypoint_2d.size() == 18) {
+                    2 * kp_size * sizeof(float));
+
                 memcpy(&(objMsg->objects[idx].skeleton_3d.keypoints[0]),
                     &(data.keypoint[0]),
-                    54 * sizeof(float));
+                    3 * kp_size * sizeof(float));
             }
         } else {
             objMsg->objects[idx].skeleton_available = false;

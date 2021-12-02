@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2021-12-02
+----------
+- Moved the `zed_interfaces` package to the `zed-ros2-interfaces` repository to match the same configuration of the ROS1 wrapper
+- The `zed-ros2-interfaces` repository has been added as a sub-module to this repository
+
 2021-12-01
 ----------
 - Add new <zed>_base_link frame on the base of the camera to easily handle camera positioning on robots. Thx @civerachb-cpr

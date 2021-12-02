@@ -88,6 +88,11 @@ rclcpp::Time slTime2Ros(sl::Timestamp t, rcl_clock_type_t clock_type = RCL_ROS_T
  */
 bool isZED2OrZED2i(sl::MODEL camModel);
 
+/*! \brief check if Object Detection is available
+ * \param camModel the camera model to check
+ */
+bool isObjDetAvailable(sl::MODEL camModel);
+
 /*! \brief sl::Mat to ros message conversion
  * \param img : the image to publish
  * \param frameId : the id of the reference frame of the image

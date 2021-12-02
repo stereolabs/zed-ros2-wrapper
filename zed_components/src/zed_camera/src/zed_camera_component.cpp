@@ -280,7 +280,7 @@ void ZedCamera::initParameters()
     getMappingParams();
 
     // OD PARAMETERS
-    if (sl_tools::isZED2OrZED2i(mCamUserModel))
+    if (sl_tools::isObjDetAvailable(mCamUserModel))
         getOdParams();
 
     // Dynamic parameters callback
@@ -2869,11 +2869,9 @@ void ZedCamera::stop3dMapping()
 
 bool ZedCamera::startObjDetect()
 {
-    if (!sl_tools::isZED2OrZED2i(mCamRealModel)) {
+    if (!sl_tools::isObjDetAvailable(mCamRealModel)) {
         RCLCPP_ERROR(get_logger(),
-            "Object detection not started. The module is "
-            "available only using a ZED2 and ZED2i "
-            "cameras");
+            "Object detection not started. The camera model does not support it with the current version of the SDK");
         return false;
     }
 
@@ -3426,7 +3424,7 @@ void ZedCamera::threadFunc_zedGrab()
             mObjDetMutex.lock();
             if (mObjDetEnabled && !mObjDetRunning) {
                 startObjDetect();
-                if (!sl_tools::isZED2OrZED2i(mCamRealModel)) {
+                if (!sl_tools::isObjDetAvailable(mCamRealModel)) {
                     mObjDetEnabled = false;
                 }
             }

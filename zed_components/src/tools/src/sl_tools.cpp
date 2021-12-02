@@ -419,6 +419,24 @@ bool isZED2OrZED2i(sl::MODEL camModel){
     return false;
 }
 
+bool isObjDetAvailable(sl::MODEL camModel)
+{
+    if (camModel == sl::MODEL::ZED2) {
+        return true;
+    }
+#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
+    if (camModel == sl::MODEL::ZED2i) {
+        return true;
+    }
+#endif
+#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 6
+    if (camModel == sl::MODEL::ZED_M) {
+        return true;
+    }
+#endif
+    return false;
+}
+
 StopWatch::StopWatch()
 {
     tic(); // Start the timer at creation

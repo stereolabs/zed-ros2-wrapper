@@ -48,7 +48,7 @@ $ sudo apt remove ros-foxy-image-transport-plugins ros-foxy-compressed-depth-ima
 ### Prerequisites
 
 - [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/)
-- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.5
+- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.6
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - ROS2 Foxy Fitxroy: 
   - [Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html)
@@ -63,7 +63,7 @@ To install the **zed_ros2_wrapper**, open a bash terminal, clone the package fro
 
 ```bash
 $ cd ~/ros2_ws/src/ #use your current ros2 workspace folder
-$ git clone https://github.com/stereolabs/zed-ros2-wrapper.git
+$ git clone  --recursive https://github.com/stereolabs/zed-ros2-wrapper.git
 $ cd ..
 $ rosdep install --from-paths src --ignore-src -r -y
 $ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release
@@ -78,6 +78,21 @@ $ source ~/.bashrc
 **Note:** The option `--symlink-install` is very important, it allows to use symlinks instead of copying files to the ROS2 folders during the installation, where possible. Each package in ROS2 must be installed and all the files used by the nodes must be copied into the installation folders. Using symlinks allows you to modify them in your workspace, reflecting the modification during the next executions without the needing to issue a new `colcon build` command. This is true only for all the files that don't need to be compiled (Python scripts, configurations, etc.).
 
 **Note:** If you are using a different console interface like zsh, you have to change the `source` command as follows: `echo source $(pwd)/install/local_setup.zsh >> ~/.zshrc` and `source ~/.zshrc`.
+
+#### Update the local repository
+
+To update the repository to the latest release you must use the following command to retrieve the latest commits of `zed-ros2-wrapper` and of all the submodules:
+
+    $ git checkout master # if you are not on the main branch  
+    $ git pull --recurse-submodules # update recursively all the submodules
+
+Remember to always clean the cache of your colcon workspace before compiling with the `colcon build` command to be sure that everything will work as expected:
+
+    $ cd <catkin_workspace_root>
+    $ rm -rf install
+    $ rm -rf build
+    $ rm -rf log
+    $ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release
 
 ## Starting the ZED node
 

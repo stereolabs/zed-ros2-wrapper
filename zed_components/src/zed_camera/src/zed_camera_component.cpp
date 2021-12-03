@@ -75,32 +75,8 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions& options)
         exit(EXIT_FAILURE);
     }
 
-    // ----> Parameters initialization
-    getParam("general.debug_mode", mDebugMode, mDebugMode);
-    if (mDebugMode) {
-        rcutils_ret_t res = rcutils_logging_set_logger_level(
-            get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
-
-        if (res != RCUTILS_RET_OK) {
-            RCLCPP_INFO(get_logger(), "Error setting DEBUG level fot logger");
-        } else {
-            RCLCPP_INFO(get_logger(), "*** Debug Mode enabled ***");
-        }
-    } else {
-        rcutils_ret_t res = rcutils_logging_set_logger_level(
-            get_logger().get_name(), RCUTILS_LOG_SEVERITY_INFO);
-
-        if (res != RCUTILS_RET_OK) {
-            RCLCPP_INFO(get_logger(), "Error setting INFO level for logger");
-        }
-    }
-
-    RCLCPP_DEBUG(get_logger(),
-        "[ROS2] Using RMW_IMPLEMENTATION = %s",
-        rmw_get_implementation_identifier());
-
+    // Parameters initialization
     initParameters();
-    // <---- Parameters initialization
 
     // ----> Diagnostic
     mDiagUpdater.add(
@@ -294,6 +270,30 @@ void ZedCamera::getDebugParams()
     std::string paramName;
 
     RCLCPP_INFO(get_logger(), "*** DEBUG parameters ***");
+    
+    getParam("general.debug_mode", mDebugMode, mDebugMode);
+    RCLCPP_INFO(get_logger(), " * Debug mode: %s", mDebugMode ? "TRUE" : "FALSE");
+    if (mDebugMode) {
+        rcutils_ret_t res = rcutils_logging_set_logger_level(
+            get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
+
+        if (res != RCUTILS_RET_OK) {
+            RCLCPP_INFO(get_logger(), "Error setting DEBUG level fot logger");
+        } else {
+            RCLCPP_INFO(get_logger(), "*** Debug Mode enabled ***");
+        }
+    } else {
+        rcutils_ret_t res = rcutils_logging_set_logger_level(
+            get_logger().get_name(), RCUTILS_LOG_SEVERITY_INFO);
+
+        if (res != RCUTILS_RET_OK) {
+            RCLCPP_INFO(get_logger(), "Error setting INFO level for logger");
+        }
+    }
+
+    RCLCPP_DEBUG(get_logger(),
+        "[ROS2] Using RMW_IMPLEMENTATION = %s",
+        rmw_get_implementation_identifier());
 }
 
 void ZedCamera::getGeneralParams()
@@ -1848,7 +1848,7 @@ void ZedCamera::setTFCoordFrameNames()
             RCLCPP_INFO_STREAM(get_logger(), " * Barometer\t\t-> " << mBaroFrameId);
             RCLCPP_INFO_STREAM(get_logger(), " * Magnetometer\t\t-> " << mMagFrameId);
             RCLCPP_INFO_STREAM(get_logger(),
-                " * Left Temperature\t\t-> " << mTempLeftFrameId);
+                " * Left Temperature\t-> " << mTempLeftFrameId);
             RCLCPP_INFO_STREAM(get_logger(),
                 " * Right Temperature\t-> " << mTempRightFrameId);
         }

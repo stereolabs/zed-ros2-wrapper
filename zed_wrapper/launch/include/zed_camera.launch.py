@@ -44,6 +44,13 @@ def generate_launch_description():
         'common.yaml'
     )
 
+    # URDF/xacro file to be loaded by the Robot State Publisher node
+    default_xacro_path = os.path.join(
+        get_package_share_directory('zed_wrapper'),
+        'urdf',
+        'zed_descr.urdf.xacro'
+    )
+
     # Declare the launch arguments
     declare_camera_name_cmd = DeclareLaunchArgument(
         'camera_name',
@@ -74,6 +81,7 @@ def generate_launch_description():
 
     declare_xacro_path_cmd = DeclareLaunchArgument(
         'xacro_path',
+        default_value=default_xacro_path,
         description='Path to the camera URDF file as a xacro file.')
 
     declare_svo_path_cmd = DeclareLaunchArgument(

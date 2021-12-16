@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2021-12-16
+----------
+- Add default xacro path value in `zed_camera.launch.py`. Thx @sttobia
+
 v3.6.x (2021-12-03)
 -------------------
 - Moved the `zed_interfaces` package to the `zed-ros2-interfaces` repository to match the same configuration of the ROS1 wrapper

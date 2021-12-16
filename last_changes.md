@@ -4,6 +4,7 @@ LATEST CHANGES
 2021-12-16
 ----------
 - Add default xacro path value in `zed_camera.launch.py`. Thx @sttobia
+- Fix `zed-ros2-interfaces` sub-module url, changing from `ssh` to `https`.
 
 v3.6.x (2021-12-03)
 -------------------

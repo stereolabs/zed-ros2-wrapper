@@ -165,6 +165,7 @@ def generate_launch_description():
             config_camera_path,  # Camera related parameters
             # Overriding
             {
+                'general.camera_name': camera_name,
                 'general.svo_file': svo_path,
                 'pos_tracking.base_frame': base_frame
             }

@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2022-01-04
+----------
+- Fix parameter override problem (Issue #71). Thx @kevinanschau
+
 2021-12-16
 ----------
 - Add default xacro path value in `zed_camera.launch.py`. Thx @sttobia

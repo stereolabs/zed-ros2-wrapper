@@ -20,6 +20,7 @@ def generate_launch_description():
 
     camera_name = LaunchConfiguration('camera_name')
     camera_model = LaunchConfiguration('camera_model')
+    camera_flip = LaunchConfiguration('camera_flip')
 
     node_name = LaunchConfiguration('node_name')
 
@@ -59,6 +60,11 @@ def generate_launch_description():
     declare_camera_model_cmd = DeclareLaunchArgument(
         'camera_model',
         description='The model of the camera. Using a wrong camera model can disable camera features. Valid models: `zed`, `zedm`, `zed2`, `zed2i`.')
+
+    declare_camera_flip_cmd = DeclareLaunchArgument(
+        'camera_flip',
+        default_value='false',
+        description='The flip mode of the camera. Valid modes: `true`, `false`.')
 
     declare_node_name_cmd = DeclareLaunchArgument(
         'node_name',
@@ -167,6 +173,7 @@ def generate_launch_description():
             {
                 'general.camera_name': camera_name,
                 'general.camera_model': camera_model,
+                'general.camera_flip': camera_flip,
                 'general.svo_file': svo_path,
                 'pos_tracking.base_frame': base_frame
             }
@@ -178,6 +185,7 @@ def generate_launch_description():
 
     ld.add_action(declare_camera_name_cmd)
     ld.add_action(declare_camera_model_cmd)
+    ld.add_action(declare_camera_flip_cmd)
     ld.add_action(declare_node_name_cmd)
     ld.add_action(declare_publish_urdf_cmd)
     ld.add_action(declare_config_common_path_cmd)

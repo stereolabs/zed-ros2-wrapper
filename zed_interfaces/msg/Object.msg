@@ -19,6 +19,9 @@ float32[6] position_covariance
 # Object velocity
 float32[3] velocity
 
+bool tracking_available
+
+# Tracking available
 # Tracking state
 # 0 -> OFF (object not valid)
 # 1 -> OK
@@ -41,6 +44,11 @@ float32[3] dimensions_3d
 
 # Is skeleton available?
 bool skeleton_available
+
+# Skeleton format
+# 0 -> POSE_18
+# 2 -> POSE_34
+int8 body_format
 
 # 2D Bounding box projected to Camera image of the person head
 zed_interfaces/BoundingBox2Df head_bounding_box_2d

@@ -92,7 +92,7 @@ def generate_launch_description():
 
     declare_svo_path_cmd = DeclareLaunchArgument(
         'svo_path',
-        default_value='',
+        default_value='live', # 'live' used as patch for launch files not allowing empty strings as default parameters
         description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.')
 
     # Define LaunchDescription variable

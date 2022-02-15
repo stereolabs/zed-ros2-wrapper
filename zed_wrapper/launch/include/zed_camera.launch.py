@@ -86,7 +86,7 @@ def generate_launch_description():
 
     declare_svo_path_cmd = DeclareLaunchArgument(
         'svo_path',
-        default_value='',
+        default_value='live', # 'live' used as patch for launch files not allowing empty strings as default parameters
         description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.')
 
     declare_base_frame_cmd = DeclareLaunchArgument(
@@ -154,9 +154,9 @@ def generate_launch_description():
 
     # ZED Wrapper node
     zed_wrapper_node = Node(
-        package='zed_wrapper',
-        executable='zed_wrapper',
+        package='zed_wrapper',        
         namespace=camera_name,
+        executable='zed_wrapper',
         name=node_name,
         output='screen',
         parameters=[
@@ -165,10 +165,10 @@ def generate_launch_description():
             config_camera_path,  # Camera related parameters
             # Overriding
             {
-                'general.camera_name': camera_name,
-                'general.camera_model': camera_model,
-                'general.svo_file': svo_path,
-                'pos_tracking.base_frame': base_frame
+                 'general.camera_name': camera_name,
+                 'general.camera_model': camera_model,
+                 'general.svo_file': svo_path,
+                 'pos_tracking.base_frame': base_frame
             }
         ]
     )

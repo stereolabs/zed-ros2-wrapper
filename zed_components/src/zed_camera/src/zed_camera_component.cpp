@@ -328,6 +328,11 @@ void ZedCamera::getGeneralParams()
 
     getParam("general.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
     getParam("general.svo_file", std::string(), mSvoFilepath, " * SVO: ");
+    if (mSvoFilepath.compare("live")==0) // Patch for launch file not allowing empty strings as default parameters
+    {
+        mSvoFilepath = "";
+    }
+
     getParam("general.svo_loop", mSvoLoop, mSvoLoop);
     RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop ? "TRUE" : "FALSE");
     getParam("general.svo_realtime", mSvoRealtime, mSvoRealtime);
@@ -2243,7 +2248,7 @@ bool ZedCamera::startCamera()
     // <---- TF2 Transform
 
     // ----> ZED configuration
-    if (!mSvoFilepath.empty()) {
+    if (!mSvoFilepath.empty()) { 
         RCLCPP_INFO(get_logger(), "*** SVO OPENING ***");
 
         mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());

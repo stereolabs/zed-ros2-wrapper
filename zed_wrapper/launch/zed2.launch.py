@@ -8,6 +8,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
+from launch_ros import parameter_descriptions
 
 
 def generate_launch_description():
@@ -92,7 +93,7 @@ def generate_launch_description():
 
     declare_svo_path_cmd = DeclareLaunchArgument(
         'svo_path',
-        default_value='',
+        default_value='live', # 'live' used as patch for launch files not allowing empty strings as default parameters
         description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.')
 
     # Define LaunchDescription variable

@@ -260,8 +260,8 @@ void ZedCamera::initParameters()
         getOdParams();
 
     // Dynamic parameters callback
-    set_on_parameters_set_callback(
-        std::bind(&ZedCamera::callback_paramChange, this, _1));
+    //set_on_parameters_set_callback(std::bind(&ZedCamera::callback_paramChange, this, _1)); // deprecated
+    mParamChangeCallbackHandle = add_on_set_parameters_callback(std::bind(&ZedCamera::callback_paramChange, this, _1));
 }
 
 void ZedCamera::getDebugParams()
@@ -1252,6 +1252,8 @@ void ZedCamera::getOdParams()
 rcl_interfaces::msg::SetParametersResult
 ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
 {
+    RCLCPP_INFO(get_logger(), "Parameter change callback");
+
     rcl_interfaces::msg::SetParametersResult result;
     result.successful = false;
 

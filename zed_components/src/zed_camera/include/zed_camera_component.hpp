@@ -334,6 +334,8 @@ private:
     // <---- Parameter variables
 
     // ----> Dynamic params
+    OnSetParametersCallbackHandle::SharedPtr mParamChangeCallbackHandle;
+
     double mPubFrameRate = 15;
     double mImgDownsampleFactor = 1.0;
     int mCamBrightness = 4;

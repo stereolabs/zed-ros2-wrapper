@@ -28,7 +28,7 @@
         object_detection:
             od_enabled:                 false           # True to enable Object Detection [only ZED 2]
             confidence_threshold:       50.0            # [DYNAMIC] - Minimum value of the detection confidence of an object [0,100]
-            model:                      6               # '0': MULTI_CLASS_BOX - '1': MULTI_CLASS_BOX_ACCURATE - '2': HUMAN_BODY_FAST - '3': HUMAN_BODY_ACCURATE - '4': MULTI_CLASS_BOX_MEDIUM - '5': HUMAN_BODY_MEDIUM - '6': PERSON_HEAD_BOX 
+            model:                      0               # '0': MULTI_CLASS_BOX - '1': MULTI_CLASS_BOX_ACCURATE - '2': HUMAN_BODY_FAST - '3': HUMAN_BODY_ACCURATE - '4': MULTI_CLASS_BOX_MEDIUM - '5': HUMAN_BODY_MEDIUM - '6': PERSON_HEAD_BOX 
             mc_people:                  true            # [DYNAMIC] - Enable/disable the detection of persons for 'MULTI_CLASS_X' models
             mc_vehicle:                 true            # [DYNAMIC] - Enable/disable the detection of vehicles for 'MULTI_CLASS_X' models
             mc_bag:                     true            # [DYNAMIC] - Enable/disable the detection of bags for 'MULTI_CLASS_X' models
@@ -36,8 +36,9 @@
             mc_electronics:             true            # [DYNAMIC] - Enable/disable the detection of electronic devices for 'MULTI_CLASS_X' models
             mc_fruit_vegetable:         true            # [DYNAMIC] - Enable/disable the detection of fruits and vegetables for 'MULTI_CLASS_X' models
             mc_sport:                   true            # [DYNAMIC] - Enable/disable the detection of sport-related objects for 'MULTI_CLASS_X' models
-            body_fitting:               false           # Enable/disable body fitting for 'HUMAN_BODY_FAST' and 'HUMAN_BODY_ACCURATE' models
+            body_fitting:               true           # Enable/disable body fitting for 'HUMAN_BODY_FAST' and 'HUMAN_BODY_ACCURATE' models
+            body_format:                1               # '0': POSE_18 - '1': POSE_34 [Only if `HUMAN_BODY_*` model is selected]
             qos_history:                1               # '1': KEEP_LAST - '2': KEEP_ALL
             qos_depth:                  1               # Queue size if using KEEP_LAST
-            qos_reliability:            1               # '1': RELIABLE - '2': BEST_EFFORT -
+            qos_reliability:            1               # '1': RELIABLE - '2': BEST_EFFORT
             qos_durability:             2               # '1': TRANSIENT_LOCAL - '2': VOLATILE

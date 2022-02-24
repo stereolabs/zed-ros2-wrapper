@@ -356,6 +356,7 @@ private:
     double mDepthPubRate = 15.0;
     double mPcPubRate = 15.0;
     double mFusedPcPubRate = 1.0;
+    bool mRemoveSatAreas = true;
     // <---- Dynamic params
 
     // ----> Frame IDs

@@ -616,7 +616,10 @@ void ZedCamera::getDepthParams()
             mDepthTextConf,
             mDepthTextConf,
             " * [DYN] Depth Texture Confidence: ");
-
+        getParam("depth.remove_saturated_areas", mRemoveSatAreas, mRemoveSatAreas);
+        RCLCPP_INFO(get_logger(),
+            " * [DYN] Remove saturated areas: %s",
+            mRemoveSatAreas ? "TRUE" : "FALSE");
         // ------------------------------------------
 
         paramName = "depth.qos_history";
@@ -1627,6 +1630,24 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
+        } else if (param.get_name() == "depth.remove_saturated_areas") {
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+            if (param.get_type() != correctType) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason);
+                return result;
+            }
+
+            mRemoveSatAreas = param.as_bool();
+
+            RCLCPP_INFO_STREAM(get_logger(),
+                "Parameter '"
+                    << param.get_name() << "' correctly set to "
+                    << (mRemoveSatAreas ? "TRUE" : "FALSE"));
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
         } else if (param.get_name() == "mapping.fused_pointcloud_freq") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
             if (param.get_type() != correctType) {
@@ -1785,6 +1806,24 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
                 "Parameter '"
                     << param.get_name() << "' correctly set to "
                     << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if (param.get_name() == "object_detection.mc_sport") {
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+            if (param.get_type() != correctType) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason);
+                return result;
+            }
+
+            mObjDetSportEnable = param.as_bool();
+
+            RCLCPP_INFO_STREAM(get_logger(),
+                "Parameter '"
+                    << param.get_name() << "' correctly set to "
+                    << (mObjDetSportEnable ? "TRUE" : "FALSE"));
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
@@ -2943,7 +2982,7 @@ bool ZedCamera::startObjDetect()
         mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
     }
 
-        sl::ERROR_CODE objDetError
+    sl::ERROR_CODE objDetError
         = mZed.enableObjectDetection(od_p);
 
     if (objDetError != sl::ERROR_CODE::SUCCESS) {
@@ -3399,6 +3438,7 @@ void ZedCamera::threadFunc_zedGrab()
     mRunParams.sensing_mode = static_cast<sl::SENSING_MODE>(mDepthSensingMode);
     mRunParams.enable_depth = false;
     mRunParams.measure3D_reference_frame = sl::REFERENCE_FRAME::CAMERA;
+    mRunParams.remove_saturated_areas = mRemoveSatAreas;
     // <---- Grab Runtime parameters
 
     // Infinite grab thread
@@ -4313,7 +4353,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
             grab_ts = mat_conf.timestamp;
         }
     } else {
-        RCLCPP_INFO(get_logger(), "Lock timeout");
+        RCLCPP_DEBUG(get_logger(), "Lock timeout");
     }
     // <---- Retrieve all required data
 
@@ -5018,6 +5058,7 @@ void ZedCamera::applyDepthSettings()
         mDynParMutex.lock();
         mRunParams.confidence_threshold = mDepthConf; // Update depth confidence if changed
         mRunParams.texture_confidence_threshold = mDepthTextConf; // Update depth texture confidence if changed
+        mRunParams.remove_saturated_areas = mRemoveSatAreas;
         mDynParMutex.unlock();
 
         mRunParams.enable_depth = true;

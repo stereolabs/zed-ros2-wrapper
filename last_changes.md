@@ -1,5 +1,9 @@
 LATEST CHANGES
 ==============
+2022-02-24
+----------
+- Add support for sport-related OD objects
+- Add `remove_saturated_areas` dynamic parameter to disable depth filtering when luminance >=255
 
 2022-01-04
 ----------

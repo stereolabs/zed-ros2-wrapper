@@ -270,7 +270,7 @@ void ZedCamera::getDebugParams()
     std::string paramName;
 
     RCLCPP_INFO(get_logger(), "*** DEBUG parameters ***");
-    
+
     getParam("general.debug_mode", mDebugMode, mDebugMode);
     RCLCPP_INFO(get_logger(), " * Debug mode: %s", mDebugMode ? "TRUE" : "FALSE");
     if (mDebugMode) {
@@ -328,7 +328,7 @@ void ZedCamera::getGeneralParams()
 
     getParam("general.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
     getParam("general.svo_file", std::string(), mSvoFilepath, " * SVO: ");
-    if (mSvoFilepath.compare("live")==0) // Patch for launch file not allowing empty strings as default parameters
+    if (mSvoFilepath.compare("live") == 0) // Patch for launch file not allowing empty strings as default parameters
     {
         mSvoFilepath = "";
     }
@@ -1165,6 +1165,12 @@ void ZedCamera::getOdParams()
     RCLCPP_INFO_STREAM(get_logger(),
         " * MultiClassBox fruits and vegetables: "
             << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
+    getParam("object_detection.mc_sport",
+        mObjDetSportEnable,
+        mObjDetSportEnable);
+    RCLCPP_INFO_STREAM(get_logger(),
+        " * MultiClassBox sport-related objects: "
+            << (mObjDetSportEnable ? "TRUE" : "FALSE"));
     getParam("object_detection.body_fitting", mObjDetBodyFitting, mObjDetBodyFitting);
     RCLCPP_INFO_STREAM(
         get_logger(), " * Skeleton fitting: " << (mObjDetBodyFitting ? "TRUE" : "FALSE"));
@@ -1252,7 +1258,7 @@ void ZedCamera::getOdParams()
 rcl_interfaces::msg::SetParametersResult
 ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
 {
-    RCLCPP_INFO(get_logger(), "Parameter change callback");
+    //RCLCPP_INFO(get_logger(), "Parameter change callback");
 
     rcl_interfaces::msg::SetParametersResult result;
     result.successful = false;
@@ -2250,7 +2256,7 @@ bool ZedCamera::startCamera()
     // <---- TF2 Transform
 
     // ----> ZED configuration
-    if (!mSvoFilepath.empty()) { 
+    if (!mSvoFilepath.empty()) {
         RCLCPP_INFO(get_logger(), "*** SVO OPENING ***");
 
         mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
@@ -2933,8 +2939,12 @@ bool ZedCamera::startObjDetect()
     if (mObjDetFruitsEnable) {
         mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
     }
+    if (mObjDetSportEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
+    }
 
-    sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
+        sl::ERROR_CODE objDetError
+        = mZed.enableObjectDetection(od_p);
 
     if (objDetError != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR_STREAM(
@@ -4861,6 +4871,9 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     }
     if (mObjDetFruitsEnable) {
         mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
+    }
+    if (mObjDetSportEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
     }
     objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
     // <---- Process realtime dynamic parameters

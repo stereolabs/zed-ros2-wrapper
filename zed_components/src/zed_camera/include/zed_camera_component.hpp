@@ -320,6 +320,7 @@ private:
     bool mObjDetAnimalsEnable = true;
     bool mObjDetElectronicsEnable = true;
     bool mObjDetFruitsEnable = true;
+    bool mObjDetSportEnable = true;
     bool mObjDetBodyFitting = false;
     sl::BODY_FORMAT mObjDetBodyFmt = sl::BODY_FORMAT::POSE_34;
     sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::HUMAN_BODY_FAST;

@@ -1,18 +1,13 @@
 LATEST CHANGES
 ==============
-2022-02-24
+
+v3.7.x
 ----------
 - Add support for sport-related OD objects
 - Add `remove_saturated_areas` dynamic parameter to disable depth filtering when luminance >=255
 - Add `sl::ObjectDetectionParameters::filtering_mode` parameter
 - Publish `depth_info` topic with current min/max depth information
-
-2022-01-04
-----------
 - Fix parameter override problem (Issue #71). Thx @kevinanschau
-
-2021-12-16
-----------
 - Add default xacro path value in `zed_camera.launch.py`. Thx @sttobia
 - Fix `zed-ros2-interfaces` sub-module url, changing from `ssh` to `https`.
 

@@ -50,6 +50,7 @@
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/magnetic_field.hpp>
 #include <sensor_msgs/msg/fluid_pressure.hpp>
+
 #include <sensor_msgs/msg/temperature.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
@@ -61,6 +62,7 @@
 
 #include <zed_interfaces/msg/objects_stamped.hpp>
 #include <zed_interfaces/msg/object.hpp>
+#include <zed_interfaces/msg/depth_info_stamped.hpp>
 #include <zed_interfaces/srv/set_pose.hpp>
 #include <zed_interfaces/srv/start_svo_rec.hpp>
 
@@ -88,6 +90,7 @@ typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odomPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::ObjectsStamped>> objPub;
+typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::DepthInfoStamped>> depthInfoPub;
 
 typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
@@ -105,6 +108,7 @@ typedef std::unique_ptr<nav_msgs::msg::Odometry> odomMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
 
 typedef std::unique_ptr<zed_interfaces::msg::ObjectsStamped> objDetMsgPtr;
+typedef std::unique_ptr<zed_interfaces::msg::DepthInfoStamped> depthInfoMsgPtr;
 
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetOdomSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetPosTrkSrvPtr;
@@ -320,9 +324,11 @@ private:
     bool mObjDetAnimalsEnable = true;
     bool mObjDetElectronicsEnable = true;
     bool mObjDetFruitsEnable = true;
+    bool mObjDetSportEnable = true;
     bool mObjDetBodyFitting = false;
     sl::BODY_FORMAT mObjDetBodyFmt = sl::BODY_FORMAT::POSE_34;
     sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::HUMAN_BODY_FAST;
+    sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
     // QoS parameters
     // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
     rclcpp::QoS mVideoQos;
@@ -355,6 +361,7 @@ private:
     double mDepthPubRate = 15.0;
     double mPcPubRate = 15.0;
     double mFusedPcPubRate = 1.0;
+    bool mRemoveSatAreas = true;
     // <---- Dynamic params
 
     // ----> Frame IDs
@@ -474,6 +481,7 @@ private:
     tempPub mPubTempR; //
     transfPub mPubCamImuTransf; //;
     objPub mPubObjDet;
+    depthInfoPub mPubDepthInfo;
     // <---- Publishers
 
     // ----> Threads and Timers

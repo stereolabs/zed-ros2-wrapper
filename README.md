@@ -48,7 +48,7 @@ $ sudo apt remove ros-foxy-image-transport-plugins ros-foxy-compressed-depth-ima
 ### Prerequisites
 
 - [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/)
-- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.6
+- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.7
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - ROS2 Foxy Fitxroy: 
   - [Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html)

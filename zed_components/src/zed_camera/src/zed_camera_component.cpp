@@ -270,7 +270,7 @@ void ZedCamera::getDebugParams()
     std::string paramName;
 
     RCLCPP_INFO(get_logger(), "*** DEBUG parameters ***");
-    
+
     getParam("general.debug_mode", mDebugMode, mDebugMode);
     RCLCPP_INFO(get_logger(), " * Debug mode: %s", mDebugMode ? "TRUE" : "FALSE");
     if (mDebugMode) {
@@ -328,7 +328,7 @@ void ZedCamera::getGeneralParams()
 
     getParam("general.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
     getParam("general.svo_file", std::string(), mSvoFilepath, " * SVO: ");
-    if (mSvoFilepath.compare("live")==0) // Patch for launch file not allowing empty strings as default parameters
+    if (mSvoFilepath.compare("live") == 0) // Patch for launch file not allowing empty strings as default parameters
     {
         mSvoFilepath = "";
     }
@@ -616,7 +616,10 @@ void ZedCamera::getDepthParams()
             mDepthTextConf,
             mDepthTextConf,
             " * [DYN] Depth Texture Confidence: ");
-
+        getParam("depth.remove_saturated_areas", mRemoveSatAreas, mRemoveSatAreas);
+        RCLCPP_INFO(get_logger(),
+            " * [DYN] Remove saturated areas: %s",
+            mRemoveSatAreas ? "TRUE" : "FALSE");
         // ------------------------------------------
 
         paramName = "depth.qos_history";
@@ -1133,6 +1136,12 @@ void ZedCamera::getOdParams()
     RCLCPP_INFO_STREAM(get_logger(),
         " * Object Detection model: " << model << " - "
                                       << sl::toString(mObjDetModel).c_str());
+    int filtering_mode = static_cast<int>(mObjFilterMode);
+    getParam("object_detection.filtering_mode", filtering_mode, filtering_mode);
+    mObjFilterMode = static_cast<sl::OBJECT_FILTERING_MODE>(filtering_mode);
+    RCLCPP_INFO_STREAM(get_logger(),
+        " * Object Filtering mode: " << filtering_mode << " - "
+                                     << sl::toString(mObjFilterMode).c_str());
     getParam(
         "object_detection.mc_people", mObjDetPeopleEnable, mObjDetPeopleEnable);
     RCLCPP_INFO_STREAM(
@@ -1165,14 +1174,25 @@ void ZedCamera::getOdParams()
     RCLCPP_INFO_STREAM(get_logger(),
         " * MultiClassBox fruits and vegetables: "
             << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
-    getParam("object_detection.body_fitting", mObjDetBodyFitting, mObjDetBodyFitting);
-    RCLCPP_INFO_STREAM(
-        get_logger(), " * Skeleton fitting: " << (mObjDetBodyFitting ? "TRUE" : "FALSE"));
+    getParam("object_detection.mc_sport",
+        mObjDetSportEnable,
+        mObjDetSportEnable);
+    RCLCPP_INFO_STREAM(get_logger(),
+        " * MultiClassBox sport-related objects: "
+            << (mObjDetSportEnable ? "TRUE" : "FALSE"));
     int bodyFormat = 0;
     getParam("object_detection.body_format", bodyFormat, bodyFormat);
     mObjDetBodyFmt = static_cast<sl::BODY_FORMAT>(bodyFormat);
-    //RCLCPP_INFO_STREAM(get_logger(), " * Body format: " << bodyFormat << " - " << sl::toString(mObjDetBodyFmt).c_str());
-    RCLCPP_INFO_STREAM(get_logger(), " * Body format: " << bodyFormat);
+    RCLCPP_INFO_STREAM(get_logger(), " * Body format: " << bodyFormat << " - " << sl::toString(mObjDetBodyFmt).c_str());
+    if (mObjDetBodyFmt == sl::BODY_FORMAT::POSE_34) {
+        RCLCPP_INFO_STREAM(
+            get_logger(), " * Skeleton fitting: TRUE (forced by `object_detection.body_format`)");
+        mObjDetBodyFitting = true;
+    } else {
+        getParam("object_detection.body_fitting", mObjDetBodyFitting, mObjDetBodyFitting);
+        RCLCPP_INFO_STREAM(
+            get_logger(), " * Skeleton fitting: " << (mObjDetBodyFitting ? "TRUE" : "FALSE"));
+    }
     // ------------------------------------------
 
     paramName = "object_detection.qos_history";
@@ -1252,7 +1272,7 @@ void ZedCamera::getOdParams()
 rcl_interfaces::msg::SetParametersResult
 ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
 {
-    RCLCPP_INFO(get_logger(), "Parameter change callback");
+    //RCLCPP_INFO(get_logger(), "Parameter change callback");
 
     rcl_interfaces::msg::SetParametersResult result;
     result.successful = false;
@@ -1621,6 +1641,24 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
+        } else if (param.get_name() == "depth.remove_saturated_areas") {
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+            if (param.get_type() != correctType) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason);
+                return result;
+            }
+
+            mRemoveSatAreas = param.as_bool();
+
+            RCLCPP_INFO_STREAM(get_logger(),
+                "Parameter '"
+                    << param.get_name() << "' correctly set to "
+                    << (mRemoveSatAreas ? "TRUE" : "FALSE"));
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
         } else if (param.get_name() == "mapping.fused_pointcloud_freq") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
             if (param.get_type() != correctType) {
@@ -1779,6 +1817,24 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
                 "Parameter '"
                     << param.get_name() << "' correctly set to "
                     << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
+            result.successful = true;
+            result.reason = param.get_name() + " correctly set.";
+            return result;
+        } else if (param.get_name() == "object_detection.mc_sport") {
+            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+            if (param.get_type() != correctType) {
+                result.successful = false;
+                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+                RCLCPP_WARN_STREAM(get_logger(), result.reason);
+                return result;
+            }
+
+            mObjDetSportEnable = param.as_bool();
+
+            RCLCPP_INFO_STREAM(get_logger(),
+                "Parameter '"
+                    << param.get_name() << "' correctly set to "
+                    << (mObjDetSportEnable ? "TRUE" : "FALSE"));
             result.successful = true;
             result.reason = param.get_name() + " correctly set.";
             return result;
@@ -2021,6 +2077,7 @@ void ZedCamera::initPublishers()
             "Openni depth mode activated -> Units: mm, Encoding: MONO16");
     }
     std::string depth_topic = mTopicRoot + depth_topic_root + "/depth_registered";
+    std::string depth_info_topic = mTopicRoot + depth_topic_root + "/depth_info";
 
     std::string pointcloud_topic = mTopicRoot + "point_cloud/cloud_registered";
     mPointcloudFusedTopic = mTopicRoot + "mapping/fused_cloud";
@@ -2129,6 +2186,10 @@ void ZedCamera::initPublishers()
             "Advertised on topic: " << mPubDepth.getTopic());
         RCLCPP_INFO_STREAM(get_logger(),
             "Advertised on topic: " << mPubDepth.getInfoTopic());
+        mPubDepthInfo = create_publisher<zed_interfaces::msg::DepthInfoStamped>(
+            depth_info_topic, mDepthQos);
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Advertised on topic: " << mPubDepthInfo->get_topic_name());
     }
 
     mPubStereo = image_transport::create_publisher(
@@ -2250,7 +2311,7 @@ bool ZedCamera::startCamera()
     // <---- TF2 Transform
 
     // ----> ZED configuration
-    if (!mSvoFilepath.empty()) { 
+    if (!mSvoFilepath.empty()) {
         RCLCPP_INFO(get_logger(), "*** SVO OPENING ***");
 
         mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
@@ -2911,6 +2972,7 @@ bool ZedCamera::startObjDetect()
     od_p.enable_tracking = mObjDetTracking;
     od_p.image_sync = true;
     od_p.detection_model = mObjDetModel;
+    od_p.filtering_mode = mObjFilterMode;
     od_p.enable_body_fitting = mObjDetBodyFitting;
     od_p.body_format = mObjDetBodyFmt;
 
@@ -2933,8 +2995,12 @@ bool ZedCamera::startObjDetect()
     if (mObjDetFruitsEnable) {
         mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
     }
+    if (mObjDetSportEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
+    }
 
-    sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
+    sl::ERROR_CODE objDetError
+        = mZed.enableObjectDetection(od_p);
 
     if (objDetError != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR_STREAM(
@@ -3389,6 +3455,7 @@ void ZedCamera::threadFunc_zedGrab()
     mRunParams.sensing_mode = static_cast<sl::SENSING_MODE>(mDepthSensingMode);
     mRunParams.enable_depth = false;
     mRunParams.measure3D_reference_frame = sl::REFERENCE_FRAME::CAMERA;
+    mRunParams.remove_saturated_areas = mRemoveSatAreas;
     // <---- Grab Runtime parameters
 
     // Infinite grab thread
@@ -4206,6 +4273,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
     static size_t depthSubnumber = 0;
     static size_t confMapSubnumber = 0;
     static size_t disparitySubnumber = 0;
+    static size_t depthInfoSubnumber = 0;
 
     try {
         rgbSubnumber = mPubRgb.getNumSubscribers();
@@ -4223,6 +4291,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
         stereoSubnumber = mPubStereo.getNumSubscribers();
         stereoRawSubnumber = mPubRawStereo.getNumSubscribers();
         depthSubnumber = mPubDepth.getNumSubscribers();
+        depthInfoSubnumber = count_subscribers(mPubDepthInfo->get_topic_name());
         confMapSubnumber = count_subscribers(mPubConfMap->get_topic_name());
         disparitySubnumber = count_subscribers(mPubDisparity->get_topic_name());
     } catch (...) {
@@ -4244,45 +4313,47 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
     static sl::Timestamp ts_depth = 0; // used to check RGB/Depth sync
     static sl::Timestamp grab_ts = 0;
 
+    float min_depth = 0.0f, max_depth = 0.0f;
+
     // ----> Retrieve all required data
     std::unique_lock<std::timed_mutex> lock(mCamDataMutex, std::defer_lock);
 
     if (lock.try_lock_for(std::chrono::milliseconds(1000 / mCamGrabFrameRate))) {
         if (rgbSubnumber + leftSubnumber + stereoSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
             ts_rgb = mat_left.timestamp;
             grab_ts = mat_left.timestamp;
         }
         if (rgbRawSubnumber + leftRawSubnumber + stereoRawSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_left_raw.timestamp;
         }
         if (rightSubnumber + stereoSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_right.timestamp;
         }
         if (rightRawSubnumber + stereoRawSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_right_raw.timestamp;
         }
         if (rgbGraySubnumber + leftGraySubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_left_gray.timestamp;
         }
         if (rgbGrayRawSubnumber + leftGrayRawSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_left_raw_gray.timestamp;
         }
         if (rightGraySubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_right_gray.timestamp;
         }
         if (rightGrayRawSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_right_raw_gray.timestamp;
         }
-        if (depthSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
+        if (depthSubnumber > 0 || depthInfoSubnumber > 0) {
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
             grab_ts = mat_depth.timestamp;
 
             ts_depth = mat_depth.timestamp;
@@ -4295,15 +4366,22 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
             }
         }
         if (disparitySubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
             grab_ts = mat_disp.timestamp;
         }
         if (confMapSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
             grab_ts = mat_conf.timestamp;
         }
+        if (depthInfoSubnumber > 0) {
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.getCurrentMinMaxDepth(min_depth, max_depth);
+#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION == 7 && ZED_SDK_PATCH_VERSION == 0 // Units bug workaround
+            min_depth *= 0.001f;
+            max_depth *= 0.001f;
+#endif
+        }
     } else {
-        RCLCPP_INFO(get_logger(), "Lock timeout");
+        RCLCPP_DEBUG(get_logger(), "Lock timeout");
     }
     // <---- Retrieve all required data
 
@@ -4482,6 +4560,18 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
         publishDisparity(mat_disp, timeStamp);
     }
     // <---- Publish the disparity image if someone has subscribed to
+
+    // ----> Publish the depth info if someone has subscribed to
+    if (depthInfoSubnumber > 0) {
+        depthInfoMsgPtr depthInfoMsg = std::make_unique<zed_interfaces::msg::DepthInfoStamped>();
+        depthInfoMsg->header.stamp = timeStamp;
+        depthInfoMsg->header.frame_id = mDepthOptFrameId;
+        depthInfoMsg->min_depth = min_depth;
+        depthInfoMsg->max_depth = max_depth;
+
+        mPubDepthInfo->publish(std::move(depthInfoMsg));
+    }
+    // <---- Publish the depth info if someone has subscribed to
 
     // Diagnostic statistic
     mVideoDepthElabMean_sec->addValue(elabTimer.toc());
@@ -4862,6 +4952,9 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     if (mObjDetFruitsEnable) {
         mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
     }
+    if (mObjDetSportEnable) {
+        mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
+    }
     objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
     // <---- Process realtime dynamic parameters
 
@@ -4986,17 +5079,32 @@ bool ZedCamera::isDepthRequired()
         return false;
     }
 
-    size_t topics_sub = 0;
-    try {
-        topics_sub = count_subscribers(mPubDepth.getTopic()) + count_subscribers(mPubConfMap->get_topic_name()) + count_subscribers(mPubDisparity->get_topic_name()) + count_subscribers(mPubCloud->get_topic_name());
-    } catch (...) {
+    size_t tot_sub = 0;
+    size_t depthSub = 0;
+    size_t confMapSub = 0;
+    size_t dispSub = 0;
+    size_t pcSub = 0;
+    size_t depthInfoSub = 0;
+
+    try
+    {
+        depthSub = mPubDepth.getNumSubscribers();
+        confMapSub = count_subscribers(mPubConfMap->get_topic_name());
+        dispSub = count_subscribers(mPubDisparity->get_topic_name());
+        pcSub = count_subscribers(mPubCloud->get_topic_name());
+        depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
+
+        tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub;
+    }
+    catch (...)
+    {
         rcutils_reset_error();
         RCLCPP_DEBUG(get_logger(),
             "isDepthRequired: Exception while counting subscribers");
         return false;
     }
 
-    return topics_sub > 0 || isPosTrackingRequired();
+    return tot_sub > 0 || isPosTrackingRequired();
 }
 
 void ZedCamera::applyDepthSettings()
@@ -5005,6 +5113,7 @@ void ZedCamera::applyDepthSettings()
         mDynParMutex.lock();
         mRunParams.confidence_threshold = mDepthConf; // Update depth confidence if changed
         mRunParams.texture_confidence_threshold = mDepthTextConf; // Update depth texture confidence if changed
+        mRunParams.remove_saturated_areas = mRemoveSatAreas;
         mDynParMutex.unlock();
 
         mRunParams.enable_depth = true;

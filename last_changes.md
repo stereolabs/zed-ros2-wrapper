@@ -5,7 +5,7 @@ LATEST CHANGES
 - Add support for sport-related OD objects
 - Add `remove_saturated_areas` dynamic parameter to disable depth filtering when luminance >=255
 - Add `sl::ObjectDetectionParameters::filtering_mode` parameter
-- Add `depth_info` topic with current min/max depth information
+- Publish `depth_info` topic with current min/max depth information
 
 2022-01-04
 ----------

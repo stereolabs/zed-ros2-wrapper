@@ -1179,7 +1179,7 @@ void ZedCamera::getOdParams()
         mObjDetSportEnable);
     RCLCPP_INFO_STREAM(get_logger(),
         " * MultiClassBox sport-related objects: "
-            << (mObjDetSportEnable ? "TRUE" : "FALSE"));    
+            << (mObjDetSportEnable ? "TRUE" : "FALSE"));
     int bodyFormat = 0;
     getParam("object_detection.body_format", bodyFormat, bodyFormat);
     mObjDetBodyFmt = static_cast<sl::BODY_FORMAT>(bodyFormat);
@@ -1188,12 +1188,10 @@ void ZedCamera::getOdParams()
         RCLCPP_INFO_STREAM(
             get_logger(), " * Skeleton fitting: TRUE (forced by `object_detection.body_format`)");
         mObjDetBodyFitting = true;
-    }
-    else
-    {
+    } else {
         getParam("object_detection.body_fitting", mObjDetBodyFitting, mObjDetBodyFitting);
-    RCLCPP_INFO_STREAM(
-        get_logger(), " * Skeleton fitting: " << (mObjDetBodyFitting ? "TRUE" : "FALSE"));
+        RCLCPP_INFO_STREAM(
+            get_logger(), " * Skeleton fitting: " << (mObjDetBodyFitting ? "TRUE" : "FALSE"));
     }
     // ------------------------------------------
 
@@ -2079,6 +2077,7 @@ void ZedCamera::initPublishers()
             "Openni depth mode activated -> Units: mm, Encoding: MONO16");
     }
     std::string depth_topic = mTopicRoot + depth_topic_root + "/depth_registered";
+    std::string depth_info_topic = mTopicRoot + depth_topic_root + "/depth_info";
 
     std::string pointcloud_topic = mTopicRoot + "point_cloud/cloud_registered";
     mPointcloudFusedTopic = mTopicRoot + "mapping/fused_cloud";
@@ -2187,6 +2186,10 @@ void ZedCamera::initPublishers()
             "Advertised on topic: " << mPubDepth.getTopic());
         RCLCPP_INFO_STREAM(get_logger(),
             "Advertised on topic: " << mPubDepth.getInfoTopic());
+        mPubDepthInfo = create_publisher<zed_interfaces::msg::DepthInfoStamped>(
+            depth_info_topic, mDepthQos);
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Advertised on topic: " << mPubDepthInfo->get_topic_name());
     }
 
     mPubStereo = image_transport::create_publisher(
@@ -4270,6 +4273,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
     static size_t depthSubnumber = 0;
     static size_t confMapSubnumber = 0;
     static size_t disparitySubnumber = 0;
+    static size_t depthInfoSubnumber = 0;
 
     try {
         rgbSubnumber = mPubRgb.getNumSubscribers();
@@ -4287,6 +4291,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
         stereoSubnumber = mPubStereo.getNumSubscribers();
         stereoRawSubnumber = mPubRawStereo.getNumSubscribers();
         depthSubnumber = mPubDepth.getNumSubscribers();
+        depthInfoSubnumber = count_subscribers(mPubDepthInfo->get_topic_name());
         confMapSubnumber = count_subscribers(mPubConfMap->get_topic_name());
         disparitySubnumber = count_subscribers(mPubDisparity->get_topic_name());
     } catch (...) {
@@ -4308,45 +4313,47 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
     static sl::Timestamp ts_depth = 0; // used to check RGB/Depth sync
     static sl::Timestamp grab_ts = 0;
 
+    float min_depth = 0.0f, max_depth = 0.0f;
+
     // ----> Retrieve all required data
     std::unique_lock<std::timed_mutex> lock(mCamDataMutex, std::defer_lock);
 
     if (lock.try_lock_for(std::chrono::milliseconds(1000 / mCamGrabFrameRate))) {
         if (rgbSubnumber + leftSubnumber + stereoSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
             ts_rgb = mat_left.timestamp;
             grab_ts = mat_left.timestamp;
         }
         if (rgbRawSubnumber + leftRawSubnumber + stereoRawSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_left_raw.timestamp;
         }
         if (rightSubnumber + stereoSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_right.timestamp;
         }
         if (rightRawSubnumber + stereoRawSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_right_raw.timestamp;
         }
         if (rgbGraySubnumber + leftGraySubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_left_gray.timestamp;
         }
         if (rgbGrayRawSubnumber + leftGrayRawSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_left_raw_gray.timestamp;
         }
         if (rightGraySubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_right_gray.timestamp;
         }
         if (rightGrayRawSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
             grab_ts = mat_right_raw_gray.timestamp;
         }
-        if (depthSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
+        if (depthSubnumber > 0 || depthInfoSubnumber > 0) {
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
             grab_ts = mat_depth.timestamp;
 
             ts_depth = mat_depth.timestamp;
@@ -4359,12 +4366,19 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
             }
         }
         if (disparitySubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
             grab_ts = mat_disp.timestamp;
         }
         if (confMapSubnumber > 0) {
-            retrieved = sl::ERROR_CODE::SUCCESS == mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
             grab_ts = mat_conf.timestamp;
+        }
+        if (depthInfoSubnumber > 0) {
+            retrieved |= sl::ERROR_CODE::SUCCESS == mZed.getCurrentMinMaxDepth(min_depth, max_depth);
+#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION == 7 && ZED_SDK_PATCH_VERSION == 0 // Units bug workaround
+            min_depth *= 0.001f;
+            max_depth *= 0.001f;
+#endif
         }
     } else {
         RCLCPP_DEBUG(get_logger(), "Lock timeout");
@@ -4546,6 +4560,18 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
         publishDisparity(mat_disp, timeStamp);
     }
     // <---- Publish the disparity image if someone has subscribed to
+
+    // ----> Publish the depth info if someone has subscribed to
+    if (depthInfoSubnumber > 0) {
+        depthInfoMsgPtr depthInfoMsg = std::make_unique<zed_interfaces::msg::DepthInfoStamped>();
+        depthInfoMsg->header.stamp = timeStamp;
+        depthInfoMsg->header.frame_id = mDepthOptFrameId;
+        depthInfoMsg->min_depth = min_depth;
+        depthInfoMsg->max_depth = max_depth;
+
+        mPubDepthInfo->publish(std::move(depthInfoMsg));
+    }
+    // <---- Publish the depth info if someone has subscribed to
 
     // Diagnostic statistic
     mVideoDepthElabMean_sec->addValue(elabTimer.toc());
@@ -5053,17 +5079,32 @@ bool ZedCamera::isDepthRequired()
         return false;
     }
 
-    size_t topics_sub = 0;
-    try {
-        topics_sub = count_subscribers(mPubDepth.getTopic()) + count_subscribers(mPubConfMap->get_topic_name()) + count_subscribers(mPubDisparity->get_topic_name()) + count_subscribers(mPubCloud->get_topic_name());
-    } catch (...) {
+    size_t tot_sub = 0;
+    size_t depthSub = 0;
+    size_t confMapSub = 0;
+    size_t dispSub = 0;
+    size_t pcSub = 0;
+    size_t depthInfoSub = 0;
+
+    try
+    {
+        depthSub = mPubDepth.getNumSubscribers();
+        confMapSub = count_subscribers(mPubConfMap->get_topic_name());
+        dispSub = count_subscribers(mPubDisparity->get_topic_name());
+        pcSub = count_subscribers(mPubCloud->get_topic_name());
+        depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
+
+        tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub;
+    }
+    catch (...)
+    {
         rcutils_reset_error();
         RCLCPP_DEBUG(get_logger(),
             "isDepthRequired: Exception while counting subscribers");
         return false;
     }
 
-    return topics_sub > 0 || isPosTrackingRequired();
+    return tot_sub > 0 || isPosTrackingRequired();
 }
 
 void ZedCamera::applyDepthSettings()

@@ -1136,6 +1136,12 @@ void ZedCamera::getOdParams()
     RCLCPP_INFO_STREAM(get_logger(),
         " * Object Detection model: " << model << " - "
                                       << sl::toString(mObjDetModel).c_str());
+    int filtering_mode = static_cast<int>(mObjFilterMode);
+    getParam("object_detection.filtering_mode", filtering_mode, filtering_mode);
+    mObjFilterMode = static_cast<sl::OBJECT_FILTERING_MODE>(filtering_mode);
+    RCLCPP_INFO_STREAM(get_logger(),
+        " * Object Filtering mode: " << filtering_mode << " - "
+                                     << sl::toString(mObjFilterMode).c_str());
     getParam(
         "object_detection.mc_people", mObjDetPeopleEnable, mObjDetPeopleEnable);
     RCLCPP_INFO_STREAM(
@@ -1173,15 +1179,22 @@ void ZedCamera::getOdParams()
         mObjDetSportEnable);
     RCLCPP_INFO_STREAM(get_logger(),
         " * MultiClassBox sport-related objects: "
-            << (mObjDetSportEnable ? "TRUE" : "FALSE"));
-    getParam("object_detection.body_fitting", mObjDetBodyFitting, mObjDetBodyFitting);
-    RCLCPP_INFO_STREAM(
-        get_logger(), " * Skeleton fitting: " << (mObjDetBodyFitting ? "TRUE" : "FALSE"));
+            << (mObjDetSportEnable ? "TRUE" : "FALSE"));    
     int bodyFormat = 0;
     getParam("object_detection.body_format", bodyFormat, bodyFormat);
     mObjDetBodyFmt = static_cast<sl::BODY_FORMAT>(bodyFormat);
-    //RCLCPP_INFO_STREAM(get_logger(), " * Body format: " << bodyFormat << " - " << sl::toString(mObjDetBodyFmt).c_str());
-    RCLCPP_INFO_STREAM(get_logger(), " * Body format: " << bodyFormat);
+    RCLCPP_INFO_STREAM(get_logger(), " * Body format: " << bodyFormat << " - " << sl::toString(mObjDetBodyFmt).c_str());
+    if (mObjDetBodyFmt == sl::BODY_FORMAT::POSE_34) {
+        RCLCPP_INFO_STREAM(
+            get_logger(), " * Skeleton fitting: TRUE (forced by `object_detection.body_format`)");
+        mObjDetBodyFitting = true;
+    }
+    else
+    {
+        getParam("object_detection.body_fitting", mObjDetBodyFitting, mObjDetBodyFitting);
+    RCLCPP_INFO_STREAM(
+        get_logger(), " * Skeleton fitting: " << (mObjDetBodyFitting ? "TRUE" : "FALSE"));
+    }
     // ------------------------------------------
 
     paramName = "object_detection.qos_history";
@@ -2956,6 +2969,7 @@ bool ZedCamera::startObjDetect()
     od_p.enable_tracking = mObjDetTracking;
     od_p.image_sync = true;
     od_p.detection_model = mObjDetModel;
+    od_p.filtering_mode = mObjFilterMode;
     od_p.enable_body_fitting = mObjDetBodyFitting;
     od_p.body_format = mObjDetBodyFmt;
 

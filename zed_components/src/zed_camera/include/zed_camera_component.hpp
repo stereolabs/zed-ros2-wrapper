@@ -324,6 +324,7 @@ private:
     bool mObjDetBodyFitting = false;
     sl::BODY_FORMAT mObjDetBodyFmt = sl::BODY_FORMAT::POSE_34;
     sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::HUMAN_BODY_FAST;
+    sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
     // QoS parameters
     // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
     rclcpp::QoS mVideoQos;

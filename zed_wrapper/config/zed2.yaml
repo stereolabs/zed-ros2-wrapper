@@ -29,6 +29,7 @@
             od_enabled:                 false           # True to enable Object Detection [only ZED 2]
             confidence_threshold:       50.0            # [DYNAMIC] - Minimum value of the detection confidence of an object [0,100]
             model:                      0               # '0': MULTI_CLASS_BOX - '1': MULTI_CLASS_BOX_ACCURATE - '2': HUMAN_BODY_FAST - '3': HUMAN_BODY_ACCURATE - '4': MULTI_CLASS_BOX_MEDIUM - '5': HUMAN_BODY_MEDIUM - '6': PERSON_HEAD_BOX 
+            filtering_mode:             1               # '0': NONE - '1': NMS3D - '2': NMS3D_PER_CLASS
             mc_people:                  true            # [DYNAMIC] - Enable/disable the detection of persons for 'MULTI_CLASS_X' models
             mc_vehicle:                 true            # [DYNAMIC] - Enable/disable the detection of vehicles for 'MULTI_CLASS_X' models
             mc_bag:                     true            # [DYNAMIC] - Enable/disable the detection of bags for 'MULTI_CLASS_X' models

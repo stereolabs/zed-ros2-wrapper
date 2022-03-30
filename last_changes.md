@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2022-03-30
+----------
+- Fix `set_pose` wrong behavior. Now initial odometry is coherent with the new starting point.
+
 v3.7.x
 ----------
 - Add support for sport-related OD objects

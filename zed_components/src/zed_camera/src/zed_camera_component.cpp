@@ -3089,7 +3089,7 @@ void ZedCamera::initTransforms()
     mOdom2BaseTransf.setIdentity(); // broadcasted if `publish_tf` is true
     mMap2OdomTransf.setIdentity(); // broadcasted if `publish_map_tf` is true
     mMap2BaseTransf.setIdentity(); // used internally, but not broadcasted
-        // <---- Dynamic transforms
+    // <---- Dynamic transforms
 }
 
 bool ZedCamera::getCamera2BaseTransform()
@@ -3623,8 +3623,8 @@ void ZedCamera::threadFunc_zedGrab()
         if (!mDepthDisabled) {
             if (mPosTrackingStarted) {
                 if (!mSvoPause) {
-                    processOdometry();
                     processPose();
+                    processOdometry();                    
                 }
 
                 if (mCamRealModel == sl::MODEL::ZED || !mPublishImuTF || mSvoMode) {
@@ -4028,6 +4028,10 @@ void ZedCamera::publishTFs(rclcpp::Time t)
 
     // RCLCPP_INFO_STREAM(get_logger(), "publishTFs - t type:" <<
     // t.get_clock_type());
+
+    if (!mPosTrackingReady) {
+        return;
+    }
 
     if (t == TIMEZERO_ROS) {
         RCLCPP_DEBUG(get_logger(), "Time zero: not publishing TFs");
@@ -5086,8 +5090,7 @@ bool ZedCamera::isDepthRequired()
     size_t pcSub = 0;
     size_t depthInfoSub = 0;
 
-    try
-    {
+    try {
         depthSub = mPubDepth.getNumSubscribers();
         confMapSub = count_subscribers(mPubConfMap->get_topic_name());
         dispSub = count_subscribers(mPubDisparity->get_topic_name());
@@ -5095,9 +5098,7 @@ bool ZedCamera::isDepthRequired()
         depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
 
         tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub;
-    }
-    catch (...)
-    {
+    } catch (...) {
         rcutils_reset_error();
         RCLCPP_DEBUG(get_logger(),
             "isDepthRequired: Exception while counting subscribers");
@@ -5567,7 +5568,7 @@ void ZedCamera::callback_resetPosTracking(
         return;
     }
 
-    if (!setPose(mInitialBasePose[0],
+    /*if (!setPose(mInitialBasePose[0],
             mInitialBasePose[1],
             mInitialBasePose[2],
             mInitialBasePose[3],
@@ -5577,15 +5578,15 @@ void ZedCamera::callback_resetPosTracking(
         RCLCPP_WARN(get_logger(), "Error setting initial pose");
         res->success = false;
         return;
-    }
+    }*/
 
     std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
-    mInitOdomWithPose = true;
+    //mInitOdomWithPose = true;
 
     // Disable tracking
-    mPosTrackingStarted = false;
-    mZed.disablePositionalTracking();
+    //mPosTrackingStarted = false;
+    //mZed.disablePositionalTracking();
 
     // Restart tracking
     startPosTracking();
@@ -5615,7 +5616,7 @@ void ZedCamera::callback_setPose(
         return;
     }
 
-    mInitOdomWithPose = true;
+    //mInitOdomWithPose = true;
 
     mInitialBasePose[0] = req->pos[0];
     mInitialBasePose[1] = req->pos[1];
@@ -5625,7 +5626,7 @@ void ZedCamera::callback_setPose(
     mInitialBasePose[4] = req->orient[1];
     mInitialBasePose[5] = req->orient[2];
 
-    if (!setPose(mInitialBasePose[0],
+    /*if (!setPose(mInitialBasePose[0],
             mInitialBasePose[1],
             mInitialBasePose[2],
             mInitialBasePose[3],
@@ -5635,13 +5636,13 @@ void ZedCamera::callback_setPose(
         RCLCPP_WARN(get_logger(), "Error setting initial pose");
         res->success = false;
         return;
-    }
+    }*/
 
-    std::lock_guard<std::mutex> lock(mPosTrkMutex);
+    //std::lock_guard<std::mutex> lock(mPosTrkMutex);
 
     // Disable tracking
-    mPosTrackingStarted = false;
-    mZed.disablePositionalTracking();
+    //mPosTrackingStarted = false;
+    //mZed.disablePositionalTracking();
 
     // Restart tracking
     startPosTracking();
@@ -6070,6 +6071,7 @@ void ZedCamera::callback_updateDiagnostic(
 } // namespace stereolabs
 
 #include "rclcpp_components/register_node_macro.hpp"
+
 
 // Register the component with class_loader.
 // This acts as a sort of entry point, allowing the component to be discoverable

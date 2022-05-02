@@ -30,6 +30,7 @@
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <type_traits>
 
 #include "sl_tools.h"
@@ -54,6 +55,7 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions& options)
     , mPoseQos(1)
     , mMappingQos(1)
     , mObjDetQos(1)
+    , mClickedPtQos(1)
 {
     RCLCPP_INFO(get_logger(), "********************************");
     RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
@@ -838,9 +840,14 @@ void ZedCamera::getMappingParams()
         mFusedPcPubRate,
         " * Map publishing rate [Hz]: ");
 
+    getParam("mapping.clicked_point_topic",
+        mClickedPtTopic,
+        mClickedPtTopic,
+        " * Clicked point topic: ");
     // ------------------------------------------
 
-    paramName = "mapping.qos_history";
+    paramName
+        = "mapping.qos_history";
     declare_parameter(paramName, rclcpp::ParameterValue(qos_hist));
 
     if (get_parameter(paramName, paramVal)) {
@@ -2118,8 +2125,7 @@ void ZedCamera::initPublishers()
     // <---- Topics names definition
 
     // ----> Camera publishers
-    mPubRgb = image_transport::create_camera_publisher(
-        this, rgb_topic, mVideoQos.get_rmw_qos_profile());
+    mPubRgb = image_transport::create_camera_publisher(this, rgb_topic, mVideoQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(),
         "Advertised on topic: " << mPubRgb.getTopic());
     mPubRgbGray = image_transport::create_camera_publisher(
@@ -2248,6 +2254,16 @@ void ZedCamera::initPublishers()
                 << mPubFusedCloud->get_topic_name() << " @ "
                 << mFusedPcPubRate << " Hz");
     }
+    std::string marker_topic = "plane_marker";
+    std::string plane_topic = "plane";
+    // Rviz markers publisher
+    mPubMarker = create_publisher<visualization_msgs::msg::Marker>(marker_topic, mMappingQos);
+    RCLCPP_INFO_STREAM(
+        get_logger(), "Advertised on topic: " << mPubMarker->get_topic_name());
+    // Detected planes publisher
+    mPubPlane = create_publisher<zed_interfaces::msg::PlaneStamped>(plane_topic, mMappingQos);
+    RCLCPP_INFO_STREAM(
+        get_logger(), "Advertised on topic: " << mPubPlane->get_topic_name());
     // <---- Mapping
 
     // ----> Sensors
@@ -2287,6 +2303,27 @@ void ZedCamera::initPublishers()
         // <---- Publish latched camera/imu transform message
     }
     // <---- Sensors
+
+    // ----> Subscribers
+    // Subscribers
+    /* From `$ ros2 topic info /clicked_point -v`
+        QoS profile:
+            Reliability: RMW_QOS_POLICY_RELIABILITY_RELIABLE
+            Durability: RMW_QOS_POLICY_DURABILITY_VOLATILE
+            Lifespan: 2147483651294967295 nanoseconds
+            Deadline: 2147483651294967295 nanoseconds
+            Liveliness: RMW_QOS_POLICY_LIVELINESS_AUTOMATIC
+            Liveliness lease duration: 2147483651294967295 nanoseconds
+    */
+    mClickedPtQos.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+    mClickedPtQos.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+    mClickedPtSub = create_subscription<geometry_msgs::msg::PointStamped>(
+        mClickedPtTopic, mClickedPtQos,
+        std::bind(&ZedCamera::callback_clickedPoint, this, _1));
+
+    RCLCPP_INFO_STREAM(
+        get_logger(), "Subscribed to topic " << mClickedPtTopic.c_str());
+    // <---- Subscribers
 }
 
 bool ZedCamera::startCamera()
@@ -3624,7 +3661,7 @@ void ZedCamera::threadFunc_zedGrab()
             if (mPosTrackingStarted) {
                 if (!mSvoPause) {
                     processPose();
-                    processOdometry();                    
+                    processOdometry();
                 }
 
                 if (mCamRealModel == sl::MODEL::ZED || !mPublishImuTF || mSvoMode) {
@@ -6068,10 +6105,287 @@ void ZedCamera::callback_updateDiagnostic(
     }
 }
 
+void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::SharedPtr msg)
+{
+    // ----> Check for result subscribers
+    size_t markerSubNumber = 0;
+    size_t planeSubNumber = 0;
+    try {
+        markerSubNumber = count_subscribers(mPubMarker->get_topic_name());
+        planeSubNumber = count_subscribers(mPubPlane->get_topic_name());
+    } catch (...) {
+        rcutils_reset_error();
+        RCLCPP_DEBUG(get_logger(),
+            "threadFunc_zedGrab: Exception while "
+            "counting point plane subscribers");
+        return;
+    }
+
+    if ((markerSubNumber + planeSubNumber) == 0) {
+        return;
+    }
+    // <---- Check for result subscribers
+
+    rclcpp::Time ts = get_clock()->now();
+
+    float X = msg->point.x;
+    float Y = msg->point.y;
+    float Z = msg->point.z;
+
+    RCLCPP_INFO_STREAM(get_logger(), "Clicked 3D point [X FW, Y LF, Z UP]: [" << X << "," << Y << "," << Z << "]");
+
+    // ----> Transform the point from `map` frame to `left_camera_optical_frame`
+    double camX, camY, camZ;
+    try {
+        // Save the transformation
+        geometry_msgs::msg::TransformStamped m2o = mTfBuffer->lookupTransform(mLeftCamOptFrameId, msg->header.frame_id, TIMEZERO_SYS, rclcpp::Duration(0.1));
+        
+        RCLCPP_INFO(get_logger(), "'%s' -> '%s': {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f,%.3f}", msg->header.frame_id.c_str(), mLeftCamOptFrameId.c_str(),
+            m2o.transform.translation.x, m2o.transform.translation.y, m2o.transform.translation.z,
+            m2o.transform.rotation.x, m2o.transform.rotation.y, m2o.transform.rotation.z, m2o.transform.rotation.w);
+
+        // Get the TF2 transformation
+        geometry_msgs::msg::PointStamped ptCam;
+
+        tf2::doTransform(*(msg.get()), ptCam, m2o);
+
+        camX = ptCam.point.x;
+        camY = ptCam.point.y;
+        camZ = ptCam.point.z;
+
+        RCLCPP_INFO(get_logger(), "Point in camera coordinates [Z FW, X RG, Y DW]: {%.3f,%.3f,%.3f}", camX, camY, camZ);
+    } catch (tf2::TransformException& ex) {
+        rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+        RCLCPP_DEBUG_THROTTLE(
+            get_logger(), steady_clock, 1.0, "Transform error: %s", ex.what());
+        RCLCPP_WARN_THROTTLE(get_logger(),
+            steady_clock,
+            1.0,
+            "The tf from '%s' to '%s' is not available.",
+            msg->header.frame_id.c_str(),
+            mLeftCamOptFrameId.c_str());
+
+        return;
+    }
+    // <---- Transform the point from `map` frame to `left_camera_optical_frame`
+
+    // ----> Project the point into 2D image coordinates
+    sl::CalibrationParameters zedParam;
+    zedParam = mZed.getCameraInformation(mMatResolVideo).calibration_parameters; // ok
+
+    float f_x = zedParam.left_cam.fx;
+    float f_y = zedParam.left_cam.fy;
+    float c_x = zedParam.left_cam.cx;
+    float c_y = zedParam.left_cam.cy;
+
+    float u = ((camX / camZ) * f_x + c_x) / mImgDownsampleFactor;
+    float v = ((camY / camZ) * f_y + c_y) / mImgDownsampleFactor;
+    RCLCPP_INFO_STREAM(get_logger(), "Clicked point image coordinates: [" << u << "," << v << "]");
+    // <---- Project the point into 2D image coordinates
+
+    // ----> Extract plane from clicked point
+    sl::Plane plane;
+    sl::ERROR_CODE err = mZed.findPlaneAtHit(sl::uint2(u, v), plane);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_WARN(get_logger(), "Error extracting plane at point [%.3f,%.3f,%.3f]: %s", X, Y, Z, sl::toString(err).c_str());
+        return;
+    }
+
+    sl::float3 center = plane.getCenter();
+    sl::float2 dims = plane.getExtents();
+
+    if (dims[0] == 0 || dims[1] == 0) {
+        RCLCPP_INFO(get_logger(), "Plane not found at point [%.3f,%.3f,%.3f]", X, Y, Z);
+        return;
+    }
+
+    RCLCPP_INFO(get_logger(), "Found plane at point [%.3f,%.3f,%.3f] -> Center: [%.3f,%.3f,%.3f], Dims: %.3fx%.3f", X, Y, Z, center.x, center.y, center.z, dims[0], dims[1]);
+    // <---- Extract plane from clicked point
+
+    if (markerSubNumber > 0) {
+        // ----> Publish a blue sphere in the clicked point        
+        markerMsgPtr pt_marker = std::make_unique<visualization_msgs::msg::Marker>();
+        // Set the frame ID and timestamp.  See the TF tutorials for information on these.
+        static int hit_pt_id
+            = 0;
+        pt_marker->header.stamp = ts;
+        // Set the marker action.  Options are ADD and DELETE
+        pt_marker->action = visualization_msgs::msg::Marker::ADD;
+        pt_marker->lifetime = rclcpp::Duration(0);
+
+        // Set the namespace and id for this marker.  This serves to create a unique ID
+        // Any marker sent with the same namespace and id will overwrite the old one
+        pt_marker->ns = "plane_hit_points";
+        pt_marker->id = hit_pt_id++;
+        pt_marker->header.frame_id = mMapFrameId;
+
+        // Set the marker type.
+        pt_marker->type = visualization_msgs::msg::Marker::SPHERE;
+
+        // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
+        pt_marker->pose.position.x = X;
+        pt_marker->pose.position.y = Y;
+        pt_marker->pose.position.z = Z;
+        pt_marker->pose.orientation.x = 0.0;
+        pt_marker->pose.orientation.y = 0.0;
+        pt_marker->pose.orientation.z = 0.0;
+        pt_marker->pose.orientation.w = 1.0;
+
+        // Set the scale of the marker -- 1x1x1 here means 1m on a side
+        pt_marker->scale.x = 0.025;
+        pt_marker->scale.y = 0.025;
+        pt_marker->scale.z = 0.025;
+
+        // Set the color -- be sure to set alpha to something non-zero!
+        pt_marker->color.r = 0.2f;
+        pt_marker->color.g = 0.1f;
+        pt_marker->color.b = 0.75f;
+        pt_marker->color.a = 0.8;
+
+        // Publish the marker
+        mPubMarker->publish(std::move(pt_marker));
+        // ----> Publish a blue sphere in the clicked point
+
+        // ----> Publish the plane as green mesh
+        markerMsgPtr plane_marker = std::make_unique<visualization_msgs::msg::Marker>();
+        // Set the frame ID and timestamp.  See the TF tutorials for information on these.
+        static int plane_mesh_id = 0;
+        plane_marker->header.stamp = ts;
+        // Set the marker action.  Options are ADD and DELETE
+        plane_marker->action = visualization_msgs::msg::Marker::ADD;
+        plane_marker->lifetime = rclcpp::Duration(0);
+
+        // Set the namespace and id for this marker.  This serves to create a unique ID
+        // Any marker sent with the same namespace and id will overwrite the old one
+        plane_marker->ns = "plane_meshes";
+        plane_marker->id = plane_mesh_id++;
+        plane_marker->header.frame_id = mLeftCamFrameId;
+
+        // Set the marker type.
+        plane_marker->type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+
+        // Set the pose of the marker.  This isplane_marker
+        plane_marker->pose.orientation.w = 1.0;
+
+        // Set the color -- be sure to set alpha to something non-zero!
+        plane_marker->color.r = 0.10f;
+        plane_marker->color.g = 0.75f;
+        plane_marker->color.b = 0.20f;
+        plane_marker->color.a = 0.75;
+
+        // Set the scale of the marker -- 1x1x1 here means 1m on a side
+        plane_marker->scale.x = 1.0;
+        plane_marker->scale.y = 1.0;
+        plane_marker->scale.z = 1.0;
+
+        sl::Mesh mesh = plane.extractMesh();
+        size_t triangCount = mesh.getNumberOfTriangles();
+        size_t ptCount = triangCount * 3;
+        plane_marker->points.resize(ptCount);
+        plane_marker->colors.resize(ptCount);
+
+        size_t ptIdx = 0;
+        for (size_t t = 0; t < triangCount; t++) {
+            for (int p = 0; p < 3; p++) {
+                uint vIdx = mesh.triangles[t][p];
+                plane_marker->points[ptIdx].x = mesh.vertices[vIdx][0];
+                plane_marker->points[ptIdx].y = mesh.vertices[vIdx][1];
+                plane_marker->points[ptIdx].z = mesh.vertices[vIdx][2];
+
+                // Set the color -- be sure to set alpha to something non-zero!
+                plane_marker->colors[ptIdx].r = 0.10f;
+                plane_marker->colors[ptIdx].g = 0.75f;
+                plane_marker->colors[ptIdx].b = 0.20f;
+                plane_marker->colors[ptIdx].a = 0.75;
+
+                ptIdx++;
+            }
+        }
+
+        // Publish the marker
+        mPubMarker->publish(std::move(plane_marker));
+        // <---- Publish the plane as green mesh
+    }
+
+    if (planeSubNumber > 0) {
+        // ----> Publish the plane as custom message
+
+        planeMsgPtr planeMsg = std::make_unique<zed_interfaces::msg::PlaneStamped>();
+        planeMsg->header.stamp = ts;
+        planeMsg->header.frame_id = mLeftCamFrameId;
+
+        // Plane equation
+        sl::float4 sl_coeff = plane.getPlaneEquation();
+        planeMsg->coefficients.coef[0] = static_cast<double>(sl_coeff[0]);
+        planeMsg->coefficients.coef[1] = static_cast<double>(sl_coeff[1]);
+        planeMsg->coefficients.coef[2] = static_cast<double>(sl_coeff[2]);
+        planeMsg->coefficients.coef[3] = static_cast<double>(sl_coeff[3]);
+
+        // Plane Normal
+        sl::float3 sl_normal = plane.getNormal();
+        planeMsg->normal.x = sl_normal[0];
+        planeMsg->normal.y = sl_normal[1];
+        planeMsg->normal.z = sl_normal[2];
+
+        // Plane Center
+        sl::float3 sl_center = plane.getCenter();
+        planeMsg->center.x = sl_center[0];
+        planeMsg->center.y = sl_center[1];
+        planeMsg->center.z = sl_center[2];
+
+        // Plane extents
+        sl::float3 sl_extents = plane.getExtents();
+        planeMsg->extents[0] = sl_extents[0];
+        planeMsg->extents[1] = sl_extents[1];
+
+        // Plane pose
+        sl::Pose sl_pose = plane.getPose();
+        sl::Orientation sl_rot = sl_pose.getOrientation();
+        sl::Translation sl_tr = sl_pose.getTranslation();
+
+        planeMsg->pose.rotation.x = sl_rot.ox;
+        planeMsg->pose.rotation.y = sl_rot.oy;
+        planeMsg->pose.rotation.z = sl_rot.oz;
+        planeMsg->pose.rotation.w = sl_rot.ow;
+
+        planeMsg->pose.translation.x = sl_tr.x;
+        planeMsg->pose.translation.y = sl_tr.y;
+        planeMsg->pose.translation.z = sl_tr.z;
+
+        // Plane Bounds
+        std::vector<sl::float3> sl_bounds = plane.getBounds();
+        planeMsg->bounds.points.resize(sl_bounds.size());
+        memcpy(planeMsg->bounds.points.data(), sl_bounds.data(), 3 * sl_bounds.size() * sizeof(float));
+
+        // Plane mesh
+        sl::Mesh sl_mesh = plane.extractMesh();
+        size_t triangCount = sl_mesh.triangles.size();
+        size_t ptsCount = sl_mesh.vertices.size();
+        planeMsg->mesh.triangles.resize(triangCount);
+        planeMsg->mesh.vertices.resize(ptsCount);
+
+        // memcpy not allowed because data types are different
+        for (size_t i = 0; i < triangCount; i++) {
+            planeMsg->mesh.triangles[i].vertex_indices[0] = sl_mesh.triangles[i][0];
+            planeMsg->mesh.triangles[i].vertex_indices[1] = sl_mesh.triangles[i][1];
+            planeMsg->mesh.triangles[i].vertex_indices[2] = sl_mesh.triangles[i][2];
+        }
+
+        // memcpy not allowed because data types are different
+        for (size_t i = 0; i < ptsCount; i++) {
+            planeMsg->mesh.vertices[i].x = sl_mesh.vertices[i][0];
+            planeMsg->mesh.vertices[i].y = sl_mesh.vertices[i][1];
+            planeMsg->mesh.vertices[i].z = sl_mesh.vertices[i][2];
+        }
+
+        mPubPlane->publish(std::move(planeMsg));
+        // <---- Publish the plane as custom message
+    }
+}
+
 } // namespace stereolabs
 
 #include "rclcpp_components/register_node_macro.hpp"
-
 
 // Register the component with class_loader.
 // This acts as a sort of entry point, allowing the component to be discoverable

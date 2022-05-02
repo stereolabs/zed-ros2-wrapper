@@ -25,49 +25,53 @@
 #ifndef ZED_CAMERA_COMPONENT_HPP
 #define ZED_CAMERA_COMPONENT_HPP
 
-#include "visibility_control.h"
 #include "sl_tools.h"
+#include "visibility_control.h"
 
 #include <rclcpp/rclcpp.hpp>
 #include <rcutils/logging_macros.h>
 
 #include <tf2_ros/buffer.h>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
 
-#include <diagnostic_updater/diagnostic_updater.hpp>
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
+#include <diagnostic_updater/diagnostic_updater.hpp>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <image_transport/image_transport.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
 #include <image_transport/camera_publisher.hpp>
+#include <image_transport/image_transport.hpp>
 #include <image_transport/publisher.hpp>
-#include <stereo_msgs/msg/disparity_image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
-#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/fluid_pressure.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/magnetic_field.hpp>
-#include <sensor_msgs/msg/fluid_pressure.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <stereo_msgs/msg/disparity_image.hpp>
 
-#include <sensor_msgs/msg/temperature.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
+#include <sensor_msgs/msg/temperature.hpp>
 
-#include <std_srvs/srv/trigger.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+
 #include <std_srvs/srv/set_bool.hpp>
+#include <std_srvs/srv/trigger.hpp>
 
 #include <sl/Camera.hpp>
 
-#include <zed_interfaces/msg/objects_stamped.hpp>
-#include <zed_interfaces/msg/object.hpp>
 #include <zed_interfaces/msg/depth_info_stamped.hpp>
+#include <zed_interfaces/msg/object.hpp>
+#include <zed_interfaces/msg/objects_stamped.hpp>
+#include <zed_interfaces/msg/plane_stamped.hpp>
 #include <zed_interfaces/srv/set_pose.hpp>
 #include <zed_interfaces/srv/start_svo_rec.hpp>
 
-#define TIMEZERO_ROS rclcpp::Time(0,0,RCL_ROS_TIME)
-#define TIMEZERO_SYS rclcpp::Time(0,0,RCL_SYSTEM_TIME)
+#define TIMEZERO_ROS rclcpp::Time(0, 0, RCL_ROS_TIME)
+#define TIMEZERO_SYS rclcpp::Time(0, 0, RCL_SYSTEM_TIME)
 
 namespace stereolabs {
 
@@ -92,6 +96,11 @@ typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::ObjectsStamped>> objPub;
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::DepthInfoStamped>> depthInfoPub;
 
+typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PlaneStamped>> planePub;
+typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>> markerPub;
+
+typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> clickedPtSub;
+
 typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::PointCloud2> pointcloudMsgPtr;
@@ -109,6 +118,8 @@ typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
 
 typedef std::unique_ptr<zed_interfaces::msg::ObjectsStamped> objDetMsgPtr;
 typedef std::unique_ptr<zed_interfaces::msg::DepthInfoStamped> depthInfoMsgPtr;
+typedef std::unique_ptr<zed_interfaces::msg::PlaneStamped> planeMsgPtr;
+typedef std::unique_ptr<visualization_msgs::msg::Marker> markerMsgPtr;
 
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetOdomSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetPosTrkSrvPtr;
@@ -120,12 +131,11 @@ typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoPtr;
 // <---- Typedefs to simplify declarations
 
-class ZedCamera : public rclcpp::Node
-{
+class ZedCamera : public rclcpp::Node {
 
 public:
     ZED_COMPONENTS_PUBLIC
-    explicit ZedCamera(const rclcpp::NodeOptions & options);
+    explicit ZedCamera(const rclcpp::NodeOptions& options);
 
     virtual ~ZedCamera();
 
@@ -146,9 +156,9 @@ protected:
     void setTFCoordFrameNames();
     void initPublishers();
     void fillCamInfo(sl::Camera& zed, std::shared_ptr<sensor_msgs::msg::CameraInfo> leftCamInfoMsg,
-                     std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg,
-                     std::string leftFrameId, std::string rightFrameId,
-                     bool rawParam = false);
+        std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg,
+        std::string leftFrameId, std::string rightFrameId,
+        bool rawParam = false);
 
     bool startCamera();
     bool startPosTracking();
@@ -156,7 +166,7 @@ protected:
     void stop3dMapping();
     bool startObjDetect();
     void stopObjDetect();
-    bool startSvoRecording(std::string &errMsg);
+    bool startSvoRecording(std::string& errMsg);
     void stopSvoRecording();
     // <---- Initialization functions
 
@@ -169,29 +179,30 @@ protected:
     void callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat);
 
     void callback_resetOdometry(const std::shared_ptr<rmw_request_id_t> request_header,
-                                const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-                                std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+        const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+        std::shared_ptr<std_srvs::srv::Trigger_Response> res);
     void callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t> request_header,
-                                   const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-                                   std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+        const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+        std::shared_ptr<std_srvs::srv::Trigger_Response> res);
     void callback_setPose(const std::shared_ptr<rmw_request_id_t> request_header,
-                          const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
-                          std::shared_ptr<zed_interfaces::srv::SetPose_Response> res);
+        const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
+        std::shared_ptr<zed_interfaces::srv::SetPose_Response> res);
     void callback_enableObjDet(const std::shared_ptr<rmw_request_id_t> request_header,
-                               const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
-                               std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+        const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+        std::shared_ptr<std_srvs::srv::SetBool_Response> res);
     void callback_enableMapping(const std::shared_ptr<rmw_request_id_t> request_header,
-                                const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
-                                std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+        const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+        std::shared_ptr<std_srvs::srv::SetBool_Response> res);
     void callback_startSvoRec(const std::shared_ptr<rmw_request_id_t> request_header,
-                              const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
-                              std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
+        const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
+        std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
     void callback_stopSvoRec(const std::shared_ptr<rmw_request_id_t> request_header,
-                             const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-                             std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+        const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+        std::shared_ptr<std_srvs::srv::Trigger_Response> res);
     void callback_pauseSvoInput(const std::shared_ptr<rmw_request_id_t> request_header,
-                                const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-                                std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+        const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+        std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+    void callback_clickedPoint(const geometry_msgs::msg::PointStamped::SharedPtr msg);
     // <---- Callbacks
 
     // ----> Thread functions
@@ -200,13 +211,13 @@ protected:
     // <---- Thread functions
 
     // ----> Publishing functions
-    bool publishVideoDepth(rclcpp::Time &out_pub_ts);
+    bool publishVideoDepth(rclcpp::Time& out_pub_ts);
 
     void publishImageWithInfo(sl::Mat& img,
-                              image_transport::CameraPublisher& pubImg,
-                              camInfoMsgPtr& camInfoMsg,
-                              std::string imgFrameId, rclcpp::Time t);
-    void publishDepthMapWithInfo(sl::Mat &depth, rclcpp::Time t);
+        image_transport::CameraPublisher& pubImg,
+        camInfoMsgPtr& camInfoMsg,
+        std::string imgFrameId, rclcpp::Time t);
+    void publishDepthMapWithInfo(sl::Mat& depth, rclcpp::Time t);
     void publishDisparity(sl::Mat disparity, rclcpp::Time t);
     void publishPointCloud();
     void publishStaticImuFrameAndTopic();
@@ -216,7 +227,7 @@ protected:
     void publishTFs(rclcpp::Time t);
     void publishOdomTF(rclcpp::Time t);
     void publishPoseTF(rclcpp::Time t);
-    rclcpp::Time publishSensorsData(rclcpp::Time t=TIMEZERO_ROS);
+    rclcpp::Time publishSensorsData(rclcpp::Time t = TIMEZERO_ROS);
     // <---- Publishing functions
 
     // ----> Utility functions
@@ -241,12 +252,11 @@ protected:
     void startFusedPcTimer(double fusedPcRate);
     void startPathPubTimer(double pathTimerRate);
 
-    template<typename T>
-    void getParam(std::string paramName, T defValue, T& outVal, std::string log_info=std::string());
+    template <typename T>
+    void getParam(std::string paramName, T defValue, T& outVal, std::string log_info = std::string());
     // <---- Utility functions
 
 private:
-
     // ZED SDK
     sl::Camera mZed;
     sl::InitParameters mInitParams;
@@ -263,26 +273,27 @@ private:
     std::string mObjectDetTopic;
     std::string mOdomPathTopic;
     std::string mMapPathTopic;
+    std::string mClickedPtTopic; // Clicked point
     // <---- Topics
 
     // ----> Parameter variables
-    bool mDebugMode=false;
+    bool mDebugMode = false;
     int mCamId = 0;
     int mCamSerialNumber = 0;
-    sl::MODEL mCamUserModel = sl::MODEL::ZED;   // Default camera model
-    sl::MODEL mCamRealModel;                     // Camera model requested to SDK
-    unsigned int mCamFwVersion;                     // Camera FW version
-    unsigned int mSensFwVersion;                    // Sensors FW version
-    std::string mCameraName = "zed";               // Default camera name
+    sl::MODEL mCamUserModel = sl::MODEL::ZED; // Default camera model
+    sl::MODEL mCamRealModel; // Camera model requested to SDK
+    unsigned int mCamFwVersion; // Camera FW version
+    unsigned int mSensFwVersion; // Sensors FW version
+    std::string mCameraName = "zed"; // Default camera name
     int mCamGrabFrameRate = 15;
     std::string mSvoFilepath = "";
     bool mSvoLoop = false;
     bool mSvoRealtime = false;
     bool mVerbose = true;
     int mGpuId = -1;
-    sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720;           // Default resolution: RESOLUTION_HD720
+    sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720; // Default resolution: RESOLUTION_HD720
     sl::DEPTH_MODE mDepthQuality = sl::DEPTH_MODE::PERFORMANCE; // Default depth mode: DEPTH_MODE_PERFORMANCE
-    bool mDepthDisabled=false; // Indicates if depth calculation is not required (DEPTH_MODE::NONE se for )
+    bool mDepthDisabled = false; // Indicates if depth calculation is not required (DEPTH_MODE::NONE se for )
     bool mDepthStabilization = true;
     int mCamTimeoutSec = 5;
     int mMaxReconnectTemp = 5;
@@ -337,6 +348,7 @@ private:
     rclcpp::QoS mPoseQos;
     rclcpp::QoS mMappingQos;
     rclcpp::QoS mObjDetQos;
+    rclcpp::QoS mClickedPtQos;
     // <---- Parameter variables
 
     // ----> Dynamic params
@@ -350,7 +362,7 @@ private:
     int mCamSaturation = 4;
     int mCamSharpness = 4;
     int mCamGamma = 8;
-    bool mCamAutoExpGain=true;
+    bool mCamAutoExpGain = true;
     int mCamGain = 80;
     int mCamExposure = 80;
     bool mCamAutoWB = true;
@@ -399,7 +411,7 @@ private:
     // <---- Frame IDs
 
     // ----> Stereolabs Mat Info
-    int mCamWidth;  // Camera frame width
+    int mCamWidth; // Camera frame width
     int mCamHeight; // Camera frame height
     sl::Resolution mMatResolVideo;
     sl::Resolution mMatResolDepth;
@@ -416,12 +428,12 @@ private:
     // <---- initialization Transform listener
 
     // ----> TF Transforms
-    tf2::Transform mMap2OdomTransf;         // Coordinates of the odometry frame in map frame
-    tf2::Transform mOdom2BaseTransf;        // Coordinates of the base in odometry frame
-    tf2::Transform mMap2BaseTransf;         // Coordinates of the base in map frame
-    tf2::Transform mSensor2BaseTransf;      // Coordinates of the base frame in sensor frame
-    tf2::Transform mSensor2CameraTransf;    // Coordinates of the camera frame in sensor frame
-    tf2::Transform mCamera2BaseTransf;      // Coordinates of the base frame in camera frame
+    tf2::Transform mMap2OdomTransf; // Coordinates of the odometry frame in map frame
+    tf2::Transform mOdom2BaseTransf; // Coordinates of the base in odometry frame
+    tf2::Transform mMap2BaseTransf; // Coordinates of the base in map frame
+    tf2::Transform mSensor2BaseTransf; // Coordinates of the base frame in sensor frame
+    tf2::Transform mSensor2CameraTransf; // Coordinates of the camera frame in sensor frame
+    tf2::Transform mCamera2BaseTransf; // Coordinates of the base frame in camera frame
     // <---- TF Transforms
 
     // ----> TF Transforms Flags
@@ -479,10 +491,16 @@ private:
     pressPub mPubPressure; //
     tempPub mPubTempL; //
     tempPub mPubTempR; //
-    transfPub mPubCamImuTransf; //;
+    transfPub mPubCamImuTransf; //
     objPub mPubObjDet;
     depthInfoPub mPubDepthInfo;
+    planePub mPubPlane;
+    markerPub mPubMarker;
     // <---- Publishers
+
+    // ----> Subscribers
+    clickedPtSub mClickedPtSub;
+    // <---- Subscribers
 
     // ----> Threads and Timers
     sl::ERROR_CODE mGrabStatus;
@@ -490,10 +508,10 @@ private:
     std::thread mGrabThread;
     std::thread mPcThread; // Point Cloud thread
     bool mThreadStop = false;
-    rclcpp::TimerBase::SharedPtr  mSensTimer;
-    rclcpp::TimerBase::SharedPtr  mPathTimer;
-    rclcpp::TimerBase::SharedPtr  mFusedPcTimer;
-    rclcpp::TimerBase::SharedPtr  mVideoDepthTimer;
+    rclcpp::TimerBase::SharedPtr mSensTimer;
+    rclcpp::TimerBase::SharedPtr mPathTimer;
+    rclcpp::TimerBase::SharedPtr mFusedPcTimer;
+    rclcpp::TimerBase::SharedPtr mVideoDepthTimer;
     // <---- Threads and Timers
 
     // ----> Thread Sync
@@ -506,9 +524,9 @@ private:
     std::mutex mMappingMutex;
     std::mutex mObjDetMutex;
     std::condition_variable mPcDataReadyCondVar;
-    bool mPcDataReady=false;
+    bool mPcDataReady = false;
     std::condition_variable_any mRgbDepthDataRetrievedCondVar;
-    bool mRgbDepthDataRetrieved=true;
+    bool mRgbDepthDataRetrieved = true;
     // <---- Thread Sync
 
     // ----> Status Flags
@@ -517,14 +535,14 @@ private:
     bool mPosTrackingStarted = false;
     bool mPublishingData = false;
     bool mPcPublishing = false;
-    bool mTriggerAutoExpGain = true;    // Triggered on start
-    bool mTriggerAutoWB = true;         // Triggered on start
+    bool mTriggerAutoExpGain = true; // Triggered on start
+    bool mTriggerAutoWB = true; // Triggered on start
     bool mStaticImuTopicPublished = false;
-    bool mRecording=false;
+    bool mRecording = false;
     sl::RecordingStatus mRecStatus = sl::RecordingStatus();
-    bool mPosTrackingReady=false;
+    bool mPosTrackingReady = false;
     sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
-    bool mResetOdom=false;
+    bool mResetOdom = false;
     bool mMappingRunning = false;
     bool mObjDetRunning = false;
     // <---- Status Flags
@@ -551,12 +569,12 @@ private:
     std::unique_ptr<sl_tools::SmartMean> mObjDetPeriodMean_sec;
     std::unique_ptr<sl_tools::SmartMean> mObjDetElabMean_sec;
     std::unique_ptr<sl_tools::SmartMean> mPubFusedCloudPeriodMean_sec;
-    bool mImuPublishing=false;
-    bool mMagPublishing=false;
-    bool mBaroPublishing=false;
-    bool mObjDetSubscribed=false;
+    bool mImuPublishing = false;
+    bool mMagPublishing = false;
+    bool mBaroPublishing = false;
+    bool mObjDetSubscribed = false;
 
-    diagnostic_updater::Updater mDiagUpdater;  // Diagnostic Updater
+    diagnostic_updater::Updater mDiagUpdater; // Diagnostic Updater
 
     // ----> Timestamps
     rclcpp::Time mFrameTimestamp;

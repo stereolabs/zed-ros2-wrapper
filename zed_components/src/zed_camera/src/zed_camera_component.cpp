@@ -5227,8 +5227,10 @@ void ZedCamera::applyDepthSettings()
         mRunParams.remove_saturated_areas = mRemoveSatAreas;
         mDynParMutex.unlock();
 
+        RCLCPP_DEBUG_ONCE(get_logger(), "Depth extraction enabled");
         mRunParams.enable_depth = true;
     } else {
+        RCLCPP_DEBUG_ONCE(get_logger(), "Depth extraction disabled");
         mRunParams.enable_depth = false;
     }
 }

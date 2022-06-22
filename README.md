@@ -11,8 +11,8 @@ This package lets you use the ZED stereo cameras with ROS2. It provides access t
   - Colored 3D point cloud
   - Position and Mapping
   - Sensors data (not available with ZED)
-  - Detected objects (not available with ZED and ZED Mini)
-  - Persons skeleton (not available with ZED and ZED Mini)
+  - Detected objects (not available with ZED)
+  - Persons skeleton (not available with ZED)
 
 [More information](https://www.stereolabs.com/docs/ros2/getting-started/)
 
@@ -22,14 +22,14 @@ This package lets you use the ZED stereo cameras with ROS2. It provides access t
 
 ### Image Transport and topic subscriptions
 
-There is an issue with the function `CameraPublisher::getNumSubscribers` preventing the correct counting of the number of nodes subscribing one of the topics published by an `image_transport::CameraPublisher` object.
+There is an **IMPORTANT** issue with the function `CameraPublisher::getNumSubscribers` preventing the correct counting of the number of nodes subscribing one of the topics published by an `image_transport::CameraPublisher` object and hence stopping the correct publishing of the subscribed topics.
 
-We suggest to install the the version [v3.0.0](https://github.com/ros-perception/image_common/releases/tag/3.0.0), published on 2021-05-26, that contains the fix for this issue.
+The only known solution is to install the exact version [v3.0.0](https://github.com/ros-perception/image_common/releases/tag/3.0.0) of the `image_transport` package, published on 2021-05-26, that contains the fix for this issue.
 
-To install the latest version from sources:
+To install the working version from the sources:
 
     $ cd <colcon_workspace>/src # Access the source folder of your colcon workspace
-    $ git clone https://github.com/ros-perception/image_common.git -b ros2 # clone the "ros" branch of the "image_common" repository
+    $ git clone https://github.com/ros-perception/image_common.git --branch 3.0.0 --single-branch # clone the "v3.0.0" branch of the "image_common" repository
     $ cd <colcon_workspace> # Go back to the root of your colcon workspace
     $ colcon build --symlink-install # Compile everything and install
 

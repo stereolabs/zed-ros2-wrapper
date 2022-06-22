@@ -362,7 +362,7 @@ void ZedCamera::getGeneralParams()
 
     getParam("general.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
     getParam("general.svo_file", std::string(), mSvoFilepath, " * SVO: ");
-    if (mSvoFilepath.compare("live") == 0) // Patch for launch file not allowing empty strings as default parameters
+    if (mSvoFilepath.compare("live") == 0) // Patch for Python launch files not allowing empty strings as default parameters
     {
         mSvoFilepath = "";
     }

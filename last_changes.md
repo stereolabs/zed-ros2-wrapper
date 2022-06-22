@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2022-06-13
+----------
+- Fix "NO DEPTH" mode. By setting `depth/quality` to `0` now all the depth extraction and all the sub-modules depending on it are correctly disabled.
+- Add `debug` sub-set of parameters with new parameters `debug_mode` and `debug_sensors`
+
 2022-05-02
 ----------
 - Add Plane Detection

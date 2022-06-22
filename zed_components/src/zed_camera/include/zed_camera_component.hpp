@@ -278,6 +278,7 @@ private:
 
     // ----> Parameter variables
     bool mDebugMode = false;
+    bool mDebugSensors = false;
     int mCamId = 0;
     int mCamSerialNumber = 0;
     sl::MODEL mCamUserModel = sl::MODEL::ZED; // Default camera model

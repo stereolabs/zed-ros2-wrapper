@@ -26,6 +26,7 @@
 
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
 #include <rclcpp/time.hpp>
+#include <rcl_interfaces/msg/parameter_descriptor.hpp>
 #include <sensor_msgs/distortion_models.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
@@ -219,9 +220,12 @@ template <typename T>
 void ZedCamera::getParam(std::string paramName,
     T defValue,
     T& outVal,
-    std::string log_info)
+    std::string log_info,
+    bool dynamic)
 {
-    declare_parameter(paramName, rclcpp::ParameterValue(defValue));
+    rcl_interfaces::msg::ParameterDescriptor descriptor;
+    descriptor.read_only = !dynamic;
+    declare_parameter(paramName, rclcpp::ParameterValue(defValue), descriptor);
 
     if (!get_parameter(paramName, outVal)) {
         RCLCPP_WARN_STREAM(
@@ -410,7 +414,7 @@ void ZedCamera::getGeneralParams()
 
     // Dynamic parameters
 
-    getParam("general.pub_frame_rate", mPubFrameRate, mPubFrameRate);
+    getParam("general.pub_frame_rate", mPubFrameRate, mPubFrameRate, "", true);
     if (mPubFrameRate > mCamGrabFrameRate) {
         RCLCPP_WARN(get_logger(),
             "'pub_frame_rate' cannot be bigger than 'grab_frame_rate'",
@@ -457,26 +461,28 @@ void ZedCamera::getVideoParams()
     getParam("video.brightness",
         mCamBrightness,
         mCamBrightness,
-        " * [DYN] Brightness: ");
-    getParam("video.contrast", mCamContrast, mCamContrast, " * [DYN] Contrast: ");
-    getParam("video.hue", mCamHue, mCamHue, " * [DYN] Hue: ");
+        " * [DYN] Brightness: ",
+        true);
+    getParam("video.contrast", mCamContrast, mCamContrast, " * [DYN] Contrast: ", true);
+    getParam("video.hue", mCamHue, mCamHue, " * [DYN] Hue: ", true);
     getParam("video.saturation",
         mCamSaturation,
         mCamSaturation,
-        " * [DYN] Saturation: ");
+        " * [DYN] Saturation: ",
+        true);
     getParam(
-        "video.sharpness", mCamSharpness, mCamSharpness, " * [DYN] Sharpness: ");
-    getParam("video.gamma", mCamGamma, mCamGamma, " * [DYN] Gamma: ");
-    getParam("video.auto_exposure_gain", mCamAutoExpGain, mCamAutoExpGain);
+        "video.sharpness", mCamSharpness, mCamSharpness, " * [DYN] Sharpness: ", true);
+    getParam("video.gamma", mCamGamma, mCamGamma, " * [DYN] Gamma: ", true);
+    getParam("video.auto_exposure_gain", mCamAutoExpGain, mCamAutoExpGain, "", true);
     RCLCPP_INFO(get_logger(),
         " * [DYN] Auto Exposure/Gain: %s",
         mCamAutoExpGain ? "TRUE" : "FALSE");
     if (mCamAutoExpGain) {
         mTriggerAutoExpGain = true;
     }
-    getParam("video.exposure", mCamExposure, mCamExposure, " * [DYN] Exposure: ");
-    getParam("video.gain", mCamGain, mCamGain, " * [DYN] Gain: ");
-    getParam("video.auto_whitebalance", mCamAutoWB, mCamAutoWB);
+    getParam("video.exposure", mCamExposure, mCamExposure, " * [DYN] Exposure: ", true);
+    getParam("video.gain", mCamGain, mCamGain, " * [DYN] Gain: ", true);
+    getParam("video.auto_whitebalance", mCamAutoWB, mCamAutoWB, "", true);
     RCLCPP_INFO(get_logger(),
         " * [DYN] Auto White Balance: %s",
         mCamAutoWB ? "TRUE" : "FALSE");
@@ -487,7 +493,8 @@ void ZedCamera::getVideoParams()
     getParam("video.whitebalance_temperature",
         wb,
         wb,
-        " * [DYN] White Balance Temperature: ");
+        " * [DYN] White Balance Temperature: ",
+        true);
     mCamWBTemp = wb * 100;
 
     // ------------------------------------------
@@ -642,17 +649,20 @@ void ZedCamera::getDepthParams()
         getParam("depth.point_cloud_freq",
             mPcPubRate,
             mPcPubRate,
-            " * [DYN] Point cloud rate [Hz]: ");
+            " * [DYN] Point cloud rate [Hz]: ",
+            true);
 
         getParam("depth.depth_confidence",
             mDepthConf,
             mDepthConf,
-            " * [DYN] Depth Confidence: ");
+            " * [DYN] Depth Confidence: ",
+            true);
         getParam("depth.depth_texture_conf",
             mDepthTextConf,
             mDepthTextConf,
-            " * [DYN] Depth Texture Confidence: ");
-        getParam("depth.remove_saturated_areas", mRemoveSatAreas, mRemoveSatAreas);
+            " * [DYN] Depth Texture Confidence: ",
+            true);
+        getParam("depth.remove_saturated_areas", mRemoveSatAreas, mRemoveSatAreas, "", true);
         RCLCPP_INFO(get_logger(),
             " * [DYN] Remove saturated areas: %s",
             mRemoveSatAreas ? "TRUE" : "FALSE");
@@ -872,7 +882,8 @@ void ZedCamera::getMappingParams()
     getParam("mapping.fused_pointcloud_freq",
         mFusedPcPubRate,
         mFusedPcPubRate,
-        " * Map publishing rate [Hz]: ");
+        " * Map publishing rate [Hz]: ",
+        true);
 
     getParam("mapping.clicked_point_topic",
         mClickedPtTopic,
@@ -1167,7 +1178,8 @@ void ZedCamera::getOdParams()
     getParam("object_detection.confidence_threshold",
         mObjDetConfidence,
         mObjDetConfidence,
-        " * OD min. confidence: ");
+        " * OD min. confidence: ",
+        true);
     getParam("object_detection.object_tracking_enabled", mObjDetTracking,
         mObjDetTracking);
     RCLCPP_INFO_STREAM(get_logger(), " * OD tracking: " << (mObjDetTracking ? "TRUE" : "FALSE"));
@@ -1184,40 +1196,48 @@ void ZedCamera::getOdParams()
         " * Object Filtering mode: " << filtering_mode << " - "
                                      << sl::toString(mObjFilterMode).c_str());
     getParam(
-        "object_detection.mc_people", mObjDetPeopleEnable, mObjDetPeopleEnable);
+        "object_detection.mc_people", mObjDetPeopleEnable, mObjDetPeopleEnable, "", true);
     RCLCPP_INFO_STREAM(
         get_logger(),
         " * MultiClassBox people: " << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
     getParam("object_detection.mc_vehicle",
         mObjDetVehiclesEnable,
-        mObjDetVehiclesEnable);
+        mObjDetVehiclesEnable,
+        "",
+        true);
     RCLCPP_INFO_STREAM(get_logger(),
         " * MultiClassBox vehicles: "
             << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
-    getParam("object_detection.mc_bag", mObjDetBagsEnable, mObjDetBagsEnable);
+    getParam("object_detection.mc_bag", mObjDetBagsEnable, mObjDetBagsEnable, "", true);
     RCLCPP_INFO_STREAM(
         get_logger(),
         " * MultiClassBox bags: " << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
     getParam(
-        "object_detection.mc_animal", mObjDetAnimalsEnable, mObjDetAnimalsEnable);
+        "object_detection.mc_animal", mObjDetAnimalsEnable, mObjDetAnimalsEnable, "", true);
     RCLCPP_INFO_STREAM(
         get_logger(),
         " * MultiClassBox animals: " << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
     getParam("object_detection.mc_electronics",
         mObjDetElectronicsEnable,
-        mObjDetElectronicsEnable);
+        mObjDetElectronicsEnable,
+        "",
+        true);
     RCLCPP_INFO_STREAM(get_logger(),
         " * MultiClassBox electronics: "
             << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
     getParam("object_detection.mc_fruit_vegetable",
         mObjDetFruitsEnable,
-        mObjDetFruitsEnable);
+        mObjDetFruitsEnable,
+        "",
+        true);
     RCLCPP_INFO_STREAM(get_logger(),
         " * MultiClassBox fruits and vegetables: "
             << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
     getParam("object_detection.mc_sport",
         mObjDetSportEnable,
-        mObjDetSportEnable);
+        mObjDetSportEnable,
+        "",
+        true);
     RCLCPP_INFO_STREAM(get_logger(),
         " * MultiClassBox sport-related objects: "
             << (mObjDetSportEnable ? "TRUE" : "FALSE"));
@@ -1880,6 +1900,7 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             result.reason = param.get_name() + " correctly set.";
             return result;
         } else {
+            result.successful = true;
             result.reason = param.get_name() + " is not a dynamic parameter";
         }
     }

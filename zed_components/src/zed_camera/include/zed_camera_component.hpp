@@ -253,7 +253,7 @@ protected:
     void startPathPubTimer(double pathTimerRate);
 
     template <typename T>
-    void getParam(std::string paramName, T defValue, T& outVal, std::string log_info = std::string());
+    void getParam(std::string paramName, T defValue, T& outVal, std::string log_info = std::string(), bool dynamic = false);
     // <---- Utility functions
 
 private:

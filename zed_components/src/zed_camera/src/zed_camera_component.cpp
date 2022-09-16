@@ -1349,7 +1349,7 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
     //RCLCPP_INFO(get_logger(), "Parameter change callback");
 
     rcl_interfaces::msg::SetParametersResult result;
-    result.successful = false;
+    result.successful = true;
 
     for (const auto& param : parameters) {
         if (param.get_name() == "general.pub_frame_rate") {
@@ -1376,9 +1376,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "video.brightness") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
             if (param.get_type() != correctType) {
@@ -1402,9 +1399,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "video.contrast") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
             if (param.get_type() != correctType) {
@@ -1428,9 +1422,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "video.hue") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
             if (param.get_type() != correctType) {
@@ -1454,9 +1445,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "video.sharpness") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
             if (param.get_type() != correctType) {
@@ -1480,9 +1468,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "video.gamma") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
             if (param.get_type() != correctType) {
@@ -1506,9 +1491,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "video.auto_exposure_gain") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
             if (param.get_type() != correctType) {
@@ -1529,9 +1511,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "video.exposure") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
             if (param.get_type() != correctType) {
@@ -1556,9 +1535,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "video.gain") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
             if (param.get_type() != correctType) {
@@ -1583,9 +1559,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "video.auto_whitebalance") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
             if (param.get_type() != correctType) {
@@ -1606,9 +1579,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "video.whitebalance_temperature") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
             if (param.get_type() != correctType) {
@@ -1633,9 +1603,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "depth.point_cloud_freq") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
             if (param.get_type() != correctType) {
@@ -1660,9 +1627,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "depth.depth_confidence") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
             if (param.get_type() != correctType) {
@@ -1686,9 +1650,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "depth.depth_texture_conf") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
             if (param.get_type() != correctType) {
@@ -1712,9 +1673,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "depth.remove_saturated_areas") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
             if (param.get_type() != correctType) {
@@ -1730,9 +1688,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
                 "Parameter '"
                     << param.get_name() << "' correctly set to "
                     << (mRemoveSatAreas ? "TRUE" : "FALSE"));
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "mapping.fused_pointcloud_freq") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
             if (param.get_type() != correctType) {
@@ -1757,9 +1712,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "object_detection.confidence_threshold") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
             if (param.get_type() != correctType) {
@@ -1783,9 +1735,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
             RCLCPP_INFO_STREAM(get_logger(),
                 "Parameter '" << param.get_name()
                               << "' correctly set to " << val);
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "object_detection.mc_people") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
             if (param.get_type() != correctType) {
@@ -1801,9 +1750,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
                 "Parameter '"
                     << param.get_name() << "' correctly set to "
                     << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "object_detection.mc_vehicle") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
             if (param.get_type() != correctType) {
@@ -1819,9 +1765,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
                 "Parameter '"
                     << param.get_name() << "' correctly set to "
                     << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "object_detection.mc_bag") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
             if (param.get_type() != correctType) {
@@ -1837,9 +1780,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
                 "Parameter '"
                     << param.get_name() << "' correctly set to "
                     << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "object_detection.mc_animal") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
             if (param.get_type() != correctType) {
@@ -1855,9 +1795,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
                 "Parameter '"
                     << param.get_name() << "' correctly set to "
                     << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "object_detection.mc_electronics") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
             if (param.get_type() != correctType) {
@@ -1873,9 +1810,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
                 "Parameter '"
                     << param.get_name() << "' correctly set to "
                     << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "object_detection.mc_fruit_vegetable") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
             if (param.get_type() != correctType) {
@@ -1891,9 +1825,6 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
                 "Parameter '"
                     << param.get_name() << "' correctly set to "
                     << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
         } else if (param.get_name() == "object_detection.mc_sport") {
             rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
             if (param.get_type() != correctType) {
@@ -1909,16 +1840,9 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
                 "Parameter '"
                     << param.get_name() << "' correctly set to "
                     << (mObjDetSportEnable ? "TRUE" : "FALSE"));
-            result.successful = true;
-            result.reason = param.get_name() + " correctly set.";
-            return result;
-        } else {
-            result.successful = true;
-            result.reason = param.get_name() + " is not a dynamic parameter";
         }
     }
 
-    RCLCPP_WARN_STREAM(get_logger(), result.reason);
     return result;
 }
 

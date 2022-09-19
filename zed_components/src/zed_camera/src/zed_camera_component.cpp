@@ -1351,496 +1351,502 @@ ZedCamera::callback_paramChange(std::vector<rclcpp::Parameter> parameters)
     rcl_interfaces::msg::SetParametersResult result;
     result.successful = true;
 
-    for (const auto& param : parameters) {
-        if (param.get_name() == "general.pub_frame_rate") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            double val = param.as_double();
-
-            if ((val <= 0.0) || (val > mCamGrabFrameRate)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be positive and minor or equal to `grab_frame_rate`";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mPubFrameRate = val;
-            startVideoDepthTimer(mPubFrameRate);
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "video.brightness") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            int val = param.as_int();
-
-            if ((val < 0) || (val > 8)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mCamBrightness = val;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "video.contrast") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            int val = param.as_int();
-
-            if ((val < 0) || (val > 8)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mCamContrast = val;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "video.hue") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            int val = param.as_int();
-
-            if ((val < 0) || (val > 11)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a positive integer in the range [0,11]";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mCamHue = val;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "video.sharpness") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            int val = param.as_int();
-
-            if ((val < 0) || (val > 8)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mCamSharpness = val;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "video.gamma") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            int val = param.as_int();
-
-            if ((val < 0) || (val > 8)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mCamGamma = val;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "video.auto_exposure_gain") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            bool val = param.as_bool();
-
-            if (val && !mCamAutoExpGain) {
-                mTriggerAutoExpGain = true;
-            }
-
-            mCamAutoExpGain = val;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "video.exposure") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            int val = param.as_int();
-
-            if ((val < 0) || (val > 100)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mCamExposure = val;
-            mCamAutoExpGain = false;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "video.gain") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            int val = param.as_int();
-
-            if ((val < 0) || (val > 100)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mCamGain = val;
-            mCamAutoExpGain = false;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "video.auto_whitebalance") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            bool val = param.as_bool();
-
-            if (val && !mCamAutoWB) {
-                mTriggerAutoWB = true;
-            }
-
-            mCamAutoWB = val;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "video.whitebalance_temperature") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            int val = param.as_int();
-
-            if ((val < 28) || (val > 65)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a positive integer in the range [28,65]";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mCamWBTemp = val * 100;
-            mCamAutoWB = false;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "depth.point_cloud_freq") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            double val = param.as_double();
-
-            if ((val <= 0.0) || (val > mCamGrabFrameRate)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be positive and minor of `grab_frame_rate`";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mPubFrameRate = val;
-            startVideoDepthTimer(mPubFrameRate);
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "depth.depth_confidence") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            int val = param.as_int();
-
-            if ((val < 0) || (val > 100)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mDepthConf = val;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "depth.depth_texture_conf") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            int val = param.as_int();
-
-            if ((val < 0) || (val > 100)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mDepthTextConf = val;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "depth.remove_saturated_areas") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mRemoveSatAreas = param.as_bool();
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '"
-                    << param.get_name() << "' correctly set to "
-                    << (mRemoveSatAreas ? "TRUE" : "FALSE"));
-        } else if (param.get_name() == "mapping.fused_pointcloud_freq") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            double val = param.as_double();
-
-            if ((val <= 0.0) || (val > mPcPubRate)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be positive and minor of `point_cloud_freq`";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mFusedPcPubRate = val;
-            startFusedPcTimer(mFusedPcPubRate);
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "object_detection.confidence_threshold") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            double val = param.as_double();
-
-            if ((val < 0.0) || (val > 100.0)) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be positive double value in the range [0.0,100.0]";
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mObjDetConfidence = val;
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '" << param.get_name()
-                              << "' correctly set to " << val);
-        } else if (param.get_name() == "object_detection.mc_people") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mObjDetPeopleEnable = param.as_bool();
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '"
-                    << param.get_name() << "' correctly set to "
-                    << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
-        } else if (param.get_name() == "object_detection.mc_vehicle") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mObjDetVehiclesEnable = param.as_bool();
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '"
-                    << param.get_name() << "' correctly set to "
-                    << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
-        } else if (param.get_name() == "object_detection.mc_bag") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mObjDetBagsEnable = param.as_bool();
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '"
-                    << param.get_name() << "' correctly set to "
-                    << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
-        } else if (param.get_name() == "object_detection.mc_animal") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mObjDetAnimalsEnable = param.as_bool();
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '"
-                    << param.get_name() << "' correctly set to "
-                    << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
-        } else if (param.get_name() == "object_detection.mc_electronics") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mObjDetElectronicsEnable = param.as_bool();
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '"
-                    << param.get_name() << "' correctly set to "
-                    << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
-        } else if (param.get_name() == "object_detection.mc_fruit_vegetable") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mObjDetFruitsEnable = param.as_bool();
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '"
-                    << param.get_name() << "' correctly set to "
-                    << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
-        } else if (param.get_name() == "object_detection.mc_sport") {
-            rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-            if (param.get_type() != correctType) {
-                result.successful = false;
-                result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
-                RCLCPP_WARN_STREAM(get_logger(), result.reason);
-                return result;
-            }
-
-            mObjDetSportEnable = param.as_bool();
-
-            RCLCPP_INFO_STREAM(get_logger(),
-                "Parameter '"
-                    << param.get_name() << "' correctly set to "
-                    << (mObjDetSportEnable ? "TRUE" : "FALSE"));
+    if (parameters.size() > 1) {
+        result.successful = false;
+        result.reason = "The node does not support setting multiple parameters atomically";
+        return result;
+    }
+
+    auto& param = parameters[0];
+
+    if (param.get_name() == "general.pub_frame_rate") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
         }
+
+        double val = param.as_double();
+
+        if ((val <= 0.0) || (val > mCamGrabFrameRate)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be positive and minor or equal to `grab_frame_rate`";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mPubFrameRate = val;
+        startVideoDepthTimer(mPubFrameRate);
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "video.brightness") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 8)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mCamBrightness = val;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "video.contrast") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 8)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mCamContrast = val;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "video.hue") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 11)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a positive integer in the range [0,11]";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mCamHue = val;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "video.sharpness") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 8)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mCamSharpness = val;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "video.gamma") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 8)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a positive integer in the range [0,8]";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mCamGamma = val;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "video.auto_exposure_gain") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        bool val = param.as_bool();
+
+        if (val && !mCamAutoExpGain) {
+            mTriggerAutoExpGain = true;
+        }
+
+        mCamAutoExpGain = val;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "video.exposure") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 100)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mCamExposure = val;
+        mCamAutoExpGain = false;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "video.gain") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 100)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mCamGain = val;
+        mCamAutoExpGain = false;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "video.auto_whitebalance") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        bool val = param.as_bool();
+
+        if (val && !mCamAutoWB) {
+            mTriggerAutoWB = true;
+        }
+
+        mCamAutoWB = val;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "video.whitebalance_temperature") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 28) || (val > 65)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a positive integer in the range [28,65]";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mCamWBTemp = val * 100;
+        mCamAutoWB = false;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "depth.point_cloud_freq") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        double val = param.as_double();
+
+        if ((val <= 0.0) || (val > mCamGrabFrameRate)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be positive and minor of `grab_frame_rate`";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mPubFrameRate = val;
+        startVideoDepthTimer(mPubFrameRate);
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "depth.depth_confidence") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 100)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mDepthConf = val;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "depth.depth_texture_conf") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 100)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mDepthTextConf = val;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "depth.remove_saturated_areas") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mRemoveSatAreas = param.as_bool();
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '"
+                << param.get_name() << "' correctly set to "
+                << (mRemoveSatAreas ? "TRUE" : "FALSE"));
+    } else if (param.get_name() == "mapping.fused_pointcloud_freq") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        double val = param.as_double();
+
+        if ((val <= 0.0) || (val > mPcPubRate)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be positive and minor of `point_cloud_freq`";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mFusedPcPubRate = val;
+        startFusedPcTimer(mFusedPcPubRate);
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "object_detection.confidence_threshold") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        double val = param.as_double();
+
+        if ((val < 0.0) || (val > 100.0)) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be positive double value in the range [0.0,100.0]";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mObjDetConfidence = val;
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '" << param.get_name()
+                            << "' correctly set to " << val);
+    } else if (param.get_name() == "object_detection.mc_people") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mObjDetPeopleEnable = param.as_bool();
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '"
+                << param.get_name() << "' correctly set to "
+                << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() == "object_detection.mc_vehicle") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mObjDetVehiclesEnable = param.as_bool();
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '"
+                << param.get_name() << "' correctly set to "
+                << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() == "object_detection.mc_bag") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mObjDetBagsEnable = param.as_bool();
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '"
+                << param.get_name() << "' correctly set to "
+                << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() == "object_detection.mc_animal") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mObjDetAnimalsEnable = param.as_bool();
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '"
+                << param.get_name() << "' correctly set to "
+                << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() == "object_detection.mc_electronics") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mObjDetElectronicsEnable = param.as_bool();
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '"
+                << param.get_name() << "' correctly set to "
+                << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() == "object_detection.mc_fruit_vegetable") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mObjDetFruitsEnable = param.as_bool();
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '"
+                << param.get_name() << "' correctly set to "
+                << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() == "object_detection.mc_sport") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+        if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            return result;
+        }
+
+        mObjDetSportEnable = param.as_bool();
+
+        RCLCPP_INFO_STREAM(get_logger(),
+            "Parameter '"
+                << param.get_name() << "' correctly set to "
+                << (mObjDetSportEnable ? "TRUE" : "FALSE"));
     }
 
     return result;

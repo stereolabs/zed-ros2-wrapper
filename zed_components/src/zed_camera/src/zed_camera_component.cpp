@@ -30,7 +30,7 @@
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <type_traits>
 
 #include "sl_tools.h"
@@ -93,6 +93,9 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions& options)
     if (!startCamera()) {
         exit(EXIT_FAILURE);
     }
+
+    // Dynamic parameters callback
+    mParamChangeCallbackHandle = add_on_set_parameters_callback(std::bind(&ZedCamera::callback_paramChange, this, _1));
 }
 
 ZedCamera::~ZedCamera()
@@ -285,9 +288,7 @@ void ZedCamera::initParameters()
         mObjDetEnabled = false;
     }
 
-    // Dynamic parameters callback
-    //set_on_parameters_set_callback(std::bind(&ZedCamera::callback_paramChange, this, _1)); // deprecated
-    mParamChangeCallbackHandle = add_on_set_parameters_callback(std::bind(&ZedCamera::callback_paramChange, this, _1));
+
 }
 
 void ZedCamera::getDebugParams()
@@ -3181,7 +3182,7 @@ bool ZedCamera::getCamera2BaseTransform()
     try {
         // Save the transformation
         geometry_msgs::msg::TransformStamped c2b = mTfBuffer->lookupTransform(
-            mCameraFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(0.1));
+            mCameraFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(0,100000000));
 
         // Get the TF2 transformation
         // tf2::fromMsg(c2b.transform, mCamera2BaseTransf);
@@ -3261,7 +3262,7 @@ bool ZedCamera::getSens2CameraTransform()
     try {
         // Save the transformation
         geometry_msgs::msg::TransformStamped s2c = mTfBuffer->lookupTransform(
-            mDepthFrameId, mCameraFrameId, TIMEZERO_SYS, rclcpp::Duration(0.1));
+            mDepthFrameId, mCameraFrameId, TIMEZERO_SYS, rclcpp::Duration(0,100000000));
 
         // Get the TF2 transformation
         // tf2::fromMsg(s2c.transform, mSensor2CameraTransf);
@@ -3341,7 +3342,7 @@ bool ZedCamera::getSens2BaseTransform()
     try {
         // Save the transformation
         geometry_msgs::msg::TransformStamped s2b = mTfBuffer->lookupTransform(
-            mDepthFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(0.1));
+            mDepthFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(0,100000000));
 
         // Get the TF2 transformation
         // tf2::fromMsg(s2b.transform, mSensor2BaseTransf);
@@ -6220,7 +6221,7 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
     double camX, camY, camZ;
     try {
         // Save the transformation
-        geometry_msgs::msg::TransformStamped m2o = mTfBuffer->lookupTransform(mLeftCamOptFrameId, msg->header.frame_id, TIMEZERO_SYS, rclcpp::Duration(0.1));
+        geometry_msgs::msg::TransformStamped m2o = mTfBuffer->lookupTransform(mLeftCamOptFrameId, msg->header.frame_id, TIMEZERO_SYS, rclcpp::Duration(0,100000000));
         
         RCLCPP_INFO(get_logger(), "'%s' -> '%s': {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f,%.3f}", msg->header.frame_id.c_str(), mLeftCamOptFrameId.c_str(),
             m2o.transform.translation.x, m2o.transform.translation.y, m2o.transform.translation.z,
@@ -6293,7 +6294,7 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
         pt_marker->header.stamp = ts;
         // Set the marker action.  Options are ADD and DELETE
         pt_marker->action = visualization_msgs::msg::Marker::ADD;
-        pt_marker->lifetime = rclcpp::Duration(0);
+        pt_marker->lifetime = rclcpp::Duration(0,0);
 
         // Set the namespace and id for this marker.  This serves to create a unique ID
         // Any marker sent with the same namespace and id will overwrite the old one
@@ -6336,7 +6337,7 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
         plane_marker->header.stamp = ts;
         // Set the marker action.  Options are ADD and DELETE
         plane_marker->action = visualization_msgs::msg::Marker::ADD;
-        plane_marker->lifetime = rclcpp::Duration(0);
+        plane_marker->lifetime = rclcpp::Duration(0,0);
 
         // Set the namespace and id for this marker.  This serves to create a unique ID
         // Any marker sent with the same namespace and id will overwrite the old one

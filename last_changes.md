@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2022-09-21
+----------
+- Add support for ROS2 Humble
+
 2022-06-13
 ----------
 - Fix "NO DEPTH" mode. By setting `depth/quality` to `0` now the depth extraction and all the sub-modules depending on it are correctly disabled.

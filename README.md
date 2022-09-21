@@ -1,8 +1,6 @@
 ![](./images/Picto+STEREOLABS_Black.jpg)
 
-# Stereolabs ZED Camera - ROS2 Foxy Fitzroy (Ubuntu 20.04)
-
-#### **Note:** if you are searching for a version of the ROS2 wrapper running on an Nvidia Jetson based on Ubuntu 18.04 that does not require recompiling ROS2 from source, please check out the `eloquent` branch, the official ROS2 version running on Ubuntu 18.04.
+# Stereolabs ZED Camera - ROS2 Foxy Fitzroy (Ubuntu 20.04) - ROS2 Humble Hawksbill (Ubuntu 22.04)
 
 This package lets you use the ZED stereo cameras with ROS2. It provides access to the following data:
 
@@ -20,9 +18,9 @@ This package lets you use the ZED stereo cameras with ROS2. It provides access t
 
 ## Known issues
 
-### Image Transport and topic subscriptions
+### [ROS2 Foxy] Image Transport and topic subscriptions
 
-There is an **IMPORTANT** issue with the function `CameraPublisher::getNumSubscribers` preventing the correct counting of the number of nodes subscribing one of the topics published by an `image_transport::CameraPublisher` object and hence stopping the correct publishing of the subscribed topics.
+There is an **IMPORTANT** issue in ROS2 Foxy with the function `CameraPublisher::getNumSubscribers` preventing the correct counting of the number of nodes subscribing one of the topics published by an `image_transport::CameraPublisher` object and hence stopping the correct publishing of the subscribed topics.
 
 The only known solution is to install the exact version [v3.0.0](https://github.com/ros-perception/image_common/releases/tag/3.0.0) of the `image_transport` package, published on 2021-05-26, that contains the fix for this issue.
 
@@ -35,7 +33,7 @@ To install the working version from the sources:
 
 Close the console and re-open it to apply the modifications.
 
-### Image Transport Plugins and compressed topics
+### [ROS2 Foxy] Image Transport Plugins and compressed topics
 
 The `image_transport_plugins` package is not correctly working with ROS2 Foxy (see [here](https://github.com/stereolabs/zed-ros2-wrapper/issues/31), [here](https://github.com/ros-perception/image_common/issues/184), [here](https://github.com/stereolabs/zed-ros2-wrapper/issues/31), and [here](https://github.com/ros-perception/image_transport_plugins/pull/58)). We suggest you remove it to avoid many annoying warning messages until the ROS2 developers do not fix it or we find a workaround:
 
@@ -47,11 +45,13 @@ $ sudo apt remove ros-foxy-image-transport-plugins ros-foxy-compressed-depth-ima
 
 ### Prerequisites
 
-- [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/)
-- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.7
+- [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/) or [Ubuntu 22.04 (Jammy Jellyfish)](https://releases.ubuntu.com/jammy/)
+- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.7.x
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
-- ROS2 Foxy Fitxroy: 
-  - [Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html)
+- ROS2 Foxy Fitxroy or ROS2 Humble Hawksbill: 
+  - [Foxy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html)
+  - [Humble on Ubuntu 22.04](https://docs.ros.org/en/humble/Installation/Linux-Install-Debians.html)
+
 
 ### Build the package
 

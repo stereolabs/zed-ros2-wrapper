@@ -3,7 +3,9 @@ LATEST CHANGES
 
 2022-09-21
 ----------
-- Add support for ROS2 Humble
+- Add support for ROS2 Humble. Thx @nakai-omer
+  The two ROS2 LTS releases are now supported simoultaneously.
+- Set read_only flag in parameter descriptors for non-dynamic parameters. Thx @bjsowa
 
 2022-06-13
 ----------

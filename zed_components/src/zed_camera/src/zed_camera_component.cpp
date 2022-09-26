@@ -1603,7 +1603,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
     mPathPubRate = val;
 
     RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
-  }  
+  }
   else if (param.get_name() == "mapping.fused_pointcloud_freq")
   {
     rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -2165,9 +2165,19 @@ void ZedCamera::initPublishers()
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubTempR->get_topic_name());
     }
 
-    // ----> Publish latched camera/imu transform message
-    publishStaticImuFrameAndTopic();
-    // <---- Publish latched camera/imu transform message
+    // ----> Publish the first camera/imu transform message
+    std::string cam_imu_tr_topic = mTopicRoot + "left_cam_imu_transform";
+    mPubCamImuTransf = create_publisher<geometry_msgs::msg::TransformStamped>(cam_imu_tr_topic, mSensQos);
+
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCamImuTransf->get_topic_name());
+
+    sl::Orientation sl_rot = mSlCamImuTransf.getOrientation();
+    sl::Translation sl_tr = mSlCamImuTransf.getTranslation();
+    RCLCPP_INFO(get_logger(), "Camera-IMU Translation: \n %g %g %g", sl_tr.x, sl_tr.y, sl_tr.z);
+    RCLCPP_INFO(get_logger(), "Camera-IMU Rotation: \n %s", sl_rot.getRotationMatrix().getInfos().c_str());
+
+    publishImuFrameAndTopic();
+    // <---- Publish the first camera/imu transform message
   }
   // <---- Sensors
 
@@ -2207,7 +2217,6 @@ bool ZedCamera::startCamera()
   mTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
   mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);  // Start TF Listener thread
   mTfBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
-  mStaticTfBroadcaster = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
   // <---- TF2 Transform
 
   // ----> ZED configuration
@@ -3227,44 +3236,29 @@ bool ZedCamera::setPose(float xt, float yt, float zt, float rr, float pr, float 
   return (mSensor2BaseTransfValid & mSensor2CameraTransfValid & mCamera2BaseTransfValid);
 }
 
-void ZedCamera::publishStaticImuFrameAndTopic()
+void ZedCamera::publishImuFrameAndTopic()
 {
   sl::Orientation sl_rot = mSlCamImuTransf.getOrientation();
   sl::Translation sl_tr = mSlCamImuTransf.getTranslation();
 
-  mCameraImuTransfMgs = std::make_shared<geometry_msgs::msg::TransformStamped>();
+  transfMsgPtr cameraImuTransfMgs = std::make_unique<geometry_msgs::msg::TransformStamped>();
 
-  mCameraImuTransfMgs->header.stamp = get_clock()->now();
+  cameraImuTransfMgs->header.stamp = get_clock()->now();
 
-  mCameraImuTransfMgs->header.frame_id = mLeftCamFrameId;
-  mCameraImuTransfMgs->child_frame_id = mImuFrameId;
+  cameraImuTransfMgs->header.frame_id = mLeftCamFrameId;
+  cameraImuTransfMgs->child_frame_id = mImuFrameId;
 
-  mCameraImuTransfMgs->transform.rotation.x = sl_rot.ox;
-  mCameraImuTransfMgs->transform.rotation.y = sl_rot.oy;
-  mCameraImuTransfMgs->transform.rotation.z = sl_rot.oz;
-  mCameraImuTransfMgs->transform.rotation.w = sl_rot.ow;
+  cameraImuTransfMgs->transform.rotation.x = sl_rot.ox;
+  cameraImuTransfMgs->transform.rotation.y = sl_rot.oy;
+  cameraImuTransfMgs->transform.rotation.z = sl_rot.oz;
+  cameraImuTransfMgs->transform.rotation.w = sl_rot.ow;
 
-  mCameraImuTransfMgs->transform.translation.x = sl_tr.x;
-  mCameraImuTransfMgs->transform.translation.y = sl_tr.y;
-  mCameraImuTransfMgs->transform.translation.z = sl_tr.z;
+  cameraImuTransfMgs->transform.translation.x = sl_tr.x;
+  cameraImuTransfMgs->transform.translation.y = sl_tr.y;
+  cameraImuTransfMgs->transform.translation.z = sl_tr.z;
 
-  if (!mStaticImuTopicPublished)
-  {
-    rclcpp::QoS transf_qos = mSensQos;
-    transf_qos.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);  // Latched topic
-    transf_qos.keep_last(1);
-    std::string cam_imu_tr_topic = mTopicRoot + "left_cam_imu_transform";
-    mPubCamImuTransf = create_publisher<geometry_msgs::msg::TransformStamped>(cam_imu_tr_topic, transf_qos);
-
-    RCLCPP_DEBUG_STREAM(get_logger(), "Publishing Camera-IMU transform " << mPubCamImuTransf->get_topic_name());
-    mPubCamImuTransf->publish(*(mCameraImuTransfMgs.get()));
-
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCamImuTransf->get_topic_name() << " [LATCHED]");
-    RCLCPP_INFO(get_logger(), "Camera-IMU Translation: \n %g %g %g", sl_tr.x, sl_tr.y, sl_tr.z);
-    RCLCPP_INFO(get_logger(), "Camera-IMU Rotation: \n %s", sl_rot.getRotationMatrix().getInfos().c_str());
-
-    mStaticImuTopicPublished = true;
-  }
+  // RCLCPP_INFO_STREAM(get_logger(), "Publishing Camera-IMU transform " << mPubCamImuTransf->get_topic_name());
+  mPubCamImuTransf->publish(std::move(cameraImuTransfMgs));
 
   // Publish IMU TF as static TF
   if (!mPublishImuTF)
@@ -3272,17 +3266,29 @@ void ZedCamera::publishStaticImuFrameAndTopic()
     return;
   }
 
-  if (mStaticImuFramePublished)
-  {
-    return;
-  }
+  // ----> Publish TF
+  //RCLCPP_INFO(get_logger(), "Broadcasting Camera-IMU TF ");
 
-  // Publish transformation
-  mStaticTfBroadcaster->sendTransform(*(mCameraImuTransfMgs.get()));
+  geometry_msgs::msg::TransformStamped transformStamped;
 
-  RCLCPP_INFO_STREAM(get_logger(), "Published static TF: '" << mImuFrameId << "' -> '" << mLeftCamFrameId << "'");
+  transformStamped.header.stamp = get_clock()->now();
 
-  mStaticImuFramePublished = true;
+  transformStamped.header.frame_id = mLeftCamFrameId;
+  transformStamped.child_frame_id = mImuFrameId;
+
+  transformStamped.transform.rotation.x = sl_rot.ox;
+  transformStamped.transform.rotation.y = sl_rot.oy;
+  transformStamped.transform.rotation.z = sl_rot.oz;
+  transformStamped.transform.rotation.w = sl_rot.ow;
+
+  transformStamped.transform.translation.x = sl_tr.x;
+  transformStamped.transform.translation.y = sl_tr.y;
+  transformStamped.transform.translation.z = sl_tr.z;
+
+  mTfBroadcaster->sendTransform(transformStamped);
+
+  //RCLCPP_INFO_STREAM(get_logger(), "Published TF: '" << mImuFrameId << "' -> '" << mLeftCamFrameId << "'");
+  // <---- Publish TF
 }
 
 void ZedCamera::threadFunc_zedGrab()
@@ -3985,14 +3991,6 @@ void ZedCamera::publishTFs(rclcpp::Time t)
     {
       publishPoseTF(t);  // publish the odometry Frame in map frame
     }
-
-    if (mCamRealModel != sl::MODEL::ZED)
-    {
-      if (mPublishImuTF && !mStaticImuFramePublished)
-      {
-        publishStaticImuFrameAndTopic();
-      }
-    }
   }
 }
 
@@ -4025,24 +4023,24 @@ void ZedCamera::publishOdomTF(rclcpp::Time t)
     getCamera2BaseTransform();
   }
 
-  transfMsgPtr transformStamped = std::make_shared<geometry_msgs::msg::TransformStamped>();
+  geometry_msgs::msg::TransformStamped transformStamped;
 
-  transformStamped->header.stamp = t;
-  transformStamped->header.frame_id = mOdomFrameId;
-  transformStamped->child_frame_id = mBaseFrameId;
+  transformStamped.header.stamp = t;
+  transformStamped.header.frame_id = mOdomFrameId;
+  transformStamped.child_frame_id = mBaseFrameId;
   // conversion from Tranform to message
   tf2::Vector3 translation = mOdom2BaseTransf.getOrigin();
   tf2::Quaternion quat = mOdom2BaseTransf.getRotation();
-  transformStamped->transform.translation.x = translation.x();
-  transformStamped->transform.translation.y = translation.y();
-  transformStamped->transform.translation.z = translation.z();
-  transformStamped->transform.rotation.x = quat.x();
-  transformStamped->transform.rotation.y = quat.y();
-  transformStamped->transform.rotation.z = quat.z();
-  transformStamped->transform.rotation.w = quat.w();
+  transformStamped.transform.translation.x = translation.x();
+  transformStamped.transform.translation.y = translation.y();
+  transformStamped.transform.translation.z = translation.z();
+  transformStamped.transform.rotation.x = quat.x();
+  transformStamped.transform.rotation.y = quat.y();
+  transformStamped.transform.rotation.z = quat.z();
+  transformStamped.transform.rotation.w = quat.w();
 
   // Publish transformation
-  mTfBroadcaster->sendTransform(*(transformStamped.get()));
+  mTfBroadcaster->sendTransform(transformStamped);
 }
 
 void ZedCamera::publishPoseTF(rclcpp::Time t)
@@ -4074,24 +4072,24 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
     getCamera2BaseTransform();
   }
 
-  transfMsgPtr transformStamped = std::make_shared<geometry_msgs::msg::TransformStamped>();
+  geometry_msgs::msg::TransformStamped transformStamped;
 
-  transformStamped->header.stamp = t;
-  transformStamped->header.frame_id = mMapFrameId;
-  transformStamped->child_frame_id = mOdomFrameId;
+  transformStamped.header.stamp = t;
+  transformStamped.header.frame_id = mMapFrameId;
+  transformStamped.child_frame_id = mOdomFrameId;
   // conversion from Tranform to message
   tf2::Vector3 translation = mMap2OdomTransf.getOrigin();
   tf2::Quaternion quat = mMap2OdomTransf.getRotation();
-  transformStamped->transform.translation.x = translation.x();
-  transformStamped->transform.translation.y = translation.y();
-  transformStamped->transform.translation.z = translation.z();
-  transformStamped->transform.rotation.x = quat.x();
-  transformStamped->transform.rotation.y = quat.y();
-  transformStamped->transform.rotation.z = quat.z();
-  transformStamped->transform.rotation.w = quat.w();
+  transformStamped.transform.translation.x = translation.x();
+  transformStamped.transform.translation.y = translation.y();
+  transformStamped.transform.translation.z = translation.z();
+  transformStamped.transform.rotation.x = quat.x();
+  transformStamped.transform.rotation.y = quat.y();
+  transformStamped.transform.rotation.z = quat.z();
+  transformStamped.transform.rotation.w = quat.w();
 
   // Publish transformation
-  mTfBroadcaster->sendTransform(*(transformStamped.get()));
+  mTfBroadcaster->sendTransform(transformStamped);
 }
 
 void ZedCamera::threadFunc_pointcloudElab()
@@ -4186,6 +4184,8 @@ void ZedCamera::callback_pubVideoDepth()
   {
     if (mSensCameraSync || mSvoMode)
     {
+      //RCLCPP_INFO_STREAM(get_logger(), "callback_pubVideoDepth: Publishing Camera-IMU transform ");
+      publishImuFrameAndTopic();
       publishSensorsData(pub_ts);
     }
   }
@@ -4201,6 +4201,8 @@ void ZedCamera::callback_pubSensorsData()
     return;
   }
 
+  //RCLCPP_INFO_STREAM(get_logger(), "callback_pubSensorsData: Publishing Camera-IMU transform ");
+  publishImuFrameAndTopic();
   rclcpp::Time sens_ts = publishSensorsData();
 
   // RCLCPP_INFO_STREAM(get_logger(), "callback_pubSensorsData - sens_ts type:"

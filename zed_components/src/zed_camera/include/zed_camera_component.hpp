@@ -112,7 +112,7 @@ typedef std::unique_ptr<stereo_msgs::msg::DisparityImage> dispMsgPtr;
 
 typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped> poseCovMsgPtr;
-typedef std::shared_ptr<geometry_msgs::msg::TransformStamped> transfMsgPtr;
+typedef std::unique_ptr<geometry_msgs::msg::TransformStamped> transfMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Odometry> odomMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
 
@@ -220,7 +220,7 @@ protected:
     void publishDepthMapWithInfo(sl::Mat& depth, rclcpp::Time t);
     void publishDisparity(sl::Mat disparity, rclcpp::Time t);
     void publishPointCloud();
-    void publishStaticImuFrameAndTopic();
+    void publishImuFrameAndTopic();
 
     void publishOdom(tf2::Transform& odom2baseTransf, sl::Pose& slPose, rclcpp::Time t);
     void publishPose();
@@ -425,7 +425,6 @@ private:
     std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
     std::shared_ptr<tf2_ros::TransformListener> mTfListener;
     std::shared_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
-    std::shared_ptr<tf2_ros::StaticTransformBroadcaster> mStaticTfBroadcaster;
     // <---- initialization Transform listener
 
     // ----> TF Transforms
@@ -441,7 +440,6 @@ private:
     bool mSensor2BaseTransfValid = false;
     bool mSensor2CameraTransfValid = false;
     bool mCamera2BaseTransfValid = false;
-    bool mStaticImuFramePublished = false;
     // <---- TF Transforms Flags
 
     // ----> Messages (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
@@ -453,9 +451,6 @@ private:
     camInfoMsgPtr mLeftCamInfoRawMsg;
     camInfoMsgPtr mRightCamInfoRawMsg;
     camInfoMsgPtr mDepthCamInfoMsg;
-
-    // Transforms
-    transfMsgPtr mCameraImuTransfMgs;
     // <---- Messages
 
     // ----> Publishers
@@ -538,7 +533,6 @@ private:
     bool mPcPublishing = false;
     bool mTriggerAutoExpGain = true; // Triggered on start
     bool mTriggerAutoWB = true; // Triggered on start
-    bool mStaticImuTopicPublished = false;
     bool mRecording = false;
     sl::RecordingStatus mRecStatus = sl::RecordingStatus();
     bool mPosTrackingReady = false;

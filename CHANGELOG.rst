@@ -3,7 +3,7 @@ LATEST CHANGES
 
 2022-09-26
 ----------
-- Enable Intra Process Communication. The ZED node does not publish topics with `TRANSIENT LOCAL` durability anymore
+- Enable Intra Process Communication. The ZED node no longer publishes topics with `TRANSIENT LOCAL` durability
 
 2022-09-21
 ----------

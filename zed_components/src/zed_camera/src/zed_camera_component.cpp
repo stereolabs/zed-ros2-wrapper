@@ -4222,6 +4222,8 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
 
   static sl::Timestamp lastZedTs = 0;  // Used to calculate stable publish frequency
 
+  bool video_subscribed=false;
+
   static size_t rgbSubnumber = 0;
   static size_t rgbRawSubnumber = 0;
   static size_t rgbGraySubnumber = 0;
@@ -4256,7 +4258,8 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
     rightGraySubnumber = mPubRightGray.getNumSubscribers();
     rightGrayRawSubnumber = mPubRawRightGray.getNumSubscribers();
     stereoSubnumber = mPubStereo.getNumSubscribers();
-    stereoRawSubnumber = mPubRawStereo.getNumSubscribers();
+    stereoRawSubnumber = mPubRawStereo.getNumSubscribers();    
+
     if (!mDepthDisabled)
     {
       depthSubnumber = mPubDepth.getNumSubscribers();
@@ -4298,6 +4301,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
           sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
       ts_rgb = mat_left.timestamp;
       grab_ts = mat_left.timestamp;
+      video_subscribed=true;
     }
     if (rgbRawSubnumber + leftRawSubnumber + stereoRawSubnumber > 0)
     {
@@ -4352,7 +4356,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
 
       ts_depth = mat_depth.timestamp;
 
-      if (ts_rgb.data_ns != 0 && (ts_depth.data_ns != ts_rgb.data_ns))
+      if (video_subscribed && (ts_rgb.data_ns != 0 && (ts_depth.data_ns != ts_rgb.data_ns)))
       {
         RCLCPP_WARN_STREAM(get_logger(), "!!!!! DEPTH/RGB ASYNC !!!!! - Delta: "
                                              << 1e-9 * static_cast<double>(ts_depth - ts_rgb) << " sec");

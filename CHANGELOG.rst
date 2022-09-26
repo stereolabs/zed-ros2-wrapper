@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2022-09-26
+----------
+- Enable Intra Process Communication. The ZED node does not publish topics with TRANSIENT LOCAL durability anymore
+
 2022-09-21
 ----------
 - Add support for ROS2 Humble. Thx @nakai-omer

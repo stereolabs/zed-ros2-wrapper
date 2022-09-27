@@ -521,8 +521,8 @@ private:
     std::mutex mObjDetMutex;
     std::condition_variable mPcDataReadyCondVar;
     bool mPcDataReady = false;
-    std::condition_variable_any mRgbDepthDataRetrievedCondVar;
-    bool mRgbDepthDataRetrieved = true;
+    //std::condition_variable_any mRgbDepthDataRetrievedCondVar;
+    //bool mRgbDepthDataRetrieved = true;
     // <---- Thread Sync
 
     // ----> Status Flags
@@ -564,6 +564,9 @@ private:
     std::unique_ptr<sl_tools::SmartMean> mObjDetPeriodMean_sec;
     std::unique_ptr<sl_tools::SmartMean> mObjDetElabMean_sec;
     std::unique_ptr<sl_tools::SmartMean> mPubFusedCloudPeriodMean_sec;
+    std::unique_ptr<sl_tools::SmartMean> mPubOdomTF_sec;
+    std::unique_ptr<sl_tools::SmartMean> mPubPoseTF_sec;
+    std::unique_ptr<sl_tools::SmartMean> mPubImuTF_sec;
     bool mImuPublishing = false;
     bool mMagPublishing = false;
     bool mBaroPublishing = false;

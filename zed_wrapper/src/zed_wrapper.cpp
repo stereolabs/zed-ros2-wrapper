@@ -38,8 +38,10 @@ int main(int argc, char * argv[])
 
     // Create an executor that will be responsible for execution of callbacks for a set of nodes.
     // With this version, all callbacks will be called from within this thread (the main one).
-    rclcpp::executors::SingleThreadedExecutor exec;
+    rclcpp::executors::MultiThreadedExecutor exec;
     rclcpp::NodeOptions options;
+
+    options.use_intra_process_comms(true);
 
     // Add zed_camera node
     auto zed_node = std::make_shared<stereolabs::ZedCamera>(options);

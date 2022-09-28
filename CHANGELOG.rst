@@ -1,6 +1,13 @@
 LATEST CHANGES
 ==============
 
+2022-09-27
+----------
+- Improve TF broadcasting at grabbing frequency
+- Improve IMU/Left Camera TF broadcasting at IMU frequency
+- Fix data grabbing frame rate when publishing is set to a lower value
+- Add TF broadcasting diagnostic
+
 2022-09-26
 ----------
 - Enable Intra Process Communication. The ZED node no longer publishes topics with `TRANSIENT LOCAL` durability.

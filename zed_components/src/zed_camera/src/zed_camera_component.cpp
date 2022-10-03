@@ -4600,7 +4600,7 @@ void ZedCamera::publishImageWithInfo(sl::Mat& img, image_transport::CameraPublis
   auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
   camInfoMsg->header.stamp = t;
   RCLCPP_DEBUG_STREAM(get_logger(), "Publishing IMAGE message");
-  pubImg.publish(image, camInfoMsg);  // TODO CHECK FOR ZERO-COPY
+  pubImg.publish(image, camInfoMsg); 
 }
 
 void ZedCamera::processOdometry()
@@ -5389,7 +5389,6 @@ void ZedCamera::publishPointCloud()
   else
   {
     pcMsg->header.stamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
-    ;
   }
 
   if (pcMsg->width != width || pcMsg->height != height)
@@ -5412,7 +5411,7 @@ void ZedCamera::publishPointCloud()
 
   // Data copy
   float* ptCloudPtr = (float*)(&pcMsg->data[0]);
-  memcpy(ptCloudPtr, (float*)cpu_cloud, ptsCount * 4 * sizeof(float));
+  memcpy(ptCloudPtr, (float*)cpu_cloud, ptsCount * 4 * sizeof(float));  
 
   // Pointcloud publishing
   RCLCPP_DEBUG_STREAM(get_logger(), "Publishing POINT CLOUD message");

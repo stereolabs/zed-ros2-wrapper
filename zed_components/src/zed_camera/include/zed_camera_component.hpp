@@ -290,7 +290,7 @@ private:
     std::string mSvoFilepath = "";
     bool mSvoLoop = false;
     bool mSvoRealtime = false;
-    bool mVerbose = true;
+    int mVerbose = 1;
     int mGpuId = -1;
     sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720; // Default resolution: RESOLUTION_HD720
     sl::DEPTH_MODE mDepthQuality = sl::DEPTH_MODE::PERFORMANCE; // Default depth mode: DEPTH_MODE_PERFORMANCE

@@ -15,7 +15,7 @@
             zed_id: 0
             serial_number: 0
             resolution: 2 # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
-            sdk_verbose: true
+            sdk_verbose: 1
             grab_frame_rate: 30 # ZED SDK internal grabbing rate
             pub_frame_rate: 15.0 # [DYNAMIC] - frequency of publishing of visual images and depth images
             gpu_id: -1
@@ -40,7 +40,7 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         depth:
-            quality: 4 # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - '4': NEURAL - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            quality: 1 # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - '4': NEURAL - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             sensing_mode: 0 # '0': STANDARD, '1': FILL
             depth_stabilization: true # Forces positional tracking to start if 'true'
             openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
@@ -56,8 +56,10 @@
 
         pos_tracking:
             pos_tracking_enabled: true # True to enable positional tracking from start
+            imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # publish `odom -> base_link` TF
             publish_map_tf: true # publish `map -> odom` TF
+            publish_imu_tf: true # enable/disable the IMU TF broadcasting
             base_frame: "base_link" # use the same name as in the URDF file
             map_frame: "map"
             odometry_frame: "odom"
@@ -84,6 +86,33 @@
             qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
             qos_depth: 1 # Queue size if using KEEP_LAST
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT -
+            qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
+
+        sensors:
+            sensors_image_sync: false # Synchronize Sensors messages with latest published video/depth message
+            sensors_pub_rate: 100. # frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
+            qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
+            qos_depth: 1 # Queue size if using KEEP_LAST
+            qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT -
+            qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
+
+        object_detection:
+            od_enabled: false # True to enable Object Detection [only ZED 2]
+            confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,100]
+            model: 0 # '0': MULTI_CLASS_BOX - '1': MULTI_CLASS_BOX_ACCURATE - '2': HUMAN_BODY_FAST - '3': HUMAN_BODY_ACCURATE - '4': MULTI_CLASS_BOX_MEDIUM - '5': HUMAN_BODY_MEDIUM - '6': PERSON_HEAD_BOX
+            filtering_mode: 1 # '0': NONE - '1': NMS3D - '2': NMS3D_PER_CLASS
+            mc_people: true # [DYNAMIC] - Enable/disable the detection of persons for 'MULTI_CLASS_X' models
+            mc_vehicle: true # [DYNAMIC] - Enable/disable the detection of vehicles for 'MULTI_CLASS_X' models
+            mc_bag: true # [DYNAMIC] - Enable/disable the detection of bags for 'MULTI_CLASS_X' models
+            mc_animal: true # [DYNAMIC] - Enable/disable the detection of animals for 'MULTI_CLASS_X' models
+            mc_electronics: true # [DYNAMIC] - Enable/disable the detection of electronic devices for 'MULTI_CLASS_X' models
+            mc_fruit_vegetable: true # [DYNAMIC] - Enable/disable the detection of fruits and vegetables for 'MULTI_CLASS_X' models
+            mc_sport: true # [DYNAMIC] - Enable/disable the detection of sport-related objects for 'MULTI_CLASS_X' models
+            body_fitting: true # Enable/disable body fitting for 'HUMAN_BODY_FAST' and 'HUMAN_BODY_ACCURATE' models
+            body_format: 1 # '0': POSE_18 - '1': POSE_34 [Only if `HUMAN_BODY_*` model is selected]
+            qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
+            qos_depth: 1 # Queue size if using KEEP_LAST
+            qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         debug:

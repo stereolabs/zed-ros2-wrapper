@@ -4234,7 +4234,7 @@ void ZedCamera::threadFunc_pubVideoDepth()
       break;
     }
 
-    std::lock_guard<std::mutex> lock(mCloseZedMutex);
+    //std::lock_guard<std::mutex> lock(mCloseZedMutex);
     if (!mZed.isOpened())
     {
       RCLCPP_DEBUG(get_logger(), "threadFunc_pubVideoDepth: the camera is not open");
@@ -4296,7 +4296,7 @@ void ZedCamera::threadFunc_pubSensorsData()
       break;
     }
 
-    std::lock_guard<std::mutex> lock(mCloseZedMutex);
+    //std::lock_guard<std::mutex> lock(mCloseZedMutex);
     if (!mZed.isOpened())
     {
       RCLCPP_DEBUG(get_logger(), "threadFunc_pubSensorsData: the camera is not open");
@@ -5553,7 +5553,7 @@ void ZedCamera::callback_pubFusedPc()
     return;
   }
 
-  std::lock_guard<std::mutex> lock(mCloseZedMutex);
+  //std::lock_guard<std::mutex> lock(mCloseZedMutex);
   if (!mZed.isOpened())
   {
     return;

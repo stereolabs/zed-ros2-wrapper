@@ -511,7 +511,7 @@ private:
     // <---- Threads and Timers
 
     // ----> Thread Sync
-    std::mutex mCloseZedMutex;
+    //std::mutex mCloseZedMutex;
     std::timed_mutex mCamDataMutex;
     std::mutex mPcMutex;
     std::mutex mRecMutex;

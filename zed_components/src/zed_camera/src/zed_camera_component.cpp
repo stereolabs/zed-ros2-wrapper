@@ -120,73 +120,81 @@ ZedCamera::~ZedCamera()
     stop3dMapping();
   }
 
-  std::lock_guard<std::mutex> lock(mCloseZedMutex);
-
-  // if (mSensTimer)
-  // {
-  //   mSensTimer->cancel();
-  // }
+  RCLCPP_DEBUG(get_logger(), "Stopping path timer");
   if (mPathTimer)
   {
     mPathTimer->cancel();
   }
+  RCLCPP_DEBUG(get_logger(), "Stopping fused cloud timer");
   if (mFusedPcTimer)
   {
     mFusedPcTimer->cancel();
   }
-  if (mVideoDepthTimer)
-  {
-    mVideoDepthTimer->cancel();
-  }
 
   // ----> Verify that all the threads are not active
+  RCLCPP_DEBUG(get_logger(), "Stopping running threads");
   if (!mThreadStop)
   {
     mThreadStop = true;
-
-    RCLCPP_DEBUG(get_logger(), "Stopping grab thread...");
-    try
-    {
-      if (mGrabThread.joinable())
-      {
-        mGrabThread.join();
-      }
-    }
-    catch (std::system_error& e)
-    {
-      RCLCPP_WARN(get_logger(), "Grab thread joining exception: %s", e.what());
-    }
-    RCLCPP_DEBUG(get_logger(), "... grab thread stopped");
-
-    RCLCPP_DEBUG(get_logger(), "Stopping sensors thread...");
-    try
-    {
-      if (mSensThread.joinable())
-      {
-        mSensThread.join();
-      }
-    }
-    catch (std::system_error& e)
-    {
-      RCLCPP_WARN(get_logger(), "Sensors thread joining exception: %s", e.what());
-    }
-    RCLCPP_DEBUG(get_logger(), "... sensors thread stopped");
-
-    RCLCPP_DEBUG(get_logger(), "Stopping Point Cloud thread...");
-    try
-    {
-      if (mPcThread.joinable())
-      {
-        mPcThread.join();
-      }
-    }
-    catch (std::system_error& e)
-    {
-      RCLCPP_WARN(get_logger(), "Pointcloud thread joining exception: %s", e.what());
-    }
-    RCLCPP_DEBUG(get_logger(), "... Point Cloud thread stopped");
   }
-  // <---- Verify that the grab thread is not active
+
+  RCLCPP_DEBUG(get_logger(), "Waiting for grab thread...");
+  try
+  {
+    if (mGrabThread.joinable())
+    {
+      mGrabThread.join();
+    }
+  }
+  catch (std::system_error& e)
+  {
+    RCLCPP_WARN(get_logger(), "Grab thread joining exception: %s", e.what());
+  }
+  RCLCPP_DEBUG(get_logger(), "... grab thread stopped");
+
+  RCLCPP_DEBUG(get_logger(), "Waiting for sensors thread...");
+  try
+  {
+    if (mSensThread.joinable())
+    {
+      mSensThread.join();
+    }
+  }
+  catch (std::system_error& e)
+  {
+    RCLCPP_WARN(get_logger(), "Sensors thread joining exception: %s", e.what());
+  }
+  RCLCPP_DEBUG(get_logger(), "... sensors thread stopped");
+
+  RCLCPP_DEBUG(get_logger(), "Waiting for RGB/Depth thread...");
+  try
+  {
+    if (mVideoDepthThread.joinable())
+    {
+      mVideoDepthThread.join();
+    }
+  }
+  catch (std::system_error& e)
+  {
+    RCLCPP_WARN(get_logger(), "RGB/Depth thread joining exception: %s", e.what());
+  }
+  RCLCPP_DEBUG(get_logger(), "... RGB/Depth thread stopped");
+
+  RCLCPP_DEBUG(get_logger(), "Waiting for Point Cloud thread...");
+  try
+  {
+    if (mPcThread.joinable())
+    {
+      mPcThread.join();
+    }
+  }
+  catch (std::system_error& e)
+  {
+    RCLCPP_WARN(get_logger(), "Pointcloud thread joining exception: %s", e.what());
+  }
+  RCLCPP_DEBUG(get_logger(), "... Point Cloud thread stopped");
+
+  // <---- Verify that all the threads are not active
 }
 
 void ZedCamera::initServices()
@@ -1225,7 +1233,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
     }
 
     mPubFrameRate = val;
-    startVideoDepthTimer(mPubFrameRate);
+    startVideoDepthThread(mPubFrameRate);
 
     RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
   }
@@ -1523,7 +1531,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
     }
 
     mPubFrameRate = val;
-    startVideoDepthTimer(mPubFrameRate);
+    startVideoDepthThread(mPubFrameRate);
 
     RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
   }
@@ -2228,7 +2236,7 @@ bool ZedCamera::startCamera()
   // <---- SDK version
 
   // ----> TF2 Transform
-  mTfBuffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+  mTfBuffer = std::make_unique<tf2_ros::Buffer>(get_clock());
   mTfListener = std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);  // Start TF Listener thread
   mTfBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
   // <---- TF2 Transform
@@ -2591,21 +2599,18 @@ bool ZedCamera::startCamera()
   mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
 
   // Start data publishing timer
-  startVideoDepthTimer(mPubFrameRate);
+  startVideoDepthThread(mPubFrameRate);
 
   return true;
 }
 
-void ZedCamera::startVideoDepthTimer(double pubFrameRate)
+void ZedCamera::startVideoDepthThread(double pubFrameRate)
 {
-  if (mVideoDepthTimer != nullptr)
-  {
-    mVideoDepthTimer->cancel();
-  }
+  // mVideoDepthTimer =
+  // create_wall_timer(std::chrono::duration_cast<std::chrono::milliseconds>(videoDepthPubPeriod_msec),
+  //                                      std::bind(&ZedCamera::threadFunc_pubVideoDepth, this));
 
-  std::chrono::milliseconds videoDepthPubPeriod_msec(static_cast<int>(1000.0 / (pubFrameRate)));
-  mVideoDepthTimer = create_wall_timer(std::chrono::duration_cast<std::chrono::milliseconds>(videoDepthPubPeriod_msec),
-                                       std::bind(&ZedCamera::callback_pubVideoDepth, this));
+  mVideoDepthThread = std::thread(&ZedCamera::threadFunc_pubVideoDepth, this);
 }
 
 void ZedCamera::startFusedPcTimer(double fusedPcRate)
@@ -3340,6 +3345,8 @@ void ZedCamera::threadFunc_zedGrab()
   // Infinite grab thread
   while (1)
   {
+    // std::lock_guard<std::mutex> close_lock(mCloseZedMutex);
+
     sl_tools::StopWatch grabElabTimer;
 
     // ----> Interruption check
@@ -3558,10 +3565,8 @@ void ZedCamera::threadFunc_zedGrab()
       catch (...)
       {
         rcutils_reset_error();
-        RCLCPP_DEBUG(get_logger(),
-                     "threadFunc_zedGrab: Exception while "
-                     "counting point cloud subscribers");
-        return;
+        RCLCPP_DEBUG(get_logger(), "threadFunc_zedGrab: Exception while counting point cloud subscribers");
+        continue;
       }
 
       if (cloudSubnumber > 0)
@@ -3705,7 +3710,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   {
     return TIMEZERO_ROS;
   }
-  // <---- Check for duplicated data  
+  // <---- Check for duplicated data
 
   lastTs_imu = ts_imu;
 
@@ -3726,8 +3731,6 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   // ----> Sensors freq for diagnostic
   if (new_imu_data)
   {
-    publishImuFrameAndTopic();
-
     RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback: IMU FREQ");
     static sl_tools::StopWatch imuFreqTimer;
 
@@ -3765,6 +3768,8 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   // ----> Sensors data publishing
   if (new_imu_data)
   {
+    publishImuFrameAndTopic();
+
     if (imu_SubNumber > 0)
     {
       mImuPublishing = true;
@@ -4211,31 +4216,65 @@ void ZedCamera::threadFunc_pointcloudElab()
   RCLCPP_DEBUG(get_logger(), "Pointcloud thread finished");
 }
 
-void ZedCamera::callback_pubVideoDepth()
+void ZedCamera::threadFunc_pubVideoDepth()
 {
-  RCLCPP_DEBUG_ONCE(get_logger(), "Video Depth callback called");
+  RCLCPP_DEBUG_ONCE(get_logger(), "Video Depth thread started");
 
-  static rclcpp::Time prev_ts = TIMEZERO_ROS;
-
-  std::lock_guard<std::mutex> lock(mCloseZedMutex);
-  mPublishingData = false;
-
-  rclcpp::Time pub_ts;
-  mPublishingData = publishVideoDepth(pub_ts);
-
-  // RCLCPP_DEBUG_ONCE(get_logger(), "Video Depth published");
-
-  // RCLCPP_INFO_STREAM(get_logger(), "callback_pubVideoDepth - pub_ts type:" <<
-  // pub_ts.get_clock_type());
-
-  if (mCamRealModel != sl::MODEL::ZED && mPublishingData && pub_ts != TIMEZERO_ROS)
+  while (1)
   {
-    if (mSensCameraSync || mSvoMode)
+    if (!rclcpp::ok())
     {
-      // RCLCPP_INFO_STREAM(get_logger(), "callback_pubVideoDepth: Publishing Camera-IMU transform ");      
-      publishSensorsData(pub_ts);
+      RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping rgb/depth pub thread");
+      mThreadStop = true;
+      break;
     }
+    if (mThreadStop)
+    {
+      RCLCPP_DEBUG(get_logger(), "threadFunc_pubVideoDepth (2): thread stopped");
+      break;
+    }
+
+    std::lock_guard<std::mutex> lock(mCloseZedMutex);
+    if (!mZed.isOpened())
+    {
+      RCLCPP_DEBUG(get_logger(), "threadFunc_pubVideoDepth: the camera is not open");
+      continue;
+    }
+
+    rclcpp::Time pub_ts;
+    mPublishingData = publishVideoDepth(pub_ts);
+
+    // RCLCPP_DEBUG_ONCE(get_logger(), "Video Depth published");
+
+    // RCLCPP_INFO_STREAM(get_logger(), "threadFunc_pubVideoDepth - pub_ts type:" <<
+    // pub_ts.get_clock_type());
+
+    if (mCamRealModel != sl::MODEL::ZED && mPublishingData && pub_ts != TIMEZERO_ROS)
+    {
+      if (mSensCameraSync || mSvoMode)
+      {
+        // RCLCPP_INFO_STREAM(get_logger(), "threadFunc_pubVideoDepth: Publishing Camera-IMU transform ");
+        publishSensorsData(pub_ts);
+      }
+    }
+
+    // ----> Check publishing frequency
+    double pub_period_usec = 1e6 / mPubFrameRate;
+
+    static sl_tools::StopWatch pubFreqTimer;
+    double elapsed_usec = pubFreqTimer.toc() * 1e6;
+
+    if (elapsed_usec < pub_period_usec)
+    {
+      // std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(pc_period_msec - elapsed_msec)));
+      sl::sleep_us(static_cast<int>(pub_period_usec - elapsed_usec));
+    }
+
+    pubFreqTimer.tic();
+    // <---- Check publishing frequency
   }
+
+  RCLCPP_DEBUG(get_logger(), "Video/Depth thread finished");
 }
 
 void ZedCamera::threadFunc_pubSensorsData()
@@ -4265,7 +4304,7 @@ void ZedCamera::threadFunc_pubSensorsData()
     }
 
     // RCLCPP_INFO_STREAM(get_logger(), "threadFunc_pubSensorsData: Publishing Camera-IMU transform ");
-    //publishImuFrameAndTopic();
+    // publishImuFrameAndTopic();
     rclcpp::Time sens_ts = publishSensorsData();
 
     // RCLCPP_INFO_STREAM(get_logger(), "threadFunc_pubSensorsData - sens_ts type:"
@@ -4294,6 +4333,8 @@ void ZedCamera::threadFunc_pubSensorsData()
     sensPubFreqTimer.tic();
     // <---- Check publishing frequency
   }
+
+  RCLCPP_DEBUG(get_logger(), "Sensors thread finished");
 }
 
 bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
@@ -4302,7 +4343,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
 
   static sl::Timestamp lastZedTs = 0;  // Used to calculate stable publish frequency
 
-  bool video_subscribed = false;
+  bool rgb_subscribed = false;
 
   static size_t rgbSubnumber = 0;
   static size_t rgbRawSubnumber = 0;
@@ -4322,6 +4363,20 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
   static size_t confMapSubnumber = 0;
   static size_t disparitySubnumber = 0;
   static size_t depthInfoSubnumber = 0;
+
+  bool retrieved = false;
+
+  static sl::Mat mat_left, mat_left_raw;
+  static sl::Mat mat_right, mat_right_raw;
+  static sl::Mat mat_left_gray, mat_left_raw_gray;
+  static sl::Mat mat_right_gray, mat_right_raw_gray;
+  static sl::Mat mat_depth, mat_disp, mat_conf;
+
+  static sl::Timestamp ts_rgb = 0;    // used to check RGB/Depth sync
+  static sl::Timestamp ts_depth = 0;  // used to check RGB/Depth sync
+  static sl::Timestamp grab_ts = 0;
+
+  float min_depth = 0.0f, max_depth = 0.0f;
 
   try
   {
@@ -4355,23 +4410,8 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
     return false;
   }
 
-  bool retrieved = false;
-
-  static sl::Mat mat_left, mat_left_raw;
-  static sl::Mat mat_right, mat_right_raw;
-  static sl::Mat mat_left_gray, mat_left_raw_gray;
-  static sl::Mat mat_right_gray, mat_right_raw_gray;
-  static sl::Mat mat_depth, mat_disp, mat_conf;
-
-  static sl::Timestamp ts_rgb = 0;    // used to check RGB/Depth sync
-  static sl::Timestamp ts_depth = 0;  // used to check RGB/Depth sync
-  static sl::Timestamp grab_ts = 0;
-
-  float min_depth = 0.0f, max_depth = 0.0f;
-
   // ----> Retrieve all required data
   std::unique_lock<std::timed_mutex> lock(mCamDataMutex, std::defer_lock);
-
   if (lock.try_lock_for(std::chrono::milliseconds(1000 / mCamGrabFrameRate)))  // Wait for grabbing to be completed
   {
     // RCLCPP_DEBUG(get_logger(), "Retrieving Video Data");
@@ -4381,7 +4421,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
           sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
       ts_rgb = mat_left.timestamp;
       grab_ts = mat_left.timestamp;
-      video_subscribed = true;
+      rgb_subscribed = true;
     }
     if (rgbRawSubnumber + leftRawSubnumber + stereoRawSubnumber > 0)
     {
@@ -4436,7 +4476,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
 
       ts_depth = mat_depth.timestamp;
 
-      if (video_subscribed && (ts_rgb.data_ns != 0 && (ts_depth.data_ns != ts_rgb.data_ns)))
+      if (rgb_subscribed && (ts_rgb.data_ns != 0 && (ts_depth.data_ns != ts_rgb.data_ns)))
       {
         RCLCPP_WARN_STREAM(get_logger(), "!!!!! DEPTH/RGB ASYNC !!!!! - Delta: "
                                              << 1e-9 * static_cast<double>(ts_depth - ts_rgb) << " sec");
@@ -4491,6 +4531,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
   {
     out_pub_ts = TIMEZERO_ROS;
     // Data not updated by a grab calling in the grab thread
+    RCLCPP_DEBUG_STREAM(get_logger(), "publishVideoDepth: ignoring not update data");
     return true;
   }
 
@@ -5343,7 +5384,7 @@ bool ZedCamera::isPosTrackingRequired()
   size_t topics_sub = 0;
   try
   {
-    topics_sub = count_subscribers(mPubPose->get_topic_name()) + +count_subscribers(mPubPoseCov->get_topic_name()) +
+    topics_sub = count_subscribers(mPubPose->get_topic_name()) + count_subscribers(mPubPoseCov->get_topic_name()) +
                  count_subscribers(mPubPosePath->get_topic_name()) + count_subscribers(mPubOdom->get_topic_name()) +
                  count_subscribers(mPubOdomPath->get_topic_name());
   }
@@ -5513,7 +5554,6 @@ void ZedCamera::callback_pubFusedPc()
   }
 
   std::lock_guard<std::mutex> lock(mCloseZedMutex);
-
   if (!mZed.isOpened())
   {
     return;

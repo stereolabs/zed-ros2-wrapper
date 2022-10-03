@@ -171,7 +171,7 @@ protected:
     // <---- Initialization functions
 
     // ----> Callbacks
-    void callback_pubVideoDepth();    
+    void threadFunc_pubVideoDepth();    
     void callback_pubFusedPc();
     void callback_pubPaths();
     rcl_interfaces::msg::SetParametersResult callback_paramChange(std::vector<rclcpp::Parameter> parameters);
@@ -248,7 +248,7 @@ protected:
     bool getSens2CameraTransform();
     bool getCamera2BaseTransform();
 
-    void startVideoDepthTimer(double pubFrameRate);
+    void startVideoDepthThread(double pubFrameRate);
     void startFusedPcTimer(double fusedPcRate);
     void startPathPubTimer(double pathTimerRate);
 
@@ -501,13 +501,13 @@ private:
     // ----> Threads and Timers
     sl::ERROR_CODE mGrabStatus;
     sl::ERROR_CODE mConnStatus;
-    std::thread mGrabThread;
-    std::thread mPcThread; // Point Cloud thread
-    std::thread mSensThread;
+    std::thread mGrabThread; // Main grab thread
+    std::thread mVideoDepthThread; // RGB/Depth data publish thread
+    std::thread mPcThread; // Point Cloud publish thread
+    std::thread mSensThread; // Sensors data publish thread
     bool mThreadStop = false;    
     rclcpp::TimerBase::SharedPtr mPathTimer;
-    rclcpp::TimerBase::SharedPtr mFusedPcTimer;
-    rclcpp::TimerBase::SharedPtr mVideoDepthTimer;
+    rclcpp::TimerBase::SharedPtr mFusedPcTimer;    
     // <---- Threads and Timers
 
     // ----> Thread Sync

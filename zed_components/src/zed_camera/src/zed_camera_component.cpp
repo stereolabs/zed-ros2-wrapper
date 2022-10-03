@@ -421,7 +421,7 @@ void ZedCamera::getGeneralParams()
   getParam("general.pub_frame_rate", mPubFrameRate, mPubFrameRate, "", true);
   if (mPubFrameRate > mCamGrabFrameRate)
   {
-    RCLCPP_WARN(get_logger(), "'pub_frame_rate' cannot be bigger than 'grab_frame_rate'", paramName.c_str());
+    RCLCPP_WARN(get_logger(), "'pub_frame_rate' cannot be bigger than 'grab_frame_rate'" );
   }
   RCLCPP_INFO(get_logger(), " * [DYN] Publish framerate [Hz]: %g ", mPubFrameRate);
 }
@@ -617,8 +617,8 @@ void ZedCamera::getDepthParams()
 
     getParam("depth.depth_confidence", mDepthConf, mDepthConf, " * [DYN] Depth Confidence: ", true);
     getParam("depth.depth_texture_conf", mDepthTextConf, mDepthTextConf, " * [DYN] Depth Texture Confidence: ", true);
-    getParam("depth.remove_saturated_areas", mRemoveSatAreas, mRemoveSatAreas);
-    RCLCPP_INFO(get_logger(), " * [DYN] Remove saturated areas: %s", mRemoveSatAreas ? "TRUE" : "FALSE", true);
+    getParam("depth.remove_saturated_areas", mRemoveSatAreas, mRemoveSatAreas, "", true);
+    RCLCPP_INFO(get_logger(), " * [DYN] Remove saturated areas: %s", mRemoveSatAreas ? "TRUE" : "FALSE"); 
     // ------------------------------------------
 
     paramName = "depth.qos_history";

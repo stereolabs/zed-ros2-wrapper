@@ -122,10 +122,10 @@ ZedCamera::~ZedCamera()
 
   std::lock_guard<std::mutex> lock(mCloseZedMutex);
 
-  if (mSensTimer)
-  {
-    mSensTimer->cancel();
-  }
+  // if (mSensTimer)
+  // {
+  //   mSensTimer->cancel();
+  // }
   if (mPathTimer)
   {
     mPathTimer->cancel();
@@ -157,6 +157,20 @@ ZedCamera::~ZedCamera()
       RCLCPP_WARN(get_logger(), "Grab thread joining exception: %s", e.what());
     }
     RCLCPP_DEBUG(get_logger(), "... grab thread stopped");
+
+    RCLCPP_DEBUG(get_logger(), "Stopping sensors thread...");
+    try
+    {
+      if (mSensThread.joinable())
+      {
+        mSensThread.join();
+      }
+    }
+    catch (std::system_error& e)
+    {
+      RCLCPP_WARN(get_logger(), "Sensors thread joining exception: %s", e.what());
+    }
+    RCLCPP_DEBUG(get_logger(), "... sensors thread stopped");
 
     RCLCPP_DEBUG(get_logger(), "Stopping Point Cloud thread...");
     try
@@ -421,7 +435,7 @@ void ZedCamera::getGeneralParams()
   getParam("general.pub_frame_rate", mPubFrameRate, mPubFrameRate, "", true);
   if (mPubFrameRate > mCamGrabFrameRate)
   {
-    RCLCPP_WARN(get_logger(), "'pub_frame_rate' cannot be bigger than 'grab_frame_rate'" );
+    RCLCPP_WARN(get_logger(), "'pub_frame_rate' cannot be bigger than 'grab_frame_rate'");
   }
   RCLCPP_INFO(get_logger(), " * [DYN] Publish framerate [Hz]: %g ", mPubFrameRate);
 }
@@ -618,7 +632,7 @@ void ZedCamera::getDepthParams()
     getParam("depth.depth_confidence", mDepthConf, mDepthConf, " * [DYN] Depth Confidence: ", true);
     getParam("depth.depth_texture_conf", mDepthTextConf, mDepthTextConf, " * [DYN] Depth Texture Confidence: ", true);
     getParam("depth.remove_saturated_areas", mRemoveSatAreas, mRemoveSatAreas, "", true);
-    RCLCPP_INFO(get_logger(), " * [DYN] Remove saturated areas: %s", mRemoveSatAreas ? "TRUE" : "FALSE"); 
+    RCLCPP_INFO(get_logger(), " * [DYN] Remove saturated areas: %s", mRemoveSatAreas ? "TRUE" : "FALSE");
     // ------------------------------------------
 
     paramName = "depth.qos_history";
@@ -2306,14 +2320,16 @@ bool ZedCamera::startCamera()
           return false;
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(mCamTimeoutSec));
+        // std::this_thread::sleep_for(std::chrono::seconds(mCamTimeoutSec));
+        sl::sleep_ms(mCamTimeoutSec * 1000);
       }
     }
   }
 
   while (1)
   {
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    sl::sleep_ms(500);
 
     mConnStatus = mZed.open(mInitParams);
 
@@ -2355,7 +2371,8 @@ bool ZedCamera::startCamera()
       return false;
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(mCamTimeoutSec));
+    // std::this_thread::sleep_for(std::chrono::seconds(mCamTimeoutSec));
+    sl::sleep_ms(mCamTimeoutSec * 1000);
   }
   // <---- Try to open ZED camera or to load SVO
 
@@ -2554,23 +2571,27 @@ bool ZedCamera::startCamera()
   }
   // <---- Start Pointcloud thread
 
-  // Start pool thread
+  // ----> Start Sensors thread
+  if (!mSvoMode && mCamRealModel != sl::MODEL::ZED)
+  {
+    /*if (mSensPubRate == 400.)
+    {
+      mSensPubRate *= TIMER_TIME_FACTOR;
+    }*/
+
+    std::chrono::milliseconds sensorsPubPeriod_msec(static_cast<int>(1000.0 / (mSensPubRate)));
+    /*mSensTimer = create_wall_timer(std::chrono::duration_cast<std::chrono::milliseconds>(sensorsPubPeriod_msec),
+                                   std::bind(&ZedCamera::threadFunc_pubSensorsData, this));*/
+
+    mSensThread = std::thread(&ZedCamera::threadFunc_pubSensorsData, this);
+  }
+  // <---- Start Sensors thread
+
+  // Start grab thread
   mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
 
   // Start data publishing timer
   startVideoDepthTimer(mPubFrameRate);
-
-  if (!mSvoMode && mCamRealModel != sl::MODEL::ZED)
-  {
-    if (mSensPubRate == 400.)
-    {
-      mSensPubRate *= TIMER_TIME_FACTOR;
-    }
-
-    std::chrono::milliseconds sensorsPubPeriod_msec(static_cast<int>(1000.0 / (mSensPubRate)));
-    mSensTimer = create_wall_timer(std::chrono::duration_cast<std::chrono::milliseconds>(sensorsPubPeriod_msec),
-                                   std::bind(&ZedCamera::callback_pubSensorsData, this));
-  }
 
   return true;
 }
@@ -2661,7 +2682,8 @@ bool ZedCamera::startPosTracking()
     elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start)
                   .count();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    sl::sleep_ms(1000);
 
     if (elapsed > 10000)
     {
@@ -3306,7 +3328,7 @@ void ZedCamera::threadFunc_zedGrab()
   RCLCPP_DEBUG(get_logger(), "Grab thread started");
 
   mFrameCount = 0;
-  //mRgbDepthDataRetrieved = true;  // Force first grab
+  // mRgbDepthDataRetrieved = true;  // Force first grab
 
   // ----> Grab Runtime parameters
   mRunParams.sensing_mode = static_cast<sl::SENSING_MODE>(mDepthSensingMode);
@@ -3381,11 +3403,13 @@ void ZedCamera::threadFunc_zedGrab()
     // ----> Check for Object Detection requirement
 
     // ----> Wait for RGB/Depth synchronization before grabbing
-    std::unique_lock<std::timed_mutex> datalock(mCamDataMutex); // Only this is required to guarantee Depth/RGB synchronization
-    
+    std::unique_lock<std::timed_mutex> datalock(mCamDataMutex);  // Only this is required to guarantee Depth/RGB
+                                                                 // synchronization
+
     // while (!mRgbDepthDataRetrieved)
     // {  // loop to avoid spurious wakeups
-    //   if (mRgbDepthDataRetrievedCondVar.wait_for(datalock, std::chrono::milliseconds(500)) == std::cv_status::timeout)
+    //   if (mRgbDepthDataRetrievedCondVar.wait_for(datalock, std::chrono::milliseconds(500)) ==
+    //   std::cv_status::timeout)
     //   {
     //     // Check thread stopping
     //     if (mThreadStop)
@@ -3399,7 +3423,7 @@ void ZedCamera::threadFunc_zedGrab()
     //   }
     // }
 
-    //mRgbDepthDataRetrieved = false;
+    // mRgbDepthDataRetrieved = false;
     // <---- Wait for RGB/Depth synchronization before grabbing
 
     // ----> Grab freq calculation
@@ -3432,11 +3456,12 @@ void ZedCamera::threadFunc_zedGrab()
         {
           // RCLCPP_DEBUG_STREAM(get_logger(), "Sleeping for " <<
           // residual_period_usec << "usec" );
-          std::this_thread::sleep_for(std::chrono::microseconds(residual_period_usec));
+          // std::this_thread::sleep_for(std::chrono::microseconds(residual_period_usec));
+          sl::sleep_us(residual_period_usec);
         }
       }
     }
-    
+
     if (!mSvoPause)
     {
       // ZED grab
@@ -3449,8 +3474,9 @@ void ZedCamera::threadFunc_zedGrab()
         {
           mZed.setSVOPosition(0);
           RCLCPP_WARN(get_logger(), "SVO reached the end and has been restarted.");
-          std::this_thread::sleep_for(
-              std::chrono::milliseconds(static_cast<long int>(mGrabPeriodMean_sec->getMean() * 1000.f)));
+          /*std::this_thread::sleep_for(
+              std::chrono::milliseconds(static_cast<long int>(mGrabPeriodMean_sec->getMean() * 1000.f)));*/
+          sl::sleep_ms(static_cast<int>(mGrabPeriodMean_sec->getMean() * 1000.f));
           continue;
         }
         else
@@ -3513,9 +3539,9 @@ void ZedCamera::threadFunc_zedGrab()
         }
 
         // Publish `odom` and `map` TFs at the grab frequency
-        //if (mCamRealModel == sl::MODEL::ZED || !mPublishImuTF || mSvoMode)
+        // if (mCamRealModel == sl::MODEL::ZED || !mPublishImuTF || mSvoMode)
         {
-          //RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_zedGrab");
+          // RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_zedGrab");
           publishTFs(mFrameTimestamp);
         }
       }
@@ -3679,7 +3705,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   {
     return TIMEZERO_ROS;
   }
-  // <---- Check for duplicated data
+  // <---- Check for duplicated data  
 
   lastTs_imu = ts_imu;
 
@@ -3700,6 +3726,8 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   // ----> Sensors freq for diagnostic
   if (new_imu_data)
   {
+    publishImuFrameAndTopic();
+
     RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback: IMU FREQ");
     static sl_tools::StopWatch imuFreqTimer;
 
@@ -4169,7 +4197,8 @@ void ZedCamera::threadFunc_pointcloudElab()
 
     if (elapsed_msec < pc_period_msec)
     {
-      std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(pc_period_msec - elapsed_msec)));
+      // std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(pc_period_msec - elapsed_msec)));
+      sl::sleep_ms(static_cast<int>(pc_period_msec - elapsed_msec));
     }
 
     pcPubFreqTimer.tic();
@@ -4203,37 +4232,68 @@ void ZedCamera::callback_pubVideoDepth()
   {
     if (mSensCameraSync || mSvoMode)
     {
-      // RCLCPP_INFO_STREAM(get_logger(), "callback_pubVideoDepth: Publishing Camera-IMU transform ");
-      publishImuFrameAndTopic();
+      // RCLCPP_INFO_STREAM(get_logger(), "callback_pubVideoDepth: Publishing Camera-IMU transform ");      
       publishSensorsData(pub_ts);
     }
   }
 }
 
-void ZedCamera::callback_pubSensorsData()
+void ZedCamera::threadFunc_pubSensorsData()
 {
-  RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback called");
+  // RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback called");
+  RCLCPP_DEBUG(get_logger(), "Sensors thread started");
 
-  std::lock_guard<std::mutex> lock(mCloseZedMutex);
-  if (!mZed.isOpened())
+  while (1)
   {
-    return;
+    if (!rclcpp::ok())
+    {
+      RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping sensors thread");
+      mThreadStop = true;
+      break;
+    }
+    if (mThreadStop)
+    {
+      RCLCPP_DEBUG(get_logger(), "threadFunc_pubSensorsData (2): Sensors thread stopped");
+      break;
+    }
+
+    std::lock_guard<std::mutex> lock(mCloseZedMutex);
+    if (!mZed.isOpened())
+    {
+      RCLCPP_DEBUG(get_logger(), "threadFunc_pubSensorsData: the camera is not open");
+      continue;
+    }
+
+    // RCLCPP_INFO_STREAM(get_logger(), "threadFunc_pubSensorsData: Publishing Camera-IMU transform ");
+    //publishImuFrameAndTopic();
+    rclcpp::Time sens_ts = publishSensorsData();
+
+    // RCLCPP_INFO_STREAM(get_logger(), "threadFunc_pubSensorsData - sens_ts type:"
+    // << sens_ts.get_clock_type());
+
+    // Publish TF at the same frequency of IMU data, so they are always
+    // synchronized
+    /*if (sens_ts != TIMEZERO_ROS)
+    {
+      RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_pubSensorsData");
+      publishTFs(sens_ts);
+    }*/
+
+    // ----> Check publishing frequency
+    double sens_period_msec = 1000.0 / mSensPubRate;
+
+    static sl_tools::StopWatch sensPubFreqTimer;
+    double elapsed_msec = sensPubFreqTimer.toc() * 1e3;
+
+    if (elapsed_msec < sens_period_msec)
+    {
+      // std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long int>(pc_period_msec - elapsed_msec)));
+      sl::sleep_ms(static_cast<int>(sens_period_msec - elapsed_msec));
+    }
+
+    sensPubFreqTimer.tic();
+    // <---- Check publishing frequency
   }
-
-  // RCLCPP_INFO_STREAM(get_logger(), "callback_pubSensorsData: Publishing Camera-IMU transform ");
-  publishImuFrameAndTopic();
-  rclcpp::Time sens_ts = publishSensorsData();
-
-  // RCLCPP_INFO_STREAM(get_logger(), "callback_pubSensorsData - sens_ts type:"
-  // << sens_ts.get_clock_type());
-
-  // Publish TF at the same frequency of IMU data, so they are always
-  // synchronized
-  /*if (sens_ts != TIMEZERO_ROS)
-  {
-    RCLCPP_INFO(get_logger(), "Publishing TF -> callback_pubSensorsData");
-    publishTFs(sens_ts);
-  }*/
 }
 
 bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
@@ -4312,7 +4372,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
   // ----> Retrieve all required data
   std::unique_lock<std::timed_mutex> lock(mCamDataMutex, std::defer_lock);
 
-  if (lock.try_lock_for(std::chrono::milliseconds(1000 / mCamGrabFrameRate))) // Wait for grabbing to be completed
+  if (lock.try_lock_for(std::chrono::milliseconds(1000 / mCamGrabFrameRate)))  // Wait for grabbing to be completed
   {
     // RCLCPP_DEBUG(get_logger(), "Retrieving Video Data");
     if (rgbSubnumber + leftSubnumber + stereoSubnumber > 0)
@@ -4600,7 +4660,7 @@ void ZedCamera::publishImageWithInfo(sl::Mat& img, image_transport::CameraPublis
   auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
   camInfoMsg->header.stamp = t;
   RCLCPP_DEBUG_STREAM(get_logger(), "Publishing IMAGE message");
-  pubImg.publish(image, camInfoMsg); 
+  pubImg.publish(image, camInfoMsg);
 }
 
 void ZedCamera::processOdometry()
@@ -5411,7 +5471,7 @@ void ZedCamera::publishPointCloud()
 
   // Data copy
   float* ptCloudPtr = (float*)(&pcMsg->data[0]);
-  memcpy(ptCloudPtr, (float*)cpu_cloud, ptsCount * 4 * sizeof(float));  
+  memcpy(ptCloudPtr, (float*)cpu_cloud, ptsCount * 4 * sizeof(float));
 
   // Pointcloud publishing
   RCLCPP_DEBUG_STREAM(get_logger(), "Publishing POINT CLOUD message");
@@ -5464,7 +5524,8 @@ void ZedCamera::callback_pubFusedPc()
   while (mZed.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::FAILURE)
   {
     // Mesh is still generating
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    sl::sleep_ms(1);
   }
 
   sl::ERROR_CODE res = mZed.retrieveSpatialMapAsync(mFusedPC);

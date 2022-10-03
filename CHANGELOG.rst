@@ -5,6 +5,7 @@ LATEST CHANGES
 - The parameter `general.sdk_verbose` is now an integer accepting different SDK verbose levels.
 - Move Object Detection parameters from cameras configuration files to `common.yaml`
 - Moved Sensor Parameters from cameras configuration files to `common.yaml`
+- Improve thread timing
 
 2022-09-27
 ----------

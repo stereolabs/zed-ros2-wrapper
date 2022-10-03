@@ -171,8 +171,7 @@ protected:
     // <---- Initialization functions
 
     // ----> Callbacks
-    void callback_pubVideoDepth();
-    void callback_pubSensorsData();
+    void callback_pubVideoDepth();    
     void callback_pubFusedPc();
     void callback_pubPaths();
     rcl_interfaces::msg::SetParametersResult callback_paramChange(std::vector<rclcpp::Parameter> parameters);
@@ -208,6 +207,7 @@ protected:
     // ----> Thread functions
     void threadFunc_zedGrab();
     void threadFunc_pointcloudElab();
+    void threadFunc_pubSensorsData();
     // <---- Thread functions
 
     // ----> Publishing functions
@@ -503,8 +503,8 @@ private:
     sl::ERROR_CODE mConnStatus;
     std::thread mGrabThread;
     std::thread mPcThread; // Point Cloud thread
-    bool mThreadStop = false;
-    rclcpp::TimerBase::SharedPtr mSensTimer;
+    std::thread mSensThread;
+    bool mThreadStop = false;    
     rclcpp::TimerBase::SharedPtr mPathTimer;
     rclcpp::TimerBase::SharedPtr mFusedPcTimer;
     rclcpp::TimerBase::SharedPtr mVideoDepthTimer;

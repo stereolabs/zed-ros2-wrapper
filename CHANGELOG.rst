@@ -3,39 +3,42 @@ LATEST CHANGES
 
 2022-10-03
 - The parameter `general.sdk_verbose` is now an integer accepting different SDK verbose levels.
-- Move Object Detection parameters from cameras configuration files to `common.yaml`
+- Moved Object Detection parameters from cameras configuration files to `common.yaml`
 - Moved Sensor Parameters from cameras configuration files to `common.yaml`
-- Improve thread timing
+- New data thread configuration to maximize data publishing frequency
+  - Sensor data publishing moved from timer to thread
+  - RGB/Depth data publishing moved from timer to thread
+- Fixed random errors when closing the node
 
 2022-09-27
 ----------
-- Improve TF broadcasting at grabbing frequency
-- Improve IMU/Left Camera TF broadcasting at IMU frequency
-- Fix data grabbing frame rate when publishing is set to a lower value
-- Add TF broadcasting diagnostic
+- Improved TF broadcasting at grabbing frequency
+- Improved IMU/Left Camera TF broadcasting at IMU frequency
+- Fixed data grabbing frame rate when publishing is set to a lower value
+- Added TF broadcasting diagnostic
 
 2022-09-26
 ----------
-- Enable Intra Process Communication. The ZED node no longer publishes topics with `TRANSIENT LOCAL` durability.
+- Enabled Intra Process Communication. The ZED node no longer publishes topics with `TRANSIENT LOCAL` durability.
 
 2022-09-21
 ----------
-- Add support for ROS2 Humble. Thx @nakai-omer.
+- Added support for ROS2 Humble. Thx @nakai-omer.
   The two ROS2 LTS releases are now supported simoultaneously.
 - Set `read_only` flag in parameter descriptors for non-dynamic parameters. Thx @bjsowa.
 
 2022-06-13
 ----------
-- Fix "NO DEPTH" mode. By setting `depth/quality` to `0` now the depth extraction and all the sub-modules depending on it are correctly disabled.
-- Add `debug` sub-set of parameters with new parameters `debug_mode` and `debug_sensors`
+- Fixed "NO DEPTH" mode. By setting `depth/quality` to `0` now the depth extraction and all the sub-modules depending on it are correctly disabled.
+- Added `debug` sub-set of parameters with new parameters `debug_mode` and `debug_sensors`
 
 2022-05-02
 ----------
-- Add Plane Detection
+- Added Plane Detection
 
 2022-03-30
 ----------
-- Fix `set_pose` wrong behavior. Now initial odometry is coherent with the new starting point.
+- Fixed `set_pose` wrong behavior. Now initial odometry is coherent with the new starting point.
 
 v3.7.x
 ----------

@@ -3461,32 +3461,9 @@ void ZedCamera::threadFunc_zedGrab()
     mGrabPeriodMean_sec->addValue(elapsed_sec);
     grabFreqTimer.tic();
 
-    //        RCLCPP_INFO_STREAM( get_logger(), "Grab period: " <<
-    //        mGrabPeriodMean_sec->getMean()/1e6 <<
-    //                            " Freq: " <<
-    //                            1e6/mGrabPeriodMean_usec->getMean() );
+    // RCLCPP_INFO_STREAM(get_logger(), "Grab period: " << mGrabPeriodMean_sec->getMean() / 1e6
+    //                                                  << " Freq: " << 1e6 / mGrabPeriodMean_usec->getMean());
     // <---- Grab freq calculation
-
-    if (mSvoMode && !mSvoRealtime)
-    {
-      static bool first = true;
-
-      double grab_period_usec = (1. / mPubFrameRate) * 1e6;
-      int64_t residual_period_usec = grab_period_usec - (elapsed_sec * 1e6);
-
-      if (residual_period_usec > 0)
-      {
-        if (first)
-        {
-          first = false;
-        }
-        else
-        {
-          // RCLCPP_DEBUG_STREAM(get_logger(), "Sleeping for " << residual_period_usec << "usec" );
-          rclcpp::sleep_for(std::chrono::microseconds(residual_period_usec));
-        }
-      }
-    }
 
     if (!mSvoPause)
     {

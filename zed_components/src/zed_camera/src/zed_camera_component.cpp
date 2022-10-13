@@ -3931,7 +3931,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
 
       pressMsg->header.stamp = ts_baro;
       pressMsg->header.frame_id = mBaroFrameId;
-      pressMsg->fluid_pressure = sens_data.barometer.pressure * 1e2;  // Pascal
+      pressMsg->fluid_pressure = sens_data.barometer.pressure;  // Pascals -> see https://github.com/ros2/common_interfaces/blob/humble/sensor_msgs/msg/FluidPressure.msg
       pressMsg->variance = 1.0585e-2;
 
       RCLCPP_DEBUG_STREAM(get_logger(), "Publishing PRESS message");

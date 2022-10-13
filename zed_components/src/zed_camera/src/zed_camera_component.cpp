@@ -950,6 +950,7 @@ void ZedCamera::getPosTrackingParams()
                        " * Broadcast Static IMU TF [not for ZED]: " << (mPublishImuTF ? "TRUE" : "FALSE"));
   }
 
+  getParam("pos_tracking.transform_time_offset", mTfOffset, mTfOffset, " * [DYN] TF timestamp offset: ", true);
   getParam("pos_tracking.path_pub_rate", mPathPubRate, mPathPubRate, " * [DYN] Path publishing rate: ", true);
   getParam("pos_tracking.path_max_count", mPathMaxCount, mPathMaxCount);
   if (mPathMaxCount < 2 && mPathMaxCount != -1)
@@ -1619,6 +1620,22 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
 
       RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to "
                                                      << (mRemoveSatAreas ? "TRUE" : "FALSE"));
+    }
+    else if (param.get_name() == "pos_tracking.transform_time_offset")
+    {
+      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+      if (param.get_type() != correctType)
+      {
+        result.successful = false;
+        result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+        RCLCPP_WARN_STREAM(get_logger(), result.reason);
+        break;
+      }
+
+      double val = param.as_double();
+      mTfOffset = val;
+
+      RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
     }
     else if (param.get_name() == "pos_tracking.path_pub_rate")
     {
@@ -2601,8 +2618,8 @@ bool ZedCamera::startCamera()
   }
   // <---- Start Pointcloud thread
 
-  // ----> Start Sensors thread
-  if (!mSvoMode && mCamRealModel != sl::MODEL::ZED)
+  // ----> Start Sensors thread if not sync
+  if (!mSvoMode && !mSensCameraSync && mCamRealModel != sl::MODEL::ZED)
   {
     /*if (mSensPubRate == 400.)
     {
@@ -2615,7 +2632,7 @@ bool ZedCamera::startCamera()
 
     mSensThread = std::thread(&ZedCamera::threadFunc_pubSensorsData, this);
   }
-  // <---- Start Sensors thread
+  // <---- Start Sensors thread if not sync
 
   // Start grab thread
   mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
@@ -3322,7 +3339,7 @@ void ZedCamera::publishImuFrameAndTopic()
 
   geometry_msgs::msg::TransformStamped transformStamped;
 
-  transformStamped.header.stamp = get_clock()->now();
+  transformStamped.header.stamp = get_clock()->now() + rclcpp::Duration(0,mTfOffset*1e9);
 
   transformStamped.header.frame_id = mLeftCamFrameId;
   transformStamped.child_frame_id = mImuFrameId;
@@ -3931,7 +3948,10 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
 
       pressMsg->header.stamp = ts_baro;
       pressMsg->header.frame_id = mBaroFrameId;
-      pressMsg->fluid_pressure = sens_data.barometer.pressure;  // Pascals -> see https://github.com/ros2/common_interfaces/blob/humble/sensor_msgs/msg/FluidPressure.msg
+      pressMsg->fluid_pressure =
+          sens_data.barometer
+              .pressure;  // Pascals -> see
+                          // https://github.com/ros2/common_interfaces/blob/humble/sensor_msgs/msg/FluidPressure.msg
       pressMsg->variance = 1.0585e-2;
 
       RCLCPP_DEBUG_STREAM(get_logger(), "Publishing PRESS message");
@@ -4071,7 +4091,7 @@ void ZedCamera::publishOdomTF(rclcpp::Time t)
 
   geometry_msgs::msg::TransformStamped transformStamped;
 
-  transformStamped.header.stamp = t;
+  transformStamped.header.stamp = t + rclcpp::Duration(0,mTfOffset*1e9);
   transformStamped.header.frame_id = mOdomFrameId;
   transformStamped.child_frame_id = mBaseFrameId;
   // conversion from Tranform to message
@@ -4127,7 +4147,7 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
 
   geometry_msgs::msg::TransformStamped transformStamped;
 
-  transformStamped.header.stamp = t;
+  transformStamped.header.stamp = t + rclcpp::Duration(0,mTfOffset*1e9);
   transformStamped.header.frame_id = mMapFrameId;
   transformStamped.child_frame_id = mOdomFrameId;
   // conversion from Tranform to message
@@ -4140,7 +4160,7 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
   transformStamped.transform.rotation.y = quat.y();
   transformStamped.transform.rotation.z = quat.z();
   transformStamped.transform.rotation.w = quat.w();
-
+  
   // Publish transformation
   mTfBroadcaster->sendTransform(transformStamped);
 
@@ -5663,7 +5683,7 @@ void ZedCamera::callback_pubPaths()
   geometry_msgs::msg::PoseStamped odomPose;
   geometry_msgs::msg::PoseStamped mapPose;
 
-  odomPose.header.stamp = mFrameTimestamp;
+  odomPose.header.stamp = mFrameTimestamp + rclcpp::Duration(0,mTfOffset*1e9);
   odomPose.header.frame_id = mMapFrameId;  // map_frame
   odomPose.pose.position.x = mOdom2BaseTransf.getOrigin().x();
   odomPose.pose.position.y = mOdom2BaseTransf.getOrigin().y();
@@ -5673,7 +5693,7 @@ void ZedCamera::callback_pubPaths()
   odomPose.pose.orientation.z = mOdom2BaseTransf.getRotation().z();
   odomPose.pose.orientation.w = mOdom2BaseTransf.getRotation().w();
 
-  mapPose.header.stamp = mFrameTimestamp;
+  mapPose.header.stamp = mFrameTimestamp + rclcpp::Duration(0,mTfOffset*1e9);
   mapPose.header.frame_id = mMapFrameId;  // map_frame
   mapPose.pose.position.x = mMap2BaseTransf.getOrigin().x();
   mapPose.pose.position.y = mMap2BaseTransf.getOrigin().y();

@@ -76,6 +76,7 @@
             qos_depth: 1 # Queue size if using KEEP_LAST
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT -
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
+            transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->base_link`` transform being generated
 
         mapping:
             mapping_enabled: false # True to enable mapping and fused point cloud pubblication

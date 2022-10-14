@@ -1870,7 +1870,7 @@ void ZedCamera::setTFCoordFrameNames()
   // Print TF frames
   RCLCPP_INFO_STREAM(get_logger(), "*** TF FRAMES ***");
   RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t\t-> " << mOdomFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t-> " << mOdomFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t\t-> " << mBaseFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t\t-> " << mCameraFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t\t-> " << mLeftCamFrameId);
@@ -2540,15 +2540,14 @@ bool ZedCamera::startCamera()
   mCamWidth = camInfo.camera_configuration.resolution.width;
   mCamHeight = camInfo.camera_configuration.resolution.height;
 
-  RCLCPP_DEBUG_STREAM(get_logger(), "Camera Frame size : " << mCamWidth << "x" << mCamHeight);
-  int v_w = static_cast<int>(mCamWidth * mImgDownsampleFactor);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera native frame size   -> " << mCamWidth << "x" << mCamHeight);  int v_w = static_cast<int>(mCamWidth * mImgDownsampleFactor);
   int v_h = static_cast<int>(mCamHeight * mImgDownsampleFactor);
   mMatResolVideo = sl::Resolution(v_w, v_h);
-  RCLCPP_DEBUG_STREAM(get_logger(), "Image Mat size : " << mMatResolVideo.width << "x" << mMatResolVideo.height);
+  RCLCPP_INFO_STREAM(get_logger(), " * Downsampled image size     -> " << mMatResolVideo.width << "x" << mMatResolVideo.height);
   int d_w = static_cast<int>(mCamWidth * mDepthDownsampleFactor);
   int d_h = static_cast<int>(mCamHeight * mDepthDownsampleFactor);
   mMatResolDepth = sl::Resolution(d_w, d_h);
-  RCLCPP_DEBUG_STREAM(get_logger(), "Depth Mat size : " << mMatResolDepth.width << "x" << mMatResolDepth.height);
+  RCLCPP_INFO_STREAM(get_logger(), " * Downsampled depth map size -> " << mMatResolDepth.width << "x" << mMatResolDepth.height);
   // <---- Camera information
 
   // ----> Camera Info messages
@@ -2560,6 +2559,8 @@ bool ZedCamera::startCamera()
   mRightCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   mDepthCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
 
+  setTFCoordFrameNames();  // Requires mZedRealCamModel available only after camera opening
+
   fillCamInfo(mZed, mLeftCamInfoMsg, mRightCamInfoMsg, mLeftCamOptFrameId, mRightCamOptFrameId);
   fillCamInfo(mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId, mRightCamOptFrameId, true);
   mRgbCamInfoMsg = mLeftCamInfoMsg;
@@ -2567,10 +2568,8 @@ bool ZedCamera::startCamera()
   mDepthCamInfoMsg = mLeftCamInfoMsg;
   // <---- Camera Info messages
 
-  setTFCoordFrameNames();  // Requires mZedRealCamModel available only after
-                           // camera opening
-  initPublishers();        // Requires mZedRealCamModel available only after camera
-                           // opening
+  initPublishers();  // Requires mZedRealCamModel available only after camera
+                     // opening
 
   // Disable AEC_AGC and Auto Whitebalance to trigger it if user set it to
   // automatic
@@ -3088,7 +3087,7 @@ bool ZedCamera::getCamera2BaseTransform()
   {
     // Save the transformation
     geometry_msgs::msg::TransformStamped c2b =
-        mTfBuffer->lookupTransform(mCameraFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(0, 100000000));
+        mTfBuffer->lookupTransform(mCameraFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
 
     // Get the TF2 transformation
     // tf2::fromMsg(c2b.transform, mCamera2BaseTransf);
@@ -3148,7 +3147,7 @@ bool ZedCamera::getSens2CameraTransform()
   {
     // Save the transformation
     geometry_msgs::msg::TransformStamped s2c =
-        mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, TIMEZERO_SYS, rclcpp::Duration(0, 100000000));
+        mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
 
     // Get the TF2 transformation
     // tf2::fromMsg(s2c.transform, mSensor2CameraTransf);
@@ -3208,7 +3207,7 @@ bool ZedCamera::getSens2BaseTransform()
   {
     // Save the transformation
     geometry_msgs::msg::TransformStamped s2b =
-        mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(0, 100000000));
+        mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
 
     // Get the TF2 transformation
     // tf2::fromMsg(s2b.transform, mSensor2BaseTransf);
@@ -3339,7 +3338,7 @@ void ZedCamera::publishImuFrameAndTopic()
 
   geometry_msgs::msg::TransformStamped transformStamped;
 
-  transformStamped.header.stamp = get_clock()->now() + rclcpp::Duration(0,mTfOffset*1e9);
+  transformStamped.header.stamp = get_clock()->now() + rclcpp::Duration(0, mTfOffset * 1e9);
 
   transformStamped.header.frame_id = mLeftCamFrameId;
   transformStamped.child_frame_id = mImuFrameId;
@@ -4091,7 +4090,10 @@ void ZedCamera::publishOdomTF(rclcpp::Time t)
 
   geometry_msgs::msg::TransformStamped transformStamped;
 
-  transformStamped.header.stamp = t + rclcpp::Duration(0,mTfOffset*1e9);
+  transformStamped.header.stamp = t + rclcpp::Duration(0, mTfOffset * 1e9);
+
+  // RCLCPP_INFO_STREAM(get_logger(), "Odom TS: " << transformStamped.header.stamp);
+
   transformStamped.header.frame_id = mOdomFrameId;
   transformStamped.child_frame_id = mBaseFrameId;
   // conversion from Tranform to message
@@ -4147,7 +4149,7 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
 
   geometry_msgs::msg::TransformStamped transformStamped;
 
-  transformStamped.header.stamp = t + rclcpp::Duration(0,mTfOffset*1e9);
+  transformStamped.header.stamp = t + rclcpp::Duration(0, mTfOffset * 1e9);
   transformStamped.header.frame_id = mMapFrameId;
   transformStamped.child_frame_id = mOdomFrameId;
   // conversion from Tranform to message
@@ -4160,7 +4162,7 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
   transformStamped.transform.rotation.y = quat.y();
   transformStamped.transform.rotation.z = quat.z();
   transformStamped.transform.rotation.w = quat.w();
-  
+
   // Publish transformation
   mTfBroadcaster->sendTransform(transformStamped);
 
@@ -4581,7 +4583,8 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time& out_pub_ts)
   }
   else
   {
-    timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT), get_clock()->get_clock_type());
+    // timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT), get_clock()->get_clock_type());
+    timeStamp = mFrameTimestamp;
   }
 
   out_pub_ts = timeStamp;
@@ -5514,7 +5517,8 @@ void ZedCamera::publishPointCloud()
   }
   else
   {
-    pcMsg->header.stamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+    // pcMsg->header.stamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+    pcMsg->header.stamp = mFrameTimestamp;
   }
 
   if (pcMsg->width != width || pcMsg->height != height)
@@ -5683,7 +5687,7 @@ void ZedCamera::callback_pubPaths()
   geometry_msgs::msg::PoseStamped odomPose;
   geometry_msgs::msg::PoseStamped mapPose;
 
-  odomPose.header.stamp = mFrameTimestamp + rclcpp::Duration(0,mTfOffset*1e9);
+  odomPose.header.stamp = mFrameTimestamp + rclcpp::Duration(0, mTfOffset * 1e9);
   odomPose.header.frame_id = mMapFrameId;  // map_frame
   odomPose.pose.position.x = mOdom2BaseTransf.getOrigin().x();
   odomPose.pose.position.y = mOdom2BaseTransf.getOrigin().y();
@@ -5693,7 +5697,7 @@ void ZedCamera::callback_pubPaths()
   odomPose.pose.orientation.z = mOdom2BaseTransf.getRotation().z();
   odomPose.pose.orientation.w = mOdom2BaseTransf.getRotation().w();
 
-  mapPose.header.stamp = mFrameTimestamp + rclcpp::Duration(0,mTfOffset*1e9);
+  mapPose.header.stamp = mFrameTimestamp + rclcpp::Duration(0, mTfOffset * 1e9);
   mapPose.header.frame_id = mMapFrameId;  // map_frame
   mapPose.pose.position.x = mMap2BaseTransf.getOrigin().x();
   mapPose.pose.position.y = mMap2BaseTransf.getOrigin().y();
@@ -6384,8 +6388,8 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
   try
   {
     // Save the transformation
-    geometry_msgs::msg::TransformStamped m2o = mTfBuffer->lookupTransform(mLeftCamOptFrameId, msg->header.frame_id,
-                                                                          TIMEZERO_SYS, rclcpp::Duration(0, 100000000));
+    geometry_msgs::msg::TransformStamped m2o =
+        mTfBuffer->lookupTransform(mLeftCamOptFrameId, msg->header.frame_id, TIMEZERO_SYS, rclcpp::Duration(1, 0));
 
     RCLCPP_INFO(get_logger(), "'%s' -> '%s': {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f,%.3f}", msg->header.frame_id.c_str(),
                 mLeftCamOptFrameId.c_str(), m2o.transform.translation.x, m2o.transform.translation.y,

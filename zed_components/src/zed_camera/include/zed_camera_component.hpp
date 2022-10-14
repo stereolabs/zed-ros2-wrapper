@@ -262,7 +262,7 @@ private:
     sl::InitParameters mInitParams;
     sl::RuntimeParameters mRunParams;
 
-    uint64_t mFrameCount = 0;
+    uint64_t mFrameCount = 0;    
 
     // ----> Topics
     std::string mTopicRoot = "~/";

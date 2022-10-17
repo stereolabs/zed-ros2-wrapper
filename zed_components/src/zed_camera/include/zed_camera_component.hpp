@@ -322,6 +322,7 @@ private:
     bool mInitOdomWithPose = true;
     double mPathPubRate = 2.0;
     double mTfOffset = 0.05;
+    double mPosTrackDepthMinRange = 0.0;
     int mPathMaxCount = -1;
     bool mPublishPoseCov = true;
     bool mMappingEnabled = false;

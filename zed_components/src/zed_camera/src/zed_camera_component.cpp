@@ -949,7 +949,8 @@ void ZedCamera::getPosTrackingParams()
     RCLCPP_INFO_STREAM(get_logger(),
                        " * Broadcast Static IMU TF [not for ZED]: " << (mPublishImuTF ? "TRUE" : "FALSE"));
   }
-
+  
+  getParam("pos_tracking.depth_min_range", mPosTrackDepthMinRange, mPosTrackDepthMinRange, " * [DYN] Depth minimum range: " );
   getParam("pos_tracking.transform_time_offset", mTfOffset, mTfOffset, " * [DYN] TF timestamp offset: ", true);
   getParam("pos_tracking.path_pub_rate", mPathPubRate, mPathPubRate, " * [DYN] Path publishing rate: ", true);
   getParam("pos_tracking.path_max_count", mPathMaxCount, mPathMaxCount);
@@ -1636,7 +1637,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
       mTfOffset = val;
 
       RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
-    }
+    }     
     else if (param.get_name() == "pos_tracking.path_pub_rate")
     {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -2764,13 +2765,13 @@ bool ZedCamera::startPosTracking()
 
   mPoseSmoothing = false;  // Always false. Pose Smoothing is to be enabled only
                            // for VR/AR applications
-  trackParams.enable_pose_smoothing = mPoseSmoothing;
 
+  trackParams.enable_pose_smoothing = mPoseSmoothing;
   trackParams.enable_area_memory = mAreaMemory;
   trackParams.enable_imu_fusion = mImuFusion;
   trackParams.initial_world_transform = mInitialPoseSl;
-
   trackParams.set_floor_as_origin = mFloorAlignment;
+  trackParams.depth_min_range = mPosTrackDepthMinRange;
 
   sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
 

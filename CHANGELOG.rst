@@ -1,6 +1,15 @@
 LATEST CHANGES
 ==============
 
+2022-10-13
+----------
+- Fixed units for atmospheric pressure data. Now pressure is published in `Pascals` according to the [definition of the topic](https://github.com/ros2/common_interfaces/blob/humble/sensor_msgs/msg/FluidPressure.msg).
+- Add new parameter `pos_tracking.transform_time_offset` to fix odometry TF timestamp issues
+
+2022-10-12
+----------
+- Fixed wrong timing when playing SVO in `real-time` mode
+
 2022-10-03
 ----------
 - The parameter `general.sdk_verbose` is now an integer accepting different SDK verbose levels.

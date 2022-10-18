@@ -124,6 +124,20 @@ std::string qos2str(rmw_qos_reliability_policy_t qos);
  */
 std::string qos2str(rmw_qos_durability_policy_t qos);
 
+/*! \brief Creates an sl::Mat containing a ROI from a polygon
+ *  \param poly the ROI polygon. Coordinates must be normalized from 0.0 to 1.0
+ *  \param cam_res grab resolution of the camera frames
+ * 
+ *  \return the `sl::Mat` containing the ROI
+ */
+sl::Mat generateROI( const std::vector<sl::float2>& poly, sl::Resolution cam_res );
+
+/*! \brief Parse a vector of vector of floats from a string.
+ *  \param input
+ *  \param error_return
+ *  Syntax is [[1.0, 2.0], [3.3, 4.4, 5.5], ...] */
+std::vector<std::vector<float>> parseStringVector(const std::string& input, std::string& error_return);
+
 /*!
  * \brief The CSmartMean class is used to
  * make a mobile window mean of a sequence of values

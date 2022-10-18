@@ -3,6 +3,8 @@ LATEST CHANGES
 
 2022-10-17
 - Added new parameter `pos_tracking.depth_min_range` for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
+- Added new parameter `pos_tracking.sensor_world` to define the world type that the SDK can use to initialize the Positionnal Tracking module
+- Added new parameter `object_detection.prediction_timeout` for setting the timeout time [sec] of object prediction when not detected.
 
 2022-10-13
 ----------

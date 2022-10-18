@@ -42,7 +42,10 @@
 #endif
 
 #include <type_traits>
+#include <vector>
+#include <sstream>
 
+#include <sl/Camera.hpp>
 #include "sl_tools.h"
 
 using namespace std::chrono_literals;
@@ -75,9 +78,9 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions& options)
   RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
   RCLCPP_INFO(get_logger(), "********************************");
 
-  if (ZED_SDK_MAJOR_VERSION < 3 || (ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION < 3))
+  if (ZED_SDK_MAJOR_VERSION < 3 || (ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION < 8))
   {
-    RCLCPP_ERROR(get_logger(), "The ZED ROS2 wrapper is designed to work with ZED SDK v3.3 or newer.");
+    RCLCPP_ERROR(get_logger(), "This version of the ZED ROS2 wrapper is designed to work with ZED SDK v3.8 or newer.");
     RCLCPP_INFO_STREAM(get_logger(), "* Detected SDK v" << ZED_SDK_MAJOR_VERSION << "." << ZED_SDK_MINOR_VERSION << "."
                                                         << ZED_SDK_PATCH_VERSION << "-" << ZED_SDK_BUILD_ID);
     RCLCPP_INFO(get_logger(), "Node stopped");
@@ -261,6 +264,36 @@ srv_prefix += get_name();*/
   RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
 }
 
+void ZedCamera::getParam(std::string paramName, std::vector<std::vector<float>>& outVal)
+{
+  outVal.clear();
+
+  rcl_interfaces::msg::ParameterDescriptor descriptor;
+  descriptor.read_only = true;
+
+  declare_parameter(paramName, rclcpp::ParameterValue(std::string("[]")), descriptor);
+
+  std::string out_str;
+
+  if (!get_parameter(paramName, out_str))
+  {
+    RCLCPP_WARN_STREAM(get_logger(), "The parameter '" << paramName
+                                                       << "' is not available or is not valid, using the default "
+                                                          "value: []");
+  }
+
+  std::string error;
+  outVal = sl_tools::parseStringVector(out_str, error);
+
+  if (error != "")
+  {
+    RCLCPP_WARN_STREAM(get_logger(), "Error parsing " << paramName << " parameter: " << error.c_str());
+    RCLCPP_WARN_STREAM(get_logger(), "   " << paramName << " string was " << out_str.c_str());
+
+    outVal.clear();
+  }
+}
+
 template <typename T>
 void ZedCamera::getParam(std::string paramName, T defValue, T& outVal, std::string log_info, bool dynamic)
 {
@@ -329,6 +362,67 @@ void ZedCamera::initParameters()
   {
     mObjDetEnabled = false;
   }
+}
+
+std::string ZedCamera::parseRoiPoly(std::vector < std::vector<float>> poly)
+{
+  mRoiPoly.clear();
+
+  std::ostringstream ss;
+  ss << "[";
+
+  if (poly.size() < 3)
+  {
+    mRoiPoly.clear();
+    if (poly.size() != 0)
+    {
+      RCLCPP_WARN_STREAM(get_logger(), "A vector with " << poly.size()
+                                                        << " points is not enough to create a polygon to set a Region "
+                                                           "of Interest. ROI unset.");
+      return std::string();
+    }
+  }
+  else
+  {
+    for (size_t i; i < poly.size(); ++i)
+    {
+      if (poly[i].size() != 2)
+      {
+        RCLCPP_WARN_STREAM(get_logger(), "The component with index '" << i
+                                                                      << "' of the 'general.region_of_interest' vector "
+                                                                         "has not the correct size. ROI unset.");
+        mRoiPoly.clear();
+        return std::string();
+      }
+      else if (poly[i][0] < 0.0 || poly[i][1] < 0.0 || poly[i][0] > 1.0 || poly[i][1] > 1.0)
+      {
+        RCLCPP_WARN_STREAM(get_logger(), "The component with index '" << i
+                                                                      << "' of the 'general.region_of_interest' vector "
+                                                                         "is not a "
+                                                                         "valid normalized point: ["
+                                                                      << poly[i][0] << "," << poly[i][1]
+                                                                      << "]. ROI unset.");
+        mRoiPoly.clear();
+        return std::string();
+      }
+      else
+      {
+        sl::float2 pt;
+        pt.x = poly[i][0];
+        pt.y = poly[i][1];
+        mRoiPoly.push_back(pt);
+        ss << "[" << pt.x << "," << pt.y << "]";
+      }
+
+      if (i != poly.size() - 1)
+      {
+        ss << ",";
+      }
+    }
+  }
+  ss << "]";
+
+  return ss.str();
 }
 
 void ZedCamera::getDebugParams()
@@ -433,12 +527,17 @@ void ZedCamera::getGeneralParams()
   int resol = static_cast<int>(mCamResol);
   getParam("general.resolution", resol, resol);
   mCamResol = static_cast<sl::RESOLUTION>(resol);
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera resolution: " << resol << " - " << mCamResol);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera resolution: " << resol << " - " << sl::toString(mCamResol).c_str());
+
+  std::vector<std::vector<float>> roi_param;
+  getParam("general.region_of_interest", roi_param);
+  std::string log_msg = parseRoiPoly(roi_param);
+  RCLCPP_INFO_STREAM(get_logger(), " * Region of interest: " << log_msg.c_str());
 
   getParam("general.self_calib", mCameraSelfCalib, mCameraSelfCalib);
-  RCLCPP_INFO(get_logger(), " * Camera self calibration: %s", mCameraSelfCalib ? "TRUE" : "FALSE");
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera self calibration: " << (mCameraSelfCalib ? "TRUE" : "FALSE"));
   getParam("general.camera_flip", mCameraFlip, mCameraFlip);
-  RCLCPP_INFO(get_logger(), " * Camera flip: %s", mCameraFlip ? "TRUE" : "FALSE");
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera flip: " << (mCameraFlip ? "TRUE" : "FALSE"));
 
   // Dynamic parameters
 
@@ -447,7 +546,7 @@ void ZedCamera::getGeneralParams()
   {
     RCLCPP_WARN(get_logger(), "'pub_frame_rate' cannot be bigger than 'grab_frame_rate'");
   }
-  RCLCPP_INFO(get_logger(), " * [DYN] Publish framerate [Hz]: %g ", mPubFrameRate);
+  RCLCPP_INFO_STREAM(get_logger(), " * [DYN] Publish framerate [Hz]:  " << mPubFrameRate);
 }
 
 void ZedCamera::getVideoParams()
@@ -949,8 +1048,9 @@ void ZedCamera::getPosTrackingParams()
     RCLCPP_INFO_STREAM(get_logger(),
                        " * Broadcast Static IMU TF [not for ZED]: " << (mPublishImuTF ? "TRUE" : "FALSE"));
   }
-  
-  getParam("pos_tracking.depth_min_range", mPosTrackDepthMinRange, mPosTrackDepthMinRange, " * [DYN] Depth minimum range: " );
+
+  getParam("pos_tracking.depth_min_range", mPosTrackDepthMinRange, mPosTrackDepthMinRange,
+           " * [DYN] Depth minimum range: ");
   getParam("pos_tracking.transform_time_offset", mTfOffset, mTfOffset, " * [DYN] TF timestamp offset: ", true);
   getParam("pos_tracking.path_pub_rate", mPathPubRate, mPathPubRate, " * [DYN] Path publishing rate: ", true);
   getParam("pos_tracking.path_max_count", mPathMaxCount, mPathMaxCount);
@@ -979,6 +1079,17 @@ void ZedCamera::getPosTrackingParams()
   getParam("pos_tracking.area_memory", mAreaMemory, mAreaMemory);
   RCLCPP_INFO_STREAM(get_logger(), " * Area Memory: " << (mAreaMemory ? "TRUE" : "FALSE"));
   getParam("pos_tracking.area_memory_db_path", mAreaMemoryDbPath, mAreaMemoryDbPath, " * Area Memory DB: ");
+  int sensor_world = 0;
+  getParam("pos_tracking.sensor_world", sensor_world, sensor_world);
+  if (sensor_world < 0 || (sensor_world >= static_cast<int>(sl::SENSOR_WORLD::LAST)))
+  {
+    RCLCPP_WARN_STREAM(get_logger(), "The value '" << sensor_world
+                                                   << "' is not valid for 'pos_tracking.sensor_world', please set it "
+                                                      "to a correct value.");
+    sensor_world = 0;
+  }
+  mSensorWorld = static_cast<sl::SENSOR_WORLD>(sensor_world);
+  RCLCPP_INFO_STREAM(get_logger(), " * Sensor world: " << sl::toString(mSensorWorld).c_str());
   getParam("pos_tracking.imu_fusion", mImuFusion, mImuFusion);
   RCLCPP_INFO_STREAM(get_logger(), " * IMU Fusion [not for ZED]: " << (mImuFusion ? "TRUE" : "FALSE"));
   getParam("pos_tracking.floor_alignment", mFloorAlignment, mFloorAlignment);
@@ -1086,6 +1197,8 @@ void ZedCamera::getOdParams()
   getParam("object_detection.od_enabled", mObjDetEnabled, mObjDetEnabled);
   RCLCPP_INFO_STREAM(get_logger(), " * Object Detection enabled: " << (mObjDetEnabled ? "TRUE" : "FALSE"));
   getParam("object_detection.confidence_threshold", mObjDetConfidence, mObjDetConfidence, " * OD min. confidence: ");
+  getParam("object_detection.prediction_timeout", mObjDetPredTimeout, mObjDetPredTimeout,
+           " * OD prediction timeout [sec]: ");
   getParam("object_detection.object_tracking_enabled", mObjDetTracking, mObjDetTracking);
   RCLCPP_INFO_STREAM(get_logger(), " * OD tracking: " << (mObjDetTracking ? "TRUE" : "FALSE"));
   int model = 0;
@@ -1637,7 +1750,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(std::ve
       mTfOffset = val;
 
       RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
-    }     
+    }
     else if (param.get_name() == "pos_tracking.path_pub_rate")
     {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -2541,14 +2654,17 @@ bool ZedCamera::startCamera()
   mCamWidth = camInfo.camera_configuration.resolution.width;
   mCamHeight = camInfo.camera_configuration.resolution.height;
 
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera native frame size   -> " << mCamWidth << "x" << mCamHeight);  int v_w = static_cast<int>(mCamWidth * mImgDownsampleFactor);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera native frame size   -> " << mCamWidth << "x" << mCamHeight);
+  int v_w = static_cast<int>(mCamWidth * mImgDownsampleFactor);
   int v_h = static_cast<int>(mCamHeight * mImgDownsampleFactor);
   mMatResolVideo = sl::Resolution(v_w, v_h);
-  RCLCPP_INFO_STREAM(get_logger(), " * Downsampled image size     -> " << mMatResolVideo.width << "x" << mMatResolVideo.height);
+  RCLCPP_INFO_STREAM(get_logger(),
+                     " * Downsampled image size     -> " << mMatResolVideo.width << "x" << mMatResolVideo.height);
   int d_w = static_cast<int>(mCamWidth * mDepthDownsampleFactor);
   int d_h = static_cast<int>(mCamHeight * mDepthDownsampleFactor);
   mMatResolDepth = sl::Resolution(d_w, d_h);
-  RCLCPP_INFO_STREAM(get_logger(), " * Downsampled depth map size -> " << mMatResolDepth.width << "x" << mMatResolDepth.height);
+  RCLCPP_INFO_STREAM(get_logger(),
+                     " * Downsampled depth map size -> " << mMatResolDepth.width << "x" << mMatResolDepth.height);
   // <---- Camera information
 
   // ----> Camera Info messages
@@ -2590,6 +2706,16 @@ bool ZedCamera::startCamera()
     mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
   }
   // <---- Timestamp
+
+  // ----> Set Region of Interest
+  sl::Resolution res(mCamWidth, mCamHeight);
+  mRoiImage = sl_tools::generateROI(mRoiPoly,res);
+  sl::ERROR_CODE err = mZed.setRegionOfInterest(mRoiImage);
+  if(err != sl::ERROR_CODE::SUCCESS)
+  {
+    RCLCPP_WARN_STREAM(get_logger(), "Error while setting ZED SDK region of interest: " << sl::toString(err).c_str());
+  }
+  // <---- Set Region of Interest
 
   // ----> Initialize Diagnostic statistics
   mElabPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
@@ -2772,6 +2898,7 @@ bool ZedCamera::startPosTracking()
   trackParams.initial_world_transform = mInitialPoseSl;
   trackParams.set_floor_as_origin = mFloorAlignment;
   trackParams.depth_min_range = mPosTrackDepthMinRange;
+  trackParams.sensors_world = mSensorWorld;
 
   sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
 
@@ -2950,6 +3077,7 @@ bool ZedCamera::startObjDetect()
   od_p.filtering_mode = mObjFilterMode;
   od_p.enable_body_fitting = mObjDetBodyFitting;
   od_p.body_format = mObjDetBodyFmt;
+  od_p.prediction_timeout_s = mObjDetPredTimeout;
 
   mObjDetFilter.clear();
   if (mObjDetPeopleEnable)

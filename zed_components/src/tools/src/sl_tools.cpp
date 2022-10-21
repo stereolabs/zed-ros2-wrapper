@@ -403,7 +403,7 @@ std::string qos2str(rmw_qos_durability_policy_t qos)
   return "Unknown QoS value";
 }
 
-inline bool contains(std::vector<sl::uint2>& poly, sl::uint2 test)
+inline bool contains(std::vector<sl::float2>& poly, sl::float2 test)
 {
   int i, j;
   bool c = false;
@@ -417,60 +417,64 @@ inline bool contains(std::vector<sl::uint2>& poly, sl::uint2 test)
   return c;
 }
 
-sl::Mat generateROI(const std::vector<sl::float2>& poly, sl::Resolution cam_res)
+bool generateROI(const std::vector<sl::float2>& poly, sl::Mat& out_roi)
 {
-  sl::Mat roi(cam_res.width, cam_res.height, sl::MAT_TYPE::U8_C1);
+  if (poly.size() < 3)
+  {
+    out_roi = sl::Mat();
+    return false;
+  }
 
   // Set each pixel to valid
-  roi.setTo<sl::uchar1>(255);
-
-  if (poly.size() <= 2)
-    return roi;
+  //std::cerr << "Setting ROI mask to full valid" << std::endl;
+  out_roi.setTo<sl::uchar1>(255, sl::MEM::CPU);
 
   // ----> De-normalize coordinates
-  std::vector<sl::uint2> poly_img;
+  size_t w = out_roi.getWidth();
+  size_t h = out_roi.getHeight();
 
-  std::cout << "Image resolution: " << cam_res.width << "x" << cam_res.height << std::endl;
-
+  //std::cerr << "De-normalize coordinates" << std::endl;
+  //std::cerr << "Image resolution: " << w << "x" << h << std::endl;
+  std::vector<sl::float2> poly_img;
   size_t idx = 0;
   for (auto& it : poly)
   {
-    sl::uint2 pt;
-    pt.x = static_cast<unsigned int>(it.x * cam_res.width);
-    pt.y = static_cast<unsigned int>(it.y * cam_res.height);
+    sl::float2 pt;
+    pt.x = it.x * w;
+    pt.y = it.y * h;
 
-    if (pt.x >= cam_res.width)
-      pt.x--;
-    if (pt.y >= cam_res.height)
-      pt.y--;
+    if (pt.x >= w)
+      pt.x = (w - 1);
+    if (pt.y >= h)
+      pt.y = (h - 1);
 
     poly_img.push_back(pt);
 
-    std::cout << "Normalized point #" << idx << ": " << poly[idx].x << "," << poly[idx].y << std::endl;
-    std::cout << "De-normalized point #" << idx << ": " << poly_img[idx].x << ", " << poly_img[idx].y << std::endl;
+    //std::cerr << "Normalized point #" << idx << ": " << poly[idx].x << "," << poly[idx].y << std::endl;
+    //std::cerr << "De-normalized point #" << idx << ": " << poly_img[idx].x << ", " << poly_img[idx].y << std::endl;
 
     ++idx;
   }
-
   // <---- De-normalize coordinates
 
   // ----> Unset ROI pixels outside the polygon
-  
-  for (int x = 0; x < cam_res.width; x++)
+  std::cerr << "Unset ROI pixels outside the polygon" << std::endl;
+  std::cerr << "Set mask" << std::endl;
+  for (int v = 0; v < h; v++)
   {
-    for (int y = 0; y < cam_res.height; y++)
+    for (int u = 0; u < w; u++)
     {
-      if (!contains(poly_img, sl::uint2(x, y)))
+      if (!contains(poly_img, sl::float2(u, v)))
       {
-        roi.setValue<sl::uchar1>(x, y, 0);
+        out_roi.setValue<sl::uchar1>(u, v, 0, sl::MEM::CPU);
       }
     }
   }
+  //std::cerr << "Mask ready" << std::endl;
+  //std::cerr << "ROI resolution: " << w << "x" << h << std::endl;
   // <---- Unset ROI pixels outside the polygon
 
-  roi.write("/home/walter/roi_mat.png");
-
-  return roi;
+  return true;
 }
 
 std::vector<std::vector<float>> parseStringVector(const std::string& input, std::string& error_return)

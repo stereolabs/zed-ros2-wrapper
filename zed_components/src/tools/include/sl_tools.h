@@ -126,11 +126,9 @@ std::string qos2str(rmw_qos_durability_policy_t qos);
 
 /*! \brief Creates an sl::Mat containing a ROI from a polygon
  *  \param poly the ROI polygon. Coordinates must be normalized from 0.0 to 1.0
- *  \param cam_res grab resolution of the camera frames
- * 
- *  \return the `sl::Mat` containing the ROI
+ *  \param out_roi the `sl::Mat` containing the ROI
  */
-sl::Mat generateROI( const std::vector<sl::float2>& poly, sl::Resolution cam_res );
+bool generateROI( const std::vector<sl::float2>& poly, sl::Mat& out_roi );
 
 /*! \brief Parse a vector of vector of floats from a string.
  *  \param input

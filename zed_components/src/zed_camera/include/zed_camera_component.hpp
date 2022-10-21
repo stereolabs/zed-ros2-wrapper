@@ -69,6 +69,7 @@
 #include <zed_interfaces/msg/plane_stamped.hpp>
 #include <zed_interfaces/srv/set_pose.hpp>
 #include <zed_interfaces/srv/start_svo_rec.hpp>
+#include <zed_interfaces/srv/set_roi.hpp>
 
 #define TIMEZERO_ROS rclcpp::Time(0, 0, RCL_ROS_TIME)
 #define TIMEZERO_SYS rclcpp::Time(0, 0, RCL_SYSTEM_TIME)
@@ -127,8 +128,10 @@ typedef rclcpp::Service<zed_interfaces::srv::SetPose>::SharedPtr setPoseSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableObjDetPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;
 typedef rclcpp::Service<zed_interfaces::srv::StartSvoRec>::SharedPtr startSvoRecSrvPtr;
+typedef rclcpp::Service<zed_interfaces::srv::SetROI>::SharedPtr setRoiSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
-typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoPtr;
+typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoSrvPtr;
+typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetRoiSrvPtr;
 // <---- Typedefs to simplify declarations
 
 class ZedCamera : public rclcpp::Node
@@ -201,6 +204,12 @@ protected:
                               const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
                               std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_clickedPoint(const geometry_msgs::msg::PointStamped::SharedPtr msg);
+  void callback_setRoi(const std::shared_ptr<rmw_request_id_t> request_header,
+                        const std::shared_ptr<zed_interfaces::srv::SetROI_Request> req,
+                        std::shared_ptr<zed_interfaces::srv::SetROI_Response> res);
+  void callback_resetRoi(const std::shared_ptr<rmw_request_id_t> request_header,
+                              const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+                              std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   // <---- Callbacks
 
   // ----> Thread functions
@@ -254,8 +263,8 @@ protected:
                 bool dynamic = false);
 
   // Region of Interest
-  void getParam(std::string paramName, std::vector<std::vector<float>>& outVal);
-  std::string parseRoiPoly(std::vector<std::vector<float>> poly);
+  std::string getParam(std::string paramName, std::vector<std::vector<float>>& outVal);
+  std::string parseRoiPoly(const std::vector<std::vector<float>>& in_poly, std::vector<sl::float2>& out_poly);
   void resetRoi();
   // <---- Utility functions
 
@@ -296,10 +305,10 @@ private:
   int mVerbose = 1;
   int mGpuId = -1;
   sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720;            // Default resolution: RESOLUTION_HD720
-  std::vector<sl::float2> mRoiPoly;                            // ROI Polygon
   sl::DEPTH_MODE mDepthQuality = sl::DEPTH_MODE::PERFORMANCE;  // Default depth mode: DEPTH_MODE_PERFORMANCE
   bool mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE se for )
   bool mDepthStabilization = true;
+  std::vector<std::vector<float>> mRoiParam;
   int mCamTimeoutSec = 5;
   int mMaxReconnectTemp = 5;
   bool mCameraSelfCalib = true;
@@ -328,7 +337,7 @@ private:
   double mPathPubRate = 2.0;
   double mTfOffset = 0.05;
   double mPosTrackDepthMinRange = 0.0;
-  sl::SENSOR_WORLD mSensorWorld;
+  bool mSetGravityAsOrigin=false;
   int mPathMaxCount = -1;
   bool mPublishPoseCov = true;
   bool mMappingEnabled = false;
@@ -608,7 +617,9 @@ private:
   enableMappingPtr mEnableMappingSrv;
   startSvoRecSrvPtr mStartSvoRecSrv;
   stopSvoRecSrvPtr mStopSvoRecSrv;
-  pauseSvoPtr mPauseSvoSrv;
+  pauseSvoSrvPtr mPauseSvoSrv;
+  setRoiSrvPtr mSetRoiSrv;
+  resetRoiSrvPtr mResetRoiSrv;
   // <---- Services
 
   // ----> Services names
@@ -620,11 +631,9 @@ private:
   const std::string mSrvStartSvoRecName = "start_svo_rec";
   const std::string mSrvStopSvoRecName = "stop_svo_rec";
   const std::string mSrvToggleSvoPauseName = "toggle_svo_pause";
+  const std::string mSrvSetRoiName = "set_roi";
+  const std::string mSrvResetRoiName = "reset_roi";
   // <---- Services names
-
-  // ----> Region of Interest
-  sl::Mat mRoiImage;
-  // <---- Region of Interest
 };
 
 }  // namespace stereolabs

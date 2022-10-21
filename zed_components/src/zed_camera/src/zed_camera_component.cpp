@@ -262,9 +262,16 @@ srv_prefix += get_name();*/
   mPauseSvoSrv =
       create_service<std_srvs::srv::Trigger>(srv_name, std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+
+  srv_name = srv_prefix + mSrvSetRoiName;
+  mSetRoiSrv =
+      create_service<zed_interfaces::srv::SetROI>(srv_name, std::bind(&ZedCamera::callback_setRoi, this, _1, _2, _3));
+  srv_name = srv_prefix + mSrvResetRoiName;
+  mResetRoiSrv =
+      create_service<std_srvs::srv::Trigger>(srv_name, std::bind(&ZedCamera::callback_resetRoi, this, _1, _2, _3));
 }
 
-void ZedCamera::getParam(std::string paramName, std::vector<std::vector<float>>& outVal)
+std::string ZedCamera::getParam(std::string paramName, std::vector<std::vector<float>>& outVal)
 {
   outVal.clear();
 
@@ -292,6 +299,8 @@ void ZedCamera::getParam(std::string paramName, std::vector<std::vector<float>>&
 
     outVal.clear();
   }
+
+  return out_str;
 }
 
 template <typename T>
@@ -364,65 +373,69 @@ void ZedCamera::initParameters()
   }
 }
 
-std::string ZedCamera::parseRoiPoly(std::vector < std::vector<float>> poly)
+std::string ZedCamera::parseRoiPoly(const std::vector<std::vector<float>>& in_poly, std::vector<sl::float2>& out_poly)
 {
-  mRoiPoly.clear();
+  out_poly.clear();
 
-  std::ostringstream ss;
-  ss << "[";
+  std::string ss;
+  ss = "[";
 
-  if (poly.size() < 3)
+  size_t poly_size = in_poly.size();
+
+  if (poly_size < 3)
   {
-    mRoiPoly.clear();
-    if (poly.size() != 0)
+    if (poly_size != 0)
     {
-      RCLCPP_WARN_STREAM(get_logger(), "A vector with " << poly.size()
+      RCLCPP_WARN_STREAM(get_logger(), "A vector with " << poly_size
                                                         << " points is not enough to create a polygon to set a Region "
-                                                           "of Interest. ROI unset.");
+                                                           "of Interest.");
       return std::string();
     }
   }
   else
   {
-    for (size_t i; i < poly.size(); ++i)
+    for (size_t i; i < poly_size; ++i)
     {
-      if (poly[i].size() != 2)
+      if (in_poly[i].size() != 2)
       {
         RCLCPP_WARN_STREAM(get_logger(), "The component with index '" << i
-                                                                      << "' of the 'general.region_of_interest' vector "
-                                                                         "has not the correct size. ROI unset.");
-        mRoiPoly.clear();
+                                                                      << "' of the ROI vector "
+                                                                         "has not the correct size.");
+        out_poly.clear();
         return std::string();
       }
-      else if (poly[i][0] < 0.0 || poly[i][1] < 0.0 || poly[i][0] > 1.0 || poly[i][1] > 1.0)
+      else if (in_poly[i][0] < 0.0 || in_poly[i][1] < 0.0 || in_poly[i][0] > 1.0 || in_poly[i][1] > 1.0)
       {
         RCLCPP_WARN_STREAM(get_logger(), "The component with index '" << i
-                                                                      << "' of the 'general.region_of_interest' vector "
+                                                                      << "' of the ROI vector "
                                                                          "is not a "
                                                                          "valid normalized point: ["
-                                                                      << poly[i][0] << "," << poly[i][1]
-                                                                      << "]. ROI unset.");
-        mRoiPoly.clear();
+                                                                      << in_poly[i][0] << "," << in_poly[i][1] << "].");
+        out_poly.clear();
         return std::string();
       }
       else
       {
         sl::float2 pt;
-        pt.x = poly[i][0];
-        pt.y = poly[i][1];
-        mRoiPoly.push_back(pt);
-        ss << "[" << pt.x << "," << pt.y << "]";
+        pt.x = in_poly[i][0];
+        pt.y = in_poly[i][1];
+        out_poly.push_back(pt);
+        ss += "[";
+        ss += std::to_string(pt.x);
+        ss += ",";
+        ss += std::to_string(pt.y);
+        ss += "]";
       }
 
-      if (i != poly.size() - 1)
+      if (i != poly_size - 1)
       {
-        ss << ",";
+        ss += ",";
       }
     }
   }
-  ss << "]";
+  ss += "]";
 
-  return ss.str();
+  return ss;
 }
 
 void ZedCamera::getDebugParams()
@@ -529,10 +542,8 @@ void ZedCamera::getGeneralParams()
   mCamResol = static_cast<sl::RESOLUTION>(resol);
   RCLCPP_INFO_STREAM(get_logger(), " * Camera resolution: " << resol << " - " << sl::toString(mCamResol).c_str());
 
-  std::vector<std::vector<float>> roi_param;
-  getParam("general.region_of_interest", roi_param);
-  std::string log_msg = parseRoiPoly(roi_param);
-  RCLCPP_INFO_STREAM(get_logger(), " * Region of interest: " << log_msg.c_str());
+  std::string parsed_str = getParam("general.region_of_interest", mRoiParam);
+  RCLCPP_INFO_STREAM(get_logger(), " * Region of interest: " << parsed_str.c_str());
 
   getParam("general.self_calib", mCameraSelfCalib, mCameraSelfCalib);
   RCLCPP_INFO_STREAM(get_logger(), " * Camera self calibration: " << (mCameraSelfCalib ? "TRUE" : "FALSE"));
@@ -1079,17 +1090,8 @@ void ZedCamera::getPosTrackingParams()
   getParam("pos_tracking.area_memory", mAreaMemory, mAreaMemory);
   RCLCPP_INFO_STREAM(get_logger(), " * Area Memory: " << (mAreaMemory ? "TRUE" : "FALSE"));
   getParam("pos_tracking.area_memory_db_path", mAreaMemoryDbPath, mAreaMemoryDbPath, " * Area Memory DB: ");
-  int sensor_world = 0;
-  getParam("pos_tracking.sensor_world", sensor_world, sensor_world);
-  if (sensor_world < 0 || (sensor_world >= static_cast<int>(sl::SENSOR_WORLD::LAST)))
-  {
-    RCLCPP_WARN_STREAM(get_logger(), "The value '" << sensor_world
-                                                   << "' is not valid for 'pos_tracking.sensor_world', please set it "
-                                                      "to a correct value.");
-    sensor_world = 0;
-  }
-  mSensorWorld = static_cast<sl::SENSOR_WORLD>(sensor_world);
-  RCLCPP_INFO_STREAM(get_logger(), " * Sensor world: " << sl::toString(mSensorWorld).c_str());
+  getParam("pos_tracking.set_gravity_as_origin", mSetGravityAsOrigin, mSetGravityAsOrigin);
+  RCLCPP_INFO_STREAM(get_logger(), " * Gravity as origin [not for ZED]: " << (mSetGravityAsOrigin ? "TRUE" : "FALSE"));
   getParam("pos_tracking.imu_fusion", mImuFusion, mImuFusion);
   RCLCPP_INFO_STREAM(get_logger(), " * IMU Fusion [not for ZED]: " << (mImuFusion ? "TRUE" : "FALSE"));
   getParam("pos_tracking.floor_alignment", mFloorAlignment, mFloorAlignment);
@@ -2377,7 +2379,8 @@ void ZedCamera::initPublishers()
     mClickedPtSub = create_subscription<geometry_msgs::msg::PointStamped>(
         mClickedPtTopic, mClickedPtQos, std::bind(&ZedCamera::callback_clickedPoint, this, _1));
 
-    RCLCPP_INFO_STREAM(get_logger(), "Subscribed to topic " << mClickedPtTopic.c_str());
+    RCLCPP_INFO(get_logger(), "*** Plane Detection **");
+    RCLCPP_INFO_STREAM(get_logger(), " * Subscribed to topic " << mClickedPtTopic.c_str());
   }
   // <---- Subscribers
 }
@@ -2667,6 +2670,35 @@ bool ZedCamera::startCamera()
                      " * Downsampled depth map size -> " << mMatResolDepth.width << "x" << mMatResolDepth.height);
   // <---- Camera information
 
+  // ----> Set Region of Interest
+
+  RCLCPP_INFO(get_logger(), "*** Setting ROI ***");
+  sl::Resolution resol(mCamWidth, mCamHeight);
+  std::vector<sl::float2> sl_poly;
+  std::string log_msg = parseRoiPoly(mRoiParam, sl_poly);
+
+  // Create mask
+  sl::Mat roi_mask(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
+
+  if (!sl_tools::generateROI(sl_poly, roi_mask))
+  {
+    RCLCPP_WARN(get_logger(), " * Error generating the region of interest image mask.");
+  }
+  else
+  {
+    sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask);
+    if (err != sl::ERROR_CODE::SUCCESS)
+    {
+      RCLCPP_WARN_STREAM(get_logger(),
+                         " * Error while setting ZED SDK region of interest: " << sl::toString(err).c_str());
+    }
+    else
+    {
+      RCLCPP_INFO(get_logger(), " * Region of Interest correctly set.");
+    }
+  }
+  // <---- Set Region of Interest
+
   // ----> Camera Info messages
   mRgbCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   mRgbCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
@@ -2706,16 +2738,6 @@ bool ZedCamera::startCamera()
     mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
   }
   // <---- Timestamp
-
-  // ----> Set Region of Interest
-  sl::Resolution res(mCamWidth, mCamHeight);
-  mRoiImage = sl_tools::generateROI(mRoiPoly,res);
-  sl::ERROR_CODE err = mZed.setRegionOfInterest(mRoiImage);
-  if(err != sl::ERROR_CODE::SUCCESS)
-  {
-    RCLCPP_WARN_STREAM(get_logger(), "Error while setting ZED SDK region of interest: " << sl::toString(err).c_str());
-  }
-  // <---- Set Region of Interest
 
   // ----> Initialize Diagnostic statistics
   mElabPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
@@ -2767,7 +2789,7 @@ bool ZedCamera::startCamera()
   startVideoDepthThread(mPubFrameRate);
 
   return true;
-}
+}  // namespace stereolabs
 
 void ZedCamera::startVideoDepthThread(double pubFrameRate)
 {
@@ -2898,7 +2920,7 @@ bool ZedCamera::startPosTracking()
   trackParams.initial_world_transform = mInitialPoseSl;
   trackParams.set_floor_as_origin = mFloorAlignment;
   trackParams.depth_min_range = mPosTrackDepthMinRange;
-  trackParams.sensors_world = mSensorWorld;
+  trackParams.set_gravity_as_origin = mSetGravityAsOrigin;
 
   sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
 
@@ -3228,11 +3250,11 @@ bool ZedCamera::getCamera2BaseTransform()
     double roll, pitch, yaw;
     tf2::Matrix3x3(mCamera2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-    RCLCPP_INFO(get_logger(), "Static transform Camera Center to Base [%s -> %s]", mCameraFrameId.c_str(),
+    RCLCPP_INFO(get_logger(), " Static transform Camera Center to Base [%s -> %s]", mCameraFrameId.c_str(),
                 mBaseFrameId.c_str());
-    RCLCPP_INFO(get_logger(), " * Translation: {%.3f,%.3f,%.3f}", mCamera2BaseTransf.getOrigin().x(),
+    RCLCPP_INFO(get_logger(), "  * Translation: {%.3f,%.3f,%.3f}", mCamera2BaseTransf.getOrigin().x(),
                 mCamera2BaseTransf.getOrigin().y(), mCamera2BaseTransf.getOrigin().z());
-    RCLCPP_INFO(get_logger(), " * Rotation: {%.3f,%.3f,%.3f}", roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+    RCLCPP_INFO(get_logger(), "  * Rotation: {%.3f,%.3f,%.3f}", roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
   }
   catch (tf2::TransformException& ex)
   {
@@ -3288,11 +3310,11 @@ bool ZedCamera::getSens2CameraTransform()
     double roll, pitch, yaw;
     tf2::Matrix3x3(mSensor2CameraTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-    RCLCPP_INFO(get_logger(), "Static transform Sensor to Camera Center [%s -> %s]", mDepthFrameId.c_str(),
+    RCLCPP_INFO(get_logger(), " Static transform Sensor to Camera Center [%s -> %s]", mDepthFrameId.c_str(),
                 mCameraFrameId.c_str());
-    RCLCPP_INFO(get_logger(), " * Translation: {%.3f,%.3f,%.3f}", mSensor2CameraTransf.getOrigin().x(),
+    RCLCPP_INFO(get_logger(), "  * Translation: {%.3f,%.3f,%.3f}", mSensor2CameraTransf.getOrigin().x(),
                 mSensor2CameraTransf.getOrigin().y(), mSensor2CameraTransf.getOrigin().z());
-    RCLCPP_INFO(get_logger(), " * Rotation: {%.3f,%.3f,%.3f}", roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+    RCLCPP_INFO(get_logger(), "  * Rotation: {%.3f,%.3f,%.3f}", roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
   }
   catch (tf2::TransformException& ex)
   {
@@ -3348,11 +3370,11 @@ bool ZedCamera::getSens2BaseTransform()
     double roll, pitch, yaw;
     tf2::Matrix3x3(mSensor2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-    RCLCPP_INFO(get_logger(), "Static transform Sensor to Base [%s -> %s]", mDepthFrameId.c_str(),
+    RCLCPP_INFO(get_logger(), " Static transform Sensor to Base [%s -> %s]", mDepthFrameId.c_str(),
                 mBaseFrameId.c_str());
-    RCLCPP_INFO(get_logger(), " * Translation: {%.3f,%.3f,%.3f}", mSensor2BaseTransf.getOrigin().x(),
+    RCLCPP_INFO(get_logger(), "  * Translation: {%.3f,%.3f,%.3f}", mSensor2BaseTransf.getOrigin().x(),
                 mSensor2BaseTransf.getOrigin().y(), mSensor2BaseTransf.getOrigin().z());
-    RCLCPP_INFO(get_logger(), " * Rotation: {%.3f,%.3f,%.3f}", roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+    RCLCPP_INFO(get_logger(), "  * Rotation: {%.3f,%.3f,%.3f}", roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
   }
   catch (tf2::TransformException& ex)
   {
@@ -6770,6 +6792,114 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
     RCLCPP_DEBUG_STREAM(get_logger(), "Publishing PLANE message");
     mPubPlane->publish(std::move(planeMsg));
     // <---- Publish the plane as custom message
+  }
+}
+
+void ZedCamera::callback_setRoi(const std::shared_ptr<rmw_request_id_t> request_header,
+                                const std::shared_ptr<zed_interfaces::srv::SetROI_Request> req,
+                                std::shared_ptr<zed_interfaces::srv::SetROI_Response> res)
+{
+  (void)request_header;
+
+  RCLCPP_INFO(get_logger(), "** Set ROI service called **");
+  RCLCPP_INFO_STREAM(get_logger(), " * ROI string: " << req->roi.c_str());
+
+  if (req->roi == "")
+  {
+    std::string err_msg = "Error while setting ZED SDK region of interest: a vector of normalized points describing a polygon is required. e.g. '[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]'";
+
+    RCLCPP_WARN_STREAM(get_logger(), " * " << err_msg);
+
+    res->message = err_msg;
+    res->success = false;
+    return;
+  }
+
+  std::string error;
+  std::vector<std::vector<float>> parsed_poly = sl_tools::parseStringVector(req->roi, error);
+
+  if (error != "")
+  {
+    std::string err_msg = "Error while setting ZED SDK region of interest: ";
+    err_msg += error;
+
+    RCLCPP_WARN_STREAM(get_logger(), " * " << err_msg);
+
+    res->message = err_msg;
+    res->success = false;
+    return;
+  }
+
+  // ----> Set Region of Interest
+  // Create mask
+  RCLCPP_INFO(get_logger(), " * Setting ROI");
+  std::vector<sl::float2> sl_poly;
+  std::string log_msg = parseRoiPoly(parsed_poly, sl_poly);
+  // RCLCPP_INFO_STREAM(get_logger(), " * Parsed ROI: " << log_msg.c_str());
+  sl::Resolution resol(mCamWidth, mCamHeight);
+  sl::Mat roi_mask(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
+  if (!sl_tools::generateROI(sl_poly, roi_mask))
+  {
+    std::string err_msg = "Error generating the region of interest image mask. ";
+    err_msg += error;
+
+    RCLCPP_WARN_STREAM(get_logger(), "  * " << err_msg);
+
+    res->message = err_msg;
+    res->success = false;
+    return;
+  }
+  else
+  {
+    sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask);
+    if (err != sl::ERROR_CODE::SUCCESS)
+    {
+      std::string err_msg = "Error while setting ZED SDK region of interest: ";
+      err_msg += sl::toString(err).c_str();
+
+      RCLCPP_WARN_STREAM(get_logger(), "  * " << err_msg);
+
+      res->message = err_msg;
+      res->success = false;
+      return;
+    }
+    else
+    {
+      RCLCPP_INFO(get_logger(), "  * Region of Interest correctly set.");
+
+      res->message = "Region of Interest correctly set.";
+      res->success = true;
+      return;
+    }
+  }
+  // <---- Set Region of Interest
+}
+
+void ZedCamera::callback_resetRoi(const std::shared_ptr<rmw_request_id_t> request_header,
+                                  const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+                                  std::shared_ptr<std_srvs::srv::Trigger_Response> res)
+{
+  RCLCPP_INFO(get_logger(), "** Reset ROI service called **");
+
+  sl::Mat empty_roi;
+  sl::ERROR_CODE err = mZed.setRegionOfInterest(empty_roi);
+
+  if (err != sl::ERROR_CODE::SUCCESS)
+  {
+    std::string err_msg = " * Error while resetting ZED SDK region of interest: ";
+    err_msg += sl::toString(err);
+
+    RCLCPP_WARN_STREAM(get_logger(), " * Error while resetting ZED SDK region of interest: " << err_msg);
+
+    res->message = err_msg;
+    res->success = false;
+  }
+  else
+  {
+    RCLCPP_INFO(get_logger(), " * Region of Interest correctly reset.");
+    res->message = "Region of Interest correctly reset.";
+    res->success = true;
+    return;
   }
 }
 

@@ -19,8 +19,10 @@
             grab_frame_rate: 60 # ZED SDK internal grabbing rate
             pub_frame_rate: 60.0 # [DYNAMIC] - frequency of publishing of visual images and depth images
             gpu_id: -1
-            region_of_interest: "[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]" # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+            region_of_interest: "" # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+            #region_of_interest: "[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]" # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
             #region_of_interest: "[[0.25,0.25],[0.75,0.25],[0.75,0.75],[0.25,0.75]]" # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+            #region_of_interest: "[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]" # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
 
         video:
             extrinsic_in_camera_frame: false # if `false` extrinsic parameter in `camera_info` will use ROS native frame (X FORWARD, Z UP) instead of the camera frame (Z FORWARD, Y DOWN) [`true` use old behavior as for version < v3.1]
@@ -42,7 +44,7 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         depth:
-            quality: 1 # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - '4': NEURAL - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            quality: 3 # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - '4': NEURAL - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             sensing_mode: 0 # '0': STANDARD, '1': FILL
             depth_stabilization: true # Forces positional tracking to start if 'true'
             openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
@@ -68,7 +70,7 @@
             area_memory_db_path: ""
             area_memory: true # Enable to detect loop closure
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
-            sensor_world: 0 # '0': OFF - '1': GRAVITY - If '1' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
+            set_gravity_as_origin: false # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
             floor_alignment: false # Enable to automatically calculate camera/floor offset
             initial_base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial position of the `base_frame` -> [X, Y, Z, R, P, Y]
             init_odom_with_first_valid_pose: true # Enable to initialize the odometry with the first valid pose

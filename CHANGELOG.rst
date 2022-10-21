@@ -1,22 +1,20 @@
 LATEST CHANGES
 ==============
 
-2022-10-17
-- Added new parameter `pos_tracking.depth_min_range` for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
-- Added new parameter `pos_tracking.sensor_world` to define the world type that the SDK can use to initialize the Positionnal Tracking module
-- Added new parameter `object_detection.prediction_timeout` for setting the timeout time [sec] of object prediction when not detected.
-
-2022-10-13
-----------
-- Fixed units for atmospheric pressure data. Now pressure is published in `Pascals` according to the [definition of the topic](https://github.com/ros2/common_interfaces/blob/humble/sensor_msgs/msg/FluidPressure.msg).
-- Add new parameter `pos_tracking.transform_time_offset` to fix odometry TF timestamp issues
-
-2022-10-12
-----------
-- Fixed wrong timing when playing SVO in `real-time` mode
-
-2022-10-03
-----------
+v3.8.x
+------
+- Fixed `set_pose` wrong behavior. Now initial odometry is coherent with the new starting point.
+- Added Plane Detection.
+- Fixed "NO DEPTH" mode. By setting `depth/quality` to `0` now the depth extraction and all the sub-modules depending on it are correctly disabled.
+- Added `debug` sub-set of parameters with new parameters `debug_mode` and `debug_sensors`.
+- Added support for ROS2 Humble. Thx @nakai-omer.
+  The two ROS2 LTS releases are now supported simoultaneously.
+- Set `read_only` flag in parameter descriptors for non-dynamic parameters. Thx @bjsowa.
+- Enabled Intra Process Communication. The ZED node no longer publishes topics with `TRANSIENT LOCAL` durability.
+- Improved TF broadcasting at grabbing frequency
+- Improved IMU/Left Camera TF broadcasting at IMU frequency
+- Fixed data grabbing frame rate when publishing is set to a lower value
+- Added TF broadcasting diagnostic
 - The parameter `general.sdk_verbose` is now an integer accepting different SDK verbose levels.
 - Moved Object Detection parameters from cameras configuration files to `common.yaml`
 - Moved Sensor Parameters from cameras configuration files to `common.yaml`
@@ -24,36 +22,16 @@ LATEST CHANGES
   - Sensor data publishing moved from timer to thread
   - RGB/Depth data publishing moved from timer to thread
 - Fixed random errors when closing the node
-
-2022-09-27
-----------
-- Improved TF broadcasting at grabbing frequency
-- Improved IMU/Left Camera TF broadcasting at IMU frequency
-- Fixed data grabbing frame rate when publishing is set to a lower value
-- Added TF broadcasting diagnostic
-
-2022-09-26
-----------
-- Enabled Intra Process Communication. The ZED node no longer publishes topics with `TRANSIENT LOCAL` durability.
-
-2022-09-21
-----------
-- Added support for ROS2 Humble. Thx @nakai-omer.
-  The two ROS2 LTS releases are now supported simoultaneously.
-- Set `read_only` flag in parameter descriptors for non-dynamic parameters. Thx @bjsowa.
-
-2022-06-13
-----------
-- Fixed "NO DEPTH" mode. By setting `depth/quality` to `0` now the depth extraction and all the sub-modules depending on it are correctly disabled.
-- Added `debug` sub-set of parameters with new parameters `debug_mode` and `debug_sensors`
-
-2022-05-02
-----------
-- Added Plane Detection
-
-2022-03-30
-----------
-- Fixed `set_pose` wrong behavior. Now initial odometry is coherent with the new starting point.
+- Fixed wrong timing when playing SVO in `real-time` mode
+- Fixed units for atmospheric pressure data. Now pressure is published in `Pascals` according to the [definition of the topic](https://github.com/ros2/common_interfaces/blob/humble/sensor_msgs/msg/FluidPressure.msg).
+- Add new parameter `pos_tracking.transform_time_offset` to fix odometry TF timestamp issues
+- Added new parameter `pos_tracking.depth_min_range` for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
+- Added new parameter `pos_tracking.sensor_world` to define the world type that the SDK can use to initialize the Positionnal Tracking module
+- Added new parameter `object_detection.prediction_timeout` for setting the timeout time [sec] of object prediction when not detected.
+- Added support for ZED SDK Regiorn of Interest:
+  - Added parameter `general.region_of_interest` to set the region of interest for SDK processing.
+  - Added the service `resetRoi` to reset the region of interest.
+  - Added the service `setRoi` to set a new region of interest.
 
 v3.7.x
 ----------

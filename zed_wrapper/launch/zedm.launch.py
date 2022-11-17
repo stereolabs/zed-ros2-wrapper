@@ -22,6 +22,8 @@ def generate_launch_description():
 
     # Launch configuration variables (can be changed by CLI command)
     svo_path = LaunchConfiguration('svo_path')
+    zed_id = LaunchConfiguration('zed_id')
+    serial_number = LaunchConfiguration('serial_number')
 
     # Configuration variables
     # Camera name. Can be different from camera model, used to distinguish camera in multi-camera systems
@@ -95,11 +97,23 @@ def generate_launch_description():
         default_value='live', # 'live' used as patch for launch files not allowing empty strings as default parameters
         description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.')
 
+    declare_zed_id_cmd = DeclareLaunchArgument(
+        'zed_id',
+        default_value='0',
+        description='The index of the camera to be opened. To be used in multi-camera rigs.')
+
+    declare_serial_number_cmd = DeclareLaunchArgument(
+        'serial_number',
+        default_value='0',
+        description='The serial number of the camera to be opened. To be used in multi-camera rigs. Has priority with respect to `zed_id`.')
+
     # Define LaunchDescription variable
     ld = LaunchDescription()
 
     # Launch parameters
     ld.add_action(declare_svo_path_cmd)
+    ld.add_action(declare_zed_id_cmd)
+    ld.add_action(declare_serial_number_cmd)
 
     # Add nodes to LaunchDescription
     ld.add_action(zed_wrapper_launch)

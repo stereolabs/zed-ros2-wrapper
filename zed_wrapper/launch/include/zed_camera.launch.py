@@ -26,6 +26,9 @@ def generate_launch_description():
     config_common_path = LaunchConfiguration('config_common_path')
     config_camera_path = LaunchConfiguration('config_camera_path')
 
+    zed_id = LaunchConfiguration('zed_id')
+    serial_number = LaunchConfiguration('serial_number')
+
     base_frame = LaunchConfiguration('base_frame')
     cam_pos_x = LaunchConfiguration('cam_pos_x')
     cam_pos_y = LaunchConfiguration('cam_pos_y')
@@ -73,6 +76,16 @@ def generate_launch_description():
     declare_config_camera_path_cmd = DeclareLaunchArgument(
         'config_camera_path',
         description='Path to the `<camera_model>.yaml` file.')
+
+    declare_zed_id_cmd = DeclareLaunchArgument(
+        'zed_id',
+        default_value='0',
+        description='The index of the camera to be opened. To be used in multi-camera rigs.')
+
+    declare_serial_number_cmd = DeclareLaunchArgument(
+        'serial_number',
+        default_value='0',
+        description='The serial number of the camera to be opened. To be used in multi-camera rigs. Has priority with respect to `zed_id`.')
 
     declare_publish_urdf_cmd = DeclareLaunchArgument(
         'publish_urdf',
@@ -171,7 +184,9 @@ def generate_launch_description():
                 'general.camera_name': camera_name,
                 'general.camera_model': camera_model,
                 'general.svo_file': svo_path,
-                'pos_tracking.base_frame': base_frame
+                'pos_tracking.base_frame': base_frame,
+                'general.zed_id': zed_id,
+                'general.serial_number': serial_number
             }
         ]
     )
@@ -185,6 +200,8 @@ def generate_launch_description():
     ld.add_action(declare_publish_urdf_cmd)
     ld.add_action(declare_config_common_path_cmd)
     ld.add_action(declare_config_camera_path_cmd)
+    ld.add_action(declare_zed_id_cmd)
+    ld.add_action(declare_serial_number_cmd)
     ld.add_action(declare_xacro_path_cmd)
     ld.add_action(declare_svo_path_cmd)
     ld.add_action(declare_base_frame_cmd)

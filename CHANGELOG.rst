@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2022-11-17
+----------
+- Added `zed_id` and `serial_number` launch parameters to open the correct camera in multi-camera configurations.
+
 v3.8.x
 ------
 - Fixed `set_pose` wrong behavior. Now initial odometry is coherent with the new starting point.

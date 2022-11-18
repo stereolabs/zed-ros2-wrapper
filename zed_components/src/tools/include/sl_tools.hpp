@@ -17,11 +17,11 @@
 
 #include <chrono>
 #include <memory>
+#include <string>
+#include <vector>
 #include <rclcpp/clock.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sl/Camera.hpp>
-#include <string>
-#include <vector>
 
 namespace sl_tools
 {

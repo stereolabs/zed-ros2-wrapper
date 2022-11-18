@@ -21,6 +21,10 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
 #include <diagnostic_updater/diagnostic_updater.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
@@ -29,7 +33,6 @@
 #include <image_transport/camera_publisher.hpp>
 #include <image_transport/image_transport.hpp>
 #include <image_transport/publisher.hpp>
-#include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -43,8 +46,6 @@
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <stereo_msgs/msg/disparity_image.hpp>
-#include <string>
-#include <vector>
 #include <visualization_msgs/msg/marker.hpp>
 #include <zed_interfaces/msg/depth_info_stamped.hpp>
 #include <zed_interfaces/msg/object.hpp>
@@ -258,7 +259,7 @@ protected:
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
 
-  template <typename T>
+  template<typename T>
   void getParam(
     std::string paramName, T defValue, T & outVal, std::string log_info = std::string(),
     bool dynamic = false);

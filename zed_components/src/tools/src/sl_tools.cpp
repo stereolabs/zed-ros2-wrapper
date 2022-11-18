@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "sl_tools.hpp"
-
 #include <float.h>
 #include <sys/stat.h>
 
-#include <sensor_msgs/image_encodings.hpp>
-#include <sensor_msgs/msg/image.hpp>
 #include <sstream>
 #include <vector>
+
+#include <sensor_msgs/image_encodings.hpp>
+#include <sensor_msgs/msg/image.hpp>
+
+#include "sl_tools.hpp"
 
 namespace sl_tools
 {
@@ -242,7 +243,8 @@ std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
 
   if (
     left.getWidth() != right.getWidth() || left.getHeight() != right.getHeight() ||
-    left.getChannels() != right.getChannels() || left.getDataType() != right.getDataType()) {
+    left.getChannels() != right.getChannels() || left.getDataType() != right.getDataType())
+  {
     return imgMsgPtr;
   }
 
@@ -386,7 +388,8 @@ inline bool contains(std::vector<sl::float2> & poly, sl::float2 test)
     if (
       ((poly[i].y > test.y) != (poly[j].y > test.y)) &&
       (test.x <
-       (poly[j].x - poly[i].x) * (test.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x)) {
+      (poly[j].x - poly[i].x) * (test.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x))
+    {
       c = !c;
     }
   }
@@ -425,9 +428,6 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi)
     }
 
     poly_img.push_back(pt);
-
-    // std::cerr << "Normalized point #" << idx << ": " << poly[idx].x << "," << poly[idx].y << std::endl;
-    // std::cerr << "De-normalized point #" << idx << ": " << poly_img[idx].x << ", " << poly_img[idx].y << std::endl;
 
     ++idx;
   }

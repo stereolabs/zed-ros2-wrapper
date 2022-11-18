@@ -68,7 +68,7 @@ if(CMAKE_BUILD_TYPE MATCHES Release)
     add_compile_options(-Wno-deprecated-declarations)
 endif()
 
-if(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo )
+if(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
     #message(" * Release with Debug Info Mode")
     add_compile_options(-Wno-deprecated-declarations)
 endif()

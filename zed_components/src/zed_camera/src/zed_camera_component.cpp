@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <sstream>
+#include <type_traits>
+#include <vector>
+
 #include "zed_camera_component.hpp"
 
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
@@ -32,9 +36,6 @@
 #endif
 
 #include <sl/Camera.hpp>
-#include <sstream>
-#include <type_traits>
-#include <vector>
 
 #include "sl_tools.hpp"
 
@@ -256,7 +257,7 @@ std::string ZedCamera::getParam(std::string paramName, std::vector<std::vector<f
     RCLCPP_WARN_STREAM(
       get_logger(), "The parameter '" << paramName
                                       << "' is not available or is not valid, using the default "
-                                         "value: []");
+        "value: []");
   }
 
   std::string error;
@@ -273,7 +274,7 @@ std::string ZedCamera::getParam(std::string paramName, std::vector<std::vector<f
   return out_str;
 }
 
-template <typename T>
+template<typename T>
 void ZedCamera::getParam(
   std::string paramName, T defValue, T & outVal, std::string log_info, bool dynamic)
 {
@@ -285,9 +286,9 @@ void ZedCamera::getParam(
   if (!get_parameter(paramName, outVal)) {
     RCLCPP_WARN_STREAM(
       get_logger(), "The parameter '"
-                      << paramName
-                      << "' is not available or is not valid, using the default value: "
-                      << defValue);
+        << paramName
+        << "' is not available or is not valid, using the default value: "
+        << defValue);
   }
 
   if (!log_info.empty()) {
@@ -351,9 +352,9 @@ std::string ZedCamera::parseRoiPoly(
     if (poly_size != 0) {
       RCLCPP_WARN_STREAM(
         get_logger(), "A vector with "
-                        << poly_size
-                        << " points is not enough to create a polygon to set a Region "
-                           "of Interest.");
+          << poly_size
+          << " points is not enough to create a polygon to set a Region "
+          "of Interest.");
       return std::string();
     }
   } else {
@@ -362,16 +363,17 @@ std::string ZedCamera::parseRoiPoly(
         RCLCPP_WARN_STREAM(
           get_logger(), "The component with index '" << i
                                                      << "' of the ROI vector "
-                                                        "has not the correct size.");
+            "has not the correct size.");
         out_poly.clear();
         return std::string();
-      } else if (
-        in_poly[i][0] < 0.0 || in_poly[i][1] < 0.0 || in_poly[i][0] > 1.0 || in_poly[i][1] > 1.0) {
+      } else if (in_poly[i][0] < 0.0 || in_poly[i][1] < 0.0 || in_poly[i][0] > 1.0 ||
+        in_poly[i][1] > 1.0)
+      {
         RCLCPP_WARN_STREAM(
           get_logger(), "The component with index '" << i
                                                      << "' of the ROI vector "
-                                                        "is not a "
-                                                        "valid normalized point: ["
+            "is not a "
+            "valid normalized point: ["
                                                      << in_poly[i][0] << "," << in_poly[i][1]
                                                      << "].");
         out_poly.clear();
@@ -468,7 +470,8 @@ void ZedCamera::getGeneralParams()
   getParam("general.svo_file", std::string(), mSvoFilepath, " * SVO: ");
   if (
     // Patch for Python launch files not allowing empty strings as default parameters
-    mSvoFilepath.compare("live") == 0) {
+    mSvoFilepath.compare("live") == 0)
+  {
     mSvoFilepath = "";
   }
 
@@ -488,7 +491,7 @@ void ZedCamera::getGeneralParams()
     "general.grab_frame_rate", mCamGrabFrameRate, mCamGrabFrameRate, " * Camera framerate: ");
   getParam("general.gpu_id", mGpuId, mGpuId, " * GPU ID: ");
 
-  // TODO ADD SVO SAVE COMPRESSION PARAMETERS
+  // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
 
   int resol = static_cast<int>(mCamResol);
   getParam("general.resolution", resol, resol);
@@ -604,8 +607,8 @@ void ZedCamera::getVideoParams()
   declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability), read_only_descriptor);
 
   if (get_parameter(paramName, paramVal)) {
-    qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE
-                                             : RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+      RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
 
     mVideoQos.reliability(qos_reliability);
   } else {
@@ -623,8 +626,8 @@ void ZedCamera::getVideoParams()
   declare_parameter(paramName, rclcpp::ParameterValue(qos_durability), read_only_descriptor);
 
   if (get_parameter(paramName, paramVal)) {
-    qos_durability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL
-                                            : RMW_QOS_POLICY_DURABILITY_VOLATILE;
+    qos_durability = paramVal.as_int() == 0 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+      RMW_QOS_POLICY_DURABILITY_VOLATILE;
     mVideoQos.durability(qos_durability);
   } else {
     RCLCPP_WARN(
@@ -743,8 +746,8 @@ void ZedCamera::getDepthParams()
     declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability), read_only_descriptor);
 
     if (get_parameter(paramName, paramVal)) {
-      qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE
-                                               : RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+      qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+        RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
       mDepthQos.reliability(qos_reliability);
     } else {
       RCLCPP_WARN(
@@ -761,8 +764,8 @@ void ZedCamera::getDepthParams()
     declare_parameter(paramName, rclcpp::ParameterValue(qos_durability), read_only_descriptor);
 
     if (get_parameter(paramName, paramVal)) {
-      qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL
-                                              : RMW_QOS_POLICY_DURABILITY_VOLATILE;
+      qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+        RMW_QOS_POLICY_DURABILITY_VOLATILE;
       mDepthQos.durability(qos_durability);
     } else {
       RCLCPP_WARN(
@@ -842,8 +845,8 @@ void ZedCamera::getSensorsParams()
   declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability), read_only_descriptor);
 
   if (get_parameter(paramName, paramVal)) {
-    qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE
-                                             : RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+      RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
     mSensQos.reliability(qos_reliability);
   } else {
     RCLCPP_WARN(
@@ -860,8 +863,8 @@ void ZedCamera::getSensorsParams()
   declare_parameter(paramName, rclcpp::ParameterValue(qos_durability), read_only_descriptor);
 
   if (get_parameter(paramName, paramVal)) {
-    qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL
-                                            : RMW_QOS_POLICY_DURABILITY_VOLATILE;
+    qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+      RMW_QOS_POLICY_DURABILITY_VOLATILE;
     mSensQos.durability(qos_durability);
   } else {
     RCLCPP_WARN(
@@ -944,8 +947,8 @@ void ZedCamera::getMappingParams()
   declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability), read_only_descriptor);
 
   if (get_parameter(paramName, paramVal)) {
-    qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE
-                                             : RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+      RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
     mMappingQos.reliability(qos_reliability);
   } else {
     RCLCPP_WARN(
@@ -962,8 +965,8 @@ void ZedCamera::getMappingParams()
   declare_parameter(paramName, rclcpp::ParameterValue(qos_durability), read_only_descriptor);
 
   if (get_parameter(paramName, paramVal)) {
-    qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL
-                                            : RMW_QOS_POLICY_DURABILITY_VOLATILE;
+    qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+      RMW_QOS_POLICY_DURABILITY_VOLATILE;
     mMappingQos.durability(qos_durability);
   } else {
     RCLCPP_WARN(
@@ -1030,8 +1033,8 @@ void ZedCamera::getPosTrackingParams()
   if (!get_parameter(paramName, mInitialBasePose)) {
     RCLCPP_WARN_STREAM(
       get_logger(), "The parameter '"
-                      << paramName
-                      << "' is not available or is not valid, using the default value");
+        << paramName
+        << "' is not available or is not valid, using the default value");
     mInitialBasePose = std::vector<double>(6, 0.0);
   }
   if (mInitialBasePose.size() < 6) {
@@ -1108,8 +1111,8 @@ void ZedCamera::getPosTrackingParams()
   declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability), read_only_descriptor);
 
   if (get_parameter(paramName, paramVal)) {
-    qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE
-                                             : RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+      RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
     mPoseQos.reliability(qos_reliability);
   } else {
     RCLCPP_WARN(
@@ -1127,8 +1130,8 @@ void ZedCamera::getPosTrackingParams()
   declare_parameter(paramName, rclcpp::ParameterValue(qos_durability), read_only_descriptor);
 
   if (get_parameter(paramName, paramVal)) {
-    qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL
-                                            : RMW_QOS_POLICY_DURABILITY_VOLATILE;
+    qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+      RMW_QOS_POLICY_DURABILITY_VOLATILE;
     mPoseQos.durability(qos_durability);
   } else {
     RCLCPP_WARN(
@@ -1262,8 +1265,8 @@ void ZedCamera::getOdParams()
   declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability), read_only_descriptor);
 
   if (get_parameter(paramName, paramVal)) {
-    qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE
-                                             : RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+      RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
     mObjDetQos.reliability(qos_reliability);
   } else {
     RCLCPP_WARN(
@@ -1280,8 +1283,8 @@ void ZedCamera::getOdParams()
   declare_parameter(paramName, rclcpp::ParameterValue(qos_durability), read_only_descriptor);
 
   if (get_parameter(paramName, paramVal)) {
-    qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL
-                                            : RMW_QOS_POLICY_DURABILITY_VOLATILE;
+    qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+      RMW_QOS_POLICY_DURABILITY_VOLATILE;
     mObjDetQos.durability(qos_durability);
   } else {
     RCLCPP_WARN(
@@ -1302,17 +1305,6 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
   rcl_interfaces::msg::SetParametersResult result;
   result.successful = true;
-
-  // if (parameters.size() > 1)
-  // {
-  //   if (mDebugMode)
-  //   {
-  //     RCLCPP_DEBUG(get_logger(), "The node does not support setting multiple parameters atomically");
-  //   }
-  //   result.successful = false;
-  //   result.reason = "The node does not support setting multiple parameters atomically";
-  //   return result;
-  // }
 
   RCLCPP_INFO_STREAM(get_logger(), "Modifying " << parameters.size() << " parameters");
 
@@ -2362,7 +2354,7 @@ bool ZedCamera::startCamera()
 
         if (prop.id < -1 || prop.camera_state == sl::CAMERA_STATE::NOT_AVAILABLE) {
           std::string msg = "Camera with SN " + std::to_string(mCamSerialNumber) +
-                            " not detected! Please verify the connection.";
+            " not detected! Please verify the connection.";
           RCLCPP_INFO(get_logger(), msg.c_str());
         } else {
           waiting_for_camera = false;
@@ -2399,7 +2391,8 @@ bool ZedCamera::startCamera()
     RCLCPP_WARN(get_logger(), "Error opening camera: %s", sl::toString(mConnStatus).c_str());
 
     if (
-      mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE && mCamUserModel == sl::MODEL::ZED_M) {
+      mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE && mCamUserModel == sl::MODEL::ZED_M)
+    {
       RCLCPP_INFO(get_logger(), "Try to flip the USB3 Type-C connector");
     } else {
       RCLCPP_INFO(get_logger(), "Please verify the USB3 connection");
@@ -2428,8 +2421,8 @@ bool ZedCamera::startCamera()
   if (realFps != static_cast<float>(mCamGrabFrameRate)) {
     RCLCPP_WARN_STREAM(
       get_logger(), "!!! `general.grab_frame_rate` value is not valid: '"
-                      << mCamGrabFrameRate << "'. Automatically replaced with '" << realFps
-                      << "'. Please fix the parameter !!!");
+        << mCamGrabFrameRate << "'. Automatically replaced with '" << realFps
+        << "'. Please fix the parameter !!!");
     mCamGrabFrameRate = realFps;
   }
 
@@ -2736,8 +2729,8 @@ bool ZedCamera::startPosTracking()
       mInitialBasePose[4], mInitialBasePose[5]);
 
     elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::high_resolution_clock::now() - start)
-                .count();
+      std::chrono::high_resolution_clock::now() - start)
+      .count();
 
     rclcpp::sleep_for(500ms);
 
@@ -2831,14 +2824,14 @@ bool ZedCamera::start3dMapping()
     RCLCPP_WARN_STREAM(
       get_logger(), "'mapping.resolution' value (" << mMappingRes
                                                    << " m) is lower than the allowed resolution "
-                                                      "values. Fixed automatically");
+        "values. Fixed automatically");
     mMappingRes = lRes;
   }
   if (mMappingRes > hRes) {
     RCLCPP_WARN_STREAM(
       get_logger(), "'mapping.resolution' value (" << mMappingRes
                                                    << " m) is higher than the allowed resolution "
-                                                      "values. Fixed automatically");
+        "values. Fixed automatically");
     mMappingRes = hRes;
   }
 
@@ -2856,15 +2849,15 @@ bool ZedCamera::start3dMapping()
     RCLCPP_WARN_STREAM(
       get_logger(), "'mapping.max_mapping_range_m' value (" << mMappingRangeMax
                                                             << " m) is lower than the allowed "
-                                                               "resolution values. Fixed "
-                                                               "automatically");
+        "resolution values. Fixed "
+        "automatically");
     mMappingRangeMax = lRng;
   } else if (mMappingRangeMax > hRng) {
     RCLCPP_WARN_STREAM(
       get_logger(), "'mapping.max_mapping_range_m' value (" << mMappingRangeMax
                                                             << " m) is higher than the allowed "
-                                                               "resolution values. Fixed "
-                                                               "automatically");
+        "resolution values. Fixed "
+        "automatically");
     mMappingRangeMax = hRng;
   }
 
@@ -3333,7 +3326,6 @@ void ZedCamera::publishImuFrameAndTopic()
   cameraImuTransfMgs->transform.translation.y = sl_tr.y;
   cameraImuTransfMgs->transform.translation.z = sl_tr.z;
 
-  // RCLCPP_INFO_STREAM(get_logger(), "Publishing Camera-IMU transform " << mPubCamImuTransf->get_topic_name());
   mPubCamImuTransf->publish(std::move(cameraImuTransfMgs));
 
   // Publish IMU TF as static TF
@@ -3362,7 +3354,6 @@ void ZedCamera::publishImuFrameAndTopic()
 
   mTfBroadcaster->sendTransform(transformStamped);
 
-  // RCLCPP_INFO_STREAM(get_logger(), "Published TF: '" << mImuFrameId << "' -> '" << mLeftCamFrameId << "'");
   // <---- Publish TF
 
   // IMU TF publishing diagnostic
@@ -3504,7 +3495,7 @@ void ZedCamera::threadFunc_zedGrab()
       // Note: disconnection are automatically handled by the ZED SDK
       if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR_STREAM(get_logger(), "Camera error: " << sl::toString(mGrabStatus).c_str());
-        break;  // TODO verify what to do in case of grab errors
+        break;  // TODO(walter) verify what to do in case of grab errors
       }
       // <---- Grab errors?
 
@@ -3527,9 +3518,6 @@ void ZedCamera::threadFunc_zedGrab()
           rclcpp::Clock steady_clock(RCL_STEADY_TIME);
           RCLCPP_ERROR_THROTTLE(get_logger(), steady_clock, 1.0, "Error saving frame to SVO");
         }
-
-        // TODO update disgnostic
-        // mDiagUpdater.force_update();
       }
       mRecMutex.unlock();
       // <---- Check recording status
@@ -3635,7 +3623,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   // <---- Subscribers count
 
   int totSub = imu_SubNumber + imu_RawSubNumber + imu_TempSubNumber + imu_MagSubNumber +
-               pressSubNumber + tempLeftSubNumber + tempRightSubNumber;
+    pressSubNumber + tempLeftSubNumber + tempRightSubNumber;
 
   // ----> Grab data and setup timestamps
   RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback: Grab data and setup timestamps");
@@ -4123,7 +4111,8 @@ void ZedCamera::threadFunc_pointcloudElab()
     while (!mPcDataReady) {  // loop to avoid spurious wakeups
       if (
         mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) ==
-        std::cv_status::timeout) {
+        std::cv_status::timeout)
+      {
         // Check thread stopping
         if (!rclcpp::ok()) {
           RCLCPP_DEBUG(get_logger(), "Ctrl+C received: stopping point cloud thread");
@@ -4192,14 +4181,11 @@ void ZedCamera::threadFunc_pubVideoDepth()
     rclcpp::Time pub_ts;
     mPublishingData = publishVideoDepth(pub_ts);
 
-    // RCLCPP_DEBUG_ONCE(get_logger(), "Video Depth published");
-
     // RCLCPP_INFO_STREAM(get_logger(), "threadFunc_pubVideoDepth - pub_ts type:" <<
     // pub_ts.get_clock_type());
 
     if (mCamRealModel != sl::MODEL::ZED && mPublishingData && pub_ts != TIMEZERO_ROS) {
       if (mSensCameraSync || mSvoMode) {
-        // RCLCPP_INFO_STREAM(get_logger(), "threadFunc_pubVideoDepth: Publishing Camera-IMU transform ");
         publishSensorsData(pub_ts);
       }
     }
@@ -4353,7 +4339,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     // RCLCPP_DEBUG(get_logger(), "Retrieving Video Data");
     if (rgbSubnumber + leftSubnumber + stereoSubnumber > 0) {
       retrieved |= sl::ERROR_CODE::SUCCESS ==
-                   mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
       ts_rgb = mat_left.timestamp;
       grab_ts = mat_left.timestamp;
       rgb_subscribed = true;
@@ -4366,13 +4352,13 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     }
     if (rightSubnumber + stereoSubnumber > 0) {
       retrieved |= sl::ERROR_CODE::SUCCESS ==
-                   mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
       grab_ts = mat_right.timestamp;
     }
     if (rightRawSubnumber + stereoRawSubnumber > 0) {
       retrieved |= sl::ERROR_CODE::SUCCESS ==
-                   mZed.retrieveImage(
-                     mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(
+        mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
       grab_ts = mat_right_raw.timestamp;
     }
     if (rgbGraySubnumber + leftGraySubnumber > 0) {
@@ -4383,8 +4369,8 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     }
     if (rgbGrayRawSubnumber + leftGrayRawSubnumber > 0) {
       retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(
-                                                mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
-                                                sl::MEM::CPU, mMatResolVideo);
+        mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
+        sl::MEM::CPU, mMatResolVideo);
       grab_ts = mat_left_raw_gray.timestamp;
     }
     if (rightGraySubnumber > 0) {
@@ -4397,7 +4383,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
       retrieved |=
         sl::ERROR_CODE::SUCCESS ==
         mZed.retrieveImage(
-          mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+        mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
       grab_ts = mat_right_raw_gray.timestamp;
     }
     // RCLCPP_DEBUG(get_logger(), "Video Data retrieved");
@@ -4414,7 +4400,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
       if (rgb_subscribed && (ts_rgb.data_ns != 0 && (ts_depth.data_ns != ts_rgb.data_ns))) {
         RCLCPP_WARN_STREAM(
           get_logger(), "!!!!! DEPTH/RGB ASYNC !!!!! - Delta: "
-                          << 1e-9 * static_cast<double>(ts_depth - ts_rgb) << " sec");
+            << 1e-9 * static_cast<double>(ts_depth - ts_rgb) << " sec");
       }
     }
     if (disparitySubnumber > 0) {
@@ -4434,7 +4420,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     if (depthInfoSubnumber > 0) {
       retrieved |= sl::ERROR_CODE::SUCCESS == mZed.getCurrentMinMaxDepth(min_depth, max_depth);
 #if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION == 7 && \
-  ZED_SDK_PATCH_VERSION == 0  // Units bug workaround
+      ZED_SDK_PATCH_VERSION == 0 // Units bug workaround
       min_depth *= 0.001f;
       max_depth *= 0.001f;
 #endif
@@ -4660,7 +4646,8 @@ void ZedCamera::processOdometry()
     if (
       mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK ||
       mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING ||
-      mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW) {
+      mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW)
+    {
       // Transform ZED delta odom pose in TF2 Transformation
       tf2::Transform deltaOdomTf;
       deltaOdomTf.setOrigin(tf2::Vector3(translation(0), translation(1), translation(2)));
@@ -4739,7 +4726,8 @@ void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose,
         odomMsg->pose.covariance[i] = 1e-9;  // Very low covariance if 2D mode
       } else if (
         (i >= 2 && i <= 4) || (i >= 8 && i <= 10) || (i >= 12 && i <= 13) || (i >= 15 && i <= 16) ||
-        (i >= 18 && i <= 20) || (i == 22) || (i >= 24 && i <= 27)) {
+        (i >= 18 && i <= 20) || (i == 22) || (i >= 24 && i <= 27))
+      {
         odomMsg->pose.covariance[i] = 0.0;
       }
     }
@@ -4798,7 +4786,8 @@ void ZedCamera::processPose()
 
   if (
     mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK ||
-    mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING) {
+    mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING)
+  {
     tf2::Transform map_to_sens_transf;
     map_to_sens_transf.setOrigin(tf2::Vector3(translation(0), translation(1), translation(2)));
     map_to_sens_transf.setRotation(tf2::Quaternion(quat(0), quat(1), quat(2), quat(3)));
@@ -4939,7 +4928,8 @@ void ZedCamera::publishPose()
         if (mTwoDMode) {
           if (
             (i >= 2 && i <= 4) || (i >= 8 && i <= 10) || (i >= 12 && i <= 29) ||
-            (i >= 32 && i <= 34)) {
+            (i >= 32 && i <= 34))
+          {
             poseCov->pose.covariance[i] = 1e-9;  // Very low covariance if 2D mode
           }
         }
@@ -5066,7 +5056,8 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 #if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
       mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM ||
 #endif
-      mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_FAST) {
+      mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_FAST)
+    {
       objMsg->objects[idx].skeleton_available = true;
 
       if (data.head_bounding_box_2d.size() == 4) {
@@ -5244,10 +5235,10 @@ bool ZedCamera::isPosTrackingRequired()
   size_t topics_sub = 0;
   try {
     topics_sub = count_subscribers(mPubPose->get_topic_name()) +
-                 count_subscribers(mPubPoseCov->get_topic_name()) +
-                 count_subscribers(mPubPosePath->get_topic_name()) +
-                 count_subscribers(mPubOdom->get_topic_name()) +
-                 count_subscribers(mPubOdomPath->get_topic_name());
+      count_subscribers(mPubPoseCov->get_topic_name()) +
+      count_subscribers(mPubPosePath->get_topic_name()) +
+      count_subscribers(mPubOdom->get_topic_name()) +
+      count_subscribers(mPubOdomPath->get_topic_name());
   } catch (...) {
     rcutils_reset_error();
     RCLCPP_DEBUG(get_logger(), "isPosTrackingRequired: Exception while counting subscribers");
@@ -5931,7 +5922,8 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
   {
     if (
       mGrabStatus ==
-      sl::ERROR_CODE::SUCCESS /*|| mGrabStatus == sl::ERROR_CODE::NOT_A_NEW_FRAME*/) {
+      sl::ERROR_CODE::SUCCESS /*|| mGrabStatus == sl::ERROR_CODE::NOT_A_NEW_FRAME*/)
+    {
       stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Camera grabbing");
 
       double freq = 1. / mGrabPeriodMean_sec->getMean();

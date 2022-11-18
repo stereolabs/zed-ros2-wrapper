@@ -1,67 +1,55 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-    <name>zed_components</name>
-    <version>0.2.0</version>
-    <description>Contains the main ROS2 components to use a camera of the Ztereolabs ZED family</description>
-    <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
-
-    <license>MIT</license>
-
-    <url type="website">https://www.stereolabs.com/</url>
-    <url type="repository">https://github.com/stereolabs/zed-ros2-wrapper</url>
-    <url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
-
-    <buildtool_depend>ament_cmake</buildtool_depend>
-
-    <build_depend>zed_interfaces</build_depend>
-    <build_depend>rclcpp</build_depend>
-    <build_depend>rclcpp_components</build_depend>
-    <build_depend>rcutils</build_depend>
-    <build_depend>builtin_interfaces</build_depend>
-    <build_depend>std_msgs</build_depend>
-    <build_depend>stereo_msgs</build_depend>
-    <build_depend>sensor_msgs</build_depend>
-    <build_depend>geometry_msgs</build_depend>
-    <build_depend>nav_msgs</build_depend>
-    <build_depend>tf2</build_depend>
-    <build_depend>tf2_ros</build_depend>
-    <build_depend>tf2_geometry_msgs</build_depend>
-    <build_depend>image_transport</build_depend>
-    <build_depend>std_srvs</build_depend>
-    <build_depend>diagnostic_msgs</build_depend>
-    <build_depend>diagnostic_updater</build_depend>
-    <build_depend>visualization_msgs</build_depend>      
-
-    <exec_depend>launch_ros</exec_depend>
-    <exec_depend>zed_interfaces</exec_depend>
-    <exec_depend>rclcpp</exec_depend>
-    <exec_depend>rclcpp_components</exec_depend>
-    <exec_depend>rcutils</exec_depend>
-    <exec_depend>builtin_interfaces</exec_depend>
-    <exec_depend>std_msgs</exec_depend>
-    <exec_depend>stereo_msgs</exec_depend>
-    <exec_depend>sensor_msgs</exec_depend>
-    <exec_depend>geometry_msgs</exec_depend>
-    <exec_depend>nav_msgs</exec_depend>
-    <exec_depend>tf2</exec_depend>
-    <exec_depend>tf2_ros</exec_depend>
-    <exec_depend>tf2_geometry_msgs</exec_depend>
-    <exec_depend>image_transport</exec_depend>
-    <exec_depend>diagnostic_msgs</exec_depend>
-    <exec_depend>diagnostic_updater</exec_depend>
-    <exec_depend>visualization_msgs</exec_depend>
-
-    <test_depend>ament_cmake_pytest</test_depend>
-    <test_depend>ament_lint_auto</test_depend>
-    <test_depend>ament_lint_common</test_depend>
-    <test_depend>launch</test_depend>
-    <test_depend>launch_testing</test_depend>
-    <test_depend>launch_testing_ros</test_depend>
-    <test_depend>launch_testing_ament_cmake</test_depend>
-    <test_depend>rmw_implementation_cmake</test_depend>
-
-    <export>
-        <build_type>ament_cmake</build_type>
-    </export>
+	<name>zed_components</name>
+	<version>0.2.0</version>
+	<description>Contains the main ROS2 components to use a camera of the Ztereolabs ZED family</description>
+	<maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
+	<license>Apache License 2.0</license>
+	<url type="website">https://www.stereolabs.com/</url>
+	<url type="repository">https://github.com/stereolabs/zed-ros2-wrapper</url>
+	<url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
+	<buildtool_depend>ament_cmake</buildtool_depend>
+	<build_depend>zed_interfaces</build_depend>
+	<build_depend>rclcpp</build_depend>
+	<build_depend>rclcpp_components</build_depend>
+	<build_depend>rcutils</build_depend>
+	<build_depend>builtin_interfaces</build_depend>
+	<build_depend>std_msgs</build_depend>
+	<build_depend>stereo_msgs</build_depend>
+	<build_depend>sensor_msgs</build_depend>
+	<build_depend>geometry_msgs</build_depend>
+	<build_depend>nav_msgs</build_depend>
+	<build_depend>tf2</build_depend>
+	<build_depend>tf2_ros</build_depend>
+	<build_depend>tf2_geometry_msgs</build_depend>
+	<build_depend>image_transport</build_depend>
+	<build_depend>std_srvs</build_depend>
+	<build_depend>diagnostic_msgs</build_depend>
+	<build_depend>diagnostic_updater</build_depend>
+	<build_depend>visualization_msgs</build_depend>
+	<exec_depend>launch_ros</exec_depend>
+	<exec_depend>zed_interfaces</exec_depend>
+	<exec_depend>rclcpp</exec_depend>
+	<exec_depend>rclcpp_components</exec_depend>
+	<exec_depend>rcutils</exec_depend>
+	<exec_depend>builtin_interfaces</exec_depend>
+	<exec_depend>std_msgs</exec_depend>
+	<exec_depend>stereo_msgs</exec_depend>
+	<exec_depend>sensor_msgs</exec_depend>
+	<exec_depend>geometry_msgs</exec_depend>
+	<exec_depend>nav_msgs</exec_depend>
+	<exec_depend>tf2</exec_depend>
+	<exec_depend>tf2_ros</exec_depend>
+	<exec_depend>tf2_geometry_msgs</exec_depend>
+	<exec_depend>image_transport</exec_depend>
+	<exec_depend>diagnostic_msgs</exec_depend>
+	<exec_depend>diagnostic_updater</exec_depend>
+	<exec_depend>visualization_msgs</exec_depend>
+	<test_depend>ament_lint_auto</test_depend>
+	<test_depend>ament_lint_common</test_depend>
+	<test_depend>ament_cmake_clang_format</test_depend>
+	<export>
+		<build_type>ament_cmake</build_type>
+	</export>
 </package>

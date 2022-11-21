@@ -454,13 +454,9 @@ void ZedCamera::getGeneralParams()
     mCamUserModel = sl::MODEL::ZED_M;
   } else if (camera_model == "zed2") {
     mCamUserModel = sl::MODEL::ZED2;
-  }
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
-  else if (camera_model == "zed2i") {
+  } else if (camera_model == "zed2i") {
     mCamUserModel = sl::MODEL::ZED2i;
-  }
-#endif
-  else {
+  } else {
     RCLCPP_ERROR_STREAM(
       get_logger(), "Camera model not valid in parameter values: " << camera_model);
   }
@@ -1988,7 +1984,6 @@ void ZedCamera::fillCamInfo(
 #else
   if (rawParam) {
     if (mUseOldExtrinsic) {  // Camera frame (Z forward, Y down, X right)
-
       std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
       float * p = R_.data();
 
@@ -2461,9 +2456,7 @@ bool ZedCamera::startCamera()
         "Camera model does not match user parameter. Please modify "
         "the value of the parameter 'general.camera_model' to 'zed2i'");
     }
-  }
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
-  else if (mCamRealModel == sl::MODEL::ZED2i) {
+  } else if (mCamRealModel == sl::MODEL::ZED2i) {
     if (mCamUserModel != sl::MODEL::ZED2i) {
       RCLCPP_WARN(
         get_logger(),
@@ -2471,7 +2464,6 @@ bool ZedCamera::startCamera()
         "the value of the parameter 'general.camera_model' to 'zed2i'");
     }
   }
-#endif
 
   RCLCPP_INFO_STREAM(get_logger(), " * Camera Model\t-> " << sl::toString(mCamRealModel).c_str());
   mCamSerialNumber = camInfo.serial_number;
@@ -2742,7 +2734,6 @@ bool ZedCamera::startPosTracking()
         "working? ");
       break;
     }
-
   } while (transformOk == false);
 
   if (transformOk) {
@@ -3468,8 +3459,9 @@ void ZedCamera::threadFunc_zedGrab()
     mGrabPeriodMean_sec->addValue(elapsed_sec);
     grabFreqTimer.tic();
 
-    // RCLCPP_INFO_STREAM(get_logger(), "Grab period: " << mGrabPeriodMean_sec->getMean() / 1e6
-    //                                                  << " Freq: " << 1e6 / mGrabPeriodMean_usec->getMean());
+    // RCLCPP_INFO_STREAM(get_logger(), "Grab period: "
+    // << mGrabPeriodMean_sec->getMean() / 1e6
+    // << " Freq: " << 1e6 / mGrabPeriodMean_usec->getMean());
     // <---- Grab freq calculation
 
     if (!mSvoPause) {
@@ -4230,7 +4222,8 @@ void ZedCamera::threadFunc_pubSensorsData()
       continue;
     }
 
-    // RCLCPP_INFO_STREAM(get_logger(), "threadFunc_pubSensorsData: Publishing Camera-IMU transform ");
+    // RCLCPP_INFO_STREAM(get_logger(),
+    // "threadFunc_pubSensorsData: Publishing Camera-IMU transform ");
     // publishImuFrameAndTopic();
     rclcpp::Time sens_ts = publishSensorsData();
 
@@ -4420,7 +4413,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     if (depthInfoSubnumber > 0) {
       retrieved |= sl::ERROR_CODE::SUCCESS == mZed.getCurrentMinMaxDepth(min_depth, max_depth);
 #if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION == 7 && \
-      ZED_SDK_PATCH_VERSION == 0 // Units bug workaround
+      ZED_SDK_PATCH_VERSION == 0  // Units bug workaround
       min_depth *= 0.001f;
       max_depth *= 0.001f;
 #endif
@@ -4471,7 +4464,8 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   if (!mSvoMode) {
     timeStamp = sl_tools::slTime2Ros(grab_ts, get_clock()->get_clock_type());
   } else {
-    // timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT), get_clock()->get_clock_type());
+    // timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT),
+    // get_clock()->get_clock_type());
     timeStamp = mFrameTimestamp;
   }
 
@@ -5281,7 +5275,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
   size_t size = openniDepthMsg->step * openniDepthMsg->height;
   openniDepthMsg->data.resize(size);
 
-  uint16_t * data = (uint16_t *)(&openniDepthMsg->data[0]);
+  uint16_t * data = Use reinterpret_cast<uint16_t *>(&openniDepthMsg->data[0]);
 
   int dataSize = openniDepthMsg->width * openniDepthMsg->height;
   sl::float1 * depthDataPtr = depth.getPtr<sl::float1>();
@@ -5360,8 +5354,8 @@ void ZedCamera::publishPointCloud()
   sl::Vector4<float> * cpu_cloud = mMatCloud.getPtr<sl::float4>();
 
   // Data copy
-  float * ptCloudPtr = (float *)(&pcMsg->data[0]);
-  memcpy(ptCloudPtr, (float *)cpu_cloud, ptsCount * 4 * sizeof(float));
+  float * ptCloudPtr = reinterpret_cast<float *>(&pcMsg->data[0]);
+  memcpy(ptCloudPtr, reinterpret_cast<float *>(cpu_cloud), ptsCount * 4 * sizeof(float));
 
   // Pointcloud publishing
   RCLCPP_DEBUG_STREAM(get_logger(), "Publishing POINT CLOUD message");
@@ -5440,7 +5434,7 @@ void ZedCamera::callback_pubFusedPc()
   }
 
   int index = 0;
-  float * ptCloudPtr = (float *)(&pointcloudFusedMsg->data[0]);
+  float * ptCloudPtr = reinterpret_cast<float *>(&pointcloudFusedMsg->data[0]);
   int updated = 0;
 
   for (int c = 0; c < mFusedPC.chunks.size(); c++) {
@@ -5449,7 +5443,7 @@ void ZedCamera::callback_pubFusedPc()
       size_t chunkSize = mFusedPC.chunks[c].vertices.size();
 
       if (chunkSize > 0) {
-        float * cloud_pts = (float *)(mFusedPC.chunks[c].vertices.data());
+        float * cloud_pts = reinterpret_cast<float *>(mFusedPC.chunks[c].vertices.data());
         memcpy(ptCloudPtr, cloud_pts, 4 * chunkSize * sizeof(float));
         ptCloudPtr += 4 * chunkSize;
         pointcloudFusedMsg->header.stamp = sl_tools::slTime2Ros(mFusedPC.chunks[c].timestamp);
@@ -6206,7 +6200,8 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
     // Set the marker type.
     pt_marker->type = visualization_msgs::msg::Marker::SPHERE;
 
-    // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
+    // Set the pose of the marker.
+    // This is a full 6DOF pose relative to the frame/time specified in the header
     pt_marker->pose.position.x = X;
     pt_marker->pose.position.y = Y;
     pt_marker->pose.position.z = Z;

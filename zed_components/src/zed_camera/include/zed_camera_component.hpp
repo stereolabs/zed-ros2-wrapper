@@ -1,75 +1,62 @@
-/********************************************************************************
- * MIT License
- *
- * Copyright (c) 2020 Stereolabs
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- ********************************************************************************/
+// Copyright 2022 Stereolabs
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef ZED_CAMERA_COMPONENT_HPP
-#define ZED_CAMERA_COMPONENT_HPP
+#ifndef ZED_CAMERA_COMPONENT_HPP_
+#define ZED_CAMERA_COMPONENT_HPP_
 
-#include "sl_tools.h"
-#include "visibility_control.h"
-
-#include <rclcpp/rclcpp.hpp>
 #include <rcutils/logging_macros.h>
-
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
 #include <diagnostic_updater/diagnostic_updater.hpp>
-
+#include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <geometry_msgs/msg/point_stamped.hpp>
 #include <image_transport/camera_publisher.hpp>
 #include <image_transport/image_transport.hpp>
 #include <image_transport/publisher.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/fluid_pressure.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/magnetic_field.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <stereo_msgs/msg/disparity_image.hpp>
-
-#include <nav_msgs/msg/odometry.hpp>
-#include <nav_msgs/msg/path.hpp>
 #include <sensor_msgs/msg/temperature.hpp>
-
-#include <visualization_msgs/msg/marker.hpp>
-
+#include <sl/Camera.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
-
-#include <sl/Camera.hpp>
-
+#include <stereo_msgs/msg/disparity_image.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 #include <zed_interfaces/msg/depth_info_stamped.hpp>
 #include <zed_interfaces/msg/object.hpp>
 #include <zed_interfaces/msg/objects_stamped.hpp>
 #include <zed_interfaces/msg/plane_stamped.hpp>
 #include <zed_interfaces/srv/set_pose.hpp>
-#include <zed_interfaces/srv/start_svo_rec.hpp>
 #include <zed_interfaces/srv/set_roi.hpp>
+#include <zed_interfaces/srv/start_svo_rec.hpp>
+
+#include "sl_tools.hpp"
+#include "visibility_control.hpp"
 
 #define TIMEZERO_ROS rclcpp::Time(0, 0, RCL_ROS_TIME)
 #define TIMEZERO_SYS rclcpp::Time(0, 0, RCL_SYSTEM_TIME)
@@ -89,7 +76,8 @@ typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::FluidPressure>> pres
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Temperature>> tempPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> posePub;
-typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>> poseCovPub;
+typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>>
+  poseCovPub;
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::TransformStamped>> transfPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odomPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
@@ -138,7 +126,7 @@ class ZedCamera : public rclcpp::Node
 {
 public:
   ZED_COMPONENTS_PUBLIC
-  explicit ZedCamera(const rclcpp::NodeOptions& options);
+  explicit ZedCamera(const rclcpp::NodeOptions & options);
 
   virtual ~ZedCamera();
 
@@ -158,9 +146,10 @@ protected:
 
   void setTFCoordFrameNames();
   void initPublishers();
-  void fillCamInfo(sl::Camera& zed, std::shared_ptr<sensor_msgs::msg::CameraInfo> leftCamInfoMsg,
-                   std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg, std::string leftFrameId,
-                   std::string rightFrameId, bool rawParam = false);
+  void fillCamInfo(
+    sl::Camera & zed, std::shared_ptr<sensor_msgs::msg::CameraInfo> leftCamInfoMsg,
+    std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg, std::string leftFrameId,
+    std::string rightFrameId, bool rawParam = false);
 
   bool startCamera();
   bool startPosTracking();
@@ -168,7 +157,7 @@ protected:
   void stop3dMapping();
   bool startObjDetect();
   void stopObjDetect();
-  bool startSvoRecording(std::string& errMsg);
+  bool startSvoRecording(std::string & errMsg);
   void stopSvoRecording();
   // <---- Initialization functions
 
@@ -176,40 +165,51 @@ protected:
   void threadFunc_pubVideoDepth();
   void callback_pubFusedPc();
   void callback_pubPaths();
-  rcl_interfaces::msg::SetParametersResult callback_paramChange(std::vector<rclcpp::Parameter> parameters);
-  void callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat);
+  rcl_interfaces::msg::SetParametersResult callback_paramChange(
+    std::vector<rclcpp::Parameter> parameters);
+  void callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper & stat);
 
-  void callback_resetOdometry(const std::shared_ptr<rmw_request_id_t> request_header,
-                              const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-                              std::shared_ptr<std_srvs::srv::Trigger_Response> res);
-  void callback_resetPosTracking(const std::shared_ptr<rmw_request_id_t> request_header,
-                                 const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-                                 std::shared_ptr<std_srvs::srv::Trigger_Response> res);
-  void callback_setPose(const std::shared_ptr<rmw_request_id_t> request_header,
-                        const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
-                        std::shared_ptr<zed_interfaces::srv::SetPose_Response> res);
-  void callback_enableObjDet(const std::shared_ptr<rmw_request_id_t> request_header,
-                             const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
-                             std::shared_ptr<std_srvs::srv::SetBool_Response> res);
-  void callback_enableMapping(const std::shared_ptr<rmw_request_id_t> request_header,
-                              const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
-                              std::shared_ptr<std_srvs::srv::SetBool_Response> res);
-  void callback_startSvoRec(const std::shared_ptr<rmw_request_id_t> request_header,
-                            const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
-                            std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
-  void callback_stopSvoRec(const std::shared_ptr<rmw_request_id_t> request_header,
-                           const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-                           std::shared_ptr<std_srvs::srv::Trigger_Response> res);
-  void callback_pauseSvoInput(const std::shared_ptr<rmw_request_id_t> request_header,
-                              const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-                              std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_resetOdometry(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_resetPosTracking(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_setPose(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
+    std::shared_ptr<zed_interfaces::srv::SetPose_Response> res);
+  void callback_enableObjDet(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+    std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+  void callback_enableMapping(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+    std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+  void callback_startSvoRec(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
+    std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
+  void callback_stopSvoRec(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_pauseSvoInput(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_clickedPoint(const geometry_msgs::msg::PointStamped::SharedPtr msg);
-  void callback_setRoi(const std::shared_ptr<rmw_request_id_t> request_header,
-                        const std::shared_ptr<zed_interfaces::srv::SetROI_Request> req,
-                        std::shared_ptr<zed_interfaces::srv::SetROI_Response> res);
-  void callback_resetRoi(const std::shared_ptr<rmw_request_id_t> request_header,
-                              const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-                              std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_setRoi(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<zed_interfaces::srv::SetROI_Request> req,
+    std::shared_ptr<zed_interfaces::srv::SetROI_Response> res);
+  void callback_resetRoi(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   // <---- Callbacks
 
   // ----> Thread functions
@@ -219,16 +219,17 @@ protected:
   // <---- Thread functions
 
   // ----> Publishing functions
-  bool publishVideoDepth(rclcpp::Time& out_pub_ts);
+  bool publishVideoDepth(rclcpp::Time & out_pub_ts);
 
-  void publishImageWithInfo(sl::Mat& img, image_transport::CameraPublisher& pubImg, camInfoMsgPtr& camInfoMsg,
-                            std::string imgFrameId, rclcpp::Time t);
-  void publishDepthMapWithInfo(sl::Mat& depth, rclcpp::Time t);
+  void publishImageWithInfo(
+    sl::Mat & img, image_transport::CameraPublisher & pubImg, camInfoMsgPtr & camInfoMsg,
+    std::string imgFrameId, rclcpp::Time t);
+  void publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t);
   void publishDisparity(sl::Mat disparity, rclcpp::Time t);
   void publishPointCloud();
   void publishImuFrameAndTopic();
 
-  void publishOdom(tf2::Transform& odom2baseTransf, sl::Pose& slPose, rclcpp::Time t);
+  void publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t);
   void publishPose();
   void publishTFs(rclcpp::Time t);
   void publishOdomTF(rclcpp::Time t);
@@ -258,13 +259,15 @@ protected:
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
 
-  template <typename T>
-  void getParam(std::string paramName, T defValue, T& outVal, std::string log_info = std::string(),
-                bool dynamic = false);
+  template<typename T>
+  void getParam(
+    std::string paramName, T defValue, T & outVal, std::string log_info = std::string(),
+    bool dynamic = false);
 
   // Region of Interest
-  std::string getParam(std::string paramName, std::vector<std::vector<float>>& outVal);
-  std::string parseRoiPoly(const std::vector<std::vector<float>>& in_poly, std::vector<sl::float2>& out_poly);
+  std::string getParam(std::string paramName, std::vector<std::vector<float>> & outVal);
+  std::string parseRoiPoly(
+    const std::vector<std::vector<float>> & in_poly, std::vector<sl::float2> & out_poly);
   void resetRoi();
   // <---- Utility functions
 
@@ -304,18 +307,21 @@ private:
   bool mSvoRealtime = false;
   int mVerbose = 1;
   int mGpuId = -1;
-  sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720;            // Default resolution: RESOLUTION_HD720
-  sl::DEPTH_MODE mDepthQuality = sl::DEPTH_MODE::PERFORMANCE;  // Default depth mode: DEPTH_MODE_PERFORMANCE
-  bool mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE se for )
+  sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720;  // Default resolution: RESOLUTION_HD720
+  sl::DEPTH_MODE mDepthQuality =
+    sl::DEPTH_MODE::PERFORMANCE;  // Default depth mode: DEPTH_MODE_PERFORMANCE
+  bool mDepthDisabled =
+    false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE se for )
   bool mDepthStabilization = true;
   std::vector<std::vector<float>> mRoiParam;
   int mCamTimeoutSec = 5;
   int mMaxReconnectTemp = 5;
   bool mCameraSelfCalib = true;
   bool mCameraFlip = false;
-  sl::SENSING_MODE mDepthSensingMode = sl::SENSING_MODE::STANDARD;  // Default Sensing mode: SENSING_MODE_STANDARD
-  bool mOpenniDepthMode =
-      false;  // 16 bit UC data in mm else 32F in m, for more info -> http://www.ros.org/reps/rep-0118.html
+  sl::SENSING_MODE mDepthSensingMode =
+    sl::SENSING_MODE::STANDARD;   // Default Sensing mode: SENSING_MODE_STANDARD
+  bool mOpenniDepthMode = false;  // 16 bit UC data in mm else 32F in m,
+                                  // for more info -> http://www.ros.org/reps/rep-0118.html
   double mCamMinDepth = 0.2;
   double mCamMaxDepth = 10.0;
   bool mSensCameraSync = false;
@@ -337,7 +343,7 @@ private:
   double mPathPubRate = 2.0;
   double mTfOffset = 0.05;
   double mPosTrackDepthMinRange = 0.0;
-  bool mSetGravityAsOrigin=false;
+  bool mSetGravityAsOrigin = false;
   int mPathMaxCount = -1;
   bool mPublishPoseCov = true;
   bool mMappingEnabled = false;
@@ -638,4 +644,4 @@ private:
 
 }  // namespace stereolabs
 
-#endif  // ZED_CAMERA_COMPONENT_HPP
+#endif  // ZED_CAMERA_COMPONENT_HPP_

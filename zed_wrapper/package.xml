@@ -1,41 +1,29 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>zed_wrapper</name>
-  <version>0.2.0</version>
-  <description>zed_wrapper loading zed_components in a single process</description>
-  <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
-
-	<license>MIT</license>
-
+	<name>zed_wrapper</name>
+	<version>0.2.0</version>
+	<description>zed_wrapper loading zed_components in a single process</description>
+	<maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
+	<license>Apache License 2.0</license>
 	<url type="website">https://www.stereolabs.com/</url>
 	<url type="repository">https://github.com/stereolabs/zed-ros2-wrapper</url>
 	<url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
-
 	<buildtool_depend>ament_cmake</buildtool_depend>
-
-  <build_depend>zed_components</build_depend>
-  <build_depend>rclcpp</build_depend>
-  <build_depend>rclcpp_components</build_depend>
-  <build_depend>rcutils</build_depend>
-
-  <exec_depend>zed_components</exec_depend>
-  <exec_depend>launch_ros</exec_depend>
-  <exec_depend>rclcpp</exec_depend>
-  <exec_depend>rclcpp_components</exec_depend>
-  <exec_depend>rcutils</exec_depend>
-  <exec_depend>xacro</exec_depend>
-
-  <test_depend>ament_cmake_pytest</test_depend>
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
-  <test_depend>launch</test_depend>
-  <test_depend>launch_testing</test_depend>
-  <test_depend>launch_testing_ros</test_depend>
-  <test_depend>launch_testing_ament_cmake</test_depend>
-  <test_depend>rmw_implementation_cmake</test_depend>
-
-  <export>
-    <build_type>ament_cmake</build_type>
-  </export>
+	<build_depend>zed_components</build_depend>
+	<build_depend>rclcpp</build_depend>
+	<build_depend>rclcpp_components</build_depend>
+	<build_depend>rcutils</build_depend>
+	<exec_depend>zed_components</exec_depend>
+	<exec_depend>launch_ros</exec_depend>
+	<exec_depend>rclcpp</exec_depend>
+	<exec_depend>rclcpp_components</exec_depend>
+	<exec_depend>rcutils</exec_depend>
+	<exec_depend>xacro</exec_depend>
+	<test_depend>ament_lint_auto</test_depend>
+	<test_depend>ament_lint_common</test_depend>
+	<test_depend>ament_cmake_clang_format</test_depend>
+	<export>
+		<build_type>ament_cmake</build_type>
+	</export>
 </package>

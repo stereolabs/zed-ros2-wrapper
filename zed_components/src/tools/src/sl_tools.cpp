@@ -1,37 +1,27 @@
-/********************************************************************************
- * MIT License
- *
- * Copyright (c) 2020 Stereolabs
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- ********************************************************************************/
-
-#include "sl_tools.h"
-
-#include <sstream>
-#include <sys/stat.h>
-#include <vector>
-
-#include <sensor_msgs/msg/image.hpp>
-#include <sensor_msgs/image_encodings.hpp>
+// Copyright 2022 Stereolabs
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #include <float.h>
+#include <sys/stat.h>
+
+#include <sstream>
+#include <vector>
+
+#include <sensor_msgs/image_encodings.hpp>
+#include <sensor_msgs/msg/image.hpp>
+
+#include "sl_tools.hpp"
 
 namespace sl_tools
 {
@@ -40,11 +30,11 @@ int checkCameraReady(unsigned int serial_number)
   int id = -1;
   auto f = sl::Camera::getDeviceList();
 
-  for (auto& it : f)
-    if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::AVAILABLE)
-    {
+  for (auto & it : f) {
+    if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::AVAILABLE) {
       id = it.id;
     }
+  }
 
   return id;
 }
@@ -54,10 +44,8 @@ sl::DeviceProperties getZEDFromSN(unsigned int serial_number)
   sl::DeviceProperties prop;
   auto f = sl::Camera::getDeviceList();
 
-  for (auto& it : f)
-  {
-    if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::AVAILABLE)
-    {
+  for (auto & it : f) {
+    if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::AVAILABLE) {
       prop = it;
     }
   }
@@ -69,14 +57,11 @@ std::vector<float> convertRodrigues(sl::float3 r)
 {
   float theta = sqrt(r.x * r.x + r.y * r.y + r.z * r.z);
 
-  std::vector<float> R = { 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+  std::vector<float> R = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 
-  if (theta < DBL_EPSILON)
-  {
+  if (theta < DBL_EPSILON) {
     return R;
-  }
-  else
-  {
+  } else {
     float c = cos(theta);
     float s = sin(theta);
     float c1 = 1.f - c;
@@ -84,9 +69,9 @@ std::vector<float> convertRodrigues(sl::float3 r)
 
     r *= itheta;
 
-    std::vector<float> rrt = { 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+    std::vector<float> rrt = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 
-    float* p = rrt.data();
+    float * p = rrt.data();
     p[0] = r.x * r.x;
     p[1] = r.x * r.y;
     p[2] = r.x * r.z;
@@ -97,7 +82,7 @@ std::vector<float> convertRodrigues(sl::float3 r)
     p[7] = r.y * r.z;
     p[8] = r.z * r.z;
 
-    std::vector<float> r_x = { 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+    std::vector<float> r_x = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     p = r_x.data();
     p[0] = 0;
     p[1] = -r.z;
@@ -134,21 +119,20 @@ std::vector<float> convertRodrigues(sl::float3 r)
   return R;
 }
 
-bool file_exist(const std::string& name)
+bool file_exist(const std::string & name)
 {
   struct stat buffer;
-  return (stat(name.c_str(), &buffer) == 0);
+  return stat(name.c_str(), &buffer) == 0;
 }
 
-std::string getSDKVersion(int& major, int& minor, int& sub_minor)
+std::string getSDKVersion(int & major, int & minor, int & sub_minor)
 {
   std::string ver = sl::Camera::getSDKVersion().c_str();
   std::vector<std::string> strings;
   std::istringstream f(ver);
   std::string s;
 
-  while (getline(f, s, '.'))
-  {
+  while (getline(f, s, '.')) {
     strings.push_back(s);
   }
 
@@ -156,8 +140,7 @@ std::string getSDKVersion(int& major, int& minor, int& sub_minor)
   minor = 0;
   sub_minor = 0;
 
-  switch (strings.size())
-  {
+  switch (strings.size()) {
     case 3:
       sub_minor = std::stoi(strings[2]);
 
@@ -179,7 +162,8 @@ rclcpp::Time slTime2Ros(sl::Timestamp t, rcl_clock_type_t clock_type)
   return rclcpp::Time(sec, nsec, clock_type);
 }
 
-std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat& img, std::string frameId, rclcpp::Time t)
+std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(
+  sl::Mat & img, std::string frameId, rclcpp::Time t)
 {
   std::shared_ptr<sensor_msgs::msg::Image> imgMessage = std::make_shared<sensor_msgs::msg::Image>();
 
@@ -189,63 +173,62 @@ std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat& img, std::string
   imgMessage->width = img.getWidth();
 
   int num = 1;  // for endianness detection
-  imgMessage->is_bigendian = !(*(char*)&num == 1);
+  imgMessage->is_bigendian = !(*reinterpret_cast<char *>(&num) == 1);
 
   imgMessage->step = img.getStepBytes();
 
   size_t size = imgMessage->step * imgMessage->height;
 
-  uint8_t* data_ptr = nullptr;
+  uint8_t * data_ptr = nullptr;
 
   sl::MAT_TYPE dataType = img.getDataType();
 
-  switch (dataType)
-  {
+  switch (dataType) {
     case sl::MAT_TYPE::F32_C1: /**< float 1 channel.*/
       imgMessage->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
-      data_ptr = (uint8_t*)img.getPtr<sl::float1>();
+      data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::float1>());
       imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::F32_C2: /**< float 2 channels.*/
       imgMessage->encoding = sensor_msgs::image_encodings::TYPE_32FC2;
-      data_ptr = (uint8_t*)img.getPtr<sl::float2>();
+      data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::float2>());
       imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::F32_C3: /**< float 3 channels.*/
       imgMessage->encoding = sensor_msgs::image_encodings::TYPE_32FC3;
-      data_ptr = (uint8_t*)img.getPtr<sl::float3>();
+      data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::float3>());
       imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::F32_C4: /**< float 4 channels.*/
       imgMessage->encoding = sensor_msgs::image_encodings::TYPE_32FC4;
-      data_ptr = (uint8_t*)img.getPtr<sl::float4>();
+      data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::float4>());
       imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::U8_C1: /**< unsigned char 1 channel.*/
       imgMessage->encoding = sensor_msgs::image_encodings::MONO8;
-      data_ptr = (uint8_t*)img.getPtr<sl::uchar1>();
+      data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::uchar1>());
       imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::U8_C2: /**< unsigned char 2 channels.*/
       imgMessage->encoding = sensor_msgs::image_encodings::TYPE_8UC2;
-      data_ptr = (uint8_t*)img.getPtr<sl::uchar2>();
+      data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::uchar2>());
       imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::U8_C3: /**< unsigned char 3 channels.*/
       imgMessage->encoding = sensor_msgs::image_encodings::BGR8;
-      data_ptr = (uint8_t*)img.getPtr<sl::uchar3>();
+      data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::uchar3>());
       imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::U8_C4: /**< unsigned char 4 channels.*/
       imgMessage->encoding = sensor_msgs::image_encodings::BGRA8;
-      data_ptr = (uint8_t*)img.getPtr<sl::uchar4>();
+      data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::uchar4>());
       imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
   }
@@ -253,13 +236,14 @@ std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat& img, std::string
   return imgMessage;
 }
 
-std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(sl::Mat& left, sl::Mat& right, std::string frameId,
-                                                        rclcpp::Time t)
+std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
+  sl::Mat & left, sl::Mat & right, std::string frameId, rclcpp::Time t)
 {
   std::shared_ptr<sensor_msgs::msg::Image> imgMsgPtr = std::make_shared<sensor_msgs::msg::Image>();
 
-  if (left.getWidth() != right.getWidth() || left.getHeight() != right.getHeight() ||
-      left.getChannels() != right.getChannels() || left.getDataType() != right.getDataType())
+  if (
+    left.getWidth() != right.getWidth() || left.getHeight() != right.getHeight() ||
+    left.getChannels() != right.getChannels() || left.getDataType() != right.getDataType())
   {
     return imgMsgPtr;
   }
@@ -270,7 +254,7 @@ std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(sl::Mat& left, sl::Mat& 
   imgMsgPtr->width = 2 * left.getWidth();
 
   int num = 1;  // for endianness detection
-  imgMsgPtr->is_bigendian = !(*(char*)&num == 1);
+  imgMsgPtr->is_bigendian = !(*reinterpret_cast<char *>(&num) == 1);
 
   imgMsgPtr->step = 2 * left.getStepBytes();
 
@@ -280,72 +264,70 @@ std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(sl::Mat& left, sl::Mat& 
   sl::MAT_TYPE dataType = left.getDataType();
 
   int dataSize = 0;
-  char* srcL;
-  char* srcR;
+  char * srcL;
+  char * srcR;
 
-  switch (dataType)
-  {
+  switch (dataType) {
     case sl::MAT_TYPE::F32_C1: /**< float 1 channel.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
       dataSize = sizeof(float);
-      srcL = (char*)left.getPtr<sl::float1>();
-      srcR = (char*)right.getPtr<sl::float1>();
+      srcL = reinterpret_cast<char *>(left.getPtr<sl::float1>());
+      srcR = reinterpret_cast<char *>(right.getPtr<sl::float1>());
       break;
 
     case sl::MAT_TYPE::F32_C2: /**< float 2 channels.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::TYPE_32FC2;
       dataSize = 2 * sizeof(float);
-      srcL = (char*)left.getPtr<sl::float2>();
-      srcR = (char*)right.getPtr<sl::float2>();
+      srcL = reinterpret_cast<char *>(left.getPtr<sl::float2>());
+      srcR = reinterpret_cast<char *>(right.getPtr<sl::float2>());
       break;
 
     case sl::MAT_TYPE::F32_C3: /**< float 3 channels.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::TYPE_32FC3;
       dataSize = 3 * sizeof(float);
-      srcL = (char*)left.getPtr<sl::float3>();
-      srcR = (char*)right.getPtr<sl::float3>();
+      srcL = reinterpret_cast<char *>(left.getPtr<sl::float3>());
+      srcR = reinterpret_cast<char *>(right.getPtr<sl::float3>());
       break;
 
     case sl::MAT_TYPE::F32_C4: /**< float 4 channels.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::TYPE_32FC4;
       dataSize = 4 * sizeof(float);
-      srcL = (char*)left.getPtr<sl::float4>();
-      srcR = (char*)right.getPtr<sl::float4>();
+      srcL = reinterpret_cast<char *>(left.getPtr<sl::float4>());
+      srcR = reinterpret_cast<char *>(right.getPtr<sl::float4>());
       break;
 
     case sl::MAT_TYPE::U8_C1: /**< unsigned char 1 channel.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::MONO8;
       dataSize = sizeof(char);
-      srcL = (char*)left.getPtr<sl::uchar1>();
-      srcR = (char*)right.getPtr<sl::uchar1>();
+      srcL = reinterpret_cast<char *>(left.getPtr<sl::uchar1>());
+      srcR = reinterpret_cast<char *>(right.getPtr<sl::uchar1>());
       break;
 
     case sl::MAT_TYPE::U8_C2: /**< unsigned char 2 channels.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::TYPE_8UC2;
       dataSize = 2 * sizeof(char);
-      srcL = (char*)left.getPtr<sl::uchar2>();
-      srcR = (char*)right.getPtr<sl::uchar2>();
+      srcL = reinterpret_cast<char *>(left.getPtr<sl::uchar2>());
+      srcR = reinterpret_cast<char *>(right.getPtr<sl::uchar2>());
       break;
 
     case sl::MAT_TYPE::U8_C3: /**< unsigned char 3 channels.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::BGR8;
       dataSize = 3 * sizeof(char);
-      srcL = (char*)left.getPtr<sl::uchar3>();
-      srcR = (char*)right.getPtr<sl::uchar3>();
+      srcL = reinterpret_cast<char *>(left.getPtr<sl::uchar3>());
+      srcR = reinterpret_cast<char *>(right.getPtr<sl::uchar3>());
       break;
 
     case sl::MAT_TYPE::U8_C4: /**< unsigned char 4 channels.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::BGRA8;
       dataSize = 4 * sizeof(char);
-      srcL = (char*)left.getPtr<sl::uchar4>();
-      srcR = (char*)right.getPtr<sl::uchar4>();
+      srcL = reinterpret_cast<char *>(left.getPtr<sl::uchar4>());
+      srcR = reinterpret_cast<char *>(right.getPtr<sl::uchar4>());
       break;
   }
 
-  char* dest = (char*)(&imgMsgPtr->data[0]);
+  char * dest = reinterpret_cast<char *>((&imgMsgPtr->data[0]));
 
-  for (int i = 0; i < left.getHeight(); i++)
-  {
+  for (int i = 0; i < left.getHeight(); i++) {
     memcpy(dest, srcL, left.getStepBytes());
     dest += left.getStepBytes();
     memcpy(dest, srcR, right.getStepBytes());
@@ -360,13 +342,11 @@ std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(sl::Mat& left, sl::Mat& 
 
 std::string qos2str(rmw_qos_history_policy_t qos)
 {
-  if (qos == RMW_QOS_POLICY_HISTORY_KEEP_LAST)
-  {
+  if (qos == RMW_QOS_POLICY_HISTORY_KEEP_LAST) {
     return "KEEP_LAST";
   }
 
-  if (qos == RMW_QOS_POLICY_HISTORY_KEEP_ALL)
-  {
+  if (qos == RMW_QOS_POLICY_HISTORY_KEEP_ALL) {
     return "KEEP_ALL";
   }
 
@@ -375,13 +355,11 @@ std::string qos2str(rmw_qos_history_policy_t qos)
 
 std::string qos2str(rmw_qos_reliability_policy_t qos)
 {
-  if (qos == RMW_QOS_POLICY_RELIABILITY_RELIABLE)
-  {
+  if (qos == RMW_QOS_POLICY_RELIABILITY_RELIABLE) {
     return "RELIABLE";
   }
 
-  if (qos == RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
-  {
+  if (qos == RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT) {
     return "BEST_EFFORT";
   }
 
@@ -390,68 +368,66 @@ std::string qos2str(rmw_qos_reliability_policy_t qos)
 
 std::string qos2str(rmw_qos_durability_policy_t qos)
 {
-  if (qos == RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL)
-  {
+  if (qos == RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL) {
     return "TRANSIENT_LOCAL";
   }
 
-  if (qos == RMW_QOS_POLICY_DURABILITY_VOLATILE)
-  {
+  if (qos == RMW_QOS_POLICY_DURABILITY_VOLATILE) {
     return "VOLATILE";
   }
 
   return "Unknown QoS value";
 }
 
-inline bool contains(std::vector<sl::float2>& poly, sl::float2 test)
+inline bool contains(std::vector<sl::float2> & poly, sl::float2 test)
 {
   int i, j;
   bool c = false;
   const int nvert = poly.size();
-  for (i = 0, j = nvert - 1; i < nvert; j = i++)
-  {
-    if (((poly[i].y > test.y) != (poly[j].y > test.y)) &&
-        (test.x < (poly[j].x - poly[i].x) * (test.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x))
+  for (i = 0, j = nvert - 1; i < nvert; j = i++) {
+    if (
+      ((poly[i].y > test.y) != (poly[j].y > test.y)) &&
+      (test.x <
+      (poly[j].x - poly[i].x) * (test.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x))
+    {
       c = !c;
+    }
   }
   return c;
 }
 
-bool generateROI(const std::vector<sl::float2>& poly, sl::Mat& out_roi)
+bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi)
 {
-  if (poly.size() < 3)
-  {
+  if (poly.size() < 3) {
     out_roi = sl::Mat();
     return false;
   }
 
   // Set each pixel to valid
-  //std::cerr << "Setting ROI mask to full valid" << std::endl;
+  // std::cerr << "Setting ROI mask to full valid" << std::endl;
   out_roi.setTo<sl::uchar1>(255, sl::MEM::CPU);
 
   // ----> De-normalize coordinates
   size_t w = out_roi.getWidth();
   size_t h = out_roi.getHeight();
 
-  //std::cerr << "De-normalize coordinates" << std::endl;
-  //std::cerr << "Image resolution: " << w << "x" << h << std::endl;
+  // std::cerr << "De-normalize coordinates" << std::endl;
+  // std::cerr << "Image resolution: " << w << "x" << h << std::endl;
   std::vector<sl::float2> poly_img;
   size_t idx = 0;
-  for (auto& it : poly)
-  {
+  for (auto & it : poly) {
     sl::float2 pt;
     pt.x = it.x * w;
     pt.y = it.y * h;
 
-    if (pt.x >= w)
+    if (pt.x >= w) {
       pt.x = (w - 1);
-    if (pt.y >= h)
+    }
+    if (pt.y >= h) {
       pt.y = (h - 1);
+    }
 
     poly_img.push_back(pt);
-
-    //std::cerr << "Normalized point #" << idx << ": " << poly[idx].x << "," << poly[idx].y << std::endl;
-    //std::cerr << "De-normalized point #" << idx << ": " << poly_img[idx].x << ", " << poly_img[idx].y << std::endl;
 
     ++idx;
   }
@@ -460,40 +436,35 @@ bool generateROI(const std::vector<sl::float2>& poly, sl::Mat& out_roi)
   // ----> Unset ROI pixels outside the polygon
   std::cerr << "Unset ROI pixels outside the polygon" << std::endl;
   std::cerr << "Set mask" << std::endl;
-  for (int v = 0; v < h; v++)
-  {
-    for (int u = 0; u < w; u++)
-    {
-      if (!contains(poly_img, sl::float2(u, v)))
-      {
+  for (int v = 0; v < h; v++) {
+    for (int u = 0; u < w; u++) {
+      if (!contains(poly_img, sl::float2(u, v))) {
         out_roi.setValue<sl::uchar1>(u, v, 0, sl::MEM::CPU);
       }
     }
   }
-  //std::cerr << "Mask ready" << std::endl;
-  //std::cerr << "ROI resolution: " << w << "x" << h << std::endl;
+  // std::cerr << "Mask ready" << std::endl;
+  // std::cerr << "ROI resolution: " << w << "x" << h << std::endl;
   // <---- Unset ROI pixels outside the polygon
 
   return true;
 }
 
-std::vector<std::vector<float>> parseStringVector(const std::string& input, std::string& error_return)
+std::vector<std::vector<float>> parseStringVector(
+  const std::string & input, std::string & error_return)
 {
   std::vector<std::vector<float>> result;
 
   std::stringstream input_ss(input);
   int depth = 0;
   std::vector<float> current_vector;
-  while (!!input_ss && !input_ss.eof())
-  {
-    switch (input_ss.peek())
-    {
+  while (!!input_ss && !input_ss.eof()) {
+    switch (input_ss.peek()) {
       case EOF:
         break;
       case '[':
         depth++;
-        if (depth > 2)
-        {
+        if (depth > 2) {
           error_return = "Array depth greater than 2";
           return result;
         }
@@ -502,14 +473,12 @@ std::vector<std::vector<float>> parseStringVector(const std::string& input, std:
         break;
       case ']':
         depth--;
-        if (depth < 0)
-        {
+        if (depth < 0) {
           error_return = "More close ] than open [";
           return result;
         }
         input_ss.get();
-        if (depth == 1)
-        {
+        if (depth == 1) {
           result.push_back(current_vector);
         }
         break;
@@ -519,8 +488,7 @@ std::vector<std::vector<float>> parseStringVector(const std::string& input, std:
         input_ss.get();
         break;
       default:  // All other characters should be part of the numbers.
-        if (depth != 2)
-        {
+        if (depth != 2) {
           std::stringstream err_ss;
           err_ss << "Numbers at depth other than 2. Char was '" << char(input_ss.peek()) << "'.";
           error_return = err_ss.str();
@@ -528,20 +496,16 @@ std::vector<std::vector<float>> parseStringVector(const std::string& input, std:
         }
         float value;
         input_ss >> value;
-        if (!!input_ss)
-        {
+        if (!!input_ss) {
           current_vector.push_back(value);
         }
         break;
     }
   }
 
-  if (depth != 0)
-  {
+  if (depth != 0) {
     error_return = "Unterminated vector string.";
-  }
-  else
-  {
+  } else {
     error_return = "";
   }
 
@@ -571,13 +535,11 @@ double SmartMean::addValue(double val)
 
 bool isZED2OrZED2i(sl::MODEL camModel)
 {
-  if (camModel == sl::MODEL::ZED2)
-  {
+  if (camModel == sl::MODEL::ZED2) {
     return true;
   }
 #if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
-  if (camModel == sl::MODEL::ZED2i)
-  {
+  if (camModel == sl::MODEL::ZED2i) {
     return true;
   }
 #endif
@@ -586,19 +548,16 @@ bool isZED2OrZED2i(sl::MODEL camModel)
 
 bool isObjDetAvailable(sl::MODEL camModel)
 {
-  if (camModel == sl::MODEL::ZED2)
-  {
+  if (camModel == sl::MODEL::ZED2) {
     return true;
   }
 #if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
-  if (camModel == sl::MODEL::ZED2i)
-  {
+  if (camModel == sl::MODEL::ZED2i) {
     return true;
   }
 #endif
 #if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 6
-  if (camModel == sl::MODEL::ZED_M)
-  {
+  if (camModel == sl::MODEL::ZED_M) {
     return true;
   }
 #endif
@@ -618,7 +577,8 @@ void StopWatch::tic()
 double StopWatch::toc()
 {
   auto now = std::chrono::steady_clock::now();
-  double elapsed_usec = std::chrono::duration_cast<std::chrono::microseconds>(now - mStartTime).count();
+  double elapsed_usec =
+    std::chrono::duration_cast<std::chrono::microseconds>(now - mStartTime).count();
   return elapsed_usec / 1e6;
 }
 

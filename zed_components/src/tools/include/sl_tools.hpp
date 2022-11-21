@@ -1,55 +1,27 @@
-/********************************************************************************
- * MIT License
- *
- * Copyright (c) 2020 Stereolabs
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- ********************************************************************************/
+// Copyright 2022 Stereolabs
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-#ifndef SL_TOOLS_H
-#define SL_TOOLS_H
+#ifndef SL_TOOLS_HPP_
+#define SL_TOOLS_HPP_
 
-///////////////////////////////////////////////////////////////////////////
-//
-// Copyright (c) 2019, STEREOLABS.
-//
-// All rights reserved.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-///////////////////////////////////////////////////////////////////////////
-
+#include <chrono>
+#include <memory>
+#include <string>
+#include <vector>
 #include <rclcpp/clock.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sl/Camera.hpp>
-#include <string>
-#include <chrono>
 
 namespace sl_tools
 {
@@ -68,14 +40,14 @@ std::vector<float> convertRodrigues(sl::float3 r);
 /*! \brief Test if a file exist
  * \param name : the path to the file
  */
-bool file_exist(const std::string& name);
+bool file_exist(const std::string & name);
 
 /*! \brief Get Stereolabs SDK version
  * \param major : major value for version
  * \param minor : minor value for version
  * \param sub_minor _ sub_minor value for version
  */
-std::string getSDKVersion(int& major, int& minor, int& sub_minor);
+std::string getSDKVersion(int & major, int & minor, int & sub_minor);
 
 /*! \brief Convert StereoLabs timestamp to ROS timestamp
  *  \param t : Stereolabs timestamp to be converted
@@ -98,7 +70,8 @@ bool isObjDetAvailable(sl::MODEL camModel);
  * \param frameId : the id of the reference frame of the image
  * \param t : rclcpp ros::Time to stamp the image
  */
-std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat& img, std::string frameId, rclcpp::Time t);
+std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(
+  sl::Mat & img, std::string frameId, rclcpp::Time t);
 
 /*! \brief sl::Mat to ros message conversion
  * \param left : the left image to convert and stitch
@@ -106,8 +79,8 @@ std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(sl::Mat& img, std::string
  * \param frameId : the id of the reference frame of the image
  * \param t : rclcpp rclcpp::Time to stamp the image
  */
-std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(sl::Mat& left, sl::Mat& right, std::string frameId,
-                                                        rclcpp::Time t);
+std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
+  sl::Mat & left, sl::Mat & right, std::string frameId, rclcpp::Time t);
 
 /*! \brief qos value to string
  * \param qos the value to convert
@@ -128,13 +101,14 @@ std::string qos2str(rmw_qos_durability_policy_t qos);
  *  \param poly the ROI polygon. Coordinates must be normalized from 0.0 to 1.0
  *  \param out_roi the `sl::Mat` containing the ROI
  */
-bool generateROI( const std::vector<sl::float2>& poly, sl::Mat& out_roi );
+bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi);
 
 /*! \brief Parse a vector of vector of floats from a string.
  *  \param input
  *  \param error_return
  *  Syntax is [[1.0, 2.0], [3.3, 4.4, 5.5], ...] */
-std::vector<std::vector<float>> parseStringVector(const std::string& input, std::string& error_return);
+std::vector<std::vector<float>> parseStringVector(
+  const std::string & input, std::string & error_return);
 
 /*!
  * \brief The CSmartMean class is used to
@@ -146,7 +120,7 @@ std::vector<std::vector<float>> parseStringVector(const std::string& input, std:
 class SmartMean
 {
 public:
-  SmartMean(int winSize);
+  explicit SmartMean(int winSize);
 
   int getValCount()
   {
@@ -159,11 +133,11 @@ public:
   }
 
   /*!
-   * \brief addValue
-   * Add a value to the sequence
-   * \param val value to be added
-   * \return mean value
-   */
+     * \brief addValue
+     * Add a value to the sequence
+     * \param val value to be added
+     * \return mean value
+     */
   double addValue(double val);
 
 private:
@@ -184,7 +158,7 @@ class StopWatch
 {
 public:
   StopWatch();
-  ~StopWatch(){};
+  ~StopWatch() {}
 
   void tic();    //!< Set the beginning time
   double toc();  //!< Returns the seconds elapsed from the last tic
@@ -195,4 +169,4 @@ private:
 
 }  // namespace sl_tools
 
-#endif  // SL_TOOLS_H
+#endif  // SL_TOOLS_HPP_

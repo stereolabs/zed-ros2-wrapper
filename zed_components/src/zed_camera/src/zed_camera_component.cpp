@@ -5275,7 +5275,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
   size_t size = openniDepthMsg->step * openniDepthMsg->height;
   openniDepthMsg->data.resize(size);
 
-  uint16_t * data = Use reinterpret_cast<uint16_t *>(&openniDepthMsg->data[0]);
+  uint16_t * data = reinterpret_cast<uint16_t *>(&openniDepthMsg->data[0]);
 
   int dataSize = openniDepthMsg->width * openniDepthMsg->height;
   sl::float1 * depthDataPtr = depth.getPtr<sl::float1>();

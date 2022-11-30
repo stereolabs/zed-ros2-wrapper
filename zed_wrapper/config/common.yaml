@@ -70,6 +70,7 @@
             area_memory_db_path: ""
             area_memory: true # Enable to detect loop closure
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
+            set_as_static: false # If 'true' the camera will be static and not move in the environment
             set_gravity_as_origin: false # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
             floor_alignment: false # Enable to automatically calculate camera/floor offset
             initial_base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial position of the `base_frame` -> [X, Y, Z, R, P, Y]

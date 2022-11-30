@@ -1048,6 +1048,10 @@ void ZedCamera::getPosTrackingParams()
   getParam(
     "pos_tracking.area_memory_db_path", mAreaMemoryDbPath, mAreaMemoryDbPath,
     " * Area Memory DB: ");
+  getParam("pos_tracking.set_as_static", mSetAsStatic, mSetAsStatic);
+  RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Camera is static: " << (mSetAsStatic ? "TRUE" : "FALSE"));
   getParam("pos_tracking.set_gravity_as_origin", mSetGravityAsOrigin, mSetGravityAsOrigin);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -2771,6 +2775,7 @@ bool ZedCamera::startPosTracking()
   trackParams.initial_world_transform = mInitialPoseSl;
   trackParams.set_floor_as_origin = mFloorAlignment;
   trackParams.depth_min_range = mPosTrackDepthMinRange;
+  trackParams.set_as_static = mSetAsStatic;
   trackParams.set_gravity_as_origin = mSetGravityAsOrigin;
 
   sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);

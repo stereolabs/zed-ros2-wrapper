@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2022-11-30
+----------
+- Added `pos_tracking.set_as_static` parameters for applications with a static camera monitoring a robotics environment. See [PR #122](https://github.com/stereolabs/zed-ros2-wrapper/pull/122 ) Thx @gabor-kovacs
+
 2022-11-18
 ----------
 - Code lint and re-formatting according to [ROS2 code rules](https://docs.ros.org/en/humble/The-ROS2-Project/Contributing/Code-Style-Language-Versions.html).

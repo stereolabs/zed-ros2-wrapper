@@ -464,10 +464,7 @@ void ZedCamera::getGeneralParams()
 
   getParam("general.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
   getParam("general.svo_file", std::string(), mSvoFilepath, " * SVO: ");
-  if (
-    // Patch for Python launch files not allowing empty strings as default parameters
-    mSvoFilepath.compare("live") == 0)
-  {
+  if (mSvoFilepath.compare("live") == 0) {
     mSvoFilepath = "";
   }
 
@@ -1050,8 +1047,8 @@ void ZedCamera::getPosTrackingParams()
     " * Area Memory DB: ");
   getParam("pos_tracking.set_as_static", mSetAsStatic, mSetAsStatic);
   RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Camera is static: " << (mSetAsStatic ? "TRUE" : "FALSE"));
+    get_logger(),
+    " * Camera is static: " << (mSetAsStatic ? "TRUE" : "FALSE"));
   getParam("pos_tracking.set_gravity_as_origin", mSetGravityAsOrigin, mSetGravityAsOrigin);
   RCLCPP_INFO_STREAM(
     get_logger(),

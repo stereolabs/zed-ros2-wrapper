@@ -75,6 +75,8 @@ def launch_setup(context, *args, **kwargs):
     cam_pose = LaunchConfiguration('cam_pose')
 
     publish_urdf = LaunchConfiguration('publish_urdf')
+    publish_tf = LaunchConfiguration('publish_tf')
+    publish_map_tf = LaunchConfiguration('publish_map_tf')
     xacro_path = LaunchConfiguration('xacro_path')
 
     camera_name_val = camera_name.perform(context)
@@ -138,7 +140,10 @@ def launch_setup(context, *args, **kwargs):
                 'general.svo_file': svo_path,
                 'pos_tracking.base_frame': base_frame,
                 'general.zed_id': zed_id,
-                'general.serial_number': serial_number
+                'general.serial_number': serial_number,
+                'pos_tracking.publish_tf': publish_tf,
+                'pos_tracking.publish_map_tf': publish_map_tf,
+                'pos_tracking.publish_imu_tf': publish_tf
             }
         ]
     )
@@ -179,6 +184,14 @@ def generate_launch_description():
                 'publish_urdf',
                 default_value='true',
                 description='Enable URDF processing and starts Robot State Published to propagate static TF.'),
+            DeclareLaunchArgument(
+                'publish_tf',
+                default_value='true',
+                description='Enable publication of the `odom -> base_link` TF.'),
+            DeclareLaunchArgument(
+                'publish_map_tf',
+                default_value='true',
+                description='Enable publication of the `map -> odom` TF. Note: Ignored if `publish_tf` is False.'),
             DeclareLaunchArgument(
                 'xacro_path',
                 default_value=TextSubstitution(text=default_xacro_path),

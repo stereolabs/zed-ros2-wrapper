@@ -53,10 +53,6 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
-
 # if CMAKE_BUILD_TYPE is not specified, take 'Release' as default
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -69,6 +65,7 @@ endif()
 
 if(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
   #message(" * Release with Debug Info Mode")
+  add_compile_options(-Wall -Wextra -Wpedantic)
   add_compile_options(-Wno-deprecated-declarations)
 endif()
 

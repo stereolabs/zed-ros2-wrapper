@@ -1,6 +1,18 @@
 LATEST CHANGES
 ==============
 
+2022-12-06
+----------
+- Improved the `zed_camera.launch.py`
+
+  - Added support for `OpaqueFunction` in order to automatically configure the launch file according to the value of the launch parameter `cam_model`.
+  - Changed parameters to set camera pose in launch files. From 6 separated parameters (`cam_pos_x`,`cam_pos_y`,`cam_pos_z`,`cam_roll`,`cam_pitch`,`cam_yaw`) to one single array (`cam_pose`).
+  - Removed the workaround for empty `svo_path` launch parameter values thanks to `TextSubstitution`.
+  - Modified the "display" launch files in [zed-ros2-examples](https://github.com/stereolabs/zed-ros2-examples) to match the new configuration.
+  - Added `publish_tf` and `publish_map_tf` launch parameters useful for multi-camera configuretion or external odometry fusion.
+
+- Added multi-camera example in `zed-ros2-examples` repository.
+
 2022-11-30
 ----------
 - Added `pos_tracking.set_as_static` parameters for applications with a static camera monitoring a robotics environment. See [PR #122](https://github.com/stereolabs/zed-ros2-wrapper/pull/122 ) Thx @gabor-kovacs

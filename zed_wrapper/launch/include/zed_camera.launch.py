@@ -17,14 +17,45 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import (
+    DeclareLaunchArgument,
+    OpaqueFunction
+)
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, Command
+from launch.substitutions import (
+    LaunchConfiguration,
+    Command,
+    TextSubstitution
+)
 from launch_ros.actions import Node
 
+# Set LOG format
+os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = '{time} [{name}] [{severity}] {message}'
 
-def generate_launch_description():
+# ZED Configurations to be loaded by ZED Node
+default_config_common = os.path.join(
+    get_package_share_directory('zed_wrapper'),
+    'config',
+    'common.yaml'
+)
 
+# URDF/xacro file to be loaded by the Robot State Publisher node
+default_xacro_path = os.path.join(
+    get_package_share_directory('zed_wrapper'),
+    'urdf',
+    'zed_descr.urdf.xacro'
+)
+
+
+def parse_array_param(param):
+    str = param.replace('[', '')
+    str = str.replace(']', '')
+    arr = str.split(',')
+
+    return arr
+
+
+def launch_setup(context, *args, **kwargs):
     wrapper_dir = get_package_share_directory('zed_wrapper')
 
     # Launch configuration variables
@@ -35,126 +66,40 @@ def generate_launch_description():
 
     node_name = LaunchConfiguration('node_name')
 
-    config_common_path = LaunchConfiguration('config_common_path')
-    config_camera_path = LaunchConfiguration('config_camera_path')
+    config_common_path = LaunchConfiguration('config_path')
 
     zed_id = LaunchConfiguration('zed_id')
     serial_number = LaunchConfiguration('serial_number')
 
     base_frame = LaunchConfiguration('base_frame')
-    cam_pos_x = LaunchConfiguration('cam_pos_x')
-    cam_pos_y = LaunchConfiguration('cam_pos_y')
-    cam_pos_z = LaunchConfiguration('cam_pos_z')
-    cam_roll = LaunchConfiguration('cam_roll')
-    cam_pitch = LaunchConfiguration('cam_pitch')
-    cam_yaw = LaunchConfiguration('cam_yaw')
+    cam_pose = LaunchConfiguration('cam_pose')
 
     publish_urdf = LaunchConfiguration('publish_urdf')
+    publish_tf = LaunchConfiguration('publish_tf')
+    publish_map_tf = LaunchConfiguration('publish_map_tf')
     xacro_path = LaunchConfiguration('xacro_path')
 
-    # ZED Configurations to be loaded by ZED Node
-    default_config_common = os.path.join(
+    camera_name_val = camera_name.perform(context)
+    camera_model_val = camera_model.perform(context)
+
+    if (camera_name_val == ""):
+        camera_name_val = camera_model_val
+
+    config_camera_path = os.path.join(
         get_package_share_directory('zed_wrapper'),
         'config',
-        'common.yaml'
+        camera_model_val + '.yaml'
     )
 
-    # URDF/xacro file to be loaded by the Robot State Publisher node
-    default_xacro_path = os.path.join(
-        get_package_share_directory('zed_wrapper'),
-        'urdf',
-        'zed_descr.urdf.xacro'
-    )
-
-    # Declare the launch arguments
-    declare_camera_name_cmd = DeclareLaunchArgument(
-        'camera_name',
-        description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.')
-
-    declare_camera_model_cmd = DeclareLaunchArgument(
-        'camera_model',
-        description='The model of the camera. Using a wrong camera model can disable camera features. Valid models: `zed`, `zedm`, `zed2`, `zed2i`.')
-
-    declare_node_name_cmd = DeclareLaunchArgument(
-        'node_name',
-        default_value='zed_node',
-        description='The name of the zed_wrapper node. All the topic will have the same prefix: `/<camera_name>/<node_name>/`')
-
-    declare_config_common_path_cmd = DeclareLaunchArgument(
-        'config_common_path',
-        default_value=default_config_common,
-        description='Path to the `common.yaml` file.')
-
-    declare_config_camera_path_cmd = DeclareLaunchArgument(
-        'config_camera_path',
-        description='Path to the `<camera_model>.yaml` file.')
-
-    declare_zed_id_cmd = DeclareLaunchArgument(
-        'zed_id',
-        default_value='0',
-        description='The index of the camera to be opened. To be used in multi-camera rigs.')
-
-    declare_serial_number_cmd = DeclareLaunchArgument(
-        'serial_number',
-        default_value='0',
-        description='The serial number of the camera to be opened. To be used in multi-camera rigs. Has priority with respect to `zed_id`.')
-
-    declare_publish_urdf_cmd = DeclareLaunchArgument(
-        'publish_urdf',
-        default_value='true',
-        description='Enable URDF processing and starts Robot State Published to propagate static TF.')
-
-    declare_xacro_path_cmd = DeclareLaunchArgument(
-        'xacro_path',
-        default_value=default_xacro_path,
-        description='Path to the camera URDF file as a xacro file.')
-
-    declare_svo_path_cmd = DeclareLaunchArgument(
-        'svo_path',
-        # 'live' used as patch for launch files not allowing empty strings as default parameters
-        default_value='live',
-        description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.')
-
-    declare_base_frame_cmd = DeclareLaunchArgument(
-        'base_frame',
-        default_value='base_link',
-        description='Name of the base link.')
-
-    declare_pos_x_cmd = DeclareLaunchArgument(
-        'cam_pos_x',
-        default_value='0.0',
-        description='Position X of the camera with respect to the base frame.')
-
-    declare_pos_y_cmd = DeclareLaunchArgument(
-        'cam_pos_y',
-        default_value='0.0',
-        description='Position Y of the camera with respect to the base frame.')
-
-    declare_pos_z_cmd = DeclareLaunchArgument(
-        'cam_pos_z',
-        default_value='0.0',
-        description='Position Z of the camera with respect to the base frame.')
-
-    declare_roll_cmd = DeclareLaunchArgument(
-        'cam_roll',
-        default_value='0.0',
-        description='Roll orientation of the camera with respect to the base frame.')
-
-    declare_pitch_cmd = DeclareLaunchArgument(
-        'cam_pitch',
-        default_value='0.0',
-        description='Pitch orientation of the camera with respect to the base frame.')
-
-    declare_yaw_cmd = DeclareLaunchArgument(
-        'cam_yaw',
-        default_value='0.0',
-        description='Yaw orientation of the camera with respect to the base frame.')
+    # Convert 'cam_pose' parameter
+    cam_pose_str = cam_pose.perform(context)
+    cam_pose_array = parse_array_param(cam_pose_str)
 
     # Robot State Publisher node
     rsp_node = Node(
         condition=IfCondition(publish_urdf),
         package='robot_state_publisher',
-        namespace=camera_name,
+        namespace=camera_name_val,
         executable='robot_state_publisher',
         name='zed_state_publisher',
         output='screen',
@@ -162,26 +107,23 @@ def generate_launch_description():
             'robot_description': Command(
                 [
                     'xacro', ' ', xacro_path, ' ',
-                    'camera_name:=', camera_name, ' ',
-                    'camera_model:=', camera_model, ' ',
+                    'camera_name:=', camera_name_val, ' ',
+                    'camera_model:=', camera_model_val, ' ',
                     'base_frame:=', base_frame, ' ',
-                    'cam_pos_x:=', cam_pos_x, ' ',
-                    'cam_pos_y:=', cam_pos_y, ' ',
-                    'cam_pos_z:=', cam_pos_z, ' ',
-                    'cam_roll:=', cam_roll, ' ',
-                    'cam_pitch:=', cam_pitch, ' ',
-                    'cam_yaw:=', cam_yaw
+                    'cam_pos_x:=', cam_pose_array[0], ' ',
+                    'cam_pos_y:=', cam_pose_array[1], ' ',
+                    'cam_pos_z:=', cam_pose_array[2], ' ',
+                    'cam_roll:=', cam_pose_array[3], ' ',
+                    'cam_pitch:=', cam_pose_array[4], ' ',
+                    'cam_yaw:=', cam_pose_array[5]
                 ])
         }]
     )
 
-    # Set LOG format
-    os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = '{time} [{name}] [{severity}] {message}'
-
     # ZED Wrapper node
     zed_wrapper_node = Node(
         package='zed_wrapper',
-        namespace=camera_name,
+        namespace=camera_name_val,
         executable='zed_wrapper',
         name=node_name,
         output='screen',
@@ -193,38 +135,79 @@ def generate_launch_description():
             config_camera_path,  # Camera related parameters
             # Overriding
             {
-                'general.camera_name': camera_name,
-                'general.camera_model': camera_model,
+                'general.camera_name': camera_name_val,
+                'general.camera_model': camera_model_val,
                 'general.svo_file': svo_path,
                 'pos_tracking.base_frame': base_frame,
                 'general.zed_id': zed_id,
-                'general.serial_number': serial_number
+                'general.serial_number': serial_number,
+                'pos_tracking.publish_tf': publish_tf,
+                'pos_tracking.publish_map_tf': publish_map_tf,
+                'pos_tracking.publish_imu_tf': publish_tf
             }
         ]
     )
 
-    # Define LaunchDescription variable and return it
-    ld = LaunchDescription()
+    return [
+        rsp_node,
+        zed_wrapper_node
+    ]
 
-    ld.add_action(declare_camera_name_cmd)
-    ld.add_action(declare_camera_model_cmd)
-    ld.add_action(declare_node_name_cmd)
-    ld.add_action(declare_publish_urdf_cmd)
-    ld.add_action(declare_config_common_path_cmd)
-    ld.add_action(declare_config_camera_path_cmd)
-    ld.add_action(declare_zed_id_cmd)
-    ld.add_action(declare_serial_number_cmd)
-    ld.add_action(declare_xacro_path_cmd)
-    ld.add_action(declare_svo_path_cmd)
-    ld.add_action(declare_base_frame_cmd)
-    ld.add_action(declare_pos_x_cmd)
-    ld.add_action(declare_pos_y_cmd)
-    ld.add_action(declare_pos_z_cmd)
-    ld.add_action(declare_roll_cmd)
-    ld.add_action(declare_pitch_cmd)
-    ld.add_action(declare_yaw_cmd)
 
-    ld.add_action(rsp_node)
-    ld.add_action(zed_wrapper_node)
-
-    return ld
+def generate_launch_description():
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument(
+                'camera_name',
+                default_value=TextSubstitution(text=""),
+                description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`. Leave empty to use the camera model as camera name.'),
+            DeclareLaunchArgument(
+                'camera_model',
+                description='The model of the camera. Using a wrong camera model can disable camera features. Valid models: `zed`, `zedm`, `zed2`, `zed2i`.'),
+            DeclareLaunchArgument(
+                'node_name',
+                default_value='zed_node',
+                description='The name of the zed_wrapper node. All the topic will have the same prefix: `/<camera_name>/<node_name>/`'),
+            DeclareLaunchArgument(
+                'config_path',
+                default_value=TextSubstitution(text=default_config_common),
+                description='Path to the YAML configuration file for the camera.'),
+            DeclareLaunchArgument(
+                'zed_id',
+                default_value='0',
+                description='The index of the camera to be opened. To be used in multi-camera rigs.'),
+            DeclareLaunchArgument(
+                'serial_number',
+                default_value='0',
+                description='The serial number of the camera to be opened. To be used in multi-camera rigs. Has priority with respect to `zed_id`.'),
+            DeclareLaunchArgument(
+                'publish_urdf',
+                default_value='true',
+                description='Enable URDF processing and starts Robot State Published to propagate static TF.'),
+            DeclareLaunchArgument(
+                'publish_tf',
+                default_value='true',
+                description='Enable publication of the `odom -> base_link` TF.'),
+            DeclareLaunchArgument(
+                'publish_map_tf',
+                default_value='true',
+                description='Enable publication of the `map -> odom` TF. Note: Ignored if `publish_tf` is False.'),
+            DeclareLaunchArgument(
+                'xacro_path',
+                default_value=TextSubstitution(text=default_xacro_path),
+                description='Path to the camera URDF file as a xacro file.'),
+            DeclareLaunchArgument(
+                'svo_path',
+                default_value=TextSubstitution(text=""),
+                description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.'),
+            DeclareLaunchArgument(
+                'base_frame',
+                default_value='base_link',
+                description='Name of the base link.'),
+            DeclareLaunchArgument(
+                'cam_pose',
+                default_value='[0.0,0.0,0.0,0.0,0.0,0.0]',
+                description='Pose of the camera with respect to the base frame (i.e. `base_link`): [x,y,z,r,p,y]. Note: Orientation in rad.)'),
+            OpaqueFunction(function=launch_setup)
+        ]
+    )

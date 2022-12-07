@@ -12,8 +12,8 @@
             camera_timeout_sec: 5
             camera_max_reconnect: 5
             camera_flip: false
-            zed_id: 0
-            serial_number: 0
+            zed_id: 0 # usually overwritten by launch file
+            serial_number: 0 # usually overwritten by launch file
             resolution: 2 # '0': HD2K, '1': HD1080, '2': HD720, '3': VGA
             sdk_verbose: 1
             grab_frame_rate: 60 # ZED SDK internal grabbing rate
@@ -61,10 +61,10 @@
         pos_tracking:
             pos_tracking_enabled: true # True to enable positional tracking from start
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
-            publish_tf: true # publish `odom -> base_link` TF
-            publish_map_tf: true # publish `map -> odom` TF
-            publish_imu_tf: true # enable/disable the IMU TF broadcasting
-            base_frame: "base_link" # use the same name as in the URDF file
+            publish_tf: true # [usually overwritten by launch file] publish `odom -> base_link` TF
+            publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF
+            publish_imu_tf: true # [usually overwritten by launch file] enable/disable the IMU TF broadcasting
+            base_frame: "base_link" # usually overwritten by launch file
             map_frame: "map"
             odometry_frame: "odom"
             area_memory_db_path: ""
@@ -73,7 +73,7 @@
             set_as_static: false # If 'true' the camera will be static and not move in the environment
             set_gravity_as_origin: false # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
             floor_alignment: false # Enable to automatically calculate camera/floor offset
-            initial_base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial position of the `base_frame` -> [X, Y, Z, R, P, Y]
+            initial_base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial position of the `base_frame` in the map -> [X, Y, Z, R, P, Y]
             init_odom_with_first_valid_pose: true # Enable to initialize the odometry with the first valid pose
             path_pub_rate: 2.0 # [DYNAMIC] - Camera trajectory publishing frequency
             path_max_count: -1 # use '-1' for unlimited path size

@@ -10,6 +10,8 @@ LATEST CHANGES
     to one single array (`cam_pose`).
   - Removed the workaround for empty `svo_path` launch parameter values thanks to `TextSubstitution`.
   - Modified the "display" launch files in [zed-ros2-examples](https://github.com/stereolabs/zed-ros2-examples) to match the new configuration.
+  - Added `publish_tf` and `publish_map_tf` launch parameters useful for multi-camera configuretion or external odometry fusion.
+- Added multi-camera example in `zed-ros2-examples` repository.
 
 2022-11-30
 ----------

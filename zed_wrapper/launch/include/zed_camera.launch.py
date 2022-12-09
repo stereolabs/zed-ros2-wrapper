@@ -198,7 +198,7 @@ def generate_launch_description():
                 description='Path to the camera URDF file as a xacro file.'),
             DeclareLaunchArgument(
                 'svo_path',
-                default_value=TextSubstitution(text=""),
+                default_value=TextSubstitution(text="live"),
                 description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.'),
             DeclareLaunchArgument(
                 'base_frame',

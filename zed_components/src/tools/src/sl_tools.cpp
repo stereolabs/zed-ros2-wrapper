@@ -434,8 +434,8 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi)
   // <---- De-normalize coordinates
 
   // ----> Unset ROI pixels outside the polygon
-  std::cerr << "Unset ROI pixels outside the polygon" << std::endl;
-  std::cerr << "Set mask" << std::endl;
+  //std::cerr << "Unset ROI pixels outside the polygon" << std::endl;
+  //std::cerr << "Set mask" << std::endl;
   for (int v = 0; v < h; v++) {
     for (int u = 0; u < w; u++) {
       if (!contains(poly_img, sl::float2(u, v))) {

@@ -19,7 +19,8 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    OpaqueFunction
+    OpaqueFunction,
+    SetEnvironmentVariable
 )
 from launch.conditions import IfCondition
 from launch.substitutions import (
@@ -30,7 +31,7 @@ from launch.substitutions import (
 from launch_ros.actions import Node
 
 # Set LOG format
-os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = '{time} [{name}] [{severity}] {message}'
+
 
 # ZED Configurations to be loaded by ZED Node
 default_config_common = os.path.join(
@@ -157,6 +158,7 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description():
     return LaunchDescription(
         [
+            SetEnvironmentVariable(name='RCUTILS_COLORIZED_OUTPUT', value='1'),
             DeclareLaunchArgument(
                 'camera_name',
                 default_value=TextSubstitution(text=""),
@@ -198,7 +200,7 @@ def generate_launch_description():
                 description='Path to the camera URDF file as a xacro file.'),
             DeclareLaunchArgument(
                 'svo_path',
-                default_value=TextSubstitution(text=""),
+                default_value=TextSubstitution(text="live"),
                 description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.'),
             DeclareLaunchArgument(
                 'base_frame',

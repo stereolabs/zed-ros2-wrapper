@@ -44,6 +44,9 @@ using namespace std::placeholders;
 
 #define TIMER_TIME_FACTOR 1.5
 
+#define MEDIUM_W 896
+#define MEDIUM_H 512
+
 namespace stereolabs
 {
 #ifndef DEG2RAD
@@ -487,10 +490,12 @@ void ZedCamera::getGeneralParams()
   // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
 
   int resol = static_cast<int>(mCamResol);
-  getParam("general.resolution", resol, resol);
+  getParam("general.grab_resolution", resol, resol);
   mCamResol = static_cast<sl::RESOLUTION>(resol);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Camera resolution: " << resol << " - " << sl::toString(mCamResol).c_str());
+
+  getParam("general.pub_resolution", mPubResolution, mPubResolution, " * Publishing resolution: ");
 
   std::string parsed_str = getParam("general.region_of_interest", mRoiParam);
   RCLCPP_INFO_STREAM(get_logger(), " * Region of interest: " << parsed_str.c_str());
@@ -528,16 +533,6 @@ void ZedCamera::getVideoParams()
   getParam(
     "video.extrinsic_in_camera_frame", mUseOldExtrinsic, mUseOldExtrinsic,
     " * Use old extrinsic parameters: ");
-
-  getParam("video.img_downsample_factor", mImgDownsampleFactor, mImgDownsampleFactor);
-  if (mImgDownsampleFactor < 0.1) {
-    mImgDownsampleFactor = 0.1;
-    RCLCPP_WARN(get_logger(), "The minimum value allowed for '%s' is 0.1", paramName.c_str());
-  } else if (mImgDownsampleFactor > 1.0) {
-    mImgDownsampleFactor = 1.0;
-    RCLCPP_WARN(get_logger(), "The maximum value allowed for '%s' is 1.0", paramName.c_str());
-  }
-  RCLCPP_INFO(get_logger(), " * [DYN] Image downsample factor: %g ", mImgDownsampleFactor);
 
   getParam("video.brightness", mCamBrightness, mCamBrightness, " * [DYN] Brightness: ", true);
   getParam("video.contrast", mCamContrast, mCamContrast, " * [DYN] Contrast: ", true);
@@ -664,16 +659,6 @@ void ZedCamera::getDepthParams()
   }
 
   if (!mDepthDisabled) {
-    getParam("depth.depth_downsample_factor", mDepthDownsampleFactor, mDepthDownsampleFactor);
-    if (mDepthDownsampleFactor < 0.1) {
-      mDepthDownsampleFactor = 0.1;
-      RCLCPP_WARN(get_logger(), "The minimum value allowed for '%s' is 0.1", paramName.c_str());
-    } else if (mDepthDownsampleFactor > 1.0) {
-      mDepthDownsampleFactor = 1.0;
-      RCLCPP_WARN(get_logger(), "The maximum value allowed for '%s' is 1.0", paramName.c_str());
-    }
-    RCLCPP_INFO(get_logger(), " * Depth downsample factor: %g ", mDepthDownsampleFactor);
-
     getParam("depth.min_depth", mCamMinDepth, mCamMinDepth, " * Min depth [m]: ");
     getParam("depth.max_depth", mCamMaxDepth, mCamMaxDepth, " * Max depth [m]: ");
 
@@ -1885,16 +1870,16 @@ void ZedCamera::setTFCoordFrameNames()
   RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t-> " << mOdomFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t\t-> " << mBaseFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t\t-> " << mCameraFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t-> " << mCameraFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t\t-> " << mLeftCamFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Left Optical\t\t-> " << mLeftCamOptFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * RGB\t\t\t-> " << mRgbFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * RGB Optical\t\t-> " << mRgbFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Right\t\t\t-> " << mRightCamFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Right Optical\t\t-> " << mRightCamOptFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Right\t\t-> " << mRightCamFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Right Optical\t-> " << mRightCamOptFrameId);
   if (!mDepthDisabled) {
-    RCLCPP_INFO_STREAM(get_logger(), " * Depth\t\t\t-> " << mDepthFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * Depth Optical\t\t-> " << mDepthOptFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Depth\t\t-> " << mDepthFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Depth Optical\t-> " << mDepthOptFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Point Cloud\t\t-> " << mCloudFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Disparity\t\t-> " << mDisparityFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Disparity Optical\t-> " << mDisparityOptFrameId);
@@ -1924,16 +1909,16 @@ void ZedCamera::fillCamInfo(
 
 #if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION < 1
   if (rawParam) {
-    zedParam = zed.getCameraInformation(mMatResolVideo).calibration_parameters_raw;  // ok
+    zedParam = zed.getCameraInformation(mMatResol).calibration_parameters_raw;  // ok
   } else {
-    zedParam = zed.getCameraInformation(mMatResolVideo).calibration_parameters;  // ok
+    zedParam = zed.getCameraInformation(mMatResol).calibration_parameters;  // ok
   }
 #else
   if (rawParam) {
     zedParam =
-      zed.getCameraInformation(mMatResolVideo).camera_configuration.calibration_parameters_raw;
+      zed.getCameraInformation(mMatResol).camera_configuration.calibration_parameters_raw;
   } else {
-    zedParam = zed.getCameraInformation(mMatResolVideo).camera_configuration.calibration_parameters;
+    zedParam = zed.getCameraInformation(mMatResol).camera_configuration.calibration_parameters;
   }
 #endif
 
@@ -2013,8 +1998,8 @@ void ZedCamera::fillCamInfo(
   rightCamInfoMsg->p[5] = static_cast<double>(zedParam.right_cam.fy);
   rightCamInfoMsg->p[6] = static_cast<double>(zedParam.right_cam.cy);
   rightCamInfoMsg->p[10] = 1.0;
-  leftCamInfoMsg->width = rightCamInfoMsg->width = static_cast<uint32_t>(mMatResolVideo.width);
-  leftCamInfoMsg->height = rightCamInfoMsg->height = static_cast<uint32_t>(mMatResolVideo.height);
+  leftCamInfoMsg->width = rightCamInfoMsg->width = static_cast<uint32_t>(mMatResol.width);
+  leftCamInfoMsg->height = rightCamInfoMsg->height = static_cast<uint32_t>(mMatResol.height);
   leftCamInfoMsg->header.frame_id = leftFrameId;
   rightCamInfoMsg->header.frame_id = rightFrameId;
 }
@@ -2466,13 +2451,13 @@ bool ZedCamera::startCamera()
     }
   }
 
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera Model\t-> " << sl::toString(mCamRealModel).c_str());
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera Model  -> " << sl::toString(mCamRealModel).c_str());
   mCamSerialNumber = camInfo.serial_number;
-  RCLCPP_INFO_STREAM(get_logger(), " * Serial Number\t-> " << mCamSerialNumber);
+  RCLCPP_INFO_STREAM(get_logger(), " * Serial Number -> " << mCamSerialNumber);
 
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Input type\t-> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
+    " * Input\t -> " << sl::toString(mZed.getCameraInformation().input_type).c_str());
   if (mSvoMode) {
     RCLCPP_INFO(
       get_logger(), " * SVO resolution\t-> %ldx%ld",
@@ -2491,7 +2476,7 @@ bool ZedCamera::startCamera()
     mCamFwVersion = camInfo.camera_configuration.firmware_version;
 #endif
 
-    RCLCPP_INFO_STREAM(get_logger(), " * Camera FW Version -> " << mCamFwVersion);
+    RCLCPP_INFO_STREAM(get_logger(), " * Camera FW Version  -> " << mCamFwVersion);
     if (mCamRealModel != sl::MODEL::ZED) {
 #if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION < 1
       mSensFwVersion = camInfo.sensors_firmware_version;
@@ -2517,19 +2502,47 @@ bool ZedCamera::startCamera()
   mCamHeight = camInfo.camera_configuration.resolution.height;
 
   RCLCPP_INFO_STREAM(
-    get_logger(), " * Camera native frame size   -> " << mCamWidth << "x" << mCamHeight);
-  int v_w = static_cast<int>(mCamWidth * mImgDownsampleFactor);
-  int v_h = static_cast<int>(mCamHeight * mImgDownsampleFactor);
-  mMatResolVideo = sl::Resolution(v_w, v_h);
+    get_logger(), " * Camera grab frame size -> " << mCamWidth << "x" << mCamHeight);
+
+  int pub_w, pub_h;
+  switch (mPubResolution) {
+    case 0:  // HD2K
+      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      break;
+
+    case 1:  // HD1080
+      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      break;
+
+    case 2:  // HD720
+      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      break;
+
+    case 3:  // MEDIUM
+      pub_w = MEDIUM_W;
+      pub_h = MEDIUM_H;
+      break;
+
+    case 4:  // VGA
+      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      break;
+  }
+
+  if (pub_w > mCamWidth || pub_h > mCamHeight) {
+    RCLCPP_WARN(
+      get_logger(),
+      "The publishing resolution cannot be higher than the grabbing resolution. Using grab resolution for output messages.");
+    pub_w = mCamWidth;
+    pub_h = mCamHeight;
+  }
+
+  mMatResol = sl::Resolution(pub_w, pub_h);
   RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Downsampled image size     -> " << mMatResolVideo.width << "x" << mMatResolVideo.height);
-  int d_w = static_cast<int>(mCamWidth * mDepthDownsampleFactor);
-  int d_h = static_cast<int>(mCamHeight * mDepthDownsampleFactor);
-  mMatResolDepth = sl::Resolution(d_w, d_h);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Downsampled depth map size -> " << mMatResolDepth.width << "x" << mMatResolDepth.height);
+    get_logger(), " * Publishing frame size  -> " << mMatResol.width << "x" << mMatResol.height);
   // <---- Camera information
 
   // ----> Set Region of Interest
@@ -3553,7 +3566,7 @@ void ZedCamera::threadFunc_zedGrab()
 
         if (lock.try_lock()) {
           RCLCPP_DEBUG(get_logger(), "Retrieving point cloud");
-          mZed.retrieveMeasure(mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mMatResolDepth);
+          mZed.retrieveMeasure(mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mMatResol);
 
           // Signal Pointcloud thread that a new pointcloud is ready
           mPcDataReadyCondVar.notify_one();
@@ -4334,7 +4347,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     // RCLCPP_DEBUG(get_logger(), "Retrieving Video Data");
     if (rgbSubnumber + leftSubnumber + stereoSubnumber > 0) {
       retrieved |= sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
       ts_rgb = mat_left.timestamp;
       grab_ts = mat_left.timestamp;
       rgb_subscribed = true;
@@ -4342,43 +4355,43 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     if (rgbRawSubnumber + leftRawSubnumber + stereoRawSubnumber > 0) {
       retrieved |=
         sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
       grab_ts = mat_left_raw.timestamp;
     }
     if (rightSubnumber + stereoSubnumber > 0) {
       retrieved |= sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
       grab_ts = mat_right.timestamp;
     }
     if (rightRawSubnumber + stereoRawSubnumber > 0) {
       retrieved |= sl::ERROR_CODE::SUCCESS ==
         mZed.retrieveImage(
-        mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+        mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
       grab_ts = mat_right_raw.timestamp;
     }
     if (rgbGraySubnumber + leftGraySubnumber > 0) {
       retrieved |=
         sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResol);
       grab_ts = mat_left_gray.timestamp;
     }
     if (rgbGrayRawSubnumber + leftGrayRawSubnumber > 0) {
       retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(
         mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
-        sl::MEM::CPU, mMatResolVideo);
+        sl::MEM::CPU, mMatResol);
       grab_ts = mat_left_raw_gray.timestamp;
     }
     if (rightGraySubnumber > 0) {
       retrieved |=
         sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResol);
       grab_ts = mat_right_gray.timestamp;
     }
     if (rightGrayRawSubnumber > 0) {
       retrieved |=
         sl::ERROR_CODE::SUCCESS ==
         mZed.retrieveImage(
-        mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResolVideo);
+        mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResol);
       grab_ts = mat_right_raw_gray.timestamp;
     }
     // RCLCPP_DEBUG(get_logger(), "Video Data retrieved");
@@ -4387,7 +4400,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
       RCLCPP_DEBUG(get_logger(), "Retrieving Depth");
       retrieved |=
         sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResolDepth);
+        mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResol);
       grab_ts = mat_depth.timestamp;
 
       ts_depth = mat_depth.timestamp;
@@ -4402,14 +4415,14 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
       RCLCPP_DEBUG(get_logger(), "Retrieving Disparity");
       retrieved |=
         sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResolDepth);
+        mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResol);
       grab_ts = mat_disp.timestamp;
     }
     if (confMapSubnumber > 0) {
       RCLCPP_DEBUG(get_logger(), "Retrieving Confidence");
       retrieved |=
         sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResolDepth);
+        mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResol);
       grab_ts = mat_conf.timestamp;
     }
     if (depthInfoSubnumber > 0) {
@@ -5292,7 +5305,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 
 void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
 {
-  sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResolDepth);
+  sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResol);
 
   std::shared_ptr<sensor_msgs::msg::Image> disparity_image =
     sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, t);
@@ -5325,8 +5338,8 @@ void ZedCamera::publishPointCloud()
   // Initialize Point Cloud message
   // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
-  int width = mMatResolDepth.width;
-  int height = mMatResolDepth.height;
+  int width = mMatResol.width;
+  int height = mMatResol.height;
 
   int ptsCount = width * height;
 
@@ -6147,15 +6160,17 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
 
   // ----> Project the point into 2D image coordinates
   sl::CalibrationParameters zedParam;
-  zedParam = mZed.getCameraInformation(mMatResolVideo).calibration_parameters;  // ok
+  zedParam = mZed.getCameraInformation(mMatResol).calibration_parameters;  // ok
 
   float f_x = zedParam.left_cam.fx;
   float f_y = zedParam.left_cam.fy;
   float c_x = zedParam.left_cam.cx;
   float c_y = zedParam.left_cam.cy;
 
-  float u = ((camX / camZ) * f_x + c_x) / mImgDownsampleFactor;
-  float v = ((camY / camZ) * f_y + c_y) / mImgDownsampleFactor;
+  float out_scale_factor = mMatResol.width / mCamWidth;
+
+  float u = ((camX / camZ) * f_x + c_x) / out_scale_factor;
+  float v = ((camY / camZ) * f_y + c_y) / out_scale_factor;
   RCLCPP_INFO_STREAM(get_logger(), "Clicked point image coordinates: [" << u << "," << v << "]");
   // <---- Project the point into 2D image coordinates
 

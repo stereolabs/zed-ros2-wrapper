@@ -1319,7 +1319,6 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
       }
 
       mPubFrameRate = val;
-      // startVideoDepthThread(mPubFrameRate);
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
@@ -2533,9 +2532,13 @@ bool ZedCamera::startCamera()
   }
 
   if (pub_w > mCamWidth || pub_h > mCamHeight) {
-    RCLCPP_WARN(
+    RCLCPP_WARN_STREAM(
       get_logger(),
-      "The publishing resolution cannot be higher than the grabbing resolution. Using grab resolution for output messages.");
+      "The publishing resolution ("
+        << pub_w << "x" << pub_h <<
+        ") cannot be higher than the grabbing resolution ("
+        << mCamWidth << "x" << mCamHeight <<
+        "). Using grab resolution for output messages.");
     pub_w = mCamWidth;
     pub_h = mCamHeight;
   }
@@ -2635,15 +2638,6 @@ bool ZedCamera::startCamera()
 
   // ----> Start Sensors thread if not sync
   if (!mSvoMode && !mSensCameraSync && mCamRealModel != sl::MODEL::ZED) {
-    /*if (mSensPubRate == 400.)
-    {
-      mSensPubRate *= TIMER_TIME_FACTOR;
-    }*/
-
-    std::chrono::milliseconds sensorsPubPeriod_msec(static_cast<int>(1000.0 / (mSensPubRate)));
-    /*mSensTimer = create_wall_timer(std::chrono::duration_cast<std::chrono::milliseconds>(sensorsPubPeriod_msec),
-                                   std::bind(&ZedCamera::threadFunc_pubSensorsData, this));*/
-
     mSensThread = std::thread(&ZedCamera::threadFunc_pubSensorsData, this);
   }
   // <---- Start Sensors thread if not sync
@@ -2652,19 +2646,10 @@ bool ZedCamera::startCamera()
   mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
 
   // Start data publishing timer
-  startVideoDepthThread(mPubFrameRate);
+  mVideoDepthThread = std::thread(&ZedCamera::threadFunc_pubVideoDepth, this);
 
   return true;
 }  // namespace stereolabs
-
-void ZedCamera::startVideoDepthThread(double pubFrameRate)
-{
-  // mVideoDepthTimer =
-  // create_wall_timer(std::chrono::duration_cast<std::chrono::milliseconds>(videoDepthPubPeriod_msec),
-  //                                      std::bind(&ZedCamera::threadFunc_pubVideoDepth, this));
-
-  mVideoDepthThread = std::thread(&ZedCamera::threadFunc_pubVideoDepth, this);
-}
 
 void ZedCamera::startFusedPcTimer(double fusedPcRate)
 {
@@ -3480,8 +3465,16 @@ void ZedCamera::threadFunc_zedGrab()
     // <---- Grab freq calculation
 
     if (!mSvoPause) {
+
       // ZED grab
+      sl_tools::StopWatch grabTimer;
       mGrabStatus = mZed.grab(mRunParams);
+      double grab_elapsed_sec = grabTimer.toc();
+
+      if (mDebugMode) {
+        RCLCPP_DEBUG_STREAM(
+          get_logger(), "*** sl::Camera::grab time: " << grab_elapsed_sec << " sec");
+      }
 
       // ----> Check SVO status
       if (mSvoMode && mGrabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
@@ -4343,7 +4336,7 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // ----> Retrieve all required data
   std::unique_lock<std::timed_mutex> lock(mCamDataMutex, std::defer_lock);
   // Wait for grabbing to be completed
-  if (lock.try_lock_for(std::chrono::milliseconds(1000 / mCamGrabFrameRate))) {
+  if (lock.try_lock_for(std::chrono::milliseconds(1000 / (mCamGrabFrameRate)))) {
     // RCLCPP_DEBUG(get_logger(), "Retrieving Video Data");
     if (rgbSubnumber + leftSubnumber + stereoSubnumber > 0) {
       retrieved |= sl::ERROR_CODE::SUCCESS ==
@@ -5151,10 +5144,10 @@ void ZedCamera::applyDepthSettings()
     mRunParams.remove_saturated_areas = mRemoveSatAreas;
     mDynParMutex.unlock();
 
-    RCLCPP_DEBUG_ONCE(get_logger(), "Depth extraction enabled");
+    RCLCPP_DEBUG(get_logger(), "Depth extraction enabled");
     mRunParams.enable_depth = true;
   } else {
-    RCLCPP_DEBUG_ONCE(get_logger(), "Depth extraction disabled");
+    RCLCPP_DEBUG(get_logger(), "Depth extraction disabled");
     mRunParams.enable_depth = false;
   }
 }

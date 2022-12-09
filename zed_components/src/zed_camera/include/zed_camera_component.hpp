@@ -255,7 +255,6 @@ protected:
   bool getSens2CameraTransform();
   bool getCamera2BaseTransform();
 
-  void startVideoDepthThread(double pubFrameRate);
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
 

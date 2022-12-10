@@ -15,9 +15,9 @@
             zed_id: 0 # usually overwritten by launch file
             serial_number: 0 # usually overwritten by launch file
             grab_resolution: 2 # The native camera grab resolution. '0': HD2K, '1': HD1080, '2': HD720, '3': VGA # 
-            pub_resolution: 3 # The resolution used for output. '0': HD2K, '1': HD1080, '2': HD720, '3': MEDIUM, '4': VGA
+            pub_resolution: 2 # The resolution used for output. '0': HD2K, '1': HD1080, '2': HD720, '3': MEDIUM, '4': VGA
             sdk_verbose: 1
-            grab_frame_rate: 30 # ZED SDK internal grabbing rate
+            grab_frame_rate: 15 # ZED SDK internal grabbing rate
             pub_frame_rate: 15.0 # [DYNAMIC] - frequency of publishing of visual images and depth images
             gpu_id: -1
             region_of_interest: '' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.

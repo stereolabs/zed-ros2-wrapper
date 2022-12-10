@@ -5,6 +5,9 @@ LATEST CHANGES
 ----------
 - Improved the code for Moving Average calculation for better node diagnostics.
 - Temperature diagnostic is now always updated even if `sensors.sensors_image_sync` is true and no image topics are subscribed.
+- Add SDK grab duration to Diagnostic information.
+- Improve Grab thread adn Video/Depth publishing thread elaboration time diagnostic.
+- Improve thread synchronization when the frequency of the `grab` SDK function is minor of the expected camera frame rate setting because of a leaking of elaboration power.
 
 2022-12-09
 ----------

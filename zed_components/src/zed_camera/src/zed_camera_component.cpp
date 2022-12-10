@@ -2615,21 +2615,22 @@ bool ZedCamera::startCamera()
   // <---- Timestamp
 
   // ----> Initialize Diagnostic statistics
-  mElabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
-  mGrabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
-  mVideoDepthPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
-  mVideoDepthElabMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
-  mPcPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
-  mPcProcMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
-  mObjDetPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
-  mObjDetElabMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
-  mImuPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate * 5);
-  mBaroPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate * 5);
-  mMagPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate * 5);
-  mPubFusedCloudPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mPcPubRate * 5);
-  mPubOdomTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate * 5);
-  mPubPoseTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate * 5);
-  mPubImuTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate * 5);
+  mElabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
+  mGrabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
+  mGrabFuncMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
+  mVideoDepthPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
+  mVideoDepthElabMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
+  mPcPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
+  mPcProcMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
+  mObjDetPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
+  mObjDetElabMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
+  mImuPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
+  mBaroPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
+  mMagPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
+  mPubFusedCloudPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mPcPubRate);
+  mPubOdomTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
+  mPubPoseTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
+  mPubImuTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
   // <---- Initialize Diagnostic statistics
 
   // ----> Start Pointcloud thread
@@ -3381,7 +3382,7 @@ void ZedCamera::threadFunc_zedGrab()
   RCLCPP_DEBUG(get_logger(), "Grab thread started");
 
   mFrameCount = 0;
-  // mRgbDepthDataRetrieved = true;  // Force first grab
+  mZedDataReady = false;
 
   // ----> Grab Runtime parameters
   mRunParams.sensing_mode = static_cast<sl::SENSING_MODE>(mDepthSensingMode);
@@ -3392,8 +3393,6 @@ void ZedCamera::threadFunc_zedGrab()
 
   // Infinite grab thread
   while (1) {
-    // std::lock_guard<std::mutex> close_lock(mCloseZedMutex);
-
     sl_tools::StopWatch grabElabTimer;
 
     // ----> Interruption check
@@ -3448,30 +3447,9 @@ void ZedCamera::threadFunc_zedGrab()
     }
     // ----> Check for Object Detection requirement
 
-    // ----> Wait for RGB/Depth synchronization before grabbing
-    std::unique_lock<std::timed_mutex> datalock(
-      mCamDataMutex);  // Only this is required to guarantee Depth/RGB
-                       // synchronization
-
-    // while (!mRgbDepthDataRetrieved)
-    // {  // loop to avoid spurious wakeups
-    //   if (mRgbDepthDataRetrievedCondVar.wait_for(datalock, std::chrono::milliseconds(500)) ==
-    //   std::cv_status::timeout)
-    //   {
-    //     // Check thread stopping
-    //     if (mThreadStop)
-    //     {
-    //       return;
-    //     }
-    //     else
-    //     {
-    //       continue;
-    //     }
-    //   }
-    // }
-
-    // mRgbDepthDataRetrieved = false;
-    // <---- Wait for RGB/Depth synchronization before grabbing
+    // ----> Wait for RGB/Depth retrieving before grabbing
+    std::unique_lock<std::mutex> datalock(mCamDataMutex);
+    // <---- Wait for RGB/Depth retrieving before grabbing
 
     // ----> Grab freq calculation
     static sl_tools::StopWatch grabFreqTimer;
@@ -3487,15 +3465,26 @@ void ZedCamera::threadFunc_zedGrab()
 
     if (!mSvoPause) {
 
-      // ZED grab
       sl_tools::StopWatch grabTimer;
+
+      // ZED grab
       mGrabStatus = mZed.grab(mRunParams);
-      double grab_elapsed_sec = grabTimer.toc();
+
+      // Diagnostic statistics update
+      double grab_sec = grabTimer.toc();
+      double mean_grab_sec = mGrabFuncMean_sec->addValue(grab_sec);
 
       if (mDebugMode) {
         RCLCPP_DEBUG_STREAM(
-          get_logger(), "*** sl::Camera::grab time: " << grab_elapsed_sec << " sec");
+          get_logger(), "*** sl::Camera::grab time: " << grab_sec << " sec");
       }
+
+      // Start processing timer for diagnostic
+      grabElabTimer.tic();
+
+      // ----> Unlock RGB/Depth thread
+      mZedDataReady = true;
+      // <---- Unlock RGB/Depth thread
 
       // ----> Check SVO status
       if (mSvoMode && mGrabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
@@ -4148,7 +4137,6 @@ void ZedCamera::threadFunc_pubVideoDepth()
       break;
     }
 
-    // std::lock_guard<std::mutex> lock(mCloseZedMutex);
     if (!mZed.isOpened()) {
       RCLCPP_DEBUG(get_logger(), "threadFunc_pubVideoDepth: the camera is not open");
       continue;
@@ -4309,111 +4297,118 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     return false;
   }
 
-  // ----> Retrieve all required data
-  std::unique_lock<std::timed_mutex> lock(mCamDataMutex, std::defer_lock);
-  // Wait for grabbing to be completed
-  if (lock.try_lock_for(std::chrono::milliseconds(1000 / (mCamGrabFrameRate)))) {
-    // RCLCPP_DEBUG(get_logger(), "Retrieving Video Data");
-    if (rgbSubnumber + leftSubnumber + stereoSubnumber > 0) {
-      retrieved |= sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
-      ts_rgb = mat_left.timestamp;
-      grab_ts = mat_left.timestamp;
-      rgb_subscribed = true;
+  // ----> Wait for data grabbed
+  while (!mZedDataReady) {
+    // Check thread stopping
+    if (mThreadStop) {
+      return false;
+    } else {
+      rclcpp::sleep_for(500us);
+      continue;
     }
-    if (rgbRawSubnumber + leftRawSubnumber + stereoRawSubnumber > 0) {
-      retrieved |=
-        sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
-      grab_ts = mat_left_raw.timestamp;
-    }
-    if (rightSubnumber + stereoSubnumber > 0) {
-      retrieved |= sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
-      grab_ts = mat_right.timestamp;
-    }
-    if (rightRawSubnumber + stereoRawSubnumber > 0) {
-      retrieved |= sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveImage(
-        mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
-      grab_ts = mat_right_raw.timestamp;
-    }
-    if (rgbGraySubnumber + leftGraySubnumber > 0) {
-      retrieved |=
-        sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResol);
-      grab_ts = mat_left_gray.timestamp;
-    }
-    if (rgbGrayRawSubnumber + leftGrayRawSubnumber > 0) {
-      retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(
-        mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
-        sl::MEM::CPU, mMatResol);
-      grab_ts = mat_left_raw_gray.timestamp;
-    }
-    if (rightGraySubnumber > 0) {
-      retrieved |=
-        sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResol);
-      grab_ts = mat_right_gray.timestamp;
-    }
-    if (rightGrayRawSubnumber > 0) {
-      retrieved |=
-        sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveImage(
-        mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResol);
-      grab_ts = mat_right_raw_gray.timestamp;
-    }
-    // RCLCPP_DEBUG(get_logger(), "Video Data retrieved");
-    // RCLCPP_DEBUG(get_logger(), "Retrieving Depth Data");
-    if (depthSubnumber > 0 || depthInfoSubnumber > 0) {
-      RCLCPP_DEBUG(get_logger(), "Retrieving Depth");
-      retrieved |=
-        sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResol);
-      grab_ts = mat_depth.timestamp;
-
-      ts_depth = mat_depth.timestamp;
-
-      if (rgb_subscribed && (ts_rgb.data_ns != 0 && (ts_depth.data_ns != ts_rgb.data_ns))) {
-        RCLCPP_WARN_STREAM(
-          get_logger(), "!!!!! DEPTH/RGB ASYNC !!!!! - Delta: "
-            << 1e-9 * static_cast<double>(ts_depth - ts_rgb) << " sec");
-      }
-    }
-    if (disparitySubnumber > 0) {
-      RCLCPP_DEBUG(get_logger(), "Retrieving Disparity");
-      retrieved |=
-        sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResol);
-      grab_ts = mat_disp.timestamp;
-    }
-    if (confMapSubnumber > 0) {
-      RCLCPP_DEBUG(get_logger(), "Retrieving Confidence");
-      retrieved |=
-        sl::ERROR_CODE::SUCCESS ==
-        mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResol);
-      grab_ts = mat_conf.timestamp;
-    }
-    if (depthInfoSubnumber > 0) {
-      retrieved |= sl::ERROR_CODE::SUCCESS == mZed.getCurrentMinMaxDepth(min_depth, max_depth);
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION == 7 && \
-      ZED_SDK_PATCH_VERSION == 0  // Units bug workaround
-      min_depth *= 0.001f;
-      max_depth *= 0.001f;
-#endif
-    }
-    // RCLCPP_DEBUG(get_logger(), "Depth Data retrieved");
-  } else {
-    RCLCPP_DEBUG(get_logger(), "Lock timeout");
   }
+  mZedDataReady = false;
+  std::unique_lock<std::mutex> datalock(mCamDataMutex);
+  // <---- Wait for data grabbed
+
+  // Start processing timer for diagnostic
+  vdElabTimer.tic();
+
+  // ----> Retrieve all required data
+  // RCLCPP_DEBUG(get_logger(), "Retrieving Video Data");
+  if (rgbSubnumber + leftSubnumber + stereoSubnumber > 0) {
+    retrieved |= sl::ERROR_CODE::SUCCESS ==
+      mZed.retrieveImage(mat_left, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
+    ts_rgb = mat_left.timestamp;
+    grab_ts = mat_left.timestamp;
+    rgb_subscribed = true;
+  }
+  if (rgbRawSubnumber + leftRawSubnumber + stereoRawSubnumber > 0) {
+    retrieved |=
+      sl::ERROR_CODE::SUCCESS ==
+      mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
+    grab_ts = mat_left_raw.timestamp;
+  }
+  if (rightSubnumber + stereoSubnumber > 0) {
+    retrieved |= sl::ERROR_CODE::SUCCESS ==
+      mZed.retrieveImage(mat_right, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
+    grab_ts = mat_right.timestamp;
+  }
+  if (rightRawSubnumber + stereoRawSubnumber > 0) {
+    retrieved |= sl::ERROR_CODE::SUCCESS ==
+      mZed.retrieveImage(
+      mat_right_raw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
+    grab_ts = mat_right_raw.timestamp;
+  }
+  if (rgbGraySubnumber + leftGraySubnumber > 0) {
+    retrieved |=
+      sl::ERROR_CODE::SUCCESS ==
+      mZed.retrieveImage(mat_left_gray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResol);
+    grab_ts = mat_left_gray.timestamp;
+  }
+  if (rgbGrayRawSubnumber + leftGrayRawSubnumber > 0) {
+    retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(
+      mat_left_raw_gray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
+      sl::MEM::CPU, mMatResol);
+    grab_ts = mat_left_raw_gray.timestamp;
+  }
+  if (rightGraySubnumber > 0) {
+    retrieved |=
+      sl::ERROR_CODE::SUCCESS ==
+      mZed.retrieveImage(mat_right_gray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResol);
+    grab_ts = mat_right_gray.timestamp;
+  }
+  if (rightGrayRawSubnumber > 0) {
+    retrieved |=
+      sl::ERROR_CODE::SUCCESS ==
+      mZed.retrieveImage(
+      mat_right_raw_gray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResol);
+    grab_ts = mat_right_raw_gray.timestamp;
+  }
+  // RCLCPP_DEBUG(get_logger(), "Video Data retrieved");
+  // RCLCPP_DEBUG(get_logger(), "Retrieving Depth Data");
+  if (depthSubnumber > 0 || depthInfoSubnumber > 0) {
+    RCLCPP_DEBUG(get_logger(), "Retrieving Depth");
+    retrieved |=
+      sl::ERROR_CODE::SUCCESS ==
+      mZed.retrieveMeasure(mat_depth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResol);
+    grab_ts = mat_depth.timestamp;
+
+    ts_depth = mat_depth.timestamp;
+
+    if (rgb_subscribed && (ts_rgb.data_ns != 0 && (ts_depth.data_ns != ts_rgb.data_ns))) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "!!!!! DEPTH/RGB ASYNC !!!!! - Delta: "
+          << 1e-9 * static_cast<double>(ts_depth - ts_rgb) << " sec");
+    }
+  }
+  if (disparitySubnumber > 0) {
+    RCLCPP_DEBUG(get_logger(), "Retrieving Disparity");
+    retrieved |=
+      sl::ERROR_CODE::SUCCESS ==
+      mZed.retrieveMeasure(mat_disp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResol);
+    grab_ts = mat_disp.timestamp;
+  }
+  if (confMapSubnumber > 0) {
+    RCLCPP_DEBUG(get_logger(), "Retrieving Confidence");
+    retrieved |=
+      sl::ERROR_CODE::SUCCESS ==
+      mZed.retrieveMeasure(mat_conf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResol);
+    grab_ts = mat_conf.timestamp;
+  }
+  if (depthInfoSubnumber > 0) {
+    retrieved |= sl::ERROR_CODE::SUCCESS == mZed.getCurrentMinMaxDepth(min_depth, max_depth);
+#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION == 7 && \
+    ZED_SDK_PATCH_VERSION == 0    // Units bug workaround
+    min_depth *= 0.001f;
+    max_depth *= 0.001f;
+#endif
+  }
+  // RCLCPP_DEBUG(get_logger(), "Depth Data retrieved");
   // <---- Retrieve all required data
 
-  // ----> Notify grab thread that all data are synchronized and a new grab can
-  // be done
-  // mRgbDepthDataRetrievedCondVar.notify_one();
-  // mRgbDepthDataRetrieved = true;
-  // <---- Notify grab thread that all data are synchronized and a new grab can
-  // be done
+  // Data retrieved, we can release the mutex
+  datalock.unlock();
 
   if (!retrieved) {
     lastZedTs = 0;
@@ -5458,7 +5453,6 @@ void ZedCamera::callback_pubFusedPc()
     return;
   }
 
-  // std::lock_guard<std::mutex> lock(mCloseZedMutex);
   if (!mZed.isOpened()) {
     return;
   }
@@ -5978,114 +5972,111 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
     return;
   }
 
-  // if (mGrabActive)
-  {
-    if (
-      mGrabStatus ==
-      sl::ERROR_CODE::SUCCESS /*|| mGrabStatus == sl::ERROR_CODE::NOT_A_NEW_FRAME*/)
-    {
-      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Camera grabbing");
+  if (mGrabStatus == sl::ERROR_CODE::SUCCESS) {
+    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Camera grabbing");
 
-      double freq = 1. / mGrabPeriodMean_sec->getAvg();
-      double freq_perc = 100. * freq / mCamGrabFrameRate;
-      stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+    double freq = 1. / mGrabPeriodMean_sec->getAvg();
+    double freq_perc = 100. * freq / mCamGrabFrameRate;
+    stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+    stat.addf(
+      "Capture", "SDK Grab duration: %.3f sec (Max. %.3f sec)", mGrabFuncMean_sec->getAvg(),
+      1. / mCamGrabFrameRate);
+    stat.addf(
+      "Capture", "Tot. Processing Time: %.6f sec (Max. %.3f sec)", mElabPeriodMean_sec->getAvg(),
+      1. / mCamGrabFrameRate);
+
+    if (mPublishingData) {
+      freq = 1. / mVideoDepthPeriodMean_sec->getAvg();
+      freq_perc = 100. * freq / mPubFrameRate;
+      stat.addf("Video/Depth", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
       stat.addf(
-        "Capture", "Tot. Processing Time: %.3f sec (Max. %.3f sec)", mElabPeriodMean_sec->getAvg(),
-        1. / mCamGrabFrameRate);
+        "Video/Depth", "Processing Time: %.6f sec (Max. %.3f sec)",
+        mVideoDepthElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
+    } else {
+      stat.add("Video/Depth", "Topics not subscribed");
+    }
 
-      if (mPublishingData) {
-        freq = 1. / mVideoDepthPeriodMean_sec->getAvg();
-        freq_perc = 100. * freq / mPubFrameRate;
-        stat.addf("Video/Depth", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+    if (mSvoMode) {
+      int frame = mZed.getSVOPosition();
+      int totFrames = mZed.getSVONumberOfFrames();
+      double svo_perc = 100. * (static_cast<double>(frame) / totFrames);
+
+      stat.addf("Playing SVO", "Frame: %d/%d (%.1f%%)", frame, totFrames, svo_perc);
+    }
+
+    if (isDepthRequired()) {
+      stat.add("Depth status", "ACTIVE");
+      stat.add("Depth mode", sl::toString(mDepthQuality).c_str());
+
+      if (mPcPublishing) {
+        double freq = 1. / mPcPeriodMean_sec->getAvg();
+        double freq_perc = 100. * freq / mPcPubRate;
+        stat.addf("Point Cloud", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
         stat.addf(
-          "Video/Depth", "Processing Time: %.3f sec (Max. %.3f sec)",
-          mVideoDepthElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
+          "Point Cloud", "Processing Time: %.3f sec (Max. %.3f sec)", mPcProcMean_sec->getAvg(),
+          1. / mPcPubRate);
       } else {
-        stat.add("Video/Depth", "Topics not subscribed");
+        stat.add("Point Cloud", "Topic not subscribed");
       }
 
-      if (mSvoMode) {
-        int frame = mZed.getSVOPosition();
-        int totFrames = mZed.getSVONumberOfFrames();
-        double svo_perc = 100. * (static_cast<double>(frame) / totFrames);
-
-        stat.addf("Playing SVO", "Frame: %d/%d (%.1f%%)", frame, totFrames, svo_perc);
-      }
-
-      if (isDepthRequired()) {
-        stat.add("Depth status", "ACTIVE");
-        stat.add("Depth mode", sl::toString(mDepthQuality).c_str());
-
-        if (mPcPublishing) {
-          double freq = 1. / mPcPeriodMean_sec->getAvg();
-          double freq_perc = 100. * freq / mPcPubRate;
-          stat.addf("Point Cloud", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
-          stat.addf(
-            "Point Cloud", "Processing Time: %.3f sec (Max. %.3f sec)", mPcProcMean_sec->getAvg(),
-            1. / mPcPubRate);
+      if (mFloorAlignment) {
+        if (mInitOdomWithPose) {
+          stat.add("Floor Detection", "NOT INITIALIZED");
         } else {
-          stat.add("Point Cloud", "Topic not subscribed");
+          stat.add("Floor Detection", "INITIALIZED");
         }
+      }
 
-        if (mFloorAlignment) {
-          if (mInitOdomWithPose) {
-            stat.add("Floor Detection", "NOT INITIALIZED");
+      if (mPosTrackingStarted) {
+        stat.addf("Tracking status", "%s", sl::toString(mPosTrackingStatus).c_str());
+
+        if (mPublishTF) {
+          double freq = 1. / mPubOdomTF_sec->getAvg();
+          stat.addf("TF Odometry", "Mean Frequency: %.1f Hz", freq);
+
+          if (mPublishMapTF) {
+            double freq = 1. / mPubPoseTF_sec->getAvg();
+            stat.addf("TF Pose", "Mean Frequency: %.1f Hz", freq);
           } else {
-            stat.add("Floor Detection", "INITIALIZED");
-          }
-        }
-
-        if (mPosTrackingStarted) {
-          stat.addf("Tracking status", "%s", sl::toString(mPosTrackingStatus).c_str());
-
-          if (mPublishTF) {
-            double freq = 1. / mPubOdomTF_sec->getAvg();
-            stat.addf("TF Odometry", "Mean Frequency: %.1f Hz", freq);
-
-            if (mPublishMapTF) {
-              double freq = 1. / mPubPoseTF_sec->getAvg();
-              stat.addf("TF Pose", "Mean Frequency: %.1f Hz", freq);
-            } else {
-              stat.add("TF Pose", "DISABLED");
-            }
-
-            if (mPublishImuTF) {
-              double freq = 1. / mPubImuTF_sec->getAvg();
-              stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
-            } else {
-              stat.add("TF IMU", "DISABLED");
-            }
-          } else {
-            stat.add("TF Odometry", "DISABLED");
             stat.add("TF Pose", "DISABLED");
+          }
+
+          if (mPublishImuTF) {
+            double freq = 1. / mPubImuTF_sec->getAvg();
+            stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
+          } else {
             stat.add("TF IMU", "DISABLED");
           }
         } else {
-          stat.add("Pos. Tracking status", "INACTIVE");
-        }
-
-        if (mObjDetRunning) {
-          if (mObjDetSubscribed) {
-            double freq = 1. / mObjDetPeriodMean_sec->getAvg();
-            double freq_perc = 100. * freq / mPubFrameRate;
-            stat.addf("Object detection", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc);
-            stat.addf(
-              "Object detection", "Processing Time: %.3f sec (Max. %.3f sec)",
-              mObjDetElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
-          } else {
-            stat.add("Object Detection", "Active, topic not subscribed");
-          }
-        } else {
-          stat.add("Object Detection", "INACTIVE");
+          stat.add("TF Odometry", "DISABLED");
+          stat.add("TF Pose", "DISABLED");
+          stat.add("TF IMU", "DISABLED");
         }
       } else {
-        stat.add("Depth status", "INACTIVE");
+        stat.add("Pos. Tracking status", "INACTIVE");
+      }
+
+      if (mObjDetRunning) {
+        if (mObjDetSubscribed) {
+          double freq = 1. / mObjDetPeriodMean_sec->getAvg();
+          double freq_perc = 100. * freq / mPubFrameRate;
+          stat.addf("Object detection", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc);
+          stat.addf(
+            "Object detection", "Processing Time: %.3f sec (Max. %.3f sec)",
+            mObjDetElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
+        } else {
+          stat.add("Object Detection", "Active, topic not subscribed");
+        }
+      } else {
+        stat.add("Object Detection", "INACTIVE");
       }
     } else {
-      stat.summaryf(
-        diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Camera error: %s",
-        sl::toString(mGrabStatus).c_str());
+      stat.add("Depth status", "INACTIVE");
     }
+  } else {
+    stat.summaryf(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Camera error: %s",
+      sl::toString(mGrabStatus).c_str());
   }
 
   if (mImuPublishing) {

@@ -537,7 +537,7 @@ private:
 
   // ----> Thread Sync
   // std::mutex mCloseZedMutex;
-  std::timed_mutex mCamDataMutex;
+  std::mutex mCamDataMutex;
   std::mutex mPcMutex;
   std::mutex mRecMutex;
   std::mutex mPosTrkMutex;
@@ -546,8 +546,7 @@ private:
   std::mutex mObjDetMutex;
   std::condition_variable mPcDataReadyCondVar;
   bool mPcDataReady = false;
-  // std::condition_variable_any mRgbDepthDataRetrievedCondVar;
-  // bool mRgbDepthDataRetrieved = true;
+  std::atomic_bool mZedDataReady;
   // <---- Thread Sync
 
   // ----> Status Flags
@@ -579,6 +578,7 @@ private:
   float mTempRight = -273.15f;
   std::unique_ptr<sl_tools::WinAvg> mElabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mGrabPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mGrabFuncMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mVideoDepthPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mVideoDepthElabMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mPcPeriodMean_sec;

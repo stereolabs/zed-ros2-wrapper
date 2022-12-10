@@ -13,6 +13,7 @@ LATEST CHANGES
 ----------
 - Removed node parameter `general.resolution`, replaced by `general.grab_resolution`.
 - Added node parameter `general.pub_resolution` used to reduce node computation and message bandwidth.
+  - Available output resolutions: `HD2K`, `HD1080`, `HD720`, `MEDIUM`, `VGA`. `MEDIUM` is an optimized output resolution to maximize throughput and minimize processing costs.
 - Removed node parameters `video.img_downsample_factor` and `depth.depth_downsample_factor`. Use the new parameter `general.pub_resolution` instead.
 - Set default DEPTH MODE to NEURAL (4)
 

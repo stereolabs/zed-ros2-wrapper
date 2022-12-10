@@ -23,6 +23,8 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <sl/Camera.hpp>
 
+#include "sl_win_avg.hpp"
+
 namespace sl_tools
 {
 /*! \brief Check if a ZED camera is ready
@@ -109,46 +111,6 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi);
  *  Syntax is [[1.0, 2.0], [3.3, 4.4, 5.5], ...] */
 std::vector<std::vector<float>> parseStringVector(
   const std::string & input, std::string & error_return);
-
-/*!
- * \brief The CSmartMean class is used to
- * make a mobile window mean of a sequence of values
- * and reject outliers.
- * Tutorial:
- * https://www.myzhar.com/blog/tutorials/tutorial-exponential-weighted-average-good-moving-windows-average/
- */
-class SmartMean
-{
-public:
-  explicit SmartMean(int winSize);
-
-  int getValCount()
-  {
-    return mValCount;  ///< Return the number of values in the sequence
-  }
-
-  double getMean()
-  {
-    return mMean;  ///< Return the updated mean
-  }
-
-  /*!
-     * \brief addValue
-     * Add a value to the sequence
-     * \param val value to be added
-     * \return mean value
-     */
-  double addValue(double val);
-
-private:
-  int mWinSize;   ///< The size of the window (number of values ti evaluate)
-  int mValCount;  ///< The number of values in sequence
-
-  double mMeanCorr;  ///< Used for bias correction
-  double mMean;      ///< The mean of the last \ref mWinSize values
-
-  double mGamma;  ///< Weight value
-};
 
 /**
  * @brief Stop Timer used to measure time intervals

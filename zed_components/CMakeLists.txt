@@ -160,9 +160,14 @@ set(ZED_LIBS
 
 ###############################################################################
 # SOURCES
-set(SL_TOOLS
+set(SL_TOOLS_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_tools.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_win_avg.hpp
+)
+
+set(SL_TOOLS_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_win_avg.cpp
 )
 
 set(ZED_CAMERA_INC
@@ -178,7 +183,8 @@ set(ZED_CAMERA_SRC
 # Bin and Install
 
 add_library(zed_camera_component SHARED
-    ${SL_TOOLS}
+    ${SL_TOOLS_INC}
+    ${SL_TOOLS_SRC}
     ${ZED_CAMERA_INC}
     ${ZED_CAMERA_SRC}
 )

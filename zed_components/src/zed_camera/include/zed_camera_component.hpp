@@ -165,6 +165,7 @@ protected:
   void threadFunc_pubVideoDepth();
   void callback_pubFusedPc();
   void callback_pubPaths();
+  void callback_pubTemp();
   rcl_interfaces::msg::SetParametersResult callback_paramChange(
     std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper & stat);
@@ -257,6 +258,7 @@ protected:
 
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
+  void startTempPubTimer();
 
   template<typename T>
   void getParam(
@@ -530,6 +532,7 @@ private:
   bool mThreadStop = false;
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
+  rclcpp::TimerBase::SharedPtr mTempPubTimer;  // Timer to retrieve and publish CMOS temperatures
   // <---- Threads and Timers
 
   // ----> Thread Sync
@@ -574,21 +577,21 @@ private:
   // Diagnostic
   float mTempLeft = -273.15f;
   float mTempRight = -273.15f;
-  std::unique_ptr<sl_tools::SmartMean> mElabPeriodMean_sec;
-  std::unique_ptr<sl_tools::SmartMean> mGrabPeriodMean_sec;
-  std::unique_ptr<sl_tools::SmartMean> mVideoDepthPeriodMean_sec;
-  std::unique_ptr<sl_tools::SmartMean> mVideoDepthElabMean_sec;
-  std::unique_ptr<sl_tools::SmartMean> mPcPeriodMean_sec;
-  std::unique_ptr<sl_tools::SmartMean> mPcProcMean_sec;
-  std::unique_ptr<sl_tools::SmartMean> mImuPeriodMean_sec;
-  std::unique_ptr<sl_tools::SmartMean> mBaroPeriodMean_sec;
-  std::unique_ptr<sl_tools::SmartMean> mMagPeriodMean_sec;
-  std::unique_ptr<sl_tools::SmartMean> mObjDetPeriodMean_sec;
-  std::unique_ptr<sl_tools::SmartMean> mObjDetElabMean_sec;
-  std::unique_ptr<sl_tools::SmartMean> mPubFusedCloudPeriodMean_sec;
-  std::unique_ptr<sl_tools::SmartMean> mPubOdomTF_sec;
-  std::unique_ptr<sl_tools::SmartMean> mPubPoseTF_sec;
-  std::unique_ptr<sl_tools::SmartMean> mPubImuTF_sec;
+  std::unique_ptr<sl_tools::WinAvg> mElabPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mGrabPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mVideoDepthPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mVideoDepthElabMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mPcPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mPcProcMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mImuPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mBaroPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mMagPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mObjDetPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mObjDetElabMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mPubFusedCloudPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mPubOdomTF_sec;
+  std::unique_ptr<sl_tools::WinAvg> mPubPoseTF_sec;
+  std::unique_ptr<sl_tools::WinAvg> mPubImuTF_sec;
   bool mImuPublishing = false;
   bool mMagPublishing = false;
   bool mBaroPublishing = false;

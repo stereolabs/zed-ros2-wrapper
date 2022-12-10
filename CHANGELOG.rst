@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2022-12-10
+----------
+- Improved the code for Moving Average calculation for better node diagnostics.
+- Temperature diagnostic is now always updated even if `sensors.sensors_image_sync` is true and no image topics are subscribed.
+
 2022-12-09
 ----------
 - Removed node parameter `general.resolution`, replaced by `general.grab_resolution`.

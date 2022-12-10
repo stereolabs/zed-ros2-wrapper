@@ -127,6 +127,10 @@ ZedCamera::~ZedCamera()
   if (mFusedPcTimer) {
     mFusedPcTimer->cancel();
   }
+  RCLCPP_DEBUG(get_logger(), "Stopping temperatures timer");
+  if (mTempPubTimer) {
+    mTempPubTimer->cancel();
+  }
 
   // ----> Verify that all the threads are not active
   RCLCPP_DEBUG(get_logger(), "Stopping running threads");
@@ -2611,21 +2615,21 @@ bool ZedCamera::startCamera()
   // <---- Timestamp
 
   // ----> Initialize Diagnostic statistics
-  mElabPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
-  mGrabPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
-  mVideoDepthPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
-  mVideoDepthElabMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
-  mPcPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
-  mPcProcMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
-  mObjDetPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
-  mObjDetElabMean_sec = std::make_unique<sl_tools::SmartMean>(mCamGrabFrameRate);
-  mImuPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mSensPubRate);
-  mBaroPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mSensPubRate);
-  mMagPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(mSensPubRate);
-  mPubFusedCloudPeriodMean_sec = std::make_unique<sl_tools::SmartMean>(10);
-  mPubOdomTF_sec = std::make_unique<sl_tools::SmartMean>(mSensPubRate);
-  mPubPoseTF_sec = std::make_unique<sl_tools::SmartMean>(mSensPubRate);
-  mPubImuTF_sec = std::make_unique<sl_tools::SmartMean>(mSensPubRate);
+  mElabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
+  mGrabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
+  mVideoDepthPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
+  mVideoDepthElabMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
+  mPcPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
+  mPcProcMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
+  mObjDetPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
+  mObjDetElabMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate * 5);
+  mImuPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate * 5);
+  mBaroPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate * 5);
+  mMagPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate * 5);
+  mPubFusedCloudPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mPcPubRate * 5);
+  mPubOdomTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate * 5);
+  mPubPoseTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate * 5);
+  mPubImuTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate * 5);
   // <---- Initialize Diagnostic statistics
 
   // ----> Start Pointcloud thread
@@ -2648,8 +2652,25 @@ bool ZedCamera::startCamera()
   // Start data publishing timer
   mVideoDepthThread = std::thread(&ZedCamera::threadFunc_pubVideoDepth, this);
 
+  // Start CMOS Temperatures thread
+  if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
+    startTempPubTimer();
+  }
+
   return true;
 }  // namespace stereolabs
+
+void ZedCamera::startTempPubTimer()
+{
+  if (mTempPubTimer != nullptr) {
+    mTempPubTimer->cancel();
+  }
+
+  std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0));
+  mTempPubTimer = create_wall_timer(
+    std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
+    std::bind(&ZedCamera::callback_pubTemp, this));
+}
 
 void ZedCamera::startFusedPcTimer(double fusedPcRate)
 {
@@ -3460,8 +3481,8 @@ void ZedCamera::threadFunc_zedGrab()
     grabFreqTimer.tic();
 
     // RCLCPP_INFO_STREAM(get_logger(), "Grab period: "
-    // << mGrabPeriodMean_sec->getMean() / 1e6
-    // << " Freq: " << 1e6 / mGrabPeriodMean_usec->getMean());
+    // << mGrabPeriodMean_sec->getAvg() / 1e6
+    // << " Freq: " << 1e6 / mGrabPeriodMean_usec->getAvg());
     // <---- Grab freq calculation
 
     if (!mSvoPause) {
@@ -3482,7 +3503,7 @@ void ZedCamera::threadFunc_zedGrab()
           mZed.setSVOPosition(0);
           RCLCPP_WARN(get_logger(), "SVO reached the end and has been restarted.");
           rclcpp::sleep_for(
-            std::chrono::microseconds(static_cast<int>(mGrabPeriodMean_sec->getMean() * 1e6)));
+            std::chrono::microseconds(static_cast<int>(mGrabPeriodMean_sec->getAvg() * 1e6)));
           continue;
         } else {
           RCLCPP_WARN(get_logger(), "SVO reached the end. The node has been stopped.");
@@ -3596,8 +3617,6 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   size_t imu_TempSubNumber = 0;
   size_t imu_MagSubNumber = 0;
   size_t pressSubNumber = 0;
-  size_t tempLeftSubNumber = 0;
-  size_t tempRightSubNumber = 0;
 
   try {
     imu_SubNumber = count_subscribers(mPubImu->get_topic_name());
@@ -3605,15 +3624,11 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
     imu_TempSubNumber = 0;
     imu_MagSubNumber = 0;
     pressSubNumber = 0;
-    tempLeftSubNumber = 0;
-    tempRightSubNumber = 0;
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
       imu_TempSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
       imu_MagSubNumber = count_subscribers(mPubImuMag->get_topic_name());
       pressSubNumber = count_subscribers(mPubPressure->get_topic_name());
-      tempLeftSubNumber = count_subscribers(mPubTempL->get_topic_name());
-      tempRightSubNumber = count_subscribers(mPubTempR->get_topic_name());
     }
   } catch (...) {
     rcutils_reset_error();
@@ -3623,7 +3638,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   // <---- Subscribers count
 
   int totSub = imu_SubNumber + imu_RawSubNumber + imu_TempSubNumber + imu_MagSubNumber +
-    pressSubNumber + tempLeftSubNumber + tempRightSubNumber;
+    pressSubNumber;
 
   // ----> Grab data and setup timestamps
   RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback: Grab data and setup timestamps");
@@ -3692,16 +3707,6 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
 
   if (mDebugSensors) {
     RCLCPP_DEBUG_STREAM(get_logger(), "SENSOR LAST PERIOD: " << dT << " sec @" << 1. / dT << " Hz");
-  }
-
-  RCLCPP_DEBUG_ONCE(get_logger(), "Sensors callback: temperatures");
-
-  if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-    // Update temperatures for Diagnostic
-    sens_data.temperature.get(
-      sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_LEFT, mTempLeft);
-    sens_data.temperature.get(
-      sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
   }
 
   // ----> Sensors freq for diagnostic
@@ -3893,35 +3898,6 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
       mPubPressure->publish(std::move(pressMsg));
     } else {
       mBaroPublishing = false;
-    }
-
-    if (tempLeftSubNumber > 0) {
-      mBaroPublishing = true;
-
-      tempMsgPtr leftTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
-
-      leftTempMsg->header.stamp = ts_baro;
-
-      leftTempMsg->header.frame_id = mTempLeftFrameId;
-      leftTempMsg->temperature = static_cast<double>(mTempLeft);
-      leftTempMsg->variance = 0.0;
-
-      mPubTempL->publish(std::move(leftTempMsg));
-    }
-
-    if (tempRightSubNumber > 0) {
-      mBaroPublishing = true;
-
-      tempMsgPtr rightTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
-
-      rightTempMsg->header.stamp = ts_baro;
-
-      rightTempMsg->header.frame_id = mTempRightFrameId;
-      rightTempMsg->temperature = static_cast<double>(mTempRight);
-      rightTempMsg->variance = 0.0;
-
-      RCLCPP_DEBUG_STREAM(get_logger(), "Publishing RIGHT TEMP message");
-      mPubTempR->publish(std::move(rightTempMsg));
     }
   }
 
@@ -4462,8 +4438,8 @@ bool ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     mVideoDepthPeriodMean_sec->addValue(period_sec);
     RCLCPP_DEBUG_STREAM(
       get_logger(),
-      "VIDEO/DEPTH PUB MEAN PERIOD: " << mVideoDepthPeriodMean_sec->getMean() << " sec @"
-                                      << 1. / mVideoDepthPeriodMean_sec->getMean() << " Hz");
+      "VIDEO/DEPTH PUB MEAN PERIOD: " << mVideoDepthPeriodMean_sec->getAvg() << " sec @"
+                                      << 1. / mVideoDepthPeriodMean_sec->getAvg() << " Hz");
   }
   lastZedTs = grab_ts;
   // <---- Check if a grab has been done before publishing the same images
@@ -5215,22 +5191,27 @@ void ZedCamera::applyVideoSettings()
 bool ZedCamera::isPosTrackingRequired()
 {
   if (mDepthDisabled) {
+    RCLCPP_DEBUG(get_logger(), "POS. TRACKING not required: Depth disabled.");
     return false;
   }
 
   if (mPosTrackingEnabled) {
+    RCLCPP_DEBUG(get_logger(), "POS. TRACKING required: enabled by param.");
     return true;
   }
 
   if (mPublishTF) {
+    RCLCPP_DEBUG(get_logger(), "POS. TRACKING required: enabled by TF param.");
     return true;
   }
 
   if (mDepthStabilization) {
+    RCLCPP_DEBUG(get_logger(), "POS. TRACKING required: enabled by depth stabilization param.");
     return true;
   }
 
   if (mMappingEnabled || mObjDetEnabled) {
+    RCLCPP_DEBUG(get_logger(), "POS. TRACKING required: enabled by mapping or object detection.");
     return true;
   }
 
@@ -5248,9 +5229,11 @@ bool ZedCamera::isPosTrackingRequired()
   }
 
   if (topics_sub > 0) {
+    RCLCPP_DEBUG(get_logger(), "POS. TRACKING required: topic subscribed.");
     return true;
   }
 
+  RCLCPP_DEBUG(get_logger(), "POS. TRACKING not required.");
   return false;
 }
 
@@ -5377,6 +5360,81 @@ void ZedCamera::publishPointCloud()
   // Point cloud elaboration time
   mPcProcMean_sec->addValue(pcElabTimer.toc());
   // RCLCPP_INFO_STREAM(get_logger(), "Point cloud freq: " << 1e6/mean);
+}
+
+void ZedCamera::callback_pubTemp()
+{
+  RCLCPP_DEBUG_ONCE(get_logger(), "Temperatures callback called");
+
+  if (!sl_tools::isZED2OrZED2i(mCamRealModel)) {
+    RCLCPP_DEBUG(
+      get_logger(),
+      "callback_pubTemp: the callback should never be called for this camera model!");
+    return;
+  }
+
+  // ----> Always update temperature values for diagnostic
+  sl::SensorsData sens_data;
+  sl::ERROR_CODE err = mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    if (mDebugSensors) {
+      RCLCPP_DEBUG_STREAM(
+        get_logger(), "[callback_pubTemp] sl::getSensorsData error: " << sl::toString(err).c_str());
+    }
+    return;
+  }
+
+  sens_data.temperature.get(
+    sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_LEFT, mTempLeft);
+  sens_data.temperature.get(
+    sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
+  // <---- Always update temperature values for diagnostic
+
+  // ----> Subscribers count
+  size_t tempLeftSubNumber = 0;
+  size_t tempRightSubNumber = 0;
+
+  try {
+    tempLeftSubNumber = 0;
+    tempRightSubNumber = 0;
+
+    if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
+      tempLeftSubNumber = count_subscribers(mPubTempL->get_topic_name());
+      tempRightSubNumber = count_subscribers(mPubTempR->get_topic_name());
+    }
+  } catch (...) {
+    rcutils_reset_error();
+    RCLCPP_DEBUG(get_logger(), "callback_pubTemp: Exception while counting subscribers");
+    return;
+  }
+  // <---- Subscribers count
+
+  rclcpp::Time now = get_clock()->now();
+
+  if (tempLeftSubNumber > 0) {
+    tempMsgPtr leftTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+
+    leftTempMsg->header.stamp = now;
+
+    leftTempMsg->header.frame_id = mTempLeftFrameId;
+    leftTempMsg->temperature = static_cast<double>(mTempLeft);
+    leftTempMsg->variance = 0.0;
+
+    mPubTempL->publish(std::move(leftTempMsg));
+  }
+
+  if (tempRightSubNumber > 0) {
+    tempMsgPtr rightTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+
+    rightTempMsg->header.stamp = now;
+
+    rightTempMsg->header.frame_id = mTempRightFrameId;
+    rightTempMsg->temperature = static_cast<double>(mTempRight);
+    rightTempMsg->variance = 0.0;
+
+    RCLCPP_DEBUG_STREAM(get_logger(), "Publishing RIGHT TEMP message");
+    mPubTempR->publish(std::move(rightTempMsg));
+  }
 }
 
 void ZedCamera::callback_pubFusedPc()
@@ -5928,20 +5986,20 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
     {
       stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Camera grabbing");
 
-      double freq = 1. / mGrabPeriodMean_sec->getMean();
+      double freq = 1. / mGrabPeriodMean_sec->getAvg();
       double freq_perc = 100. * freq / mCamGrabFrameRate;
       stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
       stat.addf(
-        "Capture", "Tot. Processing Time: %.3f sec (Max. %.3f sec)", mElabPeriodMean_sec->getMean(),
+        "Capture", "Tot. Processing Time: %.3f sec (Max. %.3f sec)", mElabPeriodMean_sec->getAvg(),
         1. / mCamGrabFrameRate);
 
       if (mPublishingData) {
-        freq = 1. / mVideoDepthPeriodMean_sec->getMean();
+        freq = 1. / mVideoDepthPeriodMean_sec->getAvg();
         freq_perc = 100. * freq / mPubFrameRate;
         stat.addf("Video/Depth", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
         stat.addf(
           "Video/Depth", "Processing Time: %.3f sec (Max. %.3f sec)",
-          mVideoDepthElabMean_sec->getMean(), 1. / mCamGrabFrameRate);
+          mVideoDepthElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
       } else {
         stat.add("Video/Depth", "Topics not subscribed");
       }
@@ -5959,11 +6017,11 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
         stat.add("Depth mode", sl::toString(mDepthQuality).c_str());
 
         if (mPcPublishing) {
-          double freq = 1. / mPcPeriodMean_sec->getMean();
+          double freq = 1. / mPcPeriodMean_sec->getAvg();
           double freq_perc = 100. * freq / mPcPubRate;
           stat.addf("Point Cloud", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
           stat.addf(
-            "Point Cloud", "Processing Time: %.3f sec (Max. %.3f sec)", mPcProcMean_sec->getMean(),
+            "Point Cloud", "Processing Time: %.3f sec (Max. %.3f sec)", mPcProcMean_sec->getAvg(),
             1. / mPcPubRate);
         } else {
           stat.add("Point Cloud", "Topic not subscribed");
@@ -5981,18 +6039,18 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
           stat.addf("Tracking status", "%s", sl::toString(mPosTrackingStatus).c_str());
 
           if (mPublishTF) {
-            double freq = 1. / mPubOdomTF_sec->getMean();
+            double freq = 1. / mPubOdomTF_sec->getAvg();
             stat.addf("TF Odometry", "Mean Frequency: %.1f Hz", freq);
 
             if (mPublishMapTF) {
-              double freq = 1. / mPubPoseTF_sec->getMean();
+              double freq = 1. / mPubPoseTF_sec->getAvg();
               stat.addf("TF Pose", "Mean Frequency: %.1f Hz", freq);
             } else {
               stat.add("TF Pose", "DISABLED");
             }
 
             if (mPublishImuTF) {
-              double freq = 1. / mPubImuTF_sec->getMean();
+              double freq = 1. / mPubImuTF_sec->getAvg();
               stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
             } else {
               stat.add("TF IMU", "DISABLED");
@@ -6008,12 +6066,12 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
 
         if (mObjDetRunning) {
           if (mObjDetSubscribed) {
-            double freq = 1. / mObjDetPeriodMean_sec->getMean();
+            double freq = 1. / mObjDetPeriodMean_sec->getAvg();
             double freq_perc = 100. * freq / mPubFrameRate;
             stat.addf("Object detection", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc);
             stat.addf(
               "Object detection", "Processing Time: %.3f sec (Max. %.3f sec)",
-              mObjDetElabMean_sec->getMean(), 1. / mCamGrabFrameRate);
+              mObjDetElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
           } else {
             stat.add("Object Detection", "Active, topic not subscribed");
           }
@@ -6031,21 +6089,21 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
   }
 
   if (mImuPublishing) {
-    double freq = 1. / mImuPeriodMean_sec->getMean();
+    double freq = 1. / mImuPeriodMean_sec->getAvg();
     stat.addf("IMU", "Mean Frequency: %.1f Hz", freq);
   } else {
     stat.add("IMU Sensor", "Topics not subscribed");
   }
 
   if (mMagPublishing) {
-    double freq = 1. / mMagPeriodMean_sec->getMean();
+    double freq = 1. / mMagPeriodMean_sec->getAvg();
     stat.addf("Magnetometer", "Mean Frequency: %.1f Hz", freq);
   } else {
     stat.add("Magnetometer Sensor", "Topics not subscribed");
   }
 
   if (mBaroPublishing) {
-    double freq = 1. / mBaroPeriodMean_sec->getMean();
+    double freq = 1. / mBaroPeriodMean_sec->getAvg();
     stat.addf("Barometer", "Mean Frequency: %.1f Hz", freq);
   } else {
     stat.add("Barometer Sensor", "Topics not subscribed");

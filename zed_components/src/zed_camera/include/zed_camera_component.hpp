@@ -220,13 +220,15 @@ protected:
   // <---- Thread functions
 
   // ----> Publishing functions
-  bool publishVideoDepth(rclcpp::Time & out_pub_ts);
-
   void publishImageWithInfo(
     sl::Mat & img, image_transport::CameraPublisher & pubImg, camInfoMsgPtr & camInfoMsg,
     std::string imgFrameId, rclcpp::Time t);
   void publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t);
   void publishDisparity(sl::Mat disparity, rclcpp::Time t);
+
+  bool areVideoDepthSubscribed();
+  void retrieveVideoDepth();
+  void publishVideoDepth(rclcpp::Time & out_pub_ts);
   void publishPointCloud();
   void publishImuFrameAndTopic();
 
@@ -396,7 +398,6 @@ private:
   int mCamWBTemp = 42;
   int mDepthConf = 50;
   int mDepthTextConf = 100;
-  double mDepthPubRate = 15.0;
   double mPcPubRate = 15.0;
   double mFusedPcPubRate = 1.0;
   bool mRemoveSatAreas = true;
@@ -478,45 +479,80 @@ private:
   // <---- Messages
 
   // ----> Publishers
-  image_transport::CameraPublisher mPubRgb;       //
-  image_transport::CameraPublisher mPubRawRgb;    //
-  image_transport::CameraPublisher mPubLeft;      //
-  image_transport::CameraPublisher mPubRawLeft;   //
-  image_transport::CameraPublisher mPubRight;     //
-  image_transport::CameraPublisher mPubRawRight;  //
-  image_transport::CameraPublisher mPubDepth;     //
-  image_transport::Publisher mPubStereo;          //
-  image_transport::Publisher mPubRawStereo;       //
+  image_transport::CameraPublisher mPubRgb;
+  image_transport::CameraPublisher mPubRawRgb;
+  image_transport::CameraPublisher mPubLeft;
+  image_transport::CameraPublisher mPubRawLeft;
+  image_transport::CameraPublisher mPubRight;
+  image_transport::CameraPublisher mPubRawRight;
+  image_transport::CameraPublisher mPubDepth;
+  image_transport::Publisher mPubStereo;
+  image_transport::Publisher mPubRawStereo;
 
-  image_transport::CameraPublisher mPubRgbGray;       //
-  image_transport::CameraPublisher mPubRawRgbGray;    //
-  image_transport::CameraPublisher mPubLeftGray;      //
-  image_transport::CameraPublisher mPubRawLeftGray;   //
-  image_transport::CameraPublisher mPubRightGray;     //
-  image_transport::CameraPublisher mPubRawRightGray;  //
+  image_transport::CameraPublisher mPubRgbGray;
+  image_transport::CameraPublisher mPubRawRgbGray;
+  image_transport::CameraPublisher mPubLeftGray;
+  image_transport::CameraPublisher mPubRawLeftGray;
+  image_transport::CameraPublisher mPubRightGray;
+  image_transport::CameraPublisher mPubRawRightGray;
 
-  imagePub mPubConfMap;          //
-  disparityPub mPubDisparity;    //
-  pointcloudPub mPubCloud;       //
-  pointcloudPub mPubFusedCloud;  //
-  posePub mPubPose;              //
-  poseCovPub mPubPoseCov;        //
-  odomPub mPubOdom;              //
-  pathPub mPubOdomPath;          //
-  pathPub mPubPosePath;          //
-  imuPub mPubImu;                //
-  imuPub mPubImuRaw;             //
-  tempPub mPubImuTemp;           //
-  magPub mPubImuMag;             //
-  pressPub mPubPressure;         //
-  tempPub mPubTempL;             //
-  tempPub mPubTempR;             //
-  transfPub mPubCamImuTransf;    //
+  imagePub mPubConfMap;
+  disparityPub mPubDisparity;
+  pointcloudPub mPubCloud;
+  pointcloudPub mPubFusedCloud;
+  posePub mPubPose;
+  poseCovPub mPubPoseCov;
+  odomPub mPubOdom;
+  pathPub mPubOdomPath;
+  pathPub mPubPosePath;
+  imuPub mPubImu;
+  imuPub mPubImuRaw;
+  tempPub mPubImuTemp;
+  magPub mPubImuMag;
+  pressPub mPubPressure;
+  tempPub mPubTempL;
+  tempPub mPubTempR;
+  transfPub mPubCamImuTransf;
   objPub mPubObjDet;
   depthInfoPub mPubDepthInfo;
   planePub mPubPlane;
   markerPub mPubMarker;
   // <---- Publishers
+
+  // <---- Publisher variables
+  sl::Timestamp mGrabTS = 0;
+  size_t mRgbSubnumber = 0;
+  size_t mRgbRawSubnumber = 0;
+  size_t mRgbGraySubnumber = 0;
+  size_t mRgbGrayRawSubnumber = 0;
+  size_t mLeftSubnumber = 0;
+  size_t mLeftRawSubnumber = 0;
+  size_t mLeftGraySubnumber = 0;
+  size_t mLeftGrayRawSubnumber = 0;
+  size_t mRightSubnumber = 0;
+  size_t mRightRawSubnumber = 0;
+  size_t mRightGraySubnumber = 0;
+  size_t mRightGrayRawSubnumber = 0;
+  size_t mStereoSubnumber = 0;
+  size_t mStereoRawSubnumber = 0;
+  size_t mDepthSubnumber = 0;
+  size_t mConfMapSubnumber = 0;
+  size_t mDisparitySubnumber = 0;
+  size_t mDepthInfoSubnumber = 0;
+
+  sl::Mat mMatLeft, mMatLeftRaw;
+  sl::Mat mMatRight, mMatRightRaw;
+  sl::Mat mMatLeftGray, mMatLeftRawGray;
+  sl::Mat mMatRightGray, mMatRightRawGray;
+  sl::Mat mMatDepth, mMatDisp, mMatConf;
+  float mMinDepth = 0.0f;
+  float mMaxDepth = 0.0f;
+  // <---- Publisher variables
+
+  // ----> Point cloud variables
+  sl::Mat mMatCloud;
+  sl::FusedPointCloud mFusedPC;
+  // <---- Point cloud variables
 
   // ----> Subscribers
   clickedPtSub mClickedPtSub;
@@ -537,24 +573,25 @@ private:
 
   // ----> Thread Sync
   // std::mutex mCloseZedMutex;
-  std::mutex mCamDataMutex;
+  std::mutex mVideoDepthMutex;
   std::mutex mPcMutex;
   std::mutex mRecMutex;
   std::mutex mPosTrkMutex;
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
   std::mutex mObjDetMutex;
+  std::condition_variable mVideoDepthDataReadyCondVar;
   std::condition_variable mPcDataReadyCondVar;
-  bool mPcDataReady = false;
-  std::atomic_bool mZedDataReady;
+  std::atomic_bool mPcDataReady;
+  std::atomic_bool mVideoDepthDataReady;
   // <---- Thread Sync
 
   // ----> Status Flags
   bool mSvoMode = false;
   bool mSvoPause = false;
   bool mPosTrackingStarted = false;
-  bool mPublishingData = false;
-  bool mPcPublishing = false;
+  bool mVdPublishing = false; // Indicates if video and depth data are subscribed and then published
+  bool mPcPublishing = false; // Indicates if point cloud data are subscribed and then published
   bool mTriggerAutoExpGain = true;  // Triggered on start
   bool mTriggerAutoWB = true;       // Triggered on start
   bool mRecording = false;
@@ -564,7 +601,9 @@ private:
   bool mResetOdom = false;
   bool mMappingRunning = false;
   bool mObjDetRunning = false;
+  bool mRgbSubscribed = false;
   // <---- Status Flags
+
 
   // ----> Positional Tracking
   sl::Pose mLastZedPose;  // Sensor to Map transform
@@ -578,7 +617,6 @@ private:
   float mTempRight = -273.15f;
   std::unique_ptr<sl_tools::WinAvg> mElabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mGrabPeriodMean_sec;
-  std::unique_ptr<sl_tools::WinAvg> mGrabFuncMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mVideoDepthPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mVideoDepthElabMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mPcPeriodMean_sec;
@@ -602,11 +640,6 @@ private:
   // ----> Timestamps
   rclcpp::Time mFrameTimestamp;
   // <---- Timestamps
-
-  // ----> Point cloud variables
-  sl::Mat mMatCloud;
-  sl::FusedPointCloud mFusedPC;
-  // <---- Point cloud variables
 
   // ----> SVO Recording parameters
   unsigned int mSvoRecBitrate = 0;

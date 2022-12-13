@@ -15,6 +15,7 @@ cd ..
 mkdir -p ros2_ws/src 
 cp -r ${repo_name} ros2_ws/src
 ls -lha ros2_ws/src
+ls -lha ros2_ws/src/${repo_name}
 cd ${root_path}
 
 echo "${ttk} BuildING the ROS2 node in Humble installed from binaries."

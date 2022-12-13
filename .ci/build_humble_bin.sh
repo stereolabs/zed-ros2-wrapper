@@ -10,15 +10,16 @@ echo "${ttk} Root repository folder: ${root_path}"
 echo "${ttk} Repository name: ${repo_name}"
 
 # Create the ROS 2 workspace
+ws_path=${root_path}/ros2_ws/src
 echo "${ttk} Create ROS2 workspace"
 cd ..
-mkdir -p ros2_ws/src 
-cp -r ${repo_name} ros2_ws/src
-ls -lha ros2_ws/src
-ls -lha ros2_ws/src/${repo_name}
+mkdir -p ws_path 
+cp -r ${repo_name} ${ws_path}
+ls -lha ${ws_path}
+ls -lha ${ws_path}/${repo_name}
 cd ${root_path}
 
-echo "${ttk} BuildING the ROS2 node in Humble installed from binaries."
+echo "${ttk} Building the ROS2 node in Humble installed from binaries."
 
 echo "${ttk} Install ROS2 Humble"
 
@@ -49,6 +50,15 @@ echo "${ttk} Check environment variables"
 env | grep ROS
 
 echo "${ttk} ROS2 Humble is ready"
+
+echo "${ttk} Install Node dependencies"
+cd ${ws_path}
+rosdep install --from-paths src --ignore-src -r -y
+
+echo "${ttk} Build the node"
+colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
+
+cd ${root_path}
 
 
 

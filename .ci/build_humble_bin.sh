@@ -9,20 +9,21 @@ repo_name=${PWD##*/}
 echo "${ttk} Root repository folder: ${root_path}"
 echo "${ttk} Repository name: ${repo_name}"
 
+echo "${ttk} Building the ROS2 node in Humble installed from binaries."
+
 # Create the ROS 2 workspace
 echo "${ttk} Create ROS2 workspace"
 cd ..
-ws_path="$(pwd)"/ros2_ws/src
-mkdir -p ws_path 
+ws_path="$(pwd)"/ros2_ws
+mkdir -p ws_path/src 
 echo "${ttk} ROS2 Workspace: ${ws_path}"
 cd ${root_path}
 cd ..
-cp -r ${repo_name} ${ws_path}
-ls -lha ${ws_path}
-ls -lha ${ws_path}/${repo_name}
-
-
-echo "${ttk} Building the ROS2 node in Humble installed from binaries."
+cp -r ${repo_name} ${ws_path}/src
+echo "${ttk} '${ws_path}/src' content"
+ls -lha ${ws_path}/src
+echo "${ttk} '${ws_path}/src/${repo_name}' content"
+ls -lha ${ws_path}/src/${repo_name}
 
 echo "${ttk} Install ROS2 Humble"
 

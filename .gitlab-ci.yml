@@ -184,8 +184,13 @@ variables:
 ######################
 .build_script_linux:
   script: &linux_build_script_definition
-    - sudo chmod +x .ci/run_build_to_installer.sh
-    - ./.ci/run_build_to_installer.sh
+    - sudo chmod +x .ci/run_build_in_humble.sh
+    - ./.ci/run_build_in_humble.sh
+
+#.build_script_linux:
+#  script: &linux_build_script_definition
+#    - sudo chmod +x .ci/run_build_to_installer.sh
+#    - ./.ci/run_build_to_installer.sh
 
 #################
 #  Build Tasks  #
@@ -199,7 +204,7 @@ u18_cu102_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  when: manual
 
 u18_cu117_build:
   stage: build
@@ -210,7 +215,7 @@ u18_cu117_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  when: manual
 
 u20_cu117_build:
   stage: build
@@ -221,7 +226,7 @@ u20_cu117_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  when: manual
 
 u22_cu117_build:
   stage: build
@@ -232,7 +237,7 @@ u22_cu117_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  when: manual
 
 ########
 
@@ -245,7 +250,7 @@ l4t32_3_jetsons_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  when: manual
 
 l4t32_4_jetsons_build:
   stage: build
@@ -256,7 +261,7 @@ l4t32_4_jetsons_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  when: manual
 
 l4t32_5_jetsons_build:
   stage: build
@@ -267,7 +272,7 @@ l4t32_5_jetsons_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  when: manual
 
 l4t32_6_jetsons_build:
   stage: build
@@ -278,7 +283,7 @@ l4t32_6_jetsons_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  when: manual
 
 l4t32_7_jetsons_build:
   stage: build
@@ -289,7 +294,7 @@ l4t32_7_jetsons_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  when: manual
 
 l4t35_1_jetsons_build:
   stage: build
@@ -300,7 +305,7 @@ l4t35_1_jetsons_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  when: manual
 
 ######################
 #     Test script    #
@@ -350,7 +355,7 @@ unit_l4t35_1_test:
   needs: 
     - job: l4t35_1_jetsons_build
       artifacts: true
-  when: on_success
+  when: manual
 
 unit_l4t32_7_test:
   stage: unit_test
@@ -366,7 +371,7 @@ unit_l4t32_7_test:
   needs: 
     - job: l4t32_7_jetsons_build
       artifacts: true
-  when: on_success
+  when: manual
 
 unit_u18_cu111_docker_test:
   stage: unit_test
@@ -383,7 +388,7 @@ unit_u18_cu111_docker_test:
   needs: 
     - job: u18_cu117_build
       artifacts: true
-  when: on_success
+  when: manual
 
 unit_u20_cu114_docker_test:
   stage: unit_test
@@ -400,7 +405,7 @@ unit_u20_cu114_docker_test:
   needs: 
     - job: u20_cu117_build
       artifacts: true
-  when: on_success
+  when: manual
 
 ######################
 #     memory script    #

@@ -10,9 +10,9 @@ echo "${ttk} Root repository folder: ${root_path}"
 echo "${ttk} Repository name: ${repo_name}"
 
 # Create the ROS 2 workspace
-ws_path=${root_path}/ros2_ws/src
 echo "${ttk} Create ROS2 workspace"
 cd ..
+ws_path="$(pwd)"/ros2_ws/src
 mkdir -p ws_path 
 cp -r ${repo_name} ${ws_path}
 ls -lha ${ws_path}

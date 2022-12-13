@@ -18,7 +18,6 @@ ws_path="$(pwd)"/ros2_ws
 mkdir -p ws_path/src 
 echo "${ttk} ROS2 Workspace: ${ws_path}"
 echo "${ttk} '${ws_path}' content"
-ls -lha ${ws_path}/src
 ls -lah ${ws_path}
 cd ${root_path}
 cd ..
@@ -50,7 +49,7 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-a
 
 echo "${ttk} Install ROS 2 packages"
 sudo apt-get update
-sudo apt-get upgrade
+sudo apt-get upgrade --force-yes
 sudo apt-get install -y ros-humble-ros-base ros-dev-tools
 
 echo "${ttk} Sourcing the setup script"

@@ -15,7 +15,7 @@ echo "${ttk} Building the ROS2 node in Humble installed from binaries."
 echo "${ttk} Create ROS2 workspace"
 cd ..
 ws_path="$(pwd)"/ros2_ws
-mkdir -p ws_path/src 
+mkdir -p ${ws_path}/src 
 echo "${ttk} ROS2 Workspace: ${ws_path}"
 echo "${ttk} '${ws_path}' content"
 ls -lah ${ws_path}

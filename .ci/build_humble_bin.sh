@@ -2,9 +2,9 @@
 
 pwd_path="$(pwd)"
 if [[ ${pwd_path:${#pwd_path}-3} == ".ci" ]] ; then cd .. && pwd_path="$(pwd)"; fi
-ttk="---> "
-root_path = ${pwd_path}
-repo_name = ${pwd##*/}
+ttk="===>"
+root_path=${pwd_path}
+repo_name=${PWD##*/}
 
 echo "${ttk} Root repository folder: ${root_path}"
 echo "${ttk} Repository name: ${repo_name}"
@@ -17,9 +17,7 @@ cp -r ${repo_name} ros2_ws/src
 ls -lha ros2_ws/src
 cd ${root_path}
 
-ttk="===>"
-
-echo "${ttk} Building the ROS2 node in Humble installed from binaries."
+echo "${ttk} BuildING the ROS2 node in Humble installed from binaries."
 
 echo "${ttk} Install ROS2 Humble"
 

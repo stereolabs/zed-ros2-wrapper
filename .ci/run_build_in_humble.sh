@@ -2,8 +2,8 @@
 pwd_path="$(pwd)"
 if [[ ${pwd_path:${#pwd_path}-3} == ".ci" ]] ; then cd .. && pwd_path="$(pwd)"; fi
 ttk="---> "
-root_path = ${pwd_path}
-repo_name = ${pwd##*/}
+root_path=${pwd_path}
+repo_name=${PWD##*/}
 
 echo "${ttk} Root repository folder: ${root_path}"
 echo "${ttk} Repository name: ${repo_name}"

@@ -14,10 +14,13 @@ echo "${ttk} Create ROS2 workspace"
 cd ..
 ws_path="$(pwd)"/ros2_ws/src
 mkdir -p ws_path 
+echo "${ttk} ROS2 Workspace: ${ws_path}"
+cd ${root_path}
+cd ..
 cp -r ${repo_name} ${ws_path}
 ls -lha ${ws_path}
 ls -lha ${ws_path}/${repo_name}
-cd ${root_path}
+
 
 echo "${ttk} Building the ROS2 node in Humble installed from binaries."
 

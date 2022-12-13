@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 pwd_path="$(pwd)"
 if [[ ${pwd_path:${#pwd_path}-3} == ".ci" ]] ; then cd .. && pwd_path="$(pwd)"; fi

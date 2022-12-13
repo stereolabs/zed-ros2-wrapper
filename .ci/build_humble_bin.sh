@@ -46,6 +46,10 @@ sudo apt-get install -y ros-humble-ros-base ros-dev-tools
 echo "${ttk} Sourcing the setup script"
 source /opt/ros/humble/setup.bash
 
+echo "${ttk} Initialize rosdep"
+sudo rosdep init
+rosdep update
+
 echo "${ttk} Check environment variables"
 env | grep ROS
 

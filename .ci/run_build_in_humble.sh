@@ -4,6 +4,8 @@ if [[ ${pwd_path:${#pwd_path}-3} == ".ci" ]] ; then cd .. && pwd_path="$(pwd)"; 
 ttk="---> "
 echo "${ttk} Root repository folder: ${pwd_path}"
 
+ls -lha
+
 sudocmd=""
 if  [[ ! $(uname) == "MINGW"* ]]; then
 	LINUX_OS=1

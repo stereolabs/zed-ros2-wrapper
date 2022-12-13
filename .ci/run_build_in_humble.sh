@@ -17,18 +17,18 @@ ${sudocmd} chmod +x .ci/*.sh
 #the . command.sh syntaxe allows env var to be accessible cross-scripts (needed for timers)
 
 ubuntu=$(lsb_release -r)
-echo "$ubuntu"
+echo "${ttk} Ubuntu $ubuntu"
 ver=$(cut -f2 <<< "$ubuntu")
-echo "$ver"
+echo "${ttk} Version: $ver"
 
 # Build the node
 cd "${pwd_path}"
 if [[ $ver == "20.04" ]]; then 
-	echo "Build ROS2 Humble from the source."    
+	echo "${ttk} Build ROS2 Humble from the source."    
     . .ci/build_humble_src.sh    
 fi
 if [[ $ver == "22.04" ]]; then 
-	echo "Install ROS2 Humble from the binaries."
+	echo "${ttk} Install ROS2 Humble from the binaries."
     . .ci/build_humble_bin.sh
 fi
 if [ $? -ne 0 ]; then echo "${ttk} ROS2 Node build failed" > "$pwd_path/failure.txt" ; cat "$pwd_path/failure.txt" ; exit 1 ; fi

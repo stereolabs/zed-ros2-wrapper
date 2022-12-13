@@ -230,7 +230,7 @@ u20_cu117_build:
   when: manual
 
 u22_cu117_build:
-  stage: build
+  stage: build  
   image: stereolabs/ci-compiler:ubuntu22.04-cuda11.7-tensorrt8.4.2
   tags: *linux_docker_builder_target_definition
   script: *linux_build_script_definition
@@ -238,6 +238,7 @@ u22_cu117_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
+  cache: []
   when: on_success
 
 ########

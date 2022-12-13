@@ -49,7 +49,7 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-a
 
 echo "${ttk} Install ROS 2 packages"
 sudo apt-get update
-sudo apt-get upgrade --force-yes
+sudo apt-get upgrade --allow-change-held-packages
 sudo apt-get install -y ros-humble-ros-base ros-dev-tools
 
 echo "${ttk} Sourcing the setup script"

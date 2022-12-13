@@ -34,6 +34,16 @@ env | grep ROS
 
 echo "${ttk} ROS2 Humble is ready"
 
+echo "${ttk} Create ROS2 workspace"
+cd ..
+mkdir -p ros2_ws/src 
+mv zed-ros2-wrapper ros2_ws/src/
+ls -lah ros2_ws/src/
+cd ros2_ws
+
+
+
+
 
 
 

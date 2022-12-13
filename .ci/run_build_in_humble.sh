@@ -2,9 +2,11 @@
 pwd_path="$(pwd)"
 if [[ ${pwd_path:${#pwd_path}-3} == ".ci" ]] ; then cd .. && pwd_path="$(pwd)"; fi
 ttk="---> "
-echo "${ttk} Root repository folder: ${pwd_path}"
+root_path = ${pwd_path}
+repo_name = ${pwd##*/}
 
-ls -lha
+echo "${ttk} Root repository folder: ${root_path}"
+echo "${ttk} Repository name: ${repo_name}"
 
 sudocmd=""
 if  [[ ! $(uname) == "MINGW"* ]]; then
@@ -18,6 +20,7 @@ ${sudocmd} chmod +x .ci/*.sh
 
 #the . command.sh syntaxe allows env var to be accessible cross-scripts (needed for timers)
 
+# Check Ubuntu version
 ubuntu=$(lsb_release -r)
 echo "${ttk} Ubuntu $ubuntu"
 ver=$(cut -f2 <<< "$ubuntu")

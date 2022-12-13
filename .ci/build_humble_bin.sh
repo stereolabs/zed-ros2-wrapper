@@ -50,8 +50,7 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-a
 echo "${ttk} Install ROS 2 packages"
 apt-get update && apt-get upgrade -y && apt-get autoremove && apt-get autoclean
 apt-get install -y ros-humble-ros-base python3-flake8-docstrings python3-pip python3-pytest-cov ros-dev-tools
-
-
+pip3 install numpy
 
 echo "${ttk} Sourcing the setup script"
 source /opt/ros/humble/setup.bash

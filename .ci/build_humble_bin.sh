@@ -51,6 +51,8 @@ echo "${ttk} Install ROS 2 packages"
 apt-get update && apt-get upgrade -y && apt-get autoremove && apt-get autoclean
 apt-get install -y ros-humble-ros-base python3-flake8-docstrings python3-pip python3-pytest-cov ros-dev-tools
 pip3 install numpy
+pip3 install empy
+pip3 install lark
 
 echo "${ttk} Sourcing the setup script"
 source /opt/ros/humble/setup.bash

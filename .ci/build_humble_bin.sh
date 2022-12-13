@@ -17,9 +17,13 @@ cd ..
 ws_path="$(pwd)"/ros2_ws
 mkdir -p ws_path/src 
 echo "${ttk} ROS2 Workspace: ${ws_path}"
+echo "${ttk} '${ws_path}' content"
+ls -lha ${ws_path}/src
+ls -lah ${ws_path}
 cd ${root_path}
 cd ..
 echo "${ttk} Current path: $(pwd)"
+ls -lah
 echo "cp -a ./${repo_name} ${ws_path}/src/"
 cp -a ./${repo_name} ${ws_path}/src/
 echo "${ttk} '${ws_path}/src' content"

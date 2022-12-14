@@ -73,15 +73,8 @@ rosdep install --from-paths src --ignore-src -r -y
 echo "${ttk} Build the node"
 colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
 
+cd ${ws_path}/install
+echo "${ttk} Install path: $(pwd)"
+ls -lha
+
 cd ${root_path}
-
-
-
-
-
-
-
-
-
-
-

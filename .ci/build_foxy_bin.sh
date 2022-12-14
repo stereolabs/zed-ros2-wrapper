@@ -70,7 +70,8 @@ cd ${ws_path}
 rosdep install --from-paths src --ignore-src -r -y
 
 echo "${ttk} Build the node"
-ls -lha
+ls -lha ${ws_path}/src/${repo_name}
+ls -lha ${ws_path}/src/${repo_name}/zed-ros2-interfaces
 colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
 
 echo "${ttk} Prepare 'install' artifact"

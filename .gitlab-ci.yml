@@ -183,10 +183,17 @@ variables:
 ######################
 #    Build script    #
 ######################
-.build_script_linux:
-  script: &linux_build_script_definition
+.build_script_linux_humble:
+  script: &humble_linux_build_script_definition
     - sudo chmod +x .ci/run_build_in_humble.sh
     - ./.ci/run_build_in_humble.sh
+
+.build_script_linux_foxy:
+  script: &foxy_linux_build_script_definition
+    - sudo chmod +x .ci/run_build_in_foxy.sh
+    - ./.ci/run_build_in_foxy.sh    
+
+    
 
 #.build_script_linux:
 #  script: &linux_build_script_definition
@@ -218,22 +225,22 @@ variables:
 #    expire_in: *artifacts_expire_in_definition
 #  when: manual
 
-u20_cu117_build:
+foxy_u20_cu117_build:
   stage: build
   image: stereolabs/ci-compiler:ubuntu20.04-cuda11.7-tensorrt8.4.2
   tags: *linux_docker_builder_target_definition
-  script: *linux_build_script_definition
+  script: *foxy_linux_build_script_definition
   artifacts:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
   when: manual
 
-u22_cu117_build:
+humble_u22_cu117_build:
   stage: build  
   image: stereolabs/ci-compiler:ubuntu22.04-cuda11.7-tensorrt8.4.2
   tags: *linux_docker_builder_target_definition
-  script: *linux_build_script_definition
+  script: *humble_linux_build_script_definition
   artifacts:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition

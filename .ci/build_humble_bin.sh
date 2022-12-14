@@ -73,8 +73,9 @@ rosdep install --from-paths src --ignore-src -r -y
 echo "${ttk} Build the node"
 colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
 
-cd ${ws_path}/install
-echo "${ttk} Install path: $(pwd)"
-ls -lha
+echo "${ttk} Prepare 'install' artifact"
+cd ${ws_path}
+mkdir -p ${root_path}/ros2
+cp -a ./install ${root_path}/ros2/
 
 cd ${root_path}

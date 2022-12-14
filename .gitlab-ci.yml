@@ -246,7 +246,7 @@ humble_u22_cu117_build:
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
   cache: []
-  when: on_success
+  when: manual
 
 ########
 

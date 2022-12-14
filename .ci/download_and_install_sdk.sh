@@ -11,7 +11,7 @@ ttk="===>"
 echo "Europe/Paris" > /etc/localtime ; echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.0" > /usr/local/cuda/version.txt
 
 # Setup the ZED SDK
-echo "${ttk} Installing ZED SDK v${ZED_SDK_MAJOR}.${ZED_SDK_MINOR} for Ubuntu ${UBUNTU_RELEASE_YEAR}.04 CUDA ${CUDA_MAJOR}.${CUDA_MINOR}""
+echo "${ttk} Installing ZED SDK v${ZED_SDK_MAJOR}.${ZED_SDK_MINOR} for Ubuntu ${UBUNTU_RELEASE_YEAR}.04 CUDA ${CUDA_MAJOR}.${CUDA_MINOR}"
 apt-get update -y || true
 apt-get install --no-install-recommends lsb-release wget less udev sudo  build-essential cmake zstd python3 python3-pip libpng-dev libgomp1 -y && \
     python3 -m pip install --upgrade pip; python3 -m pip install numpy opencv-python-headless && \

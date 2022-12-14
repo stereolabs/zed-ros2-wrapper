@@ -5,6 +5,9 @@ CUDA_MINOR=7
 ZED_SDK_MAJOR=3
 ZED_SDK_MINOR=8
 
+echo $(env) | grep CUDA
+echo $(env) | grep ZED
+
 
 pwd_path="$(pwd)"
 if [[ ${pwd_path:${#pwd_path}-3} == ".ci" ]] ; then cd .. && pwd_path="$(pwd)"; fi

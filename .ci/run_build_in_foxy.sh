@@ -41,7 +41,7 @@ echo "${ttk} Architecture: ${arch}"
 if [[ $arch == "x86_64" ]]; then     
     if [[ $ver == "20.04" ]]; then 
         echo "${ttk} Install the ZED SDK"
-        . .ci/download_and_install_sdk_jetson.sh 20 ${CUDA_MAJOR} ${CUDA_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}
+        . .ci/download_and_install_sdk.sh 20 ${CUDA_MAJOR} ${CUDA_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}
         echo "${ttk} Using ROS2 Foxy installed from the binaries."    
         . .ci/build_foxy_bin.sh    
     fi

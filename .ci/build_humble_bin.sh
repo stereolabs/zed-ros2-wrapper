@@ -9,9 +9,6 @@ repo_name=${PWD##*/}
 echo "${ttk} Root repository folder: ${root_path}"
 echo "${ttk} Repository name: ${repo_name}"
 
-echo "${ttk} Download and install the ZED SDK"
-
-
 echo "${ttk} Building the ROS2 node in Humble installed from binaries."
 
 # Create the ROS 2 workspace

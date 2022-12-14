@@ -1,13 +1,10 @@
 #!/bin/bash -e
 
-CUDA_MAJOR=11
-CUDA_MINOR=7
 ZED_SDK_MAJOR=3
 ZED_SDK_MINOR=8
 
-echo $(env) | grep CUDA
-echo $(env) | grep ZED
-
+CUDA_MAJOR=`echo ${CUDA_VERSION} | cut -d. -f1`
+CUDA_MINOR=`echo ${CUDA_VERSION} | cut -d. -f2`
 
 pwd_path="$(pwd)"
 if [[ ${pwd_path:${#pwd_path}-3} == ".ci" ]] ; then cd .. && pwd_path="$(pwd)"; fi

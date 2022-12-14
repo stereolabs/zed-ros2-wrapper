@@ -51,7 +51,7 @@ if [[ $arch == "x86_64" ]]; then
         echo "${ttk} Install ROS2 Humble from the binaries."
         . .ci/build_humble_bin.sh
     fi
-elif[[ $arch == "arm64" ]]; then 
+elif [[ $arch == "arm64" ]]; then 
 if [[ $ver == "20.04" ]]; then 
         echo "${ttk} Install the ZED SDK"
         . .ci/jetson_download_and_install_sdk.sh 20 ${CUDA_MAJOR} ${CUDA_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}

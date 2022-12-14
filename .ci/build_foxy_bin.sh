@@ -48,7 +48,7 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-a
 
 echo "${ttk} Install ROS 2 packages"
 apt-get update && apt-get upgrade -y && apt-get autoremove && apt-get autoclean
-apt-get install -y ros-foxy-ros-base python3-argcomplete python3-flake8-docstrings python3-pip python3-pytest-cov ros-dev-tools
+apt-get install -y build-essential ros-foxy-ros-base python3-argcomplete python3-flake8-docstrings python3-pip python3-pytest-cov ros-dev-tools
 pip3 install numpy
 pip3 install empy
 pip3 install lark

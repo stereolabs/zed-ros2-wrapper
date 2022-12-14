@@ -23,7 +23,6 @@ cd ${root_path}
 cd ..
 #echo "${ttk} Current path: $(pwd)"
 #ls -lah
-echo "cp -a ./${repo_name} ${ws_path}/src/"
 cp -a ./${repo_name} ${ws_path}/src/
 #echo "${ttk} '${ws_path}/src' content"
 #ls -lha ${ws_path}/src
@@ -71,6 +70,7 @@ cd ${ws_path}
 rosdep install --from-paths src --ignore-src -r -y
 
 echo "${ttk} Build the node"
+ls -lha
 colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
 
 echo "${ttk} Prepare 'install' artifact"

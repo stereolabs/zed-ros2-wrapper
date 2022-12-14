@@ -7,7 +7,7 @@
 #Folders to be saved after the build
 .artifacts_files:
   paths: &artifacts_files_definition
-    - ../ros2_ws/install
+    - ros2/install
     #- lib/build/*.a
     #- lib/build/*.so
     #- lib/build/Release/*.lib

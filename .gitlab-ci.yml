@@ -298,16 +298,16 @@ u22_cu117_build:
 #    expire_in: *artifacts_expire_in_definition
 #  when: manual
 
-#l4t35_1_jetsons_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:tegra-cross-l4t35.1
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
+l4t35_1_jetsons_build:
+  stage: build
+  image: stereolabs/ci-compiler:tegra-cross-l4t35.1
+  tags: *linux_docker_builder_target_definition
+  script: *linux_build_script_definition
+  artifacts:
+    name: *linux_artifacts_naming_definition
+    paths: *artifacts_files_definition
+    expire_in: *artifacts_expire_in_definition
+  when: manual
 
 ######################
 #     Test script    #

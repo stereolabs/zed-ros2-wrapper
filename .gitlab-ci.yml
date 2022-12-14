@@ -359,55 +359,55 @@ unit_l4t35_1_test:
       artifacts: true
   when: manual
 
-unit_l4t32_7_test:
-  stage: unit_test
-  tags: *runner_linux_jetson_l4t32_7_target_definition
-  before_script: *linux_install_sdk_before_script_definition
-  script: *linux_test_script_definition
-  artifacts:
-    when: always
-    name: *linux_artifacts_naming_definition
-    paths: *test_artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-    reports: *test_artifacts_report_files_definition
-  needs: 
-    - job: l4t32_7_jetsons_build
-      artifacts: true
-  when: manual
+#unit_l4t32_7_test:
+#  stage: unit_test
+#  tags: *runner_linux_jetson_l4t32_7_target_definition
+#  before_script: *linux_install_sdk_before_script_definition
+#  script: *linux_test_script_definition
+#  artifacts:
+#    when: always
+#    name: *linux_artifacts_naming_definition
+#    paths: *test_artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#    reports: *test_artifacts_report_files_definition
+#  needs: 
+#    - job: l4t32_7_jetsons_build
+#      artifacts: true
+#  when: manual
 
-unit_u18_cu111_docker_test:
-  stage: unit_test
-  image: stereolabs/ci-runner:ubuntu18.04-cuda11.1
-  tags: *runner_ubuntu_docker_desktop_target_definition
-  before_script: *linux_docker_install_sdk_before_script_definition
-  script: *linux_test_script_definition
-  artifacts:
-    when: always
-    name: *linux_artifacts_naming_definition
-    paths: *test_artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-    reports: *test_artifacts_report_files_definition
-  needs: 
-    - job: u18_cu117_build
-      artifacts: true
-  when: manual
+#unit_u18_cu111_docker_test:
+#  stage: unit_test
+#  image: stereolabs/ci-runner:ubuntu18.04-cuda11.1
+#  tags: *runner_ubuntu_docker_desktop_target_definition
+#  before_script: *linux_docker_install_sdk_before_script_definition
+#  script: *linux_test_script_definition
+#  artifacts:
+#    when: always
+#    name: *linux_artifacts_naming_definition
+#    paths: *test_artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#    reports: *test_artifacts_report_files_definition
+#  needs: 
+#    - job: u18_cu117_build
+#      artifacts: true
+#  when: manual
 
-unit_u20_cu114_docker_test:
-  stage: unit_test
-  image: stereolabs/ci-runner:ubuntu20.04-cuda11.4
-  tags: *runner_ubuntu_docker_desktop_target_definition
-  before_script: *linux_docker_install_sdk_before_script_definition
-  script: *linux_test_script_definition
-  artifacts:
-    when: always
-    name: *linux_artifacts_naming_definition
-    paths: *test_artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-    reports: *test_artifacts_report_files_definition
-  needs: 
-    - job: u20_cu117_build
-      artifacts: true
-  when: manual
+#unit_u20_cu114_docker_test:
+#  stage: unit_test
+#  image: stereolabs/ci-runner:ubuntu20.04-cuda11.4
+#  tags: *runner_ubuntu_docker_desktop_target_definition
+#  before_script: *linux_docker_install_sdk_before_script_definition
+#  script: *linux_test_script_definition
+#  artifacts:
+#    when: always
+#    name: *linux_artifacts_naming_definition
+#    paths: *test_artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#    reports: *test_artifacts_report_files_definition
+#  needs: 
+#    - job: u20_cu117_build
+#      artifacts: true
+#  when: manual
 
 ######################
 #     memory script    #

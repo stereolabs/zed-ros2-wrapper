@@ -7,28 +7,29 @@
 #Folders to be saved after the build
 .artifacts_files:
   paths: &artifacts_files_definition
-    - lib/build/*.a
-    - lib/build/*.so
-    - lib/build/Release/*.lib
-    - lib/build/Release/*.dll
+    - ros2/install
+    #- lib/build/*.a
+    #- lib/build/*.so
+    #- lib/build/Release/*.lib
+    #- lib/build/Release/*.dll
     # Ninja output on a different path
-    - lib/build/*.lib
-    - lib/build/*.dll
-    - lib/include/sl_zed/Camera.hpp
-    - lib/include/sl_zed/defines.hpp
-    - lib/include/sl_core/mapping/Mesh.hpp
-    - lib/include/sl_core/utils/Core.hpp
-    - lib/include/sl_core/utils/types.hpp
-    - lib/include/sl_input
-    - lib/include/sl_core
-    - lib/include/sl_zed
-    - lib/include/sl_fusion
-    - lib/include/utils
-    - lib/build/zed-config.cmake
-    - lib/build/zed-config-version.cmake
-    - ZED_SDK_*.run
-    - ZED_SDK_*.exe
-    - build-timers.json
+    #- lib/build/*.lib
+    #- lib/build/*.dll
+    #- lib/include/sl_zed/Camera.hpp
+    #- lib/include/sl_zed/defines.hpp
+    #- lib/include/sl_core/mapping/Mesh.hpp
+    #- lib/include/sl_core/utils/Core.hpp
+    #- lib/include/sl_core/utils/types.hpp
+    #- lib/include/sl_input
+    #- lib/include/sl_core
+    #- lib/include/sl_zed
+    #- lib/include/sl_fusion
+    #- lib/include/utils
+    #- lib/build/zed-config.cmake
+    #- lib/build/zed-config-version.cmake
+    #- ZED_SDK_*.run
+    #- ZED_SDK_*.exe
+    #- build-timers.json
 
 #Folders to be saved after the tests
 .test_artifacts_files:
@@ -182,125 +183,149 @@ variables:
 ######################
 #    Build script    #
 ######################
-.build_script_linux:
-  script: &linux_build_script_definition
-    - sudo chmod +x .ci/run_build_to_installer.sh
-    - ./.ci/run_build_to_installer.sh
+.build_script_linux_humble:
+  script: &humble_linux_build_script_definition
+    - sudo chmod +x .ci/run_build_in_humble.sh
+    - ./.ci/run_build_in_humble.sh
+
+.build_script_linux_foxy:
+  script: &foxy_linux_build_script_definition
+    - sudo chmod +x .ci/run_build_in_foxy.sh
+    - ./.ci/run_build_in_foxy.sh    
+
+    
+
+#.build_script_linux:
+#  script: &linux_build_script_definition
+#    - sudo chmod +x .ci/run_build_to_installer.sh
+#    - ./.ci/run_build_to_installer.sh
 
 #################
 #  Build Tasks  #
 #################
-u18_cu102_build:
-  stage: build
-  image: stereolabs/ci-compiler:ubuntu18.04-cuda10.2-tensorrt8.4.2
-  tags: *linux_docker_builder_target_definition
-  script: *linux_build_script_definition
-  artifacts:
-    name: *linux_artifacts_naming_definition
-    paths: *artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-  when: on_success
+#u18_cu102_build:
+#  stage: build
+#  image: stereolabs/ci-compiler:ubuntu18.04-cuda10.2-tensorrt8.4.2
+#  tags: *linux_docker_builder_target_definition
+#  script: *linux_build_script_definition
+#  artifacts:
+#    name: *linux_artifacts_naming_definition
+#    paths: *artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#  when: manual
 
-u18_cu117_build:
-  stage: build
-  image: stereolabs/ci-compiler:ubuntu18.04-cuda11.7-tensorrt8.4.2
-  tags: *linux_docker_builder_target_definition
-  script: *linux_build_script_definition
-  artifacts:
-    name: *linux_artifacts_naming_definition
-    paths: *artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-  when: on_success
+#u18_cu117_build:
+#  stage: build
+#  image: stereolabs/ci-compiler:ubuntu18.04-cuda11.7-tensorrt8.4.2
+#  tags: *linux_docker_builder_target_definition
+#  script: *linux_build_script_definition
+#  artifacts:
+#    name: *linux_artifacts_naming_definition
+#    paths: *artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#  when: manual
 
-u20_cu117_build:
+foxy_u20_cu117_build:
   stage: build
   image: stereolabs/ci-compiler:ubuntu20.04-cuda11.7-tensorrt8.4.2
   tags: *linux_docker_builder_target_definition
-  script: *linux_build_script_definition
+  script: *foxy_linux_build_script_definition
   artifacts:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
   when: on_success
 
-u22_cu117_build:
-  stage: build
+humble_u22_cu117_build:
+  stage: build  
   image: stereolabs/ci-compiler:ubuntu22.04-cuda11.7-tensorrt8.4.2
   tags: *linux_docker_builder_target_definition
-  script: *linux_build_script_definition
+  script: *humble_linux_build_script_definition
   artifacts:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  cache: []
+  when: manual
 
 ########
 
-l4t32_3_jetsons_build:
-  stage: build
-  image: stereolabs/ci-compiler:tegra-cross-l4t32.3
-  tags: *linux_docker_builder_target_definition
-  script: *linux_build_script_definition
-  artifacts:
-    name: *linux_artifacts_naming_definition
-    paths: *artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-  when: on_success
+#l4t32_3_jetsons_build:
+#  stage: build
+#  image: stereolabs/ci-compiler:tegra-cross-l4t32.3
+#  tags: *linux_docker_builder_target_definition
+#  script: *linux_build_script_definition
+#  artifacts:
+#    name: *linux_artifacts_naming_definition
+#    paths: *artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#  when: manual
 
-l4t32_4_jetsons_build:
-  stage: build
-  image: stereolabs/ci-compiler:tegra-cross-l4t32.4
-  tags: *linux_docker_builder_target_definition
-  script: *linux_build_script_definition
-  artifacts:
-    name: *linux_artifacts_naming_definition
-    paths: *artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-  when: on_success
+#l4t32_4_jetsons_build:
+#  stage: build
+#  image: stereolabs/ci-compiler:tegra-cross-l4t32.4
+#  tags: *linux_docker_builder_target_definition
+#  script: *linux_build_script_definition
+#  artifacts:
+#    name: *linux_artifacts_naming_definition
+#    paths: *artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#  when: manual
 
-l4t32_5_jetsons_build:
-  stage: build
-  image: stereolabs/ci-compiler:tegra-cross-l4t32.5
-  tags: *linux_docker_builder_target_definition
-  script: *linux_build_script_definition
-  artifacts:
-    name: *linux_artifacts_naming_definition
-    paths: *artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-  when: on_success
+#l4t32_5_jetsons_build:
+#  stage: build
+#  image: stereolabs/ci-compiler:tegra-cross-l4t32.5
+#  tags: *linux_docker_builder_target_definition
+#  script: *linux_build_script_definition
+#  artifacts:
+#    name: *linux_artifacts_naming_definition
+#    paths: *artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#  when: manual
 
-l4t32_6_jetsons_build:
-  stage: build
-  image: stereolabs/ci-compiler:tegra-cross-l4t32.6
-  tags: *linux_docker_builder_target_definition
-  script: *linux_build_script_definition
-  artifacts:
-    name: *linux_artifacts_naming_definition
-    paths: *artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-  when: on_success
+#l4t32_6_jetsons_build:
+#  stage: build
+#  image: stereolabs/ci-compiler:tegra-cross-l4t32.6
+#  tags: *linux_docker_builder_target_definition
+#  script: *linux_build_script_definition
+#  artifacts:
+#    name: *linux_artifacts_naming_definition
+#    paths: *artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#  when: manual
 
-l4t32_7_jetsons_build:
-  stage: build
-  image: stereolabs/ci-compiler:tegra-cross-l4t32.7
-  tags: *linux_docker_builder_target_definition
-  script: *linux_build_script_definition
-  artifacts:
-    name: *linux_artifacts_naming_definition
-    paths: *artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-  when: on_success
+#l4t32_7_jetsons_build:
+#  stage: build
+#  image: stereolabs/ci-compiler:tegra-cross-l4t32.7
+#  tags: *linux_docker_builder_target_definition
+#  script: *linux_build_script_definition
+#  artifacts:
+#    name: *linux_artifacts_naming_definition
+#    paths: *artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#  when: manual
 
-l4t35_1_jetsons_build:
+foxy_l4t35_1_jetsons_build:
   stage: build
   image: stereolabs/ci-compiler:tegra-cross-l4t35.1
   tags: *linux_docker_builder_target_definition
-  script: *linux_build_script_definition
+  script: *foxy_linux_build_script_definition
   artifacts:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  when: manual
+
+humble_l4t35_1_jetsons_build:
+  stage: build
+  image: stereolabs/ci-compiler:tegra-cross-l4t35.1
+  tags: *linux_docker_builder_target_definition
+  script: *humble_linux_build_script_definition
+  artifacts:
+    name: *linux_artifacts_naming_definition
+    paths: *artifacts_files_definition
+    expire_in: *artifacts_expire_in_definition
+  when: manual  
 
 ######################
 #     Test script    #
@@ -336,71 +361,71 @@ l4t35_1_jetsons_build:
 #####################
 #    Unit Test tasks    #
 #####################
-unit_l4t35_1_test:
-  stage: unit_test
-  tags: *runner_linux_jetson_l4t35_1_target_definition
-  before_script: *linux_install_sdk_before_script_definition
-  script: *linux_test_script_definition
-  artifacts:
-    when: always
-    name: *linux_artifacts_naming_definition
-    paths: *test_artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-    reports: *test_artifacts_report_files_definition
-  needs: 
-    - job: l4t35_1_jetsons_build
-      artifacts: true
-  when: on_success
+#unit_l4t35_1_test:
+#  stage: unit_test
+#  tags: *runner_linux_jetson_l4t35_1_target_definition
+#  before_script: *linux_install_sdk_before_script_definition
+#  script: *linux_test_script_definition
+#  artifacts:
+#    when: always
+#    name: *linux_artifacts_naming_definition
+#    paths: *test_artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#    reports: *test_artifacts_report_files_definition
+#  needs: 
+#    - job: l4t35_1_jetsons_build
+#      artifacts: true
+#  when: manual
 
-unit_l4t32_7_test:
-  stage: unit_test
-  tags: *runner_linux_jetson_l4t32_7_target_definition
-  before_script: *linux_install_sdk_before_script_definition
-  script: *linux_test_script_definition
-  artifacts:
-    when: always
-    name: *linux_artifacts_naming_definition
-    paths: *test_artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-    reports: *test_artifacts_report_files_definition
-  needs: 
-    - job: l4t32_7_jetsons_build
-      artifacts: true
-  when: on_success
+#unit_l4t32_7_test:
+#  stage: unit_test
+#  tags: *runner_linux_jetson_l4t32_7_target_definition
+#  before_script: *linux_install_sdk_before_script_definition
+#  script: *linux_test_script_definition
+#  artifacts:
+#    when: always
+#    name: *linux_artifacts_naming_definition
+#    paths: *test_artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#    reports: *test_artifacts_report_files_definition
+#  needs: 
+#    - job: l4t32_7_jetsons_build
+#      artifacts: true
+#  when: manual
 
-unit_u18_cu111_docker_test:
-  stage: unit_test
-  image: stereolabs/ci-runner:ubuntu18.04-cuda11.1
-  tags: *runner_ubuntu_docker_desktop_target_definition
-  before_script: *linux_docker_install_sdk_before_script_definition
-  script: *linux_test_script_definition
-  artifacts:
-    when: always
-    name: *linux_artifacts_naming_definition
-    paths: *test_artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-    reports: *test_artifacts_report_files_definition
-  needs: 
-    - job: u18_cu117_build
-      artifacts: true
-  when: on_success
+#unit_u18_cu111_docker_test:
+#  stage: unit_test
+#  image: stereolabs/ci-runner:ubuntu18.04-cuda11.1
+#  tags: *runner_ubuntu_docker_desktop_target_definition
+#  before_script: *linux_docker_install_sdk_before_script_definition
+#  script: *linux_test_script_definition
+#  artifacts:
+#    when: always
+#    name: *linux_artifacts_naming_definition
+#    paths: *test_artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#    reports: *test_artifacts_report_files_definition
+#  needs: 
+#    - job: u18_cu117_build
+#      artifacts: true
+#  when: manual
 
-unit_u20_cu114_docker_test:
-  stage: unit_test
-  image: stereolabs/ci-runner:ubuntu20.04-cuda11.4
-  tags: *runner_ubuntu_docker_desktop_target_definition
-  before_script: *linux_docker_install_sdk_before_script_definition
-  script: *linux_test_script_definition
-  artifacts:
-    when: always
-    name: *linux_artifacts_naming_definition
-    paths: *test_artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-    reports: *test_artifacts_report_files_definition
-  needs: 
-    - job: u20_cu117_build
-      artifacts: true
-  when: on_success
+#unit_u20_cu114_docker_test:
+#  stage: unit_test
+#  image: stereolabs/ci-runner:ubuntu20.04-cuda11.4
+#  tags: *runner_ubuntu_docker_desktop_target_definition
+#  before_script: *linux_docker_install_sdk_before_script_definition
+#  script: *linux_test_script_definition
+#  artifacts:
+#    when: always
+#    name: *linux_artifacts_naming_definition
+#    paths: *test_artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#    reports: *test_artifacts_report_files_definition
+#  needs: 
+#    - job: u20_cu117_build
+#      artifacts: true
+#  when: manual
 
 ######################
 #     memory script    #

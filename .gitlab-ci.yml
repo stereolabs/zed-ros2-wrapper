@@ -236,7 +236,7 @@ foxy_u20_cu117_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: on_success
+  when: manual
 
 humble_u22_cu117_build:
   stage: build  
@@ -248,7 +248,7 @@ humble_u22_cu117_build:
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
   cache: []
-  when: manual
+  when: on_success
 
 ########
 

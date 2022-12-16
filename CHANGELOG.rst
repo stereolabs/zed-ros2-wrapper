@@ -1,6 +1,25 @@
 LATEST CHANGES
 ==============
 
+2022-12-12
+----------
+- Added diagnostic warning if the frequency of the camera grabbing thread is minor than the selected `general.grab_frame_rate` value.
+
+2022-12-10
+----------
+- Improved the code for Moving Average calculation for better node diagnostics.
+- Temperature diagnostic is now always updated even if `sensors.sensors_image_sync` is true and no image topics are subscribed.
+- Improve Grab thread and Video/Depth publishing thread elaboration time diagnostic.
+- Improve thread synchronization when the frequency of the `grab` SDK function is minor of the expected camera frame rate setting because of a leaking of elaboration power.
+
+2022-12-09
+----------
+- Removed node parameter `general.resolution`, replaced by `general.grab_resolution`.
+- Added node parameter `general.pub_resolution` used to reduce node computation and message bandwidth.
+  - Available output resolutions: `HD2K`, `HD1080`, `HD720`, `MEDIUM`, `VGA`. `MEDIUM` is an optimized output resolution to maximize throughput and minimize processing costs.
+- Removed node parameters `video.img_downsample_factor` and `depth.depth_downsample_factor`. Use the new parameter `general.pub_resolution` instead.
+- Set default DEPTH MODE to NEURAL (4)
+
 2022-12-06
 ----------
 - Improved the `zed_camera.launch.py`

@@ -5,6 +5,7 @@ LATEST CHANGES
 ----------
 - Change `general.grab_resolution` and `general.pub_resolution` from integer to string.
 - Add new `LOW` value for `general.pub_resolution` (half the `MEDIUM` output resolution).
+- Fix distortion model (see Issue [#128](https://github.com/stereolabs/zed-ros2-wrapper/issues/128))
 
 2022-12-12
 ----------

@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2022-12-19
+----------
+- Change `general.grab_resolution` and `general.pub_resolution` from integer to string.
+- Add new `LOW` value for `general.pub_resolution` (half the `MEDIUM` output resolution).
+
 2022-12-12
 ----------
 - Added diagnostic warning if the frequency of the camera grabbing thread is minor than the selected `general.grab_frame_rate` value.

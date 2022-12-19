@@ -493,13 +493,43 @@ void ZedCamera::getGeneralParams()
 
   // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
 
-  int resol = static_cast<int>(mCamResol);
+  std::string resol = "HD720";
   getParam("general.grab_resolution", resol, resol);
-  mCamResol = static_cast<sl::RESOLUTION>(resol);
+  if (resol == "HD2K") {
+    mCamResol = sl::RESOLUTION::HD2K;
+  } else if (resol == "HD1080") {
+    mCamResol = sl::RESOLUTION::HD1080;
+  } else if (resol == "HD720") {
+    mCamResol = sl::RESOLUTION::HD720;
+  } else if (resol == "VGA") {
+    mCamResol = sl::RESOLUTION::VGA;
+  } else {
+    RCLCPP_INFO(get_logger(), "Not valid 'general.grab_resolution' value. Using default setting.");
+    mCamResol = sl::RESOLUTION::HD720;
+  }
   RCLCPP_INFO_STREAM(
-    get_logger(), " * Camera resolution: " << resol << " - " << sl::toString(mCamResol).c_str());
+    get_logger(), " * Camera resolution: " << sl::toString(mCamResol).c_str());
 
-  getParam("general.pub_resolution", mPubResolution, mPubResolution, " * Publishing resolution: ");
+  std::string out_resol = "MEDIUM";
+  getParam("general.pub_resolution", out_resol, out_resol);
+  if (out_resol == "HD2K") {
+    mPubResolution = PubRes::HD2K;
+  } else if (out_resol == "HD1080") {
+    mPubResolution = PubRes::HD1080;
+  } else if (out_resol == "HD720") {
+    mPubResolution = PubRes::HD720;
+  } else if (out_resol == "VGA") {
+    mPubResolution = PubRes::VGA;
+  } else if (out_resol == "MEDIUM") {
+    mPubResolution = PubRes::MEDIUM;
+  } else if (out_resol == "LOW") {
+    mPubResolution = PubRes::LOW;
+  } else {
+    RCLCPP_INFO(get_logger(), "Not valid 'general.pub_resolution' value. Using default setting.");
+    out_resol = "MEDIUM";
+    mPubResolution = PubRes::MEDIUM;
+  }
+  RCLCPP_INFO_STREAM(get_logger(), " * Publishing resolution: " << out_resol.c_str());
 
   std::string parsed_str = getParam("general.region_of_interest", mRoiParam);
   RCLCPP_INFO_STREAM(get_logger(), " * Region of interest: " << parsed_str.c_str());
@@ -2509,29 +2539,34 @@ bool ZedCamera::startCamera()
 
   int pub_w, pub_h;
   switch (mPubResolution) {
-    case 0:  // HD2K
+    case PubRes::HD2K:
       pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
       pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
       break;
 
-    case 1:  // HD1080
+    case PubRes::HD1080:
       pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
       pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
       break;
 
-    case 2:  // HD720
+    case PubRes::HD720:
       pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
       pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
       break;
 
-    case 3:  // MEDIUM
+    case PubRes::MEDIUM:
       pub_w = MEDIUM_W;
       pub_h = MEDIUM_H;
       break;
 
-    case 4:  // VGA
+    case PubRes::VGA:
       pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
       pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      break;
+
+    case PubRes::LOW:
+      pub_w = MEDIUM_W / 2;
+      pub_h = MEDIUM_H / 2;
       break;
   }
 

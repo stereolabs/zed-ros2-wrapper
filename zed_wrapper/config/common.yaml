@@ -14,8 +14,8 @@
             camera_flip: false
             zed_id: 0 # usually overwritten by launch file
             serial_number: 0 # usually overwritten by launch file
-            grab_resolution: 2 # The native camera grab resolution. '0': HD2K, '1': HD1080, '2': HD720, '3': VGA # 
-            pub_resolution: 3 # The resolution used for output. '0': HD2K, '1': HD1080, '2': HD720, '3': MEDIUM, '4': VGA
+            grab_resolution: 'HD720' # The native camera grab resolution. 'HD2K', 'HD1080', 'HD720', 'VGA'
+            pub_resolution: 'MEDIUM' # The resolution used for output. 'HD2K', 'HD1080', 'HD720', 'MEDIUM', 'VGA', 'LOW'
             sdk_verbose: 1
             grab_frame_rate: 15 # ZED SDK internal grabbing rate
             pub_frame_rate: 15.0 # [DYNAMIC] - frequency of publishing of visual images and depth images

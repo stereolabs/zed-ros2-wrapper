@@ -120,6 +120,19 @@ typedef rclcpp::Service<zed_interfaces::srv::SetROI>::SharedPtr setRoiSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetRoiSrvPtr;
+
+/*!
+   * @brief Video/Depth topic resolution
+   */
+typedef enum
+{
+  HD2K,  //!< 2208x1242
+  HD1080,  //!< 1920x1080
+  HD720,  //!< 1280x720
+  MEDIUM,  //!< 896x512
+  VGA,  //!< 672x376
+  LOW  //!< Half-MEDIUM 448x256
+} PubRes;
 // <---- Typedefs to simplify declarations
 
 class ZedCamera : public rclcpp::Node
@@ -311,7 +324,7 @@ private:
   int mVerbose = 1;
   int mGpuId = -1;
   sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720;  // Default resolution: RESOLUTION_HD720
-  int mPubResolution = 3;  // Use native DNN resolution for NEURAL depth to improve speed and quality.
+  PubRes mPubResolution = MEDIUM;  // Use native DNN resolution for NEURAL depth to improve speed and quality.
   sl::DEPTH_MODE mDepthQuality =
     sl::DEPTH_MODE::PERFORMANCE;  // Default depth mode: DEPTH_MODE_PERFORMANCE
   bool mDepthDisabled =

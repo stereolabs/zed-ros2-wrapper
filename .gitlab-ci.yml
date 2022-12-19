@@ -240,7 +240,7 @@ foxy_u20_cu117_build:
 
 humble_u22_cu117_build:
   stage: build  
-  image: stereolabs/ci-compiler:ubuntu22.04-cuda11.7-tensorrt8.4.2
+  image: stereolabs/ci-compiler:ubuntu22.04-cuda11.7-tensorrt8.4.2-ros2-humble
   tags: *linux_docker_builder_target_definition
   script: *humble_linux_build_script_definition
   artifacts:

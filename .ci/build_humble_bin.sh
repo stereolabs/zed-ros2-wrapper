@@ -31,6 +31,10 @@ cp -a ./${repo_name} ${ws_path}/src/
 echo "${ttk} Check environment variables"
 env | grep ROS
 
+echo "${ttk} Initialize rosdep"
+rosdep init 
+rosdep update
+
 echo "${ttk} Install ZED ROS2 Package dependencies"
 cd ${ws_path}
 rosdep install --from-paths src --ignore-src -r -y

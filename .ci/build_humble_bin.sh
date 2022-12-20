@@ -31,7 +31,9 @@ cp -a ./${repo_name} ${ws_path}/src/
 echo "${ttk} Check environment variables"
 env | grep ROS
 
-echo "${ttk} Update rosdep"
+echo "${ttk} Update bin repositories"
+apt-get update || true
+apt-get upgrade --yes
 rosdep update
 
 echo "${ttk} Install ZED ROS2 Package dependencies"

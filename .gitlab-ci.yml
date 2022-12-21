@@ -360,6 +360,8 @@ humble_l4t35_1_jetsons_build:
   before_script: &setup_sdk_u22_cu117_web_before_script_definition
     - sudo chmod +x .ci/download_and_install_sdk.sh 
     - ./.ci/download_and_install_sdk.sh 22 11 7 3 8
+    - mkdir -p ros2_ws/install
+    - mv ros2/install ros2_ws/install        
 
 .test_script_linux:
   script: &linux_test_script_definition
@@ -377,12 +379,12 @@ unit_test_ros2_humble_u22_cu117:
   tags: *runner_ubuntu_docker_live_desktop_target_definition
   before_script: *setup_sdk_u22_cu117_web_before_script_definition
   script: *linux_test_script_definition
-  artifacts:
-    when: always
-    name: *linux_artifacts_naming_definition
-    paths: *test_artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-    reports: *test_artifacts_report_files_definition
+  #artifacts:
+  #  when: always
+  #  name: *linux_artifacts_naming_definition
+  #  paths: *test_artifacts_files_definition
+  #  expire_in: *artifacts_expire_in_definition
+  #  reports: *test_artifacts_report_files_definition
   needs: 
     - job: humble_u22_cu117_build
       artifacts: true

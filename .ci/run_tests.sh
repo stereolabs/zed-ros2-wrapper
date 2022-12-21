@@ -3,11 +3,15 @@ set -e
 
 ttk='--->'
 
-echo "${ttk} Workdir content"
-ls
-
-echo "${ttk} "ros2_ws" content"
-ls ros2_ws
-
-echo "${ttk} "ros2_ws/install" content"
+echo "${ttk} Check artifact presence"
 ls ros2_ws/install
+
+echo "${ttk} Initialize local ROS2 environment"
+source ros2_ws/install/local_setup.sh
+
+echo "${ttk} Check ROS2 installation"
+ros2 doctor -r
+
+echo "${ttk} USB peripherals"
+lsusb
+

@@ -366,7 +366,7 @@ humble_l4t35_1_jetsons_build:
 .test_script_linux:
   script: &linux_test_script_definition
     - sudo chmod +x .ci/run_tests.sh
-    - ./.ci/run_tests.sh -u
+    - ./.ci/run_tests.sh
 
 ###################
 # Unit Test tasks #

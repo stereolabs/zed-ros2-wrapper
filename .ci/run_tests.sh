@@ -10,8 +10,9 @@ ls ros2_ws/install
 echo "${ttk} Initialize local ROS2 environment"
 cd ros2_ws/install
 export COLCON_PREFIX_PATH=$(pwd)
-source ros2_ws/install/local_setup.sh
 cd ${WORKDIR}
+source ros2_ws/install/local_setup.sh
+env | grep COLCON
 
 echo "${ttk} Check ROS2 installation"
 ros2 doctor -r

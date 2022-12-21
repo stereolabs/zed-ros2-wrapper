@@ -356,6 +356,11 @@ humble_l4t35_1_jetsons_build:
     #- mv lib/build/libsl_ai_dbginfo.so /usr/local/zed/lib/libsl_ai.so
     #- mv lib/build/libsl_zed_dbginfo.so /usr/local/zed/lib/libsl_zed.so
 
+.setup_sdk_u22_cu117_web_before_script:
+  before_script: &linux_install_sdk_before_script_definition
+    - sudo chmod +x .ci/download_and_install_sdk.sh 22 11 7 3 8
+    - ./.ci/download_and_install_sdk.sh -u
+
 .test_script_linux:
   script: &linux_test_script_definition
     - sudo chmod +x .ci/run_tests.sh
@@ -365,10 +370,12 @@ humble_l4t35_1_jetsons_build:
 # Unit Test tasks #
 ###################
 
-unit_humble_u22_cu117_test:
+unit_test_ros2_humble_u22_cu117:
   stage: unit_test
+  #image: stereolabs/ci-runner:ubuntu22.04-cuda11.7-ros2-humble
+  image: myzhar/test:ubuntu22.04-cuda11.7-ros2-humble
   tags: *runner_ubuntu_docker_live_desktop_target_definition
-  before_script: *linux_install_sdk_before_script_definition
+  before_script: *setup_sdk_u22_cu117_web_before_script
   script: *linux_test_script_definition
   artifacts:
     when: always

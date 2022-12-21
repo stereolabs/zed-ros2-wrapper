@@ -358,8 +358,8 @@ humble_l4t35_1_jetsons_build:
 
 .setup_sdk_u22_cu117_web_before_script:
   before_script: &setup_sdk_u22_cu117_web_before_script_definition
-    - sudo chmod +x .ci/download_and_install_sdk.sh 22 11 7 3 8
-    - ./.ci/download_and_install_sdk.sh -u
+    - sudo chmod +x .ci/download_and_install_sdk.sh 
+    - ./.ci/download_and_install_sdk.sh 22 11 7 3 8
 
 .test_script_linux:
   script: &linux_test_script_definition

@@ -22,3 +22,6 @@ ros2 pkg list | grep zed
 echo "${ttk} USB peripherals"
 lsusb
 
+echo "${ttk} Test node running for 20 seconds"
+timeout --signal=SIGINT 20s ros2 launch zed_wrapper zed2i.launch.py
+

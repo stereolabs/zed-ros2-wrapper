@@ -31,5 +31,6 @@ echo "${ttk} USB peripherals"
 lsusb
 
 echo "${ttk} Test node running for 20 seconds"
-timeout --signal=SIGINT 20s ros2 launch zed_wrapper zed2i.launch.py
+timeout --signal=SIGINT 15s ros2 launch zed_wrapper zed2.launch.py
 
+exit 0

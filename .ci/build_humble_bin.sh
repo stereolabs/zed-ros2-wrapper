@@ -3,30 +3,30 @@
 pwd_path="$(pwd)"
 if [[ ${pwd_path:${#pwd_path}-3} == ".ci" ]] ; then cd .. && pwd_path="$(pwd)"; fi
 ttk="===>"
-root_path=${pwd_path}
-repo_name=${PWD##*/}
+WORKDIR=${pwd_path}
+PROJ_NAME=${PWD##*/}
 
-echo "${ttk} Root repository folder: ${root_path}"
-echo "${ttk} Repository name: ${repo_name}"
+echo "${ttk} Root repository folder: ${WORKDIR}"
+echo "${ttk} Repository name: ${PROJ_NAME}"
 
 # Create the ROS 2 workspace
 echo "${ttk} Create ROS2 workspace"
 cd ..
-ws_path="$(pwd)"/ros2_ws
-mkdir -p ${ws_path}/src 
-echo "${ttk} ROS2 Workspace: ${ws_path}"
-#echo "${ttk} '${ws_path}' content"
-#ls -lah ${ws_path}
-cd ${root_path}
+WS_DIR="$(pwd)"/ros2_ws
+mkdir -p ${WS_DIR}/src 
+echo "${ttk} ROS2 Workspace: ${WS_DIR}"
+#echo "${ttk} '${WS_DIR}' content"
+#ls -lah ${WS_DIR}
+cd ${WORKDIR}
 cd ..
 #echo "${ttk} Current path: $(pwd)"
 #ls -lah
-echo "cp -a ./${repo_name} ${ws_path}/src/"
-cp -a ./${repo_name} ${ws_path}/src/
-#echo "${ttk} '${ws_path}/src' content"
-#ls -lha ${ws_path}/src
-#echo "${ttk} '${ws_path}/src/${repo_name}' content"
-#ls -lha ${ws_path}/src/${repo_name}
+echo "cp -a ./${PROJ_NAME} ${WS_DIR}/src/"
+cp -a ./${PROJ_NAME} ${WS_DIR}/src/
+#echo "${ttk} '${WS_DIR}/src' content"
+#ls -lha ${WS_DIR}/src
+#echo "${ttk} '${WS_DIR}/src/${PROJ_NAME}' content"
+#ls -lha ${WS_DIR}/src/${PROJ_NAME}
 
 echo "${ttk} Check environment variables"
 env | grep ROS
@@ -37,15 +37,15 @@ apt-get upgrade --yes
 rosdep update
 
 echo "${ttk} Install ZED ROS2 Package dependencies"
-cd ${ws_path}
+cd ${WS_DIR}
 rosdep install --from-paths src --ignore-src -r -y
 
 echo "${ttk} Build the ZED ROS2 Package"
 colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
 
 echo "${ttk} Prepare 'install' artifact"
-cd ${ws_path}
-mkdir -p ${root_path}/ros2_ws
-cp -a ./install ${root_path}/ros2_ws/
+cd ${WS_DIR}
+mkdir -p ${WORKDIR}/ros2_ws
+cp -a ./install ${WORKDIR}/ros2_ws/
 
-cd ${root_path}
+cd ${WORKDIR}

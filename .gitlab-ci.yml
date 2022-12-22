@@ -382,7 +382,7 @@ humble_l4t35_1_jetsons_build:
 unit_test_ros2_humble_u22_cu117:
   stage: unit_test
   #image: stereolabs/ci-runner:ubuntu22.04-cuda11.7-ros2-humble
-  image: myzhar/test:ubuntu22.04-cuda11.7-ros2-humble-lsusb
+  image: myzhar/test:ubuntu22.04-cuda11.7-ros2-humble-v1.1
   tags: *runner_ubuntu_docker_live_desktop_target_definition
   before_script: *setup_sdk_u22_cu117_web_before_script_definition
   script: *linux_test_script_definition

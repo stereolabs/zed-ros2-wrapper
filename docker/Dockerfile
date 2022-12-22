@@ -44,6 +44,11 @@ RUN apt-get update || true && \
   apt-get autoclean && \
   apt-get install --no-install-recommends -y \
   ros-${ROS2_DIST}-ros-base \
+  ros-${ROS2_DIST}-ament-cmake-clang-format \
+  ros-${ROS2_DIST}-image-transport \
+  ros-${ROS2_DIST}-image-transport-plugins \
+  ros-${ROS2_DIST}-diagnostic-updater \
+  ros-${ROS2_DIST}-xacro \
   python3-flake8-docstrings \
   python3-pip \
   python3-pytest-cov \

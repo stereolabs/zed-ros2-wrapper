@@ -12,7 +12,7 @@ ls ros2/install
 
 echo "${ttk} Initialize local ROS2 environment"
 cd ${WORKDIR}
-source ros2/install/local_setup.sh
+source ros2/install/local_setup.bash
 env | grep COLCON
 
 echo "${ttk} Check ROS2 installation"

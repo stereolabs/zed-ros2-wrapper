@@ -4,14 +4,15 @@ set -e
 ttk='--->'
 WORKDIR=$(pwd)
 
+echo "${ttk} WORKDIR (${WORKDIR})content"
+ls ${WORKDIR}
+
 echo "${ttk} Check artifact presence"
-ls ros2_ws/install
+ls ros2/install
 
 echo "${ttk} Initialize local ROS2 environment"
-cd ros2_ws/install
-export COLCON_CURRENT_PREFIX=$(pwd)
 cd ${WORKDIR}
-source ros2_ws/install/local_setup.sh
+source ros2/install/local_setup.sh
 env | grep COLCON
 
 echo "${ttk} Check ROS2 installation"

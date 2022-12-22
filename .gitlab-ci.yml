@@ -362,8 +362,11 @@ humble_l4t35_1_jetsons_build:
   before_script: &setup_sdk_u22_cu117_web_before_script_definition
     - sudo chmod +x .ci/download_and_install_sdk.sh 
     - ./.ci/download_and_install_sdk.sh 22 11 7 3 8
-    # move artifacts in the correct folder
+    # clean previous artifacts
+    - rm -rf ../ros2_ws
+    # create new ROS2 workspace folders
     - mkdir -p ../ros2_ws/install
+    # move new artifacts in the workspace folder
     - cp -a ./ros2_ws/install ../ros2_ws/
     - rm -rf ./ros2_ws/
 

@@ -360,8 +360,8 @@ humble_l4t35_1_jetsons_build:
   before_script: &setup_sdk_u22_cu117_web_before_script_definition
     - sudo chmod +x .ci/download_and_install_sdk.sh 
     - ./.ci/download_and_install_sdk.sh 22 11 7 3 8
-    #- mkdir -p ros2_ws/install
-    #- mv ros2/install ros2_ws/        
+    - mkdir -p ../ros2_ws/install
+    - mv ros2/install ../ros2_ws/        
 
 .test_script_linux:
   script: &linux_test_script_definition

@@ -175,6 +175,7 @@ variables:
     - docker-runner
     - linux
     - live-runner
+    - deploy-support
 
 ## Memory target
 .memory_ubuntu18_desktop_cuda11_0_target:

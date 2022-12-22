@@ -64,4 +64,3 @@ RUN sudo chmod 755 /sbin/ros_entrypoint.sh
 
 ENTRYPOINT ["/sbin/ros_entrypoint.sh"]
 CMD ["bash"]
-    

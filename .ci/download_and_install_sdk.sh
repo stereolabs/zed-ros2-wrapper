@@ -1,4 +1,5 @@
-#!/bin/bash -ex
+#!/bin/bash
+set -e
 
 UBUNTU_RELEASE_YEAR=$1
 CUDA_MAJOR=$2

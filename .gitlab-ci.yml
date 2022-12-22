@@ -364,7 +364,7 @@ humble_l4t35_1_jetsons_build:
     - ./.ci/download_and_install_sdk.sh 22 11 7 3 8
     # move artifacts in the correct folder
     - mkdir -p ../ros2_ws
-    - mv ros2_ws/install ../ros2_ws/
+    - mv -u ros2_ws/install ../ros2_ws/
 
 .test_script_linux:
   script: &linux_test_script_definition

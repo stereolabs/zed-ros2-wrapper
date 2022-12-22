@@ -41,7 +41,7 @@ cd ${WS_DIR}
 rosdep install --from-paths src --ignore-src -r -y
 
 echo "${ttk} Build the ZED ROS2 Package"
-colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
+colcon build --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
 
 echo "${ttk} Prepare 'install' artifact"
 cd ${WS_DIR}

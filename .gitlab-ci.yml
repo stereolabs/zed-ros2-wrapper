@@ -62,7 +62,7 @@ stages:
 variables:
   #GIT_SUBMODULE_STRATEGY: normal
   GIT_SUBMODULE_STRATEGY: recursive
-  CI_BUILDS_DIR: "ros2_ws/src/"
+  GIT_CLONE_PATH: $CI_BUILDS_DIR/ros2_ws/src/$CI_PROJECT_NAME
 
 ######################
 # BUILDER selection  #

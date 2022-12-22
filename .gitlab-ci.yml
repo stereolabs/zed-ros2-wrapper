@@ -712,15 +712,23 @@ unit_test_ros2_humble_u22_cu117:
 #   <<: *deploy_installer_definition
 
 # ROS2 Humble U22 Docker Image
-py_win_amd64_installer_deploy:
+ros2_humble_u22_docker_image:
   needs: 
   - job: humble_u22_cu117_build
     artifacts: true
   stage: deploy
+  image: docker
+  services: 
+    - docker:dind
   script: 
+    # Fix login part
+    - echo <password> | docker login -u <user> myzhar/test --password-stdin  
     - cd docker
-    - docker build -t "myzhar/test:ubuntu22.04-cuda11.7-ros2-humble-deploy"
+    - docker build -t "myzhar/test:ubuntu22.04-cuda11.7-ros2-humble-deploy" .
     - docker push myzhar/test:ubuntu22.04-cuda11.7-ros2-humble-deploy
   when: manual
+  tags: *linux_docker_builder_target_definition
+  only:
+    - tags
   allow_failure: true
 

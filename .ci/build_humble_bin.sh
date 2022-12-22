@@ -45,7 +45,7 @@ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --paralle
 
 echo "${ttk} Prepare 'install' artifact"
 cd ${ws_path}
-mkdir -p ${root_path}/ros2
-cp -a ./install ${root_path}/ros2/
+mkdir -p ${root_path}/ros2_ws
+cp -a ./install ${root_path}/ros2_ws/
 
 cd ${root_path}

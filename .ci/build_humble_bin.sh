@@ -13,6 +13,7 @@ echo "${ttk} Repository name: ${PROJ_NAME}"
 echo "${ttk} Create ROS2 workspace"
 cd ..
 WS_DIR="$(pwd)"/ros2_ws
+rm -rf ${WS_DIR} # clean residual cache files
 mkdir -p ${WS_DIR}/src 
 echo "${ttk} ROS2 Workspace: ${WS_DIR}"
 #echo "${ttk} '${WS_DIR}' content"

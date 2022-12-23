@@ -725,7 +725,7 @@ ros2_humble_u22_docker_image:
     # Fix login part
     - docker login -u $CI_REGISTRY_USER_WALT -p $CI_REGISTRY_PASSWORD_WALT
     - cd docker
-    - docker build -t "myzhar/test:ubuntu22.04-cuda11.7-ros2-humble-deploy" ./Dockerfile.u22-cu117-humble
+    - docker build -t "myzhar/test:ubuntu22.04-cuda11.7-ros2-humble-deploy" -f ./Dockerfile.u22-cu117-humble .
     - docker push myzhar/test:ubuntu22.04-cuda11.7-ros2-humble-deploy
   when: manual
   tags: *linux_docker_builder_target_definition

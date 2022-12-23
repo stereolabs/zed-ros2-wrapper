@@ -712,8 +712,8 @@ unit_test_ros2_humble_u22_cu117:
 #     artifacts: true
 #   <<: *deploy_installer_definition
 
-# ROS2 Humble U22 Docker Image
-ros2_humble_u22_docker_image:
+# ROS2 Humble U22 Docker Image DEVEL - use the current branch source to build the wrapper
+ros2_humble_u22_docker_image_dev:
   needs: 
   - job: humble_u22_cu117_build
     artifacts: true
@@ -725,12 +725,32 @@ ros2_humble_u22_docker_image:
     # Fix login part
     - docker login -u $CI_REGISTRY_USER_WALT -p $CI_REGISTRY_PASSWORD_WALT
     - cd docker
-    - IMG_TAG=${CI_PROJECT_NAME}_u22_cuda117_humble_${CI_COMMIT_TAG}${CI_COMMIT_BRANCH}
-    - docker build -t "myzhar/test:${IMG_TAG}" -f ./Dockerfile.u22-cu117-humble .
+    - IMG_TAG=${CI_PROJECT_NAME}_u22_cuda117_humble_${CI_COMMIT_BRANCH}
+    - docker build -t "myzhar/test:${IMG_TAG}" -f ./Dockerfile.u22-cu117-humble-devel .
     - docker push myzhar/test:${IMG_TAG}
   when: manual
   tags: *linux_docker_builder_target_definition
-  #only:
-  #  - tags
+  allow_failure: true
+
+# ROS2 Humble U22 Docker Image RELEASE - clone the Github master branch to build the wrapper
+ros2_humble_u22_docker_image_rel:
+  needs: 
+  - job: humble_u22_cu117_build
+    artifacts: true
+  stage: deploy
+  image: docker
+  services: 
+    - docker:dind
+  script: 
+    # Fix login part
+    - docker login -u $CI_REGISTRY_USER_WALT -p $CI_REGISTRY_PASSWORD_WALT
+    - cd docker
+    - IMG_TAG=${CI_PROJECT_NAME}_u22_cuda117_humble_${CI_COMMIT_TAG}
+    - docker build -t "myzhar/test:${IMG_TAG}" -f ./Dockerfile.u22-cu117-humble-release .
+    - docker push myzhar/test:${IMG_TAG}
+  when: manual
+  tags: *linux_docker_builder_target_definition
+  only:
+    - tags
   allow_failure: true
 

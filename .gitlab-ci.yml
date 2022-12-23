@@ -230,16 +230,16 @@ variables:
 #    expire_in: *artifacts_expire_in_definition
 #  when: manual
 
-foxy_u20_cu117_build:
-  stage: build
-  image: stereolabs/ci-compiler:ubuntu20.04-cuda11.7-tensorrt8.4.2
-  tags: *linux_docker_builder_target_definition
-  script: *foxy_linux_build_script_definition
-  artifacts:
-    name: *linux_artifacts_naming_definition
-    paths: *artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-  when: manual
+#foxy_u20_cu117_build:
+#  stage: build
+#  image: stereolabs/ci-compiler:ubuntu20.04-cuda11.7-tensorrt8.4.2
+#  tags: *linux_docker_builder_target_definition
+#  script: *foxy_linux_build_script_definition
+#  artifacts:
+#    name: *linux_artifacts_naming_definition
+#    paths: *artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#  when: manual
 
 humble_u22_cu117_build:
   stage: build  
@@ -311,16 +311,16 @@ humble_u22_cu117_build:
 #    expire_in: *artifacts_expire_in_definition
 #  when: manual
 
-foxy_l4t35_1_jetsons_build:
-  stage: build
-  image: stereolabs/ci-compiler:tegra-cross-l4t35.1
-  tags: *linux_docker_builder_target_definition
-  script: *foxy_linux_build_script_definition
-  artifacts:
-    name: *linux_artifacts_naming_definition
-    paths: *artifacts_files_definition
-    expire_in: *artifacts_expire_in_definition
-  when: manual
+#foxy_l4t35_1_jetsons_build:
+#  stage: build
+#  image: stereolabs/ci-compiler:tegra-cross-l4t35.1
+#  tags: *linux_docker_builder_target_definition
+#  script: *foxy_linux_build_script_definition
+#  artifacts:
+#    name: *linux_artifacts_naming_definition
+#    paths: *artifacts_files_definition
+#    expire_in: *artifacts_expire_in_definition
+#  when: manual
 
 humble_l4t35_1_jetsons_build:
   stage: build
@@ -396,7 +396,7 @@ unit_test_ros2_humble_u22_cu117:
   needs: 
     - job: humble_u22_cu117_build
       artifacts: true
-  when: on_success
+  when: manual
 
 #unit_l4t35_1_test:
 #  stage: unit_test
@@ -723,7 +723,7 @@ ros2_humble_u22_docker_image:
     - docker:dind
   script: 
     # Fix login part
-    - echo $CI_REGISTRY_PASSWORD_WALT | docker login -u $CI_REGISTRY_USER_WALT --password-stdin  
+    - docker login -u $CI_REGISTRY_USER_WALT -p $CI_REGISTRY_PASSWORD_WALT
     - cd docker
     - docker build -t "myzhar/test:ubuntu22.04-cuda11.7-ros2-humble-deploy" ./Dockerfile.u22-cu117-humble
     - docker push myzhar/test:ubuntu22.04-cuda11.7-ros2-humble-deploy

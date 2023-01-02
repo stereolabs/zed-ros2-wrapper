@@ -93,7 +93,6 @@ CMakeLists.txt.user*
 
 # VSCode
 .vscode
-<<<<<<< HEAD
-=======
 
->>>>>>> dev_foxy
+# TMP folders
+docker/tmp_sources

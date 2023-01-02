@@ -493,13 +493,43 @@ void ZedCamera::getGeneralParams()
 
   // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
 
-  int resol = static_cast<int>(mCamResol);
+  std::string resol = "HD720";
   getParam("general.grab_resolution", resol, resol);
-  mCamResol = static_cast<sl::RESOLUTION>(resol);
+  if (resol == "HD2K") {
+    mCamResol = sl::RESOLUTION::HD2K;
+  } else if (resol == "HD1080") {
+    mCamResol = sl::RESOLUTION::HD1080;
+  } else if (resol == "HD720") {
+    mCamResol = sl::RESOLUTION::HD720;
+  } else if (resol == "VGA") {
+    mCamResol = sl::RESOLUTION::VGA;
+  } else {
+    RCLCPP_INFO(get_logger(), "Not valid 'general.grab_resolution' value. Using default setting.");
+    mCamResol = sl::RESOLUTION::HD720;
+  }
   RCLCPP_INFO_STREAM(
-    get_logger(), " * Camera resolution: " << resol << " - " << sl::toString(mCamResol).c_str());
+    get_logger(), " * Camera resolution: " << sl::toString(mCamResol).c_str());
 
-  getParam("general.pub_resolution", mPubResolution, mPubResolution, " * Publishing resolution: ");
+  std::string out_resol = "MEDIUM";
+  getParam("general.pub_resolution", out_resol, out_resol);
+  if (out_resol == "HD2K") {
+    mPubResolution = PubRes::HD2K;
+  } else if (out_resol == "HD1080") {
+    mPubResolution = PubRes::HD1080;
+  } else if (out_resol == "HD720") {
+    mPubResolution = PubRes::HD720;
+  } else if (out_resol == "VGA") {
+    mPubResolution = PubRes::VGA;
+  } else if (out_resol == "MEDIUM") {
+    mPubResolution = PubRes::MEDIUM;
+  } else if (out_resol == "LOW") {
+    mPubResolution = PubRes::LOW;
+  } else {
+    RCLCPP_INFO(get_logger(), "Not valid 'general.pub_resolution' value. Using default setting.");
+    out_resol = "MEDIUM";
+    mPubResolution = PubRes::MEDIUM;
+  }
+  RCLCPP_INFO_STREAM(get_logger(), " * Publishing resolution: " << out_resol.c_str());
 
   std::string parsed_str = getParam("general.region_of_interest", mRoiParam);
   RCLCPP_INFO_STREAM(get_logger(), " * Region of interest: " << parsed_str.c_str());
@@ -1926,20 +1956,91 @@ void ZedCamera::fillCamInfo(
 #endif
 
   float baseline = zedParam.getCameraBaseline();
-  leftCamInfoMsg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
-  rightCamInfoMsg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
-  leftCamInfoMsg->d.resize(5);
-  rightCamInfoMsg->d.resize(5);
-  leftCamInfoMsg->d[0] = zedParam.left_cam.disto[0];    // k1
-  leftCamInfoMsg->d[1] = zedParam.left_cam.disto[1];    // k2
-  leftCamInfoMsg->d[2] = zedParam.left_cam.disto[4];    // k3
-  leftCamInfoMsg->d[3] = zedParam.left_cam.disto[2];    // p1
-  leftCamInfoMsg->d[4] = zedParam.left_cam.disto[3];    // p2
-  rightCamInfoMsg->d[0] = zedParam.right_cam.disto[0];  // k1
-  rightCamInfoMsg->d[1] = zedParam.right_cam.disto[1];  // k2
-  rightCamInfoMsg->d[2] = zedParam.right_cam.disto[4];  // k3
-  rightCamInfoMsg->d[3] = zedParam.right_cam.disto[2];  // p1
-  rightCamInfoMsg->d[4] = zedParam.right_cam.disto[3];  // p2
+
+  // ----> Distortion models
+  // ZED SDK params order: [ k1, k2, p1, p2, k3, k4, k5, k6, s1, s2, s3, s4]
+  // Radial (k1, k2, k3, k4, k5, k6), Tangential (p1,p2) and Prism (s1, s2, s3, s4) distortion.
+  // Prism not currently used.
+
+  // ROS2 order (OpenCV) -> k1,k2,p1,p2,k3,k4,k5,k6,s1,s2,s3,s4
+  switch (mCamRealModel) {
+    case sl::MODEL::ZED: // PLUMB_BOB
+      leftCamInfoMsg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+      rightCamInfoMsg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+      leftCamInfoMsg->d.resize(5);
+      rightCamInfoMsg->d.resize(5);
+      leftCamInfoMsg->d[0] = zedParam.left_cam.disto[0];    // k1
+      leftCamInfoMsg->d[1] = zedParam.left_cam.disto[1];    // k2
+      leftCamInfoMsg->d[2] = zedParam.left_cam.disto[2];    // p1
+      leftCamInfoMsg->d[3] = zedParam.left_cam.disto[3];    // p2
+      leftCamInfoMsg->d[4] = zedParam.left_cam.disto[4];    // k3
+      rightCamInfoMsg->d[0] = zedParam.right_cam.disto[0];  // k1
+      rightCamInfoMsg->d[1] = zedParam.right_cam.disto[1];  // k2
+      rightCamInfoMsg->d[2] = zedParam.right_cam.disto[2];  // p1
+      rightCamInfoMsg->d[3] = zedParam.right_cam.disto[3];  // p2
+      rightCamInfoMsg->d[4] = zedParam.right_cam.disto[4];  // k3
+      break;
+
+    case sl::MODEL::ZED2:  // RATIONAL_POLYNOMIAL
+    case sl::MODEL::ZED2i:  // RATIONAL_POLYNOMIAL
+      leftCamInfoMsg->distortion_model = sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
+      rightCamInfoMsg->distortion_model = sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
+      leftCamInfoMsg->d.resize(8);
+      rightCamInfoMsg->d.resize(8);
+      leftCamInfoMsg->d[0] = zedParam.left_cam.disto[0];    // k1
+      leftCamInfoMsg->d[1] = zedParam.left_cam.disto[1];    // k2
+      leftCamInfoMsg->d[2] = zedParam.left_cam.disto[2];    // p1
+      leftCamInfoMsg->d[3] = zedParam.left_cam.disto[3];    // p2
+      leftCamInfoMsg->d[4] = zedParam.left_cam.disto[4];    // k3
+      leftCamInfoMsg->d[5] = zedParam.left_cam.disto[5];    // k4
+      leftCamInfoMsg->d[6] = zedParam.left_cam.disto[6];    // k5
+      leftCamInfoMsg->d[7] = zedParam.left_cam.disto[7];    // k6
+      rightCamInfoMsg->d[0] = zedParam.right_cam.disto[0];  // k1
+      rightCamInfoMsg->d[1] = zedParam.right_cam.disto[1];  // k2
+      rightCamInfoMsg->d[2] = zedParam.right_cam.disto[2];  // p1
+      rightCamInfoMsg->d[3] = zedParam.right_cam.disto[3];  // p2
+      rightCamInfoMsg->d[4] = zedParam.right_cam.disto[4];  // k3
+      rightCamInfoMsg->d[5] = zedParam.right_cam.disto[5];  // k4
+      rightCamInfoMsg->d[6] = zedParam.right_cam.disto[6];  // k5
+      rightCamInfoMsg->d[7] = zedParam.right_cam.disto[7];  // k6
+      break;
+
+    case sl::MODEL::ZED_M:
+      if (zedParam.left_cam.disto[5] != 0 && // k4!=0
+        zedParam.right_cam.disto[2] == 0 && // p1==0
+        zedParam.right_cam.disto[3] == 0) // p2==0
+      {
+        leftCamInfoMsg->distortion_model = sensor_msgs::distortion_models::EQUIDISTANT;
+        rightCamInfoMsg->distortion_model = sensor_msgs::distortion_models::EQUIDISTANT;
+
+        leftCamInfoMsg->d.resize(4);
+        rightCamInfoMsg->d.resize(4);
+        leftCamInfoMsg->d[0] = zedParam.left_cam.disto[0];    // k1
+        leftCamInfoMsg->d[1] = zedParam.left_cam.disto[1];    // k2
+        leftCamInfoMsg->d[2] = zedParam.left_cam.disto[4];    // k3
+        leftCamInfoMsg->d[3] = zedParam.left_cam.disto[5];    // k4
+        rightCamInfoMsg->d[0] = zedParam.right_cam.disto[0];  // k1
+        rightCamInfoMsg->d[1] = zedParam.right_cam.disto[1];  // k2
+        rightCamInfoMsg->d[2] = zedParam.right_cam.disto[4];  // k3
+        rightCamInfoMsg->d[3] = zedParam.right_cam.disto[5];  // k4
+      } else {
+        leftCamInfoMsg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+        rightCamInfoMsg->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+        leftCamInfoMsg->d.resize(5);
+        rightCamInfoMsg->d.resize(5);
+        leftCamInfoMsg->d[0] = zedParam.left_cam.disto[0];  // k1
+        leftCamInfoMsg->d[1] = zedParam.left_cam.disto[1];  // k2
+        leftCamInfoMsg->d[2] = zedParam.left_cam.disto[2];  // p1
+        leftCamInfoMsg->d[3] = zedParam.left_cam.disto[3];  // p2
+        leftCamInfoMsg->d[4] = zedParam.left_cam.disto[4];  // k3
+        rightCamInfoMsg->d[0] = zedParam.right_cam.disto[0]; // k1
+        rightCamInfoMsg->d[1] = zedParam.right_cam.disto[1]; // k2
+        rightCamInfoMsg->d[2] = zedParam.right_cam.disto[2]; // p1
+        rightCamInfoMsg->d[3] = zedParam.right_cam.disto[3]; // p2
+        rightCamInfoMsg->d[4] = zedParam.right_cam.disto[4]; // k3
+      }
+  }
+
   leftCamInfoMsg->k.fill(0.0);
   rightCamInfoMsg->k.fill(0.0);
   leftCamInfoMsg->k[0] = static_cast<double>(zedParam.left_cam.fx);
@@ -2509,29 +2610,34 @@ bool ZedCamera::startCamera()
 
   int pub_w, pub_h;
   switch (mPubResolution) {
-    case 0:  // HD2K
+    case PubRes::HD2K:
       pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
       pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
       break;
 
-    case 1:  // HD1080
+    case PubRes::HD1080:
       pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
       pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
       break;
 
-    case 2:  // HD720
+    case PubRes::HD720:
       pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
       pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
       break;
 
-    case 3:  // MEDIUM
+    case PubRes::MEDIUM:
       pub_w = MEDIUM_W;
       pub_h = MEDIUM_H;
       break;
 
-    case 4:  // VGA
+    case PubRes::VGA:
       pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
       pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      break;
+
+    case PubRes::LOW:
+      pub_w = MEDIUM_W / 2;
+      pub_h = MEDIUM_H / 2;
       break;
   }
 

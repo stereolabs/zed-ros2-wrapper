@@ -725,9 +725,12 @@ ros2_humble_u22_docker_image_dev:
     # Fix login part
     - docker login -u $CI_REGISTRY_USER_WALT -p $CI_REGISTRY_PASSWORD_WALT
     - cd docker
+    - mkdir -p ./tmp_sources
+    - cp -r ../zed* ./tmp_sources
     - IMG_TAG=${CI_PROJECT_NAME}_u22_cuda117_humble_${CI_COMMIT_BRANCH}
     - docker build -t "myzhar/test:${IMG_TAG}" -f ./Dockerfile.u22-cu117-humble-devel .
     - docker push myzhar/test:${IMG_TAG}
+    - rm -r ./tmp_sources
   when: manual
   tags: *linux_docker_builder_target_definition
   allow_failure: true
@@ -750,7 +753,7 @@ ros2_humble_u22_docker_image_rel:
     - docker push myzhar/test:${IMG_TAG}
   when: manual
   tags: *linux_docker_builder_target_definition
-  only:
-    - tags
+  #only:
+  #  - tags
   allow_failure: true
 

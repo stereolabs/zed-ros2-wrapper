@@ -761,14 +761,19 @@ github_push:
   - job: humble_u22_cu117_build
     artifacts: true
   stage: deploy
-  image: stereolabs/ci-compiler:utils-boto3-uploader
+  image: alpine
   script: 
-    - apt-get install git
-    - git checkout master
-    - git push https://$GITHUB_PUSH_TOKEN@github.com/stereolabs/zed-ros2-wrapper.git
+    - apk add --no-cache bash git
+    - git clone http://$GITLAB_CLONE_TOKEN@192.168.1.92/sl/zed-ros2-wrapper.git
+    - cd zed-ros2-wrapper
+    - git remote add origin-github https://github.com/stereolabs/zed-ros2-wrapper.git
+    - git push origin-github https://$GITHUB_PUSH_TOKEN@github.com/stereolabs/zed-ros2-wrapper.git
   when: manual
-  tags: *deploy_target_definition
+  tags:
+    - docker-builder
+    - linux
+
   #only:
-  #  - tags
+  #  - master
   allow_failure: true
 

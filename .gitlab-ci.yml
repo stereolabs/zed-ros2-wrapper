@@ -766,8 +766,8 @@ github_push:
     - apk add --no-cache bash git
     - git clone http://$GITLAB_CLONE_TOKEN@192.168.1.92/sl/zed-ros2-wrapper.git
     - cd zed-ros2-wrapper
-    - git remote add origin-github https://github.com/stereolabs/zed-ros2-wrapper.git
-    - git push origin-github https://$GITHUB_PUSH_TOKEN@github.com/stereolabs/zed-ros2-wrapper.git
+    - git remote add origin-github https://github.com/stereolabs/dummy_repo.git
+    - git push origin-github https://$GITHUB_PUSH_TOKEN@github.com/stereolabs/dummy_repo.git
   when: manual
   tags:
     - docker-builder

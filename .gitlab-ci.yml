@@ -771,6 +771,7 @@ github_push:
     - cd zed-ros2-wrapper
     - git remote set-url origin https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
     - git remote -v
+    - git pull
     - git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
   when: manual
   tags:

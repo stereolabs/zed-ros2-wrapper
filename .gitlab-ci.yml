@@ -757,3 +757,20 @@ ros2_humble_u22_docker_image_rel:
   #  - tags
   allow_failure: true
 
+  # Update Github master branch
+github_push:
+  needs: 
+  - job: humble_u22_cu117_build
+    artifacts: true
+  stage: deploy
+  image: stereolabs/ci-compiler:utils-boto3-uploader
+  script: 
+    # Fix login part
+    - git checkout master
+    - git push https://$GITHUB_PUSH_TOKEN@github.com/stereolabs/zed-ros2-wrapper.git
+  when: manual
+  tags: *deploy_target_definition
+  only:
+    - tags
+  allow_failure: true
+

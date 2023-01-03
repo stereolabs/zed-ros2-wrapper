@@ -769,7 +769,7 @@ github_push:
     #- curl https://192.168.1.92
     - git clone --recurse-submodules http://wlucetti:${GITLAB_PULL_TOKEN}@192.168.1.92/sl/zed-ros2-wrapper.git
     - cd zed-ros2-wrapper
-    - git remote set-url https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
+    - git remote set-url origin https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
     - git remote -v
     - git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
   when: manual

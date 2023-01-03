@@ -764,13 +764,13 @@ github_push:
   image: alpine
   script: 
     - apk add --no-cache bash git curl
-    - ping 192.168.1.92 -c 5
-    - curl http://192.168.1.92
+    #- ping 192.168.1.92 -c 5
+    #- curl http://192.168.1.92
     #- curl https://192.168.1.92
-    - git clone http://192.168.1.92/sl/zed-ros2-wrapper.git
+    - git clone http://${GITLAB_PULL_TOKEN}@192.168.1.92/sl/zed-ros2-wrapper.git
     - cd zed-ros2-wrapper
     - git remote add origin-github https://github.com/stereolabs/dummy_repo.git
-    - git push origin-github https://$GITHUB_PUSH_TOKEN@github.com/stereolabs/dummy_repo.git
+    - git push origin-github https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
   when: manual
   tags:
     - docker-builder

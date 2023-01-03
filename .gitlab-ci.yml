@@ -769,7 +769,7 @@ github_push:
     #- curl https://192.168.1.92
     - git clone http://wlucetti:${GITLAB_PULL_TOKEN}@192.168.1.92/sl/zed-ros2-wrapper.git
     - cd zed-ros2-wrapper
-    - git remote add origin-github https://github.com/stereolabs/dummy_repo.git
+    - git remote add origin-github https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
     - git push -u origin-github master https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
   when: manual
   tags:

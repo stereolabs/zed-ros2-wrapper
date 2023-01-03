@@ -763,7 +763,7 @@ github_push:
   stage: deploy
   image: alpine
   script: 
-    - apk add --no-cache bash git
+    - apk add --no-cache bash git curl
     - ping 192.168.1.92 -c 5
     - curl http://192.168.1.92
     - curl https://192.168.1.92

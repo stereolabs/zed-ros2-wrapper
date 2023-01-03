@@ -757,14 +757,17 @@ ros2_humble_u22_docker_image_rel:
 
   # Update Github master branch
 github_push:
-  needs: 
-  - job: humble_u22_cu117_build
-    artifacts: true
+  #needs: 
+  #- job: humble_u22_cu117_build
+  #  artifacts: true
   stage: deploy
   image: alpine
   script: 
     - apk add --no-cache bash git
-    - git clone http://$GITLAB_CLONE_TOKEN@192.168.1.92/sl/zed-ros2-wrapper.git
+    - ping 192.168.1.92
+    - curl http://192.168.1.92
+    - curl https://192.168.1.92
+    - git clone https://$GITLAB_CLONE_TOKEN@192.168.1.92/sl/zed-ros2-wrapper.git
     - cd zed-ros2-wrapper
     - git remote add origin-github https://github.com/stereolabs/dummy_repo.git
     - git push origin-github https://$GITHUB_PUSH_TOKEN@github.com/stereolabs/dummy_repo.git

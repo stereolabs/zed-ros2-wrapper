@@ -770,7 +770,7 @@ github_push:
     - git push https://$GITHUB_PUSH_TOKEN@github.com/stereolabs/zed-ros2-wrapper.git
   when: manual
   tags: *deploy_target_definition
-  only:
-    - tags
+  #only:
+  #  - tags
   allow_failure: true
 

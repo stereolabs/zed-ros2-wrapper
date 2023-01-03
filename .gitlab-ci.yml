@@ -722,7 +722,6 @@ ros2_humble_u22_docker_image_dev:
   services: 
     - docker:dind
   script: 
-    # Fix login part
     - docker login -u $CI_REGISTRY_USER_WALT -p $CI_REGISTRY_PASSWORD_WALT
     - cd docker
     - mkdir -p ./tmp_sources
@@ -745,7 +744,6 @@ ros2_humble_u22_docker_image_rel:
   services: 
     - docker:dind
   script: 
-    # Fix login part
     - docker login -u $CI_REGISTRY_USER_WALT -p $CI_REGISTRY_PASSWORD_WALT
     - cd docker
     - IMG_TAG=${CI_PROJECT_NAME}_u22_cuda117_humble_${CI_COMMIT_TAG}
@@ -765,7 +763,7 @@ github_push:
   stage: deploy
   image: stereolabs/ci-compiler:utils-boto3-uploader
   script: 
-    # Fix login part
+    - apt-get install git
     - git checkout master
     - git push https://$GITHUB_PUSH_TOKEN@github.com/stereolabs/zed-ros2-wrapper.git
   when: manual

@@ -772,7 +772,7 @@ github_push:
     - git remote set-url origin https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
     - git remote -v
     - git config pull.rebase false
-    - git pull
+    - git pull origin master --allow-unrelated-histories
     - git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
   when: manual
   tags:

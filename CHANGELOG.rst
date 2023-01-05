@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2023-01-05
+----------
+- Added a check on timestamp to not publish already published point cloud messages in the point cloud thread
+
 2023-01-02
 ----------
 - Added Docker files (`docker` folder) ready to create Docker images for desktop host devices: Ubuntu 22.04, ROS2 Foxy, ZED SDK v3.8.2.

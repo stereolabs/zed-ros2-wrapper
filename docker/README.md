@@ -49,7 +49,7 @@ It is important that the NVIDIA drivers are correctly accessible from the Docker
 The following command starts an interactive BaSH session:
 
 ```bash
-docker run -it --gpus 'all,"capabilities=compute,utility,video"' \
-  --runtime nvidia --privileged -e DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
+docker run --runtime nvidia -it --privileged --net=host --ipc=host --pid=host \
+  -e DISPLAY -v /dev/shm:/dev/shm -v /tmp/.X11-unix/:/tmp/.X11-unix \
   <image_tag>
 ```

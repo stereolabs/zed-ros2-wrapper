@@ -763,19 +763,18 @@ github_push:
   stage: deploy
   image: alpine
   script: 
-    - apk add --no-cache bash git curl
-    #- ping 192.168.1.92 -c 5
-    #- curl http://192.168.1.92
-    #- curl https://192.168.1.92
+    - apk add --no-cache bash git
     - git config --global user.email "support@stereolabs.com"
     - git config --global user.name "Stereolabs"
     - git clone --recurse-submodules http://wlucetti:${GITLAB_PULL_TOKEN}@192.168.1.92/sl/zed-ros2-wrapper.git
     - cd zed-ros2-wrapper
-    - git remote set-url origin https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
+    #- git remote set-url origin https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
+    - git remote set-url origin https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/zed-ros2-wrapper.git
     - git remote -v
     - git config pull.rebase false
     - git pull origin master --allow-unrelated-histories
-    - git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
+    #- git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
+    - git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/zed-ros2-wrapper.git
   when: manual
   tags:
     - docker-builder

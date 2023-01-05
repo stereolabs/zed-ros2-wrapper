@@ -722,7 +722,6 @@ ros2_humble_u22_docker_image_dev:
   services: 
     - docker:dind
   script: 
-    # Fix login part
     - docker login -u $CI_REGISTRY_USER_WALT -p $CI_REGISTRY_PASSWORD_WALT
     - cd docker
     - mkdir -p ./tmp_sources
@@ -745,7 +744,6 @@ ros2_humble_u22_docker_image_rel:
   services: 
     - docker:dind
   script: 
-    # Fix login part
     - docker login -u $CI_REGISTRY_USER_WALT -p $CI_REGISTRY_PASSWORD_WALT
     - cd docker
     - IMG_TAG=${CI_PROJECT_NAME}_u22_cuda117_humble_${CI_COMMIT_TAG}
@@ -761,16 +759,28 @@ ros2_humble_u22_docker_image_rel:
 github_push:
   needs: 
   - job: humble_u22_cu117_build
-    artifacts: true
+    artifacts: false
   stage: deploy
-  image: stereolabs/ci-compiler:utils-boto3-uploader
+  image: alpine
   script: 
-    # Fix login part
-    - git checkout master
-    - git push https://$GITHUB_PUSH_TOKEN@github.com/stereolabs/zed-ros2-wrapper.git
+    - apk add --no-cache bash git
+    - git config --global user.email "support@stereolabs.com"
+    - git config --global user.name "Stereolabs"
+    - git clone --recurse-submodules http://wlucetti:${GITLAB_PULL_TOKEN}@192.168.1.92/sl/zed-ros2-wrapper.git
+    - cd zed-ros2-wrapper
+    #- git remote set-url origin https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
+    - git remote set-url origin https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/zed-ros2-wrapper.git
+    - git remote -v
+    - git config pull.rebase false
+    - git pull origin master --allow-unrelated-histories
+    #- git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
+    - git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/zed-ros2-wrapper.git
   when: manual
-  tags: *deploy_target_definition
-  only:
-    - tags
+  tags:
+    - docker-builder
+    - linux
+
+  #only:
+  #  - master
   allow_failure: true
 

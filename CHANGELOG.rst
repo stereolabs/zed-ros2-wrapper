@@ -2,6 +2,7 @@ LATEST CHANGES
 ==============
 
 2023-01-02
+----------
 - Added Docker files (`docker` folder) ready to create Docker images for desktop host devices: Ubuntu 22.04, ROS2 Foxy, ZED SDK v3.8.2.
 - Changed the default depth mode to `PERFORMANCE` (1) for a faster node start in the case that the NEURAL depth AI model is not present.
 

@@ -1,9 +1,9 @@
 # Docker
 
-This folder contains a list of Dockerfile to build Docker images ready to start the ZED ROS2 Wrapper nodes:
+This folder contains a list of Dockerfile files to build Docker images ready to start the nodes of the *ZED ROS2 Wrapper*:
 
 * `Dockerfile.u22-cu117-humble-release`: desktop image for ROS2 Humble, running on Ubuntu 22.04, with CUDA 11.7. The ZED Wrapper is cloned from the master branch and compiled.
-* `Dockerfile.u22-cu117-humble-devel`: desktop image for ROS2 Humble, running on Ubuntu 22.04, with CUDA 11.7. The ZED Wrapper is copied from the source file of the current branch and compiled. This is useful to create a Docker image of a branch to be tested before merging it in the master branch.
+* `Dockerfile.u22-cu117-humble-devel`: development desktop image for ROS2 Humble, running on Ubuntu 22.04, with CUDA 11.7. The ZED Wrapper is copied from the source file of the current branch and compiled. This is useful to create a Docker image of a branch to be tested before merging it in the master branch.
 
 ## Build the Docker images
 

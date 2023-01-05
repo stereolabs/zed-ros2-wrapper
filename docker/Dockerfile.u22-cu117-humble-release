@@ -2,6 +2,9 @@ ARG IMAGE_NAME="nvcr.io/nvidia/cuda:11.7.1-devel-ubuntu22.04"
 
 FROM $IMAGE_NAME
 
+ENV NVIDIA_DRIVER_CAPABILITIES \
+    ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility
+
 # Disable apt-get warnings
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends apt-utils dialog

@@ -5429,6 +5429,8 @@ void ZedCamera::publishPointCloud()
 {
   sl_tools::StopWatch pcElabTimer;
 
+  static rclcpp::Time lastPcTs = TIMEZERO_ROS;
+
   pointcloudMsgPtr pcMsg = std::make_unique<sensor_msgs::msg::PointCloud2>();
 
   // Initialize Point Cloud message
@@ -5445,6 +5447,17 @@ void ZedCamera::publishPointCloud()
     // pcMsg->header.stamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
     pcMsg->header.stamp = mFrameTimestamp;
   }
+
+  // ---> Check that `pcMsg->header.stamp` is not the same of the latest published pointcloud
+  // Avoid to publish the same old data
+  if (lastPcTs == pcMsg->header.stamp) {
+    // Data not updated by a grab calling in the grab thread
+    RCLCPP_DEBUG_STREAM(get_logger(), "publishPointCloud: ignoring not update data");
+    return;
+  }
+  lastPcTs = pcMsg->header.stamp;
+  // <--- Check that `pcMsg->header.stamp` is not the same of the latest published pointcloud
+
 
   if (pcMsg->width != width || pcMsg->height != height) {
     pcMsg->header.frame_id = mPointCloudFrameId;  // Set the header values of the ROS message

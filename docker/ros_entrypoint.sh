@@ -10,6 +10,7 @@ echo "ZED ROS2 Docker Image"
 echo "---------------------"
 echo 'ROS distro: ' $ROS_DISTRO
 echo 'DDS middleware: ' $RMW_IMPLEMENTATION 
+echo "---"  
 echo 'Available ZED packages:'
 ros2 pkg list | grep zed
 echo "---------------------"    

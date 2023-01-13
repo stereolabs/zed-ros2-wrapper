@@ -24,4 +24,4 @@ sudo apt-get install -y --no-install-recommends wget less cmake curl gnupg2 \
     chmod +x ZED_SDK_Linux_JP.run ; ./ZED_SDK_Linux_JP.run silent skip_tools && \
     rm -rf /usr/local/zed/resources/* && \
     rm -rf ZED_SDK_Linux_JP.run && \
-    rm -rf /var/lib/apt/lists/*
+    sudo rm -rf /var/lib/apt/lists/*

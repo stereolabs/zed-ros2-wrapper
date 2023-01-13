@@ -20,6 +20,7 @@ sudo apt-get install -y --no-install-recommends wget less cmake curl gnupg2 \
     build-essential python3 python3-pip python3-dev python3-setuptools libusb-1.0-0-dev -y && \
     sudo -H pip install protobuf && \
     wget -q --no-check-certificate -O ZED_SDK_Linux_JP.run https://download.stereolabs.com/zedsdk/${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}/jp${JETPACK_MAJOR}${JETPACK_MINOR}/jetsons && \
+    cat ./ZED_SDK_Linux_JP.run && \
     chmod +x ZED_SDK_Linux_JP.run ; ./ZED_SDK_Linux_JP.run silent skip_tools && \
     rm -rf /usr/local/zed/resources/* && \
     rm -rf ZED_SDK_Linux_JP.run && \

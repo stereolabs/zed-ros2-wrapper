@@ -15,8 +15,8 @@ ttk="***>"
     
 #Install ZED SDK
 echo "${ttk} Installing ZED SDK v${ZED_SDK_MAJOR}.${ZED_SDK_MINOR} for Jetpack ${JETPACK_MAJOR}.${JETPACK_MINOR} (L4T v${L4T_MAJOR}.${L4T_MINOR})"
-
-sudo apt-get update -y && sudo apt-get install -y --no-install-recommends wget less cmake curl gnupg2 \
+sudo apt-get update -y || true
+sudo apt-get install -y --no-install-recommends wget less cmake curl gnupg2 \
     build-essential python3 python3-pip python3-dev python3-setuptools libusb-1.0-0-dev -y && \
     sudo -H pip install protobuf && \
     wget -q --no-check-certificate -O ZED_SDK_Linux_JP.run https://download.stereolabs.com/zedsdk/${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}/jp${JETPACK_MAJOR}${JETPACK_MINOR}/jetsons && \

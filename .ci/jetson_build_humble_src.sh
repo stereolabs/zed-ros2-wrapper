@@ -8,6 +8,7 @@ PROJ_NAME=${PWD##*/}
 
 echo "${ttk} Root repository folder: ${WORKDIR}"
 echo "${ttk} Repository name: ${PROJ_NAME}"
+echo "${ttk} User: ${USER}"
 
 # Create the ROS 2 workspace
 echo "${ttk} Create ROS2 workspace"

@@ -15,6 +15,7 @@ REPO_NAME=${PWD##*/}
 
 echo "${ttk} Root repository folder: ${ROOT_PATH}"
 echo "${ttk} Repository name: ${REPO_NAME}"
+echo "${ttk} User: ${USER}"
 
 sudocmd=""
 if  [[ ! $(uname) == "MINGW"* ]]; then

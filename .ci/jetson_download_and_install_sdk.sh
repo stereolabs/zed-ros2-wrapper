@@ -10,7 +10,7 @@ ZED_SDK_MINOR=$6
 
 ttk="***>"
 
-sudo echo "Europe/Paris" > /etc/timezone
+#sudo echo "Europe/Paris" > /etc/timezone
 
 #Install ZED SDK
 sudo echo "${ttk} Installing ZED SDK v${ZED_SDK_MAJOR}.${ZED_SDK_MINOR} for Jetpack ${JETPACK_MAJOR}.${JETPACK_MINOR}"

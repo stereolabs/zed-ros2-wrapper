@@ -23,11 +23,11 @@ echo "cp -a ./${PROJ_NAME} ${WS_DIR}/src/"
 cp -a ./${PROJ_NAME} ${WS_DIR}/src/
 
 echo "${ttk} Check environment variables"
-sudo env | grep ROS
+env | grep ROS
 
 echo "${ttk} Update bin repositories"
-sudo apt-get update || true
-sudo apt-get upgrade --yes
+apt-get update || true
+apt-get upgrade --yes
 #rosdep update
 
 echo "${ttk} Install ZED ROS2 Package dependencies"

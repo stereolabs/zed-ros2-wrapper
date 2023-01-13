@@ -21,7 +21,6 @@ sudo apt-get install -y --no-install-recommends wget less cmake curl gnupg2 \
     sudo -H pip install protobuf && \
     wget -q --no-check-certificate -O ZED_SDK_Linux_JP.run \
     https://download.stereolabs.com/zedsdk/${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}/l4t${L4T_MAJOR}.${L4T_MINOR}/jetsons && \
-    cat ./ZED_SDK_Linux_JP.run && \
     chmod +x ZED_SDK_Linux_JP.run ; ./ZED_SDK_Linux_JP.run silent skip_tools && \
     rm -rf /usr/local/zed/resources/* && \
     rm -rf ZED_SDK_Linux_JP.run && \

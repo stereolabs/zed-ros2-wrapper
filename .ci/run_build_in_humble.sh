@@ -60,7 +60,7 @@ if [[ $ver == "20.04" ]]; then
         echo "${ttk} Install the ZED SDK"
         . .ci/jetson_download_and_install_sdk.sh ${JP_MAJOR} ${JP_MINOR} ${L4T_MAJOR} ${L4T_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}
         echo "${ttk} Build ROS2 Humble from the source."    
-        #. .ci/jetson_build_humble_src.sh    
+        . .ci/jetson_build_humble_src.sh    
     fi
 else
     echo "${ttk} Architecture ${arch} is not supported."

@@ -58,14 +58,6 @@ if [[ $ver == "20.04" ]]; then
         echo "${ttk} Build ROS2 Humble from the source."    
         . .ci/jetson_build_humble_src.sh    
     fi
-    if [[ $ver == "22.04" ]]; then 
-        #echo "${ttk} Install the ZED SDK"
-        #. .ci/jetson_download_and_install_sdk.sh 22 ${CUDA_MAJOR} ${CUDA_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}
-        #echo "${ttk} Install ROS2 Humble from the binaries."
-        #. .ci/jetson_build_humble_bin.sh
-        echo "${ttk} ROS2 Humble binaries for Ubuntu 22 do not exist"
-        exit 0
-    fi
 else
     echo "${ttk} Architecture ${arch} is not supported."
     exit 1

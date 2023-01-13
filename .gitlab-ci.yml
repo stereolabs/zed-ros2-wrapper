@@ -84,6 +84,12 @@ variables:
     - linux
     - qemu-support
 
+.linux_docker_builder_native_target:
+  tags: &linux_docker_builder_native_target_definition
+    - jetson
+    - L4T35.1
+
+
 ######################
 # Runner selection  #
 ######################
@@ -193,6 +199,11 @@ variables:
     - sudo chmod +x .ci/run_build_in_humble.sh
     - ./.ci/run_build_in_humble.sh
 
+.build_script_l4t35_1_humble:
+  script: &humble_l4t35_1_build_script_definition
+    - sudo chmod +x .ci/run_build_in_humble_l4t35_1.sh
+    - ./.ci/run_build_in_humble_l4t35_1.sh
+
  
 
     
@@ -205,27 +216,6 @@ variables:
 #################
 #  Build Tasks  #
 #################
-#u18_cu102_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:ubuntu18.04-cuda10.2-tensorrt8.4.2
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-#u18_cu117_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:ubuntu18.04-cuda11.7-tensorrt8.4.2
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
 
 humble_u22_cu117_build:
   stage: build  
@@ -237,71 +227,15 @@ humble_u22_cu117_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  #cache: []
-  when: on_success
+  when: manual
 
-########
-
-#l4t32_3_jetsons_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:tegra-cross-l4t32.3
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-#l4t32_4_jetsons_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:tegra-cross-l4t32.4
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-#l4t32_5_jetsons_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:tegra-cross-l4t32.5
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-#l4t32_6_jetsons_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:tegra-cross-l4t32.6
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-#l4t32_7_jetsons_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:tegra-cross-l4t32.7
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-humble_l4t35_1_jetsons_build:
+humble_l4t35_1_build:
   stage: build
-  image: stereolabs/ci-compiler:tegra-cross-l4t35.1
-  tags: *linux_docker_builder_target_definition
-  script: *humble_linux_build_script_definition
+  image: dustynv/ros:humble-ros-base-l4t-r35.1.0
+  tags: *linux_docker_builder_native_target_definition
+  # Consider using qemu in the future
+  #tags: *linux_docker_builder_qemu_target_definition
+  script: *humble_l4t35_1_build_script_definition
   artifacts:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition

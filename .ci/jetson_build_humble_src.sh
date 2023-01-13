@@ -21,8 +21,8 @@ cd ..
 echo "cp -a ./${PROJ_NAME} ${WS_DIR}/src/"
 cp -a ./${PROJ_NAME} ${WS_DIR}/src/
 
-#echo "${ttk} Check environment variables"
-env | grep ROS
+echo "${ttk} Check environment variables"
+sudo env | grep ROS
 
 echo "${ttk} Update bin repositories"
 sudo apt-get update || true

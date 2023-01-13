@@ -15,7 +15,7 @@ REPO_NAME=${PWD##*/}
 
 echo "${ttk} Root repository folder: ${ROOT_PATH}"
 echo "${ttk} Repository name: ${REPO_NAME}"
-echo "${ttk} User: ${USER}"
+#echo "${ttk} User: ${USER}"
 
 sudocmd=""
 if  [[ ! $(uname) == "MINGW"* ]]; then
@@ -38,7 +38,7 @@ echo "${ttk} Version: ${VER}"
 # Build the node
 cd "${ROOT_PATH}"
 ARCH=$(uname -m)
-echo "${ttk} ARCHitecture: ${ARCH}"
+echo "${ttk} Architecture: ${ARCH}"
 if [[ $ARCH == "x86_64" ]]; then     
     if [[ $VER == "20.04" ]]; then 
         echo "${ttk} Install the ZED SDK for ${ARCH} under Ubuntu ${VER}"

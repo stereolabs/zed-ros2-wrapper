@@ -198,15 +198,7 @@ variables:
   script: &humble_linux_build_script_definition
     - sudo chmod +x .ci/run_build_in_humble.sh
     - ./.ci/run_build_in_humble.sh
-
-.build_script_l4t35_1_humble:
-  script: &humble_l4t35_1_build_script_definition
-    - sudo chmod +x .ci/run_build_in_humble_l4t35_1.sh
-    - ./.ci/run_build_in_humble_l4t35_1.sh
-
- 
-
-    
+  
 
 #.build_script_linux:
 #  script: &linux_build_script_definition
@@ -232,10 +224,10 @@ humble_u22_cu117_build:
 humble_l4t35_1_build:
   stage: build
   image: dustynv/ros:humble-ros-base-l4t-r35.1.0
-  tags: *linux_docker_builder_native_target_definition
   # Consider using qemu in the future
   #tags: *linux_docker_builder_qemu_target_definition
-  script: *humble_l4t35_1_build_script_definition
+  tags: *linux_docker_builder_native_target_definition
+  script: *humble_linux_build_script_definition
   artifacts:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition

@@ -3,22 +3,23 @@ set -e
 
 JETPACK_MAJOR=$1
 JETPACK_MINOR=$2
-L4T_MINOR_VERSION=$3
-ZED_SDK_MAJOR=$4
-ZED_SDK_MINOR=$5
+L4T_MAJOR=$3
+L4T_MINOR=$4
+ZED_SDK_MAJOR=$5
+ZED_SDK_MINOR=$6
 
 ttk="***>"
 
-echo "Europe/Paris" > /etc/localtime
+sudo echo "Europe/Paris" > /etc/localtime
 
 #Install ZED SDK
-echo "${ttk} Installing ZED SDK v${ZED_SDK_MAJOR}.${ZED_SDK_MINOR} for Jetpack ${JETPACK_MAJOR}.${JETPACK_MINOR}"
-apt-get update -y && apt-get install -y --no-install-recommends wget less cmake curl gnupg2 \
+sudo echo "${ttk} Installing ZED SDK v${ZED_SDK_MAJOR}.${ZED_SDK_MINOR} for Jetpack ${JETPACK_MAJOR}.${JETPACK_MINOR}"
+sudo apt-get update -y && sudo apt-get install -y --no-install-recommends wget less cmake curl gnupg2 \
     build-essential python3 python3-pip python3-dev python3-setuptools libusb-1.0-0-dev -y && \
-    sudo pip install protobuf && \
-    echo "# R35 (release), REVISION: ${L4T_MINOR_VERSION}" > /etc/nv_tegra_release ; \
+    sudo -H pip install protobuf && \
+    sudo echo "# R${L4T_MAJOR} (release), REVISION: ${L4T_MINOR}" > /etc/nv_tegra_release ; \
     wget -q --no-check-certificate -O ZED_SDK_Linux_JP.run https://download.stereolabs.com/zedsdk/${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}/jp${JETPACK_MAJOR}${JETPACK_MINOR}/jetsons && \
     chmod +x ZED_SDK_Linux_JP.run ; ./ZED_SDK_Linux_JP.run silent skip_tools && \
-    rm -rf /usr/local/zed/resources/* && \
+    sudo rm -rf /usr/local/zed/resources/* && \
     rm -rf ZED_SDK_Linux_JP.run && \
-    rm -rf /var/lib/apt/lists/*
+    sudo rm -rf /var/lib/apt/lists/*

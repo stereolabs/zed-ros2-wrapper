@@ -40,13 +40,13 @@ ARCH=$(uname -m)
 echo "${ttk} ARCHitecture: ${ARCH}"
 if [[ $ARCH == "x86_64" ]]; then     
     if [[ $VER == "20.04" ]]; then 
-        echo "${ttk} Install the ZED SDK for ${ARCH} under Ubuntu ${VER}.04"
+        echo "${ttk} Install the ZED SDK for ${ARCH} under Ubuntu ${VER}"
         . .ci/download_and_install_sdk.sh 20 ${CUDA_MAJOR} ${CUDA_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}
         echo "${ttk} Build ROS2 Humble from the source."    
         . .ci/build_humble_src.sh    
     fi
     if [[ $VER == "22.04" ]]; then 
-        echo "${ttk} Install the ZED SDK for ${ARCH} under Ubuntu ${VER}.04"
+        echo "${ttk} Install the ZED SDK for ${ARCH} under Ubuntu ${VER}"
         . .ci/download_and_install_sdk.sh 22 ${CUDA_MAJOR} ${CUDA_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}
         echo "${ttk} Install ROS2 Humble from the binaries."
         . .ci/build_humble_bin.sh
@@ -57,7 +57,7 @@ if [[ $VER == "20.04" ]]; then
         JP_MINOR=0
         L4T_MAJOR=35
         L4T_MINOR=1
-        echo "${ttk} Install the ZED SDK for ${ARCH} under Ubuntu ${VER}.04"
+        echo "${ttk} Install the ZED SDK for ${ARCH} under Ubuntu ${VER}"
         . .ci/jetson_download_and_install_sdk.sh ${JP_MAJOR} ${JP_MINOR} ${L4T_MAJOR} ${L4T_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}
         echo "${ttk} Build ROS2 Humble from the source."    
         . .ci/jetson_build_humble_src.sh    

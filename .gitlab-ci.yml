@@ -225,8 +225,8 @@ humble_l4t35_1_build:
   stage: build
   image: dustynv/ros:humble-ros-base-l4t-r35.1.0
   # Consider using qemu in the future
-  #tags: *linux_docker_builder_qemu_target_definition
-  tags: *linux_docker_builder_native_target_definition
+  tags: *linux_docker_builder_qemu_target_definition
+  #tags: *linux_docker_builder_native_target_definition
   script: *humble_linux_build_script_definition
   artifacts:
     name: *linux_artifacts_naming_definition

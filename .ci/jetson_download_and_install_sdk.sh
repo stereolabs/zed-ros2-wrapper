@@ -11,8 +11,6 @@ ttk="***>"
 
 echo "Europe/Paris" > /etc/localtime
 
-apt-get update -y && apt-get install -y sudo apt-utils apt-transport-https lsb-release udev usbutils git 
-
 #Install ZED SDK
 echo "${ttk} Installing ZED SDK v${ZED_SDK_MAJOR}.${ZED_SDK_MINOR} for Jetpack ${JETPACK_MAJOR}.${JETPACK_MINOR}"
 apt-get update -y && apt-get install -y --no-install-recommends wget less cmake curl gnupg2 \
@@ -24,6 +22,3 @@ apt-get update -y && apt-get install -y --no-install-recommends wget less cmake 
     rm -rf /usr/local/zed/resources/* && \
     rm -rf ZED_SDK_Linux_JP.run && \
     rm -rf /var/lib/apt/lists/*
-
-#This symbolic link is needed to use the streaming features on Jetson inside a container
-ln -sf /usr/lib/aarch64-linux-gnu/tegra/libv4l2.so.0 /usr/lib/aarch64-linux-gnu/libv4l2.so

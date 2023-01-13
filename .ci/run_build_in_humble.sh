@@ -51,7 +51,7 @@ if [[ $arch == "x86_64" ]]; then
         echo "${ttk} Install ROS2 Humble from the binaries."
         . .ci/build_humble_bin.sh
     fi
-elif [[ $arch == "arm64" ]]; then 
+elif [[ $arch == "aarch64" ]]; then 
 if [[ $ver == "20.04" ]]; then 
         JP_MAJOR=5
         JP_MINOR=0

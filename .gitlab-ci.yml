@@ -779,8 +779,7 @@ github_push:
   tags:
     - docker-builder
     - linux
-
-  #only:
-  #  - master
+  only:
+    - master
   allow_failure: true
 

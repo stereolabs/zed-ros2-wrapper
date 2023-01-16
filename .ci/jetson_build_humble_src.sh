@@ -17,10 +17,6 @@ WS_DIR="$(pwd)"/ros2_ws
 rm -rf ${WS_DIR} # clean residual cache files
 mkdir -p ${WS_DIR}/src 
 echo "${ttk} ROS2 Workspace: ${WS_DIR}"
-cd ${WORKDIR}
-cd ..
-echo "cp -a ./${PROJ_NAME} ${WS_DIR}/src/"
-cp -a ./${PROJ_NAME} ${WS_DIR}/src/
 
 echo "${ttk} Check environment variables"
 env | grep ROS
@@ -30,9 +26,26 @@ apt-get update || true
 apt-get upgrade --yes
 rosdep update
 
-echo "${ttk} Install ZED ROS2 Package dependencies"
+echo "${ttk} Install ZED ROS2 Package dependencies from the sources"
 cd ${WS_DIR}
+XACRO_VERSION=2.0.8
+wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz -O - | tar -xvz && mv xacro-${XACRO_VERSION} xacro
+DIAGNOSTICS_VERSION=3.0.0
+wget https://github.com/ros/diagnostics/archive/refs/tags/${DIAGNOSTICS_VERSION}.tar.gz -O - | tar -xvz && mv diagnostics-${DIAGNOSTICS_VERSION} diagnostics
+AMENT_LINT_VERSION=0.12.4
+wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}.tar.gz -O - | tar -xvz && mv ament-lint-${AMENT_LINT_VERSION} ament-lint
+
+echo "${ttk} Build the dependencies"
+colcon build --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
+
+echo "${ttk} Check that all the dependencied of the ZED ROS2 Package are satisfied"
 rosdep install --from-paths src --ignore-src -r -y
+
+echo "${ttk} Copy the ZED ROS2 Package sources in the workspace"
+cd ${WORKDIR}
+cd ..
+echo "cp -a ./${PROJ_NAME} ${WS_DIR}/src/"
+cp -a ./${PROJ_NAME} ${WS_DIR}/src/
 
 echo "${ttk} Build the ZED ROS2 Package"
 colcon build --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)

@@ -23,7 +23,7 @@ env | grep ROS
 
 echo "${ttk} Update bin repositories"
 apt-get update || true
-TZ="Europe/Paris" apt-get upgrade --yes
+#TZ="Europe/Paris" apt-get upgrade --yes
 rosdep update
 
 echo "${ttk} Install ZED ROS2 Package dependencies from the sources"

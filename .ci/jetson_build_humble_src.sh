@@ -44,14 +44,15 @@ echo "${ttk} Build the dependencies"
 cd ..
 colcon build --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
 
-echo "${ttk} Check that all the dependencied of the ZED ROS2 Package are satisfied"
-rosdep install --from-paths src --ignore-src -r -y
-
 echo "${ttk} Copy the ZED ROS2 Package sources in the workspace"
 cd ${WORKDIR}
 cd ..
 echo "cp -a ./${PROJ_NAME} ${WS_DIR}/src/"
 cp -a ./${PROJ_NAME} ${WS_DIR}/src/
+
+echo "${ttk} Check that all the dependencied of the ZED ROS2 Package are satisfied"
+cd ${WS_DIR}
+rosdep install --from-paths src --ignore-src -r -y
 
 echo "${ttk} Build the ZED ROS2 Package"
 cd ${WS_DIR}

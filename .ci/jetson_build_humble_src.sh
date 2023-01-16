@@ -47,7 +47,7 @@ rosdep install --from-paths src --ignore-src -r -y
 
 echo "${ttk} Build the ZED ROS2 Package and the dependencies"
 cd ${WS_DIR}
-colcon build --cmake-args ' -DCMAKE_BUILD_TYPE=Release' ' -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs' ' -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"' --parallel-workers $(nproc)
+colcon build --cmake-args ' -DCMAKE_BUILD_TYPE=Release' ' -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs' ' -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"' ' --no-warn-unused-cli' --parallel-workers $(nproc)
 
 echo "${ttk} Prepare 'install' artifact"
 cd ${WS_DIR}

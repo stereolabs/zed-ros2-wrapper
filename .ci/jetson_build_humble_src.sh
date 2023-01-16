@@ -14,7 +14,7 @@ echo "${ttk} User: ${USER}"
 echo "${ttk} Create ROS2 workspace"
 cd ..
 WS_DIR="$(pwd)"/ros2_ws
-rm -rf ${WS_DIR} # clean residual cache files
+rm -rf ${WS_DIR} # clean residual cached files
 mkdir -p ${WS_DIR}/src 
 echo "${ttk} ROS2 Workspace: ${WS_DIR}"
 
@@ -41,6 +41,7 @@ echo "${ttk} Content"
 ls -lah
 
 echo "${ttk} Build the dependencies"
+cd ..
 colcon build --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
 
 echo "${ttk} Check that all the dependencied of the ZED ROS2 Package are satisfied"
@@ -53,6 +54,7 @@ echo "cp -a ./${PROJ_NAME} ${WS_DIR}/src/"
 cp -a ./${PROJ_NAME} ${WS_DIR}/src/
 
 echo "${ttk} Build the ZED ROS2 Package"
+cd ${WS_DIR}
 colcon build --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
 
 echo "${ttk} Prepare 'install' artifact"

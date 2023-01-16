@@ -633,6 +633,8 @@ ros2_humble_u22_docker_image_dev:
     - rm -r ./tmp_sources
   when: manual
   tags: *linux_docker_builder_target_definition
+  except:
+    - master
   allow_failure: true
 
 # ROS2 Humble U22 Docker Image RELEASE - clone the Github master branch to build the wrapper
@@ -652,8 +654,8 @@ ros2_humble_u22_docker_image_rel:
     - docker push myzhar/test:${IMG_TAG}
   when: manual
   tags: *linux_docker_builder_target_definition
-  #only:
-  #  - tags
+  only:
+    - master
   allow_failure: true
 
   # Update Github master branch

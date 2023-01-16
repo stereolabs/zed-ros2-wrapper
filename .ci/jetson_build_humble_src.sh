@@ -33,7 +33,12 @@ wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz -O -
 DIAGNOSTICS_VERSION=3.0.0
 wget https://github.com/ros/diagnostics/archive/refs/tags/${DIAGNOSTICS_VERSION}.tar.gz -O - | tar -xvz && mv diagnostics-${DIAGNOSTICS_VERSION} diagnostics
 AMENT_LINT_VERSION=0.12.4
-wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}.tar.gz -O - | tar -xvz && mv ament-lint-${AMENT_LINT_VERSION} ament-lint
+wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}.tar.gz -O - | tar -xvz && mv ament_lint-${AMENT_LINT_VERSION} ament-lint
+
+echo "${ttk} Current folder"
+pwd
+echo "${ttk} Content"
+ls -lah
 
 echo "${ttk} Build the dependencies"
 colcon build --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)

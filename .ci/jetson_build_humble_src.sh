@@ -10,6 +10,10 @@ echo "${ttk} Root repository folder: ${WORKDIR}"
 echo "${ttk} Repository name: ${PROJ_NAME}"
 echo "${ttk} User: ${USER}"
 
+# Set timezone
+TZ=Europe/Paris
+ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && echo ${TZ} > /etc/timezone
+
 # Create the ROS 2 workspace
 echo "${ttk} Create ROS2 workspace"
 cd ..

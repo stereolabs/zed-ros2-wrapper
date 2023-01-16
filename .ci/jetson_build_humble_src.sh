@@ -42,7 +42,7 @@ cp -a ./${PROJ_NAME} ${WS_DIR}/src/
 
 echo "${ttk} Check that all the dependencies are satisfied"
 cd ${WS_DIR}
-apt-get update && rosdep update
+apt-get update -y || true && rosdep update
 rosdep install --from-paths src --ignore-src -r -y
 
 echo "${ttk} Build the ZED ROS2 Package and the dependencies"

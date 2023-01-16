@@ -27,7 +27,7 @@ apt-get upgrade --yes
 rosdep update
 
 echo "${ttk} Install ZED ROS2 Package dependencies from the sources"
-cd ${WS_DIR}
+cd ${WS_DIR}/src
 XACRO_VERSION=2.0.8
 wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz -O - | tar -xvz && mv xacro-${XACRO_VERSION} xacro
 DIAGNOSTICS_VERSION=3.0.0

@@ -35,13 +35,14 @@ wget https://github.com/ros/diagnostics/archive/refs/tags/${DIAGNOSTICS_VERSION}
 AMENT_LINT_VERSION=0.12.4
 wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}.tar.gz -O - | tar -xvz && mv ament_lint-${AMENT_LINT_VERSION} ament-lint
 
-echo "${ttk} Current folder"
-pwd
-echo "${ttk} Content"
-ls -lah
+#echo "${ttk} Current folder"
+#pwd
+#echo "${ttk} Content"
+#ls -lah
 
 echo "${ttk} Build the dependencies"
-cd ..
+cd ${WS_DIR}
+rosdep install --from-paths src --ignore-src -r -y
 colcon build --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
 
 echo "${ttk} Copy the ZED ROS2 Package sources in the workspace"

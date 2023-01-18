@@ -13,8 +13,15 @@ Choose a name for the image and replace `<image_tag>` with it, e.g. `zed-ubuntu2
 
 The Release image internally clones the master branch of this repository to build the ZED ROS2 Wrapper code.
 
+Build the image for desktop:
 ```bash
 docker build -t "<image_tag>" -f Dockerfile.u22-cu117-humble-release .
+```
+
+or build the image for Jetson:
+
+```bash
+docker build -t "<image_tag>" -f Dockerfile.l4t35_1-humble-release .
 ```
 
 ### Devel image
@@ -24,17 +31,23 @@ The devel image internally needs the source code of the current branch. For this
 Create a temporary `tmp_sources` folder for the sources and copy the files:
 
 ```bash
-mkdir -p ./tmp_sources
-cp -r ../zed* ./tmp_sources
+mkdir -p ./tmp_sourcesmkdir -p ./tmp_sources
+cp -cp -r ../zed* ./tmp_sourcesr ../zed* ./tmp_sources
 ```
 
-Build the image:
+Build the image for desktop:
 
 ```bash
 docker build -t "<image_tag>" -f Dockerfile.u22-cu117-humble-devel .
 ```
 
-Remove the sources:
+or build the image for Jetson:
+
+```bash
+docker build -t "<image_tag>" -f Dockerfile.l4t35_1-humble-devel .
+```
+
+Remove the temporary sources to avoid future compiling issues:
 
 ```bash
 rm -r ./tmp_sources

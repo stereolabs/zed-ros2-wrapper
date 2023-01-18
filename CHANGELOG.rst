@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2023-01-16
+----------
+- Removed annoying build log messages. Only warning regarding unsupported ROS2 distributions will be displayed when required.
+
 2023-01-05
 ----------
 - Added a check on timestamp to not publish already published point cloud messages in the point cloud thread

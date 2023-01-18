@@ -84,6 +84,12 @@ variables:
     - linux
     - qemu-support
 
+.linux_docker_builder_native_target:
+  tags: &linux_docker_builder_native_target_definition
+    - jetson
+    - L4T35.1
+
+
 ######################
 # Runner selection  #
 ######################
@@ -192,13 +198,7 @@ variables:
   script: &humble_linux_build_script_definition
     - sudo chmod +x .ci/run_build_in_humble.sh
     - ./.ci/run_build_in_humble.sh
-
-.build_script_linux_foxy:
-  script: &foxy_linux_build_script_definition
-    - sudo chmod +x .ci/run_build_in_foxy.sh
-    - ./.ci/run_build_in_foxy.sh    
-
-    
+  
 
 #.build_script_linux:
 #  script: &linux_build_script_definition
@@ -208,38 +208,6 @@ variables:
 #################
 #  Build Tasks  #
 #################
-#u18_cu102_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:ubuntu18.04-cuda10.2-tensorrt8.4.2
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-#u18_cu117_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:ubuntu18.04-cuda11.7-tensorrt8.4.2
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-#foxy_u20_cu117_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:ubuntu20.04-cuda11.7-tensorrt8.4.2
-#  tags: *linux_docker_builder_target_definition
-#  script: *foxy_linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
 
 humble_u22_cu117_build:
   stage: build  
@@ -251,87 +219,20 @@ humble_u22_cu117_build:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  #cache: []
   when: on_success
 
-########
-
-#l4t32_3_jetsons_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:tegra-cross-l4t32.3
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-#l4t32_4_jetsons_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:tegra-cross-l4t32.4
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-#l4t32_5_jetsons_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:tegra-cross-l4t32.5
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-#l4t32_6_jetsons_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:tegra-cross-l4t32.6
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-#l4t32_7_jetsons_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:tegra-cross-l4t32.7
-#  tags: *linux_docker_builder_target_definition
-#  script: *linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-#foxy_l4t35_1_jetsons_build:
-#  stage: build
-#  image: stereolabs/ci-compiler:tegra-cross-l4t35.1
-#  tags: *linux_docker_builder_target_definition
-#  script: *foxy_linux_build_script_definition
-#  artifacts:
-#    name: *linux_artifacts_naming_definition
-#    paths: *artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#  when: manual
-
-humble_l4t35_1_jetsons_build:
+humble_l4t35_1_build:
   stage: build
-  image: stereolabs/ci-compiler:tegra-cross-l4t35.1
-  tags: *linux_docker_builder_target_definition
+  image: dustynv/ros:humble-ros-base-l4t-r35.1.0
+  # Consider using qemu in the future
+  tags: *linux_docker_builder_qemu_target_definition
+  #tags: *linux_docker_builder_native_target_definition
   script: *humble_linux_build_script_definition
   artifacts:
     name: *linux_artifacts_naming_definition
     paths: *artifacts_files_definition
     expire_in: *artifacts_expire_in_definition
-  when: manual  
+  when: on_success  
 
 ######################
 #     Test script    #
@@ -732,6 +633,8 @@ ros2_humble_u22_docker_image_dev:
     - rm -r ./tmp_sources
   when: manual
   tags: *linux_docker_builder_target_definition
+  except:
+    - master
   allow_failure: true
 
 # ROS2 Humble U22 Docker Image RELEASE - clone the Github master branch to build the wrapper
@@ -751,8 +654,53 @@ ros2_humble_u22_docker_image_rel:
     - docker push myzhar/test:${IMG_TAG}
   when: manual
   tags: *linux_docker_builder_target_definition
+  only:
+    - master
+  allow_failure: true
+
+# ROS2 Humble L4T Docker Image DEVEL - use the current branch source to build the wrapper
+ros2_humble_l4t_docker_image_dev:
+  needs: 
+  - job: humble_l4t35_1_build
+    artifacts: true
+  stage: deploy
+  image: docker
+  services: 
+    - docker:dind
+  script: 
+    - docker login -u $CI_REGISTRY_USER_WALT -p $CI_REGISTRY_PASSWORD_WALT
+    - cd docker
+    - mkdir -p ./tmp_sources
+    - cp -r ../zed* ./tmp_sources
+    - IMG_TAG=${CI_PROJECT_NAME}_l4t35_1_humble_${CI_COMMIT_BRANCH}
+    - docker build -t "myzhar/test:${IMG_TAG}" -f ./Dockerfile.l4t35_1-humble-devel .
+    - docker push myzhar/test:${IMG_TAG}
+    - rm -r ./tmp_sources
+  when: manual
+  tags: *linux_docker_builder_qemu_target_definition
+  #except:
+  #  - master
+  allow_failure: true
+
+# ROS2 Humble U22 Docker Image RELEASE - clone the Github master branch to build the wrapper
+ros2_humble_l4t_docker_image_rel:
+  needs: 
+  - job: humble_l4t35_1_build
+    artifacts: true
+  stage: deploy
+  image: docker
+  services: 
+    - docker:dind
+  script: 
+    - docker login -u $CI_REGISTRY_USER_WALT -p $CI_REGISTRY_PASSWORD_WALT
+    - cd docker
+    - IMG_TAG=${CI_PROJECT_NAME}_l4t35_1_humble_${CI_COMMIT_TAG}
+    - docker build -t "myzhar/test:${IMG_TAG}" -f ./Dockerfile.l4t35_1-humble-release .
+    - docker push myzhar/test:${IMG_TAG}
+  when: manual
+  tags: *linux_docker_builder_qemu_target_definition
   #only:
-  #  - tags
+  #  - master
   allow_failure: true
 
   # Update Github master branch

@@ -16,18 +16,10 @@ WS_DIR="$(pwd)"/ros2_ws
 rm -rf ${WS_DIR} # clean residual cache files
 mkdir -p ${WS_DIR}/src 
 echo "${ttk} ROS2 Workspace: ${WS_DIR}"
-#echo "${ttk} '${WS_DIR}' content"
-#ls -lah ${WS_DIR}
 cd ${WORKDIR}
 cd ..
-#echo "${ttk} Current path: $(pwd)"
-#ls -lah
 echo "cp -a ./${PROJ_NAME} ${WS_DIR}/src/"
 cp -a ./${PROJ_NAME} ${WS_DIR}/src/
-#echo "${ttk} '${WS_DIR}/src' content"
-#ls -lha ${WS_DIR}/src
-#echo "${ttk} '${WS_DIR}/src/${PROJ_NAME}' content"
-#ls -lha ${WS_DIR}/src/${PROJ_NAME}
 
 echo "${ttk} Check environment variables"
 env | grep ROS

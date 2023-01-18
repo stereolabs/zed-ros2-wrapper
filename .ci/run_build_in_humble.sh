@@ -10,11 +10,12 @@ CUDA_MINOR=`echo ${CUDA_VERSION} | cut -d. -f2`
 pwd_path="$(pwd)"
 if [[ ${pwd_path:${#pwd_path}-3} == ".ci" ]] ; then cd .. && pwd_path="$(pwd)"; fi
 ttk="---> "
-root_path=${pwd_path}
-repo_name=${PWD##*/}
+ROOT_PATH=${pwd_path}
+REPO_NAME=${PWD##*/}
 
-echo "${ttk} Root repository folder: ${root_path}"
-echo "${ttk} Repository name: ${repo_name}"
+echo "${ttk} Root repository folder: ${ROOT_PATH}"
+echo "${ttk} Repository name: ${REPO_NAME}"
+#echo "${ttk} User: ${USER}"
 
 sudocmd=""
 if  [[ ! $(uname) == "MINGW"* ]]; then
@@ -31,43 +32,39 @@ ${sudocmd} chmod +x .ci/*.sh
 # Check Ubuntu version
 ubuntu=$(lsb_release -r)
 echo "${ttk} Ubuntu $ubuntu"
-ver=$(cut -f2 <<< "$ubuntu")
-echo "${ttk} Version: $ver"
+VER=$(cut -f2 <<< "$ubuntu")
+echo "${ttk} Version: ${VER}"
 
 # Build the node
-cd "${root_path}"
-arch=$(uname -m)
-echo "${ttk} Architecture: ${arch}"
-if [[ $arch == "x86_64" ]]; then     
-    if [[ $ver == "20.04" ]]; then 
-        echo "${ttk} Install the ZED SDK"
+cd "${ROOT_PATH}"
+ARCH=$(uname -m)
+echo "${ttk} Architecture: ${ARCH}"
+if [[ $ARCH == "x86_64" ]]; then     
+    if [[ $VER == "20.04" ]]; then 
+        echo "${ttk} Install the ZED SDK for ${ARCH} under Ubuntu ${VER}"
         . .ci/download_and_install_sdk.sh 20 ${CUDA_MAJOR} ${CUDA_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}
         echo "${ttk} Build ROS2 Humble from the source."    
         . .ci/build_humble_src.sh    
     fi
-    if [[ $ver == "22.04" ]]; then 
-        echo "${ttk} Install the ZED SDK"
+    if [[ $VER == "22.04" ]]; then 
+        echo "${ttk} Install the ZED SDK for ${ARCH} under Ubuntu ${VER}"
         . .ci/download_and_install_sdk.sh 22 ${CUDA_MAJOR} ${CUDA_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}
         echo "${ttk} Install ROS2 Humble from the binaries."
         . .ci/build_humble_bin.sh
     fi
-elif [[ $arch == "arm64" ]]; then 
-if [[ $ver == "20.04" ]]; then 
-        echo "${ttk} Install the ZED SDK"
-        . .ci/jetson_download_and_install_sdk.sh 20 ${CUDA_MAJOR} ${CUDA_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}
+elif [[ $ARCH == "aarch64" ]]; then 
+if [[ $VER == "20.04" ]]; then 
+        JP_MAJOR=5
+        JP_MINOR=0
+        L4T_MAJOR=35
+        L4T_MINOR=1
+        echo "${ttk} Install the ZED SDK for ${ARCH} under Ubuntu ${VER}"
+        . .ci/jetson_download_and_install_sdk.sh ${JP_MAJOR} ${JP_MINOR} ${L4T_MAJOR} ${L4T_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}
         echo "${ttk} Build ROS2 Humble from the source."    
         . .ci/jetson_build_humble_src.sh    
     fi
-    if [[ $ver == "22.04" ]]; then 
-        #echo "${ttk} Install the ZED SDK"
-        #. .ci/jetson_download_and_install_sdk.sh 22 ${CUDA_MAJOR} ${CUDA_MINOR} ${ZED_SDK_MAJOR} ${ZED_SDK_MINOR}
-        #echo "${ttk} Install ROS2 Humble from the binaries."
-        #. .ci/jetson_build_humble_bin.sh
-        echo "${ttk} ROS2 Humble binaries for Ubuntu 22 do not exist"
-        exit 0
-    fi
 else
-    echo "${ttk} Architecture ${arch} is not supported."
+    echo "${ttk} Architecture ${ARCH} is not supported."
     exit 1
 fi
 if [ $? -ne 0 ]; then echo "${ttk} ROS2 Node build failed" > "$pwd_path/failure.txt" ; cat "$pwd_path/failure.txt" ; exit 1 ; fi

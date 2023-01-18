@@ -99,9 +99,6 @@ RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
   ' -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs' \
   ' -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"' "
 
-# Clean the image
-RUN rm -rf /var/lib/apt/lists/*
-
 WORKDIR /root/ros2_ws
 
 # Setup environment variables

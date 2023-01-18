@@ -678,11 +678,11 @@ ros2_humble_l4t_docker_image_dev:
     - rm -r ./tmp_sources
   when: manual
   tags: *linux_docker_builder_qemu_target_definition
-  #except:
-  #  - master
+  except:
+    - master
   allow_failure: true
 
-# ROS2 Humble U22 Docker Image RELEASE - clone the Github master branch to build the wrapper
+# ROS2 Humble L4T Docker Image RELEASE - clone the Github master branch to build the wrapper
 ros2_humble_l4t_docker_image_rel:
   needs: 
   - job: humble_l4t35_1_build
@@ -699,8 +699,8 @@ ros2_humble_l4t_docker_image_rel:
     - docker push myzhar/test:${IMG_TAG}
   when: manual
   tags: *linux_docker_builder_qemu_target_definition
-  #only:
-  #  - master
+  only:
+    - master
   allow_failure: true
 
   # Update Github master branch

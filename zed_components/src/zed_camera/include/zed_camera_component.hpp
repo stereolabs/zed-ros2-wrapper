@@ -42,6 +42,8 @@
 #include <sensor_msgs/msg/magnetic_field.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/temperature.hpp>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
+#include <sensor_msgs/msg/nav_sat_status.hpp>
 #include <sl/Camera.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -89,6 +91,7 @@ typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PlaneStamped>> pl
 typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>> markerPub;
 
 typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> clickedPtSub;
+typedef std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>> gpsFixSub;
 
 typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
@@ -159,6 +162,7 @@ protected:
 
   void setTFCoordFrameNames();
   void initPublishers();
+  void initSubscribers();
   void fillCamInfo(
     sl::Camera & zed, std::shared_ptr<sensor_msgs::msg::CameraInfo> leftCamInfoMsg,
     std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg, std::string leftFrameId,
@@ -216,6 +220,7 @@ protected:
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_clickedPoint(const geometry_msgs::msg::PointStamped::SharedPtr msg);
+  void callback_gpsFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
   void callback_setRoi(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_interfaces::srv::SetROI_Request> req,
@@ -345,6 +350,8 @@ private:
   double mSensPubRate = 400.;
   bool mUseOldExtrinsic = false;
   bool mPosTrackingEnabled = false;
+  bool mGpsFusionEnabled = false;
+  std::string mGpsTopic = "/fix";
   bool mPublishTF = true;
   bool mPublishMapTF = true;
   bool mPublishImuTF = true;
@@ -392,6 +399,7 @@ private:
   rclcpp::QoS mMappingQos;
   rclcpp::QoS mObjDetQos;
   rclcpp::QoS mClickedPtQos;
+  rclcpp::QoS mGpsFixQos;
   // <---- Parameter variables
 
   // ----> Dynamic params
@@ -569,6 +577,7 @@ private:
 
   // ----> Subscribers
   clickedPtSub mClickedPtSub;
+  gpsFixSub mGpsFixSub;
   // <---- Subscribers
 
   // ----> Threads and Timers
@@ -593,6 +602,7 @@ private:
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
   std::mutex mObjDetMutex;
+  std::mutex mGpsDataMutex;
   std::condition_variable mVideoDepthDataReadyCondVar;
   std::condition_variable mPcDataReadyCondVar;
   std::atomic_bool mPcDataReady;
@@ -615,14 +625,19 @@ private:
   bool mMappingRunning = false;
   bool mObjDetRunning = false;
   bool mRgbSubscribed = false;
+  bool mGpsMsgReceived = false; // Indicates if a NavSatFix topic has been received, also with invalid position fix
+  bool mGpsFixReceived = false; // Indicates if at least a NavSatFix topic has been received with a valid position fix
+  bool mGpsFixValid = false; // Indicates if the NavSatFix topic has been received with a valid position fix
+  std::string mGpsService = "";
+  std::atomic_bool mGpsFixNew; // Indicates if the the GPS fix has been already fused into SDK pose
   // <---- Status Flags
-
 
   // ----> Positional Tracking
   sl::Pose mLastZedPose;  // Sensor to Map transform
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
   std::vector<geometry_msgs::msg::PoseStamped> mMapPath;
+  sl::GNSSData mLatestGpsFix;
   // <---- Positional Tracking
 
   // Diagnostic
@@ -643,6 +658,7 @@ private:
   std::unique_ptr<sl_tools::WinAvg> mPubOdomTF_sec;
   std::unique_ptr<sl_tools::WinAvg> mPubPoseTF_sec;
   std::unique_ptr<sl_tools::WinAvg> mPubImuTF_sec;
+  std::unique_ptr<sl_tools::WinAvg> mGpsFix_sec;
   bool mImuPublishing = false;
   bool mMagPublishing = false;
   bool mBaroPublishing = false;

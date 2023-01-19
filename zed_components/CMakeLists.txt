@@ -95,7 +95,8 @@ set(DEPENDENCIES
     tf2_geometry_msgs
     geometry_msgs
     nav_msgs
-    sensor_msgs
+    nmea_msgs
+    sensor_msgs    
     stereo_msgs
     zed_interfaces
     std_srvs
@@ -117,6 +118,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(nmea_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
 find_package(image_transport REQUIRED)

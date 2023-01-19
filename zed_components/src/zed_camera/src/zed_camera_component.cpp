@@ -63,7 +63,8 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mPoseQos(1),
   mMappingQos(1),
   mObjDetQos(1),
-  mClickedPtQos(1)
+  mClickedPtQos(1),
+  mGpsFixQos(1)
 {
   RCLCPP_INFO(get_logger(), "********************************");
   RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
@@ -187,18 +188,6 @@ void ZedCamera::initServices()
 
   std::string srv_name;
 
-  /*std::string srv_name;
-std::string srv_prefix = get_namespace();
-
-if (srv_prefix.length() > 1) {
-    srv_prefix += "/";
-}
-
-if ('/' != srv_prefix.at(0)) {
-    srv_prefix = '/'  + srv_prefix;
-}
-
-srv_prefix += get_name();*/
   std::string srv_prefix = "~/";
 
   if (!mDepthDisabled) {
@@ -1023,6 +1012,14 @@ void ZedCamera::getPosTrackingParams()
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Broadcast Static IMU TF [not for ZED]: " << (mPublishImuTF ? "TRUE" : "FALSE"));
+  }
+
+  getParam("pos_tracking.gps_fusion", mGpsFusionEnabled, mGpsFusionEnabled);
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * GPS fusion enabled: " << (mGpsFusionEnabled ? "TRUE" : "FALSE"));
+
+  if (mGpsFusionEnabled) {
+    getParam("pos_tracking.gps_fix_topic", mGpsTopic, mGpsTopic, " * GPS topic name: ");
   }
 
   getParam(
@@ -2340,9 +2337,12 @@ void ZedCamera::initPublishers()
     // <---- Camera/imu transform message
   }
   // <---- Sensors
+}
 
-  // ----> Subscribers
-  // Subscribers
+void ZedCamera::initSubscribers()
+{
+  RCLCPP_INFO(get_logger(), "*** Subscribers ***");
+  // ----> Clicked Point Subscriber
   /* From `$ ros2 topic info /clicked_point -v`
       QoS profile:
           Reliability: RMW_QOS_POLICY_RELIABILITY_RELIABLE
@@ -2358,10 +2358,35 @@ void ZedCamera::initPublishers()
     mClickedPtSub = create_subscription<geometry_msgs::msg::PointStamped>(
       mClickedPtTopic, mClickedPtQos, std::bind(&ZedCamera::callback_clickedPoint, this, _1));
 
-    RCLCPP_INFO(get_logger(), "*** Plane Detection **");
-    RCLCPP_INFO_STREAM(get_logger(), " * Subscribed to topic " << mClickedPtTopic.c_str());
+
+    RCLCPP_INFO_STREAM(get_logger(), " * Plane detection: '" << mClickedPtTopic.c_str() << "'");
   }
-  // <---- Subscribers
+  // <---- Clicked Point Subscriber
+
+  // ----> GPS Fix Subscriber
+  /* From `$ ros2 topic info /fix -v`
+    QoS profile:
+        Reliability: RELIABLE
+        History (Depth): KEEP_LAST (10)
+        Durability: VOLATILE
+        Lifespan: Infinite
+        Deadline: Infinite
+        Liveliness: AUTOMATIC
+        Liveliness lease duration: Infinite
+  */
+  if (mGpsFusionEnabled) {
+    mGpsMsgReceived = false;
+    mGpsFixNew = false;
+    mGpsFixReceived = false;
+
+    mGpsFixQos.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
+    mGpsFixQos.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+    mGpsFixSub = create_subscription<sensor_msgs::msg::NavSatFix>(
+      mGpsTopic, mGpsFixQos, std::bind(&ZedCamera::callback_gpsFix, this, _1));
+
+    RCLCPP_INFO_STREAM(get_logger(), " * Gps Fix: '" << mGpsTopic.c_str() << "'");
+  }
+  // <---- GPS Fix Subscriber
 }
 
 bool ZedCamera::startCamera()
@@ -2703,6 +2728,7 @@ bool ZedCamera::startCamera()
 
   initPublishers();  // Requires mZedRealCamModel available only after camera
                      // opening
+  initSubscribers();
 
   // Disable AEC_AGC and Auto Whitebalance to trigger it if user set it to
   // automatic
@@ -2736,6 +2762,7 @@ bool ZedCamera::startCamera()
   mPubOdomTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
   mPubPoseTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
   mPubImuTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
+  mGpsFix_sec = std::make_unique<sl_tools::WinAvg>(10);
   // <---- Initialize Diagnostic statistics
 
   // ----> Start Pointcloud thread
@@ -5777,25 +5804,7 @@ void ZedCamera::callback_resetPosTracking(
     return;
   }
 
-  /*if (!setPose(mInitialBasePose[0],
-          mInitialBasePose[1],
-          mInitialBasePose[2],
-          mInitialBasePose[3],
-          mInitialBasePose[4],
-          mInitialBasePose[5])) {
-      res->message = "Error setting initial pose";
-      RCLCPP_WARN(get_logger(), "Error setting initial pose");
-      res->success = false;
-      return;
-  }*/
-
   std::lock_guard<std::mutex> lock(mPosTrkMutex);
-
-  // mInitOdomWithPose = true;
-
-  // Disable tracking
-  // mPosTrackingStarted = false;
-  // mZed.disablePositionalTracking();
 
   // Restart tracking
   startPosTracking();
@@ -5812,6 +5821,14 @@ void ZedCamera::callback_setPose(
   (void)request_header;
 
   RCLCPP_INFO(get_logger(), "** Set Pose service called **");
+
+  if (!mGpsFusionEnabled) {
+    RCLCPP_WARN(get_logger(), "Service call not valid: GPS fusion is enabled.");
+    res->message = "GPS fusion is enabled";
+    res->success = false;
+    return;
+  }
+
   RCLCPP_INFO_STREAM(
     get_logger(), "New pose: [" << req->pos[0] << "," << req->pos[1] << "," << req->pos[2] << ", "
                                 << req->orient[0] << "," << req->orient[1] << "," << req->orient[2]
@@ -5833,24 +5850,6 @@ void ZedCamera::callback_setPose(
   mInitialBasePose[3] = req->orient[0];
   mInitialBasePose[4] = req->orient[1];
   mInitialBasePose[5] = req->orient[2];
-
-  /*if (!setPose(mInitialBasePose[0],
-          mInitialBasePose[1],
-          mInitialBasePose[2],
-          mInitialBasePose[3],
-          mInitialBasePose[4],
-          mInitialBasePose[5])) {
-      res->message = "Error setting initial pose";
-      RCLCPP_WARN(get_logger(), "Error setting initial pose");
-      res->success = false;
-      return;
-  }*/
-
-  // std::lock_guard<std::mutex> lock(mPosTrkMutex);
-
-  // Disable tracking
-  // mPosTrackingStarted = false;
-  // mZed.disablePositionalTracking();
 
   // Restart tracking
   startPosTracking();
@@ -6177,6 +6176,20 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
         }
       }
 
+      if (mGpsFusionEnabled) {
+        double freq = 1. / mGpsFix_sec->getAvg();
+        if (mGpsFixValid) {
+          stat.add("GNSS Fix", "VALID");
+        } else {
+          stat.add("GNSS Fix", "NOT VALID");
+        }
+
+        stat.addf("GNSS Service", "%s", mGpsService.c_str());
+        stat.addf("GNSS Topic", "Mean Frequency: %.1f Hz", freq);
+      } else {
+        stat.add("GNSS Fusion", "DISABLED");
+      }
+
       if (mPosTrackingStarted) {
         stat.addf("Tracking status", "%s", sl::toString(mPosTrackingStatus).c_str());
 
@@ -6281,6 +6294,85 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
   } else {
     stat.add("SVO Recording", "NOT ACTIVE");
   }
+}
+
+void ZedCamera::callback_gpsFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
+{
+  // ----> GPS Fix stats
+  static sl_tools::StopWatch gpsFixFreqTimer;
+
+  double elapsed_sec = gpsFixFreqTimer.toc();
+  mGpsFix_sec->addValue(elapsed_sec);
+  gpsFixFreqTimer.tic();
+  // <---- GPS Fix stats
+
+  mGpsMsgReceived = true;
+
+  RCLCPP_INFO_ONCE(get_logger(), "GNSS Fix: received the first message. A GNSS Sender is active.");
+  switch (msg->status.service) {
+    case sensor_msgs::msg::NavSatStatus::SERVICE_GPS:
+      mGpsService = "GPS";
+      break;
+    case sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS:
+      mGpsService = "GLONASS";
+      break;
+    case sensor_msgs::msg::NavSatStatus::SERVICE_COMPASS:
+      mGpsService = "COMPASS";
+      break;
+    case sensor_msgs::msg::NavSatStatus::SERVICE_GALILEO:
+      mGpsService = "GALILEO";
+      break;
+  }
+
+  RCLCPP_INFO_STREAM_ONCE(get_logger(), " * GNSS Service: " << mGpsService.c_str());
+
+  if (msg->status.status == sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX) {
+    RCLCPP_DEBUG(
+      get_logger(),
+      "callback_gpsFix: fix not valid");
+    mGpsFixValid = false;
+    return;
+  }
+
+  RCLCPP_INFO_ONCE(
+    get_logger(), "GNSS Fix: Received the first valid pose fix. The GNSS sensor is linked.");
+
+  double altit = msg->altitude;
+  double latit = msg->latitude;
+  double longit = msg->longitude;
+
+  RCLCPP_INFO_STREAM_ONCE(
+    get_logger(), "Lat: " << latit << "° - Long: " << longit << "° - Alt: " << altit << " m");
+
+  std::lock_guard<std::mutex> lock(mGpsDataMutex);
+  mLatestGpsFix.altitude = altit;
+  mLatestGpsFix.latitude = latit;
+  mLatestGpsFix.longitude = longit;
+
+  // ----> Check timestamp
+  static uint64_t last_ts_gps = 0;
+  uint64_t current_ts_gps = msg->header.stamp.sec * 1000000;
+  uint64_t current_tns_gps = msg->header.stamp.nanosec / float(1000);
+  uint64_t current_tms_gps = current_ts_gps + current_tns_gps;
+
+  if (current_ts_gps == last_ts_gps) {
+    RCLCPP_DEBUG(
+      get_logger(),
+      "callback_gpsFix: fix not valid (timestamp not incremented)");
+    mGpsFixValid = false;
+    return;
+  }
+  last_ts_gps = current_tms_gps;
+  // <---- Check timestamp
+
+  // TODO(Walter) Handle the covariance
+  // if (msg->position_covariance_type ==) {
+
+  // }
+
+  mGpsFixValid = true;
+  mGpsFixNew = true;
+  mGpsFixReceived = true;
 }
 
 void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::SharedPtr msg)

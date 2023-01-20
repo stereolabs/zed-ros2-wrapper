@@ -6395,8 +6395,13 @@ void ZedCamera::callback_gpsFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg
   //       "sensor_msgs/TimeReference message", e.g. `/time_reference`
   static uint64_t last_ts_gps = 0;
   uint64_t current_ts_gps = static_cast<uint64_t>(msg->header.stamp.sec) * 1000000;
-  uint64_t current_tns_gps = static_cast<uint64_t>(msg->header.stamp.nanosec) / float(1000);
+  uint64_t current_tns_gps = static_cast<uint64_t>(msg->header.stamp.nanosec) / 1000;
   uint64_t current_tms_gps = current_ts_gps + current_tns_gps;
+
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    "GPS Timestamp: " << current_ts_gps / 1000000 << " sec / " << current_tns_gps << " usec / " << current_tms_gps <<
+      " usec fused");
 
 
   if (current_ts_gps == last_ts_gps) {
@@ -6423,8 +6428,8 @@ void ZedCamera::callback_gpsFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg
 
   if (msg->position_covariance_type != sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN) {
     // TODO(Walter) Handle the new covariance mode in the SDK
-    gnssData.latitude_std = msg->position_covariance[0];
-    gnssData.longitude_std = msg->position_covariance[4];
+    gnssData.latitude_std = msg->position_covariance[0] * DEG2RAD;
+    gnssData.longitude_std = msg->position_covariance[4] * DEG2RAD;
     gnssData.altitude_std = msg->position_covariance[8];
 
     gnssData.ecef_position_std = msg->position_covariance[0];
@@ -6446,7 +6451,7 @@ void ZedCamera::callback_gpsFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg
   if (mZed.isOpened() && mZed.isPositionalTrackingEnabled()) {
     RCLCPP_INFO_STREAM(
       get_logger(),
-      "Prior updated - [" << static_cast<int>(current_tms_gps) << "] " << latit << "°," << longit << "° / " << altit <<
+      "Prior updated - [" << gnssData.ts.getMicroseconds() << "] " << latit << "°," << longit << "° / " << altit <<
         " m");
     mZed.setGNSSPrior(gnssData);
   }

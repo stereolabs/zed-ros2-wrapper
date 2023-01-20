@@ -183,6 +183,7 @@ protected:
   void callback_pubFusedPc();
   void callback_pubPaths();
   void callback_pubTemp();
+  void callback_gpsPubTimerTimeout();
   rcl_interfaces::msg::SetParametersResult callback_paramChange(
     std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper & stat);
@@ -591,6 +592,7 @@ private:
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
   rclcpp::TimerBase::SharedPtr mTempPubTimer;  // Timer to retrieve and publish CMOS temperatures
+  rclcpp::TimerBase::SharedPtr mGpsPubCheckTimer;
   // <---- Threads and Timers
 
   // ----> Thread Sync
@@ -602,7 +604,7 @@ private:
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
   std::mutex mObjDetMutex;
-  std::mutex mGpsDataMutex;
+  //std::mutex mGpsDataMutex;
   std::condition_variable mVideoDepthDataReadyCondVar;
   std::condition_variable mPcDataReadyCondVar;
   std::atomic_bool mPcDataReady;
@@ -626,10 +628,9 @@ private:
   bool mObjDetRunning = false;
   bool mRgbSubscribed = false;
   bool mGpsMsgReceived = false; // Indicates if a NavSatFix topic has been received, also with invalid position fix
-  bool mGpsFixReceived = false; // Indicates if at least a NavSatFix topic has been received with a valid position fix
-  bool mGpsFixValid = false; // Indicates if the NavSatFix topic has been received with a valid position fix
+  bool mGpsFixValid = false; // Used to keep track of signal loss
   std::string mGpsService = "";
-  std::atomic_bool mGpsFixNew; // Indicates if the the GPS fix has been already fused into SDK pose
+  //std::atomic_bool mGpsFixNew; // Used to ingest only new GPS data into the SDK
   // <---- Status Flags
 
   // ----> Positional Tracking
@@ -637,7 +638,7 @@ private:
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
   std::vector<geometry_msgs::msg::PoseStamped> mMapPath;
-  sl::GNSSData mLatestGpsFix;
+  //sl::GNSSData mLatestGpsFix;
   // <---- Positional Tracking
 
   // Diagnostic

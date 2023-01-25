@@ -4897,6 +4897,9 @@ void ZedCamera::processPose()
     return;
   }
 
+  // TODO(Walter) Use two different pose publisher for sl::REFERENCE_FRAME::WORLD
+  // and sl::REFERENCE_FRAME::GNSS?
+
   static sl::POSITIONAL_TRACKING_STATE oldStatus;
   if (mGpsFusionEnabled) {
     mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::GNSS);

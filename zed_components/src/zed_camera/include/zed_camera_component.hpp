@@ -91,7 +91,7 @@ typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PlaneStamped>> pl
 typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>> markerPub;
 
 typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> clickedPtSub;
-typedef std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>> gpsFixSub;
+typedef std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>> gnssFixSub;
 
 typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
@@ -183,7 +183,7 @@ protected:
   void callback_pubFusedPc();
   void callback_pubPaths();
   void callback_pubTemp();
-  void callback_gpsPubTimerTimeout();
+  void callback_gnssPubTimerTimeout();
   rcl_interfaces::msg::SetParametersResult callback_paramChange(
     std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper & stat);
@@ -221,7 +221,7 @@ protected:
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_clickedPoint(const geometry_msgs::msg::PointStamped::SharedPtr msg);
-  void callback_gpsFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
+  void callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
   void callback_setRoi(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_interfaces::srv::SetROI_Request> req,
@@ -351,8 +351,8 @@ private:
   double mSensPubRate = 400.;
   bool mUseOldExtrinsic = false;
   bool mPosTrackingEnabled = false;
-  bool mGpsFusionEnabled = false;
-  std::string mGpsTopic = "/fix";
+  bool mGnssFusionEnabled = false;
+  std::string mGnssTopic = "/fix";
   bool mPublishTF = true;
   bool mPublishMapTF = true;
   bool mPublishImuTF = true;
@@ -400,7 +400,7 @@ private:
   rclcpp::QoS mMappingQos;
   rclcpp::QoS mObjDetQos;
   rclcpp::QoS mClickedPtQos;
-  rclcpp::QoS mGpsFixQos;
+  rclcpp::QoS mGnssFixQos;
   // <---- Parameter variables
 
   // ----> Dynamic params
@@ -578,7 +578,7 @@ private:
 
   // ----> Subscribers
   clickedPtSub mClickedPtSub;
-  gpsFixSub mGpsFixSub;
+  gnssFixSub mGnssFixSub;
   // <---- Subscribers
 
   // ----> Threads and Timers
@@ -592,7 +592,7 @@ private:
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
   rclcpp::TimerBase::SharedPtr mTempPubTimer;  // Timer to retrieve and publish CMOS temperatures
-  rclcpp::TimerBase::SharedPtr mGpsPubCheckTimer;
+  rclcpp::TimerBase::SharedPtr mGnssPubCheckTimer;
   // <---- Threads and Timers
 
   // ----> Thread Sync
@@ -604,7 +604,6 @@ private:
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
   std::mutex mObjDetMutex;
-  //std::mutex mGpsDataMutex;
   std::condition_variable mVideoDepthDataReadyCondVar;
   std::condition_variable mPcDataReadyCondVar;
   std::atomic_bool mPcDataReady;
@@ -627,10 +626,9 @@ private:
   bool mMappingRunning = false;
   bool mObjDetRunning = false;
   bool mRgbSubscribed = false;
-  bool mGpsMsgReceived = false; // Indicates if a NavSatFix topic has been received, also with invalid position fix
-  bool mGpsFixValid = false; // Used to keep track of signal loss
-  std::string mGpsService = "";
-  //std::atomic_bool mGpsFixNew; // Used to ingest only new GPS data into the SDK
+  bool mGnssMsgReceived = false; // Indicates if a NavSatFix topic has been received, also with invalid position fix
+  bool mGnssFixValid = false; // Used to keep track of signal loss
+  std::string mGnssService = "";
   // <---- Status Flags
 
   // ----> Positional Tracking
@@ -638,7 +636,6 @@ private:
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
   std::vector<geometry_msgs::msg::PoseStamped> mMapPath;
-  //sl::GNSSData mLatestGpsFix;
   // <---- Positional Tracking
 
   // Diagnostic
@@ -659,7 +656,7 @@ private:
   std::unique_ptr<sl_tools::WinAvg> mPubOdomTF_sec;
   std::unique_ptr<sl_tools::WinAvg> mPubPoseTF_sec;
   std::unique_ptr<sl_tools::WinAvg> mPubImuTF_sec;
-  std::unique_ptr<sl_tools::WinAvg> mGpsFix_sec;
+  std::unique_ptr<sl_tools::WinAvg> mGnssFix_sec;
   bool mImuPublishing = false;
   bool mMagPublishing = false;
   bool mBaroPublishing = false;

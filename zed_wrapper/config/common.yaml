@@ -59,8 +59,8 @@
 
         pos_tracking:
             pos_tracking_enabled: true # True to enable positional tracking from start
-            gps_fusion: true # fuse 'sensor_msg/NavSatFix' message information to pose data
-            gps_fix_topic: "/fix" # Name of the GPS topic to subscribe [Default: "/fix"]
+            gnss_fusion: true # fuse 'sensor_msg/NavSatFix' message information to pose data
+            gnss_fix_topic: "/fix" # Name of the GNSS topic of type NavSatFix to subscribe [Default: "/fix"]
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [usually overwritten by launch file] publish `odom -> base_link` TF
             publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF

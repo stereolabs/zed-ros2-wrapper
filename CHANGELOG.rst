@@ -3,11 +3,11 @@ LATEST CHANGES
 
 2023-01-19
 ----------
-- GPS fusion integration
-  - New param `pos_tracking.gps_fusion` to enable GPS fusion
-  - New param `pos_tracking.gps_fix_topic` name of the topic containing GPS Fix data of type `sensor_msgs/NavSatFix`
+- GNSS fusion integration
+  - New param `pos_tracking.gnss_fusion` to enable GNSS fusion
+  - New param `pos_tracking.gnss_fix_topic` name of the topic containing GNSS Fix data of type `sensor_msgs/NavSatFix`
   - Add `nmea_msgs` dependency
-  - Add GPS Fix Diagnostic
+  - Add GNSS Fix Diagnostic
 
 2023-01-16
 ----------

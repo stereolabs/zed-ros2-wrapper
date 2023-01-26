@@ -381,7 +381,7 @@ private:
   float mTerrainMaxSlope = 20.0f;  // Max slope in degree
   float mTerrainMaxRoughness = 0.3;  // Max Terrain roughness (for future usage)
   float mRobotRadius = 0.4;  // Radius of the robot
-  float mRobotHeight = 0.5;  // Height of the robot
+  float mRobotHeight = 1.0;  // Height of the robot
   bool mObjDetEnabled = false;
   bool mObjDetTracking = true;
   float mObjDetConfidence = 40.0f;
@@ -545,6 +545,11 @@ private:
   depthInfoPub mPubDepthInfo;
   planePub mPubPlane;
   markerPub mPubMarker;
+
+  imagePub mPubElevMapImg;
+  imagePub mPubColMapImg;
+  imagePub mPubOccMapImg;
+  imagePub mPubTravMapImg;
   // <---- Publishers
 
   // <---- Publisher variables

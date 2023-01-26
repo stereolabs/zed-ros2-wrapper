@@ -2339,6 +2339,35 @@ void ZedCamera::initPublishers()
   }
   // <---- Mapping
 
+  // ----> Terrain Mapping
+  std::string loc_map_prefix = "local_map/";
+  std::string loc_map_data;
+
+  loc_map_data = "elev_img";
+  mPubElevMapImg = create_publisher<sensor_msgs::msg::Image>(
+    loc_map_prefix + loc_map_data,
+    mMappingQos);
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubElevMapImg->get_topic_name());
+
+  loc_map_data = "col_img";
+  mPubColMapImg = create_publisher<sensor_msgs::msg::Image>(
+    loc_map_prefix + loc_map_data,
+    mMappingQos);
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubColMapImg->get_topic_name());
+
+  loc_map_data = "occ_img";
+  mPubOccMapImg = create_publisher<sensor_msgs::msg::Image>(
+    loc_map_prefix + loc_map_data,
+    mMappingQos);
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubOccMapImg->get_topic_name());
+
+  loc_map_data = "trav_img";
+  mPubTravMapImg = create_publisher<sensor_msgs::msg::Image>(
+    loc_map_prefix + loc_map_data,
+    mMappingQos);
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubTravMapImg->get_topic_name());
+  // <---- Terrain Mapping
+
   // ----> Sensors
   if (mCamRealModel != sl::MODEL::ZED) {
     mPubImu = create_publisher<sensor_msgs::msg::Imu>(imu_topic, mSensQos);
@@ -5802,10 +5831,20 @@ bool ZedCamera::publishLocalMap()
     return false;
   }
 
+  static rclcpp::Time timeStamp;
+  if (!mSvoMode) {
+    timeStamp = sl_tools::slTime2Ros(mGrabTS, get_clock()->get_clock_type());
+  } else {
+    // timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT),
+    // get_clock()->get_clock_type());
+    timeStamp = mFrameTimestamp;
+  }
+
   sl::ERROR_CODE err;
 
   sl::Terrain sl_map;
   err = mZed.retrieveTerrain(sl_map);
+
   if (err != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -5813,51 +5852,63 @@ bool ZedCamera::publishLocalMap()
     return false;
   }
 
-  // TODO(Walter) Count subscribers
+  // TODO(Walter) Count subscribers for maps
 
-  sl::Mat trav_map;
-  err =
-    sl_map.generateTerrainMap(trav_map, sl::MAT_TYPE::U8_C4, sl::LayerName::TRAVERSABILITY_COST);
-  if (err == sl::ERROR_CODE::SUCCESS && trav_map.isInit()) {
-    // TODO(Walter) publish the map as a GridMap
-    RCLCPP_INFO(get_logger(), "Terrain mapping: TRAVERSABILITY_COST map OK");
-  } else {
-    RCLCPP_WARN_STREAM(
-      get_logger(), "Terrain mapping generate TRAVERSABILITY_COST layer error: " << sl::toString(
-        err).c_str());
+  if (mPubTravMapImg->get_subscription_count() > 0) {
+    sl::Mat trav_map;
+    err =
+      sl_map.generateTerrainMap(trav_map, sl::MAT_TYPE::U8_C4, sl::LayerName::TRAVERSABILITY_COST);
+    if (err == sl::ERROR_CODE::SUCCESS && trav_map.isInit()) {
+      // TODO(Walter) publish the map as a GridMap
+      RCLCPP_INFO(get_logger(), "Terrain mapping: TRAVERSABILITY_COST map OK");
+      mPubTravMapImg->publish(*sl_tools::imageToROSmsg(trav_map, mDepthFrameId, timeStamp));
+    } else {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Terrain mapping generate TRAVERSABILITY_COST layer error: " << sl::toString(
+          err).c_str());
+    }
   }
 
-  sl::Mat occ_map;
-  err = sl_map.generateTerrainMap(occ_map, sl::MAT_TYPE::U8_C4, sl::LayerName::OCCUPANCY);
-  if (err == sl::ERROR_CODE::SUCCESS && occ_map.isInit()) {
-    // TODO(Walter) publish the map as a GridMap
-    RCLCPP_INFO(get_logger(), "Terrain mapping: OCCUPANCY map OK");
-  } else {
-    RCLCPP_WARN_STREAM(
-      get_logger(), "Terrain mapping generate OCCUPANCY layer error: " << sl::toString(
-        err).c_str());
+  if (mPubOccMapImg->get_subscription_count() > 0) {
+    sl::Mat occ_map;
+    err = sl_map.generateTerrainMap(occ_map, sl::MAT_TYPE::U8_C4, sl::LayerName::OCCUPANCY);
+    if (err == sl::ERROR_CODE::SUCCESS && occ_map.isInit()) {
+      // TODO(Walter) publish the map as a GridMap
+      RCLCPP_INFO(get_logger(), "Terrain mapping: OCCUPANCY map OK");
+      mPubOccMapImg->publish(*sl_tools::imageToROSmsg(occ_map, mDepthFrameId, timeStamp));
+    } else {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Terrain mapping generate OCCUPANCY layer error: " << sl::toString(
+          err).c_str());
+    }
   }
 
-  sl::Mat color_map;
-  err = sl_map.generateTerrainMap(color_map, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
-  if (err == sl::ERROR_CODE::SUCCESS && color_map.isInit()) {
-    // TODO(Walter) publish the map as a GridMap
-    RCLCPP_INFO(get_logger(), "Terrain mapping: COLOR map OK");
-  } else {
-    RCLCPP_WARN_STREAM(
-      get_logger(), "Terrain mapping generate COLOR layer error: " << sl::toString(
-        err).c_str());
+  if (mPubColMapImg->get_subscription_count() > 0) {
+    sl::Mat color_map;
+    err = sl_map.generateTerrainMap(color_map, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
+    if (err == sl::ERROR_CODE::SUCCESS && color_map.isInit()) {
+      // TODO(Walter) publish the map as a GridMap
+      RCLCPP_INFO(get_logger(), "Terrain mapping: COLOR map OK");
+      mPubColMapImg->publish(*sl_tools::imageToROSmsg(color_map, mDepthFrameId, timeStamp));
+    } else {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Terrain mapping generate COLOR layer error: " << sl::toString(
+          err).c_str());
+    }
   }
 
-  sl::Mat elev_map;
-  err = sl_map.generateTerrainMap(elev_map, sl::MAT_TYPE::U8_C4, sl::LayerName::ELEVATION);
-  if (err == sl::ERROR_CODE::SUCCESS && elev_map.isInit()) {
-    // TODO(Walter) publish the map as a GridMap
-    RCLCPP_INFO(get_logger(), "Terrain mapping: ELEVATION map OK");
-  } else {
-    RCLCPP_WARN_STREAM(
-      get_logger(), "Terrain mapping generate ELEVATION layer error: " << sl::toString(
-        err).c_str());
+  if (mPubElevMapImg->get_subscription_count() > 0) {
+    sl::Mat elev_map;
+    err = sl_map.generateTerrainMap(elev_map, sl::MAT_TYPE::U8_C4, sl::LayerName::ELEVATION);
+    if (err == sl::ERROR_CODE::SUCCESS && elev_map.isInit()) {
+      // TODO(Walter) publish the map as a GridMap
+      RCLCPP_INFO(get_logger(), "Terrain mapping: ELEVATION map OK");
+      mPubElevMapImg->publish(*sl_tools::imageToROSmsg(elev_map, mDepthFrameId, timeStamp));
+    } else {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Terrain mapping generate ELEVATION layer error: " << sl::toString(
+          err).c_str());
+    }
   }
 
   return true;

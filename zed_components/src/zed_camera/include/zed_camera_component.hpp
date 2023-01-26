@@ -248,6 +248,7 @@ protected:
   void publishVideoDepth(rclcpp::Time & out_pub_ts);
   void publishPointCloud();
   void publishImuFrameAndTopic();
+  bool publishLocalMap();
 
   void publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t);
   void publishPose();
@@ -628,7 +629,7 @@ private:
   bool mPosTrackingReady = false;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
   bool mResetOdom = false;
-  bool mMappingRunning = false;
+  bool mSpatialMappingRunning = false;
   bool mTerrainMappingRunning = false;
   bool mObjDetRunning = false;
   bool mRgbSubscribed = false;

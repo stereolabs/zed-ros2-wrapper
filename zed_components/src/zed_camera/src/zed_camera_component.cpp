@@ -114,7 +114,7 @@ ZedCamera::~ZedCamera()
     stopObjDetect();
   }
 
-  if (mMappingRunning) {
+  if (mSpatialMappingRunning) {
     std::lock_guard<std::mutex> lock(mMappingMutex);
     stop3dMapping();
   }
@@ -1020,7 +1020,7 @@ void ZedCamera::getTerrainMappingParams()
     get_logger(), " * Terrain Mapping Enabled: " << (mTerrainMappingEnabled ? "TRUE" : "FALSE"));
 
   getParam(
-    "mapping.max_mapping_range", mMappingRangeMax, mMappingRangeMax,
+    "local_mapping.max_mapping_range", mTerrainMappingRange, mTerrainMappingRange,
     " * Terrain Mapping range [m]: ");
 
 
@@ -3040,7 +3040,7 @@ bool ZedCamera::start3dMapping()
                                              << mFusedPcPubRate << " Hz");
     }
 
-    mMappingRunning = true;
+    mSpatialMappingRunning = true;
 
     startFusedPcTimer(mFusedPcPubRate);
 
@@ -3051,7 +3051,7 @@ bool ZedCamera::start3dMapping()
 
     return true;
   } else {
-    mMappingRunning = false;
+    mSpatialMappingRunning = false;
     if (mFusedPcTimer) {
       mFusedPcTimer->cancel();
     }
@@ -3067,7 +3067,7 @@ void ZedCamera::stop3dMapping()
   if (mFusedPcTimer) {
     mFusedPcTimer->cancel();
   }
-  mMappingRunning = false;
+  mSpatialMappingRunning = false;
   mMappingEnabled = false;
   mZed.disableSpatialMapping();
 
@@ -3085,6 +3085,8 @@ bool ZedCamera::startTerrainMapping()
   if (!mTerrainMappingEnabled) {
     return false;
   }
+
+  RCLCPP_INFO_STREAM(get_logger(), "*** Starting Terrain Mapping ***");
 
   sl::TerrainMappingParameters params;
 
@@ -3109,7 +3111,7 @@ bool ZedCamera::startTerrainMapping()
   }
 
   mTerrainMappingRunning = true;
-  startTerrainMappingTimer(mTerrainMapPubFreq);
+  //startTerrainMappingTimer(mTerrainMapPubFreq);
   return true;
 }
 
@@ -3120,6 +3122,8 @@ void ZedCamera::stopTerrainMapping()
   }
   mTerrainMappingRunning = false;
   mTerrainMappingEnabled = false;
+
+  mZed.disableTerrainMapping();
 
   RCLCPP_INFO(get_logger(), "*** Spatial Mapping stopped ***");
 }
@@ -3629,7 +3633,7 @@ void ZedCamera::threadFunc_zedGrab()
     // ----> Check for Spatial Mapping requirement
     if (!mDepthDisabled) {
       mMappingMutex.lock();
-      if ((mMappingEnabled || mTerrainMappingEnabled) && !mMappingRunning) {
+      if ((mMappingEnabled || mTerrainMappingEnabled) && !mSpatialMappingRunning) {
         start3dMapping();
       }
       mMappingMutex.unlock();
@@ -3639,7 +3643,7 @@ void ZedCamera::threadFunc_zedGrab()
     // ----> Check for Terrain Mapping requirement
     if (!mDepthDisabled) {
       mTerrainMappingMutex.lock();
-      if (mTerrainMappingEnabled && !mTerrainMappingRunning) {
+      if (mSpatialMappingRunning && mTerrainMappingEnabled && !mTerrainMappingRunning) {
         startTerrainMapping();
       }
       mTerrainMappingMutex.unlock();
@@ -3760,6 +3764,12 @@ void ZedCamera::threadFunc_zedGrab()
           // RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_zedGrab");
           publishTFs(mFrameTimestamp);
         }
+      }
+    }
+
+    if (!mDepthDisabled) {
+      if (mTerrainMappingRunning) {
+        publishLocalMap();
       }
     }
 
@@ -5775,13 +5785,89 @@ void ZedCamera::callback_pubFusedPc()
   mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
 }
 
+bool ZedCamera::publishLocalMap()
+{
+  static rclcpp::Time prev_ts = TIMEZERO_ROS;
+
+  if (!mZed.isOpened()) {
+    return false;
+  }
+
+  if (!mSpatialMappingRunning || !mTerrainMappingRunning) {
+    return false;
+  }
+
+  if (mPosTrackingStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
+    RCLCPP_INFO(get_logger(), "Terrain mapping: positional tracking not ready");
+    return false;
+  }
+
+  sl::ERROR_CODE err;
+
+  sl::Terrain sl_map;
+  err = mZed.retrieveTerrain(sl_map);
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Terrain mapping retrieve error: " << sl::toString(err).c_str());
+    return false;
+  }
+
+  // TODO(Walter) Count subscribers
+
+  sl::Mat trav_map;
+  err =
+    sl_map.generateTerrainMap(trav_map, sl::MAT_TYPE::U8_C4, sl::LayerName::TRAVERSABILITY_COST);
+  if (err == sl::ERROR_CODE::SUCCESS && trav_map.isInit()) {
+    // TODO(Walter) publish the map as a GridMap
+    RCLCPP_INFO(get_logger(), "Terrain mapping: TRAVERSABILITY_COST map OK");
+  } else {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Terrain mapping generate TRAVERSABILITY_COST layer error: " << sl::toString(
+        err).c_str());
+  }
+
+  sl::Mat occ_map;
+  err = sl_map.generateTerrainMap(occ_map, sl::MAT_TYPE::U8_C4, sl::LayerName::OCCUPANCY);
+  if (err == sl::ERROR_CODE::SUCCESS && occ_map.isInit()) {
+    // TODO(Walter) publish the map as a GridMap
+    RCLCPP_INFO(get_logger(), "Terrain mapping: OCCUPANCY map OK");
+  } else {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Terrain mapping generate OCCUPANCY layer error: " << sl::toString(
+        err).c_str());
+  }
+
+  sl::Mat color_map;
+  err = sl_map.generateTerrainMap(color_map, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
+  if (err == sl::ERROR_CODE::SUCCESS && color_map.isInit()) {
+    // TODO(Walter) publish the map as a GridMap
+    RCLCPP_INFO(get_logger(), "Terrain mapping: COLOR map OK");
+  } else {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Terrain mapping generate COLOR layer error: " << sl::toString(
+        err).c_str());
+  }
+
+  sl::Mat elev_map;
+  err = sl_map.generateTerrainMap(elev_map, sl::MAT_TYPE::U8_C4, sl::LayerName::ELEVATION);
+  if (err == sl::ERROR_CODE::SUCCESS && elev_map.isInit()) {
+    // TODO(Walter) publish the map as a GridMap
+    RCLCPP_INFO(get_logger(), "Terrain mapping: ELEVATION map OK");
+  } else {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Terrain mapping generate ELEVATION layer error: " << sl::toString(
+        err).c_str());
+  }
+
+  return true;
+}
+
 void ZedCamera::callback_pubLocalMap()
 {
   RCLCPP_DEBUG_ONCE(get_logger(), "Terrain Mapping callback called");
 
-  static rclcpp::Time prev_ts = TIMEZERO_ROS;
-
-
+  publishLocalMap();
 }
 
 void ZedCamera::callback_pubPaths()
@@ -6047,7 +6133,7 @@ void ZedCamera::callback_enableMapping(
   if (req->data) {
     RCLCPP_INFO(get_logger(), "Starting Spatial Mapping");
     // Start
-    if (mMappingEnabled && mMappingRunning) {
+    if (mMappingEnabled && mSpatialMappingRunning) {
       RCLCPP_WARN(get_logger(), "Spatial Mapping is just running");
       res->message = "Spatial Mapping is just running";
       res->success = false;
@@ -6068,7 +6154,7 @@ void ZedCamera::callback_enableMapping(
   } else {
     RCLCPP_INFO(get_logger(), "Stopping Spatial Mapping");
     // Stop
-    if (!mMappingEnabled || !mMappingRunning) {
+    if (!mMappingEnabled || !mSpatialMappingRunning) {
       RCLCPP_WARN(get_logger(), "Spatial Mapping was not running");
       res->message = "Spatial Mapping was not running";
       res->success = false;

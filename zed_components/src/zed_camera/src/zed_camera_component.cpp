@@ -132,6 +132,10 @@ ZedCamera::~ZedCamera()
   if (mFusedPcTimer) {
     mFusedPcTimer->cancel();
   }
+  RCLCPP_DEBUG(get_logger(), "Stopping terrain mapping timer");
+  if (mTerrainMapTimer) {
+    mTerrainMapTimer->cancel();
+  }
   RCLCPP_DEBUG(get_logger(), "Stopping temperatures timer");
   if (mTempPubTimer) {
     mTempPubTimer->cancel();
@@ -2822,6 +2826,18 @@ void ZedCamera::startFusedPcTimer(double fusedPcRate)
     std::bind(&ZedCamera::callback_pubFusedPc, this));
 }
 
+void ZedCamera::startTerrainMappingTimer(double mapPubRate)
+{
+  if (mTerrainMapTimer != nullptr) {
+    mTerrainMapTimer->cancel();
+  }
+
+  std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0 / (mapPubRate)));
+  mTerrainMapTimer = create_wall_timer(
+    std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
+    std::bind(&ZedCamera::callback_pubLocalMap, this));
+}
+
 void ZedCamera::startPathPubTimer(double pathTimerRate)
 {
   if (mPathTimer != nullptr) {
@@ -2832,7 +2848,7 @@ void ZedCamera::startPathPubTimer(double pathTimerRate)
     std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0 / (pathTimerRate)));
     mPathTimer = create_wall_timer(
       std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
-      std::bind(&ZedCamera::callback_pubPaths, this));
+      std::bind(&ZedCamera::callback_pubLocalMap, this));
 
     if (mOdomPath.size() == 0 && mMapPath.size() == 0) {
       if (mPathMaxCount != -1) {
@@ -3072,7 +3088,17 @@ bool ZedCamera::startTerrainMapping()
 
   sl::TerrainMappingParameters params;
 
-  sl::ERROR_CODE res = mZed.enableTerrainMapping(params);
+  params.enable_traversability_cost_computation = true;
+  params.robot_centric_mode = false; // -> obsolete, will be removed in the future
+  // params.robot_centric_culling_distance; -> obsolete
+  // params.setHeightThreshold(); -> obsolete
+  params.setGridResolution(sl::UNIT::METER, mTerrainMappingRes);
+  params.setRange(mTerrainMappingRange);
+  params.setAgentParameters(
+    sl::UNIT::METER,
+    mTerrainMaxStep, mTerrainMaxSlope, mRobotRadius, mRobotHeight, mTerrainMaxRoughness);
+
+  sl::ERROR_CODE err = mZed.enableTerrainMapping(params);
 
   if (err != sl::ERROR_CODE::SUCCESS) {
     mTerrainMappingRunning = false;
@@ -3083,11 +3109,15 @@ bool ZedCamera::startTerrainMapping()
   }
 
   mTerrainMappingRunning = true;
+  startTerrainMappingTimer(mTerrainMapPubFreq);
   return true;
 }
 
 void ZedCamera::stopTerrainMapping()
 {
+  if (mTerrainMapTimer) {
+    mTerrainMapTimer->cancel();
+  }
   mTerrainMappingRunning = false;
   mTerrainMappingEnabled = false;
 
@@ -5743,6 +5773,15 @@ void ZedCamera::callback_pubFusedPc()
   // Pointcloud publishing
   RCLCPP_DEBUG_STREAM(get_logger(), "Publishing FUSED POINT CLOUD message");
   mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
+}
+
+void ZedCamera::callback_pubLocalMap()
+{
+  RCLCPP_DEBUG_ONCE(get_logger(), "Terrain Mapping callback called");
+
+  static rclcpp::Time prev_ts = TIMEZERO_ROS;
+
+
 }
 
 void ZedCamera::callback_pubPaths()

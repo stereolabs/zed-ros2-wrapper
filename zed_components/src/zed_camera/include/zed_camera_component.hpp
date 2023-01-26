@@ -180,6 +180,7 @@ protected:
   // ----> Callbacks
   void threadFunc_pubVideoDepth();
   void callback_pubFusedPc();
+  void callback_pubLocalMap();
   void callback_pubPaths();
   void callback_pubTemp();
   rcl_interfaces::msg::SetParametersResult callback_paramChange(
@@ -276,6 +277,7 @@ protected:
 
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
+  void startTerrainMappingTimer(double mapPubRate);
   void startTempPubTimer();
 
   template<typename T>
@@ -371,6 +373,14 @@ private:
   float mMappingRes = 0.05f;
   float mMappingRangeMax = 10.0f;
   bool mTerrainMappingEnabled = false;
+  float mTerrainMapPubFreq = 5.0f;  // Frequency of data publishing
+  float mTerrainMappingRes = 0.05f;  // Terrain mapping resolution
+  float mTerrainMappingRange = 5.0f;  // Terrain mapping range
+  float mTerrainMaxStep = 0.05f;  // Max obstacle height
+  float mTerrainMaxSlope = 20.0f;  // Max slope in degree
+  float mTerrainMaxRoughness = 0.3;  // Max Terrain roughness (for future usage)
+  float mRobotRadius = 0.4;  // Radius of the robot
+  float mRobotHeight = 0.5;  // Height of the robot
   bool mObjDetEnabled = false;
   bool mObjDetTracking = true;
   float mObjDetConfidence = 40.0f;
@@ -585,6 +595,7 @@ private:
   bool mThreadStop = false;
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
+  rclcpp::TimerBase::SharedPtr mTerrainMapTimer;
   rclcpp::TimerBase::SharedPtr mTempPubTimer;  // Timer to retrieve and publish CMOS temperatures
   // <---- Threads and Timers
 

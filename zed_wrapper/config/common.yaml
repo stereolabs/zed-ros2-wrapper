@@ -86,6 +86,7 @@
 
         local_mapping:
             terrain_mapping_enabled: true # True to enable terrain mapping publishing a local obstacle map
+            data_pub_rate: 5.0; # Local Map data publish frequency
             max_mapping_range: 5.0 # maximum depth range for local map generation
             
         mapping:

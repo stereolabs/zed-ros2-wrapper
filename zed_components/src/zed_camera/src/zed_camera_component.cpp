@@ -119,6 +119,11 @@ ZedCamera::~ZedCamera()
     stop3dMapping();
   }
 
+  if (mTerrainMappingRunning) {
+    std::lock_guard<std::mutex> lock(mTerrainMappingMutex);
+    stopTerrainMapping();
+  }
+
   RCLCPP_DEBUG(get_logger(), "Stopping path timer");
   if (mPathTimer) {
     mPathTimer->cancel();
@@ -333,6 +338,12 @@ void ZedCamera::initParameters()
     getMappingParams();
   } else {
     mMappingEnabled = false;
+  }
+
+  if (!mDepthDisabled) {
+    getTerrainMappingParams();
+  } else {
+    mTerrainMappingEnabled = false;
   }
 
   // OD PARAMETERS
@@ -988,6 +999,27 @@ void ZedCamera::getMappingParams()
 
   RCLCPP_INFO(
     get_logger(), " * Sensors QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
+}
+
+void ZedCamera::getTerrainMappingParams()
+{
+  rclcpp::Parameter paramVal;
+  std::string paramName;
+
+  rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
+  read_only_descriptor.read_only = true;
+
+  RCLCPP_INFO(get_logger(), "*** Terrain Mapping parameters ***");
+
+  getParam("local_mapping.terrain_mapping_enabled", mTerrainMappingEnabled, mTerrainMappingEnabled);
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Terrain Mapping Enabled: " << (mTerrainMappingEnabled ? "TRUE" : "FALSE"));
+
+  getParam(
+    "mapping.max_mapping_range", mMappingRangeMax, mMappingRangeMax,
+    " * Terrain Mapping range [m]: ");
+
+
 }
 
 void ZedCamera::getPosTrackingParams()
@@ -2923,7 +2955,7 @@ bool ZedCamera::start3dMapping()
     RCLCPP_WARN(get_logger(), "Cannot start 3D Mapping if `depth.quality` is set to `0` [NONE]");
     return false;
   }
-  if (!mMappingEnabled) {
+  if (!mMappingEnabled && !mTerrainMappingEnabled) {
     return false;
   }
 
@@ -3022,6 +3054,42 @@ void ZedCamera::stop3dMapping()
   mMappingRunning = false;
   mMappingEnabled = false;
   mZed.disableSpatialMapping();
+
+  RCLCPP_INFO(get_logger(), "*** Spatial Mapping stopped ***");
+}
+
+bool ZedCamera::startTerrainMapping()
+{
+  if (mDepthDisabled) {
+    RCLCPP_WARN(
+      get_logger(),
+      "Cannot start Terrain Mapping if `depth.quality` is set to `0` [NONE]");
+    return false;
+  }
+  if (!mTerrainMappingEnabled) {
+    return false;
+  }
+
+  sl::TerrainMappingParameters params;
+
+  sl::ERROR_CODE res = mZed.enableTerrainMapping(params);
+
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    mTerrainMappingRunning = false;
+
+    RCLCPP_WARN(get_logger(), "Terrain Mapping not activated: %s", sl::toString(err).c_str());
+
+    return false;
+  }
+
+  mTerrainMappingRunning = true;
+  return true;
+}
+
+void ZedCamera::stopTerrainMapping()
+{
+  mTerrainMappingRunning = false;
+  mTerrainMappingEnabled = false;
 
   RCLCPP_INFO(get_logger(), "*** Spatial Mapping stopped ***");
 }
@@ -3531,12 +3599,22 @@ void ZedCamera::threadFunc_zedGrab()
     // ----> Check for Spatial Mapping requirement
     if (!mDepthDisabled) {
       mMappingMutex.lock();
-      if (mMappingEnabled && !mMappingRunning) {
+      if ((mMappingEnabled || mTerrainMappingEnabled) && !mMappingRunning) {
         start3dMapping();
       }
       mMappingMutex.unlock();
     }
     // <---- Check for Spatial Mapping requirement
+
+    // ----> Check for Terrain Mapping requirement
+    if (!mDepthDisabled) {
+      mTerrainMappingMutex.lock();
+      if (mTerrainMappingEnabled && !mTerrainMappingRunning) {
+        startTerrainMapping();
+      }
+      mTerrainMappingMutex.unlock();
+    }
+    // <---- Check for Terrain Mapping requirement
 
     // ----> Check for Object Detection requirement
     if (!mDepthDisabled) {

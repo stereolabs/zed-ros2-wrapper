@@ -84,10 +84,14 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
             transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->base_link`` transform being generated
 
+        local_mapping:
+            terrain_mapping_enabled: true # True to enable terrain mapping publishing a local obstacle map
+            max_mapping_range: 5.0 # maximum depth range for local map generation
+            
         mapping:
             mapping_enabled: false # True to enable mapping and fused point cloud pubblication
             resolution: 0.1 # maps resolution in meters [0.01f, 0.2f]
-            max_mapping_range: 20.0 # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
+            max_mapping_range: 10.0 # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
             fused_pointcloud_freq: 0.5 # frequency of the publishing of the fused colored point cloud
             clicked_point_topic: "/clicked_point" # Topic published by Rviz when a point of the cloud is clicked. Used for plane detection
             qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL

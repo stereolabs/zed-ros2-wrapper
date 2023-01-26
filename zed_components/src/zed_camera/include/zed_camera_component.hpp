@@ -155,6 +155,7 @@ protected:
   void getPosTrackingParams();
   void getSensorsParams();
   void getMappingParams();
+  void getTerrainMappingParams();
   void getOdParams();
 
   void setTFCoordFrameNames();
@@ -172,6 +173,8 @@ protected:
   void stopObjDetect();
   bool startSvoRecording(std::string & errMsg);
   void stopSvoRecording();
+  bool startTerrainMapping();
+  void stopTerrainMapping();
   // <---- Initialization functions
 
   // ----> Callbacks
@@ -367,6 +370,7 @@ private:
   bool mMappingEnabled = false;
   float mMappingRes = 0.05f;
   float mMappingRangeMax = 10.0f;
+  bool mTerrainMappingEnabled = false;
   bool mObjDetEnabled = false;
   bool mObjDetTracking = true;
   float mObjDetConfidence = 40.0f;
@@ -592,6 +596,7 @@ private:
   std::mutex mPosTrkMutex;
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
+  std::mutex mTerrainMappingMutex;
   std::mutex mObjDetMutex;
   std::condition_variable mVideoDepthDataReadyCondVar;
   std::condition_variable mPcDataReadyCondVar;
@@ -613,6 +618,7 @@ private:
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
   bool mResetOdom = false;
   bool mMappingRunning = false;
+  bool mTerrainMappingRunning = false;
   bool mObjDetRunning = false;
   bool mRgbSubscribed = false;
   // <---- Status Flags

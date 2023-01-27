@@ -4,6 +4,7 @@ LATEST CHANGES
 2023-01-27
 ----------
 - Added `grid_map_msgs` dependency for Terrain Mapping topics
+- Converted `shared_ptr` to `unique_ptr` for IPC support
 
 2023-01-16
 ----------

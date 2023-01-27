@@ -2364,6 +2364,12 @@ void ZedCamera::initPublishers()
   std::string loc_map_prefix = "local_map/";
   std::string loc_map_data;
 
+  loc_map_data = "elev_gridmap";
+  mPubElevMap = create_publisher<grid_map_msgs::msg::GridMap>(
+    loc_map_prefix + loc_map_data,
+    mMappingQos);
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubElevMap->get_topic_name());
+
   loc_map_data = "elev_img";
   mPubElevMapImg = create_publisher<sensor_msgs::msg::Image>(
     loc_map_prefix + loc_map_data,
@@ -2463,8 +2469,8 @@ bool ZedCamera::startCamera()
   // ----> TF2 Transform
   mTfBuffer = std::make_unique<tf2_ros::Buffer>(get_clock());
   mTfListener =
-    std::make_shared<tf2_ros::TransformListener>(*mTfBuffer);  // Start TF Listener thread
-  mTfBroadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+    std::make_unique<tf2_ros::TransformListener>(*mTfBuffer);  // Start TF Listener thread
+  mTfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
   // <---- TF2 Transform
 
   // ----> ZED configuration
@@ -4800,7 +4806,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   if (mStereoSubnumber > 0) {
     auto combined = sl_tools::imagesToROSmsg(mMatLeft, mMatRight, mCameraFrameId, timeStamp);
     RCLCPP_DEBUG_STREAM(get_logger(), "Publishing SIDE-BY-SIDE message");
-    mPubStereo.publish(combined);
+    mPubStereo.publish(std::move(combined));
   }
   // <---- Publish the side-by-side image if someone has subscribed to
 
@@ -4809,7 +4815,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     auto combined =
       sl_tools::imagesToROSmsg(mMatLeftRaw, mMatRightRaw, mCameraFrameId, timeStamp);
     RCLCPP_DEBUG_STREAM(get_logger(), "Publishing SIDE-BY-SIDE RAW message");
-    mPubRawStereo.publish(combined);
+    mPubRawStereo.publish(std::move(combined));
   }
   // <---- Publish the side-by-side image if someone has subscribed to
 
@@ -4856,7 +4862,7 @@ void ZedCamera::publishImageWithInfo(
   auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
   camInfoMsg->header.stamp = t;
   RCLCPP_DEBUG_STREAM(get_logger(), "Publishing IMAGE message");
-  pubImg.publish(image, camInfoMsg);
+  pubImg.publish(std::move(image), camInfoMsg);
 }
 
 void ZedCamera::processOdometry()
@@ -5514,13 +5520,13 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
   if (!mOpenniDepthMode) {
     auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t);
     RCLCPP_DEBUG_STREAM(get_logger(), "Publishing DEPTH message");
-    mPubDepth.publish(depth_img, mDepthCamInfoMsg);
+    mPubDepth.publish(std::move(depth_img), mDepthCamInfoMsg);
     return;
   }
 
   // OPENNI CONVERSION (meter -> millimeters - float32 -> uint16)
-  std::shared_ptr<sensor_msgs::msg::Image> openniDepthMsg =
-    std::make_shared<sensor_msgs::msg::Image>();
+  std::unique_ptr<sensor_msgs::msg::Image> openniDepthMsg =
+    std::make_unique<sensor_msgs::msg::Image>();
 
   openniDepthMsg->header.stamp = t;
   openniDepthMsg->header.frame_id = mDepthOptFrameId;
@@ -5546,14 +5552,14 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
   }
 
   RCLCPP_DEBUG_STREAM(get_logger(), "Publishing OPENNI DEPTH message");
-  mPubDepth.publish(openniDepthMsg, mDepthCamInfoMsg);
+  mPubDepth.publish(std::move(openniDepthMsg), mDepthCamInfoMsg);
 }
 
 void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
 {
   sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResol);
 
-  std::shared_ptr<sensor_msgs::msg::Image> disparity_image =
+  std::unique_ptr<sensor_msgs::msg::Image> disparity_image =
     sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, t);
 
   dispMsgPtr disparityMsg = std::make_unique<stereo_msgs::msg::DisparityImage>();
@@ -5844,11 +5850,13 @@ bool ZedCamera::publishLocalMap()
   size_t imgColSub = 0;
   size_t imgOccSub = 0;
   size_t imgElevSub = 0;
+  size_t gridMapElevSub = 0;
   try {
     imgTravSub = count_subscribers(mPubTravMapImg->get_topic_name());
     imgColSub = count_subscribers(mPubColMapImg->get_topic_name());
     imgOccSub = count_subscribers(mPubOccMapImg->get_topic_name());
     imgElevSub = count_subscribers(mPubElevMapImg->get_topic_name());
+    gridMapElevSub = count_subscribers(mPubElevMap->get_topic_name());
   } catch (...) {
     rcutils_reset_error();
     RCLCPP_DEBUG(
@@ -5870,15 +5878,23 @@ bool ZedCamera::publishLocalMap()
   }
 
   // TODO(Walter) Count subscribers for maps
+  if (gridMapElevSub > 0) {
+    err =
+      sl_map.generateTerrainMap(
+      mTravMapImg, sl::MAT_TYPE::U8_C4,
+      sl::LayerName::TRAVERSABILITY_COST);
+  }
 
   if (imgTravSub > 0) {
     TM_DEBUG("Before trav_map...");
     err =
-      sl_map.generateTerrainMap(trav_map, sl::MAT_TYPE::U8_C4, sl::LayerName::TRAVERSABILITY_COST);
-    if (err == sl::ERROR_CODE::SUCCESS && trav_map.isInit()) {
+      sl_map.generateTerrainMap(
+      mTravMapImg, sl::MAT_TYPE::U8_C4,
+      sl::LayerName::TRAVERSABILITY_COST);
+    if (err == sl::ERROR_CODE::SUCCESS && mTravMapImg.isInit()) {
       // TODO(Walter) publish the map as a GridMap
       TM_DEBUG("Terrain mapping: TRAVERSABILITY_COST map OK");
-      mPubTravMapImg->publish(*sl_tools::imageToROSmsg(trav_map, mDepthFrameId, timeStamp));
+      mPubTravMapImg->publish(*sl_tools::imageToROSmsg(mTravMapImg, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
         get_logger(), "Terrain mapping generate TRAVERSABILITY_COST layer error: " << sl::toString(
@@ -5889,11 +5905,11 @@ bool ZedCamera::publishLocalMap()
 
   if (imgOccSub > 0) {
     TM_DEBUG("Before occ_map...");
-    err = sl_map.generateTerrainMap(occ_map, sl::MAT_TYPE::U8_C1, sl::LayerName::OCCUPANCY);
-    if (err == sl::ERROR_CODE::SUCCESS && occ_map.isInit()) {
+    err = sl_map.generateTerrainMap(mOccMapImg, sl::MAT_TYPE::U8_C1, sl::LayerName::OCCUPANCY);
+    if (err == sl::ERROR_CODE::SUCCESS && mOccMapImg.isInit()) {
       // TODO(Walter) publish the map as a GridMap
       TM_DEBUG("Terrain mapping: OCCUPANCY map OK");
-      mPubOccMapImg->publish(*sl_tools::imageToROSmsg(occ_map, mDepthFrameId, timeStamp));
+      mPubOccMapImg->publish(*sl_tools::imageToROSmsg(mOccMapImg, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
         get_logger(), "Terrain mapping generate OCCUPANCY layer error: " << sl::toString(
@@ -5904,11 +5920,11 @@ bool ZedCamera::publishLocalMap()
 
   if (imgColSub > 0) {
     TM_DEBUG("Before color_map...");
-    err = sl_map.generateTerrainMap(color_map, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
-    if (err == sl::ERROR_CODE::SUCCESS && color_map.isInit()) {
+    err = sl_map.generateTerrainMap(mColorMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
+    if (err == sl::ERROR_CODE::SUCCESS && mColorMapImg.isInit()) {
       // TODO(Walter) publish the map as a GridMap
       TM_DEBUG("Terrain mapping: COLOR map OK");
-      mPubColMapImg->publish(*sl_tools::imageToROSmsg(color_map, mDepthFrameId, timeStamp));
+      mPubColMapImg->publish(*sl_tools::imageToROSmsg(mColorMapImg, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
         get_logger(), "Terrain mapping generate COLOR layer error: " << sl::toString(
@@ -5919,11 +5935,11 @@ bool ZedCamera::publishLocalMap()
 
   if (imgElevSub > 0) {
     TM_DEBUG("Before elev_map...");
-    err = sl_map.generateTerrainMap(elev_map, sl::MAT_TYPE::U8_C4, sl::LayerName::ELEVATION);
-    if (err == sl::ERROR_CODE::SUCCESS && elev_map.isInit()) {
+    err = sl_map.generateTerrainMap(mElevMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::ELEVATION);
+    if (err == sl::ERROR_CODE::SUCCESS && mElevMapImg.isInit()) {
       // TODO(Walter) publish the map as a GridMap
       TM_DEBUG("Terrain mapping: ELEVATION map OK");
-      mPubElevMapImg->publish(*sl_tools::imageToROSmsg(elev_map, mDepthFrameId, timeStamp));
+      mPubElevMapImg->publish(*sl_tools::imageToROSmsg(mElevMapImg, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
         get_logger(), "Terrain mapping generate ELEVATION layer error: " << sl::toString(

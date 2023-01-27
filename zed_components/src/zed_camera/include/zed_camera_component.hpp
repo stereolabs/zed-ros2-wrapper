@@ -89,6 +89,8 @@ typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::DepthInfoStamped>
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PlaneStamped>> planePub;
 typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>> markerPub;
 
+typedef std::shared_ptr<rclcpp::Publisher<grid_map_msgs::msg::GridMap>> gridMapPub;
+
 typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> clickedPtSub;
 
 typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
@@ -377,11 +379,11 @@ private:
   float mMappingRangeMax = 10.0f;
   bool mTerrainMappingEnabled = false;
   float mTerrainMapPubFreq = 5.0f;  // Frequency of data publishing
-  float mTerrainMappingRes = 0.05f;  // Terrain mapping resolution
+  float mTerrainMappingRes = 0.1f;  // Terrain mapping resolution
   float mTerrainMappingRange = 5.0f;  // Terrain mapping range
-  float mTerrainMaxStep = 0.05f;  // Max obstacle height
-  float mTerrainMaxSlope = 20.0f;  // Max slope in degree
-  float mTerrainMaxRoughness = 0.3;  // Max Terrain roughness (for future usage)
+  float mTerrainMaxStep = 0.1f;  // Max obstacle height
+  float mTerrainMaxSlope = 45.0f;  // Max slope in degree
+  float mTerrainMaxRoughness = 0.5;  // Max Terrain roughness (for future usage)
   float mRobotRadius = 0.4;  // Radius of the robot
   float mRobotHeight = 1.0;  // Height of the robot
   bool mObjDetEnabled = false;
@@ -478,8 +480,8 @@ private:
 
   // ----> initialization Transform listener
   std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
-  std::shared_ptr<tf2_ros::TransformListener> mTfListener;
-  std::shared_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
+  std::unique_ptr<tf2_ros::TransformListener> mTfListener;
+  std::unique_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
   // <---- initialization Transform listener
 
   // ----> TF Transforms
@@ -552,6 +554,7 @@ private:
   imagePub mPubColMapImg;
   imagePub mPubOccMapImg;
   imagePub mPubTravMapImg;
+  gridMapPub mPubElevMap;
   // <---- Publishers
 
   // <---- Publisher variables
@@ -580,7 +583,7 @@ private:
   sl::Mat mMatLeftGray, mMatLeftRawGray;
   sl::Mat mMatRightGray, mMatRightRawGray;
   sl::Mat mMatDepth, mMatDisp, mMatConf;
-  sl::Mat trav_map, occ_map, color_map, elev_map;
+  sl::Mat mTravMapImg, mOccMapImg, mColorMapImg, mElevMapImg;
   float mMinDepth = 0.0f;
   float mMaxDepth = 0.0f;
   // <---- Publisher variables

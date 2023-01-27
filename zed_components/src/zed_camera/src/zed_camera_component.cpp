@@ -2361,7 +2361,7 @@ void ZedCamera::initPublishers()
   // <---- Mapping
 
   // ----> Terrain Mapping
-  std::string loc_map_prefix = "local_map/";
+  std::string loc_map_prefix = mTopicRoot + "local_map/";
   std::string loc_map_data;
 
   loc_map_data = "elev_gridmap";
@@ -5879,10 +5879,16 @@ bool ZedCamera::publishLocalMap()
 
   // TODO(Walter) Count subscribers for maps
   if (gridMapElevSub > 0) {
+    std::unique_ptr<grid_map_msgs::msg::GridMap> msg = std::make_unique<grid_map_msgs::msg::GridMap>();
     err =
-      sl_map.generateTerrainMap(
-      mTravMapImg, sl::MAT_TYPE::U8_C4,
-      sl::LayerName::TRAVERSABILITY_COST);
+      sl_map.generateTerrainMap( mElevMap, sl::MAT_TYPE::F32_C1, sl::LayerName::ELEVATION);
+      if (err == sl::ERROR_CODE::SUCCESS && mTravMapImg.isInit()) {
+        msg->header.stamp = timeStamp;
+        msg->header.frame_id = mDepthFrameId;
+
+        msg->data
+      }
+
   }
 
   if (imgTravSub > 0) {

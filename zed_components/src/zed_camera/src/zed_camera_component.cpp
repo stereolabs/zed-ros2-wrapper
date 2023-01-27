@@ -47,6 +47,16 @@ using namespace std::placeholders;
 #define MEDIUM_W 896
 #define MEDIUM_H 512
 
+// ----> DEBUG MACROS
+// Sensors
+#define SENS_DEBUG(...) if (mDebugSensors) RCLCPP_DEBUG(get_logger(), __VA_ARGS__);
+#define SENS_DEBUG_STREAM(stream_arg) if (mDebugSensors) RCLCPP_DEBUG_STREAM( \
+    get_logger(), stream_arg);
+// Terrain Mapping
+#define TM_DEBUG(...) if (mDebugTerrainMapping) RCLCPP_DEBUG(get_logger(), __VA_ARGS__);
+#define TM_DEBUG_STREAM(stream_arg) if (mDebugTerrainMapping) RCLCPP_DEBUG_STREAM( \
+    get_logger(), stream_arg);
+// <---- DEBUG MACROS
 namespace stereolabs
 {
 #ifndef DEG2RAD
@@ -455,6 +465,17 @@ void ZedCamera::getDebugParams()
   if (mDebugSensors && !mDebugMode) {
     RCLCPP_WARN(
       get_logger(), "To enable Sensors debug messages please set 'debug/debug_mode' to 'true'");
+  }
+
+  getParam("debug.debug_terrain_mapping", mDebugTerrainMapping, mDebugTerrainMapping);
+  RCLCPP_INFO(
+    get_logger(), " * Debug Terrain Mapping: %s",
+    mDebugTerrainMapping ? "TRUE" : "FALSE");
+
+  if (mDebugTerrainMapping && !mDebugMode) {
+    RCLCPP_WARN(
+      get_logger(),
+      "To enable Terrain Mapping debug messages please set 'debug/debug_mode' to 'true'");
   }
 
   RCLCPP_DEBUG(
@@ -2877,7 +2898,7 @@ void ZedCamera::startPathPubTimer(double pathTimerRate)
     std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0 / (pathTimerRate)));
     mPathTimer = create_wall_timer(
       std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
-      std::bind(&ZedCamera::callback_pubLocalMap, this));
+      std::bind(&ZedCamera::callback_pubPaths, this));
 
     if (mOdomPath.size() == 0 && mMapPath.size() == 0) {
       if (mPathMaxCount != -1) {
@@ -3120,9 +3141,6 @@ bool ZedCamera::startTerrainMapping()
   sl::TerrainMappingParameters params;
 
   params.enable_traversability_cost_computation = true;
-  params.robot_centric_mode = false; // -> obsolete, will be removed in the future
-  // params.robot_centric_culling_distance; -> obsolete
-  // params.setHeightThreshold(); -> obsolete
   params.setGridResolution(sl::UNIT::METER, mTerrainMappingRes);
   params.setRange(mTerrainMappingRange);
   params.setAgentParameters(
@@ -3140,7 +3158,7 @@ bool ZedCamera::startTerrainMapping()
   }
 
   mTerrainMappingRunning = true;
-  //startTerrainMappingTimer(mTerrainMapPubFreq);
+  startTerrainMappingTimer(mTerrainMapPubFreq);
   return true;
 }
 
@@ -3796,11 +3814,12 @@ void ZedCamera::threadFunc_zedGrab()
       }
     }
 
-    if (!mDepthDisabled) {
-      if (mTerrainMappingRunning) {
-        publishLocalMap();
-      }
-    }
+    // // This is in a timer callback to use custom frequency
+    // if (!mDepthDisabled) {
+    //   if (mTerrainMappingRunning) {
+    //     publishLocalMap();
+    //   }
+    // }
 
     // ----> Retrieve the point cloud if someone has subscribed to
     if (!mDepthDisabled) {
@@ -3900,19 +3919,13 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   if (mSvoMode || mSensCameraSync) {
     sl::ERROR_CODE err = mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
     if (err != sl::ERROR_CODE::SUCCESS) {
-      if (mDebugSensors) {
-        RCLCPP_DEBUG_STREAM(
-          get_logger(), "sl::getSensorsData error: " << sl::toString(err).c_str());
-      }
+      SENS_DEBUG_STREAM("sl::getSensorsData error: " << sl::toString(err).c_str());
       return TIMEZERO_ROS;
     }
   } else {
     sl::ERROR_CODE err = mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
     if (err != sl::ERROR_CODE::SUCCESS) {
-      if (mDebugSensors) {
-        RCLCPP_DEBUG_STREAM(
-          get_logger(), "sl::getSensorsData error: " << sl::toString(err).c_str());
-      }
+      SENS_DEBUG_STREAM("sl::getSensorsData error: " << sl::toString(err).c_str());
       return TIMEZERO_ROS;
     }
   }
@@ -3939,18 +3952,14 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   lastTs_mag = ts_mag;
 
   if (!new_imu_data && !new_baro_data && !new_mag_data) {
-    if (mDebugSensors) {
-      RCLCPP_DEBUG(get_logger(), "No new sensors data");
-    }
+    SENS_DEBUG("No new sensors data");
     return TIMEZERO_ROS;
   }
   // <---- Check for duplicated data
 
   lastTs_imu = ts_imu;
 
-  if (mDebugSensors) {
-    RCLCPP_DEBUG_STREAM(get_logger(), "SENSOR LAST PERIOD: " << dT << " sec @" << 1. / dT << " Hz");
-  }
+  SENS_DEBUG_STREAM("SENSOR LAST PERIOD: " << dT << " sec @" << 1. / dT << " Hz");
 
   // ----> Sensors freq for diagnostic
   if (new_imu_data) {
@@ -3960,9 +3969,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
     double mean = mImuPeriodMean_sec->addValue(imuFreqTimer.toc());
     imuFreqTimer.tic();
 
-    if (mDebugSensors) {
-      RCLCPP_DEBUG_STREAM(get_logger(), "IMU MEAN freq: " << 1e6 / mean);
-    }
+    SENS_DEBUG_STREAM("IMU MEAN freq: " << 1. / mean);
   }
 
   if (new_baro_data) {
@@ -3971,9 +3978,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
 
     double mean = mBaroPeriodMean_sec->addValue(baroFreqTimer.toc());
     baroFreqTimer.tic();
-    if (mDebugSensors) {
-      RCLCPP_DEBUG_STREAM(get_logger(), "Barometer freq: " << 1e6 / mean);
-    }
+    SENS_DEBUG_STREAM("Barometer freq: " << 1. / mean);
   }
 
   if (new_mag_data) {
@@ -3983,9 +3988,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
     double mean = mMagPeriodMean_sec->addValue(magFreqTimer.toc());
     magFreqTimer.tic();
 
-    if (mDebugSensors) {
-      RCLCPP_DEBUG_STREAM(get_logger(), "Magnetometer freq: " << 1e6 / mean);
-    }
+    SENS_DEBUG_STREAM("Magnetometer freq: " << 1. / mean);
   }
   // <---- Sensors freq for diagnostic
 
@@ -5657,10 +5660,7 @@ void ZedCamera::callback_pubTemp()
   sl::SensorsData sens_data;
   sl::ERROR_CODE err = mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    if (mDebugSensors) {
-      RCLCPP_DEBUG_STREAM(
-        get_logger(), "[callback_pubTemp] sl::getSensorsData error: " << sl::toString(err).c_str());
-    }
+    SENS_DEBUG_STREAM("[callback_pubTemp] sl::getSensorsData error: " << sl::toString(err).c_str());
     return;
   }
 
@@ -5840,10 +5840,27 @@ bool ZedCamera::publishLocalMap()
     timeStamp = mFrameTimestamp;
   }
 
+  size_t imgTravSub = 0;
+  size_t imgColSub = 0;
+  size_t imgOccSub = 0;
+  size_t imgElevSub = 0;
+  try {
+    imgTravSub = count_subscribers(mPubTravMapImg->get_topic_name());
+    imgColSub = count_subscribers(mPubColMapImg->get_topic_name());
+    imgOccSub = count_subscribers(mPubOccMapImg->get_topic_name());
+    imgElevSub = count_subscribers(mPubElevMapImg->get_topic_name());
+  } catch (...) {
+    rcutils_reset_error();
+    RCLCPP_DEBUG(
+      get_logger(), "publishLocalMap: Exception while counting subscribers");
+    return false;
+  }
+
   sl::ERROR_CODE err;
 
-  sl::Terrain sl_map;
+  TM_DEBUG("Before retrieveTerrain...");
   err = mZed.retrieveTerrain(sl_map);
+  TM_DEBUG("... after retrieveTerrain");
 
   if (err != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(
@@ -5854,61 +5871,65 @@ bool ZedCamera::publishLocalMap()
 
   // TODO(Walter) Count subscribers for maps
 
-  if (mPubTravMapImg->get_subscription_count() > 0) {
-    sl::Mat trav_map;
+  if (imgTravSub > 0) {
+    TM_DEBUG("Before trav_map...");
     err =
       sl_map.generateTerrainMap(trav_map, sl::MAT_TYPE::U8_C4, sl::LayerName::TRAVERSABILITY_COST);
     if (err == sl::ERROR_CODE::SUCCESS && trav_map.isInit()) {
       // TODO(Walter) publish the map as a GridMap
-      RCLCPP_INFO(get_logger(), "Terrain mapping: TRAVERSABILITY_COST map OK");
+      TM_DEBUG("Terrain mapping: TRAVERSABILITY_COST map OK");
       mPubTravMapImg->publish(*sl_tools::imageToROSmsg(trav_map, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
         get_logger(), "Terrain mapping generate TRAVERSABILITY_COST layer error: " << sl::toString(
           err).c_str());
     }
+    TM_DEBUG("... after trav_map");
   }
 
-  if (mPubOccMapImg->get_subscription_count() > 0) {
-    sl::Mat occ_map;
-    err = sl_map.generateTerrainMap(occ_map, sl::MAT_TYPE::U8_C4, sl::LayerName::OCCUPANCY);
+  if (imgOccSub > 0) {
+    TM_DEBUG("Before occ_map...");
+    err = sl_map.generateTerrainMap(occ_map, sl::MAT_TYPE::U8_C1, sl::LayerName::OCCUPANCY);
     if (err == sl::ERROR_CODE::SUCCESS && occ_map.isInit()) {
       // TODO(Walter) publish the map as a GridMap
-      RCLCPP_INFO(get_logger(), "Terrain mapping: OCCUPANCY map OK");
+      TM_DEBUG("Terrain mapping: OCCUPANCY map OK");
       mPubOccMapImg->publish(*sl_tools::imageToROSmsg(occ_map, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
         get_logger(), "Terrain mapping generate OCCUPANCY layer error: " << sl::toString(
           err).c_str());
     }
+    TM_DEBUG("... after occ_map");
   }
 
-  if (mPubColMapImg->get_subscription_count() > 0) {
-    sl::Mat color_map;
+  if (imgColSub > 0) {
+    TM_DEBUG("Before color_map...");
     err = sl_map.generateTerrainMap(color_map, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
     if (err == sl::ERROR_CODE::SUCCESS && color_map.isInit()) {
       // TODO(Walter) publish the map as a GridMap
-      RCLCPP_INFO(get_logger(), "Terrain mapping: COLOR map OK");
+      TM_DEBUG("Terrain mapping: COLOR map OK");
       mPubColMapImg->publish(*sl_tools::imageToROSmsg(color_map, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
         get_logger(), "Terrain mapping generate COLOR layer error: " << sl::toString(
           err).c_str());
     }
+    TM_DEBUG("... after color_map");
   }
 
-  if (mPubElevMapImg->get_subscription_count() > 0) {
-    sl::Mat elev_map;
+  if (imgElevSub > 0) {
+    TM_DEBUG("Before elev_map...");
     err = sl_map.generateTerrainMap(elev_map, sl::MAT_TYPE::U8_C4, sl::LayerName::ELEVATION);
     if (err == sl::ERROR_CODE::SUCCESS && elev_map.isInit()) {
       // TODO(Walter) publish the map as a GridMap
-      RCLCPP_INFO(get_logger(), "Terrain mapping: ELEVATION map OK");
+      TM_DEBUG("Terrain mapping: ELEVATION map OK");
       mPubElevMapImg->publish(*sl_tools::imageToROSmsg(elev_map, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
         get_logger(), "Terrain mapping generate ELEVATION layer error: " << sl::toString(
           err).c_str());
     }
+    TM_DEBUG("... after elev_map");
   }
 
   return true;

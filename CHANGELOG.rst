@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2023-01-27
+----------
+- Added `grid_map_msgs` dependency for Terrain Mapping topics
+
 2023-01-16
 ----------
 - Removed annoying build log messages. Only warning regarding unsupported ROS2 distributions will be displayed when required.

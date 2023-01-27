@@ -42,6 +42,7 @@
 #include <sensor_msgs/msg/magnetic_field.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/temperature.hpp>
+#include <grid_map_msgs/msg/grid_map.hpp>
 #include <sl/Camera.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -316,6 +317,7 @@ private:
   // ----> Parameter variables
   bool mDebugMode = false;
   bool mDebugSensors = false;
+  bool mDebugTerrainMapping = false;
   int mCamId = 0;
   int mCamSerialNumber = 0;
   sl::MODEL mCamUserModel = sl::MODEL::ZED;  // Default camera model
@@ -578,6 +580,7 @@ private:
   sl::Mat mMatLeftGray, mMatLeftRawGray;
   sl::Mat mMatRightGray, mMatRightRawGray;
   sl::Mat mMatDepth, mMatDisp, mMatConf;
+  sl::Mat trav_map, occ_map, color_map, elev_map;
   float mMinDepth = 0.0f;
   float mMaxDepth = 0.0f;
   // <---- Publisher variables
@@ -590,6 +593,10 @@ private:
   // ----> Subscribers
   clickedPtSub mClickedPtSub;
   // <---- Subscribers
+
+  // ----> Terraing Mapping
+  sl::Terrain sl_map;
+  // <---- Terraing Mapping
 
   // ----> Threads and Timers
   sl::ERROR_CODE mGrabStatus;

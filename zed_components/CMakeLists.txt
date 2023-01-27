@@ -97,6 +97,7 @@ set(DEPENDENCIES
     nav_msgs
     sensor_msgs
     stereo_msgs
+    grid_map_msgs
     zed_interfaces
     std_srvs
     diagnostic_msgs
@@ -119,6 +120,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
+find_package(grid_map_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)

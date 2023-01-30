@@ -72,6 +72,7 @@ using namespace std::placeholders;
 #define SENS_DEBUG_STREAM_ONCE(stream_arg) if (mDebugSensors) RCLCPP_DEBUG_STREAM_ONCE( \
     get_logger(), stream_arg);
 // Mapping
+#define MAP_DEBUG(...) if (mDebugMapping) RCLCPP_DEBUG(get_logger(), __VA_ARGS__);
 #define MAP_DEBUG_STREAM(stream_arg) if (mDebugMapping) RCLCPP_DEBUG_STREAM( \
     get_logger(), stream_arg);
 #define MAP_DEBUG_STREAM_ONCE(stream_arg) if (mDebugMapping) RCLCPP_DEBUG_STREAM_ONCE( \
@@ -521,7 +522,7 @@ void ZedCamera::getDebugParams()
     }
   }
 
-  COMM_DEBUG_STREAM("[ROS2] Using RMW_IMPLEMENTATION = %s", rmw_get_implementation_identifier());
+  COMM_DEBUG_STREAM("[ROS2] Using RMW_IMPLEMENTATION " << rmw_get_implementation_identifier());
 }
 
 void ZedCamera::getGeneralParams()
@@ -6677,9 +6678,10 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
       camZ);
   } catch (tf2::TransformException & ex) {
     rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-    MAP_DEBUG_STREAM(steady_clock, 1.0, "Transform error: %s", ex.what());
-    MAP_DEBUG_STREAM(
-      steady_clock, 1.0, "The tf from '%s' to '%s' is not available.",
+    RCLCPP_WARN_THROTTLE(get_logger(), steady_clock, 1.0, "Transform error: %s", ex.what());
+    RCLCPP_WARN_THROTTLE(
+      get_logger(), steady_clock, 1.0,
+      "The tf from '%s' to '%s' is not available.",
       msg->header.frame_id.c_str(), mLeftCamOptFrameId.c_str());
 
     return;
@@ -6720,7 +6722,7 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
     return;
   }
 
-  MAP_DEBUG_STREAM(
+  MAP_DEBUG(
     "Found plane at point [%.3f,%.3f,%.3f] -> Center: [%.3f,%.3f,%.3f], Dims: %.3fx%.3f", X, Y, Z,
     center.x, center.y, center.z, dims[0], dims[1]);
   // <---- Extract plane from clicked point

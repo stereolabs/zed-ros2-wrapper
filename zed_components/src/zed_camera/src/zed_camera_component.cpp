@@ -5039,7 +5039,6 @@ void ZedCamera::processPose()
     return;
   }
 
-  static sl::POSITIONAL_TRACKING_STATE oldStatus;
   mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
 
   sl::Translation translation = mLastZedPose.getTranslation();
@@ -5136,8 +5135,6 @@ void ZedCamera::processPose()
     publishPose();
     mPosTrackingReady = true;
   }
-
-  oldStatus = mPosTrackingStatus;
 }
 
 void ZedCamera::publishPose()
@@ -5876,7 +5873,7 @@ bool ZedCamera::publishLocalMap()
     imgElevSub = count_subscribers(mPubElevMapImg->get_topic_name());
     gridMapSub = count_subscribers(mPubGridMap->get_topic_name());
 
-    tot_sub = imgTravSub + imgColSub + imgOccSub + imgElevSub + gridMapElevSub;
+    tot_sub = imgTravSub + imgColSub + imgOccSub + imgElevSub + gridMapSub;
   } catch (...) {
     rcutils_reset_error();
     TM_DEBUG_STREAM("publishLocalMap: Exception while counting subscribers");
@@ -5901,23 +5898,24 @@ bool ZedCamera::publishLocalMap()
   }
 
   if (gridMapSub > 0) {
+    bool gridmap_ok = false;
     TM_DEBUG_STREAM_ONCE("Terrain Mapping subscribed")
     std::unique_ptr<grid_map_msgs::msg::GridMap> msg =
       std::make_unique<grid_map_msgs::msg::GridMap>();
     grid_map::GridMap gridmap;
     err = sl_map.generateTerrainMap(mElevMap, sl::MAT_TYPE::F32_C1, sl::LayerName::ELEVATION);
-    
+
+    // Main layer: elevation
     if (err == sl::ERROR_CODE::SUCCESS && mElevMap.isInit()) {
+      gridmap_ok = true;
+
       double w = mElevMap.getWidth();
       double h = mElevMap.getHeight();
       double w_m = mTerrainMappingRes * w;
       double h_m = mTerrainMappingRes * h;
-      gridmap.setGeometry(
-        grid_map::Length(w_m, h_m), mTerrainMappingRes,
-        //grid_map::Position(0.5 * w_m, 0.5 * h_m));
-        grid_map::Position(0.0, 0.0));
+      gridmap.setGeometry(grid_map::Length(w_m, h_m), mTerrainMappingRes, grid_map::Position(0.0, 0.0));
       gridmap.add("elevation", std::numeric_limits<double>::quiet_NaN());
-      gridmap.setFrameId(mDepthFrameId);
+      gridmap.setBasicLayers( {"elevation"});
 
       TM_DEBUG_STREAM(
         "Created map with size " << gridmap.getLength().x() << "x" << gridmap.getLength().y()
@@ -5933,8 +5931,13 @@ bool ZedCamera::publishLocalMap()
         mElevMap.getValue((*it).y(), h - (*it).x(), &value); // Vertical index is inverted in SDK
         gridmap.at("elevation", *it) = static_cast<double>(value);
       }
+    }
 
+    // TODO(Walter) Add other layers
+
+    if (gridmap_ok) {
       gridmap.setTimestamp(timeStamp.nanoseconds());
+      gridmap.setFrameId(mDepthFrameId);
 
       msg = grid_map::GridMapRosConverter::toMessage(gridmap);
       mPubGridMap->publish(std::move(msg));

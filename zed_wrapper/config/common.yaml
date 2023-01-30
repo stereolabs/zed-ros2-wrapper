@@ -44,7 +44,7 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         depth:
-            quality: 4 # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - '4': NEURAL - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            quality: 1 # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - '4': NEURAL - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             sensing_mode: 0 # '0': STANDARD, '1': FILL
             depth_stabilization: true # Forces positional tracking to start if 'true'
             openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
@@ -87,7 +87,7 @@
         local_mapping:
             terrain_mapping_enabled: true # True to enable terrain mapping publishing a local obstacle map
             data_pub_rate: 5.0; # Local Map data publish frequency
-            max_mapping_range: 5.0 # maximum depth range for local map generation
+            max_mapping_range: 3.0 # maximum depth range for local map generation
             
         mapping:
             mapping_enabled: false # True to enable mapping and fused point cloud pubblication
@@ -134,6 +134,6 @@
             debug_point_cloud: false
             debug_positional_tracking: false
             debug_sensors: false
-            debug_mapping : false
+            debug_mapping : true
             debug_terrain_mapping : true
             debug_object_detection : false

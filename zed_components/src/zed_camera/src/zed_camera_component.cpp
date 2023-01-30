@@ -15,6 +15,7 @@
 #include <sstream>
 #include <type_traits>
 #include <vector>
+#include <limits>
 
 #include "zed_camera_component.hpp"
 
@@ -2407,11 +2408,11 @@ void ZedCamera::initPublishers()
   std::string loc_map_prefix = mTopicRoot + "local_map/";
   std::string loc_map_data;
 
-  loc_map_data = "elev_gridmap";
-  mPubElevMap = create_publisher<grid_map_msgs::msg::GridMap>(
+  loc_map_data = "gridmap";
+  mPubGridMap = create_publisher<grid_map_msgs::msg::GridMap>(
     loc_map_prefix + loc_map_data,
     mMappingQos);
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubElevMap->get_topic_name());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubGridMap->get_topic_name());
 
   loc_map_data = "elev_img";
   mPubElevMapImg = create_publisher<sensor_msgs::msg::Image>(
@@ -5866,14 +5867,14 @@ bool ZedCamera::publishLocalMap()
   size_t imgColSub = 0;
   size_t imgOccSub = 0;
   size_t imgElevSub = 0;
-  size_t gridMapElevSub = 0;
+  size_t gridMapSub = 0;
   size_t tot_sub = 0;
   try {
     imgTravSub = count_subscribers(mPubTravMapImg->get_topic_name());
     imgColSub = count_subscribers(mPubColMapImg->get_topic_name());
     imgOccSub = count_subscribers(mPubOccMapImg->get_topic_name());
     imgElevSub = count_subscribers(mPubElevMapImg->get_topic_name());
-    gridMapElevSub = count_subscribers(mPubElevMap->get_topic_name());
+    gridMapSub = count_subscribers(mPubGridMap->get_topic_name());
 
     tot_sub = imgTravSub + imgColSub + imgOccSub + imgElevSub + gridMapElevSub;
   } catch (...) {
@@ -5899,47 +5900,49 @@ bool ZedCamera::publishLocalMap()
     return false;
   }
 
-  if (gridMapElevSub > 0) {
+  if (gridMapSub > 0) {
     TM_DEBUG_STREAM_ONCE("Terrain Mapping subscribed")
     std::unique_ptr<grid_map_msgs::msg::GridMap> msg =
       std::make_unique<grid_map_msgs::msg::GridMap>();
-    err =
-      sl_map.generateTerrainMap(mElevMap, sl::MAT_TYPE::F32_C1, sl::LayerName::ELEVATION);
+    grid_map::GridMap gridmap;
+    err = sl_map.generateTerrainMap(mElevMap, sl::MAT_TYPE::F32_C1, sl::LayerName::ELEVATION);
+    
     if (err == sl::ERROR_CODE::SUCCESS && mElevMap.isInit()) {
-      grid_map::GridMap map({"elevation"});
-      map.setFrameId(mDepthFrameId);
-      double w_m = mTerrainMappingRes * mElevMap.getWidth();
-      double h_m = mTerrainMappingRes * mElevMap.getHeight();
-      map.setGeometry(
+      double w = mElevMap.getWidth();
+      double h = mElevMap.getHeight();
+      double w_m = mTerrainMappingRes * w;
+      double h_m = mTerrainMappingRes * h;
+      gridmap.setGeometry(
         grid_map::Length(w_m, h_m), mTerrainMappingRes,
-        grid_map::Position(0.5 * w_m, 0.5 * h_m));
+        //grid_map::Position(0.5 * w_m, 0.5 * h_m));
+        grid_map::Position(0.0, 0.0));
+      gridmap.add("elevation", std::numeric_limits<double>::quiet_NaN());
+      gridmap.setFrameId(mDepthFrameId);
 
       TM_DEBUG_STREAM(
-        "Created map with size " << map.getLength().x() << "x" << map.getLength().y()
-                                 << "m (" << map.getSize()(0) << "x" << map.getSize()(
+        "Created map with size " << gridmap.getLength().x() << "x" << gridmap.getLength().y()
+                                 << "m (" << gridmap.getSize()(0) << "x" << gridmap.getSize()(
           1) << " cells)");
       TM_DEBUG_STREAM(
-        "Map center: (" << map.getPosition().x() << "," << map.getPosition().y() << ") Frame: " <<
-          map.getFrameId().c_str());
+        "Map center: (" << gridmap.getPosition().x() << "," << gridmap.getPosition().y() << ") Frame: " <<
+          gridmap.getFrameId().c_str());
 
-      for (grid_map::GridMapIterator it(map); !it.isPastEnd(); ++it) {
-        grid_map::Position position;
-        map.getPosition(*it, position);
-        map.at(
-          "elevation",
-          *it) = -0.04 + 0.2 * std::sin(3.0 * timeStamp.seconds() + 5.0 * position.y()) *
-          position.x();
+      for (grid_map::GridMapIterator it(gridmap); !it.isPastEnd(); ++it) {
+        sl::float1 value;
+        // By dereferencing the iterator we can obtain a `grid_map::Index`
+        mElevMap.getValue((*it).y(), h - (*it).x(), &value); // Vertical index is inverted in SDK
+        gridmap.at("elevation", *it) = static_cast<double>(value);
       }
 
-      map.setTimestamp(timeStamp.nanoseconds());
+      gridmap.setTimestamp(timeStamp.nanoseconds());
 
-      msg = grid_map::GridMapRosConverter::toMessage(map);
-      mPubElevMap->publish(std::move(msg));
+      msg = grid_map::GridMapRosConverter::toMessage(gridmap);
+      mPubGridMap->publish(std::move(msg));
     }
   }
 
   if (imgTravSub > 0) {
-    TM_DEBUG_STREAM("Before trav_map...");
+    //TM_DEBUG_STREAM("Before trav_map...");
     err =
       sl_map.generateTerrainMap(
       mTravMapImg, sl::MAT_TYPE::U8_C4,
@@ -5952,11 +5955,11 @@ bool ZedCamera::publishLocalMap()
         get_logger(), "Terrain mapping generate TRAVERSABILITY_COST layer error: " << sl::toString(
           err).c_str());
     }
-    TM_DEBUG_STREAM("... after trav_map");
+    //TM_DEBUG_STREAM("... after trav_map");
   }
 
   if (imgOccSub > 0) {
-    TM_DEBUG_STREAM("Before occ_map...");
+    //TM_DEBUG_STREAM("Before occ_map...");
     err = sl_map.generateTerrainMap(mOccMapImg, sl::MAT_TYPE::U8_C1, sl::LayerName::OCCUPANCY);
     if (err == sl::ERROR_CODE::SUCCESS && mOccMapImg.isInit()) {
       TM_DEBUG_STREAM("Terrain mapping: OCCUPANCY map OK");
@@ -5966,11 +5969,11 @@ bool ZedCamera::publishLocalMap()
         get_logger(), "Terrain mapping generate OCCUPANCY layer error: " << sl::toString(
           err).c_str());
     }
-    TM_DEBUG_STREAM("... after occ_map");
+    //TM_DEBUG_STREAM("... after occ_map");
   }
 
   if (imgColSub > 0) {
-    TM_DEBUG_STREAM("Before color_map...");
+    //TM_DEBUG_STREAM("Before color_map...");
     err = sl_map.generateTerrainMap(mColorMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
     if (err == sl::ERROR_CODE::SUCCESS && mColorMapImg.isInit()) {
       TM_DEBUG_STREAM("Terrain mapping: COLOR map OK");
@@ -5980,11 +5983,11 @@ bool ZedCamera::publishLocalMap()
         get_logger(), "Terrain mapping generate COLOR layer error: " << sl::toString(
           err).c_str());
     }
-    TM_DEBUG_STREAM("... after color_map");
+    //TM_DEBUG_STREAM("... after color_map");
   }
 
   if (imgElevSub > 0) {
-    TM_DEBUG_STREAM("Before elev_map...");
+    //TM_DEBUG_STREAM("Before elev_map...");
     err = sl_map.generateTerrainMap(mElevMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::ELEVATION);
     if (err == sl::ERROR_CODE::SUCCESS && mElevMapImg.isInit()) {
       TM_DEBUG_STREAM("Terrain mapping: ELEVATION map OK");
@@ -5994,7 +5997,7 @@ bool ZedCamera::publishLocalMap()
         get_logger(), "Terrain mapping generate ELEVATION layer error: " << sl::toString(
           err).c_str());
     }
-    TM_DEBUG_STREAM("... after elev_map");
+    //TM_DEBUG_STREAM("... after elev_map");
   }
 
   return true;

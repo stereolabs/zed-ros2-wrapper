@@ -44,7 +44,7 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         depth:
-            quality: 1 # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - '4': NEURAL - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            quality: 4 # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - '4': NEURAL - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             sensing_mode: 0 # '0': STANDARD, '1': FILL
             depth_stabilization: true # Forces positional tracking to start if 'true'
             openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
@@ -91,8 +91,8 @@
             
         mapping:
             mapping_enabled: false # True to enable mapping and fused point cloud pubblication
-            resolution: 0.1 # maps resolution in meters [0.01f, 0.2f]
-            max_mapping_range: 5.0 # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
+            resolution: 0.05 # maps resolution in meters [0.01f, 0.2f]
+            max_mapping_range: 3.0 # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
             fused_pointcloud_freq: 1.0 # frequency of the publishing of the fused colored point cloud
             clicked_point_topic: "/clicked_point" # Topic published by Rviz when a point of the cloud is clicked. Used for plane detection
             qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
@@ -136,4 +136,4 @@
             debug_sensors: false
             debug_mapping : false
             debug_terrain_mapping : true
-            debug_object_detection : true
+            debug_object_detection : false

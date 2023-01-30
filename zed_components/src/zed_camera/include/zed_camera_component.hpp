@@ -385,13 +385,13 @@ private:
   float mMappingRangeMax = 10.0f;
   bool mTerrainMappingEnabled = false;
   float mTerrainMapPubFreq = 5.0f;  // Frequency of data publishing
-  float mTerrainMappingRes = 0.1f;  // Terrain mapping resolution
-  float mTerrainMappingRange = 5.0f;  // Terrain mapping range
+  float mTerrainMappingRes = 0.05f;  // Terrain mapping resolution
+  float mTerrainMappingRange = 2.0f;  // Terrain mapping range
   float mTerrainMaxStep = 0.1f;  // Max obstacle height
   float mTerrainMaxSlope = 45.0f;  // Max slope in degree
   float mTerrainMaxRoughness = 0.5;  // Max Terrain roughness (for future usage)
   float mRobotRadius = 0.4;  // Radius of the robot
-  float mRobotHeight = 1.0;  // Height of the robot
+  float mRobotHeight = 0.8;  // Height of the robot
   bool mObjDetEnabled = false;
   bool mObjDetTracking = true;
   float mObjDetConfidence = 40.0f;
@@ -560,7 +560,7 @@ private:
   imagePub mPubColMapImg;
   imagePub mPubOccMapImg;
   imagePub mPubTravMapImg;
-  gridMapPub mPubElevMap;
+  gridMapPub mPubGridMap;
   // <---- Publishers
 
   // <---- Publisher variables

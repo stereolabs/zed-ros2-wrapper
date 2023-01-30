@@ -130,7 +130,10 @@
 
         debug:
             debug_common: false
-            debug_threading: true
+            debug_video_depth: false
+            debug_point_cloud: false
             debug_positional_tracking: false
             debug_sensors: false
-            debug_terrain_mapping : false
+            debug_mapping : false
+            debug_terrain_mapping : true
+            debug_object_detection : true

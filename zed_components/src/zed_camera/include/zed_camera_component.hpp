@@ -319,10 +319,13 @@ private:
   // ----> Parameter variables
   bool mDebugMode = false;
   bool mDebugCommon = false;
+  bool mDebugVideoDepth = false;
+  bool mDebugPointCloud = false;
   bool mDebugPosTracking = false;
   bool mDebugSensors = false;
+  bool mDebugMapping = false;
   bool mDebugTerrainMapping = false;
-  bool mDebugThread = false;
+  bool mDebugObjectDet = false;
   int mCamId = 0;
   int mCamSerialNumber = 0;
   sl::MODEL mCamUserModel = sl::MODEL::ZED;  // Default camera model

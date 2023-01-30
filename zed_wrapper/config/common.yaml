@@ -129,6 +129,8 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         debug:
-            debug_mode: false
+            debug_common: false
+            debug_threading: true
+            debug_positional_tracking: false
             debug_sensors: false
             debug_terrain_mapping : false

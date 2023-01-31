@@ -107,7 +107,9 @@ set(DEPENDENCIES
     shape_msgs
 )
 
-find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
+
 find_package(rcutils REQUIRED)
 find_package(zed_interfaces)
 find_package(rclcpp REQUIRED)

@@ -5847,7 +5847,10 @@ bool ZedCamera::publishLocalMap()
   }
 
   if (mPosTrackingStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
-    RCLCPP_INFO(get_logger(), "Terrain mapping: positional tracking not ready");
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Terrain mapping: positional tracking not ready: " << sl::toString(
+        mPosTrackingStatus).c_str());
     return false;
   }
 

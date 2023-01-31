@@ -589,8 +589,7 @@ private:
   sl::Mat mMatLeftGray, mMatLeftRawGray;
   sl::Mat mMatRightGray, mMatRightRawGray;
   sl::Mat mMatDepth, mMatDisp, mMatConf;
-  sl::Mat mTravMapImg, mOccMapImg, mColorMapImg, mElevMapImg;
-  sl::Mat mTravMap, mOccMap, mColorMap, mElevMap;
+
   float mMinDepth = 0.0f;
   float mMaxDepth = 0.0f;
   // <---- Publisher variables

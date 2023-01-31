@@ -5897,25 +5897,31 @@ bool ZedCamera::publishLocalMap()
     return false;
   }
 
+  sl::Mat travMapImg, occMapImg, colorMapImg, elevMapImg;
+  sl::Mat elevMap;
+
   if (gridMapSub > 0) {
     bool gridmap_ok = false;
     TM_DEBUG_STREAM_ONCE("Terrain Mapping subscribed")
     std::unique_ptr<grid_map_msgs::msg::GridMap> msg =
       std::make_unique<grid_map_msgs::msg::GridMap>();
     grid_map::GridMap gridmap;
-    err = sl_map.generateTerrainMap(mElevMap, sl::MAT_TYPE::F32_C1, sl::LayerName::ELEVATION);
+    gridmap.setFrameId(mDepthFrameId);
+    err = sl_map.generateTerrainMap(elevMap, sl::MAT_TYPE::F32_C1, sl::LayerName::ELEVATION);
 
-    // Main layer: elevation
-    if (err == sl::ERROR_CODE::SUCCESS && mElevMap.isInit()) {
+    // Main layer "elevation" and initialization
+    if (err == sl::ERROR_CODE::SUCCESS && elevMap.isInit()) {
       gridmap_ok = true;
 
-      double w = mElevMap.getWidth();
-      double h = mElevMap.getHeight();
+      double w = elevMap.getWidth();
+      double h = elevMap.getHeight();
       double w_m = mTerrainMappingRes * w;
       double h_m = mTerrainMappingRes * h;
-      gridmap.setGeometry(grid_map::Length(w_m, h_m), mTerrainMappingRes, grid_map::Position(0.0, 0.0));
+      gridmap.setGeometry(
+        grid_map::Length(w_m, h_m), mTerrainMappingRes,
+        grid_map::Position(0.0, 0.0));
       gridmap.add("elevation", std::numeric_limits<double>::quiet_NaN());
-      gridmap.setBasicLayers( {"elevation"});
+      gridmap.setBasicLayers({"elevation"});
 
       TM_DEBUG_STREAM(
         "Created map with size " << gridmap.getLength().x() << "x" << gridmap.getLength().y()
@@ -5928,17 +5934,23 @@ bool ZedCamera::publishLocalMap()
       for (grid_map::GridMapIterator it(gridmap); !it.isPastEnd(); ++it) {
         sl::float1 value;
         // By dereferencing the iterator we can obtain a `grid_map::Index`
-        mElevMap.getValue((*it).y(), h - (*it).x(), &value); // Vertical index is inverted in SDK
+        elevMap.getValue((*it).y(), h - (*it).x(), &value); // Vertical index is inverted in SDK. Remove "h -" when fixed
         gridmap.at("elevation", *it) = static_cast<double>(value);
       }
     }
 
-    // TODO(Walter) Add other layers
+    // "color" layer
+    // Note: the color layer is not yet inverted.
+    err = sl_map.generateTerrainMap(colorMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
+    if (err == sl::ERROR_CODE::SUCCESS && colorMapImg.isInit()) {
+
+      auto ros_img = sl_tools::imageToROSmsg(colorMapImg, mDepthFrameId, timeStamp);
+
+      grid_map::GridMapRosConverter::addColorLayerFromImage(*ros_img, "color", gridmap);
+    }
 
     if (gridmap_ok) {
       gridmap.setTimestamp(timeStamp.nanoseconds());
-      gridmap.setFrameId(mDepthFrameId);
-
       msg = grid_map::GridMapRosConverter::toMessage(gridmap);
       mPubGridMap->publish(std::move(msg));
     }
@@ -5948,11 +5960,11 @@ bool ZedCamera::publishLocalMap()
     //TM_DEBUG_STREAM("Before trav_map...");
     err =
       sl_map.generateTerrainMap(
-      mTravMapImg, sl::MAT_TYPE::U8_C4,
+      travMapImg, sl::MAT_TYPE::U8_C4,
       sl::LayerName::TRAVERSABILITY_COST);
-    if (err == sl::ERROR_CODE::SUCCESS && mTravMapImg.isInit()) {
+    if (err == sl::ERROR_CODE::SUCCESS && travMapImg.isInit()) {
       TM_DEBUG_STREAM("Terrain mapping: TRAVERSABILITY_COST map OK");
-      mPubTravMapImg->publish(*sl_tools::imageToROSmsg(mTravMapImg, mDepthFrameId, timeStamp));
+      mPubTravMapImg->publish(*sl_tools::imageToROSmsg(travMapImg, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
         get_logger(), "Terrain mapping generate TRAVERSABILITY_COST layer error: " << sl::toString(
@@ -5963,10 +5975,10 @@ bool ZedCamera::publishLocalMap()
 
   if (imgOccSub > 0) {
     //TM_DEBUG_STREAM("Before occ_map...");
-    err = sl_map.generateTerrainMap(mOccMapImg, sl::MAT_TYPE::U8_C1, sl::LayerName::OCCUPANCY);
-    if (err == sl::ERROR_CODE::SUCCESS && mOccMapImg.isInit()) {
+    err = sl_map.generateTerrainMap(occMapImg, sl::MAT_TYPE::U8_C1, sl::LayerName::OCCUPANCY);
+    if (err == sl::ERROR_CODE::SUCCESS && occMapImg.isInit()) {
       TM_DEBUG_STREAM("Terrain mapping: OCCUPANCY map OK");
-      mPubOccMapImg->publish(*sl_tools::imageToROSmsg(mOccMapImg, mDepthFrameId, timeStamp));
+      mPubOccMapImg->publish(*sl_tools::imageToROSmsg(occMapImg, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
         get_logger(), "Terrain mapping generate OCCUPANCY layer error: " << sl::toString(
@@ -5977,10 +5989,12 @@ bool ZedCamera::publishLocalMap()
 
   if (imgColSub > 0) {
     //TM_DEBUG_STREAM("Before color_map...");
-    err = sl_map.generateTerrainMap(mColorMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
-    if (err == sl::ERROR_CODE::SUCCESS && mColorMapImg.isInit()) {
+    if (!colorMapImg.isInit()) {
+      err = sl_map.generateTerrainMap(colorMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
+    }
+    if (err == sl::ERROR_CODE::SUCCESS && colorMapImg.isInit()) {
       TM_DEBUG_STREAM("Terrain mapping: COLOR map OK");
-      mPubColMapImg->publish(*sl_tools::imageToROSmsg(mColorMapImg, mDepthFrameId, timeStamp));
+      mPubColMapImg->publish(*sl_tools::imageToROSmsg(colorMapImg, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
         get_logger(), "Terrain mapping generate COLOR layer error: " << sl::toString(
@@ -5991,10 +6005,10 @@ bool ZedCamera::publishLocalMap()
 
   if (imgElevSub > 0) {
     //TM_DEBUG_STREAM("Before elev_map...");
-    err = sl_map.generateTerrainMap(mElevMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::ELEVATION);
-    if (err == sl::ERROR_CODE::SUCCESS && mElevMapImg.isInit()) {
+    err = sl_map.generateTerrainMap(elevMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::ELEVATION);
+    if (err == sl::ERROR_CODE::SUCCESS && elevMapImg.isInit()) {
       TM_DEBUG_STREAM("Terrain mapping: ELEVATION map OK");
-      mPubElevMapImg->publish(*sl_tools::imageToROSmsg(mElevMapImg, mDepthFrameId, timeStamp));
+      mPubElevMapImg->publish(*sl_tools::imageToROSmsg(elevMapImg, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
         get_logger(), "Terrain mapping generate ELEVATION layer error: " << sl::toString(

@@ -386,10 +386,10 @@ private:
   bool mTerrainMappingEnabled = false;
   float mTerrainMapPubFreq = 5.0f;  // Frequency of data publishing
   float mTerrainMappingRes = 0.05f;  // Terrain mapping resolution
-  float mTerrainMappingRange = 2.0f;  // Terrain mapping range
+  float mTerrainMappingRange = 4.0f;  // Terrain mapping range
   float mTerrainMaxStep = 0.1f;  // Max obstacle height
   float mTerrainMaxSlope = 45.0f;  // Max slope in degree
-  float mTerrainMaxRoughness = 0.5;  // Max Terrain roughness (for future usage)
+  float mTerrainMaxRoughness = 0.3;  // Max Terrain roughness (for future usage)
   float mRobotRadius = 0.4;  // Radius of the robot
   float mRobotHeight = 0.8;  // Height of the robot
   bool mObjDetEnabled = false;
@@ -604,7 +604,7 @@ private:
   // <---- Subscribers
 
   // ----> Terraing Mapping
-  sl::Terrain sl_map;
+  //sl::Terrain sl_map;
   // <---- Terraing Mapping
 
   // ----> Threads and Timers

@@ -1088,6 +1088,30 @@ void ZedCamera::getTerrainMappingParams()
     "local_mapping.max_mapping_range", mTerrainMappingRange, mTerrainMappingRange,
     " * Terrain Mapping range [m]: ");
 
+  getParam(
+    "local_mapping.resolution", mTerrainMappingRes, mTerrainMappingRes,
+    " * Terrain Mapping resolution [m]: ");
+
+  getParam(
+    "local_mapping.agent_height", mRobotHeight, mRobotHeight,
+    " * Agent height [m]: ");
+
+  getParam(
+    "local_mapping.agent_radius", mRobotRadius, mRobotRadius,
+    " * Agent radius [m]: ");
+
+  getParam(
+    "local_mapping.max_terrain_step", mTerrainMaxStep, mTerrainMaxStep,
+    " * Terrain Mapping max step [m]: ");
+
+  getParam(
+    "local_mapping.max_terrain_slope", mTerrainMaxSlope, mTerrainMaxSlope,
+    " * Terrain Mapping max slope [deg]: ");
+
+  getParam(
+    "local_mapping.max_terrain_roughness", mTerrainMaxRoughness, mTerrainMaxRoughness,
+    " * Terrain Mapping max roughness: ");
+
 
 }
 
@@ -3187,16 +3211,23 @@ bool ZedCamera::startTerrainMapping()
 
   RCLCPP_INFO_STREAM(get_logger(), "*** Starting Terrain Mapping ***");
 
-  sl::TerrainMappingParameters params;
+  sl::TerrainMappingParameters tm_params;
+  sl::AgentParameters agent_params;
 
-  params.enable_traversability_cost_computation = true;
-  params.setGridResolution(sl::UNIT::METER, mTerrainMappingRes);
-  params.setRange(mTerrainMappingRange);
-  params.setAgentParameters(
-    sl::UNIT::METER,
-    mTerrainMaxStep, mTerrainMaxSlope, mRobotRadius, mRobotHeight, mTerrainMaxRoughness);
+  tm_params.setTerrainResolution(sl::UNIT::METER, mTerrainMappingRes);
+  tm_params.setTerrainRange(sl::UNIT::METER, mTerrainMappingRange);
 
-  sl::ERROR_CODE err = mZed.enableTerrainMapping(params);
+  agent_params.height = mRobotHeight;
+  agent_params.radius = mRobotRadius;
+  agent_params.roughness = mTerrainMaxRoughness;
+  agent_params.slope = mTerrainMaxSlope;
+  agent_params.step = mTerrainMaxStep;
+  agent_params.enable_traversability_cost_computation = true;
+
+  tm_params.setAgentParameters(agent_params);
+
+
+  sl::ERROR_CODE err = mZed.enableTerrainMapping(tm_params);
 
   if (err != sl::ERROR_CODE::SUCCESS) {
     mTerrainMappingRunning = false;
@@ -3255,14 +3286,16 @@ bool ZedCamera::startObjDetect()
   RCLCPP_INFO(get_logger(), "*** Starting Object Detection ***");
 
   sl::ObjectDetectionParameters od_p;
-  od_p.enable_mask_output = false;
+  //od_p.enable_mask_output = false;
   od_p.enable_tracking = mObjDetTracking;
   od_p.image_sync = true;
   od_p.detection_model = mObjDetModel;
   od_p.filtering_mode = mObjFilterMode;
-  od_p.enable_body_fitting = mObjDetBodyFitting;
-  od_p.body_format = mObjDetBodyFmt;
+  //od_p.enable_body_fitting = mObjDetBodyFitting;
+  //od_p.body_format = mObjDetBodyFmt;
   od_p.prediction_timeout_s = mObjDetPredTimeout;
+
+  // TODO(Walter) for SDK v4 integration the OD module must be reworked!!!
 
   mObjDetFilter.clear();
   if (mObjDetPeopleEnable) {
@@ -5318,42 +5351,44 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
     memcpy(&(objMsg->objects[idx].dimensions_3d[0]), &(data.dimensions[0]), 3 * sizeof(float));
 
-    objMsg->objects[idx].body_format = static_cast<uint8_t>(mObjDetBodyFmt);
+    // TODO(Walter) for SDK v4 integration the OD module must be reworked!!!
 
-    if (
-      mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE ||
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
-      mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM ||
-#endif
-      mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_FAST)
-    {
-      objMsg->objects[idx].skeleton_available = true;
+//     objMsg->objects[idx].body_format = static_cast<uint8_t>(mObjDetBodyFmt);
 
-      if (data.head_bounding_box_2d.size() == 4) {
-        memcpy(
-          &(objMsg->objects[idx].head_bounding_box_2d.corners[0]), &(data.head_bounding_box_2d[0]),
-          8 * sizeof(unsigned int));
-      }
-      if (data.head_bounding_box.size() == 8) {
-        memcpy(
-          &(objMsg->objects[idx].head_bounding_box_3d.corners[0]), &(data.head_bounding_box[0]),
-          24 * sizeof(float));
-      }
-      memcpy(&(objMsg->objects[idx].head_position[0]), &(data.head_position[0]), 3 * sizeof(float));
+//     if (
+//       mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE ||
+// #if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
+//       mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM ||
+// #endif
+//       mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_FAST)
+//     {
+//       objMsg->objects[idx].skeleton_available = true;
 
-      uint8_t kp_size = data.keypoint_2d.size();
-      if (kp_size == 18 || kp_size == 34) {
-        memcpy(
-          &(objMsg->objects[idx].skeleton_2d.keypoints[0]), &(data.keypoint_2d[0]),
-          2 * kp_size * sizeof(float));
+//       if (data.head_bounding_box_2d.size() == 4) {
+//         memcpy(
+//           &(objMsg->objects[idx].head_bounding_box_2d.corners[0]), &(data.head_bounding_box_2d[0]),
+//           8 * sizeof(unsigned int));
+//       }
+//       if (data.head_bounding_box.size() == 8) {
+//         memcpy(
+//           &(objMsg->objects[idx].head_bounding_box_3d.corners[0]), &(data.head_bounding_box[0]),
+//           24 * sizeof(float));
+//       }
+//       memcpy(&(objMsg->objects[idx].head_position[0]), &(data.head_position[0]), 3 * sizeof(float));
 
-        memcpy(
-          &(objMsg->objects[idx].skeleton_3d.keypoints[0]), &(data.keypoint[0]),
-          3 * kp_size * sizeof(float));
-      }
-    } else {
-      objMsg->objects[idx].skeleton_available = false;
-    }
+//       uint8_t kp_size = data.keypoint_2d.size();
+//       if (kp_size == 18 || kp_size == 34) {
+//         memcpy(
+//           &(objMsg->objects[idx].skeleton_2d.keypoints[0]), &(data.keypoint_2d[0]),
+//           2 * kp_size * sizeof(float));
+
+//         memcpy(
+//           &(objMsg->objects[idx].skeleton_3d.keypoints[0]), &(data.keypoint[0]),
+//           3 * kp_size * sizeof(float));
+//       }
+//     } else {
+//       objMsg->objects[idx].skeleton_available = false;
+//     }
 
     // at the end of the loop
     idx++;
@@ -5421,6 +5456,9 @@ void ZedCamera::applyDepthSettings()
 
 void ZedCamera::applyVideoSettings()
 {
+  // TODO(Walter) SDK v4 -> Handle set/get error codes!
+  // TODO(Walter) SDK v4 -> Add new settings for ZED-X
+
   if (!mSvoMode && mFrameCount % 5 == 0) {
     mDynParMutex.lock();
     if (mCamAutoExpGain) {
@@ -5429,12 +5467,14 @@ void ZedCamera::applyVideoSettings()
         mTriggerAutoExpGain = false;
       }
     } else {
-      int exposure = mZed.getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE);
+      int exposure;
+      mZed.getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, exposure);
       if (exposure != mCamExposure) {
         mZed.setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, mCamExposure);
       }
 
-      int gain = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAIN);
+      int gain;
+      mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAIN, gain);
       if (gain != mCamGain) {
         mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAIN, mCamGain);
       }
@@ -5445,32 +5485,39 @@ void ZedCamera::applyVideoSettings()
         mTriggerAutoWB = false;
       }
     } else {
-      int wb = mZed.getCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE);
+      int wb;
+      mZed.getCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, wb);
       if (wb != mCamWBTemp) {
         mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, mCamWBTemp);
       }
     }
-    int brgt = mZed.getCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS);
+    int brgt;
+    mZed.getCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, brgt);
     if (brgt != mCamBrightness) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, mCamBrightness);
     }
-    int contr = mZed.getCameraSettings(sl::VIDEO_SETTINGS::CONTRAST);
+    int contr;
+    mZed.getCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, contr);
     if (contr != mCamContrast) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, mCamContrast);
     }
-    int hue = mZed.getCameraSettings(sl::VIDEO_SETTINGS::HUE);
+    int hue;
+    mZed.getCameraSettings(sl::VIDEO_SETTINGS::HUE, hue);
     if (hue != mCamHue) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::HUE, mCamHue);
     }
-    int sat = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SATURATION);
+    int sat;
+    mZed.getCameraSettings(sl::VIDEO_SETTINGS::SATURATION, sat);
     if (sat != mCamSaturation) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::SATURATION, mCamSaturation);
     }
-    int sharp = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS);
+    int sharp;
+    mZed.getCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS, sharp);
     if (sharp != mCamSharpness) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS, mCamSharpness);
     }
-    int gamma = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAMMA);
+    int gamma;
+    mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAMMA, gamma);
     if (gamma != mCamGamma) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAMMA, mCamGamma);
     }
@@ -5890,7 +5937,9 @@ bool ZedCamera::publishLocalMap()
   sl::ERROR_CODE err;
 
   //TM_DEBUG_STREAM("Before retrieveTerrain...");
-  err = mZed.retrieveTerrain(sl_map);
+  const sl::REFERENCE_FRAME terrain_ref = sl::REFERENCE_FRAME::CAMERA;
+  sl::Terrain sl_map;
+  err = mZed.retrieveTerrainMap(sl_map, terrain_ref);
   //TM_DEBUG_STREAM("... after retrieveTerrain");
 
   if (err != sl::ERROR_CODE::SUCCESS) {
@@ -5901,7 +5950,7 @@ bool ZedCamera::publishLocalMap()
   }
 
   sl::Mat travMapImg, occMapImg, colorMapImg, elevMapImg;
-  sl::Mat elevMap;
+  sl::Mat elevMap, costMap, occMap;
 
   if (gridMapSub > 0) {
     bool gridmap_ok = false;
@@ -5909,7 +5958,7 @@ bool ZedCamera::publishLocalMap()
     std::unique_ptr<grid_map_msgs::msg::GridMap> msg =
       std::make_unique<grid_map_msgs::msg::GridMap>();
     grid_map::GridMap gridmap;
-    gridmap.setFrameId(mDepthFrameId);
+    gridmap.setFrameId(mBaseFrameId);
     err = sl_map.generateTerrainMap(elevMap, sl::MAT_TYPE::F32_C1, sl::LayerName::ELEVATION);
 
     // Main layer "elevation" and initialization
@@ -5923,7 +5972,6 @@ bool ZedCamera::publishLocalMap()
       gridmap.setGeometry(
         grid_map::Length(w_m, h_m), mTerrainMappingRes,
         grid_map::Position(0.0, 0.0));
-      gridmap.add("elevation", std::numeric_limits<double>::quiet_NaN());
       gridmap.setBasicLayers({"elevation"});
 
       TM_DEBUG_STREAM(
@@ -5934,22 +5982,50 @@ bool ZedCamera::publishLocalMap()
         "Map center: (" << gridmap.getPosition().x() << "," << gridmap.getPosition().y() << ") Frame: " <<
           gridmap.getFrameId().c_str());
 
+      gridmap.add("elevation", std::numeric_limits<double>::quiet_NaN());
       for (grid_map::GridMapIterator it(gridmap); !it.isPastEnd(); ++it) {
         sl::float1 value;
         // By dereferencing the iterator we can obtain a `grid_map::Index`
-        elevMap.getValue((*it).y(), h - (*it).x(), &value); // Vertical index is inverted in SDK. Remove "h -" when fixed
+        elevMap.getValue((*it).y(), /*h -*/ (*it).x(), &value); // Vertical index is inverted in SDK. Remove "h -" when fixed
         gridmap.at("elevation", *it) = static_cast<double>(value);
       }
     }
 
     // "color" layer
-    // Note: the color layer is not yet inverted.
     err = sl_map.generateTerrainMap(colorMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
     if (err == sl::ERROR_CODE::SUCCESS && colorMapImg.isInit()) {
 
       auto ros_img = sl_tools::imageToROSmsg(colorMapImg, mDepthFrameId, timeStamp);
 
       grid_map::GridMapRosConverter::addColorLayerFromImage(*ros_img, "color", gridmap);
+    }
+
+    // "trav_cost" layer
+    err = sl_map.generateTerrainMap(
+      costMap, sl::MAT_TYPE::F32_C1,
+      sl::LayerName::TRAVERSABILITY_COST);
+    if (err == sl::ERROR_CODE::SUCCESS && costMap.isInit()) {
+      gridmap.add("trav_cost", std::numeric_limits<double>::quiet_NaN());
+      for (grid_map::GridMapIterator it(gridmap); !it.isPastEnd(); ++it) {
+        sl::float1 value;
+        // By dereferencing the iterator we can obtain a `grid_map::Index`
+        costMap.getValue((*it).y(), /*h -*/ (*it).x(), &value); // Vertical index is inverted in SDK. Remove "h -" when fixed
+        gridmap.at("trav_cost", *it) = static_cast<double>(value);
+      }
+    }
+
+    // "occupancy" layer
+    err = sl_map.generateTerrainMap(
+      occMap, sl::MAT_TYPE::F32_C1,
+      sl::LayerName::OCCUPANCY);
+    if (err == sl::ERROR_CODE::SUCCESS && occMap.isInit()) {
+      gridmap.add("occupancy", std::numeric_limits<double>::quiet_NaN());
+      for (grid_map::GridMapIterator it(gridmap); !it.isPastEnd(); ++it) {
+        sl::float1 value;
+        // By dereferencing the iterator we can obtain a `grid_map::Index`
+        occMap.getValue((*it).y(), /*h -*/ (*it).x(), &value); // Vertical index is inverted in SDK. Remove "h -" when fixed
+        gridmap.at("occupancy", *it) = static_cast<double>(value);
+      }
     }
 
     if (gridmap_ok) {
@@ -5966,7 +6042,7 @@ bool ZedCamera::publishLocalMap()
       travMapImg, sl::MAT_TYPE::U8_C4,
       sl::LayerName::TRAVERSABILITY_COST);
     if (err == sl::ERROR_CODE::SUCCESS && travMapImg.isInit()) {
-      TM_DEBUG_STREAM("Terrain mapping: TRAVERSABILITY_COST map OK");
+      //TM_DEBUG_STREAM("Terrain mapping: TRAVERSABILITY_COST map OK");
       mPubTravMapImg->publish(*sl_tools::imageToROSmsg(travMapImg, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
@@ -5980,7 +6056,7 @@ bool ZedCamera::publishLocalMap()
     //TM_DEBUG_STREAM("Before occ_map...");
     err = sl_map.generateTerrainMap(occMapImg, sl::MAT_TYPE::U8_C1, sl::LayerName::OCCUPANCY);
     if (err == sl::ERROR_CODE::SUCCESS && occMapImg.isInit()) {
-      TM_DEBUG_STREAM("Terrain mapping: OCCUPANCY map OK");
+      //TM_DEBUG_STREAM("Terrain mapping: OCCUPANCY map OK");
       mPubOccMapImg->publish(*sl_tools::imageToROSmsg(occMapImg, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
@@ -5996,7 +6072,7 @@ bool ZedCamera::publishLocalMap()
       err = sl_map.generateTerrainMap(colorMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
     }
     if (err == sl::ERROR_CODE::SUCCESS && colorMapImg.isInit()) {
-      TM_DEBUG_STREAM("Terrain mapping: COLOR map OK");
+      //TM_DEBUG_STREAM("Terrain mapping: COLOR map OK");
       mPubColMapImg->publish(*sl_tools::imageToROSmsg(colorMapImg, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(
@@ -6010,7 +6086,7 @@ bool ZedCamera::publishLocalMap()
     //TM_DEBUG_STREAM("Before elev_map...");
     err = sl_map.generateTerrainMap(elevMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::ELEVATION);
     if (err == sl::ERROR_CODE::SUCCESS && elevMapImg.isInit()) {
-      TM_DEBUG_STREAM("Terrain mapping: ELEVATION map OK");
+      //TM_DEBUG_STREAM("Terrain mapping: ELEVATION map OK");
       mPubElevMapImg->publish(*sl_tools::imageToROSmsg(elevMapImg, mDepthFrameId, timeStamp));
     } else {
       RCLCPP_WARN_STREAM(

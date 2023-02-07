@@ -352,7 +352,8 @@ private:
   bool mUseOldExtrinsic = false;
   bool mPosTrackingEnabled = false;
   bool mGnssFusionEnabled = false;
-  std::string mGnssTopic = "/fix";
+  std::string mGnssTopic = "/gps/fix";
+  bool mGnnsZeroAltitude = false;
   bool mPublishTF = true;
   bool mPublishMapTF = true;
   bool mPublishImuTF = true;

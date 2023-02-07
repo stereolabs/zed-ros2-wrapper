@@ -1025,6 +1025,10 @@ void ZedCamera::getPosTrackingParams()
 
   if (mGnssFusionEnabled) {
     getParam("pos_tracking.gnss_fix_topic", mGnssTopic, mGnssTopic, " * GNSS topic name: ");
+    getParam("pos_tracking.gnss_zero_altitude", mGnnsZeroAltitude,mGnnsZeroAltitude);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * GNSS Zero Altitude: " << (mGnnsZeroAltitude ? "TRUE" : "FALSE"));
   }
 
   getParam(
@@ -6417,6 +6421,9 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   // <---- Check timestamp
 
   double altit = msg->altitude;
+  if(mGnnsZeroAltitude) {
+    altit = 0.0;
+  }
   double latit = msg->latitude;
   double longit = msg->longitude;
 
@@ -6433,6 +6440,9 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
     gnssData.latitude_std = msg->position_covariance[0] * DEG2RAD;
     gnssData.longitude_std = msg->position_covariance[4] * DEG2RAD;
     gnssData.altitude_std = msg->position_covariance[8];
+    if(mGnnsZeroAltitude) {
+      gnssData.altitude_std = 0.0;
+    }
 
     gnssData.ecef_position_std = msg->position_covariance[0];
     gnssData.ecef_vertical_std = msg->position_covariance[8];

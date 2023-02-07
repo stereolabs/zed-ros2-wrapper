@@ -55,10 +55,8 @@
       <xacro:property name="bottom_slope" value="0.0" />
       <xacro:property name="screw_offset_x" value="-0.01" />
       <xacro:property name="optical_offset_x" value="-0.01" />
-    </xacro:if>
-
-
-
+    </xacro:if>  
+    
     <!-- Camera mounting point (the threaded screw hole in the bottom) -->
     <link name="${name}_base_link" />
     <joint name="${name}_base_joint" type="fixed">
@@ -71,7 +69,11 @@
     <!-- Camera Center -->
     <link name="${name}_camera_center">
       <visual>
-        <origin xyz="${screw_offset_x} 0 0" rpy="0 0 0"/>
+        <origin xyz=
+
+
+
+    "${screw_offset_x} 0 0" rpy="0 0 0"/>
         <geometry>
           <mesh filename="package://zed_interfaces/meshes/${model}.stl" />
         </geometry>
@@ -152,5 +154,6 @@
         <origin xyz="0 0 0" rpy="0 0 0" />
       </joint>
     </xacro:if>
+
   </xacro:macro>
 </robot>

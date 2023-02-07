@@ -623,6 +623,7 @@ private:
   sl::RecordingStatus mRecStatus = sl::RecordingStatus();
   bool mPosTrackingReady = false;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
+  sl::POSITIONAL_TRACKING_STATE mGnssPosStatus;
   bool mResetOdom = false;
   bool mMappingRunning = false;
   bool mObjDetRunning = false;
@@ -637,6 +638,9 @@ private:
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
   std::vector<geometry_msgs::msg::PoseStamped> mMapPath;
+  sl::ECEF mLastEcefPose;
+  sl::UTM mLastUtmPose;
+  sl::LatLng mLastLatLongPose;
   // <---- Positional Tracking
 
   // Diagnostic

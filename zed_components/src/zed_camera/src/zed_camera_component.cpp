@@ -1025,7 +1025,7 @@ void ZedCamera::getPosTrackingParams()
 
   if (mGnssFusionEnabled) {
     getParam("pos_tracking.gnss_fix_topic", mGnssTopic, mGnssTopic, " * GNSS topic name: ");
-    getParam("pos_tracking.gnss_zero_altitude", mGnnsZeroAltitude,mGnnsZeroAltitude);
+    getParam("pos_tracking.gnss_zero_altitude", mGnnsZeroAltitude, mGnnsZeroAltitude);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * GNSS Zero Altitude: " << (mGnnsZeroAltitude ? "TRUE" : "FALSE"));
@@ -3093,13 +3093,13 @@ bool ZedCamera::startObjDetect()
   RCLCPP_INFO(get_logger(), "*** Starting Object Detection ***");
 
   sl::ObjectDetectionParameters od_p;
-  od_p.enable_mask_output = false;
+  //od_p.enable_mask_output = false;
   od_p.enable_tracking = mObjDetTracking;
   od_p.image_sync = true;
   od_p.detection_model = mObjDetModel;
   od_p.filtering_mode = mObjFilterMode;
-  od_p.enable_body_fitting = mObjDetBodyFitting;
-  od_p.body_format = mObjDetBodyFmt;
+  //od_p.enable_body_fitting = mObjDetBodyFitting;
+  //od_p.body_format = mObjDetBodyFmt;
   od_p.prediction_timeout_s = mObjDetPredTimeout;
 
   mObjDetFilter.clear();
@@ -4900,24 +4900,10 @@ void ZedCamera::processPose()
     return;
   }
 
-  // TODO(Walter) Use two different pose publisher for sl::REFERENCE_FRAME::WORLD
-  // and sl::REFERENCE_FRAME::GNSS?
+  mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
 
-  static sl::POSITIONAL_TRACKING_STATE oldStatus;
   if (mGnssFusionEnabled) {
-    mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::GNSS);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "ECEF:" << mLastZedPose.ecef[0] << "°," << mLastZedPose.ecef[1] << "° / " <<
-        mLastZedPose.ecef[2] <<
-        " m");
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "RAW GNSS:" << mLastZedPose.raw_gnss[0] << "°," << mLastZedPose.raw_gnss[1] << "° / " <<
-        mLastZedPose.raw_gnss[2] <<
-        " m");
-  } else {
-    mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
+    mGnssPosStatus = mZed.getComputedGNSSPosition(mLastEcefPose, mLastLatLongPose, mLastUtmPose);
   }
 
   sl::Translation translation = mLastZedPose.getTranslation();
@@ -5020,8 +5006,6 @@ void ZedCamera::processPose()
     publishPose();
     mPosTrackingReady = true;
   }
-
-  oldStatus = mPosTrackingStatus;
 }
 
 void ZedCamera::publishPose()
@@ -5207,40 +5191,40 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
     objMsg->objects[idx].body_format = static_cast<uint8_t>(mObjDetBodyFmt);
 
-    if (
-      mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE ||
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
-      mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM ||
-#endif
-      mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_FAST)
-    {
-      objMsg->objects[idx].skeleton_available = true;
+//     if (
+//       mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_ACCURATE ||
+// #if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
+//       mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_MEDIUM ||
+// #endif
+//       mObjDetModel == sl::DETECTION_MODEL::HUMAN_BODY_FAST)
+//     {
+//       objMsg->objects[idx].skeleton_available = true;
 
-      if (data.head_bounding_box_2d.size() == 4) {
-        memcpy(
-          &(objMsg->objects[idx].head_bounding_box_2d.corners[0]), &(data.head_bounding_box_2d[0]),
-          8 * sizeof(unsigned int));
-      }
-      if (data.head_bounding_box.size() == 8) {
-        memcpy(
-          &(objMsg->objects[idx].head_bounding_box_3d.corners[0]), &(data.head_bounding_box[0]),
-          24 * sizeof(float));
-      }
-      memcpy(&(objMsg->objects[idx].head_position[0]), &(data.head_position[0]), 3 * sizeof(float));
+//       if (data.head_bounding_box_2d.size() == 4) {
+//         memcpy(
+//           &(objMsg->objects[idx].head_bounding_box_2d.corners[0]), &(data.head_bounding_box_2d[0]),
+//           8 * sizeof(unsigned int));
+//       }
+//       if (data.head_bounding_box.size() == 8) {
+//         memcpy(
+//           &(objMsg->objects[idx].head_bounding_box_3d.corners[0]), &(data.head_bounding_box[0]),
+//           24 * sizeof(float));
+//       }
+//       memcpy(&(objMsg->objects[idx].head_position[0]), &(data.head_position[0]), 3 * sizeof(float));
 
-      uint8_t kp_size = data.keypoint_2d.size();
-      if (kp_size == 18 || kp_size == 34) {
-        memcpy(
-          &(objMsg->objects[idx].skeleton_2d.keypoints[0]), &(data.keypoint_2d[0]),
-          2 * kp_size * sizeof(float));
+//       uint8_t kp_size = data.keypoint_2d.size();
+//       if (kp_size == 18 || kp_size == 34) {
+//         memcpy(
+//           &(objMsg->objects[idx].skeleton_2d.keypoints[0]), &(data.keypoint_2d[0]),
+//           2 * kp_size * sizeof(float));
 
-        memcpy(
-          &(objMsg->objects[idx].skeleton_3d.keypoints[0]), &(data.keypoint[0]),
-          3 * kp_size * sizeof(float));
-      }
-    } else {
-      objMsg->objects[idx].skeleton_available = false;
-    }
+//         memcpy(
+//           &(objMsg->objects[idx].skeleton_3d.keypoints[0]), &(data.keypoint[0]),
+//           3 * kp_size * sizeof(float));
+//       }
+//     } else {
+//       objMsg->objects[idx].skeleton_available = false;
+//     }
 
     // at the end of the loop
     idx++;
@@ -5316,12 +5300,14 @@ void ZedCamera::applyVideoSettings()
         mTriggerAutoExpGain = false;
       }
     } else {
-      int exposure = mZed.getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE);
+      int exposure;
+      mZed.getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, exposure);
       if (exposure != mCamExposure) {
         mZed.setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, mCamExposure);
       }
 
-      int gain = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAIN);
+      int gain;
+      mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAIN, gain);
       if (gain != mCamGain) {
         mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAIN, mCamGain);
       }
@@ -5332,32 +5318,39 @@ void ZedCamera::applyVideoSettings()
         mTriggerAutoWB = false;
       }
     } else {
-      int wb = mZed.getCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE);
+      int wb;
+      mZed.getCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, wb);
       if (wb != mCamWBTemp) {
         mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, mCamWBTemp);
       }
     }
-    int brgt = mZed.getCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS);
+    int brgt;
+    mZed.getCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, brgt);
     if (brgt != mCamBrightness) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, mCamBrightness);
     }
-    int contr = mZed.getCameraSettings(sl::VIDEO_SETTINGS::CONTRAST);
+    int contr;
+    mZed.getCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, contr);
     if (contr != mCamContrast) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, mCamContrast);
     }
-    int hue = mZed.getCameraSettings(sl::VIDEO_SETTINGS::HUE);
+    int hue;
+    mZed.getCameraSettings(sl::VIDEO_SETTINGS::HUE, hue);
     if (hue != mCamHue) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::HUE, mCamHue);
     }
-    int sat = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SATURATION);
+    int sat;
+    mZed.getCameraSettings(sl::VIDEO_SETTINGS::SATURATION, sat);
     if (sat != mCamSaturation) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::SATURATION, mCamSaturation);
     }
-    int sharp = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS);
+    int sharp;
+    mZed.getCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS, sharp);
     if (sharp != mCamSharpness) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS, mCamSharpness);
     }
-    int gamma = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAMMA);
+    int gamma;
+    mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAMMA, gamma);
     if (gamma != mCamGamma) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAMMA, mCamGamma);
     }
@@ -6368,7 +6361,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   RCLCPP_INFO_ONCE(get_logger(), " * First message received. GNSS Sender active.");
 
   switch (msg->status.service) {
-    case sensor_msgs::msg::NavSatStatus::SERVICE_GNSS:
+    case sensor_msgs::msg::NavSatStatus::SERVICE_GPS:
       mGnssService = "GNSS";
       break;
     case sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS:
@@ -6421,7 +6414,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   // <---- Check timestamp
 
   double altit = msg->altitude;
-  if(mGnnsZeroAltitude) {
+  if (mGnnsZeroAltitude) {
     altit = 0.0;
   }
   double latit = msg->latitude;
@@ -6440,7 +6433,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
     gnssData.latitude_std = msg->position_covariance[0] * DEG2RAD;
     gnssData.longitude_std = msg->position_covariance[4] * DEG2RAD;
     gnssData.altitude_std = msg->position_covariance[8];
-    if(mGnnsZeroAltitude) {
+    if (mGnnsZeroAltitude) {
       gnssData.altitude_std = 0.0;
     }
 

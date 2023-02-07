@@ -40,6 +40,7 @@
 
   <xacro:property name="gnss_frame" value="$(arg gnss_frame)"/>
 
+  <!-- Set the position of the GNSS sensor relative to base_link if used -->
   <xacro:if value="${gnss_frame != ''}">
     <link name="$(arg gnss_frame)" />
     <joint name="$(arg gnss_frame)_joint" type="fixed">

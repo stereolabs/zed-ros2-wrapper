@@ -315,7 +315,14 @@ private:
 
   // ----> Parameter variables
   bool mDebugMode = false;
+  bool mDebugCommon = false;
+  bool mDebugVideoDepth = false;
+  bool mDebugPointCloud = false;
+  bool mDebugPosTracking = false;
   bool mDebugSensors = false;
+  bool mDebugMapping = false;
+  bool mDebugTerrainMapping = false;
+  bool mDebugObjectDet = false;
   int mCamId = 0;
   int mCamSerialNumber = 0;
   sl::MODEL mCamUserModel = sl::MODEL::ZED;  // Default camera model
@@ -353,7 +360,8 @@ private:
   bool mPosTrackingEnabled = false;
   bool mGnssFusionEnabled = false;
   std::string mGnssTopic = "/gps/fix";
-  bool mGnnsZeroAltitude = false;
+  bool mGnssZeroAltitude = false;
+  double mGnssInitDist = 5.0f; // This allow to select the distance required for the GPS data initialization
   bool mPublishTF = true;
   bool mPublishMapTF = true;
   bool mPublishImuTF = true;

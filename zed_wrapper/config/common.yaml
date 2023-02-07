@@ -63,6 +63,7 @@
             gnss_fix_topic: "/gps/fix" # Name of the GNSS topic of type NavSatFix to subscribe [Default: "/gps/fix"]
             gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
             gnss_frame: "gnss_link" # The TF frame of the GNSS sensor
+            gnss_init_distance: 5.0 # This allow to select the distance required for the GPS data initialization
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [usually overwritten by launch file] publish `odom -> base_link` TF
             publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF
@@ -128,5 +129,12 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         debug:
-            debug_mode: false
+            debug_common: false
+            debug_video_depth: false
+            debug_point_cloud: false
+            debug_positional_tracking: true
             debug_sensors: false
+            debug_mapping : false
+            debug_terrain_mapping : false
+            debug_object_detection : false
+

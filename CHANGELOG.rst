@@ -7,6 +7,8 @@ LATEST CHANGES
   - Add new launch parameter `gnss_frame` to enable the GNSS link in the ZED URDF
   - Add new node parameter `pos_tracking.gnss_zero_altitude` to ignore GNSS altitude information
   - Add new node parameter `pos_tracking.gnss_frame` to set the name of the frame link of the GNSS sensor
+  - Add new node parameter `pos_tracking.gnss_init_distance` to set the minimum GNSS distance to be run to initialize the robot position
+  
 
 2023-01-19
 ----------

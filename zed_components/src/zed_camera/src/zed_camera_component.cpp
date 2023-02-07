@@ -47,6 +47,45 @@ using namespace std::placeholders;
 #define MEDIUM_W 896
 #define MEDIUM_H 512
 
+// ----> DEBUG MACROS
+// Common
+#define COMM_DEBUG_STREAM(stream_arg) if (mDebugCommon) RCLCPP_DEBUG_STREAM( \
+    get_logger(), stream_arg)
+// Video Depth
+#define VD_DEBUG_STREAM(stream_arg) if (mDebugVideoDepth) RCLCPP_DEBUG_STREAM( \
+    get_logger(), stream_arg)
+// Point Cloud
+#define PC_DEBUG_STREAM(stream_arg) if (mDebugPointCloud) RCLCPP_DEBUG_STREAM( \
+    get_logger(), stream_arg)
+// Positional Tracking
+#define PT_DEBUG(...) if (mDebugPosTracking) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
+#define PT_DEBUG_STREAM(stream_arg) if (mDebugPosTracking) RCLCPP_DEBUG_STREAM( \
+    get_logger(), stream_arg)
+#define PT_DEBUG_STREAM_THROTTLE(duration, \
+    stream_arg) if (mDebugPosTracking) RCLCPP_DEBUG_STREAM_THROTTLE( \
+    get_logger(), steady_clock, duration, stream_arg);
+// Sensors
+#define SENS_DEBUG_STREAM(stream_arg) if (mDebugSensors) RCLCPP_DEBUG_STREAM( \
+    get_logger(), stream_arg)
+#define SENS_DEBUG_STREAM_ONCE(stream_arg) if (mDebugSensors) RCLCPP_DEBUG_STREAM_ONCE( \
+    get_logger(), stream_arg)
+// Mapping
+#define MAP_DEBUG(...) if (mDebugMapping) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
+#define MAP_DEBUG_STREAM(stream_arg) if (mDebugMapping) RCLCPP_DEBUG_STREAM( \
+    get_logger(), stream_arg)
+#define MAP_DEBUG_STREAM_ONCE(stream_arg) if (mDebugMapping) RCLCPP_DEBUG_STREAM_ONCE( \
+    get_logger(), stream_arg)
+// Terrain Mapping
+#define TM_DEBUG_STREAM(stream_arg) if (mDebugTerrainMapping) RCLCPP_DEBUG_STREAM( \
+    get_logger(), stream_arg)
+#define TM_DEBUG_STREAM_ONCE(stream_arg) if (mDebugTerrainMapping) RCLCPP_DEBUG_STREAM_ONCE( \
+    get_logger(), stream_arg)
+// Object Detection
+#define OD_DEBUG_STREAM(stream_arg) if (mDebugObjectDet) RCLCPP_DEBUG_STREAM( \
+    get_logger(), stream_arg)
+// <---- DEBUG MACROS
+
+
 namespace stereolabs
 {
 #ifndef DEG2RAD
@@ -408,14 +447,47 @@ void ZedCamera::getDebugParams()
 
   RCLCPP_INFO(get_logger(), "*** DEBUG parameters ***");
 
-  getParam("debug.debug_mode", mDebugMode, mDebugMode);
-  RCLCPP_INFO(get_logger(), " * Debug mode: %s", mDebugMode ? "TRUE" : "FALSE");
+  getParam("debug.debug_common", mDebugCommon, mDebugCommon);
+  RCLCPP_INFO(get_logger(), " * Debug Common: %s", mDebugCommon ? "TRUE" : "FALSE");
+
+  getParam("debug.debug_video_depth", mDebugVideoDepth, mDebugVideoDepth);
+  RCLCPP_INFO(get_logger(), " * Debug Video/Depth: %s", mDebugVideoDepth ? "TRUE" : "FALSE");
+
+  getParam("debug.debug_point_cloud", mDebugPointCloud, mDebugPointCloud);
+  RCLCPP_INFO(get_logger(), " * Debug Point Cloud: %s", mDebugPointCloud ? "TRUE" : "FALSE");
+
+
+  getParam("debug.debug_positional_tracking", mDebugPosTracking, mDebugPosTracking);
+  RCLCPP_INFO(
+    get_logger(), " * Debug Positional Tracking: %s",
+    mDebugPosTracking ? "TRUE" : "FALSE");
+
+  getParam("debug.debug_sensors", mDebugSensors, mDebugSensors);
+  RCLCPP_INFO(get_logger(), " * Debug sensors: %s", mDebugSensors ? "TRUE" : "FALSE");
+
+  getParam("debug.debug_mapping", mDebugMapping, mDebugMapping);
+  RCLCPP_INFO(get_logger(), " * Debug Mapping: %s", mDebugMapping ? "TRUE" : "FALSE");
+
+  getParam("debug.debug_terrain_mapping", mDebugTerrainMapping, mDebugTerrainMapping);
+  RCLCPP_INFO(
+    get_logger(), " * Debug Terrain Mapping: %s",
+    mDebugTerrainMapping ? "TRUE" : "FALSE");
+
+  getParam("debug.debug_object_detection", mDebugObjectDet, mDebugObjectDet);
+  RCLCPP_INFO(
+    get_logger(), " * Debug Object Detection: %s",
+    mDebugObjectDet ? "TRUE" : "FALSE");
+
+
+  mDebugMode = mDebugCommon || mDebugVideoDepth || mDebugPointCloud ||
+    mDebugPosTracking || mDebugSensors || mDebugMapping || mDebugTerrainMapping || mDebugObjectDet;
+
   if (mDebugMode) {
     rcutils_ret_t res =
       rcutils_logging_set_logger_level(get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
 
     if (res != RCUTILS_RET_OK) {
-      RCLCPP_INFO(get_logger(), "Error setting DEBUG level fot logger");
+      RCLCPP_INFO(get_logger(), "Error setting DEBUG level for logger");
     } else {
       RCLCPP_INFO(get_logger(), " + Debug Mode enabled +");
     }
@@ -428,16 +500,7 @@ void ZedCamera::getDebugParams()
     }
   }
 
-  getParam("debug.debug_sensors", mDebugSensors, mDebugSensors);
-  RCLCPP_INFO(get_logger(), " * Debug sensors: %s", mDebugSensors ? "TRUE" : "FALSE");
-
-  if (mDebugSensors && !mDebugMode) {
-    RCLCPP_WARN(
-      get_logger(), "To enable Sensors debug messages please set 'debug/debug_mode' to 'true'");
-  }
-
-  RCLCPP_DEBUG(
-    get_logger(), "[ROS2] Using RMW_IMPLEMENTATION = %s", rmw_get_implementation_identifier());
+  COMM_DEBUG_STREAM("[ROS2] Using RMW_IMPLEMENTATION " << rmw_get_implementation_identifier());
 }
 
 void ZedCamera::getGeneralParams()
@@ -1023,12 +1086,16 @@ void ZedCamera::getPosTrackingParams()
   RCLCPP_INFO_STREAM(
     get_logger(), " * GNSS fusion enabled: " << (mGnssFusionEnabled ? "TRUE" : "FALSE"));
 
+
   if (mGnssFusionEnabled) {
     getParam("pos_tracking.gnss_fix_topic", mGnssTopic, mGnssTopic, " * GNSS topic name: ");
-    getParam("pos_tracking.gnss_zero_altitude", mGnnsZeroAltitude, mGnnsZeroAltitude);
+    getParam(
+      "pos_tracking.gnss_init_distance", mGnssInitDist, mGnssInitDist,
+      " * GNSS init. distance [m]: ");
+    getParam("pos_tracking.gnss_zero_altitude", mGnssZeroAltitude, mGnssZeroAltitude);
     RCLCPP_INFO_STREAM(
       get_logger(),
-      " * GNSS Zero Altitude: " << (mGnnsZeroAltitude ? "TRUE" : "FALSE"));
+      " * GNSS Zero Altitude: " << (mGnssZeroAltitude ? "TRUE" : "FALSE"));
   }
 
   getParam(
@@ -2935,6 +3002,7 @@ bool ZedCamera::startPosTracking()
   trackParams.set_as_static = mSetAsStatic;
   trackParams.set_gravity_as_origin = mSetGravityAsOrigin;
   trackParams.enable_gnss_fusion = mGnssFusionEnabled;
+  trackParams.gnss_calibration_distance = mGnssInitDist;
 
   sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
 
@@ -4904,7 +4972,19 @@ void ZedCamera::processPose()
 
   if (mGnssFusionEnabled) {
     mGnssPosStatus = mZed.getComputedGNSSPosition(mLastEcefPose, mLastLatLongPose, mLastUtmPose);
+    PT_DEBUG(
+      "ecef pose: %.5f m, %.5f m, %.5f m", mLastEcefPose.x, mLastEcefPose.y,
+      mLastEcefPose.z);
+    PT_DEBUG(
+      "Lat. Long. pose: %.5f°, %.5f°,%.5f m", mLastLatLongPose.lat, mLastLatLongPose.lng,
+      mLastLatLongPose.height);
+    PT_DEBUG(
+      "UTM pose: %.5f m, %.5f m, %.5f°, %s", mLastUtmPose.easting, mLastUtmPose.northing,
+      mLastUtmPose.gamma, mLastUtmPose.UTMZone.c_str());
+
+    // TODO(Walter) Publish all the GNSS pose to ROS2 Topics
   }
+
 
   sl::Translation translation = mLastZedPose.getTranslation();
   sl::Orientation quat = mLastZedPose.getOrientation();
@@ -6201,6 +6281,9 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
       }
 
       if (mGnssFusionEnabled) {
+        if (mPosTrackingStarted) {
+          stat.addf("GNSS Fusion status", "%s", sl::toString(mGnssPosStatus).c_str());
+        }
         if (mGnssMsgReceived) {
           double freq = 1. / mGnssFix_sec->getAvg();
           stat.addf("GNSS input", "Mean Frequency: %.1f Hz", freq);
@@ -6414,7 +6497,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   // <---- Check timestamp
 
   double altit = msg->altitude;
-  if (mGnnsZeroAltitude) {
+  if (mGnssZeroAltitude) {
     altit = 0.0;
   }
   double latit = msg->latitude;
@@ -6433,7 +6516,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
     gnssData.latitude_std = msg->position_covariance[0] * DEG2RAD;
     gnssData.longitude_std = msg->position_covariance[4] * DEG2RAD;
     gnssData.altitude_std = msg->position_covariance[8];
-    if (mGnnsZeroAltitude) {
+    if (mGnssZeroAltitude) {
       gnssData.altitude_std = 0.0;
     }
 

@@ -1088,6 +1088,7 @@ void ZedCamera::getPosTrackingParams()
 
 
   if (mGnssFusionEnabled) {
+    getParam("pos_tracking.gnss_frame", mGnssFrameId, mGnssFrameId, " * GNSS frame: ");
     getParam("pos_tracking.gnss_fix_topic", mGnssTopic, mGnssTopic, " * GNSS topic name: ");
     getParam(
       "pos_tracking.gnss_init_distance", mGnssInitDist, mGnssInitDist,
@@ -1095,11 +1096,7 @@ void ZedCamera::getPosTrackingParams()
     getParam("pos_tracking.gnss_zero_altitude", mGnssZeroAltitude, mGnssZeroAltitude);
     RCLCPP_INFO_STREAM(
       get_logger(),
-      " * GNSS Zero Altitude: " << (mGnnsZeroAltitude ? "TRUE" : "FALSE"));
-
-    if(!mPublishImuTF) {
-      bau bau
-    }
+      " * GNSS Zero Altitude: " << (mGnssZeroAltitude ? "TRUE" : "FALSE"));
   }
 
   getParam(
@@ -3284,7 +3281,8 @@ void ZedCamera::initTransforms()
   mOdom2BaseTransf.setIdentity();  // broadcasted if `publish_tf` is true
   mMap2OdomTransf.setIdentity();   // broadcasted if `publish_map_tf` is true
   mMap2BaseTransf.setIdentity();   // used internally, but not broadcasted
-                                   // <---- Dynamic transforms
+  mMap2UtmTransf.setIdentity();   // broadcasted if GNSS Fusion is enabled
+  // <---- Dynamic transforms
 }
 
 bool ZedCamera::getCamera2BaseTransform()
@@ -3412,7 +3410,6 @@ bool ZedCamera::getSens2CameraTransform()
     mSensor2CameraTransf.setIdentity();
     return false;
   }
-
   // <---- Static transforms
 
   mSensor2CameraTransfValid = true;
@@ -3482,6 +3479,71 @@ bool ZedCamera::getSens2BaseTransform()
   // <---- Static transforms
 
   mSensor2BaseTransfValid = true;
+  return true;
+}
+
+bool ZedCamera::getGnss2BaseTransform()
+{
+  RCLCPP_DEBUG(
+    get_logger(), "Getting static TF from '%s' to '%s'", mGnssFrameId.c_str(),
+    mBaseFrameId.c_str());
+
+  mGnss2BaseTransfValid = false;
+  static bool first_error = true;
+
+  // ----> Static transforms
+  // Sensor to Base link
+  try {
+    // Save the transformation
+    geometry_msgs::msg::TransformStamped g2b =
+      mTfBuffer->lookupTransform(mGnssFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
+
+    // Get the TF2 transformation
+    geometry_msgs::msg::Transform in = g2b.transform;
+    mGnss2BaseTransf.setOrigin(
+      tf2::Vector3(in.translation.x, in.translation.y, in.translation.z));
+    // w at the end in the constructor
+    mGnss2BaseTransf.setRotation(
+      tf2::Quaternion(in.rotation.x, in.rotation.y, in.rotation.z, in.rotation.w));
+
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(mGnss2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+    RCLCPP_INFO(
+      get_logger(), " Static transform Sensor to Base [%s -> %s]", mGnssFrameId.c_str(),
+      mBaseFrameId.c_str());
+    RCLCPP_INFO(
+      get_logger(), "  * Translation: {%.3f,%.3f,%.3f}", mGnss2BaseTransf.getOrigin().x(),
+      mGnss2BaseTransf.getOrigin().y(), mGnss2BaseTransf.getOrigin().z());
+    RCLCPP_INFO(
+      get_logger(), "  * Rotation: {%.3f,%.3f,%.3f}", roll * RAD2DEG, pitch * RAD2DEG,
+      yaw * RAD2DEG);
+  } catch (tf2::TransformException & ex) {
+    if (!first_error) {
+      rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+      RCLCPP_DEBUG_THROTTLE(get_logger(), steady_clock, 1.0, "Transform error: %s", ex.what());
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), steady_clock, 1.0, "The tf from '%s' to '%s' is not available.",
+        mGnssFrameId.c_str(), mBaseFrameId.c_str());
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), steady_clock, 1.0,
+        "Note: one of the possible cause of the problem is the absense of an "
+        "instance "
+        "of the `robot_state_publisher` node publishing the correct static "
+        "TF transformations "
+        "or a modified URDF not correctly reproducing the "
+        "TF chain '%s' -> '%s'",
+        mBaseFrameId.c_str(), mGnssFrameId.c_str());
+      first_error = false;
+    }
+
+    mGnss2BaseTransf.setIdentity();
+    return false;
+  }
+
+  // <---- Static transforms
+
+  mGnss2BaseTransfValid = true;
   return true;
 }
 
@@ -4169,7 +4231,7 @@ void ZedCamera::publishTFs(rclcpp::Time t)
       publishPoseTF(t);  // publish the odometry Frame in map frame
     }
 
-    if( mGnssFusionEnabled ) {
+    if (mGnssFusionEnabled) {
       publishGnssTF(t);
     }
   }
@@ -4280,6 +4342,36 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
   double elapsed_sec = poseFreqTimer.toc();
   mPubPoseTF_sec->addValue(elapsed_sec);
   poseFreqTimer.tic();
+}
+
+void ZedCamera::publishGnssTF(rclcpp::Time t)
+{
+  // RCLCPP_DEBUG(get_logger(), "publishPoseTF");
+
+  // ----> Avoid duplicated TF publishing
+  static rclcpp::Time last_stamp = TIMEZERO_ROS;
+
+  if (t == last_stamp) {
+    return;
+  }
+  last_stamp = t;
+  // <---- Avoid duplicated TF publishing
+
+  if (!mSensor2BaseTransfValid) {
+    getSens2BaseTransform();
+  }
+
+  if (!mSensor2CameraTransfValid) {
+    getSens2CameraTransform();
+  }
+
+  if (!mCamera2BaseTransfValid) {
+    getCamera2BaseTransform();
+  }
+
+  if(!mGnss2BaseTransfValid) {
+    getGnss2BaseTransform();
+  }
 }
 
 void ZedCamera::threadFunc_pointcloudElab()

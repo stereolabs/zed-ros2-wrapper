@@ -256,6 +256,7 @@ protected:
   void publishTFs(rclcpp::Time t);
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
+  void publishGnssTF(rclcpp::Time t);
   rclcpp::Time publishSensorsData(rclcpp::Time t = TIMEZERO_ROS);
   // <---- Publishing functions
 
@@ -276,6 +277,7 @@ protected:
   bool getSens2BaseTransform();
   bool getSens2CameraTransform();
   bool getCamera2BaseTransform();
+  bool getGnss2BaseTransform();
 
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
@@ -453,6 +455,7 @@ private:
   std::string mMapFrameId = "map";
   std::string mOdomFrameId = "odom";
   std::string mBaseFrameId = "base_link";
+  std::string mGnssFrameId = "base_link";
 
   std::string mCameraFrameId;
 
@@ -490,12 +493,14 @@ private:
   tf2::Transform mSensor2BaseTransf;    // Coordinates of the base frame in sensor frame
   tf2::Transform mSensor2CameraTransf;  // Coordinates of the camera frame in sensor frame
   tf2::Transform mCamera2BaseTransf;    // Coordinates of the base frame in camera frame
+  tf2::Transform mMap2UtmTransf;        // Coordinates of the UTM frame in map frame
   // <---- TF Transforms
 
   // ----> TF Transforms Flags
   bool mSensor2BaseTransfValid = false;
   bool mSensor2CameraTransfValid = false;
   bool mCamera2BaseTransfValid = false;
+  bool mGnss2BaseTransfValid = false;
   // <---- TF Transforms Flags
 
   // ----> Messages (ONLY THOSE NOT CHANGING WHILE NODE RUNS)

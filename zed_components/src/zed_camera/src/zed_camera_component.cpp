@@ -1095,7 +1095,11 @@ void ZedCamera::getPosTrackingParams()
     getParam("pos_tracking.gnss_zero_altitude", mGnssZeroAltitude, mGnssZeroAltitude);
     RCLCPP_INFO_STREAM(
       get_logger(),
-      " * GNSS Zero Altitude: " << (mGnssZeroAltitude ? "TRUE" : "FALSE"));
+      " * GNSS Zero Altitude: " << (mGnnsZeroAltitude ? "TRUE" : "FALSE"));
+
+    if(!mPublishImuTF) {
+      bau bau
+    }
   }
 
   getParam(
@@ -4163,6 +4167,10 @@ void ZedCamera::publishTFs(rclcpp::Time t)
 
     if (mPublishMapTF) {
       publishPoseTF(t);  // publish the odometry Frame in map frame
+    }
+
+    if( mGnssFusionEnabled ) {
+      publishGnssTF(t);
     }
   }
 }

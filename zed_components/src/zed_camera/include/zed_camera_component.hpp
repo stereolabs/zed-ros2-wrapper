@@ -654,6 +654,10 @@ private:
   sl::ECEF mLastEcefPose;
   sl::UTM mLastUtmPose;
   sl::LatLng mLastLatLongPose;
+  sl::ECEF mInitEcefPose;
+  sl::UTM mInitUtmPose;
+  sl::LatLng mInitLatLongPose;
+  bool mGnssInitGood=false;
   // <---- Positional Tracking
 
   // Diagnostic

@@ -2941,6 +2941,7 @@ bool ZedCamera::startPosTracking()
   bool transformOk = false;
   double elapsed = 0.0;
   mPosTrackingReady = false;
+  mGnssInitGood=false;
 
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -5073,18 +5074,27 @@ void ZedCamera::processPose()
   if (mGnssFusionEnabled) {
     mGnssPosStatus = mZed.getComputedGNSSPosition(mLastEcefPose, mLastLatLongPose, mLastUtmPose);
     PT_DEBUG(
-      "ecef pose: %.5f m, %.5f m, %.5f m", mLastEcefPose.x, mLastEcefPose.y,
+      "ECEF: %.5f m, %.5f m, %.5f m", mLastEcefPose.x, mLastEcefPose.y,
       mLastEcefPose.z);
     PT_DEBUG(
-      "Lat. Long. pose: %.5f°, %.5f°,%.5f m", mLastLatLongPose.lat, mLastLatLongPose.lng,
+      "Lat. Long.: %.5f°, %.5f°,%.5f m", mLastLatLongPose.lat, mLastLatLongPose.lng,
       mLastLatLongPose.height);
     PT_DEBUG(
-      "UTM pose: %.5f m, %.5f m, %.5f°, %s", mLastUtmPose.easting, mLastUtmPose.northing,
+      "UTM: %.5f m, %.5f m, %.5f°, %s", mLastUtmPose.easting, mLastUtmPose.northing,
       mLastUtmPose.gamma, mLastUtmPose.UTMZone.c_str());
+
+    if(mGnssPosStatus==sl::POSITIONAL_TRACKING_STATE::OK && !mGnssInitGood) {
+      mInitEcefPose=mLastEcefPose;
+      mInitUtmPose=mLastUtmPose;
+      mInitLatLongPose=mLastLatLongPose;
+
+      mGnssInitGood = true;
+
+      RCLCPP_INFO(get_logger(), "GNSS localization initialed");
+    }
 
     // TODO(Walter) Publish all the GNSS pose to ROS2 Topics
   }
-
 
   sl::Translation translation = mLastZedPose.getTranslation();
   sl::Orientation quat = mLastZedPose.getOrientation();
@@ -6629,7 +6639,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
       get_logger(), "GNSS: valid fix.");
     RCLCPP_INFO_STREAM(
       get_logger(),
-      " * First valid position - Lat: " << latit << "° - Long: " << longit << "° - Alt: " << altit <<
+      " * First valid datum - Lat: " << latit << "° - Long: " << longit << "° - Alt: " << altit <<
         " m");
   }
 

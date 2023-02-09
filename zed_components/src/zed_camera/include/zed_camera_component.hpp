@@ -253,6 +253,7 @@ protected:
 
   void publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t);
   void publishPose();
+  void publishGnssPose();
   void publishTFs(rclcpp::Time t);
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
@@ -269,6 +270,7 @@ protected:
 
   void processOdometry();
   void processPose();
+  void processGnssPose();
 
   void processDetectedObjects(rclcpp::Time t);
 
@@ -308,6 +310,7 @@ private:
   std::string mOdomTopic;
   std::string mPoseTopic;
   std::string mPoseCovTopic;
+  std::string mGnssPoseTopic;
   std::string mPointcloudFusedTopic;
   std::string mObjectDetTopic;
   std::string mOdomPathTopic;
@@ -494,6 +497,7 @@ private:
   tf2::Transform mSensor2CameraTransf;  // Coordinates of the camera frame in sensor frame
   tf2::Transform mCamera2BaseTransf;    // Coordinates of the base frame in camera frame
   tf2::Transform mMap2UtmTransf;        // Coordinates of the UTM frame in map frame
+  tf2::Transform mGnss2BaseTransf;      // Coordinates of the base in GNSS sensor frame
   // <---- TF Transforms
 
   // ----> TF Transforms Flags
@@ -539,6 +543,7 @@ private:
   posePub mPubPose;
   poseCovPub mPubPoseCov;
   odomPub mPubOdom;
+  odomPub mPubGnssPose;
   pathPub mPubOdomPath;
   pathPub mPubPosePath;
   imuPub mPubImu;
@@ -647,7 +652,7 @@ private:
   // <---- Status Flags
 
   // ----> Positional Tracking
-  sl::Pose mLastZedPose;  // Sensor to Map transform
+  sl::Pose mLastZedPose;
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
   std::vector<geometry_msgs::msg::PoseStamped> mMapPath;
@@ -657,7 +662,7 @@ private:
   sl::ECEF mInitEcefPose;
   sl::UTM mInitUtmPose;
   sl::LatLng mInitLatLongPose;
-  bool mGnssInitGood=false;
+  bool mGnssInitGood = false;
   // <---- Positional Tracking
 
   // Diagnostic

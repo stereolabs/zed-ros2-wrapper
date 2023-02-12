@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(zed_components)
 
-## Generate symbols for IDE indexer
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 ################################################
 # Check the ROS2 version
 
@@ -11,7 +8,7 @@ set(ROS2_FOUND FALSE)
 if(DEFINED ENV{ROS_DISTRO})
     set(FOUND_ROS2_DISTRO $ENV{ROS_DISTRO})
     set(ROS2_FOUND TRUE)
-    #message("* Found ROS2 ${FOUND_ROS2_DISTRO}")
+    message("* Found ROS2 ${FOUND_ROS2_DISTRO}")
 else()
     message("* ROS2 distro variable not set. Trying to figure it out...")
     set(ROS2_DISTROS "ardent;crystal;dashing;eloquent;foxy;galactic;humble;rolling")
@@ -20,20 +17,20 @@ else()
         if(NOT ROS2_FOUND)
             find_path(RCLCPP_H rclcpp.hpp PATHS /opt/ros/${distro}/include/rclcpp)
             if(RCLCPP_H)
-                #message("* Found ROS2 ${distro}")
+                message("* Found ROS2 ${distro}")
                 set(FOUND_ROS2_DISTRO ${distro})
                 set(ROS2_FOUND TRUE)
             endif()
-        endif()
-    endforeach()
-endif()
+        endif()        
+    endforeach()    
+endif(DEFINED ENV{ROS_DISTRO})
 
 if(ROS2_FOUND)
     if(${FOUND_ROS2_DISTRO} STREQUAL "foxy")
-        #message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
-        add_definitions(-DFOUND_FOXY)
+        message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
+        add_definitions(-DFOUND_FOXY)    
     elseif(${FOUND_ROS2_DISTRO} STREQUAL "humble")
-        #message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
+        message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
         add_definitions(-DFOUND_HUMBLE)
     else()
         message("*** WARNING *** ROS2 ${FOUND_ROS2_DISTRO} is not officially supported by this package. Correct working is not guarantee.")
@@ -54,22 +51,26 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
 
-# if CMAKE_BUILD_TYPE is not specified, take 'Release' as default
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
-endif()
+#if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+#  add_compile_options(-Wall -Wextra -Wpedantic)
+#endif()
 
-if(CMAKE_BUILD_TYPE MATCHES Release)
+# if CMAKE_BUILD_TYPE is not specified, take 'Release' as default
+IF(NOT CMAKE_BUILD_TYPE)
+    SET(CMAKE_BUILD_TYPE Release)
+ENDIF(NOT CMAKE_BUILD_TYPE)
+
+if(CMAKE_BUILD_TYPE MATCHES Release )
     #message(" * Release Mode")
     add_compile_options(-Wno-deprecated-declarations)
 endif()
 
-if(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+if(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo )
     #message(" * Release with Debug Info Mode")
     add_compile_options(-Wno-deprecated-declarations)
 endif()
 
-if(CMAKE_BUILD_TYPE MATCHES Debug)
+if(CMAKE_BUILD_TYPE MATCHES Debug )
     message(" * Debug Mode")
 endif()
 
@@ -78,8 +79,8 @@ endif()
 find_package(ZED 3 REQUIRED)
 
 exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
-if(CMAKE_SYSTEM_NAME2 MATCHES "aarch64") # Jetson TX
-    set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
+if ( CMAKE_SYSTEM_NAME2 MATCHES "aarch64" ) # Jetson TX
+    SET(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 endif()
 
 find_package(CUDA REQUIRED)
@@ -95,6 +96,7 @@ set(DEPENDENCIES
     tf2_geometry_msgs
     geometry_msgs
     nav_msgs
+    vision_msgs
     sensor_msgs
     stereo_msgs
     zed_interfaces
@@ -103,6 +105,7 @@ set(DEPENDENCIES
     diagnostic_updater
     visualization_msgs
     shape_msgs
+    OpenCV
 )
 
 find_package(ament_cmake REQUIRED)
@@ -117,6 +120,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(vision_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
 find_package(image_transport REQUIRED)
@@ -125,16 +129,12 @@ find_package(diagnostic_msgs REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(shape_msgs REQUIRED)
-
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
-endif()
+find_package(OpenCV REQUIRED)
 
 ###############################################################################
 #Add all files in subdirectories of the project in
 # a dummy_target so qtcreator have access to all files
-file(GLOB_RECURSE all_files ${CMAKE_SOURCE_DIR}/*)
+FILE(GLOB_RECURSE all_files ${CMAKE_SOURCE_DIR}/*)
 add_custom_target(all_${PROJECT_NAME}_files SOURCES ${all_files})
 
 ###############################################################################
@@ -146,6 +146,9 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
 )
+
+include_directories("/usr/local/include/onnxruntime/include/onnxruntime/core/session")
+link_directories("/usr/local/include/onnxruntime/build/Linux/Release/")
 
 # create ament index resource which references the libraries in the binary dir
 set(node_plugins "")
@@ -160,31 +163,27 @@ set(ZED_LIBS
 
 ###############################################################################
 # SOURCES
-set(SL_TOOLS_INC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_tools.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_win_avg.hpp
-)
-
-set(SL_TOOLS_SRC
+set(SL_TOOLS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_tools.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_win_avg.cpp
 )
 
 set(ZED_CAMERA_INC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_component.hpp
 )
 
 set(ZED_CAMERA_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_component.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/detector.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/utils.cpp
 )
 
 ###############################################################################
 # Bin and Install
 
 add_library(zed_camera_component SHARED
-    ${SL_TOOLS_INC}
-    ${SL_TOOLS_SRC}
+    ${SL_TOOLS}
     ${ZED_CAMERA_INC}
     ${ZED_CAMERA_SRC}
 )
@@ -193,6 +192,9 @@ target_compile_definitions(zed_camera_component
 )
 target_link_libraries(zed_camera_component
   ${ZED_LIBS}
+  onnxruntime
+#   "/usr/local/include/onnxruntime/build/Linux/Release/libonnxruntime.so.1.13.1"
+#   "/usr/local/include/onnxruntime/build/Linux/Release/libonnxruntime.so"
 )
 ament_target_dependencies(zed_camera_component
     ${DEPENDENCIES}
@@ -209,12 +211,23 @@ install(TARGETS zed_camera_component
 )
 
 # Install header files
-install(DIRECTORY
+install(DIRECTORY 
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/
     DESTINATION include/${PROJECT_NAME}/
 )
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  # the following line skips the linter which checks for copyrights
+  # uncomment the line when a copyright and license is not present in all source files
+  #set(ament_cmake_copyright_FOUND TRUE)
+  # the following line skips cpplint (only works in a git repo)
+  # uncomment the line when this package is not in a git repo
+  #set(ament_cmake_cpplint_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
+endif()
 
 ament_export_include_directories(include)
 ament_export_libraries(zed_camera_component)

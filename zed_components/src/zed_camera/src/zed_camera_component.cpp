@@ -1086,33 +1086,15 @@ void ZedCamera::getTerrainMappingParams()
 
   getParam(
     "local_mapping.max_mapping_range", mTerrainMappingRange, mTerrainMappingRange,
-    " * Terrain Mapping range [m]: ");
+    " *Grid range [m]: ");
 
   getParam(
     "local_mapping.resolution", mTerrainMappingRes, mTerrainMappingRes,
-    " * Terrain Mapping resolution [m]: ");
+    " * Grid resolution [m]: ");
 
   getParam(
-    "local_mapping.agent_height", mRobotHeight, mRobotHeight,
-    " * Agent height [m]: ");
-
-  getParam(
-    "local_mapping.agent_radius", mRobotRadius, mRobotRadius,
-    " * Agent radius [m]: ");
-
-  getParam(
-    "local_mapping.max_terrain_step", mTerrainMaxStep, mTerrainMaxStep,
-    " * Terrain Mapping max step [m]: ");
-
-  getParam(
-    "local_mapping.max_terrain_slope", mTerrainMaxSlope, mTerrainMaxSlope,
-    " * Terrain Mapping max slope [deg]: ");
-
-  getParam(
-    "local_mapping.max_terrain_roughness", mTerrainMaxRoughness, mTerrainMaxRoughness,
-    " * Terrain Mapping max roughness: ");
-
-
+    "local_mapping.height_threshold", mTerrainMappingHeigthThresh, mTerrainMappingHeigthThresh,
+    " * Height threshold [m]: ");
 }
 
 void ZedCamera::getPosTrackingParams()
@@ -3212,19 +3194,10 @@ bool ZedCamera::startTerrainMapping()
   RCLCPP_INFO_STREAM(get_logger(), "*** Starting Terrain Mapping ***");
 
   sl::TerrainMappingParameters tm_params;
-  sl::AgentParameters agent_params;
 
-  tm_params.setTerrainResolution(sl::UNIT::METER, mTerrainMappingRes);
-  tm_params.setTerrainRange(sl::UNIT::METER, mTerrainMappingRange);
-
-  agent_params.height = mRobotHeight;
-  agent_params.radius = mRobotRadius;
-  agent_params.roughness = mTerrainMaxRoughness;
-  agent_params.slope = mTerrainMaxSlope;
-  agent_params.step = mTerrainMaxStep;
-  agent_params.enable_traversability_cost_computation = true;
-
-  tm_params.setAgentParameters(agent_params);
+  tm_params.setGridResolution(sl::UNIT::METER, mTerrainMappingRes);
+  tm_params.setGridRange(sl::UNIT::METER, mTerrainMappingRange);
+  tm_params.setCameraHeightThreshold(sl::UNIT::METER, mTerrainMappingHeigthThresh);
 
 
   sl::ERROR_CODE err = mZed.enableTerrainMapping(tm_params);
@@ -5881,6 +5854,20 @@ void ZedCamera::callback_pubFusedPc()
   mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
 }
 
+inline
+void updateGrid(sl::Terrain& terrain, grid_map::GridMap& map, std::string layer) {
+    float x_ = 0, y_ = 0;
+    auto &chunk = terrain.getChunk(x_, y_);
+    auto& h_layer = chunk.getLayer(sl::LayerName::ELEVATION);
+
+    auto ptr_terrain = h_layer.getData().data();
+    auto ptr_grid = map.get(layer).data();
+
+    auto dim = chunk.getDimension();
+
+    memcpy(ptr_grid, ptr_terrain, sizeof(float) * dim.getFullSizeIdx());
+}
+
 bool ZedCamera::publishLocalMap()
 {
   static rclcpp::Time prev_ts = TIMEZERO_ROS;
@@ -5939,7 +5926,7 @@ bool ZedCamera::publishLocalMap()
   //TM_DEBUG_STREAM("Before retrieveTerrain...");
   const sl::REFERENCE_FRAME terrain_ref = sl::REFERENCE_FRAME::CAMERA;
   sl::Terrain sl_map;
-  err = mZed.retrieveTerrainMap(sl_map, terrain_ref);
+  err = mZed.retrieveTerrain(sl_map, terrain_ref);
   //TM_DEBUG_STREAM("... after retrieveTerrain");
 
   if (err != sl::ERROR_CODE::SUCCESS) {
@@ -5959,37 +5946,33 @@ bool ZedCamera::publishLocalMap()
       std::make_unique<grid_map_msgs::msg::GridMap>();
     grid_map::GridMap gridmap;
     gridmap.setFrameId(mBaseFrameId);
-    err = sl_map.generateTerrainMap(elevMap, sl::MAT_TYPE::F32_C1, sl::LayerName::ELEVATION);
 
     // Main layer "elevation" and initialization
-    if (err == sl::ERROR_CODE::SUCCESS && elevMap.isInit()) {
-      gridmap_ok = true;
+    gridmap_ok = true;
 
-      double w = elevMap.getWidth();
-      double h = elevMap.getHeight();
-      double w_m = mTerrainMappingRes * w;
-      double h_m = mTerrainMappingRes * h;
-      gridmap.setGeometry(
-        grid_map::Length(w_m, h_m), mTerrainMappingRes,
-        grid_map::Position(0.0, 0.0));
-      gridmap.setBasicLayers({"elevation"});
+    double w = elevMap.getWidth();
+    double h = elevMap.getHeight();
+    double w_m = mTerrainMappingRes * w;
+    double h_m = mTerrainMappingRes * h;
+    gridmap.setGeometry(grid_map::Length(w_m, h_m), mTerrainMappingRes);
+    gridmap.setBasicLayers({"elevation"});
 
-      TM_DEBUG_STREAM(
-        "Created map with size " << gridmap.getLength().x() << "x" << gridmap.getLength().y()
-                                 << "m (" << gridmap.getSize()(0) << "x" << gridmap.getSize()(
-          1) << " cells)");
-      TM_DEBUG_STREAM(
-        "Map center: (" << gridmap.getPosition().x() << "," << gridmap.getPosition().y() << ") Frame: " <<
-          gridmap.getFrameId().c_str());
+    TM_DEBUG_STREAM(
+      "Created map with size " << gridmap.getLength().x() << "x" << gridmap.getLength().y()
+                                << "m (" << gridmap.getSize()(0) << "x" << gridmap.getSize()(
+        1) << " cells)");
+    TM_DEBUG_STREAM(
+      "Map center: (" << gridmap.getPosition().x() << "," << gridmap.getPosition().y() << ") Frame: " <<
+        gridmap.getFrameId().c_str());
 
-      gridmap.add("elevation", std::numeric_limits<double>::quiet_NaN());
-      for (grid_map::GridMapIterator it(gridmap); !it.isPastEnd(); ++it) {
-        sl::float1 value;
-        // By dereferencing the iterator we can obtain a `grid_map::Index`
-        elevMap.getValue((*it).y(), /*h -*/ (*it).x(), &value); // Vertical index is inverted in SDK. Remove "h -" when fixed
-        gridmap.at("elevation", *it) = static_cast<double>(value);
-      }
+    gridmap.add("elevation", std::numeric_limits<double>::quiet_NaN());
+    for (grid_map::GridMapIterator it(gridmap); !it.isPastEnd(); ++it) {
+      sl::float1 value;
+      // By dereferencing the iterator we can obtain a `grid_map::Index`
+      elevMap.getValue((*it).y(), /*h -*/ (*it).x(), &value); // Vertical index is inverted in SDK. Remove "h -" when fixed
+      gridmap.at("elevation", *it) = static_cast<double>(value);
     }
+    
 
     // "color" layer
     err = sl_map.generateTerrainMap(colorMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);

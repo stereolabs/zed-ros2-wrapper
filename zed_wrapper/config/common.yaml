@@ -132,7 +132,7 @@
             debug_common: false
             debug_video_depth: false
             debug_point_cloud: false
-            debug_positional_tracking: true
+            debug_positional_tracking: false
             debug_sensors: false
             debug_mapping : false
             debug_terrain_mapping : false

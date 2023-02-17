@@ -5100,7 +5100,7 @@ void ZedCamera::processPose()
   if (!mGnssFusionEnabled) {
     mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
   } else {
-    mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::GNSS                             );
+    mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::GNSS);
   }
 
   sl::Translation translation = mLastZedPose.getTranslation();

@@ -113,10 +113,10 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
   RCLCPP_INFO(get_logger(), "********************************");
 
-  if (ZED_SDK_MAJOR_VERSION < 3 || (ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION < 8)) {
+  if (ZED_SDK_MAJOR_VERSION != 4 || (ZED_SDK_MAJOR_VERSION == 4 && ZED_SDK_MINOR_VERSION < 0)) {
     RCLCPP_ERROR(
       get_logger(),
-      "This version of the ZED ROS2 wrapper is designed to work with ZED SDK v3.8 or newer.");
+      "This version of the ZED ROS2 wrapper is designed to work with ZED SDK v3.8.x or newer.");
     RCLCPP_INFO_STREAM(
       get_logger(), "* Detected SDK v" << ZED_SDK_MAJOR_VERSION << "." << ZED_SDK_MINOR_VERSION
                                        << "." << ZED_SDK_PATCH_VERSION << "-" << ZED_SDK_BUILD_ID);
@@ -2047,20 +2047,12 @@ void ZedCamera::fillCamInfo(
 {
   sl::CalibrationParameters zedParam;
 
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION < 1
-  if (rawParam) {
-    zedParam = zed.getCameraInformation(mMatResol).calibration_parameters_raw;  // ok
-  } else {
-    zedParam = zed.getCameraInformation(mMatResol).calibration_parameters;  // ok
-  }
-#else
   if (rawParam) {
     zedParam =
       zed.getCameraInformation(mMatResol).camera_configuration.calibration_parameters_raw;
   } else {
     zedParam = zed.getCameraInformation(mMatResol).camera_configuration.calibration_parameters;
   }
-#endif
 
   float baseline = zedParam.getCameraBaseline();
 
@@ -2169,16 +2161,6 @@ void ZedCamera::fillCamInfo(
     leftCamInfoMsg->r[i + i * 3] = 1;
   }
 
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION < 1
-  if (rawParam) {
-    std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
-    float * p = R_.data();
-
-    for (int i = 0; i < 9; i++) {
-      rightCamInfoMsg->r[i] = p[i];
-    }
-  }
-#else
   if (rawParam) {
     if (mUseOldExtrinsic) {  // Camera frame (Z forward, Y down, X right)
       std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
@@ -2193,7 +2175,6 @@ void ZedCamera::fillCamInfo(
       }
     }
   }
-#endif
 
   leftCamInfoMsg->p.fill(0.0);
   rightCamInfoMsg->p.fill(0.0);
@@ -2716,31 +2697,18 @@ bool ZedCamera::startCamera()
 
   // Firmwares
   if (!mSvoMode) {
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION < 1
-    mCamFwVersion = camInfo.camera_firmware_version;
-#else
     mCamFwVersion = camInfo.camera_configuration.firmware_version;
-#endif
 
     RCLCPP_INFO_STREAM(get_logger(), " * Camera FW Version  -> " << mCamFwVersion);
     if (mCamRealModel != sl::MODEL::ZED) {
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION < 1
-      mSensFwVersion = camInfo.sensors_firmware_version;
-#else
       mSensFwVersion = camInfo.sensors_configuration.firmware_version;
-#endif
       RCLCPP_INFO_STREAM(get_logger(), " * Sensors FW Version -> " << mSensFwVersion);
     }
   }
 
   // Camera/IMU transform
   if (mCamRealModel != sl::MODEL::ZED) {
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION < 1
-    mSlCamImuTransf = camInfo.camera_imu_transform;
-#else
     mSlCamImuTransf = camInfo.sensors_configuration.camera_imu_transform;
-#endif
-
     SENS_DEBUG_STREAM("Camera-IMU Transform: " << mSlCamImuTransf.getInfos().c_str());
   }
 
@@ -4697,11 +4665,6 @@ void ZedCamera::retrieveVideoDepth()
   }
   if (mDepthInfoSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS == mZed.getCurrentMinMaxDepth(mMinDepth, mMaxDepth);
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION == 7 && \
-    ZED_SDK_PATCH_VERSION == 0    // Units bug workaround
-    mMinDepth *= 0.001f;
-    mMaxDepth *= 0.001f;
-#endif
     mGrabTS = mMatConf.timestamp;
   }
   VD_DEBUG_STREAM("Depth Data retrieved");
@@ -5599,13 +5562,8 @@ void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
   dispMsgPtr disparityMsg = std::make_unique<stereo_msgs::msg::DisparityImage>();
   disparityMsg->image = *disparity_image.get();
   disparityMsg->header = disparityMsg->image.header;
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION < 1
-  disparityMsg->f = zedParam.calibration_parameters.left_cam.fx;
-  disparityMsg->t = zedParam.calibration_parameters.T.x;
-#else
   disparityMsg->f = zedParam.camera_configuration.calibration_parameters.left_cam.fx;
   disparityMsg->t = zedParam.camera_configuration.calibration_parameters.getCameraBaseline();
-#endif
   disparityMsg->min_disparity =
     disparityMsg->f * disparityMsg->t / mZed.getInitParameters().depth_minimum_distance;
   disparityMsg->max_disparity =

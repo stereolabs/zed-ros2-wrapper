@@ -25,34 +25,6 @@
 
 namespace sl_tools
 {
-int checkCameraReady(unsigned int serial_number)
-{
-  int id = -1;
-  auto f = sl::Camera::getDeviceList();
-
-  for (auto & it : f) {
-    if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::AVAILABLE) {
-      id = it.id;
-    }
-  }
-
-  return id;
-}
-
-sl::DeviceProperties getZEDFromSN(unsigned int serial_number)
-{
-  sl::DeviceProperties prop;
-  auto f = sl::Camera::getDeviceList();
-
-  for (auto & it : f) {
-    if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::AVAILABLE) {
-      prop = it;
-    }
-  }
-
-  return prop;
-}
-
 std::vector<float> convertRodrigues(sl::float3 r)
 {
   float theta = sqrt(r.x * r.x + r.y * r.y + r.z * r.z);
@@ -517,11 +489,9 @@ bool isZED2OrZED2i(sl::MODEL camModel)
   if (camModel == sl::MODEL::ZED2) {
     return true;
   }
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
   if (camModel == sl::MODEL::ZED2i) {
     return true;
   }
-#endif
   return false;
 }
 
@@ -530,16 +500,12 @@ bool isObjDetAvailable(sl::MODEL camModel)
   if (camModel == sl::MODEL::ZED2) {
     return true;
   }
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
   if (camModel == sl::MODEL::ZED2i) {
     return true;
   }
-#endif
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 6
   if (camModel == sl::MODEL::ZED_M) {
     return true;
   }
-#endif
   return false;
 }
 

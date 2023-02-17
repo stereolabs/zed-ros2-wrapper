@@ -3006,14 +3006,14 @@ bool ZedCamera::startObjDetect()
   RCLCPP_INFO(get_logger(), "*** Starting Object Detection ***");
 
   sl::ObjectDetectionParameters od_p;
-  od_p.enable_mask_output = false;
+  od_p.enable_segmentation = false;
   od_p.enable_tracking = mObjDetTracking;
   od_p.image_sync = true;
   od_p.detection_model = mObjDetModel;
   od_p.filtering_mode = mObjFilterMode;
-  od_p.enable_body_fitting = mObjDetBodyFitting;
-  od_p.body_format = mObjDetBodyFmt;
   od_p.prediction_timeout_s = mObjDetPredTimeout;
+
+  // TODO(Walter) check new SDK v4 parameters
 
   mObjDetFilter.clear();
   if (mObjDetPeopleEnable) {
@@ -5112,16 +5112,17 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
       }
       memcpy(&(objMsg->objects[idx].head_position[0]), &(data.head_position[0]), 3 * sizeof(float));
 
-      uint8_t kp_size = data.keypoint_2d.size();
-      if (kp_size == 18 || kp_size == 34) {
-        memcpy(
-          &(objMsg->objects[idx].skeleton_2d.keypoints[0]), &(data.keypoint_2d[0]),
-          2 * kp_size * sizeof(float));
+      // TODO(Walter) -> Move to the new Skeleton tracking interface -> SDK v4
+      // uint8_t kp_size = data.keypoint_2d.size();
+      // if (kp_size == 18 || kp_size == 34) {
+      //   memcpy(
+      //     &(objMsg->objects[idx].skeleton_2d.keypoints[0]), &(data.keypoint_2d[0]),
+      //     2 * kp_size * sizeof(float));
 
-        memcpy(
-          &(objMsg->objects[idx].skeleton_3d.keypoints[0]), &(data.keypoint[0]),
-          3 * kp_size * sizeof(float));
-      }
+      //   memcpy(
+      //     &(objMsg->objects[idx].skeleton_3d.keypoints[0]), &(data.keypoint[0]),
+      //     3 * kp_size * sizeof(float));
+      // }
     } else {
       objMsg->objects[idx].skeleton_available = false;
     }

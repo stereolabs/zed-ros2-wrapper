@@ -1,6 +1,18 @@
 LATEST CHANGES
 ==============
 
+2023-02-20
+----------
+- Add support for ZED-X and ZED-X Mini
+  - Move `general.grab_resolution` and `general.grab_frame_rate` to the yaml file specific for the relative camera model 
+    (i.e. `zed.yaml`, `zedm.yaml`, `zed2.yaml`, `zed2i.yaml`, `zedx.yaml`, `zedxm.yaml`)
+  - Add `zedx.launch.py` for ZED-X
+  - Add `zedxm.launch.py` for ZED-X Mini
+  - Improve `zed_macro.urdf.xacro` with specific configuration for the new camera models
+  - Add `display_zedx.launch.py` for ZED-X to ZED-ROS2-Examples
+  - Add `display_zedxm.launch.py` for ZED-X Mini to ZED-ROS2-Examples
+  - Add ZED-X and ZED-X Mini STL files to ZED-ROS2-Interfaces
+
 2023-01-16
 ----------
 - Removed annoying build log messages. Only warning regarding unsupported ROS2 distributions will be displayed when required.

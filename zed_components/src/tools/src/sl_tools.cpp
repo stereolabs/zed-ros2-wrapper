@@ -497,13 +497,7 @@ bool isZED2OrZED2i(sl::MODEL camModel)
 
 bool isObjDetAvailable(sl::MODEL camModel)
 {
-  if (camModel == sl::MODEL::ZED2) {
-    return true;
-  }
-  if (camModel == sl::MODEL::ZED2i) {
-    return true;
-  }
-  if (camModel == sl::MODEL::ZED_M) {
+  if (camModel != sl::MODEL::ZED) {
     return true;
   }
   return false;

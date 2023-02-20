@@ -63,6 +63,13 @@
 
 namespace stereolabs
 {
+
+#ifdef _SL_JETSON_
+const bool IS_JETSON = true;
+#else
+const bool IS_JETSON = false;
+#endif
+
 // ----> Typedefs to simplify declarations
 
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> imagePub;
@@ -128,8 +135,10 @@ typedef enum
 {
   HD2K,  //!< 2208x1242
   HD1080,  //!< 1920x1080
+  HD1200,  //!< 1920x1200
   HD720,  //!< 1280x720
   MEDIUM,  //!< 896x512
+  SVGA,  //!< 960x600
   VGA,  //!< 672x376
   LOW  //!< Half-MEDIUM 448x256
 } PubRes;

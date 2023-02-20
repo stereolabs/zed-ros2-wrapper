@@ -2,6 +2,8 @@
 
 # Stereolabs ZED Camera - ROS2 Foxy Fitzroy (Ubuntu 20.04) - ROS2 Humble Hawksbill (Ubuntu 22.04)
 
+# NOTE - THIS IS A BETA VERSION FOR DEVELOPMENT ONLY TO BE USED WITH ZED SDK V4.0-BETA
+
 This package lets you use the ZED stereo cameras with ROS2. It provides access to the following data:
 
   - Left and right rectified/unrectified images
@@ -46,12 +48,11 @@ $ sudo apt remove ros-foxy-image-transport-plugins ros-foxy-compressed-depth-ima
 ### Prerequisites
 
 - [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/) or [Ubuntu 22.04 (Jammy Jellyfish)](https://releases.ubuntu.com/jammy/)
-- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v3.8.x
+- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v4.0
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - ROS2 Foxy Fitxroy or ROS2 Humble Hawksbill: 
   - [Foxy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html)
   - [Humble on Ubuntu 22.04](https://docs.ros.org/en/humble/Installation/Linux-Install-Debians.html)
-
 
 ### Build the package
 
@@ -118,24 +119,34 @@ ZED 2i:
 $ ros2 launch zed_wrapper zed2i.launch.py
 ```
 
-The `zed.launch.py`, `zedm.launch.py`, `zed2.launch.py` and `zed2i.launch.py` are three Python scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/), loading the parameters from the correct "YAML files" and creating the camera model from the correct "URDF file".
+ZED X:
+```bash
+$ ros2 launch zed_wrapper zedx.launch.py
+```
 
-**Note:** You can set your own configurations modifying the parameters in the files **common.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml** and **zed2i.yaml** available in the folder `zed_wrapper/config`.
+ZED X Mini:
+```bash
+$ ros2 launch zed_wrapper zedxm.launch.py
+```
+
+The `zed.launch.py`, `zedm.launch.py`, `zed2.launch.py`, `zed2i.launch.py`, `zedx.launch.py`, and `zedxm.launch.py` are Python launch scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/), loading the parameters from the correct "YAML files" and creating the camera model from the correct "URDF file".
+
+**Note:** You can set your own configurations modifying the parameters in the files **common.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, and **zedxm.yaml** available in the folder `zed_wrapper/config`.
 For full descriptions of each parameter, follow the complete guide [here](https://www.stereolabs.com/docs/ros2/zed_node#configuration-parameters).
 
 ### Rviz visualization
-Example launch files to start a pre-configured Rviz environment to visualize the data of ZED, ZED Mini, ZED2, and ZED2i cameras are provided in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
+Example launch files to start a pre-configured Rviz environment to visualize the data of `ZED`, `ZED Mini`, `ZED2`, `ZED2i`, `ZED-X`, and `ZED-X Mini` cameras are provided in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
     
 ### SVO recording
 [SVO recording](https://www.stereolabs.com/docs/video/recording/) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.
 [More information](https://www.stereolabs.com/docs/ros2/zed_node/#services)
 
 ### Object Detection
-The SDK v3.0 introduces the Object Detection and Tracking module. **The Object Detection module is available only with a ZED 2 or ZED 2i camera**. 
+The SDK v3.0 introduces the Object Detection and Tracking module. **The Object Detection module is not available for the ZED Camera**. 
 
-The Object Detection can be enabled *automatically* when the node start setting the parameter `object_detection/od_enabled` to `true` in the file `zed2.yaml` or `zed2i.yaml`.
+The Object Detection can be enabled *automatically* when the node start setting the parameter `object_detection/od_enabled` to `true` in the file `common.yaml`.
 
-The Object Detection can be enabled/disabled *manually* calling the services `enable_obj_det`.
+The Object Detection can be enabled/disabled *manually* by calling the services `enable_obj_det`.
 
 ### Spatial Mapping
 The Spatial Mapping can be enabled automatically when the node start setting the parameter `mapping/mapping_enabled` to `true` in the file `common.yaml`.

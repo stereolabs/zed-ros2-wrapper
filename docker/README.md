@@ -31,8 +31,8 @@ The devel image internally needs the source code of the current branch. For this
 Create a temporary `tmp_sources` folder for the sources and copy the files:
 
 ```bash
-mkdir -p ./tmp_sourcesmkdir -p ./tmp_sources
-cp -cp -r ../zed* ./tmp_sourcesr ../zed* ./tmp_sources
+mkdir -p ./tmp_sources
+cp -r ../zed* ./tmp_sources
 ```
 
 Build the image for desktop:
@@ -41,10 +41,10 @@ Build the image for desktop:
 docker build -t "<image_tag>" -f Dockerfile.u22-cu117-humble-devel .
 ```
 
-or build the image for Jetson:
+or build the image for Jetson [SDK 4.0-beta / L4T 35.1 / ROS2 Humble]:
 
 ```bash
-docker build -t "<image_tag>" -f Dockerfile.l4t35_1-humble-devel .
+docker build -t "<image_tag>" -f Dockerfile.l4t35_1-sdk_v4.0-humble-devel .
 ```
 
 Remove the temporary sources to avoid future compiling issues:
@@ -64,5 +64,14 @@ The following command starts an interactive BaSH session:
 ```bash
 docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e DISPLAY \
   -v /dev/shm:/dev/shm -v /tmp/.X11-unix/:/tmp/.X11-unix \
+  <image_tag>
+```
+
+For ZED-X on Jetson [SDK 4.0-beta / L4T 35.1 / ROS2 Humble]:
+
+```bash
+docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e DISPLAY \
+  -v /dev/shm:/dev/shm -v /tmp/.X11-unix/:/tmp/.X11-unix \ 
+  -v /tmp/argus_socket:/tmp/argus_socket -v /var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/
   <image_tag>
 ```

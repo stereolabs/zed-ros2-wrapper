@@ -331,7 +331,7 @@ void ZedCamera::initParameters()
   }
 
   // SENSORS parameters
-  if (mCamUserModel != sl::MODEL::ZED) {
+  if (!sl_tools::isZED(mCamUserModel)) {
     getSensorsParams();
   }
 
@@ -519,7 +519,7 @@ void ZedCamera::getGeneralParams()
 
   std::string resol = "HD720";
   getParam("general.grab_resolution", resol, resol);
-  if (mCamUserModel == sl::MODEL::ZED_X || mCamUserModel == sl::MODEL::ZED_XM) {
+  if (sl_tools::isZEDX(mCamUserModel)) {
     if (resol == "HD1200") {
       mCamResol = sl::RESOLUTION::HD1200;
     } else if (resol == "SVGA") {
@@ -849,8 +849,9 @@ void ZedCamera::getSensorsParams()
   read_only_descriptor.read_only = true;
 
   RCLCPP_INFO(get_logger(), "*** SENSORS STACK parameters ***");
-  if (mCamUserModel == sl::MODEL::ZED) {
+  if (sl_tools::isZED(mCamUserModel)) {
     RCLCPP_WARN(get_logger(), "!!! SENSORS parameters are not used with ZED !!!");
+    return;
   }
 
   getParam("sensors.sensors_image_sync", mSensCameraSync, mSensCameraSync);
@@ -1218,7 +1219,7 @@ void ZedCamera::getOdParams()
   read_only_descriptor.read_only = true;
 
   RCLCPP_INFO(get_logger(), "*** OBJECT DETECTION parameters ***");
-  if (mCamUserModel == sl::MODEL::ZED || mCamUserModel == sl::MODEL::ZED_M) {
+  if (sl_tools::isZED(mCamUserModel)) {
     RCLCPP_WARN(get_logger(), "!!! OD parameters are not used with ZED and ZED Mini !!!");
   }
 
@@ -1965,7 +1966,7 @@ void ZedCamera::setTFCoordFrameNames()
     RCLCPP_INFO_STREAM(get_logger(), " * Confidence Optical\t-> " << mConfidenceOptFrameId);
   }
 
-  if (mCamRealModel != sl::MODEL::ZED) {
+  if (!sl_tools::isZED(mCamRealModel)) {
     RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t\t-> " << mImuFrameId);
 
     if (sl_tools::isZED2OrZED2i(mCamUserModel)) {
@@ -2020,6 +2021,8 @@ void ZedCamera::fillCamInfo(
 
     case sl::MODEL::ZED2:  // RATIONAL_POLYNOMIAL
     case sl::MODEL::ZED2i:  // RATIONAL_POLYNOMIAL
+    case sl::MODEL::ZED_X:  // RATIONAL_POLYNOMIAL
+    case sl::MODEL::ZED_XM:  // RATIONAL_POLYNOMIAL
       leftCamInfoMsg->distortion_model = sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
       rightCamInfoMsg->distortion_model = sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
       leftCamInfoMsg->d.resize(8);
@@ -2332,7 +2335,7 @@ void ZedCamera::initPublishers()
   // <---- Mapping
 
   // ----> Sensors
-  if (mCamRealModel != sl::MODEL::ZED) {
+  if (!sl_tools::isZED(mCamRealModel)) {
     mPubImu = create_publisher<sensor_msgs::msg::Imu>(imu_topic, mSensQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubImu->get_topic_name());
     mPubImuRaw = create_publisher<sensor_msgs::msg::Imu>(imu_topic_raw, mSensQos);
@@ -2476,9 +2479,10 @@ bool ZedCamera::startCamera()
     RCLCPP_WARN(get_logger(), "Error opening camera: %s", sl::toString(mConnStatus).c_str());
 
     if (
-      mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE && mCamUserModel == sl::MODEL::ZED_M)
+      mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE && sl_tools::isZEDM(mCamUserModel))
     {
-      RCLCPP_INFO(get_logger(), "Try to flip the USB3 Type-C connector");
+      RCLCPP_INFO(
+        get_logger(), "Try to flip the USB3 Type-C connector and verify the USB3 connection");
     } else {
       RCLCPP_INFO(get_logger(), "Please verify the camera connection");
     }
@@ -2546,12 +2550,19 @@ bool ZedCamera::startCamera()
         "Camera model does not match user parameter. Please modify "
         "the value of the parameter 'general.camera_model' to 'zed2i'");
     }
-  } else if (mCamRealModel == sl::MODEL::ZED2i) {
-    if (mCamUserModel != sl::MODEL::ZED2i) {
+  } else if (mCamRealModel == sl::MODEL::ZED_X) {
+    if (mCamUserModel != sl::MODEL::ZED_X) {
       RCLCPP_WARN(
         get_logger(),
         "Camera model does not match user parameter. Please modify "
-        "the value of the parameter 'general.camera_model' to 'zed2i'");
+        "the value of the parameter 'general.camera_model' to 'zedx'");
+    }
+  } else if (mCamRealModel == sl::MODEL::ZED_XM) {
+    if (mCamUserModel != sl::MODEL::ZED_XM) {
+      RCLCPP_WARN(
+        get_logger(),
+        "Camera model does not match user parameter. Please modify "
+        "the value of the parameter 'general.camera_model' to 'zedxm'");
     }
   }
 
@@ -2577,14 +2588,14 @@ bool ZedCamera::startCamera()
     mCamFwVersion = camInfo.camera_configuration.firmware_version;
 
     RCLCPP_INFO_STREAM(get_logger(), " * Camera FW Version  -> " << mCamFwVersion);
-    if (mCamRealModel != sl::MODEL::ZED) {
+    if (!sl_tools::isZED(mCamRealModel)) {
       mSensFwVersion = camInfo.sensors_configuration.firmware_version;
       RCLCPP_INFO_STREAM(get_logger(), " * Sensors FW Version -> " << mSensFwVersion);
     }
   }
 
   // Camera/IMU transform
-  if (mCamRealModel != sl::MODEL::ZED) {
+  if (!sl_tools::isZED(mCamRealModel)) {
     mSlCamImuTransf = camInfo.sensors_configuration.camera_imu_transform;
 
     RCLCPP_DEBUG(get_logger(), "Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str());
@@ -2735,7 +2746,7 @@ bool ZedCamera::startCamera()
   // <---- Start Pointcloud thread
 
   // ----> Start Sensors thread if not sync
-  if (!mSvoMode && !mSensCameraSync && mCamRealModel != sl::MODEL::ZED) {
+  if (!mSvoMode && !mSensCameraSync && !sl_tools::isZED(mCamRealModel)) {
     mSensThread = std::thread(&ZedCamera::threadFunc_pubSensorsData, this);
   }
   // <---- Start Sensors thread if not sync
@@ -2747,7 +2758,7 @@ bool ZedCamera::startCamera()
   mVideoDepthThread = std::thread(&ZedCamera::threadFunc_pubVideoDepth, this);
 
   // Start CMOS Temperatures thread
-  if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
+  if (!sl_tools::isZED(mCamRealModel)) {
     startTempPubTimer();
   }
 
@@ -3635,11 +3646,8 @@ void ZedCamera::threadFunc_zedGrab()
         }
 
         // Publish `odom` and `map` TFs at the grab frequency
-        // if (mCamRealModel == sl::MODEL::ZED || !mPublishImuTF || mSvoMode)
-        {
-          // RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_zedGrab");
-          publishTFs(mFrameTimestamp);
-        }
+        // RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_zedGrab");
+        publishTFs(mFrameTimestamp);
       }
     }
 
@@ -3946,23 +3954,6 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
       RCLCPP_DEBUG_STREAM(get_logger(), "Publishing IMU RAW message");
       mPubImuRaw->publish(std::move(imuRawMsg));
     }
-
-    if (imu_TempSubNumber > 0) {
-      mImuPublishing = true;
-
-      tempMsgPtr imuTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
-
-      imuTempMsg->header.stamp = ts_imu;
-
-      imuTempMsg->header.frame_id = mImuFrameId;
-      float imu_temp;
-      sens_data.temperature.get(sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, imu_temp);
-      imuTempMsg->temperature = static_cast<double>(imu_temp);
-      imuTempMsg->variance = 0.0;
-
-      RCLCPP_DEBUG_STREAM(get_logger(), "Publishing IMU TEMP message");
-      mPubImuTemp->publish(std::move(imuTempMsg));
-    }
   }
 
   if (sens_data.barometer.is_available && new_baro_data) {
@@ -4262,7 +4253,7 @@ void ZedCamera::threadFunc_pubVideoDepth()
     rclcpp::Time pub_ts;
     publishVideoDepth(pub_ts);
 
-    if (mCamRealModel != sl::MODEL::ZED && mVdPublishing && pub_ts != TIMEZERO_ROS) {
+    if (!sl_tools::isZED(mCamRealModel) && mVdPublishing && pub_ts != TIMEZERO_ROS) {
       if (mSensCameraSync || mSvoMode) {
         publishSensorsData(pub_ts);
       }
@@ -5520,10 +5511,10 @@ void ZedCamera::callback_pubTemp()
 {
   RCLCPP_DEBUG_ONCE(get_logger(), "Temperatures callback called");
 
-  if (!sl_tools::isZED2OrZED2i(mCamRealModel)) {
+  if (sl_tools::isZED(mCamRealModel)) {
     RCLCPP_DEBUG(
       get_logger(),
-      "callback_pubTemp: the callback should never be called for this camera model!");
+      "callback_pubTemp: the callback should never be called for the ZED camera model!");
     return;
   }
 
@@ -5538,24 +5529,35 @@ void ZedCamera::callback_pubTemp()
     return;
   }
 
+  if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
+    sens_data.temperature.get(
+      sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_LEFT, mTempLeft);
+    sens_data.temperature.get(
+      sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
+  } else {
+    mTempLeft = NOT_VALID_TEMP;
+    mTempRight = NOT_VALID_TEMP;
+  }
+
   sens_data.temperature.get(
-    sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_LEFT, mTempLeft);
-  sens_data.temperature.get(
-    sl::SensorsData::TemperatureData::SENSOR_LOCATION::ONBOARD_RIGHT, mTempRight);
+    sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, mTempImu);
   // <---- Always update temperature values for diagnostic
 
   // ----> Subscribers count
   size_t tempLeftSubNumber = 0;
   size_t tempRightSubNumber = 0;
+  size_t tempImuSubNumber = 0;
 
   try {
     tempLeftSubNumber = 0;
     tempRightSubNumber = 0;
+    tempImuSubNumber = 0;
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
       tempLeftSubNumber = count_subscribers(mPubTempL->get_topic_name());
       tempRightSubNumber = count_subscribers(mPubTempR->get_topic_name());
     }
+    tempImuSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
   } catch (...) {
     rcutils_reset_error();
     RCLCPP_DEBUG(get_logger(), "callback_pubTemp: Exception while counting subscribers");
@@ -5588,6 +5590,19 @@ void ZedCamera::callback_pubTemp()
 
     RCLCPP_DEBUG_STREAM(get_logger(), "Publishing RIGHT TEMP message");
     mPubTempR->publish(std::move(rightTempMsg));
+  }
+
+  if (tempImuSubNumber > 0) {
+    tempMsgPtr imuTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+
+    imuTempMsg->header.stamp = now;
+
+    imuTempMsg->header.frame_id = mImuFrameId;
+    imuTempMsg->temperature = static_cast<double>(mTempImu);
+    imuTempMsg->variance = 0.0;
+
+    RCLCPP_DEBUG_STREAM(get_logger(), "Publishing IMU TEMP message");
+    mPubImuTemp->publish(std::move(imuTempMsg));
   }
 }
 
@@ -5891,9 +5906,9 @@ void ZedCamera::callback_enableObjDet(
 
   std::lock_guard<std::mutex> lock(mObjDetMutex);
 
-  if (mCamRealModel == sl::MODEL::ZED || mCamRealModel == sl::MODEL::ZED_M) {
-    RCLCPP_WARN(get_logger(), "Object Detection not available for ZED or ZED Mini");
-    res->message = "Object Detection not available for ZED or ZED Mini";
+  if (sl_tools::isZED(mCamRealModel)) {
+    RCLCPP_WARN(get_logger(), "Object Detection not available for ZED");
+    res->message = "Object Detection not available for ZED";
     res->success = false;
     return;
   }
@@ -6257,18 +6272,26 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
     stat.add("IMU Sensor", "Topics not subscribed");
   }
 
-  if (mMagPublishing) {
-    double freq = 1. / mMagPeriodMean_sec->getAvg();
-    stat.addf("Magnetometer", "Mean Frequency: %.1f Hz", freq);
+  if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
+    if (mMagPublishing) {
+      double freq = 1. / mMagPeriodMean_sec->getAvg();
+      stat.addf("Magnetometer", "Mean Frequency: %.1f Hz", freq);
+    } else {
+      stat.add("Magnetometer Sensor", "Topics not subscribed");
+    }
   } else {
-    stat.add("Magnetometer Sensor", "Topics not subscribed");
+    stat.add("Magnetometer Sensor", "N/A");
   }
 
-  if (mBaroPublishing) {
-    double freq = 1. / mBaroPeriodMean_sec->getAvg();
-    stat.addf("Barometer", "Mean Frequency: %.1f Hz", freq);
+  if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
+    if (mBaroPublishing) {
+      double freq = 1. / mBaroPeriodMean_sec->getAvg();
+      stat.addf("Barometer", "Mean Frequency: %.1f Hz", freq);
+    } else {
+      stat.add("Barometer Sensor", "Topics not subscribed");
+    }
   } else {
-    stat.add("Barometer Sensor", "Topics not subscribed");
+    stat.add("Barometer Sensor", "N/A");
   }
 
   if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
@@ -6276,11 +6299,19 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
     stat.addf("Right CMOS Temp.", "%.1f °C", mTempRight);
 
     if (mTempLeft > 70.f || mTempRight > 70.f) {
-      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::WARN, "Camera temperature");
+      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::WARN, "High Camera temperature");
     }
   } else {
     stat.add("Left CMOS Temp.", "N/A");
     stat.add("Right CMOS Temp.", "N/A");
+  }
+
+  if (sl_tools::isZEDX(mCamRealModel) || sl_tools::isZEDM(mCamRealModel)) {
+    stat.addf("Camera Temp.", "%.1f °C", mTempImu);
+
+    if (mTempImu > 70.f) {
+      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::WARN, "High Camera temperature");
+    }
   }
 
   if (mRecording) {

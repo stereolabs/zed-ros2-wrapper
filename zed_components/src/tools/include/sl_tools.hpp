@@ -48,10 +48,25 @@ std::string getSDKVersion(int & major, int & minor, int & sub_minor);
  */
 rclcpp::Time slTime2Ros(sl::Timestamp t, rcl_clock_type_t clock_type = RCL_ROS_TIME);
 
+/*! \brief check if ZED
+ * \param camModel the model to check
+ */
+bool isZED(sl::MODEL camModel);
+
+/*! \brief check if ZED Mini
+ * \param camModel the model to check
+ */
+bool isZEDM(sl::MODEL camModel);
+
 /*! \brief check if ZED2 or ZED2i
  * \param camModel the model to check
  */
 bool isZED2OrZED2i(sl::MODEL camModel);
+
+/*! \brief check if ZED-X or ZED-X Mini
+ * \param camModel the model to check
+ */
+bool isZEDX(sl::MODEL camModel);
 
 /*! \brief check if Object Detection is available
  * \param camModel the camera model to check

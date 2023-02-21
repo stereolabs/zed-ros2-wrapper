@@ -484,12 +484,39 @@ std::vector<std::vector<float>> parseStringVector(
   return result;
 }
 
+bool isZED(sl::MODEL camModel)
+{
+  if (camModel == sl::MODEL::ZED) {
+    return true;
+  }
+  return false;
+}
+
+bool isZEDM(sl::MODEL camModel)
+{
+  if (camModel == sl::MODEL::ZED_M) {
+    return true;
+  }
+  return false;
+}
+
 bool isZED2OrZED2i(sl::MODEL camModel)
 {
   if (camModel == sl::MODEL::ZED2) {
     return true;
   }
   if (camModel == sl::MODEL::ZED2i) {
+    return true;
+  }
+  return false;
+}
+
+bool isZEDX(sl::MODEL camModel)
+{
+  if (camModel == sl::MODEL::ZED_X) {
+    return true;
+  }
+  if (camModel == sl::MODEL::ZED_XM) {
     return true;
   }
   return false;

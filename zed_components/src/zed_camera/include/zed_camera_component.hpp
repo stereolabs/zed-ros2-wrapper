@@ -70,6 +70,8 @@ const bool IS_JETSON = true;
 const bool IS_JETSON = false;
 #endif
 
+const float NOT_VALID_TEMP = -273.15f;
+
 // ----> Typedefs to simplify declarations
 
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> imagePub;
@@ -639,8 +641,9 @@ private:
   // <---- Positional Tracking
 
   // Diagnostic
-  float mTempLeft = -273.15f;
-  float mTempRight = -273.15f;
+  float mTempImu = NOT_VALID_TEMP;
+  float mTempLeft = NOT_VALID_TEMP;
+  float mTempRight = NOT_VALID_TEMP;
   std::unique_ptr<sl_tools::WinAvg> mElabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mGrabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mVideoDepthPeriodMean_sec;

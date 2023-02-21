@@ -3705,12 +3705,11 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   try {
     imu_SubNumber = count_subscribers(mPubImu->get_topic_name());
     imu_RawSubNumber = count_subscribers(mPubImuRaw->get_topic_name());
-    imu_TempSubNumber = 0;
+    imu_TempSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
     imu_MagSubNumber = 0;
     pressSubNumber = 0;
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-      imu_TempSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
       imu_MagSubNumber = count_subscribers(mPubImuMag->get_topic_name());
       pressSubNumber = count_subscribers(mPubPressure->get_topic_name());
     }

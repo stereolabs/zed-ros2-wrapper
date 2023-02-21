@@ -1720,7 +1720,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-        (mRemoveSatAreas ? "TRUE" : "FALSE"));
+          (mRemoveSatAreas ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "pos_tracking.transform_time_offset") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
       if (param.get_type() != correctType) {
@@ -1817,7 +1817,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-        (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
+          (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "object_detection.mc_vehicle") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
@@ -1831,7 +1831,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-        (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
+          (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "object_detection.mc_bag") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
@@ -1845,7 +1845,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-        (mObjDetBagsEnable ? "TRUE" : "FALSE"));
+          (mObjDetBagsEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "object_detection.mc_animal") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
@@ -1859,7 +1859,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-        (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
+          (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "object_detection.mc_electronics") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
@@ -1873,7 +1873,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-        (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
+          (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "object_detection.mc_fruit_vegetable") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
@@ -1887,7 +1887,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-        (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
+          (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "object_detection.mc_sport") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
@@ -1901,7 +1901,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-        (mObjDetSportEnable ? "TRUE" : "FALSE"));
+          (mObjDetSportEnable ? "TRUE" : "FALSE"));
     }
   }
 
@@ -2340,8 +2340,11 @@ void ZedCamera::initPublishers()
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubImu->get_topic_name());
     mPubImuRaw = create_publisher<sensor_msgs::msg::Imu>(imu_topic_raw, mSensQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubImuRaw->get_topic_name());
-    mPubImuTemp = create_publisher<sensor_msgs::msg::Temperature>(imu_temp_topic, mSensQos);
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubImuTemp->get_topic_name());
+
+    if (sl_tools::isZED2OrZED2i(mCamRealModel) || sl_tools::isZEDX(mCamRealModel)) {
+      mPubImuTemp = create_publisher<sensor_msgs::msg::Temperature>(imu_temp_topic, mSensQos);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubImuTemp->get_topic_name());
+    }
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
       mPubImuMag = create_publisher<sensor_msgs::msg::MagneticField>(imu_mag_topic, mSensQos);
@@ -2758,7 +2761,7 @@ bool ZedCamera::startCamera()
   mVideoDepthThread = std::thread(&ZedCamera::threadFunc_pubVideoDepth, this);
 
   // Start CMOS Temperatures thread
-  if (!sl_tools::isZED(mCamRealModel)) {
+  if (!sl_tools::isZED(mCamRealModel) && !sl_tools::isZEDM(mCamRealModel)) {
     startTempPubTimer();
   }
 
@@ -3713,7 +3716,6 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   try {
     imu_SubNumber = count_subscribers(mPubImu->get_topic_name());
     imu_RawSubNumber = count_subscribers(mPubImuRaw->get_topic_name());
-    imu_TempSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
     imu_MagSubNumber = 0;
     pressSubNumber = 0;
 
@@ -5511,10 +5513,10 @@ void ZedCamera::callback_pubTemp()
 {
   RCLCPP_DEBUG_ONCE(get_logger(), "Temperatures callback called");
 
-  if (sl_tools::isZED(mCamRealModel)) {
+  if (sl_tools::isZED(mCamRealModel) || sl_tools::isZEDM(mCamRealModel)) {
     RCLCPP_DEBUG(
       get_logger(),
-      "callback_pubTemp: the callback should never be called for the ZED camera model!");
+      "callback_pubTemp: the callback should never be called for the ZED or ZEDM camera models!");
     return;
   }
 
@@ -6306,7 +6308,7 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
     stat.add("Right CMOS Temp.", "N/A");
   }
 
-  if (sl_tools::isZEDX(mCamRealModel) || sl_tools::isZEDM(mCamRealModel)) {
+  if (sl_tools::isZEDX(mCamRealModel)) {
     stat.addf("Camera Temp.", "%.1f °C", mTempImu);
 
     if (mTempImu > 70.f) {

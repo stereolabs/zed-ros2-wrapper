@@ -163,6 +163,7 @@ protected:
   void initServices();
 
   void getDebugParams();
+  void getSimParams();
   void getGeneralParams();
   void getVideoParams();
   void getDepthParams();
@@ -328,6 +329,8 @@ private:
   // <---- Topics
 
   // ----> Parameter variables
+  bool mSimEnabled = false;  // Expecting simulation data?
+  std::string mSimAddr = "localhost";  // The local address of the machine running the simulator
   bool mDebugMode = false;
   bool mDebugCommon = false;
   bool mDebugVideoDepth = false;

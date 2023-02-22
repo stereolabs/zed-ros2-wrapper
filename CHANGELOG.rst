@@ -13,6 +13,9 @@ LATEST CHANGES
   - Publish gridmap on topic `local_map/gridmap`
   - Publish elevation map image on topic `local_map/elev_img`
   - Publish obstacle color map image on topic `local_map/col_img`
+- Add support for simulated data
+  - Add parameter `use_sim_time` to enable SIMULATION mode
+  - Add parameter `sim_address` tos set the local address of the machine running the simulator
 
 2023-02-20
 ----------

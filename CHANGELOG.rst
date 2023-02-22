@@ -1,6 +1,16 @@
 LATEST CHANGES
 ==============
 
+2023-02-22
+----------
+- Add full Terrain Mapping (local obstacle detection) support
+  - ZED SDK Terrain Mapping published as GridMap message
+  - Add parameter `local_mapping.terrain_mapping_enabled` to enable terrain mapping publishing a local obstacle map
+  - Add parameter `local_mapping.data_pub_rate` to set the Local Map data publish frequency
+  - Add parameter `local_mapping.grid_resolution` to set the Local Map resolution in meters [min: 0.01 - max: 1.0]
+  - Add parameter `local_mapping.grid_range` to set the maximum depth range for local map generation [min: 1.0 - max: 8.0]
+  - Add parameter `local_mapping.height_threshold` to set the maximum height for obstacles
+
 2023-02-20
 ----------
 - Add support for ZED-X and ZED-X Mini
@@ -12,6 +22,11 @@ LATEST CHANGES
   - Add `display_zedx.launch.py` for ZED-X to ZED-ROS2-Examples
   - Add `display_zedxm.launch.py` for ZED-X Mini to ZED-ROS2-Examples
   - Add ZED-X and ZED-X Mini STL files to ZED-ROS2-Interfaces
+
+2023-01-27
+----------
+- Added `grid_map_msgs` dependency for Terrain Mapping topics
+- Converted `shared_ptr` to `unique_ptr` for IPC support
 
 2023-01-16
 ----------

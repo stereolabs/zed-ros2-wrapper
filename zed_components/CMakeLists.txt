@@ -97,6 +97,8 @@ set(DEPENDENCIES
     nav_msgs
     sensor_msgs
     stereo_msgs
+    grid_map_msgs
+    grid_map_ros
     zed_interfaces
     std_srvs
     diagnostic_msgs
@@ -105,7 +107,9 @@ set(DEPENDENCIES
     shape_msgs
 )
 
-find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
+
 find_package(rcutils REQUIRED)
 find_package(zed_interfaces)
 find_package(rclcpp REQUIRED)
@@ -119,6 +123,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
+find_package(grid_map_msgs REQUIRED)
+find_package(grid_map_ros REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)

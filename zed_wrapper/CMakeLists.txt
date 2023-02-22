@@ -78,7 +78,9 @@ endif()
 find_package(ZED 3 REQUIRED)
 find_package(CUDA REQUIRED)
 
-find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
+
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rcutils REQUIRED)

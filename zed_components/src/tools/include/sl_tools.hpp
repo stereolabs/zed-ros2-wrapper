@@ -78,7 +78,7 @@ bool isObjDetAvailable(sl::MODEL camModel);
  * \param frameId : the id of the reference frame of the image
  * \param t : rclcpp ros::Time to stamp the image
  */
-std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(
+std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
   sl::Mat & img, std::string frameId, rclcpp::Time t);
 
 /*! \brief sl::Mat to ros message conversion
@@ -87,7 +87,7 @@ std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(
  * \param frameId : the id of the reference frame of the image
  * \param t : rclcpp rclcpp::Time to stamp the image
  */
-std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
+std::unique_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
   sl::Mat & left, sl::Mat & right, std::string frameId, rclcpp::Time t);
 
 /*! \brief qos value to string

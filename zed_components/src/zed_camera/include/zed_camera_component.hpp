@@ -42,6 +42,7 @@
 #include <sensor_msgs/msg/magnetic_field.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/temperature.hpp>
+#include <grid_map_msgs/msg/grid_map.hpp>
 #include <sl/Camera.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -96,6 +97,8 @@ typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::DepthInfoStamped>
 
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PlaneStamped>> planePub;
 typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>> markerPub;
+
+typedef std::shared_ptr<rclcpp::Publisher<grid_map_msgs::msg::GridMap>> gridMapPub;
 
 typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> clickedPtSub;
 
@@ -166,6 +169,7 @@ protected:
   void getPosTrackingParams();
   void getSensorsParams();
   void getMappingParams();
+  void getTerrainMappingParams();
   void getOdParams();
 
   void setTFCoordFrameNames();
@@ -183,11 +187,14 @@ protected:
   void stopObjDetect();
   bool startSvoRecording(std::string & errMsg);
   void stopSvoRecording();
+  bool startTerrainMapping();
+  void stopTerrainMapping();
   // <---- Initialization functions
 
   // ----> Callbacks
   void threadFunc_pubVideoDepth();
   void callback_pubFusedPc();
+  void callback_pubLocalMap();
   void callback_pubPaths();
   void callback_pubTemp();
   rcl_interfaces::msg::SetParametersResult callback_paramChange(
@@ -255,6 +262,7 @@ protected:
   void publishVideoDepth(rclcpp::Time & out_pub_ts);
   void publishPointCloud();
   void publishImuFrameAndTopic();
+  bool publishLocalMap();
 
   void publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t);
   void publishPose();
@@ -284,6 +292,7 @@ protected:
 
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
+  void startTerrainMappingTimer(double mapPubRate);
   void startTempPubTimer();
 
   template<typename T>
@@ -320,7 +329,14 @@ private:
 
   // ----> Parameter variables
   bool mDebugMode = false;
+  bool mDebugCommon = false;
+  bool mDebugVideoDepth = false;
+  bool mDebugPointCloud = false;
+  bool mDebugPosTracking = false;
   bool mDebugSensors = false;
+  bool mDebugMapping = false;
+  bool mDebugTerrainMapping = false;
+  bool mDebugObjectDet = false;
   int mCamId = 0;
   int mCamSerialNumber = 0;
   sl::MODEL mCamUserModel = sl::MODEL::ZED;  // Default camera model
@@ -378,6 +394,11 @@ private:
   bool mMappingEnabled = false;
   float mMappingRes = 0.05f;
   float mMappingRangeMax = 10.0f;
+  bool mTerrainMappingEnabled = false;
+  float mTerrainMapPubFreq = 5.0f;  // Frequency of data publishing
+  float mTerrainMappingRes = 0.05f;  // Terrain mapping resolution
+  float mTerrainMappingRange = 4.0f;  // Terrain mapping range
+  float mTerrainMappingHeigthThresh = 1.0f;  // Max obstacle height
   bool mObjDetEnabled = false;
   // TODO(Walter) Add support for Skeleton tracking -> SDK v4!!!
   bool mObjDetTracking = true;
@@ -476,8 +497,8 @@ private:
 
   // ----> initialization Transform listener
   std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
-  std::shared_ptr<tf2_ros::TransformListener> mTfListener;
-  std::shared_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
+  std::unique_ptr<tf2_ros::TransformListener> mTfListener;
+  std::unique_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
   // <---- initialization Transform listener
 
   // ----> TF Transforms
@@ -545,6 +566,10 @@ private:
   depthInfoPub mPubDepthInfo;
   planePub mPubPlane;
   markerPub mPubMarker;
+
+  imagePub mPubElevMapImg;
+  imagePub mPubColMapImg;
+  gridMapPub mPubGridMap;
   // <---- Publishers
 
   // <---- Publisher variables
@@ -573,6 +598,7 @@ private:
   sl::Mat mMatLeftGray, mMatLeftRawGray;
   sl::Mat mMatRightGray, mMatRightRawGray;
   sl::Mat mMatDepth, mMatDisp, mMatConf;
+
   float mMinDepth = 0.0f;
   float mMaxDepth = 0.0f;
   // <---- Publisher variables
@@ -586,6 +612,10 @@ private:
   clickedPtSub mClickedPtSub;
   // <---- Subscribers
 
+  // ----> Terraing Mapping
+  //sl::Terrain sl_map;
+  // <---- Terraing Mapping
+
   // ----> Threads and Timers
   sl::ERROR_CODE mGrabStatus;
   sl::ERROR_CODE mConnStatus;
@@ -596,6 +626,7 @@ private:
   bool mThreadStop = false;
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
+  rclcpp::TimerBase::SharedPtr mTerrainMapTimer;
   rclcpp::TimerBase::SharedPtr mTempPubTimer;  // Timer to retrieve and publish CMOS temperatures
   // <---- Threads and Timers
 
@@ -607,6 +638,7 @@ private:
   std::mutex mPosTrkMutex;
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
+  std::mutex mTerrainMappingMutex;
   std::mutex mObjDetMutex;
   std::condition_variable mVideoDepthDataReadyCondVar;
   std::condition_variable mPcDataReadyCondVar;
@@ -627,7 +659,8 @@ private:
   bool mPosTrackingReady = false;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
   bool mResetOdom = false;
-  bool mMappingRunning = false;
+  bool mSpatialMappingRunning = false;
+  bool mTerrainMappingRunning = false;
   bool mObjDetRunning = false;
   bool mRgbSubscribed = false;
   // <---- Status Flags

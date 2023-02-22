@@ -5400,10 +5400,10 @@ void ZedCamera::applyVideoSettings()
       }
     } else {
       int exposure;
-      err = mZed.mZed.getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, exposure);
+      err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, exposure);
       if (err == sl::ERROR_CODE::SUCCESS && exposure != mCamExposure) {
         mZed.setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, mCamExposure);
-      } else if(err != sl::ERROR_CODE::SUCCESS) {
+      } else if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_WARN_STREAM(
           get_logger(), "Error setting camera EXPOSURE: " << sl::toString(
             err).c_str() );
@@ -5413,7 +5413,7 @@ void ZedCamera::applyVideoSettings()
       err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAIN, gain);
       if (err == sl::ERROR_CODE::SUCCESS && gain != mCamGain) {
         err = mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAIN, mCamGain);
-      } else if(err != sl::ERROR_CODE::SUCCESS) {
+      } else if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_WARN_STREAM(
           get_logger(),
           "Error setting camera GAIN: " << sl::toString(err).c_str() );
@@ -5429,7 +5429,7 @@ void ZedCamera::applyVideoSettings()
       err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, wb);
       if (err == sl::ERROR_CODE::SUCCESS && wb != mCamWBTemp) {
         err = mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, mCamWBTemp);
-      } else if(err != sl::ERROR_CODE::SUCCESS) {
+      } else if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_WARN_STREAM(
           get_logger(),
           "Error setting camera WHITE BALANCE: " << sl::toString(err).c_str() );
@@ -5439,7 +5439,7 @@ void ZedCamera::applyVideoSettings()
     err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, brgt);
     if (err == sl::ERROR_CODE::SUCCESS && brgt != mCamBrightness) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, mCamBrightness);
-    } else if(err != sl::ERROR_CODE::SUCCESS) {
+    } else if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "Error setting camera BRIGHTNESS: " << sl::toString(err).c_str() );
@@ -5449,7 +5449,7 @@ void ZedCamera::applyVideoSettings()
     err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, contr);
     if (err == sl::ERROR_CODE::SUCCESS && contr != mCamContrast) {
       err = mZed.setCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, mCamContrast);
-    } else if(err != sl::ERROR_CODE::SUCCESS) {
+    } else if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "Error setting camera CONTRAST: " << sl::toString(err).c_str() );
@@ -5459,7 +5459,7 @@ void ZedCamera::applyVideoSettings()
     err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::HUE, hue);
     if (err == sl::ERROR_CODE::SUCCESS && hue != mCamHue) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::HUE, mCamHue);
-    } else if(err != sl::ERROR_CODE::SUCCESS) {
+    } else if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "Error setting camera HUE: " << sl::toString(err).c_str() );
@@ -5469,7 +5469,7 @@ void ZedCamera::applyVideoSettings()
     err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SATURATION, sat);
     if (err == sl::ERROR_CODE::SUCCESS && sat != mCamSaturation) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::SATURATION, mCamSaturation);
-    } else if(err != sl::ERROR_CODE::SUCCESS) {
+    } else if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "Error setting camera SATURATION: " << sl::toString(err).c_str() );
@@ -5479,7 +5479,7 @@ void ZedCamera::applyVideoSettings()
     err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS, sharp);
     if (err == sl::ERROR_CODE::SUCCESS && sharp != mCamSharpness) {
       mZed.setCameraSettings(sl::VIDEO_SETTINGS::SHARPNESS, mCamSharpness);
-    } else if(err != sl::ERROR_CODE::SUCCESS) {
+    } else if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "Error setting camera SHARPNESS: " << sl::toString(err).c_str() );
@@ -5489,7 +5489,7 @@ void ZedCamera::applyVideoSettings()
     err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAMMA, gamma);
     if (err == sl::ERROR_CODE::SUCCESS && gamma != mCamGamma) {
       err = mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAMMA, mCamGamma);
-    } else if(err != sl::ERROR_CODE::SUCCESS) {
+    } else if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "Error setting camera SHARPNESS: " << sl::toString(err).c_str() );

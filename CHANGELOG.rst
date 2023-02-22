@@ -10,6 +10,9 @@ LATEST CHANGES
   - Add parameter `local_mapping.grid_resolution` to set the Local Map resolution in meters [min: 0.01 - max: 1.0]
   - Add parameter `local_mapping.grid_range` to set the maximum depth range for local map generation [min: 1.0 - max: 8.0]
   - Add parameter `local_mapping.height_threshold` to set the maximum height for obstacles
+  - Publish gridmap on topic `local_map/gridmap`
+  - Publish elevation map image on topic `local_map/elev_img`
+  - Publish obstacle color map image on topic `local_map/col_img`
 
 2023-02-20
 ----------

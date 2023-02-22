@@ -5,6 +5,10 @@
 ---
 /**:
     ros__parameters:
+
+        use_sim_time: true  # Set to true to enable SIMULATION mode
+        sim_address: '127.0.0.1'  # The local address of the machine running the simulator
+
         general:
             svo_file: "" # usually overwritten by launch file
             svo_loop: false # Enable loop mode when using an SVO as input source
@@ -12,8 +16,8 @@
             camera_timeout_sec: 5
             camera_max_reconnect: 5
             camera_flip: false
-            zed_id: 0 # usually overwritten by launch file
-            serial_number: 0 # usually overwritten by launch file            
+            zed_id: 0 # IMPORTANT: to be used in simulation to distinguish individual cameras im multi-camera configurations - usually overwritten by launch file
+            serial_number: 0 # usually overwritten by launch file
             pub_resolution: 'MEDIUM' # The resolution used for output. 'HD2K', 'HD1080', 'HD1200', 'HD720', 'MEDIUM', 'SVGA', 'VGA', 'LOW'
             pub_frame_rate: 30.0 # [DYNAMIC] - frequency of publishing of visual images and depth images
             gpu_id: -1

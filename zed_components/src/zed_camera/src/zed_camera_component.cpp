@@ -45,8 +45,10 @@
 using namespace std::chrono_literals;
 using namespace std::placeholders;
 
-#define TIMER_TIME_FACTOR 1.5
+// Used for simulation data input
+#define ZED_SDK_PORT 30000
 
+// Custom output resolution
 #define MEDIUM_W 896
 #define MEDIUM_H 512
 
@@ -364,6 +366,9 @@ void ZedCamera::initParameters()
   // DEBUG parameters
   getDebugParams();
 
+  // SIMULATION parameters
+  getSimParams();
+
   // GENERAL parameters
   getGeneralParams();
 
@@ -530,6 +535,21 @@ void ZedCamera::getDebugParams()
   }
 
   COMM_DEBUG_STREAM("[ROS2] Using RMW_IMPLEMENTATION " << rmw_get_implementation_identifier());
+}
+
+void ZedCamera::getSimParams()
+{
+  // SIMULATION active?
+  if (!get_parameter("use_sim_time", mSimEnabled)) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The parameter 'use_sim_time' is not available or is not valid, using the default value: " <<
+        mSimEnabled);
+  }
+  if (mSimEnabled) {
+    RCLCPP_INFO(get_logger(), " *** SIMULATION MODE ACTIVE ***");
+    getParam("sim_address", mSimAddr, mSimAddr, " * Simulator address: ");
+  }
 }
 
 void ZedCamera::getGeneralParams()
@@ -2544,7 +2564,12 @@ bool ZedCamera::startCamera()
   // <---- TF2 Transform
 
   // ----> ZED configuration
-  if (!mSvoFilepath.empty()) {
+  if (mSimEnabled) {  // Simulation?
+    RCLCPP_INFO(get_logger(), "*** CONNECTING TO THE SIMULATOR ***");
+
+    int sim_port = ZED_SDK_PORT + 2 * mCamId;
+    mInitParams.input.setFromStream(mSimAddr.c_str(), sim_port);
+  } else if (!mSvoFilepath.empty()) {
     RCLCPP_INFO(get_logger(), "*** SVO OPENING ***");
 
     mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
@@ -2583,7 +2608,7 @@ bool ZedCamera::startCamera()
 
   mThreadStop = false;
 
-  if (!mSvoMode) {
+  if (!mSvoMode && !mSimEnabled) {
     if (mCamSerialNumber <= 0) {
       mInitParams.input.setFromCameraID(mCamId);
     } else {
@@ -2605,17 +2630,21 @@ bool ZedCamera::startCamera()
       RCLCPP_WARN(get_logger(), "Error opening SVO: %s", sl::toString(mConnStatus).c_str());
 
       return false;
-    }
-
-    RCLCPP_WARN(get_logger(), "Error opening camera: %s", sl::toString(mConnStatus).c_str());
-
-    if (
-      mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE && sl_tools::isZEDM(mCamUserModel))
-    {
-      RCLCPP_INFO(
-        get_logger(), "Try to flip the USB3 Type-C connector and verify the USB3 connection");
+    } else if (mSimEnabled) {
+      RCLCPP_WARN(
+        get_logger(), "Error connecting to the simulator: %s", sl::toString(
+          mConnStatus).c_str());
     } else {
-      RCLCPP_INFO(get_logger(), "Please verify the camera connection");
+      RCLCPP_WARN(get_logger(), "Error opening camera: %s", sl::toString(mConnStatus).c_str());
+
+      if (mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE &&
+        sl_tools::isZEDM(mCamUserModel))
+      {
+        RCLCPP_INFO(
+          get_logger(), "Try to flip the USB3 Type-C connector and verify the USB3 connection");
+      } else {
+        RCLCPP_INFO(get_logger(), "Please verify the camera connection");
+      }
     }
 
     if (!rclcpp::ok() || mThreadStop) {
@@ -2889,7 +2918,7 @@ bool ZedCamera::startCamera()
   mVideoDepthThread = std::thread(&ZedCamera::threadFunc_pubVideoDepth, this);
 
   // Start CMOS Temperatures thread
-  if (!sl_tools::isZED(mCamRealModel) && !sl_tools::isZEDM(mCamRealModel)) {
+  if (!mSimEnabled && !sl_tools::isZED(mCamRealModel) && !sl_tools::isZEDM(mCamRealModel)) {
     startTempPubTimer();
   }
 
@@ -3980,6 +4009,11 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   if (!new_imu_data && !new_baro_data && !new_mag_data) {
     SENS_DEBUG_STREAM("No new sensors data");
     return TIMEZERO_ROS;
+  }
+
+  if (mSimEnabled) {
+    new_baro_data = false;
+    new_mag_data = false;
   }
   // <---- Check for duplicated data
 

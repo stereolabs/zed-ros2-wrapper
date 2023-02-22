@@ -96,7 +96,7 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         local_mapping:
-            terrain_mapping_enabled: false # True to enable terrain mapping publishing a local obstacle map
+            terrain_mapping_enabled: true # True to enable terrain mapping publishing a local obstacle map
             data_pub_rate: 3.0; # Local Map data publish frequency
             grid_resolution: 0.05 # Local Map resolution in meters [min: 0.01 - max: 1.0]
             grid_range: 4.0 # maximum depth range for local map generation [min: 1.0 - max: 8.0]

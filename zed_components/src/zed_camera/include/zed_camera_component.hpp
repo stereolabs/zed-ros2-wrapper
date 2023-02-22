@@ -554,8 +554,6 @@ private:
 
   imagePub mPubElevMapImg;
   imagePub mPubColMapImg;
-  imagePub mPubOccMapImg;
-  imagePub mPubTravMapImg;
   gridMapPub mPubGridMap;
   // <---- Publishers
 

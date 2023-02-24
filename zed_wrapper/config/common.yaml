@@ -6,8 +6,8 @@
 /**:
     ros__parameters:
 
-        use_sim_time: true  # Set to true to enable SIMULATION mode
-        sim_address: '127.0.0.1'  # The local address of the machine running the simulator
+        use_sim_time: false  # Set to true to enable SIMULATION mode
+        sim_address: '192.168.1.90'  # The local address of the machine running the simulator
 
         general:
             svo_file: "" # usually overwritten by launch file

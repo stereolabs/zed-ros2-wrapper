@@ -125,14 +125,15 @@ std::vector<std::vector<float>> parseStringVector(
 class StopWatch
 {
 public:
-  StopWatch();
+  StopWatch(rclcpp::Clock::SharedPtr clock);
   ~StopWatch() {}
 
-  void tic();    //!< Set the beginning time
-  double toc();  //!< Returns the seconds elapsed from the last tic
+  void tic();    //!< Set the reference time point to the current time
+  double toc();  //!< Returns the seconds elapsed from the last tic in ROS clock reference (it works also in simulation)
 
 private:
-  std::chrono::steady_clock::time_point mStartTime;
+  rclcpp::Time mStartTime;  // Reference time point
+  rclcpp::Clock::SharedPtr mClockPtr;  // Node clock interface
 };
 
 }  // namespace sl_tools

@@ -530,22 +530,24 @@ bool isObjDetAvailable(sl::MODEL camModel)
   return false;
 }
 
-StopWatch::StopWatch()
+StopWatch::StopWatch(rclcpp::Clock::SharedPtr clock)
+: mStartTime(0, 0, RCL_ROS_TIME),
+  mClockPtr(clock)
 {
   tic();  // Start the timer at creation
 }
 
 void StopWatch::tic()
 {
-  mStartTime = std::chrono::steady_clock::now();  // Set the start time point
+  mStartTime = mClockPtr->now();  // Reset the start time point
 }
 
 double StopWatch::toc()
 {
-  auto now = std::chrono::steady_clock::now();
-  double elapsed_usec =
-    std::chrono::duration_cast<std::chrono::microseconds>(now - mStartTime).count();
-  return elapsed_usec / 1e6;
+  auto now = mClockPtr->now();
+
+  double elapsed_nsec = (now - mStartTime).nanoseconds();
+  return elapsed_nsec / 1e9;  // Returns elapsed time in seconds
 }
 
 }  // namespace sl_tools

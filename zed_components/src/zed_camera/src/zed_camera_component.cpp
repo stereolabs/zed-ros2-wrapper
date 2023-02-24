@@ -3739,7 +3739,9 @@ void ZedCamera::threadFunc_zedGrab()
     // <---- Apply depth settings
 
     // ----> Apply video dynamic parameters
-    applyVideoSettings();
+    if (!mSimEnabled) {
+      applyVideoSettings();
+    }
     // <---- Apply video dynamic parameters
 
     // ----> Check for Positional Tracking requirement

@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2023-02-24
+----------
+- Change StopWatch to use ROS clock instead of System Clock. In this way diagnostic and time checking work also in simulation
+- Disable camera settings control in simulation
+
 2023-02-22
 ----------
 - Add full Terrain Mapping (local obstacle detection) support

@@ -59,19 +59,32 @@ rm -r ./tmp_sources
 
 It is important that the NVIDIA drivers are correctly accessible from the Docker image to run the ZED SDK code on the GPU.
 
+### AI module
+If you plan to use the AI module of the ZED SDK (Object Detection, Skeleton Tracking, NEURAL depth) we suggest to create
+a shared folder in order to avoid downloading and optimize the AI models each time the Docker image is restarted.
+
+This is easily done by using the following option:
+
+    -v /tmp/zed_ai/:/usr/local/zed/resources/
+
+### Start the Docker container
+
 The following command starts an interactive BaSH session:
 
 ```bash
 docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e DISPLAY \
   -v /dev/shm:/dev/shm -v /tmp/.X11-unix/:/tmp/.X11-unix \
+  -v /tmp/zed_ai/:/usr/local/zed/resources/ \
   <image_tag>
 ```
 
-For ZED-X on Jetson [SDK 4.0-beta / L4T 35.1 / ROS2 Humble]:
+For ZED-X on Jetson [SDK 4.0-beta / L4T 35.1 / ROS2 Humble] it is required to add two additional shared volumes:
 
 ```bash
 docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e DISPLAY \
   -v /dev/shm:/dev/shm -v /tmp/.X11-unix/:/tmp/.X11-unix \ 
-  -v /tmp/argus_socket:/tmp/argus_socket -v /var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/
+  -v /tmp/argus_socket:/tmp/argus_socket \ 
+  -v /var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/ \
+  -v /tmp/zed_ai/:/usr/local/zed/resources/ \
   <image_tag>
 ```

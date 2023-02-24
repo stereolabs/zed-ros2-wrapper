@@ -135,19 +135,20 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   // Parameters initialization
   initParameters();
 
-  // ----> Diagnostic
+  // ----> Diagnostic initialization
   mDiagUpdater.add("ZED Diagnostic", this, &ZedCamera::callback_updateDiagnostic);
   std::string hw_id = std::string("Stereolabs camera: ") + mCameraName;
   mDiagUpdater.setHardwareID(hw_id);
-  // <---- Diagnostic
+  // <---- Diagnostic initialization
 
-  // Init services
+  // Services initialization
   initServices();
 
-  // Start camera
+  // ----> Start camera
   if (!startCamera()) {
     exit(EXIT_FAILURE);
   }
+  // <---- Start camera
 
   // Dynamic parameters callback
   mParamChangeCallbackHandle =
@@ -709,10 +710,6 @@ void ZedCamera::getVideoParams()
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
 
-  getParam(
-    "video.extrinsic_in_camera_frame", mUseOldExtrinsic, mUseOldExtrinsic,
-    " * Use old extrinsic parameters: ");
-
   getParam("video.brightness", mCamBrightness, mCamBrightness, " * [DYN] Brightness: ", true);
   getParam("video.contrast", mCamContrast, mCamContrast, " * [DYN] Contrast: ", true);
   getParam("video.hue", mCamHue, mCamHue, " * [DYN] Hue: ", true);
@@ -840,12 +837,6 @@ void ZedCamera::getDepthParams()
   if (!mDepthDisabled) {
     getParam("depth.min_depth", mCamMinDepth, mCamMinDepth, " * Min depth [m]: ");
     getParam("depth.max_depth", mCamMaxDepth, mCamMaxDepth, " * Max depth [m]: ");
-
-    int sens_mode = static_cast<int>(mDepthSensingMode);
-    getParam("depth.sensing_mode", sens_mode, sens_mode);
-    mDepthSensingMode = static_cast<sl::SENSING_MODE>(sens_mode);
-    RCLCPP_INFO_STREAM(
-      get_logger(), " * Depth Sensing Mode: " << sens_mode << " - " << mDepthSensingMode);
 
     getParam("depth.depth_stabilization", mDepthStabilization, mDepthStabilization);
     RCLCPP_INFO(get_logger(), " * Depth Stabilization: %s", mDepthStabilization ? "TRUE" : "FALSE");
@@ -1406,7 +1397,7 @@ void ZedCamera::getOdParams()
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Body format: " << bodyFormat << " - " << sl::toString(mObjDetBodyFmt).c_str());
-  if (mObjDetBodyFmt == sl::BODY_FORMAT::POSE_34) {
+  if (mObjDetBodyFmt == sl::BODY_FORMAT::BODY_38) {
     RCLCPP_INFO_STREAM(
       get_logger(), " * Skeleton fitting: TRUE (forced by `object_detection.body_format`)");
     mObjDetBodyFitting = true;
@@ -2230,17 +2221,9 @@ void ZedCamera::fillCamInfo(
   }
 
   if (rawParam) {
-    if (mUseOldExtrinsic) {  // Camera frame (Z forward, Y down, X right)
-      std::vector<float> R_ = sl_tools::convertRodrigues(zedParam.R);
-      float * p = R_.data();
-
-      for (int i = 0; i < 9; i++) {
-        rightCamInfoMsg->r[i] = p[i];
-      }
-    } else {  // ROS frame (X forward, Z up, Y left)
-      for (int i = 0; i < 9; i++) {
-        rightCamInfoMsg->r[i] = zedParam.stereo_transform.getRotationMatrix().r[i];
-      }
+    // ROS frame (X forward, Z up, Y left)
+    for (int i = 0; i < 9; i++) {
+      rightCamInfoMsg->r[i] = zedParam.stereo_transform.getRotationMatrix().r[i];
     }
   }
 
@@ -3709,7 +3692,6 @@ void ZedCamera::threadFunc_zedGrab()
   mFrameCount = 0;
 
   // ----> Grab Runtime parameters
-  mRunParams.sensing_mode = static_cast<sl::SENSING_MODE>(mDepthSensingMode);
   mRunParams.enable_depth = false;
   mRunParams.measure3D_reference_frame = sl::REFERENCE_FRAME::CAMERA;
   mRunParams.remove_saturated_areas = mRemoveSatAreas;
@@ -3739,7 +3721,7 @@ void ZedCamera::threadFunc_zedGrab()
     // <---- Apply depth settings
 
     // ----> Apply video dynamic parameters
-    if (!mSimEnabled) {
+    if (!mSimEnabled && !mSvoMode) {
       applyVideoSettings();
     }
     // <---- Apply video dynamic parameters
@@ -5427,7 +5409,6 @@ void ZedCamera::applyDepthSettings()
 void ZedCamera::applyVideoSettings()
 {
   sl::ERROR_CODE err;
-  // TODO(Walter) SDK v4 -> Handle set/get error codes!
   // TODO(Walter) SDK v4 -> Add new settings for ZED-X
 
   if (!mSvoMode && mFrameCount % 5 == 0) {
@@ -6550,6 +6531,14 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
       stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Camera grabbing");
     }
 
+    if (mSimEnabled) {
+      stat.add("Input mode", "SIMULATION");
+    } else if (mSvoMode) {
+      stat.add("Input mode", "SVO");
+    } else {
+      stat.add("Input mode", "Live Camera");
+    }
+
     if (mVdPublishing) {
       freq = 1. / mVideoDepthPeriodMean_sec->getAvg();
       freq_perc = 100. * freq / mPubFrameRate;
@@ -6781,7 +6770,7 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
 
   // ----> Project the point into 2D image coordinates
   sl::CalibrationParameters zedParam;
-  zedParam = mZed.getCameraInformation(mMatResol).calibration_parameters;  // ok
+  zedParam = mZed.getCameraInformation(mMatResol).camera_configuration.calibration_parameters;  // ok
 
   float f_x = zedParam.left_cam.fx;
   float f_y = zedParam.left_cam.fy;

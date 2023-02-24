@@ -5,6 +5,8 @@ LATEST CHANGES
 ----------
 - Change StopWatch to use ROS clock instead of System Clock. In this way diagnostic and time checking work also in simulation
 - Disable camera settings control in simulation
+- Remove `sensing_mode`, no more available in SDK v4.0
+- Remove `extrinsic_in_camera_frame`, no more available in SDK v4.0
 
 2023-02-22
 ----------

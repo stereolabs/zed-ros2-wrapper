@@ -365,15 +365,12 @@ private:
   int mMaxReconnectTemp = 5;
   bool mCameraSelfCalib = true;
   bool mCameraFlip = false;
-  sl::SENSING_MODE mDepthSensingMode =
-    sl::SENSING_MODE::STANDARD;   // Default Sensing mode: SENSING_MODE_STANDARD
   bool mOpenniDepthMode = false;  // 16 bit UC data in mm else 32F in m,
                                   // for more info -> http://www.ros.org/reps/rep-0118.html
   double mCamMinDepth = 0.2;
   double mCamMaxDepth = 10.0;
   bool mSensCameraSync = false;
   double mSensPubRate = 400.;
-  bool mUseOldExtrinsic = false;
   bool mPosTrackingEnabled = false;
   bool mPublishTF = true;
   bool mPublishMapTF = true;
@@ -416,7 +413,7 @@ private:
   bool mObjDetFruitsEnable = true;
   bool mObjDetSportEnable = true;
   bool mObjDetBodyFitting = false;
-  sl::BODY_FORMAT mObjDetBodyFmt = sl::BODY_FORMAT::POSE_34;
+  sl::BODY_FORMAT mObjDetBodyFmt = sl::BODY_FORMAT::BODY_38;
   sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::HUMAN_BODY_FAST;
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
 

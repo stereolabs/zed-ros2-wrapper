@@ -3708,6 +3708,7 @@ namespace stereolabs
       detector = YOLODetector(modelPath, true, cv::Size(640, 640));
       std::vector<Detection> detections;
       sl::Mat mat_left_raw;
+      sl::Mat mat_normals;
       cv::Mat cv_mat_left_raw;
       while (1)
       {
@@ -3725,6 +3726,7 @@ namespace stereolabs
         detections.clear();
         objects_in.clear();
         mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveMeasure(mat_normals, sl::MEASURE::NORMALS, sl::MEM::CPU, mMatResolVideo);
         cv_mat_left_raw = slMat2cvMat(mat_left_raw);
         detections = detector.detect(cv_mat_left_raw, confThreshold, iouThreshold);
         rclcpp::Time now = get_clock()->now();
@@ -3764,13 +3766,28 @@ namespace stereolabs
           vision_msgs::msg::ObjectHypothesisWithPose result;
           try
           {
-            std::cout << objIds.at(object.raw_label) << std::endl;
             result.hypothesis.class_id = objIds.at(object.raw_label);
           }
           catch (const std::exception &e)
           {
             std::cerr << e.what() << std::endl;
             break;
+          }
+          sl::uint2 box_center = object.bounding_box_2d[0, 2] - object.bounding_box_2d[0, 0];
+          box_center = object.bounding_box_2d[0, 0] + (box_center / 2);
+          sl::float4 orientationVector;
+          mat_normals.getValue(box_center[0], box_center[1], &orientationVector);
+          if (!std::isnan(orientationVector.x))
+          {
+            result.pose.pose.orientation.x = orientationVector.x;
+            result.pose.pose.orientation.y = orientationVector.y;
+            result.pose.pose.orientation.z = orientationVector.z;
+          }
+          else
+          {
+            result.pose.pose.orientation.x = 2;
+            result.pose.pose.orientation.y = 2;
+            result.pose.pose.orientation.z = 2;
           }
           result.hypothesis.score = object.confidence;
           result.pose.pose.position.x = object.position[0];

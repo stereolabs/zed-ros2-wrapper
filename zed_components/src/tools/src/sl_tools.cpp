@@ -25,34 +25,6 @@
 
 namespace sl_tools
 {
-int checkCameraReady(unsigned int serial_number)
-{
-  int id = -1;
-  auto f = sl::Camera::getDeviceList();
-
-  for (auto & it : f) {
-    if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::AVAILABLE) {
-      id = it.id;
-    }
-  }
-
-  return id;
-}
-
-sl::DeviceProperties getZEDFromSN(unsigned int serial_number)
-{
-  sl::DeviceProperties prop;
-  auto f = sl::Camera::getDeviceList();
-
-  for (auto & it : f) {
-    if (it.serial_number == serial_number && it.camera_state == sl::CAMERA_STATE::AVAILABLE) {
-      prop = it;
-    }
-  }
-
-  return prop;
-}
-
 std::vector<float> convertRodrigues(sl::float3 r)
 {
   float theta = sqrt(r.x * r.x + r.y * r.y + r.z * r.z);
@@ -162,10 +134,10 @@ rclcpp::Time slTime2Ros(sl::Timestamp t, rcl_clock_type_t clock_type)
   return rclcpp::Time(sec, nsec, clock_type);
 }
 
-std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(
+std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
   sl::Mat & img, std::string frameId, rclcpp::Time t)
 {
-  std::shared_ptr<sensor_msgs::msg::Image> imgMessage = std::make_shared<sensor_msgs::msg::Image>();
+  std::unique_ptr<sensor_msgs::msg::Image> imgMessage = std::make_unique<sensor_msgs::msg::Image>();
 
   imgMessage->header.stamp = t;
   imgMessage->header.frame_id = frameId;
@@ -236,10 +208,10 @@ std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(
   return imgMessage;
 }
 
-std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
+std::unique_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
   sl::Mat & left, sl::Mat & right, std::string frameId, rclcpp::Time t)
 {
-  std::shared_ptr<sensor_msgs::msg::Image> imgMsgPtr = std::make_shared<sensor_msgs::msg::Image>();
+  std::unique_ptr<sensor_msgs::msg::Image> imgMsgPtr = std::make_unique<sensor_msgs::msg::Image>();
 
   if (
     left.getWidth() != right.getWidth() || left.getHeight() != right.getHeight() ||
@@ -512,53 +484,70 @@ std::vector<std::vector<float>> parseStringVector(
   return result;
 }
 
+bool isZED(sl::MODEL camModel)
+{
+  if (camModel == sl::MODEL::ZED) {
+    return true;
+  }
+  return false;
+}
+
+bool isZEDM(sl::MODEL camModel)
+{
+  if (camModel == sl::MODEL::ZED_M) {
+    return true;
+  }
+  return false;
+}
+
 bool isZED2OrZED2i(sl::MODEL camModel)
 {
   if (camModel == sl::MODEL::ZED2) {
     return true;
   }
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
   if (camModel == sl::MODEL::ZED2i) {
     return true;
   }
-#endif
+  return false;
+}
+
+bool isZEDX(sl::MODEL camModel)
+{
+  if (camModel == sl::MODEL::ZED_X) {
+    return true;
+  }
+  if (camModel == sl::MODEL::ZED_XM) {
+    return true;
+  }
   return false;
 }
 
 bool isObjDetAvailable(sl::MODEL camModel)
 {
-  if (camModel == sl::MODEL::ZED2) {
+  if (camModel != sl::MODEL::ZED) {
     return true;
   }
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 5
-  if (camModel == sl::MODEL::ZED2i) {
-    return true;
-  }
-#endif
-#if ZED_SDK_MAJOR_VERSION == 3 && ZED_SDK_MINOR_VERSION >= 6
-  if (camModel == sl::MODEL::ZED_M) {
-    return true;
-  }
-#endif
   return false;
 }
 
-StopWatch::StopWatch()
+StopWatch::StopWatch(rclcpp::Clock::SharedPtr clock)
+: mStartTime(0, 0, RCL_ROS_TIME),
+  mClockPtr(clock)
 {
   tic();  // Start the timer at creation
 }
 
 void StopWatch::tic()
 {
-  mStartTime = std::chrono::steady_clock::now();  // Set the start time point
+  mStartTime = mClockPtr->now();  // Reset the start time point
 }
 
 double StopWatch::toc()
 {
-  auto now = std::chrono::steady_clock::now();
-  double elapsed_usec =
-    std::chrono::duration_cast<std::chrono::microseconds>(now - mStartTime).count();
-  return elapsed_usec / 1e6;
+  auto now = mClockPtr->now();
+
+  double elapsed_nsec = (now - mStartTime).nanoseconds();
+  return elapsed_nsec / 1e9;  // Returns elapsed time in seconds
 }
 
 }  // namespace sl_tools

@@ -33,6 +33,7 @@
       <xacro:property name="height" value="0.03" />
       <xacro:property name="bottom_slope" value="0.05" />
       <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="0.0" />
       <xacro:property name="optical_offset_x" value="-0.01" />
     </xacro:if>
     <xacro:if value="${model == 'zedm'}">
@@ -40,6 +41,7 @@
       <xacro:property name="height" value="0.0265" />
       <xacro:property name="bottom_slope" value="0.0" /> 
       <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="0.0" />
       <xacro:property name="optical_offset_x" value="0.0" />
     </xacro:if>
     <xacro:if value="${model == 'zed2'}">
@@ -47,6 +49,7 @@
       <xacro:property name="height" value="0.03" />
       <xacro:property name="bottom_slope" value="0.05" />
       <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="0.0" />
       <xacro:property name="optical_offset_x" value="-0.01" />
     </xacro:if>
     <xacro:if value="${model == 'zed2i'}">
@@ -54,9 +57,26 @@
       <xacro:property name="height" value="0.03" />
       <xacro:property name="bottom_slope" value="0.0" />
       <xacro:property name="screw_offset_x" value="-0.01" />
+      <xacro:property name="screw_offset_z" value="0.0" />
       <xacro:property name="optical_offset_x" value="-0.01" />
-    </xacro:if>  
-    
+    </xacro:if>
+    <xacro:if value="${model == 'zedx'}">
+      <xacro:property name="baseline" value="0.12" />
+      <xacro:property name="height" value="0.032" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="-0.016" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+    </xacro:if>
+    <xacro:if value="${model == 'zedxm'}">
+      <xacro:property name="baseline" value="0.05" />
+      <xacro:property name="height" value="0.032" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="-0.016" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+    </xacro:if>
+
     <!-- Camera mounting point (the threaded screw hole in the bottom) -->
     <link name="${name}_base_link" />
     <joint name="${name}_base_joint" type="fixed">
@@ -65,15 +85,10 @@
       <xacro:insert_block name="origin" />
     </joint>
 
-
     <!-- Camera Center -->
     <link name="${name}_camera_center">
       <visual>
-        <origin xyz=
-
-
-
-    "${screw_offset_x} 0 0" rpy="0 0 0"/>
+        <origin xyz="${screw_offset_x} 0 ${screw_offset_z}" rpy="0 0 0"/>
         <geometry>
           <mesh filename="package://zed_interfaces/meshes/${model}.stl" />
         </geometry>
@@ -91,34 +106,32 @@
       <origin xyz="0 0 ${height/2}" rpy="0 ${bottom_slope} 0" />
     </joint>
 
-
     <!-- Left Camera -->
     <link name="${name}_left_camera_frame" />
     <joint name="${name}_left_camera_joint" type="fixed">
       <parent link="${name}_camera_center"/>
       <child link="${name}_left_camera_frame"/>
-      <origin xyz="0 ${baseline/2} 0" rpy="0 0 0" />
+      <origin xyz="${optical_offset_x} ${baseline/2} 0" rpy="0 0 0" />
     </joint>
 
     <link name="${name}_left_camera_optical_frame"/>
     <joint name="${name}_left_camera_optical_joint" type="fixed">
-      <origin xyz="${optical_offset_x} 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
+      <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
       <parent link="${name}_left_camera_frame"/>
       <child link="${name}_left_camera_optical_frame"/>
     </joint>
-
 
     <!-- Right Camera -->
     <link name="${name}_right_camera_frame" />
     <joint name="${name}_right_camera_joint" type="fixed">
       <parent link="${name}_camera_center"/>
       <child link="${name}_right_camera_frame"/>
-      <origin xyz="0 -${baseline/2} 0" rpy="0 0 0" />
+      <origin xyz="${optical_offset_x} -${baseline/2} 0" rpy="0 0 0" />
     </joint>
 
     <link name="${name}_right_camera_optical_frame"/>
     <joint name="${name}_right_camera_optical_joint" type="fixed">
-      <origin xyz="${optical_offset_x} 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
+      <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
       <parent link="${name}_right_camera_frame"/>
       <child link="${name}_right_camera_optical_frame"/>
     </joint>

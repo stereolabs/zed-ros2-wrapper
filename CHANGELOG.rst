@@ -17,6 +17,62 @@ LATEST CHANGES
   - New param `pos_tracking.gnss_fix_topic` name of the topic containing GNSS Fix data of type `sensor_msgs/NavSatFix`
   - Add `nmea_msgs` dependency
   - Add GNSS Fix Diagnostic
+2023-02-24
+----------
+- Change StopWatch to use ROS clock instead of System Clock. In this way diagnostic and time checking work also in simulation
+- Disable camera settings control in simulation
+- Remove `sensing_mode`, no more available in SDK v4.0
+- Remove `extrinsic_in_camera_frame`, no more available in SDK v4.0
+
+2023-02-22
+----------
+- Add full Terrain Mapping (local obstacle detection) support
+  - ZED SDK Terrain Mapping published as GridMap message
+  - Add parameter `local_mapping.terrain_mapping_enabled` to enable terrain mapping publishing a local obstacle map
+  - Add parameter `local_mapping.data_pub_rate` to set the Local Map data publish frequency
+  - Add parameter `local_mapping.grid_resolution` to set the Local Map resolution in meters [min: 0.01 - max: 1.0]
+  - Add parameter `local_mapping.grid_range` to set the maximum depth range for local map generation [min: 1.0 - max: 8.0]
+  - Add parameter `local_mapping.height_threshold` to set the maximum height for obstacles
+  - Publish gridmap on topic `local_map/gridmap`
+  - Publish elevation map image on topic `local_map/elev_img`
+  - Publish obstacle color map image on topic `local_map/col_img`
+- Add support for simulated data
+  - Add parameter `use_sim_time` to enable SIMULATION mode
+  - Add parameter `sim_address` tos set the local address of the machine running the simulator
+
+2023-02-20
+----------
+- Add support for ZED-X and ZED-X Mini
+  - Move `general.grab_resolution` and `general.grab_frame_rate` to the yaml file specific for the relative camera model 
+    (i.e. `zed.yaml`, `zedm.yaml`, `zed2.yaml`, `zed2i.yaml`, `zedx.yaml`, `zedxm.yaml`)
+  - Add `zedx.launch.py` for ZED-X
+  - Add `zedxm.launch.py` for ZED-X Mini
+  - Improve `zed_macro.urdf.xacro` with specific configuration for the new camera models
+  - Add `display_zedx.launch.py` for ZED-X to ZED-ROS2-Examples
+  - Add `display_zedxm.launch.py` for ZED-X Mini to ZED-ROS2-Examples
+  - Add ZED-X and ZED-X Mini STL files to ZED-ROS2-Interfaces
+
+2023-01-27
+----------
+- Added `grid_map_msgs` dependency for Terrain Mapping topics
+- Converted `shared_ptr` to `unique_ptr` for IPC support
+
+2023-02-07
+----------
+- GNSS fusion integration
+  - Add new launch parameter `gnss_frame` to enable the GNSS link in the ZED URDF
+  - Add new node parameter `pos_tracking.gnss_zero_altitude` to ignore GNSS altitude information
+  - Add new node parameter `pos_tracking.gnss_frame` to set the name of the frame link of the GNSS sensor
+  - Add new node parameter `pos_tracking.gnss_init_distance` to set the minimum GNSS distance to be run to initialize the robot position
+  
+
+2023-01-19
+----------
+- GNSS fusion integration
+  - New param `pos_tracking.gnss_fusion` to enable GNSS fusion
+  - New param `pos_tracking.gnss_fix_topic` name of the topic containing GNSS Fix data of type `sensor_msgs/NavSatFix`
+  - Add `nmea_msgs` dependency
+  - Add GNSS Fix Diagnostic
 
 2023-01-16
 ----------

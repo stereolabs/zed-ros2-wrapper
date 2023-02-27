@@ -27,15 +27,6 @@
 
 namespace sl_tools
 {
-/*! \brief Check if a ZED camera is ready
- * \param serial_number : the serial number of the camera to be checked
- */
-int checkCameraReady(unsigned int serial_number);
-
-/*! \brief Get ZED camera properties
- * \param serial_number : the serial number of the camera
- */
-sl::DeviceProperties getZEDFromSN(unsigned int serial_number);
 
 std::vector<float> convertRodrigues(sl::float3 r);
 
@@ -57,10 +48,25 @@ std::string getSDKVersion(int & major, int & minor, int & sub_minor);
  */
 rclcpp::Time slTime2Ros(sl::Timestamp t, rcl_clock_type_t clock_type = RCL_ROS_TIME);
 
+/*! \brief check if ZED
+ * \param camModel the model to check
+ */
+bool isZED(sl::MODEL camModel);
+
+/*! \brief check if ZED Mini
+ * \param camModel the model to check
+ */
+bool isZEDM(sl::MODEL camModel);
+
 /*! \brief check if ZED2 or ZED2i
  * \param camModel the model to check
  */
 bool isZED2OrZED2i(sl::MODEL camModel);
+
+/*! \brief check if ZED-X or ZED-X Mini
+ * \param camModel the model to check
+ */
+bool isZEDX(sl::MODEL camModel);
 
 /*! \brief check if Object Detection is available
  * \param camModel the camera model to check
@@ -72,7 +78,7 @@ bool isObjDetAvailable(sl::MODEL camModel);
  * \param frameId : the id of the reference frame of the image
  * \param t : rclcpp ros::Time to stamp the image
  */
-std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(
+std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
   sl::Mat & img, std::string frameId, rclcpp::Time t);
 
 /*! \brief sl::Mat to ros message conversion
@@ -81,7 +87,7 @@ std::shared_ptr<sensor_msgs::msg::Image> imageToROSmsg(
  * \param frameId : the id of the reference frame of the image
  * \param t : rclcpp rclcpp::Time to stamp the image
  */
-std::shared_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
+std::unique_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
   sl::Mat & left, sl::Mat & right, std::string frameId, rclcpp::Time t);
 
 /*! \brief qos value to string
@@ -119,14 +125,15 @@ std::vector<std::vector<float>> parseStringVector(
 class StopWatch
 {
 public:
-  StopWatch();
+  StopWatch(rclcpp::Clock::SharedPtr clock);
   ~StopWatch() {}
 
-  void tic();    //!< Set the beginning time
-  double toc();  //!< Returns the seconds elapsed from the last tic
+  void tic();    //!< Set the reference time point to the current time
+  double toc();  //!< Returns the seconds elapsed from the last tic in ROS clock reference (it works also in simulation)
 
 private:
-  std::chrono::steady_clock::time_point mStartTime;
+  rclcpp::Time mStartTime;  // Reference time point
+  rclcpp::Clock::SharedPtr mClockPtr;  // Node clock interface
 };
 
 }  // namespace sl_tools

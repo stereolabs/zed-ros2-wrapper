@@ -31,8 +31,8 @@ The devel image internally needs the source code of the current branch. For this
 Create a temporary `tmp_sources` folder for the sources and copy the files:
 
 ```bash
-mkdir -p ./tmp_sourcesmkdir -p ./tmp_sources
-cp -cp -r ../zed* ./tmp_sourcesr ../zed* ./tmp_sources
+mkdir -p ./tmp_sources
+cp -r ../zed* ./tmp_sources
 ```
 
 Build the image for desktop:
@@ -41,10 +41,10 @@ Build the image for desktop:
 docker build -t "<image_tag>" -f Dockerfile.u22-cu117-humble-devel .
 ```
 
-or build the image for Jetson:
+or build the image for Jetson [SDK 4.0-beta / L4T 35.1 / ROS2 Humble]:
 
 ```bash
-docker build -t "<image_tag>" -f Dockerfile.l4t35_1-humble-devel .
+docker build -t "<image_tag>" -f Dockerfile.l4t35_1-sdk_v4.0-humble-devel .
 ```
 
 Remove the temporary sources to avoid future compiling issues:
@@ -59,10 +59,32 @@ rm -r ./tmp_sources
 
 It is important that the NVIDIA drivers are correctly accessible from the Docker image to run the ZED SDK code on the GPU.
 
+### AI module
+If you plan to use the AI module of the ZED SDK (Object Detection, Skeleton Tracking, NEURAL depth) we suggest to create
+a shared folder in order to avoid downloading and optimize the AI models each time the Docker image is restarted.
+
+This is easily done by using the following option:
+
+    -v /tmp/zed_ai/:/usr/local/zed/resources/
+
+### Start the Docker container
+
 The following command starts an interactive BaSH session:
 
 ```bash
 docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e DISPLAY \
   -v /dev/shm:/dev/shm -v /tmp/.X11-unix/:/tmp/.X11-unix \
+  -v /tmp/zed_ai/:/usr/local/zed/resources/ \
+  <image_tag>
+```
+
+For ZED-X on Jetson [SDK 4.0-beta / L4T 35.1 / ROS2 Humble] it is required to add two additional shared volumes:
+
+```bash
+docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e DISPLAY \
+  -v /dev/shm:/dev/shm -v /tmp/.X11-unix/:/tmp/.X11-unix \ 
+  -v /tmp/argus_socket:/tmp/argus_socket \ 
+  -v /var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/ \
+  -v /tmp/zed_ai/:/usr/local/zed/resources/ \
   <image_tag>
 ```

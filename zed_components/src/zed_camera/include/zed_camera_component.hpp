@@ -44,6 +44,7 @@
 #include <sensor_msgs/msg/temperature.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/nav_sat_status.hpp>
+#include <grid_map_msgs/msg/grid_map.hpp>
 #include <sl/Camera.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -65,6 +66,15 @@
 
 namespace stereolabs
 {
+
+#ifdef _SL_JETSON_
+const bool IS_JETSON = true;
+#else
+const bool IS_JETSON = false;
+#endif
+
+const float NOT_VALID_TEMP = -273.15f;
+
 // ----> Typedefs to simplify declarations
 
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> imagePub;
@@ -89,6 +99,8 @@ typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::DepthInfoStamped>
 
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PlaneStamped>> planePub;
 typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>> markerPub;
+
+typedef std::shared_ptr<rclcpp::Publisher<grid_map_msgs::msg::GridMap>> gridMapPub;
 
 typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> clickedPtSub;
 typedef std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>> gnssFixSub;
@@ -131,8 +143,10 @@ typedef enum
 {
   HD2K,  //!< 2208x1242
   HD1080,  //!< 1920x1080
+  HD1200,  //!< 1920x1200
   HD720,  //!< 1280x720
   MEDIUM,  //!< 896x512
+  SVGA,  //!< 960x600
   VGA,  //!< 672x376
   LOW  //!< Half-MEDIUM 448x256
 } PubRes;
@@ -152,12 +166,14 @@ protected:
   void initServices();
 
   void getDebugParams();
+  void getSimParams();
   void getGeneralParams();
   void getVideoParams();
   void getDepthParams();
   void getPosTrackingParams();
   void getSensorsParams();
   void getMappingParams();
+  void getTerrainMappingParams();
   void getOdParams();
 
   void setTFCoordFrameNames();
@@ -176,11 +192,14 @@ protected:
   void stopObjDetect();
   bool startSvoRecording(std::string & errMsg);
   void stopSvoRecording();
+  bool startTerrainMapping();
+  void stopTerrainMapping();
   // <---- Initialization functions
 
   // ----> Callbacks
   void threadFunc_pubVideoDepth();
   void callback_pubFusedPc();
+  void callback_pubLocalMap();
   void callback_pubPaths();
   void callback_pubTemp();
   void callback_gnssPubTimerTimeout();
@@ -250,6 +269,7 @@ protected:
   void publishVideoDepth(rclcpp::Time & out_pub_ts);
   void publishPointCloud();
   void publishImuFrameAndTopic();
+  bool publishLocalMap();
 
   void publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t);
   void publishPose();
@@ -283,6 +303,7 @@ protected:
 
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
+  void startTerrainMappingTimer(double mapPubRate);
   void startTempPubTimer();
 
   template<typename T>
@@ -319,6 +340,8 @@ private:
   // <---- Topics
 
   // ----> Parameter variables
+  bool mSimEnabled = false;  // Expecting simulation data?
+  std::string mSimAddr = "localhost";  // The local address of the machine running the simulator
   bool mDebugMode = false;
   bool mDebugCommon = false;
   bool mDebugVideoDepth = false;
@@ -353,15 +376,12 @@ private:
   int mMaxReconnectTemp = 5;
   bool mCameraSelfCalib = true;
   bool mCameraFlip = false;
-  sl::SENSING_MODE mDepthSensingMode =
-    sl::SENSING_MODE::STANDARD;   // Default Sensing mode: SENSING_MODE_STANDARD
   bool mOpenniDepthMode = false;  // 16 bit UC data in mm else 32F in m,
                                   // for more info -> http://www.ros.org/reps/rep-0118.html
   double mCamMinDepth = 0.2;
   double mCamMaxDepth = 10.0;
   bool mSensCameraSync = false;
   double mSensPubRate = 400.;
-  bool mUseOldExtrinsic = false;
   bool mPosTrackingEnabled = false;
   bool mGnssFusionEnabled = false;
   std::string mGnssTopic = "/gps/fix";
@@ -389,7 +409,13 @@ private:
   bool mMappingEnabled = false;
   float mMappingRes = 0.05f;
   float mMappingRangeMax = 10.0f;
+  bool mTerrainMappingEnabled = false;
+  float mTerrainMapPubFreq = 5.0f;  // Frequency of data publishing
+  float mTerrainMappingRes = 0.05f;  // Terrain mapping resolution
+  float mTerrainMappingRange = 4.0f;  // Terrain mapping range
+  float mTerrainMappingHeigthThresh = 1.0f;  // Max obstacle height
   bool mObjDetEnabled = false;
+  // TODO(Walter) Add support for Skeleton tracking -> SDK v4!!!
   bool mObjDetTracking = true;
   float mObjDetConfidence = 40.0f;
   double mObjDetPredTimeout = 0.5;
@@ -402,9 +428,12 @@ private:
   bool mObjDetFruitsEnable = true;
   bool mObjDetSportEnable = true;
   bool mObjDetBodyFitting = false;
-  sl::BODY_FORMAT mObjDetBodyFmt = sl::BODY_FORMAT::POSE_34;
+  sl::BODY_FORMAT mObjDetBodyFmt = sl::BODY_FORMAT::BODY_38;
   sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::HUMAN_BODY_FAST;
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
+
+  // TODO(Walter) remove QoS parameters, use instead the new ROS2 Humble QoS settings engine
+
   // QoS parameters
   // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
   rclcpp::QoS mVideoQos;
@@ -485,8 +514,8 @@ private:
 
   // ----> initialization Transform listener
   std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
-  std::shared_ptr<tf2_ros::TransformListener> mTfListener;
-  std::shared_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
+  std::unique_ptr<tf2_ros::TransformListener> mTfListener;
+  std::unique_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
   // <---- initialization Transform listener
 
   // ----> TF Transforms
@@ -558,6 +587,10 @@ private:
   depthInfoPub mPubDepthInfo;
   planePub mPubPlane;
   markerPub mPubMarker;
+
+  imagePub mPubElevMapImg;
+  imagePub mPubColMapImg;
+  gridMapPub mPubGridMap;
   // <---- Publishers
 
   // <---- Publisher variables
@@ -586,6 +619,7 @@ private:
   sl::Mat mMatLeftGray, mMatLeftRawGray;
   sl::Mat mMatRightGray, mMatRightRawGray;
   sl::Mat mMatDepth, mMatDisp, mMatConf;
+
   float mMinDepth = 0.0f;
   float mMaxDepth = 0.0f;
   // <---- Publisher variables
@@ -600,6 +634,10 @@ private:
   gnssFixSub mGnssFixSub;
   // <---- Subscribers
 
+  // ----> Terraing Mapping
+  //sl::Terrain sl_map;
+  // <---- Terraing Mapping
+
   // ----> Threads and Timers
   sl::ERROR_CODE mGrabStatus;
   sl::ERROR_CODE mConnStatus;
@@ -610,6 +648,7 @@ private:
   bool mThreadStop = false;
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
+  rclcpp::TimerBase::SharedPtr mTerrainMapTimer;
   rclcpp::TimerBase::SharedPtr mTempPubTimer;  // Timer to retrieve and publish CMOS temperatures
   rclcpp::TimerBase::SharedPtr mGnssPubCheckTimer;
   // <---- Threads and Timers
@@ -622,6 +661,7 @@ private:
   std::mutex mPosTrkMutex;
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
+  std::mutex mTerrainMappingMutex;
   std::mutex mObjDetMutex;
   std::condition_variable mVideoDepthDataReadyCondVar;
   std::condition_variable mPcDataReadyCondVar;
@@ -643,7 +683,8 @@ private:
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
   sl::POSITIONAL_TRACKING_STATE mGnssPosStatus;
   bool mResetOdom = false;
-  bool mMappingRunning = false;
+  bool mSpatialMappingRunning = false;
+  bool mTerrainMappingRunning = false;
   bool mObjDetRunning = false;
   bool mRgbSubscribed = false;
   bool mGnssMsgReceived = false; // Indicates if a NavSatFix topic has been received, also with invalid position fix
@@ -666,8 +707,9 @@ private:
   // <---- Positional Tracking
 
   // Diagnostic
-  float mTempLeft = -273.15f;
-  float mTempRight = -273.15f;
+  float mTempImu = NOT_VALID_TEMP;
+  float mTempLeft = NOT_VALID_TEMP;
+  float mTempRight = NOT_VALID_TEMP;
   std::unique_ptr<sl_tools::WinAvg> mElabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mGrabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mVideoDepthPeriodMean_sec;

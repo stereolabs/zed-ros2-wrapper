@@ -58,6 +58,9 @@
 #include <zed_interfaces/srv/set_roi.hpp>
 #include <zed_interfaces/srv/start_svo_rec.hpp>
 
+#include <robot_localization/srv/from_ll.hpp>
+#include <robot_localization/srv/to_ll.hpp>
+
 #include "sl_tools.hpp"
 #include "visibility_control.hpp"
 
@@ -135,6 +138,8 @@ typedef rclcpp::Service<zed_interfaces::srv::SetROI>::SharedPtr setRoiSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetRoiSrvPtr;
+typedef rclcpp::Service<robot_localization::srv::ToLL>::SharedPtr toLLSrvPtr;
+typedef rclcpp::Service<robot_localization::srv::FromLL>::SharedPtr fromLLSrvPtr;
 
 /*!
    * @brief Video/Depth topic resolution
@@ -249,6 +254,14 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_toLL(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<robot_localization::srv::ToLL_Request> req,
+    std::shared_ptr<robot_localization::srv::ToLL_Response> res);
+  void callback_fromLL(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<robot_localization::srv::FromLL_Request> req,
+    std::shared_ptr<robot_localization::srv::FromLL_Response> res);
   // <---- Callbacks
 
   // ----> Thread functions
@@ -756,6 +769,8 @@ private:
   pauseSvoSrvPtr mPauseSvoSrv;
   setRoiSrvPtr mSetRoiSrv;
   resetRoiSrvPtr mResetRoiSrv;
+  toLLSrvPtr mToLlSrv;
+  fromLLSrvPtr mFromLlSrv;
   // <---- Services
 
   // ----> Services names
@@ -769,6 +784,8 @@ private:
   const std::string mSrvToggleSvoPauseName = "toggle_svo_pause";
   const std::string mSrvSetRoiName = "set_roi";
   const std::string mSrvResetRoiName = "reset_roi";
+  const std::string mSrvToLlName = "toLL";  // Convert from `map` to `Lat Long`
+  const std::string mSrvFromLlName = "fromLL";  // Convert from `Lat Long` to `map`
   // <---- Services names
 };
 

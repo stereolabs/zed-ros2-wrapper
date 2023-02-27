@@ -302,6 +302,16 @@ void ZedCamera::initServices()
   srv_name = srv_prefix + mSrvResetRoiName;
   mResetRoiSrv = create_service<std_srvs::srv::Trigger>(
     srv_name, std::bind(&ZedCamera::callback_resetRoi, this, _1, _2, _3));
+
+  if (mGnssFusionEnabled) {
+    srv_name = srv_prefix + mSrvToLlName;
+    mToLlSrv = create_service<robot_localization::srv::ToLL>(
+      srv_name, std::bind(&ZedCamera::callback_toLL, this, _1, _2, _3));
+    srv_name = srv_prefix + mSrvFromLlName;
+    mFromLlSrv = create_service<robot_localization::srv::FromLL>(
+      srv_name, std::bind(&ZedCamera::callback_fromLL, this, _1, _2, _3));
+
+  }
 }
 
 std::string ZedCamera::getParam(std::string paramName, std::vector<std::vector<float>> & outVal)
@@ -6283,7 +6293,7 @@ bool ZedCamera::publishLocalMap()
   sl::Mat elevMap, costMap, occMap;
 
   if (gridMapSub > 0) {
-    TM_DEBUG_STREAM_ONCE("Terrain Mapping subscribed")
+    TM_DEBUG_STREAM_ONCE("Terrain Mapping subscribed");
     std::unique_ptr<grid_map_msgs::msg::GridMap> msg =
       std::make_unique<grid_map_msgs::msg::GridMap>();
 
@@ -7013,7 +7023,7 @@ void ZedCamera::callback_gnssPubTimerTimeout()
 void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
 {
   // ----> GNSS Fix stats
-  static sl_tools::StopWatch gnssFixFreqTimer;
+  static sl_tools::StopWatch gnssFixFreqTimer(get_clock());
 
   double elapsed_sec = gnssFixFreqTimer.toc();
   mGnssFix_sec->addValue(elapsed_sec);
@@ -7524,6 +7534,22 @@ void ZedCamera::callback_resetRoi(
     res->success = true;
     return;
   }
+}
+
+void ZedCamera::callback_toLL(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<robot_localization::srv::ToLL_Request> req,
+  std::shared_ptr<robot_localization::srv::ToLL_Response> res)
+{
+
+}
+
+void ZedCamera::callback_fromLL(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<robot_localization::srv::FromLL_Request> req,
+  std::shared_ptr<robot_localization::srv::FromLL_Response> res)
+{
+
 }
 
 }  // namespace stereolabs

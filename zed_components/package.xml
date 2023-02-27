@@ -31,6 +31,7 @@
 	<build_depend>diagnostic_msgs</build_depend>
 	<build_depend>diagnostic_updater</build_depend>
 	<build_depend>visualization_msgs</build_depend>
+	<build_depend>robot_localization</build_depend>
 	<exec_depend>launch_ros</exec_depend>
 	<exec_depend>zed_interfaces</exec_depend>
 	<exec_depend>rclcpp</exec_depend>
@@ -52,6 +53,7 @@
 	<exec_depend>diagnostic_msgs</exec_depend>
 	<exec_depend>diagnostic_updater</exec_depend>
 	<exec_depend>visualization_msgs</exec_depend>
+	<exec_depend>robot_localization</exec_depend>
 	<test_depend>ament_lint_auto</test_depend>
 	<test_depend>ament_cmake_copyright</test_depend>
 	<test_depend>ament_cmake_cppcheck</test_depend>

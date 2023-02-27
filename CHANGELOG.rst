@@ -1,22 +1,6 @@
 LATEST CHANGES
 ==============
 
-2023-02-07
-----------
-- GNSS fusion integration
-  - Add new launch parameter `gnss_frame` to enable the GNSS link in the ZED URDF
-  - Add new node parameter `pos_tracking.gnss_zero_altitude` to ignore GNSS altitude information
-  - Add new node parameter `pos_tracking.gnss_frame` to set the name of the frame link of the GNSS sensor
-  - Add new node parameter `pos_tracking.gnss_init_distance` to set the minimum GNSS distance to be run to initialize the robot position
-  
-
-2023-01-19
-----------
-- GNSS fusion integration
-  - New param `pos_tracking.gnss_fusion` to enable GNSS fusion
-  - New param `pos_tracking.gnss_fix_topic` name of the topic containing GNSS Fix data of type `sensor_msgs/NavSatFix`
-  - Add `nmea_msgs` dependency
-  - Add GNSS Fix Diagnostic
 2023-02-24
 ----------
 - Change StopWatch to use ROS clock instead of System Clock. In this way diagnostic and time checking work also in simulation
@@ -52,11 +36,6 @@ LATEST CHANGES
   - Add `display_zedxm.launch.py` for ZED-X Mini to ZED-ROS2-Examples
   - Add ZED-X and ZED-X Mini STL files to ZED-ROS2-Interfaces
 
-2023-01-27
-----------
-- Added `grid_map_msgs` dependency for Terrain Mapping topics
-- Converted `shared_ptr` to `unique_ptr` for IPC support
-
 2023-02-07
 ----------
 - GNSS fusion integration
@@ -64,7 +43,11 @@ LATEST CHANGES
   - Add new node parameter `pos_tracking.gnss_zero_altitude` to ignore GNSS altitude information
   - Add new node parameter `pos_tracking.gnss_frame` to set the name of the frame link of the GNSS sensor
   - Add new node parameter `pos_tracking.gnss_init_distance` to set the minimum GNSS distance to be run to initialize the robot position
-  
+
+2023-01-27
+----------
+- Added `grid_map_msgs` dependency for Terrain Mapping topics
+- Converted `shared_ptr` to `unique_ptr` for IPC support
 
 2023-01-19
 ----------

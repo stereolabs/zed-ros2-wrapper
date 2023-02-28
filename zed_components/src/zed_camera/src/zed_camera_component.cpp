@@ -5987,9 +5987,10 @@ bool ZedCamera::publishLocalMap()
 
     const std::string ELEVATION_GRID_STR("elevation");
     const std::string RGB_GRID_STR("rgb");
+    const std::string TRAVERSABILITY_GRID_STR("traversability");
 
     grid_map::GridMap gridmap;
-
+    
     // Initialization
     gridmap.setGeometry(
       grid_map::Length(
@@ -6005,6 +6006,9 @@ bool ZedCamera::publishLocalMap()
       "Map center: (" << gridmap.getPosition().x() << "," << gridmap.getPosition().y() << ") Frame: " <<
         gridmap.getFrameId().c_str());
 
+    sl::Terrain sl_traversability_map;
+    stereolabs::cost_traversability::computeCost(sl_map, sl_traversability_map,  gridmap.getResolution(),mAgentParams, mTraversabilityParams);
+
     // Elevation is the main layer
     gridmap.setBasicLayers({ELEVATION_GRID_STR});
     gridmap.setTimestamp(timeStamp.nanoseconds());
@@ -6018,6 +6022,10 @@ bool ZedCamera::publishLocalMap()
     gridmap.add(RGB_GRID_STR, std::numeric_limits<double>::quiet_NaN());
     sl_layer = sl::LayerName::COLOR;
     updateGrid(sl_map, gridmap, RGB_GRID_STR, sl_layer);
+
+    gridmap.add(TRAVERSABILITY_GRID_STR, std::numeric_limits<double>::quiet_NaN());
+    sl_layer = stereolabs::cost_traversability::TRAVERSABILITY_COST;
+    updateGrid(sl_traversability_map, gridmap, TRAVERSABILITY_GRID_STR, sl_layer);
 
     // Send message
     msg = grid_map::GridMapRosConverter::toMessage(gridmap);

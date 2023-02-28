@@ -59,6 +59,8 @@
 #include "sl_tools.hpp"
 #include "visibility_control.hpp"
 
+#include "cost_traversability.hpp"
+
 #define TIMEZERO_ROS rclcpp::Time(0, 0, RCL_ROS_TIME)
 #define TIMEZERO_SYS rclcpp::Time(0, 0, RCL_SYSTEM_TIME)
 
@@ -148,6 +150,10 @@ typedef enum
   LOW  //!< Half-MEDIUM 448x256
 } PubRes;
 // <---- Typedefs to simplify declarations
+
+
+
+
 
 class ZedCamera : public rclcpp::Node
 {
@@ -613,7 +619,8 @@ private:
   // <---- Subscribers
 
   // ----> Terraing Mapping
-  //sl::Terrain sl_map;
+  stereolabs::cost_traversability::AgentParameters mAgentParams;
+  stereolabs::cost_traversability::TraversabilityParameters mTraversabilityParams;
   // <---- Terraing Mapping
 
   // ----> Threads and Timers

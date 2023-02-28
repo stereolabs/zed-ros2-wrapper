@@ -40,7 +40,7 @@ namespace stereolabs
         constexpr float INVALID_CELL_DATA = NAN;
         constexpr float UNKNOWN_CELL = NAN;
 
-        void initCostTraversibily(sl::Terrain &cost_terrain, sl::TerrainMappingParameters tmp);
+        void initCostTraversibily(sl::Terrain &cost_terrain, float resolution, float range, float height_threshold);
 
         void computeCost(sl::Terrain &elevation_terrain, sl::Terrain &cost_terrain, const float grid_resolution, AgentParameters agent, TraversabilityParameters parameters);
 

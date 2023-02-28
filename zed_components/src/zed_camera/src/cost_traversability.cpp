@@ -10,7 +10,7 @@ namespace stereolabs
             return (v < lo) ? lo : ((v > hi) ? hi : v);
         }
 
-        void initCostTraversibily(sl::Terrain &cost_terrain, sl::TerrainMappingParameters tmp)
+        void initCostTraversibily(sl::Terrain &cost_terrain, float resolution, float range, float height_threshold)
         {
             std::vector<sl::LayerName> layers;
             layers.push_back(TRAVERSABILITY_COST);
@@ -19,14 +19,12 @@ namespace stereolabs
             layers.push_back(TRAVERSABILITY_COST_SLOPE);
             layers.push_back(TRAVERSABILITY_COST_ROUGHNESS);
 
-            auto range_cell = round(tmp.getGridRange() / tmp.getGridResolution());
-            std::cout << "range_cell " << range_cell << std::endl;
-            cost_terrain.init(tmp.getGridResolution(), range_cell, layers);
+            auto range_cell = round(range / resolution);
+            cost_terrain.init(resolution, range_cell, layers);
         }
 
         void computeCost(sl::Terrain &elevation_terrain, sl::Terrain &cost_terrain, const float grid_resolution, AgentParameters agent_parameters, TraversabilityParameters traversability_parameters)
         {
-            auto start = std::chrono::high_resolution_clock::now();
             auto square_size_cost = agent_parameters.radius / grid_resolution;
             if (square_size_cost < 1)
                 square_size_cost = 1;
@@ -112,7 +110,7 @@ namespace stereolabs
                                 {
                                     normals_tmp.emplace_back(x_v, y_v, curr_height);
                                     max_diff_height = std::max(max_diff_height, fabsf32(curr_height - ref_height));
-                                } // else std::cout << curr_height << std::endl;
+                                }
                             }
                         }
 
@@ -142,11 +140,11 @@ namespace stereolabs
                         cost_roughness_data[idx_current] = roughness;
                     }
                     else
+                    {
                         occupancy_data[idx_current] = UNKNOWN_CELL;
+                    }
                 }
             }
-            auto time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() / 1000.f;
-            std::cout << "ComputeTraversability " << time << "ms\n";
         }
 
         static const sl::float3 clr_a(244, 242, 246);

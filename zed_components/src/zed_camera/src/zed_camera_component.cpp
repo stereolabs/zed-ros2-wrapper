@@ -5969,7 +5969,7 @@ bool ZedCamera::publishLocalMap()
   sl::Terrain sl_map;
   err = mZed.retrieveTerrain(sl_map, terrain_ref);
   //TM_DEBUG_STREAM("... after retrieveTerrain");
-
+  
   if (err != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -6007,7 +6007,8 @@ bool ZedCamera::publishLocalMap()
         gridmap.getFrameId().c_str());
 
     sl::Terrain sl_traversability_map;
-    stereolabs::cost_traversability::computeCost(sl_map, sl_traversability_map,  gridmap.getResolution(),mAgentParams, mTraversabilityParams);
+    stereolabs::cost_traversability::initCostTraversibily(sl_traversability_map, mTerrainMappingRes, mTerrainMappingRange, mTerrainMappingHeigthThresh);
+    stereolabs::cost_traversability::computeCost(sl_map, sl_traversability_map, gridmap.getResolution(), mAgentParams, mTraversabilityParams);
 
     // Elevation is the main layer
     gridmap.setBasicLayers({ELEVATION_GRID_STR});

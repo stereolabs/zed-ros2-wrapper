@@ -29,4 +29,10 @@
     <material name="zed2i_mat">
         <color rgba="0.25 0.25 0.25 0.99"/>
     </material>
+    <material name="zedx_mat">
+        <color rgba="0.25 0.25 0.25 0.99"/>
+    </material>
+    <material name="zedxm_mat">
+        <color rgba="0.25 0.25 0.25 0.99"/>
+    </material>
 </robot>

@@ -18,6 +18,7 @@
 #include <limits>
 
 #include "zed_camera_component.hpp"
+#include "sl/Fusion.hpp"
 
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
@@ -2857,13 +2858,12 @@ bool ZedCamera::startCamera()
   // <---- Camera information
 
   // ----> Set Region of Interest
-
   RCLCPP_INFO(get_logger(), "*** Setting ROI ***");
   sl::Resolution resol(mCamWidth, mCamHeight);
   std::vector<sl::float2> sl_poly;
   std::string log_msg = parseRoiPoly(mRoiParam, sl_poly);
 
-  // Create mask
+  // Create ROI mask
   sl::Mat roi_mask(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
 
   if (!sl_tools::generateROI(sl_poly, roi_mask)) {
@@ -2951,6 +2951,35 @@ bool ZedCamera::startCamera()
     mSensThread = std::thread(&ZedCamera::threadFunc_pubSensorsData, this);
   }
   // <---- Start Sensors thread if not sync
+
+  // ----> Initialize Fusion module
+  mFusionInitParams.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
+  mFusionInitParams.coordinate_units = sl::UNIT::METER;
+  mFusionInitParams.verbose = mVerbose != 0;
+  mFusionInitParams.output_performance_metrics = true;
+  mFusionInitParams.timeout_period_number = (1.0 / mCamGrabFrameRate) * mCamTimeoutSec;
+
+  sl::ERROR_CODE err = mFusion.init(mFusionInitParams);
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_ERROR_STREAM(
+      get_logger(), "Error initializing the Fusion module: " << sl::toString(
+        err).c_str());
+    exit(EXIT_FAILURE);
+  }
+
+  std::shared_ptr<sl::FusionConfiguration> camFusionConfig =
+    std::make_shared<sl::FusionConfiguration>();
+  camFusionConfig->communication_type = comm::TYPE::SHARED_MEMORY;
+  camFusionConfig->sn = mCamSerialNumber;
+
+  err = mFusion.subscribe(sl::CameraIdentifier(mCamSerialNumber), camFusionConfig);
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_ERROR_STREAM(
+      get_logger(), "Error initializing the Fusion module: " << sl::toString(
+        err).c_str());
+    exit(EXIT_FAILURE);
+  }
+  // <---- Initialize Fusion module
 
   // Start grab thread
   mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
@@ -3116,6 +3145,10 @@ bool ZedCamera::startPosTracking()
   trackParams.set_gravity_as_origin = mSetGravityAsOrigin;
   trackParams.enable_gnss_fusion = mGnssFusionEnabled;
   trackParams.gnss_calibration_distance = mGnssInitDist;
+
+  if (mGnssFusionEnabled) {
+    mMap2UtmTransfValid = false;
+  }
 
   sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
 
@@ -3940,6 +3973,15 @@ void ZedCamera::threadFunc_zedGrab()
       // <---- Check SVO status
 
       mFrameCount++;
+
+      // Process Fusion data
+      mFusionStatus = mFusion.process();
+
+      // ----> Fusion errors?
+      if (mFusionStatus != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_ERROR_STREAM(get_logger(), "Fusion error: " << sl::toString(mFusionStatus).c_str());
+      }
+      // <---- Fusion errors?
 
       // ----> Timestamp
       if (mSvoMode) {
@@ -5085,7 +5127,8 @@ void ZedCamera::processOdometry()
   if (!mInitOdomWithPose) {
     sl::Pose deltaOdom;
 
-    mPosTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
+    //mPosTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
+    mPosTrackingStatus = mFusion.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
 
     sl::Translation translation = deltaOdom.getTranslation();
     sl::Orientation quat = deltaOdom.getOrientation();
@@ -5213,9 +5256,11 @@ void ZedCamera::processPose()
   }
 
   if (!mGnssFusionEnabled) {
-    mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
+    //mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
+    mPosTrackingStatus = mFusion.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
   } else {
-    mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::GNSS);
+    //mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::GNSS);
+    mPosTrackingStatus = mFusion.getPosition(mLastZedPose, sl::REFERENCE_FRAME::GNSS);
   }
 
   sl::Translation translation = mLastZedPose.getTranslation();
@@ -5394,7 +5439,8 @@ void ZedCamera::processGnssPose()
     return;
   }
 
-  mGnssPosStatus = mZed.getComputedGNSSPosition(mLastEcefPose, mLastLatLongPose, mLastUtmPose);
+  //mGnssPosStatus = mZed.getComputedGNSSPosition(mLastEcefPose, mLastLatLongPose, mLastUtmPose);
+  mGnssPosStatus = mFusion.getGeoPose(mLastGeoPose);
 
   if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK ||
     mPosTrackingStatus != sl::POSITIONAL_TRACKING_STATE::OK)
@@ -5402,6 +5448,19 @@ void ZedCamera::processGnssPose()
     PT_DEBUG_STREAM_THROTTLE(1.0, "Waiting for good GNSS pose...");
     return;
   }
+
+  // ----> Setup Lat/Long
+  mLastLatLongPose.height = mLastGeoPose.getAltitude();
+  mLastLatLongPose.lat = mLastGeoPose.getLatitude();
+  mLastLatLongPose.lng = mLastGeoPose.getLongitude();
+  // <---- Setup Lat/Long
+
+  // Get ECEF
+  sl::GeoConverter::latlng2ecef(mLastLatLongPose, mLastEcefPose);
+
+  // Get UTM
+  sl::GeoConverter::latlng2utm(mLastLatLongPose, mLastUtmPose);
+
 
   PT_DEBUG("Good GNSS localization:");
   PT_DEBUG(
@@ -5421,7 +5480,7 @@ void ZedCamera::processGnssPose()
 
     mGnssInitGood = true;
 
-    RCLCPP_INFO(get_logger(), "GNSS localization initialed");
+    RCLCPP_INFO(get_logger(), "GNSS reference localization initialed");
   }
 
   if (!mSensor2BaseTransfValid) {
@@ -6791,6 +6850,8 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
   }
 
   if (mGrabStatus == sl::ERROR_CODE::SUCCESS) {
+    stat.addf("Fusion status", sl::toString(mFusionStatus).c_str());
+
     double freq = 1. / mGrabPeriodMean_sec->getAvg();
     double freq_perc = 100. * freq / mCamGrabFrameRate;
     stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
@@ -7541,7 +7602,17 @@ void ZedCamera::callback_toLL(
   const std::shared_ptr<robot_localization::srv::ToLL_Request> req,
   std::shared_ptr<robot_localization::srv::ToLL_Response> res)
 {
+  // RCLCPP_INFO(get_logger(), "** Map to Lat/Long service called **");
 
+  // if (!mMap2UtmTransfValid) {
+  //   std::string err_msg =
+  //     "Cannot convert 'map' to 'Latitude/Longitude'. The transform is not yet initialized. ";
+  //   RCLCPP_WARN_STREAM(get_logger(), err_msg.c_str());
+  // }
+
+  // tf2::Vector3 point(req->map_point.x, req->map_point.y, req->map_point.z);
+
+  // mapToLL(point, res->ll_point.latitude, res->ll_point.longitude, res->ll_point.altitude);
 }
 
 void ZedCamera::callback_fromLL(
@@ -7549,7 +7620,37 @@ void ZedCamera::callback_fromLL(
   const std::shared_ptr<robot_localization::srv::FromLL_Request> req,
   std::shared_ptr<robot_localization::srv::FromLL_Response> res)
 {
+  // double altitude = req->ll_point.altitude;
+  // double longitude = req->ll_point.longitude;
+  // double latitude = req->ll_point.latitude;
 
+  // tf2::Transform cartesian_pose;
+
+  // double cartesian_x {};
+  // double cartesian_y {};
+  // double cartesian_z {};
+
+  // sl::GeoConverter conv;
+  // conv.
+
+  // std::string utm_zone_tmp;
+  // navsat_conversions::LLtoUTM(
+  //   latitude,
+  //   longitude,
+  //   cartesian_y,
+  //   cartesian_x,
+  //   utm_zone_tmp);
+
+
+  // cartesian_pose.setOrigin(tf2::Vector3(cartesian_x, cartesian_y, altitude));
+
+  // nav_msgs::msg::Odometry gps_odom;
+
+  // if (!transform_good_) {
+  //   return false;
+  // }
+
+  // response->map_point = cartesianToMap(cartesian_pose).pose.pose.position;
 }
 
 }  // namespace stereolabs

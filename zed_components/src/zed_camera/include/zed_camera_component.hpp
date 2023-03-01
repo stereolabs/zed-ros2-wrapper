@@ -45,7 +45,6 @@
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/nav_sat_status.hpp>
 #include <grid_map_msgs/msg/grid_map.hpp>
-#include <sl/Camera.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <stereo_msgs/msg/disparity_image.hpp>
@@ -60,6 +59,9 @@
 
 #include <robot_localization/srv/from_ll.hpp>
 #include <robot_localization/srv/to_ll.hpp>
+
+#include <sl/Camera.hpp>
+#include <sl/Fusion.hpp>
 
 #include "sl_tools.hpp"
 #include "visibility_control.hpp"
@@ -336,6 +338,8 @@ private:
   sl::Camera mZed;
   sl::InitParameters mInitParams;
   sl::RuntimeParameters mRunParams;
+  sl::Fusion mFusion;
+  sl::InitFusionParameters mFusionInitParams;
 
   uint64_t mFrameCount = 0;
 
@@ -547,6 +551,7 @@ private:
   bool mSensor2CameraTransfValid = false;
   bool mCamera2BaseTransfValid = false;
   bool mGnss2BaseTransfValid = false;
+  bool mMap2UtmTransfValid = false;
   // <---- TF Transforms Flags
 
   // ----> Messages (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
@@ -654,6 +659,7 @@ private:
   // ----> Threads and Timers
   sl::ERROR_CODE mGrabStatus;
   sl::ERROR_CODE mConnStatus;
+  sl::ERROR_CODE mFusionStatus;
   std::thread mGrabThread;        // Main grab thread
   std::thread mVideoDepthThread;  // RGB/Depth data publish thread
   std::thread mPcThread;          // Point Cloud publish thread
@@ -710,6 +716,7 @@ private:
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
   std::vector<geometry_msgs::msg::PoseStamped> mMapPath;
+  sl::GeoPose mLastGeoPose;
   sl::ECEF mLastEcefPose;
   sl::UTM mLastUtmPose;
   sl::LatLng mLastLatLongPose;

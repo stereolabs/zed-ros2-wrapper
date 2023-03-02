@@ -130,7 +130,7 @@ def launch_setup(context, *args, **kwargs):
         output='screen',
         # prefix=['xterm -e valgrind --tools=callgrind'],
         # prefix=['xterm -e gdb -ex run --args'],
-        prefix=['gdbserver localhost:3000'],
+        # prefix=['gdbserver localhost:3000'],
         parameters=[
             # YAML files
             config_common_path,  # Common parameters

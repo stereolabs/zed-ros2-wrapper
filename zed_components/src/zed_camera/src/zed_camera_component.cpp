@@ -458,6 +458,10 @@ void ZedCamera::getDebugParams()
   getParam("debug.debug_point_cloud", mDebugPointCloud, mDebugPointCloud);
   RCLCPP_INFO(get_logger(), " * Debug Point Cloud: %s", mDebugPointCloud ? "TRUE" : "FALSE");
 
+  getParam("debug.debug_gnss", mDebugGnss, mDebugGnss);
+  RCLCPP_INFO(
+    get_logger(), " * Debug GNSS: %s",
+    mDebugGnss ? "TRUE" : "FALSE");
 
   getParam("debug.debug_positional_tracking", mDebugPosTracking, mDebugPosTracking);
   RCLCPP_INFO(
@@ -482,7 +486,7 @@ void ZedCamera::getDebugParams()
 
 
   mDebugMode = mDebugCommon || mDebugVideoDepth || mDebugPointCloud ||
-    mDebugPosTracking || mDebugSensors || mDebugMapping || mDebugTerrainMapping || mDebugObjectDet;
+    mDebugPosTracking || mDebugGnss || mDebugSensors || mDebugMapping || mDebugTerrainMapping || mDebugObjectDet;
 
   if (mDebugMode) {
     rcutils_ret_t res =
@@ -2913,43 +2917,50 @@ bool ZedCamera::startCamera()
   // <---- Start Sensors thread if not sync
 
   // Start positional tracking
-  startPosTracking();
+  //startPosTracking();
+  //mZed.grab();
 
-  // ----> Initialize Fusion module
+  if (mGnssFusionEnabled) {
+    // ----> Initialize Fusion module
 
-  // TODO(Walter) Check if this works for simulation
-  mFusionInitParams.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
-  mFusionInitParams.coordinate_units = sl::UNIT::METER;
-  mFusionInitParams.verbose = mVerbose != 0;
-  mFusionInitParams.output_performance_metrics = true;
-  mFusionInitParams.timeout_period_number = (1.0 / mCamGrabFrameRate) * mCamTimeoutSec;
+    // Fusion parameters
+    // TODO(Walter) Verify if this works for simulation
+    mFusionInitParams.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
+    mFusionInitParams.coordinate_units = sl::UNIT::METER;
+    mFusionInitParams.verbose = mVerbose != 0;
+    mFusionInitParams.output_performance_metrics = true;
+    mFusionInitParams.timeout_period_number = (1.0 / mCamGrabFrameRate) * mCamTimeoutSec;
 
-  sl::ERROR_CODE err = mFusion.init(mFusionInitParams);
-  if (err != sl::ERROR_CODE::SUCCESS) {
-    RCLCPP_ERROR_STREAM(
-      get_logger(), "Error initializing the Fusion module: " << sl::toString(
-        err).c_str());
-    exit(EXIT_FAILURE);
+    // Fusion initialization
+    sl::ERROR_CODE err = mFusion.init(mFusionInitParams);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(), "Error initializing the Fusion module: " << sl::toString(
+          err).c_str());
+      exit(EXIT_FAILURE);
+    }
+
+    std::shared_ptr<sl::FusionConfiguration> camFusionConfig =
+      std::make_shared<sl::FusionConfiguration>();
+    camFusionConfig->communication_type = comm::TYPE::SHARED_MEMORY;
+    camFusionConfig->sn = std::to_string(mCamSerialNumber);
+
+    sl::CameraIdentifier uuid;
+    uuid.sn = mCamSerialNumber;
+
+    // Enable camera publishing to Fusion
+    mZed.startPublishing(camFusionConfig);
+
+    // Fusion subscrive to camera data
+    err = mFusion.subscribe(uuid, camFusionConfig);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(), "Error initializing the Fusion module: " << sl::toString(
+          err).c_str());
+      exit(EXIT_FAILURE);
+    }
+    // <---- Initialize Fusion module
   }
-
-  std::shared_ptr<sl::FusionConfiguration> camFusionConfig =
-    std::make_shared<sl::FusionConfiguration>();
-  camFusionConfig->communication_type = comm::TYPE::SHARED_MEMORY;
-  camFusionConfig->sn = mCamSerialNumber;
-
-  mZed.startPublishing(camFusionConfig);
-
-  sl::CameraIdentifier uuid;
-  uuid.sn = mCamSerialNumber;
-
-  err = mFusion.subscribe(uuid, camFusionConfig);
-  if (err != sl::ERROR_CODE::SUCCESS) {
-    RCLCPP_ERROR_STREAM(
-      get_logger(), "Error initializing the Fusion module: " << sl::toString(
-        err).c_str());
-    exit(EXIT_FAILURE);
-  }
-  // <---- Initialize Fusion module
 
   // Start grab thread
   mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
@@ -3006,6 +3017,8 @@ void ZedCamera::startPathPubTimer(double pathTimerRate)
   if (mPathTimer != nullptr) {
     mPathTimer->cancel();
   }
+
+  DEBUG_PT("Starting path pub. timer");
 
   if (pathTimerRate > 0) {
     std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0 / (pathTimerRate)));
@@ -3116,23 +3129,40 @@ bool ZedCamera::startPosTracking()
   trackParams.enable_gnss_fusion = mGnssFusionEnabled;
   trackParams.gnss_calibration_distance = mGnssInitDist;
 
-  if (mGnssFusionEnabled) {
-    mMap2UtmTransfValid = false;
-  }
-
   sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
 
-  if (err == sl::ERROR_CODE::SUCCESS) {
-    mPosTrackingStarted = true;
-  } else {
+  if (err != sl::ERROR_CODE::SUCCESS) {
     mPosTrackingStarted = false;
-
-    RCLCPP_WARN(get_logger(), "Tracking not started: %s", sl::toString(err).c_str());
+    RCLCPP_WARN(get_logger(), "Pos. Tracking not started: %s", sl::toString(err).c_str());
+    return false;
   }
 
-  if (mPosTrackingStarted) {
-    startPathPubTimer(mPathPubRate);
+  DEBUG_PT("Positional Tracking started");
+
+  // ----> Enable Fusion Positional Tracking if required
+  if (mGnssFusionEnabled && err == sl::ERROR_CODE::SUCCESS) {
+    mMap2UtmTransfValid = false;
+
+    sl::PositionalTrackingFusionParameters par;
+    par.depth_min_range = mPosTrackDepthMinRange;
+    par.enable_imu_fusion = mImuFusion;
+    par.initial_world_transform = mInitialPoseSl;
+
+    err = mFusion.enablePositionalTracking(par);
+
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      mPosTrackingStarted = false;
+      RCLCPP_WARN(get_logger(), "Fusion Pos. Tracking not started: %s", sl::toString(err).c_str());
+      mZed.disablePositionalTracking();
+      return false;
+    }
+    DEBUG_PT("Fusion Positional Tracking started");
   }
+  // <---- Enable Fusion Positional Tracking if required
+
+  mPosTrackingStarted = true;
+
+  startPathPubTimer(mPathPubRate);
 
   return mPosTrackingStarted;
 }
@@ -3917,7 +3947,7 @@ void ZedCamera::threadFunc_zedGrab()
       grabElabTimer.tic();
 
       // ZED grab
-      mGrabStatus = mZed.grab(mRunParams);
+      mGrabStatus = mZed.grab(mRunParams);      
 
       // ----> Grab errors?
       // Note: disconnection are automatically handled by the ZED SDK
@@ -3944,14 +3974,15 @@ void ZedCamera::threadFunc_zedGrab()
 
       mFrameCount++;
 
-      // Process Fusion data
-      mFusionStatus = mFusion.process();
-
-      // ----> Fusion errors?
-      if (mFusionStatus != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_ERROR_STREAM(get_logger(), "Fusion error: " << sl::toString(mFusionStatus).c_str());
+      if(mGnssFusionEnabled) {
+        // Process Fusion data
+        mFusionStatus = mFusion.process();
+        // ----> Fusion errors?
+        if (mFusionStatus != sl::ERROR_CODE::SUCCESS) {
+          RCLCPP_ERROR_STREAM(get_logger(), "Fusion error: " << sl::toString(mFusionStatus).c_str());
+        }
+        // <---- Fusion errors?
       }
-      // <---- Fusion errors?
 
       // ----> Timestamp
       if (mSvoMode) {
@@ -3960,6 +3991,18 @@ void ZedCamera::threadFunc_zedGrab()
         mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
       }
       // <---- Timestamp
+
+      if( mGnssFusionEnabled && mGnssFixNew) {
+        mGnssFixNew = false;
+
+        rclcpp::Time real_frame_ts = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+        DEBUG_STREAM_GNSS( "GNSS synced frame ts: " << real_frame_ts.nanoseconds() << " nsec" );
+
+        if(real_frame_ts.nanoseconds() < mGnssTimestamp.nanoseconds() ) {
+          RCLCPP_WARN_STREAM( get_logger(), "GNSS sensor and ZED Timestamps are not good. dT = " 
+            << real_frame_ts.nanoseconds() - mGnssTimestamp.nanoseconds() << " nsec" );
+        }
+      }
 
       // ----> Check recording status
       mRecMutex.lock();
@@ -5097,8 +5140,11 @@ void ZedCamera::processOdometry()
   if (!mInitOdomWithPose) {
     sl::Pose deltaOdom;
 
-    //mPosTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
-    mPosTrackingStatus = mFusion.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
+    if (mGnssFusionEnabled) {
+      mPosTrackingStatus = mFusion.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
+    } else {
+      mPosTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
+    }
 
     sl::Translation translation = deltaOdom.getTranslation();
     sl::Orientation quat = deltaOdom.getOrientation();
@@ -5226,10 +5272,8 @@ void ZedCamera::processPose()
   }
 
   if (!mGnssFusionEnabled) {
-    //mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
-    mPosTrackingStatus = mFusion.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
+    mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
   } else {
-    //mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::GNSS);
     mPosTrackingStatus = mFusion.getPosition(mLastZedPose, sl::REFERENCE_FRAME::GNSS);
   }
 
@@ -5409,7 +5453,6 @@ void ZedCamera::processGnssPose()
     return;
   }
 
-  //mGnssPosStatus = mZed.getComputedGNSSPosition(mLastEcefPose, mLastLatLongPose, mLastUtmPose);
   mGnssPosStatus = mFusion.getGeoPose(mLastGeoPose);
 
   if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK ||
@@ -6820,8 +6863,6 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
   }
 
   if (mGrabStatus == sl::ERROR_CODE::SUCCESS) {
-    stat.addf("Fusion status", sl::toString(mFusionStatus).c_str());
-
     double freq = 1. / mGrabPeriodMean_sec->getAvg();
     double freq_perc = 100. * freq / mCamGrabFrameRate;
     stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
@@ -6897,8 +6938,9 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
       }
 
       if (mGnssFusionEnabled) {
+        stat.addf("Fusion status", sl::toString(mFusionStatus).c_str());
         if (mPosTrackingStarted) {
-          stat.addf("GNSS Fusion status", "%s", sl::toString(mGnssPosStatus).c_str());
+          stat.addf("GNSS Tracking status", "%s", sl::toString(mGnssPosStatus).c_str());
         }
         if (mGnssMsgReceived) {
           double freq = 1. / mGnssFix_sec->getAvg();
@@ -7112,15 +7154,13 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   uint64_t current_tns_gnss = static_cast<uint64_t>(msg->header.stamp.nanosec) / 1000;
   uint64_t current_tms_gnss = current_ts_gnss + current_tns_gnss;
 
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "GNSS Timestamp: " << current_ts_gnss / 1000000 << " sec / " << current_tns_gnss << " usec / " << current_tms_gnss <<
+  DEBUG_STREAM_GNSS(
+    "GNSS Ts: " << current_ts_gnss / 1000000 << " sec / " << current_tns_gnss << " usec / " << current_tms_gnss <<
       " usec fused");
 
 
   if (current_ts_gnss == last_ts_gnss) {
-    RCLCPP_DEBUG(
-      get_logger(),
+    DEBUG_GNSS(
       "callback_gnssFix: data not valid (timestamp not incremented)");
     // mGnssFixValid = false;
     return;
@@ -7157,23 +7197,22 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   }
 
   if (!mGnssFixValid) {
-    RCLCPP_INFO(
-      get_logger(), "GNSS: valid fix.");
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_GNSS( "GNSS: valid fix.");
+    DEBUG_STREAM_GNSS(
       " * First valid datum - Lat: " << latit << "° - Long: " << longit << "° - Alt: " << altit <<
         " m");
   }
 
   mGnssFixValid = true; // Used to keep track of signal loss
-  //mGnssFixNew = true; // Used to ingest GNSS data into the SDK only for new values (set to false after a call to "sl::Camera::setGNSSPrior" )
 
   if (mZed.isOpened() && mZed.isPositionalTrackingEnabled()) {
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Prior updated - [" << gnssData.ts.getMicroseconds() << "] " << latit << "°," << longit << "° / " << altit <<
+    mGnssTimestamp = gnssData.ts.getNanoseconds();
+
+    DEBUG_STREAM_GNSS(
+      "Prior updated - [" << mGnssTimestamp.nanoseconds() << " nsec] " << latit << "°," << longit << "° / " << altit <<
         " m");
     mZed.setGNSSPrior(gnssData);
+    mGnssFixNew = true;
   }
 }
 

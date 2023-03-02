@@ -230,6 +230,7 @@ private:
   bool mDebugVideoDepth = false;
   bool mDebugPointCloud = false;
   bool mDebugPosTracking = false;
+  bool mDebugGnss = false;
   bool mDebugSensors = false;
   bool mDebugMapping = false;
   bool mDebugTerrainMapping = false;
@@ -574,6 +575,7 @@ private:
   bool mRgbSubscribed = false;
   bool mGnssMsgReceived = false; // Indicates if a NavSatFix topic has been received, also with invalid position fix
   bool mGnssFixValid = false; // Used to keep track of signal loss
+  bool mGnssFixNew = false; // Used to keep track of signal loss
   std::string mGnssService = "";
   // <---- Status Flags
 
@@ -621,6 +623,7 @@ private:
 
   // ----> Timestamps
   rclcpp::Time mFrameTimestamp;
+  rclcpp::Time mGnssTimestamp;
   // <---- Timestamps
 
   // ----> SVO Recording parameters

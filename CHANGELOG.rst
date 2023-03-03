@@ -1,6 +1,15 @@
 LATEST CHANGES
 ==============
 
+2023-03-03
+----------
+- Add traversability cost computation for Terrain Mapping (local_mapping)
+  - Change parameter `local_mapping.height_threshold` to `local_mapping.robot_heigth`
+  - Add parameter `local_mapping.robot_radius` to set radius of the robot
+  - Add parameter `local_mapping.robot_max_step` to set max height of a step that the robot can overcome
+  - Add parameter `local_mapping.robot_max_slope` to set max slope (degrees) that the robot can overcome
+  - Add parameter `local_mapping.robot_max_roughness` to set max roughness of the terrain that the robot can overcome
+
 2023-02-24
 ----------
 - Change StopWatch to use ROS clock instead of System Clock. In this way diagnostic and time checking work also in simulation

@@ -1150,8 +1150,32 @@ void ZedCamera::getTerrainMappingParams()
     " * Grid resolution [m]: ");
 
   getParam(
-    "local_mapping.height_threshold", mTerrainMappingHeigthThresh, mTerrainMappingHeigthThresh,
-    " * Height threshold [m]: ");
+    "local_mapping.robot_heigth", mTerrainMappingRobotHeigth, mTerrainMappingRobotHeigth,
+    " * Robot Heigth [m]: ");
+
+  getParam(
+    "local_mapping.robot_radius", mTerrainMappingRobotRadius, mTerrainMappingRobotRadius,
+    " * Robot Radius [m]: ");
+
+  getParam(
+    "local_mapping.robot_max_step", mTerrainMappingRobotStep, mTerrainMappingRobotStep,
+    " * Robot Max Step [m]: ");
+
+  getParam(
+    "local_mapping.robot_max_slope", mTerrainMappingRobotSlope, mTerrainMappingRobotSlope,
+    " * Robot Max Slope [deg]: ");
+
+  getParam(
+    "local_mapping.robot_max_roughness", mTerrainMappingRobotRoughness,
+    mTerrainMappingRobotRoughness,
+    " * Robot Max roughness: ");
+
+  mAgentParams.radius = mTerrainMappingRobotRadius;
+  mAgentParams.roughness_max = mTerrainMappingRobotRoughness;
+  mAgentParams.slope_max = mTerrainMappingRobotSlope;
+  mAgentParams.step_max = mTerrainMappingRobotStep;
+
+  // TODO(Walter) Add "TraversabilityParameters" parameters?
 }
 
 void ZedCamera::getPosTrackingParams()
@@ -3200,7 +3224,7 @@ bool ZedCamera::startTerrainMapping()
 
   tm_params.setGridResolution(sl::UNIT::METER, mTerrainMappingRes);
   tm_params.setGridRange(sl::UNIT::METER, mTerrainMappingRange);
-  tm_params.setCameraHeightThreshold(sl::UNIT::METER, mTerrainMappingHeigthThresh);
+  tm_params.setCameraHeightThreshold(sl::UNIT::METER, mTerrainMappingRobotHeigth);
 
   sl::ERROR_CODE err = mZed.enableTerrainMapping(tm_params);
 
@@ -5969,7 +5993,7 @@ bool ZedCamera::publishLocalMap()
   sl::Terrain sl_map;
   err = mZed.retrieveTerrain(sl_map, terrain_ref);
   //TM_DEBUG_STREAM("... after retrieveTerrain");
-  
+
   if (err != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -5990,7 +6014,7 @@ bool ZedCamera::publishLocalMap()
     const std::string TRAVERSABILITY_GRID_STR("traversability");
 
     grid_map::GridMap gridmap;
-    
+
     // Initialization
     gridmap.setGeometry(
       grid_map::Length(
@@ -6007,8 +6031,13 @@ bool ZedCamera::publishLocalMap()
         gridmap.getFrameId().c_str());
 
     sl::Terrain sl_traversability_map;
-    stereolabs::cost_traversability::initCostTraversibily(sl_traversability_map, mTerrainMappingRes, mTerrainMappingRange, mTerrainMappingHeigthThresh);
-    stereolabs::cost_traversability::computeCost(sl_map, sl_traversability_map, gridmap.getResolution(), mAgentParams, mTraversabilityParams);
+    stereolabs::cost_traversability::initCostTraversibily(
+      sl_traversability_map, mTerrainMappingRes,
+      mTerrainMappingRange,
+      mTerrainMappingRobotHeigth);
+    stereolabs::cost_traversability::computeCost(
+      sl_map, sl_traversability_map,
+      gridmap.getResolution(), mAgentParams, mTraversabilityParams);
 
     // Elevation is the main layer
     gridmap.setBasicLayers({ELEVATION_GRID_STR});

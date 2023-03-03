@@ -60,6 +60,9 @@ namespace stereolabs
 #define RAD2DEG 57.295777937
 #endif
 
+#define ROS_COORDINATE_SYSTEM sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD
+#define ROS_MEAS_UNITS sl::UNIT::METER
+
 ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
 : Node("zed_node", options),
   mDiagUpdater(this),
@@ -486,7 +489,8 @@ void ZedCamera::getDebugParams()
 
 
   mDebugMode = mDebugCommon || mDebugVideoDepth || mDebugPointCloud ||
-    mDebugPosTracking || mDebugGnss || mDebugSensors || mDebugMapping || mDebugTerrainMapping || mDebugObjectDet;
+    mDebugPosTracking || mDebugGnss || mDebugSensors || mDebugMapping || mDebugTerrainMapping ||
+    mDebugObjectDet;
 
   if (mDebugMode) {
     rcutils_ret_t res =
@@ -2592,8 +2596,8 @@ bool ZedCamera::startCamera()
     }
   }
 
-  mInitParams.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
-  mInitParams.coordinate_units = sl::UNIT::METER;
+  mInitParams.coordinate_system = ROS_COORDINATE_SYSTEM;
+  mInitParams.coordinate_units = ROS_MEAS_UNITS;
   mInitParams.depth_mode = mDepthQuality;
   mInitParams.sdk_verbose = mVerbose;
   mInitParams.sdk_gpu_id = mGpuId;
@@ -3947,7 +3951,7 @@ void ZedCamera::threadFunc_zedGrab()
       grabElabTimer.tic();
 
       // ZED grab
-      mGrabStatus = mZed.grab(mRunParams);      
+      mGrabStatus = mZed.grab(mRunParams);
 
       // ----> Grab errors?
       // Note: disconnection are automatically handled by the ZED SDK
@@ -3974,12 +3978,14 @@ void ZedCamera::threadFunc_zedGrab()
 
       mFrameCount++;
 
-      if(mGnssFusionEnabled) {
+      if (mGnssFusionEnabled) {
         // Process Fusion data
         mFusionStatus = mFusion.process();
         // ----> Fusion errors?
         if (mFusionStatus != sl::ERROR_CODE::SUCCESS) {
-          RCLCPP_ERROR_STREAM(get_logger(), "Fusion error: " << sl::toString(mFusionStatus).c_str());
+          RCLCPP_ERROR_STREAM(
+            get_logger(),
+            "Fusion error: " << sl::toString(mFusionStatus).c_str());
         }
         // <---- Fusion errors?
       }
@@ -3992,15 +3998,25 @@ void ZedCamera::threadFunc_zedGrab()
       }
       // <---- Timestamp
 
-      if( mGnssFusionEnabled && mGnssFixNew) {
+      if (mGnssFusionEnabled && mGnssFixNew) {
         mGnssFixNew = false;
 
-        rclcpp::Time real_frame_ts = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
-        DEBUG_STREAM_GNSS( "GNSS synced frame ts: " << real_frame_ts.nanoseconds() << " nsec" );
+        rclcpp::Time real_frame_ts =
+          sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+        DEBUG_STREAM_GNSS("GNSS synced frame ts: " << real_frame_ts.nanoseconds() << " nsec");
+        float dT_sec =
+          (static_cast<float>(real_frame_ts.nanoseconds()) -
+          static_cast<float>(mGnssTimestamp.nanoseconds())) / 1e9;
+        DEBUG_STREAM_GNSS(
+          "DeltaT: " << dT_sec << " sec [" <<
+            std::fixed << std::setprecision(9) <<
+            static_cast<float>(real_frame_ts.nanoseconds()) / 1e9 << "-" <<
+            static_cast<float>(mGnssTimestamp.nanoseconds()) / 1e9);
 
-        if(real_frame_ts.nanoseconds() < mGnssTimestamp.nanoseconds() ) {
-          RCLCPP_WARN_STREAM( get_logger(), "GNSS sensor and ZED Timestamps are not good. dT = " 
-            << real_frame_ts.nanoseconds() - mGnssTimestamp.nanoseconds() << " nsec" );
+        if (real_frame_ts.nanoseconds() < mGnssTimestamp.nanoseconds() ) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "GNSS sensor and ZED Timestamps are not good. dT = "
+              << dT_sec << " sec");
         }
       }
 
@@ -5140,10 +5156,12 @@ void ZedCamera::processOdometry()
   if (!mInitOdomWithPose) {
     sl::Pose deltaOdom;
 
-    if (mGnssFusionEnabled) {
-      mPosTrackingStatus = mFusion.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
-    } else {
+    if (!mGnssFusionEnabled) {
       mPosTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
+    } else {
+      mPosTrackingStatus = mFusion.getPosition(
+        deltaOdom, sl::REFERENCE_FRAME::CAMERA,
+        ROS_COORDINATE_SYSTEM, ROS_MEAS_UNITS);
     }
 
     sl::Translation translation = deltaOdom.getTranslation();
@@ -5274,7 +5292,9 @@ void ZedCamera::processPose()
   if (!mGnssFusionEnabled) {
     mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
   } else {
-    mPosTrackingStatus = mFusion.getPosition(mLastZedPose, sl::REFERENCE_FRAME::GNSS);
+    mPosTrackingStatus = mFusion.getPosition(
+      mLastZedPose, sl::REFERENCE_FRAME::GNSS,
+      ROS_COORDINATE_SYSTEM, ROS_MEAS_UNITS);
   }
 
   sl::Translation translation = mLastZedPose.getTranslation();
@@ -7149,24 +7169,27 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   // ----> Check timestamp
   // Note: this is the ROS timestamp, not the GNSS timestamp that is available in a
   //       "sensor_msgs/TimeReference message", e.g. `/time_reference`
-  static uint64_t last_ts_gnss = 0;
-  uint64_t current_ts_gnss = static_cast<uint64_t>(msg->header.stamp.sec) * 1000000;
-  uint64_t current_tns_gnss = static_cast<uint64_t>(msg->header.stamp.nanosec) / 1000;
-  uint64_t current_tms_gnss = current_ts_gnss + current_tns_gnss;
+  static uint64_t last_ts_gnss_nsec = 0;
+  uint64_t ts_gnss_part_sec = static_cast<uint64_t>(msg->header.stamp.sec) * 1000000000;
+  uint64_t ts_gnss_part_nsec = static_cast<uint64_t>(msg->header.stamp.nanosec);
+  uint64_t ts_gnss_nsec = ts_gnss_part_sec + ts_gnss_part_nsec;
 
   DEBUG_STREAM_GNSS(
-    "GNSS Ts: " << current_ts_gnss / 1000000 << " sec / " << current_tns_gnss << " usec / " << current_tms_gnss <<
+    "GNSS Ts: " << ts_gnss_part_sec / 1000000 << " sec + " << ts_gnss_part_nsec << " nsec = " << ts_gnss_nsec <<
       " usec fused");
 
-
-  if (current_ts_gnss == last_ts_gnss) {
+  if (ts_gnss_nsec <= last_ts_gnss_nsec) {
     DEBUG_GNSS(
       "callback_gnssFix: data not valid (timestamp not incremented)");
-    // mGnssFixValid = false;
     return;
   }
-  last_ts_gnss = current_tms_gnss;
+
+  DEBUG_STREAM_GNSS(
+    "GNSS dT: " << ts_gnss_nsec - last_ts_gnss_nsec << " nsec");
+  last_ts_gnss_nsec = ts_gnss_nsec;
   // <---- Check timestamp
+
+  mGnssTimestamp = rclcpp::Time(ts_gnss_part_sec, ts_gnss_part_nsec * 1000, RCL_ROS_TIME);
 
   double altit = msg->altitude;
   if (mGnssZeroAltitude) {
@@ -7177,7 +7200,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
 
   //std::lock_guard<std::mutex> lock(mGnssDataMutex);
   sl::GNSSData gnssData;
-  gnssData.ts.setMicroseconds(current_tms_gnss);
+  gnssData.ts.setMicroseconds(ts_gnss_nsec);
   gnssData.altitude = altit;
   gnssData.latitude = latit * DEG2RAD;
   gnssData.longitude = longit * DEG2RAD;
@@ -7197,7 +7220,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   }
 
   if (!mGnssFixValid) {
-    DEBUG_GNSS( "GNSS: valid fix.");
+    DEBUG_GNSS("GNSS: valid fix.");
     DEBUG_STREAM_GNSS(
       " * First valid datum - Lat: " << latit << "° - Long: " << longit << "° - Alt: " << altit <<
         " m");
@@ -7206,8 +7229,6 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   mGnssFixValid = true; // Used to keep track of signal loss
 
   if (mZed.isOpened() && mZed.isPositionalTrackingEnabled()) {
-    mGnssTimestamp = gnssData.ts.getNanoseconds();
-
     DEBUG_STREAM_GNSS(
       "Prior updated - [" << mGnssTimestamp.nanoseconds() << " nsec] " << latit << "°," << longit << "° / " << altit <<
         " m");

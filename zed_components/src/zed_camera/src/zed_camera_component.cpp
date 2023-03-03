@@ -3322,7 +3322,9 @@ bool ZedCamera::startTerrainMapping()
 
   tm_params.setGridResolution(sl::UNIT::METER, mTerrainMappingRes);
   tm_params.setGridRange(sl::UNIT::METER, mTerrainMappingRange);
-  tm_params.setCameraHeightThreshold(sl::UNIT::METER, mTerrainMappingRobotHeigth + 2.0f*mTerrainMappingRes);
+  tm_params.setCameraHeightThreshold(
+    sl::UNIT::METER,
+    mTerrainMappingRobotHeigth + 2.0f * mTerrainMappingRes);
 
   sl::ERROR_CODE err = mZed.enableTerrainMapping(tm_params);
 

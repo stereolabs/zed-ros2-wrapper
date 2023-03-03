@@ -60,7 +60,7 @@
 
         pos_tracking:
             pos_tracking_enabled: true # True to enable positional tracking from start
-            gnss_fusion: false # fuse 'sensor_msg/NavSatFix' message information into pose data
+            gnss_fusion: true # fuse 'sensor_msg/NavSatFix' message information into pose data
             gnss_fix_topic: "/gps/fix" # Name of the GNSS topic of type NavSatFix to subscribe [Default: "/gps/fix"]
             gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
             gnss_frame: "gnss_link" # [usually overwritten by launch file] The TF frame of the GNSS sensor

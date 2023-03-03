@@ -206,8 +206,12 @@ private:
   sl::Camera mZed;
   sl::InitParameters mInitParams;
   sl::RuntimeParameters mRunParams;
+
+  // ----> Fusion module
+  std::shared_ptr<sl::FusionConfiguration> mFusionConfig;
   sl::Fusion mFusion;
   sl::InitFusionParameters mFusionInitParams;
+  // <---- Fusion module
 
   uint64_t mFrameCount = 0;
 
@@ -225,9 +229,7 @@ private:
   // <---- Topics
 
   // ----> Parameter variables
-  bool mSimEnabled = false;  // Expecting simulation data?
   std::string mSimAddr = "localhost";  // The local address of the machine running the simulator
-  bool mDebugMode = false;
   bool mDebugCommon = false;
   bool mDebugVideoDepth = false;
   bool mDebugPointCloud = false;
@@ -533,7 +535,7 @@ private:
   // ----> Threads and Timers
   sl::ERROR_CODE mGrabStatus;
   sl::ERROR_CODE mConnStatus;
-  sl::ERROR_CODE mFusionStatus;
+  sl::FUSION_ERROR_CODE mFusionStatus;
   std::thread mGrabThread;        // Main grab thread
   std::thread mVideoDepthThread;  // RGB/Depth data publish thread
   std::thread mPcThread;          // Point Cloud publish thread
@@ -563,6 +565,9 @@ private:
   // <---- Thread Sync
 
   // ----> Status Flags
+  bool mSimEnabled = false;  // Expecting simulation data?
+  bool mDebugMode = false;  // Debug mode active?
+  int mSimPort = 30000;
   bool mSvoMode = false;
   bool mSvoPause = false;
   bool mPosTrackingStarted = false;

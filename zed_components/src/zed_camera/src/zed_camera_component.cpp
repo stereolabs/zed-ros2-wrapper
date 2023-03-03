@@ -2599,8 +2599,8 @@ bool ZedCamera::startCamera()
   if (mSimEnabled) {  // Simulation?
     RCLCPP_INFO(get_logger(), "*** CONNECTING TO THE SIMULATOR ***");
 
-    int sim_port = ZED_SDK_PORT + 2 * mCamId;
-    mInitParams.input.setFromStream(mSimAddr.c_str(), sim_port);
+    int mSimPort = ZED_SDK_PORT + 2 * mCamId;
+    mInitParams.input.setFromStream(mSimAddr.c_str(), mSimPort);
   } else if (!mSvoFilepath.empty()) {
     RCLCPP_INFO(get_logger(), "*** SVO OPENING ***");
 
@@ -2635,7 +2635,7 @@ bool ZedCamera::startCamera()
   mInitParams.enable_right_side_measure = false;
   // <---- ZED configuration
 
-  // ----> Try to open ZED camera or to load SVO
+  // ----> Try to connect to a camera, to a stream, or to load an SVO
   sl_tools::StopWatch connectTimer(get_clock());
 
   mThreadStop = false;
@@ -2693,7 +2693,7 @@ bool ZedCamera::startCamera()
 
     rclcpp::sleep_for(std::chrono::seconds(mCamTimeoutSec));
   }
-  // <---- Try to open ZED camera or to load SVO
+  // ----> Try to connect to a camera, to a stream, or to load an SVO
 
   // ----> Camera information
   sl::CameraInformation camInfo = mZed.getCameraInformation();
@@ -2897,10 +2897,12 @@ bool ZedCamera::startCamera()
 
   // Disable AEC_AGC and Auto Whitebalance to trigger it if user set it to
   // automatic
-  mZed.setCameraSettings(sl::VIDEO_SETTINGS::AEC_AGC, 0);
-  mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, 0);
-  // Force parameters with a dummy grab
-  mZed.grab();
+  if (!mSvoMode && !mSimEnabled) {
+    mZed.setCameraSettings(sl::VIDEO_SETTINGS::AEC_AGC, 0);
+    mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, 0);
+    // Force parameters with a dummy grab
+    mZed.grab();
+  }
 
   // Initialialized timestamp to avoid wrong initial data
   // ----> Timestamp
@@ -2949,10 +2951,10 @@ bool ZedCamera::startCamera()
   //mZed.grab();
 
   if (mGnssFusionEnabled) {
+    DEBUG_GNSS("Initialize Fusion module");
     // ----> Initialize Fusion module
 
     // Fusion parameters
-    // TODO(Walter) Verify if this works for simulation
     mFusionInitParams.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
     mFusionInitParams.coordinate_units = sl::UNIT::METER;
     mFusionInitParams.verbose = mVerbose != 0;
@@ -2960,33 +2962,49 @@ bool ZedCamera::startCamera()
     mFusionInitParams.timeout_period_number = (1.0 / mCamGrabFrameRate) * mCamTimeoutSec;
 
     // Fusion initialization
-    sl::ERROR_CODE err = mFusion.init(mFusionInitParams);
-    if (err != sl::ERROR_CODE::SUCCESS) {
+    sl::FUSION_ERROR_CODE fus_err = mFusion.init(mFusionInitParams);
+    if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Error initializing the Fusion module: " << sl::toString(
-          err).c_str());
+          fus_err).c_str() << ".");
       exit(EXIT_FAILURE);
     }
+    DEBUG_GNSS(" Fusion params OK");
 
-    std::shared_ptr<sl::FusionConfiguration> camFusionConfig =
+    mFusionConfig =
       std::make_shared<sl::FusionConfiguration>();
-    camFusionConfig->communication_type = comm::TYPE::SHARED_MEMORY;
-    camFusionConfig->sn = std::to_string(mCamSerialNumber);
+
+    if (mSimEnabled) {
+      mFusionConfig->input.setFromStream(mSimAddr.c_str(), mSimPort);
+      mFusionConfig->comm_param.setForLocalNetwork(mSimAddr.c_str(), mSimPort);
+    } else if (mSvoMode) {
+      mFusionConfig->input.setFromSVOFile(mSvoFilepath.c_str());
+      mFusionConfig->comm_param.setForSharedMemory();
+    } else {
+      mFusionConfig->input.setFromSerialNumber(mCamSerialNumber);
+      mFusionConfig->comm_param.setForSharedMemory();
+    }
+    mFusionConfig->serial_number = mCamSerialNumber;
+    mFusionConfig->pose = sl::Transform::identity();
+
+    DEBUG_GNSS(" Fusion communication params OK");
 
     sl::CameraIdentifier uuid;
     uuid.sn = mCamSerialNumber;
 
     // Enable camera publishing to Fusion
-    mZed.startPublishing(camFusionConfig);
+    mZed.startPublishing(mFusionConfig->comm_param);
+    DEBUG_GNSS(" Camera publishing OK");
 
     // Fusion subscrive to camera data
-    err = mFusion.subscribe(uuid, camFusionConfig);
-    if (err != sl::ERROR_CODE::SUCCESS) {
+    fus_err = mFusion.subscribe(uuid, mFusionConfig->comm_param);
+    if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
-        get_logger(), "Error initializing the Fusion module: " << sl::toString(
-          err).c_str());
+        get_logger(), "Error initializing the Fusion module: " << sl::toString(fus_err).c_str());
       exit(EXIT_FAILURE);
     }
+    DEBUG_GNSS(" Fusion subscribing OK");
+    DEBUG_GNSS("Fusion module ready");
     // <---- Initialize Fusion module
   }
 
@@ -3176,11 +3194,13 @@ bool ZedCamera::startPosTracking()
     par.enable_imu_fusion = mImuFusion;
     par.initial_world_transform = mInitialPoseSl;
 
-    err = mFusion.enablePositionalTracking(par);
+    sl::FUSION_ERROR_CODE fus_err = mFusion.enablePositionalTracking(par);
 
-    if (err != sl::ERROR_CODE::SUCCESS) {
+    if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
       mPosTrackingStarted = false;
-      RCLCPP_WARN(get_logger(), "Fusion Pos. Tracking not started: %s", sl::toString(err).c_str());
+      RCLCPP_WARN(
+        get_logger(), "Fusion Pos. Tracking not started: %s", sl::toString(
+          fus_err).c_str());
       mZed.disablePositionalTracking();
       return false;
     }
@@ -4008,7 +4028,7 @@ void ZedCamera::threadFunc_zedGrab()
         // Process Fusion data
         mFusionStatus = mFusion.process();
         // ----> Fusion errors?
-        if (mFusionStatus != sl::ERROR_CODE::SUCCESS) {
+        if (mFusionStatus != sl::FUSION_ERROR_CODE::SUCCESS) {
           RCLCPP_ERROR_STREAM(
             get_logger(),
             "Fusion error: " << sl::toString(mFusionStatus).c_str());
@@ -7215,12 +7235,12 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   uint64_t ts_gnss_nsec = ts_gnss_part_sec + ts_gnss_part_nsec;
 
   DEBUG_STREAM_GNSS(
-    "GNSS Ts: " << ts_gnss_part_sec / 1000000 << " sec + " << ts_gnss_part_nsec << " nsec = " << ts_gnss_nsec <<
-      " usec fused");
+    "GNSS Ts: " << ts_gnss_part_sec / 1000000000 << " sec + " << ts_gnss_part_nsec << " nsec = " << ts_gnss_nsec <<
+      " nsec fused");
 
   if (ts_gnss_nsec <= last_ts_gnss_nsec) {
     DEBUG_GNSS(
-      "callback_gnssFix: data not valid (timestamp not incremented)");
+      "callback_gnssFix: data not valid (timestamp did not increment)");
     return;
   }
 
@@ -7229,7 +7249,8 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   last_ts_gnss_nsec = ts_gnss_nsec;
   // <---- Check timestamp
 
-  mGnssTimestamp = rclcpp::Time(ts_gnss_part_sec, ts_gnss_part_nsec * 1000, RCL_ROS_TIME);
+  mGnssTimestamp = rclcpp::Time(ts_gnss_nsec, RCL_ROS_TIME);
+  DEBUG_STREAM_GNSS("Stored Ts: " << mGnssTimestamp.nanoseconds());
 
   double altit = msg->altitude;
   if (mGnssZeroAltitude) {
@@ -7254,9 +7275,6 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
     if (mGnssZeroAltitude) {
       gnssData.altitude_std = 0.0;
     }
-
-    gnssData.ecef_position_std = msg->position_covariance[0];
-    gnssData.ecef_vertical_std = msg->position_covariance[8];
   }
 
   if (!mGnssFixValid) {

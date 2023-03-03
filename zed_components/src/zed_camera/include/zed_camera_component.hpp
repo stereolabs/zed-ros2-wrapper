@@ -22,6 +22,8 @@
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
 
+#include "cost_traversability.hpp"
+
 namespace stereolabs
 {
 
@@ -297,7 +299,11 @@ private:
   float mTerrainMapPubFreq = 5.0f;  // Frequency of data publishing
   float mTerrainMappingRes = 0.05f;  // Terrain mapping resolution
   float mTerrainMappingRange = 4.0f;  // Terrain mapping range
-  float mTerrainMappingHeigthThresh = 1.0f;  // Max obstacle height
+  float mTerrainMappingRobotHeigth = 1.0f;  // Height of the robot
+  float mTerrainMappingRobotRadius = 0.25f;  // Radius of the robot
+  float mTerrainMappingRobotStep = 0.1f;  // Max height of a step that the robot can overcome
+  float mTerrainMappingRobotSlope = 20.0f;  // Max slope (degrees) that the robot can overcome
+  float mTerrainMappingRobotRoughness = 0.1;  // Max roughness of the terrain that the robot can overcome
   bool mObjDetEnabled = false;
   // TODO(Walter) Add support for Skeleton tracking -> SDK v4!!!
   bool mObjDetTracking = true;
@@ -520,7 +526,8 @@ private:
   // <---- Subscribers
 
   // ----> Terraing Mapping
-  //sl::Terrain sl_map;
+  stereolabs::cost_traversability::RobotParameters mAgentParams;
+  stereolabs::cost_traversability::TraversabilityParameters mTraversabilityParams;
   // <---- Terraing Mapping
 
   // ----> Threads and Timers

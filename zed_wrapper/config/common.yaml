@@ -101,7 +101,11 @@
             data_pub_rate: 3.0; # Local Map data publish frequency
             grid_resolution: 0.05 # Local Map resolution in meters [min: 0.01 - max: 1.0]
             grid_range: 4.0 # maximum depth range for local map generation [min: 1.0 - max: 8.0]
-            height_threshold: 1.0 # height of the robot
+            robot_heigth: 1.0 # height of the robot
+            robot_radius: 0.25 # radius of the robot
+            robot_max_step: 0.1 # the max height of a step that the robot can overcome
+            robot_max_slope: 20.0 # the max slope (degrees) that the robot can overcome
+            robot_max_roughness: 0.1 # the max roughness of the terrain that the robot can overcome
 
         sensors:
             sensors_image_sync: false # Synchronize Sensors messages with latest published video/depth message

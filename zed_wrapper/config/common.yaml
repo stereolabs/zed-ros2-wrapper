@@ -107,7 +107,6 @@
             robot_max_slope: 20.0 # the max slope (degrees) that the robot can overcome
             robot_max_roughness: 0.1 # the max roughness of the terrain that the robot can overcome
 
-
         sensors:
             sensors_image_sync: false # Synchronize Sensors messages with latest published video/depth message
             sensors_pub_rate: 200. # frequency of publishing of sensors data. MAX: 400. - MIN: grab rate

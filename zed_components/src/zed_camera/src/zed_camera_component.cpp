@@ -1239,11 +1239,19 @@ void ZedCamera::getPosTrackingParams()
     get_logger(), " * Initial pose: [%g,%g,%g,%g,%g,%g,]", mInitialBasePose[0], mInitialBasePose[1],
     mInitialBasePose[2], mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
 
-  getParam("pos_tracking.area_memory", mAreaMemory, mAreaMemory);
-  RCLCPP_INFO_STREAM(get_logger(), " * Area Memory: " << (mAreaMemory ? "TRUE" : "FALSE"));
-  getParam(
-    "pos_tracking.area_memory_db_path", mAreaMemoryDbPath, mAreaMemoryDbPath,
-    " * Area Memory DB: ");
+  // TODO(Walter) Fix this as soon as the `sl::Fusion` module will support loop closure and odometry
+  if (mGnssFusionEnabled) {
+    mAreaMemory = false;
+    RCLCPP_INFO(get_logger(), " * Area Memory: FALSE - Forced by GNSS usage");
+    RCLCPP_INFO(
+      get_logger(), "   Note: loop closure (Area Memory) is disabled when using GNSS fusion");
+  } else {
+    getParam("pos_tracking.area_memory", mAreaMemory, mAreaMemory);
+    RCLCPP_INFO_STREAM(get_logger(), " * Area Memory: " << (mAreaMemory ? "TRUE" : "FALSE"));
+    getParam(
+      "pos_tracking.area_memory_db_path", mAreaMemoryDbPath, mAreaMemoryDbPath,
+      " * Area Memory DB: ");
+  }
   getParam("pos_tracking.set_as_static", mSetAsStatic, mSetAsStatic);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -2790,7 +2798,7 @@ bool ZedCamera::startCamera()
   if (!sl_tools::isZED(mCamRealModel)) {
     mSlCamImuTransf = camInfo.sensors_configuration.camera_imu_transform;
 
-    RCLCPP_DEBUG(get_logger(), "Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str());
+    DEBUG_SENS("Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str());
   }
 
   mCamWidth = camInfo.camera_configuration.resolution.width;
@@ -3728,8 +3736,8 @@ bool ZedCamera::getSens2BaseTransform()
 
 bool ZedCamera::getGnss2BaseTransform()
 {
-  RCLCPP_DEBUG(
-    get_logger(), "Getting static TF from '%s' to '%s'", mGnssFrameId.c_str(),
+  DEBUG_GNSS(
+    "Getting static TF from '%s' to '%s'", mGnssFrameId.c_str(),
     mBaseFrameId.c_str());
 
   mGnss2BaseTransfValid = false;
@@ -3765,7 +3773,7 @@ bool ZedCamera::getGnss2BaseTransform()
   } catch (tf2::TransformException & ex) {
     if (!first_error) {
       rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-      RCLCPP_DEBUG_THROTTLE(get_logger(), steady_clock, 1.0, "Transform error: %s", ex.what());
+      DEBUG_STREAM_THROTTLE_GNSS(1.0, "Transform error: " << ex.what());
       RCLCPP_WARN_THROTTLE(
         get_logger(), steady_clock, 1.0, "The tf from '%s' to '%s' is not available.",
         mGnssFrameId.c_str(), mBaseFrameId.c_str());
@@ -4600,8 +4608,6 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
 
 void ZedCamera::publishGnssTF(rclcpp::Time t)
 {
-  // RCLCPP_DEBUG(get_logger(), "publishPoseTF");
-
   // ----> Avoid duplicated TF publishing
   static rclcpp::Time last_stamp = TIMEZERO_ROS;
 
@@ -5339,7 +5345,7 @@ void ZedCamera::processPose()
     mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
   } else {
     mPosTrackingStatus = mFusion.getPosition(
-      mLastZedPose, sl::REFERENCE_FRAME::GNSS,
+      mLastZedPose, sl::REFERENCE_FRAME::WORLD,
       ROS_COORDINATE_SYSTEM, ROS_MEAS_UNITS);
   }
 
@@ -5353,13 +5359,35 @@ void ZedCamera::processPose()
   double roll, pitch, yaw;
   tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
 
-  DEBUG_PT(
-    "Sensor POSE [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
-    mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
-    translation.x, translation.y, translation.z,
-    roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-
   DEBUG_STREAM_PT("MAP -> Tracking Status: " << sl::toString(mPosTrackingStatus).c_str());
+
+  if (mDebugGnss) {
+    sl::Pose camera_pose;
+    mZed.getPosition(camera_pose, sl::REFERENCE_FRAME::WORLD);
+
+    translation = camera_pose.getTranslation();
+    quat = camera_pose.getOrientation();
+
+    tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
+
+    DEBUG_PT(
+      "Sensor POSE (`sl::Camera`) [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
+      mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
+      translation.x, translation.y, translation.z,
+      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+
+    DEBUG_PT(
+      "Sensor POSE (`sl::Fusion`) [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
+      mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
+      translation.x, translation.y, translation.z,
+      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+  } else {
+    DEBUG_PT(
+      "Sensor POSE [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
+      mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
+      translation.x, translation.y, translation.z,
+      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+  }
 
   if (
     mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK ||
@@ -5615,7 +5643,7 @@ void ZedCamera::publishGnssPose()
     gnssSub = count_subscribers(mGnssPoseTopic);        // mPubPose subscribers
   } catch (...) {
     rcutils_reset_error();
-    RCLCPP_DEBUG(get_logger(), "publishGnssPose: Exception while counting subscribers");
+    DEBUG_GNSS("publishGnssPose: Exception while counting subscribers");
     return;
   }
 
@@ -5651,7 +5679,7 @@ void ZedCamera::publishGnssPose()
   }
 
   // Publish gnss message
-  RCLCPP_DEBUG_STREAM(get_logger(), "Publishing GNSS pose message");
+  DEBUG_GNSS("Publishing GNSS pose message");
   mPubGnssPose->publish(std::move(msg));
 }
 
@@ -6158,8 +6186,7 @@ void ZedCamera::callback_pubTemp()
   DEBUG_STREAM_ONCE_SENS("Temperatures callback called");
 
   if (sl_tools::isZED(mCamRealModel) || sl_tools::isZEDM(mCamRealModel)) {
-    RCLCPP_DEBUG(
-      get_logger(),
+    DEBUG_SENS(
       "callback_pubTemp: the callback should never be called for the ZED or ZEDM camera models!");
     return;
   }
@@ -6244,7 +6271,7 @@ void ZedCamera::callback_pubTemp()
     imuTempMsg->temperature = static_cast<double>(mTempImu);
     imuTempMsg->variance = 0.0;
 
-    RCLCPP_DEBUG_STREAM(get_logger(), "Publishing IMU TEMP message");
+    DEBUG_SENS("Publishing IMU TEMP message");
     mPubImuTemp->publish(std::move(imuTempMsg));
   }
 }
@@ -7215,9 +7242,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   RCLCPP_INFO_STREAM_ONCE(get_logger(), " * Service: " << mGnssService.c_str());
 
   if (msg->status.status == sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX) {
-    RCLCPP_DEBUG(
-      get_logger(),
-      "callback_gnssFix: fix not valid");
+    DEBUG_GNSS("callback_gnssFix: fix not valid");
     if (mGnssFixValid) {
       RCLCPP_INFO(get_logger(), "GNSS: signal lost.");
     }

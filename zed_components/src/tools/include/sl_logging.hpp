@@ -39,7 +39,12 @@
 #define DEBUG_GNSS(...) if (mDebugGnss) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_GNSS(stream_arg) if (mDebugGnss) RCLCPP_DEBUG_STREAM( \
     get_logger(), stream_arg)
+#define DEBUG_STREAM_THROTTLE_GNSS(duration, stream_arg) \
+  if (mDebugGnss) { \
+    rclcpp::Clock steady_clock(RCL_STEADY_TIME); \
+    RCLCPP_DEBUG_STREAM_THROTTLE(get_logger(), steady_clock, duration, stream_arg);}
 // Sensors
+#define DEBUG_SENS(...) if (mDebugSensors) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_SENS(stream_arg) if (mDebugSensors) RCLCPP_DEBUG_STREAM( \
     get_logger(), stream_arg)
 #define DEBUG_STREAM_ONCE_SENS(stream_arg) if (mDebugSensors) RCLCPP_DEBUG_STREAM_ONCE( \

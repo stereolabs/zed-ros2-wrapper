@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2023-03-06
+----------
+- Disable Area Memory (lood closure) when GNSS fusion is enabled.
+
 2023-03-03
 ----------
 - Add traversability cost computation for Terrain Mapping (local_mapping)

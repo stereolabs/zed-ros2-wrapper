@@ -34,6 +34,7 @@
 #include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
+#include <time.h>
 
 #ifdef FOUND_HUMBLE
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -3703,13 +3704,17 @@ namespace stereolabs
     YOLODetector detector{nullptr};
     std::vector<sl::CustomBoxObjectData> objects_in;
     mPubDetection3DArray = create_publisher<vision_msgs::msg::Detection3DArray>(mPubDetection3DArrayTopic, 10);
+
     try
     {
       detector = YOLODetector(modelPath, true, cv::Size(640, 640));
       std::vector<Detection> detections;
       sl::Mat mat_left_raw;
+      sl::Mat depth_im;
       sl::Mat mat_normals;
       cv::Mat cv_mat_left_raw;
+      cv::Mat cv_depth_im;
+      cv::Mat contour_im;
       while (1)
       {
         if (!rclcpp::ok())
@@ -3726,8 +3731,10 @@ namespace stereolabs
         detections.clear();
         objects_in.clear();
         mZed.retrieveImage(mat_left_raw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResolVideo);
+        mZed.retrieveImage(depth_im, sl::VIEW::DEPTH);
         mZed.retrieveMeasure(mat_normals, sl::MEASURE::NORMALS, sl::MEM::CPU, mMatResolVideo);
         cv_mat_left_raw = slMat2cvMat(mat_left_raw);
+        cv_depth_im = cv::Mat(depth_im.getHeight(), depth_im.getWidth(), CV_8UC1, depth_im.getPtr<sl::uchar1>(sl::MEM::CPU));
         detections = detector.detect(cv_mat_left_raw, confThreshold, iouThreshold);
         rclcpp::Time now = get_clock()->now();
         for (Detection detection : detections)
@@ -3760,6 +3767,7 @@ namespace stereolabs
         vision_msgs::msg::Detection3DArray detections3D;
         detections3D.header.frame_id = "zed21_left_camera_optical_frame";
         detections3D.header.stamp = now;
+
         for (auto object : objects.object_list)
         {
           vision_msgs::msg::Detection3D detection3d;
@@ -3773,22 +3781,28 @@ namespace stereolabs
             std::cerr << e.what() << std::endl;
             break;
           }
-          sl::uint2 box_center = object.bounding_box_2d[0, 2] - object.bounding_box_2d[0, 0];
-          box_center = object.bounding_box_2d[0, 0] + (box_center / 2);
+
+          // Find contours?
+
+          std::vector<std::vector<cv::Point>> contours;
+          std::vector<cv::Vec4i> hierarchy;
+          int min_x = object.bounding_box_2d[0, 0][0];
+          int min_y = object.bounding_box_2d[0, 0][1];
+          int max_x = object.bounding_box_2d[0, 2][0];
+          int max_y = object.bounding_box_2d[0, 2][1];
+          cv::findContours(cv_depth_im(cv::Range(min_y, max_y), cv::Range(min_x, max_x)), contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+          sl::uint2 box_point = sl::uint2(min_x + (std::rand() % (max_x - min_x + 1)), min_y + (std::rand() % (max_y - min_y + 1)));
+          // std::cout << contours[0] << std::endl;
           sl::float4 orientationVector;
-          mat_normals.getValue(box_center[0], box_center[1], &orientationVector);
-          if (!std::isnan(orientationVector.x))
+          mat_normals.getValue(box_point[0], box_point[1], &orientationVector);
+          while (std::isnan(orientationVector.x))
           {
-            result.pose.pose.orientation.x = orientationVector.x;
-            result.pose.pose.orientation.y = orientationVector.y;
-            result.pose.pose.orientation.z = orientationVector.z;
+            sl::uint2 box_point = sl::uint2(min_x + (std::rand() % (max_x - min_x + 1)), min_y + (std::rand() % (max_y - min_y + 1)));
+            mat_normals.getValue(box_point[0], box_point[1], &orientationVector);
           }
-          else
-          {
-            result.pose.pose.orientation.x = 2;
-            result.pose.pose.orientation.y = 2;
-            result.pose.pose.orientation.z = 2;
-          }
+          result.pose.pose.orientation.x = orientationVector.x;
+          result.pose.pose.orientation.y = orientationVector.y;
+          result.pose.pose.orientation.z = orientationVector.z;
           result.hypothesis.score = object.confidence;
           result.pose.pose.position.x = object.position[0];
           result.pose.pose.position.y = object.position[1];

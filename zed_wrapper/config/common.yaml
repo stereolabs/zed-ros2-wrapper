@@ -61,7 +61,7 @@
       qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
     depth:
-      quality: 1 # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - '4': NEURAL - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+      quality: 3 # '0': NONE, '1': PERFORMANCE, '2': QUALITY, '3': ULTRA - '4': NEURAL - Note: if '0' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
       sensing_mode: 1 # '0': STANDARD, '1': FILL
       depth_stabilization: true # Forces positional tracking to start if 'true'
       openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]

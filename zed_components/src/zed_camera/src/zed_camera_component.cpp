@@ -7715,17 +7715,46 @@ void ZedCamera::callback_toLL(
   const std::shared_ptr<robot_localization::srv::ToLL_Request> req,
   std::shared_ptr<robot_localization::srv::ToLL_Response> res)
 {
-  // RCLCPP_INFO(get_logger(), "** Map to Lat/Long service called **");
+  RCLCPP_INFO(get_logger(), "** Map to Lat/Long service called **");
 
-  // if (!mMap2UtmTransfValid) {
-  //   std::string err_msg =
-  //     "Cannot convert 'map' to 'Latitude/Longitude'. The transform is not yet initialized. ";
-  //   RCLCPP_WARN_STREAM(get_logger(), err_msg.c_str());
-  // }
+  if(!mGnssFusionEnabled) {
+    RCLCPP_WARN(get_logger(), " * GNSS fusion is not enabled");
+    return;
+  }
 
-  // tf2::Vector3 point(req->map_point.x, req->map_point.y, req->map_point.z);
+  // We must convert the map point into camera coordinate before passing it to the ZED SDK
+  geometry_msgs::msg::Point tf2_pt_cam;
+  try {
+    geometry_msgs::msg::Point tf2_pt_map;
+    tf2_pt_map.x = req->map_point.x;
+    tf2_pt_map.y = req->map_point.y;
+    tf2_pt_map.z = req->map_point.z;
 
-  // mapToLL(point, res->ll_point.latitude, res->ll_point.longitude, res->ll_point.altitude);
+    tf2_pt_cam = mTfBuffer->transform(tf2_pt_map, mLeftCamFrameId, tf2::durationFromSec(0.5));
+  } catch (tf2::TransformException & ex) {
+    RCLCPP_WARN(get_logger(), " * Error converting the map point into '%s' frame: %s",
+    mLeftCamFrameId, ex.what());
+    return;
+  }
+
+  sl::Translation map_pt;
+  map_pt.x = tf2_pt_cam.x;
+  map_pt.y = tf2_pt_cam.y;
+  map_pt.z = tf2_pt_cam.z;
+
+  sl::GeoPose geo_pose;
+  sl::Pose map_pose;
+  map_pose.pose_data.setIdentity();
+  map_pose.pose_data.setTranslation(map_pt);
+  mFusion.Camera2Geo(map_pose, geo_pose);
+
+  res->ll_point.altitude = geo_pose.getAltitude();
+  res->ll_point.latitude = geo_pose.getLatitude();
+  res->ll_point.longitude = geo_pose.getLongitude();
+
+  RCLCPP_INFO(get_logger(), "* Converted the MAP point (%.2fm,%.2fm,%.2fm)to GeoPoint %.6f°,%.6f° / %.2f m",
+  req->map_point.x,req->map_point.y,req->map_point.z,
+  geo_pose.getLatitude(),geo_pose.getLatitude(),geo_pose.getLongitude());
 }
 
 void ZedCamera::callback_fromLL(
@@ -7733,37 +7762,14 @@ void ZedCamera::callback_fromLL(
   const std::shared_ptr<robot_localization::srv::FromLL_Request> req,
   std::shared_ptr<robot_localization::srv::FromLL_Response> res)
 {
-  // double altitude = req->ll_point.altitude;
-  // double longitude = req->ll_point.longitude;
-  // double latitude = req->ll_point.latitude;
+  RCLCPP_INFO(get_logger(), "** Lat/Long to Map service called **");
 
-  // tf2::Transform cartesian_pose;
+  if(!mGnssFusionEnabled) {
+    RCLCPP_WARN(get_logger(), " * GNSS fusion is not enabled");
+    return;
+  }
 
-  // double cartesian_x {};
-  // double cartesian_y {};
-  // double cartesian_z {};
-
-  // sl::GeoConverter conv;
-  // conv.
-
-  // std::string utm_zone_tmp;
-  // navsat_conversions::LLtoUTM(
-  //   latitude,
-  //   longitude,
-  //   cartesian_y,
-  //   cartesian_x,
-  //   utm_zone_tmp);
-
-
-  // cartesian_pose.setOrigin(tf2::Vector3(cartesian_x, cartesian_y, altitude));
-
-  // nav_msgs::msg::Odometry gps_odom;
-
-  // if (!transform_good_) {
-  //   return false;
-  // }
-
-  // response->map_point = cartesianToMap(cartesian_pose).pose.pose.position;
+  mFusion.Geo2Camera();
 }
 
 }  // namespace stereolabs

@@ -7717,30 +7717,40 @@ void ZedCamera::callback_toLL(
 {
   RCLCPP_INFO(get_logger(), "** Map to Lat/Long service called **");
 
-  if(!mGnssFusionEnabled) {
+  if (!mGnssFusionEnabled) {
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not enabled");
     return;
   }
 
   // We must convert the map point into camera coordinate before passing it to the ZED SDK
-  geometry_msgs::msg::Point tf2_pt_cam;
+  geometry_msgs::msg::PoseStamped tf2_pt_cam;
   try {
-    geometry_msgs::msg::Point tf2_pt_map;
-    tf2_pt_map.x = req->map_point.x;
-    tf2_pt_map.y = req->map_point.y;
-    tf2_pt_map.z = req->map_point.z;
+    geometry_msgs::msg::PoseStamped tf2_pt_map;
+    tf2_pt_map.header.frame_id = mMapFrameId;
+    tf2_pt_map.header.stamp = get_clock()->now();
+    tf2_pt_map.pose.position.x = req->map_point.x;
+    tf2_pt_map.pose.position.y = req->map_point.y;
+    tf2_pt_map.pose.position.z = req->map_point.z;
+    tf2_pt_map.pose.orientation.x = 0;
+    tf2_pt_map.pose.orientation.y = 0;
+    tf2_pt_map.pose.orientation.z = 0;
+    tf2_pt_map.pose.orientation.w = 1.0;
 
-    tf2_pt_cam = mTfBuffer->transform(tf2_pt_map, mLeftCamFrameId, tf2::durationFromSec(0.5));
+    mTfBuffer->transform<geometry_msgs::msg::PoseStamped>(
+      tf2_pt_map, tf2_pt_cam, mLeftCamFrameId,
+      tf2::durationFromSec(0.5));
+
   } catch (tf2::TransformException & ex) {
-    RCLCPP_WARN(get_logger(), " * Error converting the map point into '%s' frame: %s",
-    mLeftCamFrameId, ex.what());
+    RCLCPP_WARN(
+      get_logger(), " * Error transforming point from '%s' into '%s': %s",
+      mMapFrameId, mLeftCamFrameId, ex.what());
     return;
   }
 
   sl::Translation map_pt;
-  map_pt.x = tf2_pt_cam.x;
-  map_pt.y = tf2_pt_cam.y;
-  map_pt.z = tf2_pt_cam.z;
+  map_pt.x = tf2_pt_cam.pose.position.x;
+  map_pt.y = tf2_pt_cam.pose.position.y;
+  map_pt.z = tf2_pt_cam.pose.position.z;
 
   sl::GeoPose geo_pose;
   sl::Pose map_pose;
@@ -7752,9 +7762,10 @@ void ZedCamera::callback_toLL(
   res->ll_point.latitude = geo_pose.getLatitude();
   res->ll_point.longitude = geo_pose.getLongitude();
 
-  RCLCPP_INFO(get_logger(), "* Converted the MAP point (%.2fm,%.2fm,%.2fm)to GeoPoint %.6f°,%.6f° / %.2f m",
-  req->map_point.x,req->map_point.y,req->map_point.z,
-  geo_pose.getLatitude(),geo_pose.getLatitude(),geo_pose.getLongitude());
+  RCLCPP_INFO(
+    get_logger(), "* Converted the MAP point (%.2fm,%.2fm,%.2fm)to GeoPoint %.6f°,%.6f° / %.2f m",
+    req->map_point.x, req->map_point.y, req->map_point.z,
+    geo_pose.getLatitude(), geo_pose.getLatitude(), geo_pose.getLongitude());
 }
 
 void ZedCamera::callback_fromLL(
@@ -7764,12 +7775,52 @@ void ZedCamera::callback_fromLL(
 {
   RCLCPP_INFO(get_logger(), "** Lat/Long to Map service called **");
 
-  if(!mGnssFusionEnabled) {
+  if (!mGnssFusionEnabled) {
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not enabled");
     return;
   }
 
-  mFusion.Geo2Camera();
+  sl::LatLng ll_pt;
+  ll_pt.height = req->ll_point.altitude;
+  ll_pt.lat = req->ll_point.latitude;
+  ll_pt.lng = req->ll_point.longitude;
+
+  sl::Pose sl_pt_cam;
+  mFusion.Geo2Camera(ll_pt, sl_pt_cam);
+
+  // We must convert the point from left camera frame to `map` frame before returning it
+  geometry_msgs::msg::PoseStamped tf2_pt_map;
+  try {
+    geometry_msgs::msg::PoseStamped tf2_pt_cam;
+    tf2_pt_cam.header.frame_id = mLeftCamFrameId;
+    tf2_pt_cam.header.stamp = get_clock()->now();
+    tf2_pt_cam.pose.position.x = sl_pt_cam.getTranslation().x;
+    tf2_pt_cam.pose.position.y = sl_pt_cam.getTranslation().y;
+    tf2_pt_cam.pose.position.z = sl_pt_cam.getTranslation().z;
+    tf2_pt_cam.pose.orientation.x = 0;
+    tf2_pt_cam.pose.orientation.y = 0;
+    tf2_pt_cam.pose.orientation.z = 0;
+    tf2_pt_cam.pose.orientation.w = 1.0;
+
+    mTfBuffer->transform<geometry_msgs::msg::PoseStamped>(
+      tf2_pt_cam, tf2_pt_map, mMapFrameId,
+      tf2::durationFromSec(0.5));
+
+  } catch (tf2::TransformException & ex) {
+    RCLCPP_WARN(
+      get_logger(), " * Error transforming point from '%s' into '%s': %s",
+      mLeftCamFrameId, mMapFrameId, ex.what());
+    return;
+  }
+
+  res->map_point.x = tf2_pt_map.pose.position.x;
+  res->map_point.y = tf2_pt_map.pose.position.y;
+  res->map_point.z = tf2_pt_map.pose.position.z;
+
+  RCLCPP_INFO(
+    get_logger(), "* Converted the GeoPoint %.6f°,%.6f° / %.2f m to MAP point (%.2fm,%.2fm,%.2fm)",
+    ll_pt.lat, ll_pt.lng, ll_pt.height,
+    tf2_pt_map.pose.position.x, tf2_pt_map.pose.position.y, tf2_pt_map.pose.position.z);
 }
 
 }  // namespace stereolabs

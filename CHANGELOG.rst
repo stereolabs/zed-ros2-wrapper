@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2023-03-09
+----------
+- Add services `toLL` and `fromLL` to use the ZED ROS2 Wrapper with the Nav2 Waypoint Navigation package
+
 2023-03-06
 ----------
 - Disable Area Memory (lood closure) when GNSS fusion is enabled.

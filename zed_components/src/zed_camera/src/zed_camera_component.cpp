@@ -7275,7 +7275,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
 
   //std::lock_guard<std::mutex> lock(mGnssDataMutex);
   sl::GNSSData gnssData;
-  gnssData.ts.setMicroseconds(ts_gnss_nsec);
+  gnssData.ts.setNanoseconds(ts_gnss_nsec);
   gnssData.altitude = altit;
   gnssData.latitude = latit * DEG2RAD;
   gnssData.longitude = longit * DEG2RAD;
@@ -7289,6 +7289,11 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
     if (mGnssZeroAltitude) {
       gnssData.altitude_std = 1e-9;
     }
+    std::array<double, 9> position_covariance;
+    position_covariance[0] = gnssData.latitude_std * 5.f;  // X
+    position_covariance[1 * 3 + 1] = gnssData.longitude_std * 5.f; // Y
+    position_covariance[2 * 3 + 2] = gnssData.altitude_std * 10.f; // Z
+    gnssData.position_covariance = position_covariance;
   }
 
   if (!mGnssFixValid) {
@@ -7300,7 +7305,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
 
   mGnssFixValid = true; // Used to keep track of signal loss
 
-  if (mZed.isOpened() && mZed.isPositionalTrackingEnabled()) {
+  if (mZed.isOpened() && mZed.isPositionalTrackingEnabled() ) {
     DEBUG_STREAM_GNSS(
       "Prior updated - [" << mGnssTimestamp.nanoseconds() << " nsec] " << latit << "°," << longit << "° / " << altit <<
         " m");

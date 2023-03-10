@@ -274,7 +274,6 @@ private:
   bool mGnssFusionEnabled = false;
   std::string mGnssTopic = "/gps/fix";
   bool mGnssZeroAltitude = false;
-  double mGnssInitDist = 5.0f; // This allow to select the distance required for the GPS data initialization
   bool mPublishTF = true;
   bool mPublishMapTF = true;
   bool mPublishImuTF = true;

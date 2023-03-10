@@ -60,11 +60,10 @@
 
         pos_tracking:
             pos_tracking_enabled: true # True to enable positional tracking from start
-            gnss_fusion: false # fuse 'sensor_msg/NavSatFix' message information into pose data
+            gnss_fusion: true # fuse 'sensor_msg/NavSatFix' message information into pose data
             gnss_fix_topic: "/gps/fix" # Name of the GNSS topic of type NavSatFix to subscribe [Default: "/gps/fix"]
             gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
-            gnss_frame: "gnss_link" # [usually overwritten by launch file] The TF frame of the GNSS sensor
-            gnss_init_distance: 5.0 # This allow to select the distance required for the GNSS data (heading) initialization
+            gnss_frame: "gnss_link" # [usually overwritten by launch file] The TF frame of the GNSS sensor            
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [usually overwritten by launch file] publish `odom -> base_link` TF
             publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF

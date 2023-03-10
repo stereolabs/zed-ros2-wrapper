@@ -1196,9 +1196,6 @@ void ZedCamera::getPosTrackingParams()
   if (mGnssFusionEnabled) {
     getParam("pos_tracking.gnss_frame", mGnssFrameId, mGnssFrameId, " * GNSS frame: ");
     getParam("pos_tracking.gnss_fix_topic", mGnssTopic, mGnssTopic, " * GNSS topic name: ");
-    getParam(
-      "pos_tracking.gnss_init_distance", mGnssInitDist, mGnssInitDist,
-      " * GNSS init. distance [m]: ");
     getParam("pos_tracking.gnss_zero_altitude", mGnssZeroAltitude, mGnssZeroAltitude);
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -2983,14 +2980,14 @@ bool ZedCamera::startCamera()
       std::make_shared<sl::FusionConfiguration>();
 
     if (mSimEnabled) {
-      mFusionConfig->input.setFromStream(mSimAddr.c_str(), mSimPort);
-      mFusionConfig->comm_param.setForLocalNetwork(mSimAddr.c_str(), mSimPort);
+      mFusionConfig->input_type.setFromStream(mSimAddr.c_str(), mSimPort);
+      mFusionConfig->communication_parameters.setForLocalNetwork(mSimAddr.c_str(), mSimPort);
     } else if (mSvoMode) {
-      mFusionConfig->input.setFromSVOFile(mSvoFilepath.c_str());
-      mFusionConfig->comm_param.setForSharedMemory();
+      mFusionConfig->input_type.setFromSVOFile(mSvoFilepath.c_str());
+      mFusionConfig->communication_parameters.setForSharedMemory();
     } else {
-      mFusionConfig->input.setFromSerialNumber(mCamSerialNumber);
-      mFusionConfig->comm_param.setForSharedMemory();
+      mFusionConfig->input_type.setFromSerialNumber(mCamSerialNumber);
+      mFusionConfig->communication_parameters.setForSharedMemory();
     }
     mFusionConfig->serial_number = mCamSerialNumber;
     mFusionConfig->pose = sl::Transform::identity();
@@ -3001,11 +2998,11 @@ bool ZedCamera::startCamera()
     uuid.sn = mCamSerialNumber;
 
     // Enable camera publishing to Fusion
-    mZed.startPublishing(mFusionConfig->comm_param);
+    mZed.startPublishing(mFusionConfig->communication_parameters);
     DEBUG_GNSS(" Camera publishing OK");
 
     // Fusion subscrive to camera data
-    fus_err = mFusion.subscribe(uuid, mFusionConfig->comm_param);
+    fus_err = mFusion.subscribe(uuid, mFusionConfig->communication_parameters);
     if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Error initializing the Fusion module: " << sl::toString(fus_err).c_str());
@@ -3167,21 +3164,18 @@ bool ZedCamera::startPosTracking()
   // Tracking parameters
   sl::PositionalTrackingParameters trackParams;
 
-  trackParams.area_file_path = mAreaMemoryDbPath.c_str();
-
   mPoseSmoothing = false;  // Always false. Pose Smoothing is to be enabled only
                            // for VR/AR applications
 
   trackParams.enable_pose_smoothing = mPoseSmoothing;
   trackParams.enable_area_memory = mAreaMemory;
+  trackParams.area_file_path = mAreaMemoryDbPath.c_str();
   trackParams.enable_imu_fusion = mImuFusion;
   trackParams.initial_world_transform = mInitialPoseSl;
   trackParams.set_floor_as_origin = mFloorAlignment;
   trackParams.depth_min_range = mPosTrackDepthMinRange;
   trackParams.set_as_static = mSetAsStatic;
   trackParams.set_gravity_as_origin = mSetGravityAsOrigin;
-  trackParams.enable_gnss_fusion = mGnssFusionEnabled;
-  trackParams.gnss_calibration_distance = mGnssInitDist;
 
   sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
 
@@ -3197,12 +3191,7 @@ bool ZedCamera::startPosTracking()
   if (mGnssFusionEnabled && err == sl::ERROR_CODE::SUCCESS) {
     mMap2UtmTransfValid = false;
 
-    sl::PositionalTrackingFusionParameters par;
-    par.depth_min_range = mPosTrackDepthMinRange;
-    par.enable_imu_fusion = mImuFusion;
-    par.initial_world_transform = mInitialPoseSl;
-
-    sl::FUSION_ERROR_CODE fus_err = mFusion.enablePositionalTracking(par);
+    sl::FUSION_ERROR_CODE fus_err = mFusion.enablePositionalTracking();
 
     if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
       mPosTrackingStarted = false;
@@ -5557,9 +5546,9 @@ void ZedCamera::processGnssPose()
   }
 
   // ----> Setup Lat/Long
-  mLastLatLongPose.height = mLastGeoPose.getAltitude();
-  mLastLatLongPose.lat = mLastGeoPose.getLatitude();
-  mLastLatLongPose.lng = mLastGeoPose.getLongitude();
+  mLastLatLongPose.altitude = mLastGeoPose.getAltitude();
+  mLastLatLongPose.latitude = mLastGeoPose.getLatitude();
+  mLastLatLongPose.longitude = mLastGeoPose.getLongitude();
   // <---- Setup Lat/Long
 
   // Get ECEF
@@ -5574,8 +5563,8 @@ void ZedCamera::processGnssPose()
     " * ECEF: %.5f m, %.5f m, %.5f m", mLastEcefPose.x, mLastEcefPose.y,
     mLastEcefPose.z);
   DEBUG_PT(
-    " * Lat. Long.: %.5f°, %.5f°,%.5f m", mLastLatLongPose.lat, mLastLatLongPose.lng,
-    mLastLatLongPose.height);
+    " * Lat. Long.: %.5f°, %.5f°,%.5f m", mLastLatLongPose.latitude, mLastLatLongPose.longitude,
+    mLastLatLongPose.altitude);
   DEBUG_PT(
     " * UTM: %.5f m, %.5f m, %.5f°, %s", mLastUtmPose.easting, mLastUtmPose.northing,
     mLastUtmPose.gamma, mLastUtmPose.UTMZone.c_str());
@@ -7298,7 +7287,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
     gnssData.longitude_std = msg->position_covariance[4] * DEG2RAD;
     gnssData.altitude_std = msg->position_covariance[8];
     if (mGnssZeroAltitude) {
-      gnssData.altitude_std = 0.0;
+      gnssData.altitude_std = 1e-9;
     }
   }
 
@@ -7315,7 +7304,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
     DEBUG_STREAM_GNSS(
       "Prior updated - [" << mGnssTimestamp.nanoseconds() << " nsec] " << latit << "°," << longit << "° / " << altit <<
         " m");
-    mZed.setGNSSPrior(gnssData);
+    mFusion.ingestGNSSData(gnssData);
     mGnssFixNew = true;
   }
 }
@@ -7743,7 +7732,7 @@ void ZedCamera::callback_toLL(
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(
       get_logger(), " * Error transforming point from '%s' into '%s': %s",
-      mMapFrameId, mLeftCamFrameId, ex.what());
+      mMapFrameId.c_str(), mLeftCamFrameId.c_str(), ex.what());
     return;
   }
 
@@ -7781,9 +7770,9 @@ void ZedCamera::callback_fromLL(
   }
 
   sl::LatLng ll_pt;
-  ll_pt.height = req->ll_point.altitude;
-  ll_pt.lat = req->ll_point.latitude;
-  ll_pt.lng = req->ll_point.longitude;
+  ll_pt.altitude = req->ll_point.altitude;
+  ll_pt.latitude = req->ll_point.latitude;
+  ll_pt.longitude = req->ll_point.longitude;
 
   sl::Pose sl_pt_cam;
   mFusion.Geo2Camera(ll_pt, sl_pt_cam);
@@ -7809,7 +7798,7 @@ void ZedCamera::callback_fromLL(
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(
       get_logger(), " * Error transforming point from '%s' into '%s': %s",
-      mLeftCamFrameId, mMapFrameId, ex.what());
+      mLeftCamFrameId.c_str(), mMapFrameId.c_str(), ex.what());
     return;
   }
 
@@ -7819,7 +7808,7 @@ void ZedCamera::callback_fromLL(
 
   RCLCPP_INFO(
     get_logger(), "* Converted the GeoPoint %.6f°,%.6f° / %.2f m to MAP point (%.2fm,%.2fm,%.2fm)",
-    ll_pt.lat, ll_pt.lng, ll_pt.height,
+    ll_pt.latitude, ll_pt.longitude, ll_pt.altitude,
     tf2_pt_map.pose.position.x, tf2_pt_map.pose.position.y, tf2_pt_map.pose.position.z);
 }
 

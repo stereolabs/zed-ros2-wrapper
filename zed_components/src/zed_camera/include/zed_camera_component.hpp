@@ -211,6 +211,7 @@ private:
   std::shared_ptr<sl::FusionConfiguration> mFusionConfig;
   sl::Fusion mFusion;
   sl::InitFusionParameters mFusionInitParams;
+  sl::CameraIdentifier mCamUuid;
   // <---- Fusion module
 
   uint64_t mFrameCount = 0;
@@ -225,6 +226,7 @@ private:
   std::string mObjectDetTopic;
   std::string mOdomPathTopic;
   std::string mMapPathTopic;
+  std::string mUtmPathTopic;
   std::string mClickedPtTopic;  // Clicked point
   // <---- Topics
 
@@ -375,6 +377,7 @@ private:
   std::string mCloudFrameId;
   std::string mPointCloudFrameId;
 
+  std::string mUtmFrameId = "utm";
   std::string mMapFrameId = "map";
   std::string mOdomFrameId = "odom";
   std::string mBaseFrameId = "base_link";
@@ -467,6 +470,7 @@ private:
   odomPub mPubGnssPose;
   pathPub mPubOdomPath;
   pathPub mPubPosePath;
+  pathPub mPubUtmPath;
   imuPub mPubImu;
   imuPub mPubImuRaw;
   tempPub mPubImuTemp;
@@ -595,6 +599,7 @@ private:
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
   std::vector<geometry_msgs::msg::PoseStamped> mMapPath;
+  std::vector<geometry_msgs::msg::PoseStamped> mUtmPath;
   sl::GeoPose mLastGeoPose;
   sl::ECEF mLastEcefPose;
   sl::UTM mLastUtmPose;

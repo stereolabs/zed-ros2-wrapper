@@ -274,7 +274,6 @@ void ZedCamera::initServices()
     srv_name = srv_prefix + mSrvFromLlName;
     mFromLlSrv = create_service<robot_localization::srv::FromLL>(
       srv_name, std::bind(&ZedCamera::callback_fromLL, this, _1, _2, _3));
-
   }
 }
 
@@ -2335,6 +2334,7 @@ void ZedCamera::initPublishers()
   mOdomTopic = mTopicRoot + "odom";
   mOdomPathTopic = mTopicRoot + "path_odom";
   mMapPathTopic = mTopicRoot + "path_map";
+  mUtmPathTopic = mTopicRoot + "path_utm";
 
   // Set the Sensors topic names
   std::string temp_topic_root = "temperature";
@@ -2446,6 +2446,8 @@ void ZedCamera::initPublishers()
       mPubGnssPose = create_publisher<nav_msgs::msg::Odometry>(mGnssPoseTopic, mPoseQos);
       RCLCPP_INFO_STREAM(
         get_logger(), "Advertised on topic (GNSS): " << mPubGnssPose->get_topic_name());
+      mPubUtmPath = create_publisher<nav_msgs::msg::Path>(mUtmPathTopic, mPoseQos);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubUtmPath->get_topic_name());
     }
   }
   // <---- Pos Tracking
@@ -2960,8 +2962,8 @@ bool ZedCamera::startCamera()
     // ----> Initialize Fusion module
 
     // Fusion parameters
-    mFusionInitParams.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
-    mFusionInitParams.coordinate_units = sl::UNIT::METER;
+    mFusionInitParams.coordinate_system = ROS_COORDINATE_SYSTEM;
+    mFusionInitParams.coordinate_units = ROS_MEAS_UNITS;
     mFusionInitParams.verbose = mVerbose != 0;
     mFusionInitParams.output_performance_metrics = true;
     mFusionInitParams.timeout_period_number = (1.0 / mCamGrabFrameRate) * mCamTimeoutSec;
@@ -2994,15 +2996,15 @@ bool ZedCamera::startCamera()
 
     DEBUG_GNSS(" Fusion communication params OK");
 
-    sl::CameraIdentifier uuid;
-    uuid.sn = mCamSerialNumber;
+    // Camera identifier
+    mCamUuid.sn = mCamSerialNumber;
 
     // Enable camera publishing to Fusion
     mZed.startPublishing(mFusionConfig->communication_parameters);
     DEBUG_GNSS(" Camera publishing OK");
 
     // Fusion subscrive to camera data
-    fus_err = mFusion.subscribe(uuid, mFusionConfig->communication_parameters);
+    fus_err = mFusion.subscribe(mCamUuid, mFusionConfig->communication_parameters);
     if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Error initializing the Fusion module: " << sl::toString(fus_err).c_str());
@@ -3086,9 +3088,17 @@ void ZedCamera::startPathPubTimer(double pathTimerRate)
         DEBUG_STREAM_PT("Path vector sizes: " << mOdomPath.size() << " " << mMapPath.size());
       }
     }
+
+    if (mGnssFusionEnabled && mUtmPath.size() == 0) {
+      if (mPathMaxCount != -1) {
+        DEBUG_STREAM_PT("Path vectors reserved " << mPathMaxCount << " poses.");
+        mUtmPath.reserve(mPathMaxCount);
+      }
+    }
   } else {
     mOdomPath.clear();
     mMapPath.clear();
+    mUtmPath.clear();
     mPathTimer->cancel();
     RCLCPP_INFO_STREAM(
       get_logger(), "Path topics not published -> Pub. rate: " << pathTimerRate << " Hz");
@@ -4626,7 +4636,7 @@ void ZedCamera::publishGnssTF(rclcpp::Time t)
 
   transformStamped.header.stamp = t + rclcpp::Duration(0, mTfOffset * 1e9);
   transformStamped.header.frame_id = mMapFrameId;
-  transformStamped.child_frame_id = "utm";
+  transformStamped.child_frame_id = mUtmFrameId;
   // conversion from Tranform to message
   tf2::Vector3 translation = mMap2UtmTransf.getOrigin();
   tf2::Quaternion quat = mMap2UtmTransf.getRotation();
@@ -5200,9 +5210,7 @@ void ZedCamera::processOdometry()
     if (!mGnssFusionEnabled) {
       mPosTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
     } else {
-      mPosTrackingStatus = mFusion.getPosition(
-        deltaOdom, sl::REFERENCE_FRAME::CAMERA,
-        ROS_COORDINATE_SYSTEM, ROS_MEAS_UNITS);
+      mPosTrackingStatus = mFusion.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA, mCamUuid);
     }
 
     sl::Translation translation = deltaOdom.getTranslation();
@@ -5333,9 +5341,7 @@ void ZedCamera::processPose()
   if (!mGnssFusionEnabled) {
     mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
   } else {
-    mPosTrackingStatus = mFusion.getPosition(
-      mLastZedPose, sl::REFERENCE_FRAME::WORLD,
-      ROS_COORDINATE_SYSTEM, ROS_MEAS_UNITS);
+    mPosTrackingStatus = mFusion.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD, mCamUuid);
   }
 
   sl::Translation translation = mLastZedPose.getTranslation();
@@ -5576,7 +5582,7 @@ void ZedCamera::processGnssPose()
 
     mGnssInitGood = true;
 
-    RCLCPP_INFO(get_logger(), "GNSS reference localization initialed");
+    RCLCPP_INFO(get_logger(), "GNSS reference localization initialized");
   }
 
   if (!mSensor2BaseTransfValid) {
@@ -5619,6 +5625,7 @@ void ZedCamera::processGnssPose()
 
   // ----> Set "map -> UTM" transform
   mMap2UtmTransf.mult(tf_pose_yaw_only, tf_utm_pose.inverse());
+  //mMap2UtmTransf = tf_pose_yaw_only * tf_utm_pose.inverse();
   // <---- Set "map -> UTM" transform
 
   publishGnssPose();
@@ -5629,18 +5636,22 @@ void ZedCamera::publishGnssPose()
   size_t gnssSub = 0;
 
   try {
-    gnssSub = count_subscribers(mGnssPoseTopic);        // mPubPose subscribers
+    gnssSub = count_subscribers(mGnssPoseTopic); // mPubPose subscribers
   } catch (...) {
     rcutils_reset_error();
     DEBUG_GNSS("publishGnssPose: Exception while counting subscribers");
     return;
   }
 
+  if (gnssSub == 0) {
+    return;
+  }
+
   odomMsgPtr msg = std::make_unique<nav_msgs::msg::Odometry>();
 
   msg->header.stamp = mFrameTimestamp;
-  msg->header.frame_id = mMapFrameId;  // parent frame
-  msg->child_frame_id = "utm";   //
+  msg->header.frame_id = mUtmFrameId;//mMapFrameId;  // parent frame
+  msg->child_frame_id = mMapFrameId;//mUtmFrameId;   //
 
   // Add all value in odometry message
   msg->pose.pose.position.x = mMap2UtmTransf.getOrigin().x();
@@ -6547,10 +6558,15 @@ void ZedCamera::callback_pubPaths()
 {
   uint32_t mapPathSub = 0;
   uint32_t odomPathSub = 0;
+  uint32_t utmPathSub = 0;
 
   try {
     mapPathSub = count_subscribers(mMapPathTopic);
     odomPathSub = count_subscribers(mOdomPathTopic);
+
+    if (mGnssFusionEnabled) {
+      utmPathSub = count_subscribers(mUtmPathTopic);
+    }
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_PT("pubPaths: Exception while counting subscribers");
@@ -6559,6 +6575,7 @@ void ZedCamera::callback_pubPaths()
 
   geometry_msgs::msg::PoseStamped odomPose;
   geometry_msgs::msg::PoseStamped mapPose;
+  geometry_msgs::msg::PoseStamped utmPose;
 
   odomPose.header.stamp = mFrameTimestamp + rclcpp::Duration(0, mTfOffset * 1e9);
   odomPose.header.frame_id = mMapFrameId;  // map_frame
@@ -6580,6 +6597,18 @@ void ZedCamera::callback_pubPaths()
   mapPose.pose.orientation.z = mMap2BaseTransf.getRotation().z();
   mapPose.pose.orientation.w = mMap2BaseTransf.getRotation().w();
 
+  if (mGnssFusionEnabled) {
+    utmPose.header.stamp = mFrameTimestamp + rclcpp::Duration(0, mTfOffset * 1e9);
+    utmPose.header.frame_id = mMapFrameId; //mUtmFrameId;  // map_frame
+    utmPose.pose.position.x = mMap2UtmTransf.getOrigin().x();
+    utmPose.pose.position.y = mMap2UtmTransf.getOrigin().y();
+    utmPose.pose.position.z = mMap2UtmTransf.getOrigin().z();
+    utmPose.pose.orientation.x = mMap2UtmTransf.getRotation().x();
+    utmPose.pose.orientation.y = mMap2UtmTransf.getRotation().y();
+    utmPose.pose.orientation.z = mMap2UtmTransf.getRotation().z();
+    utmPose.pose.orientation.w = mMap2UtmTransf.getRotation().w();
+  }
+
   // Circular vector
   if (mPathMaxCount != -1) {
     if (mOdomPath.size() == mPathMaxCount) {
@@ -6589,36 +6618,57 @@ void ZedCamera::callback_pubPaths()
 
       mMapPath[mPathMaxCount - 1] = mapPose;
       mOdomPath[mPathMaxCount - 1] = odomPose;
+
+      if (mGnssFusionEnabled) {
+        std::rotate(mUtmPath.begin(), mUtmPath.begin() + 1, mUtmPath.end());
+        mOdomPath[mPathMaxCount - 1] = utmPose;
+      }
     } else {
       // DEBUG_STREAM_PT( "Path vectors adding last available poses");
       mMapPath.push_back(mapPose);
       mOdomPath.push_back(odomPose);
+      if (mGnssFusionEnabled) {
+        mUtmPath.push_back(utmPose);
+      }
     }
   } else {
     // DEBUG_STREAM_PT( "No limit path vectors, adding last available
     // poses");
     mMapPath.push_back(mapPose);
     mOdomPath.push_back(odomPose);
+    if (mGnssFusionEnabled) {
+      mUtmPath.push_back(utmPose);
+    }
   }
 
   if (mapPathSub > 0) {
-    pathMsgPtr mapPath = std::make_unique<nav_msgs::msg::Path>();
-    mapPath->header.frame_id = mMapFrameId;
-    mapPath->header.stamp = mFrameTimestamp;
-    mapPath->poses = mMapPath;
+    pathMsgPtr mapPathMsg = std::make_unique<nav_msgs::msg::Path>();
+    mapPathMsg->header.frame_id = mMapFrameId;
+    mapPathMsg->header.stamp = mFrameTimestamp;
+    mapPathMsg->poses = mMapPath;
 
     DEBUG_STREAM_PT("Publishing MAP PATH message");
-    mPubPosePath->publish(std::move(mapPath));
+    mPubPosePath->publish(std::move(mapPathMsg));
   }
 
   if (odomPathSub > 0) {
-    pathMsgPtr odomPath = std::make_unique<nav_msgs::msg::Path>();
-    odomPath->header.frame_id = mMapFrameId;
-    odomPath->header.stamp = mFrameTimestamp;
-    odomPath->poses = mOdomPath;
+    pathMsgPtr odomPathMsg = std::make_unique<nav_msgs::msg::Path>();
+    odomPathMsg->header.frame_id = mMapFrameId;
+    odomPathMsg->header.stamp = mFrameTimestamp;
+    odomPathMsg->poses = mOdomPath;
 
     DEBUG_STREAM_PT("Publishing ODOM PATH message");
-    mPubOdomPath->publish(std::move(odomPath));
+    mPubOdomPath->publish(std::move(odomPathMsg));
+  }
+
+  if (utmPathSub > 0) {
+    pathMsgPtr utmPathMsg = std::make_unique<nav_msgs::msg::Path>();
+    utmPathMsg->header.frame_id = mMapFrameId;
+    utmPathMsg->header.stamp = mFrameTimestamp;
+    utmPathMsg->poses = mUtmPath;
+
+    DEBUG_STREAM_PT("Publishing UTM PATH message");
+    mPubUtmPath->publish(std::move(utmPathMsg));
   }
 }
 
@@ -7282,24 +7332,26 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
 
 
   if (msg->position_covariance_type != sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN) {
+
     // TODO(Walter) Handle the new covariance mode in the SDK
-    gnssData.latitude_std = msg->position_covariance[0] * DEG2RAD;
-    gnssData.longitude_std = msg->position_covariance[4] * DEG2RAD;
-    gnssData.altitude_std = msg->position_covariance[8];
+    gnssData.latitude_std = msg->position_covariance[0];
+    gnssData.longitude_std = msg->position_covariance[1 * 3 + 1];
+    gnssData.altitude_std = msg->position_covariance[2 * 3 + 2];
     if (mGnssZeroAltitude) {
       gnssData.altitude_std = 1e-9;
     }
     std::array<double, 9> position_covariance;
     position_covariance[0] = gnssData.latitude_std * 5.f;  // X
-    position_covariance[1 * 3 + 1] = gnssData.longitude_std * 5.f; // Y
-    position_covariance[2 * 3 + 2] = gnssData.altitude_std * 10.f; // Z
+    position_covariance[1 * 3 + 1] = gnssData.altitude_std * 10.f;//gnssData.longitude_std * 5.f; // Y // TODO(Walter) Change when fixed in the SDK
+    position_covariance[2 * 3 + 2] = gnssData.longitude_std * 5.f;//gnssData.altitude_std * 10.f; // Z
     gnssData.position_covariance = position_covariance;
   }
 
   if (!mGnssFixValid) {
     DEBUG_GNSS("GNSS: valid fix.");
     DEBUG_STREAM_GNSS(
-      " * First valid datum - Lat: " << latit << "° - Long: " << longit << "° - Alt: " << altit <<
+      " * First valid datum - Lat: " << std::fixed << std::setprecision(
+        9) << latit << "° - Long: " << longit << "° - Alt: " << altit <<
         " m");
   }
 
@@ -7307,7 +7359,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
 
   if (mZed.isOpened() && mZed.isPositionalTrackingEnabled() ) {
     DEBUG_STREAM_GNSS(
-      "Prior updated - [" << mGnssTimestamp.nanoseconds() << " nsec] " << latit << "°," << longit << "° / " << altit <<
+      "Datum ingested - [" << mGnssTimestamp.nanoseconds() << " nsec] " << latit << "°," << longit << "° / " << altit <<
         " m");
     mFusion.ingestGNSSData(gnssData);
     mGnssFixNew = true;
@@ -7759,7 +7811,7 @@ void ZedCamera::callback_toLL(
   RCLCPP_INFO(
     get_logger(), "* Converted the MAP point (%.2fm,%.2fm,%.2fm)to GeoPoint %.6f°,%.6f° / %.2f m",
     req->map_point.x, req->map_point.y, req->map_point.z,
-    geo_pose.getLatitude(), geo_pose.getLatitude(), geo_pose.getLongitude());
+    geo_pose.getLatitude(), geo_pose.getLongitude(), geo_pose.getAltitude());
 }
 
 void ZedCamera::callback_fromLL(
@@ -7781,6 +7833,11 @@ void ZedCamera::callback_fromLL(
 
   sl::Pose sl_pt_cam;
   mFusion.Geo2Camera(ll_pt, sl_pt_cam);
+
+  RCLCPP_INFO(
+    get_logger(), "* Converted the GeoPoint %.6f°,%.6f° / %.2f m to CAMERA point (%.2fm,%.2fm,%.2fm)",
+    ll_pt.latitude, ll_pt.longitude, ll_pt.altitude,
+    sl_pt_cam.getTranslation().x, sl_pt_cam.getTranslation().y, sl_pt_cam.getTranslation().z);
 
   // We must convert the point from left camera frame to `map` frame before returning it
   geometry_msgs::msg::PoseStamped tf2_pt_map;

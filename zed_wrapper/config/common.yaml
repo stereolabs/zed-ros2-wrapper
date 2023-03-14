@@ -34,7 +34,7 @@
             hue: 0 # [DYNAMIC]
             saturation: 4 # [DYNAMIC]
             sharpness: 4 # [DYNAMIC]
-            gamma: 8 # [DYNAMIC] - Requires SDK >=v3.1
+            gamma: 8 # [DYNAMIC]
             auto_exposure_gain: true # [DYNAMIC]
             exposure: 80 # [DYNAMIC]
             gain: 80 # [DYNAMIC]
@@ -143,8 +143,8 @@
             debug_common: false
             debug_video_depth: false
             debug_point_cloud: false
-            debug_positional_tracking: true
-            debug_gnss: true
+            debug_positional_tracking: false
+            debug_gnss: false
             debug_sensors: false
             debug_mapping : false
             debug_terrain_mapping : false

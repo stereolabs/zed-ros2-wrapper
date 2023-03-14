@@ -2528,7 +2528,7 @@ void ZedCamera::initPublishers()
     sl::Translation sl_tr = mSlCamImuTransf.getTranslation();
     RCLCPP_INFO(get_logger(), "Camera-IMU Translation: \n %g %g %g", sl_tr.x, sl_tr.y, sl_tr.z);
     RCLCPP_INFO(
-      get_logger(), "Camera-IMU Rotation: \n %s", sl_rot.getRotationMatrix().getInfos().c_str());
+      get_logger(), "Camera-IMU Rotation:\n%s", sl_rot.getRotationMatrix().getInfos().c_str());
 
     // publishImuFrameAndTopic();
     // <---- Camera/imu transform message
@@ -2591,7 +2591,7 @@ bool ZedCamera::startCamera()
 
   // ----> SDK version
   RCLCPP_INFO(
-    get_logger(), "SDK Version: %d.%d.%d - Build %s", ZED_SDK_MAJOR_VERSION, ZED_SDK_MINOR_VERSION,
+    get_logger(), "ZED SDK Version: %d.%d.%d - Build %s", ZED_SDK_MAJOR_VERSION, ZED_SDK_MINOR_VERSION,
     ZED_SDK_PATCH_VERSION, ZED_SDK_BUILD_ID);
   // <---- SDK version
 
@@ -2797,7 +2797,7 @@ bool ZedCamera::startCamera()
   if (!sl_tools::isZED(mCamRealModel)) {
     mSlCamImuTransf = camInfo.sensors_configuration.camera_imu_transform;
 
-    DEBUG_SENS("Camera-IMU Transform: \n %s", mSlCamImuTransf.getInfos().c_str());
+    DEBUG_SENS("Camera-IMU Transform:\n%s", mSlCamImuTransf.getInfos().c_str());
   }
 
   mCamWidth = camInfo.camera_configuration.resolution.width;
@@ -5211,27 +5211,34 @@ void ZedCamera::processOdometry()
       mPosTrackingStatusCamera = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
     } else {
       mPosTrackingStatusCamera = mFusion.getPosition(
-        deltaOdom, sl::REFERENCE_FRAME::CAMERA /*,
-        mCamUuid*/);
-      DEBUG_STREAM_GNSS(
-        "'mFusion.getPosition [CAMERA]' camera uuid: " << static_cast<int>(mCamUuid.sn));
+        deltaOdom, sl::REFERENCE_FRAME::CAMERA /*,mCamUuid*/);
+
     }
 
-    sl::Translation translation = deltaOdom.getTranslation();
-    sl::Orientation quat = deltaOdom.getOrientation();
-
-    // TODO(Walter) ADD COMPARE DEBUG BETWEEN SL::CAMERA AND SL::FUSION AS FOR WORLD
-
     DEBUG_PT(
-      "delta ODOM [%s] - %s",
+      "delta ODOM %s- [%s]:\n%s",
+      mDebugGnss ? "(`sl::Fusion`) " : "",
       sl::toString(mPosTrackingStatusCamera).c_str(),
       deltaOdom.pose_data.getInfos().c_str());
+
+    if (mDebugGnss) {
+      sl::Pose camera_delta_odom;
+      auto status = mZed.getPosition(camera_delta_odom, sl::REFERENCE_FRAME::CAMERA);
+
+      DEBUG_PT(
+        "delta ODOM (`sl::Camera`) [%s]:\n%s",
+        sl::toString(status).c_str(),
+        camera_delta_odom.pose_data.getInfos().c_str());
+    }
 
     if (
       mPosTrackingStatusCamera == sl::POSITIONAL_TRACKING_STATE::OK ||
       mPosTrackingStatusCamera == sl::POSITIONAL_TRACKING_STATE::SEARCHING ||
       mPosTrackingStatusCamera == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW)
     {
+      sl::Translation translation = deltaOdom.getTranslation();
+      sl::Orientation quat = deltaOdom.getOrientation();
+
       // Transform ZED delta odom pose in TF2 Transformation
       tf2::Transform deltaOdomTf;
       deltaOdomTf.setOrigin(tf2::Vector3(translation(0), translation(1), translation(2)));
@@ -5337,23 +5344,20 @@ void ZedCamera::processPose()
     getCamera2BaseTransform();
   }
 
-  size_t odomSub = 0;
-  try {
-    odomSub = count_subscribers(mOdomTopic);  // mPubOdom subscribers
-  } catch (...) {
-    rcutils_reset_error();
-    DEBUG_STREAM_PT("processPose: Exception while counting subscribers");
-    return;
-  }
+  // size_t odomSub = 0;
+  // try {
+  //   odomSub = count_subscribers(mOdomTopic);  // mPubOdom subscribers
+  // } catch (...) {
+  //   rcutils_reset_error();
+  //   DEBUG_STREAM_PT("processPose: Exception while counting subscribers");
+  //   return;
+  // }
 
   if (!mGnssFusionEnabled) {
     mPosTrackingStatusWorld = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
   } else {
     mPosTrackingStatusWorld =
-      mFusion.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD /*, mCamUuid*/);
-    DEBUG_STREAM_GNSS(
-      "'mFusion.getPosition [WORLD]' camera uuid: " <<
-        static_cast<int>(mCamUuid.sn));
+      mFusion.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD /*,mCamUuid*/);
   }
 
   sl::Translation translation = mLastZedPose.getTranslation();
@@ -5363,39 +5367,31 @@ void ZedCamera::processPose()
     return;
   }
 
-  double roll, pitch, yaw;
-  tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
+  DEBUG_STREAM_PT("MAP -> Tracking Status: " << sl::toString(mPosTrackingStatusWorld).c_str());
 
   DEBUG_PT(
-    "Sensor POSE %s- [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
+    "Sensor POSE %s- [%s -> %s]:\n%s}",
     mDebugGnss ? "(`sl::Fusion`) " : "",
     mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
-    translation.x, translation.y, translation.z,
-    roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-
-  DEBUG_STREAM_PT("MAP -> Tracking Status: " << sl::toString(mPosTrackingStatusWorld).c_str());
+    mLastZedPose.pose_data.getInfos().c_str());
 
   if (mDebugGnss) {
     sl::Pose camera_pose;
     mZed.getPosition(camera_pose, sl::REFERENCE_FRAME::WORLD);
 
-    translation = camera_pose.getTranslation();
-    quat = camera_pose.getOrientation();
-
-    tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
-
     DEBUG_PT(
-      "Sensor POSE (`sl::Camera`) [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
+      "Sensor POSE (`sl::Camera`) [%s -> %s]:\n%s",
       mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
-      translation.x, translation.y, translation.z,
-      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-
+      camera_pose.pose_data.getInfos().c_str());
   }
 
   if (
     mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK ||
     mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::SEARCHING)
   {
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
+
     tf2::Transform map_to_sens_transf;
     map_to_sens_transf.setOrigin(tf2::Vector3(translation(0), translation(1), translation(2)));
     map_to_sens_transf.setRotation(tf2::Quaternion(quat(0), quat(1), quat(2), quat(3)));
@@ -5416,7 +5412,7 @@ void ZedCamera::processPose()
       mMap2BaseTransf.setRotation(quat_2d);
     }
 
-    double roll, pitch, yaw;
+    //double roll, pitch, yaw;
     tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
     DEBUG_PT(
@@ -5441,10 +5437,22 @@ void ZedCamera::processPose()
       mOdom2BaseTransf = mMap2BaseTransf;
       mMap2BaseTransf.setIdentity();
 
-      if (odomSub > 0) {
-        // Publish odometry message
-        publishOdom(mOdom2BaseTransf, mLastZedPose, mFrameTimestamp);
-      }
+      double roll, pitch, yaw;
+      tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+      RCLCPP_INFO(
+        get_logger(),
+        " * Initial odometry [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+        mOdomFrameId.c_str(), mBaseFrameId.c_str(),
+        mOdom2BaseTransf.getOrigin().x(),
+        mOdom2BaseTransf.getOrigin().y(),
+        mOdom2BaseTransf.getOrigin().z(),
+        roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+
+      // if (odomSub > 0) {
+      //   // Publish odometry message
+      //   publishOdom(mOdom2BaseTransf, mLastZedPose, mFrameTimestamp);
+      // }
 
       mInitOdomWithPose = false;
       mResetOdom = false;

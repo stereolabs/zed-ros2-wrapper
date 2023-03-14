@@ -29,6 +29,7 @@
     get_logger(), stream_arg)
 // Positional Tracking
 #define DEBUG_PT(...) if (mDebugPosTracking) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
+#define DEBUG_ONCE_PT(...) if (mDebugPosTracking) RCLCPP_DEBUG_ONCE(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_PT(stream_arg) if (mDebugPosTracking) RCLCPP_DEBUG_STREAM( \
     get_logger(), stream_arg)
 #define DEBUG_STREAM_THROTTLE_PT(duration, stream_arg) \

@@ -4112,8 +4112,8 @@ void ZedCamera::threadFunc_zedGrab()
     if (!mDepthDisabled) {
       if (mPosTrackingStarted) {
         if (!mSvoPause) {
-          processPose();
           processOdometry();
+          processPose();
           if (mGnssFusionEnabled) {
             processGnssPose();
           }
@@ -5208,24 +5208,29 @@ void ZedCamera::processOdometry()
     sl::Pose deltaOdom;
 
     if (!mGnssFusionEnabled) {
-      mPosTrackingStatus = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
+      mPosTrackingStatusCamera = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
     } else {
-      mPosTrackingStatus = mFusion.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA, mCamUuid);
+      mPosTrackingStatusCamera = mFusion.getPosition(
+        deltaOdom, sl::REFERENCE_FRAME::CAMERA /*,
+        mCamUuid*/);
+      DEBUG_STREAM_GNSS(
+        "'mFusion.getPosition [CAMERA]' camera uuid: " << static_cast<int>(mCamUuid.sn));
     }
 
     sl::Translation translation = deltaOdom.getTranslation();
     sl::Orientation quat = deltaOdom.getOrientation();
 
+    // TODO(Walter) ADD COMPARE DEBUG BETWEEN SL::CAMERA AND SL::FUSION AS FOR WORLD
+
     DEBUG_PT(
-      "delta ODOM [%s] - %.2f,%.2f,%.2f %.2f,%.2f,%.2f,%.2f",
-      sl::toString(mPosTrackingStatus).c_str(),
-      translation(0), translation(1), translation(2),
-      quat(0), quat(1), quat(2), quat(3));
+      "delta ODOM [%s] - %s",
+      sl::toString(mPosTrackingStatusCamera).c_str(),
+      deltaOdom.pose_data.getInfos().c_str());
 
     if (
-      mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK ||
-      mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING ||
-      mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW)
+      mPosTrackingStatusCamera == sl::POSITIONAL_TRACKING_STATE::OK ||
+      mPosTrackingStatusCamera == sl::POSITIONAL_TRACKING_STATE::SEARCHING ||
+      mPosTrackingStatusCamera == sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW)
     {
       // Transform ZED delta odom pose in TF2 Transformation
       tf2::Transform deltaOdomTf;
@@ -5236,9 +5241,12 @@ void ZedCamera::processOdometry()
       // delta odom from sensor to base frame
       tf2::Transform deltaOdomTf_base =
         mSensor2BaseTransf.inverse() * deltaOdomTf * mSensor2BaseTransf;
+      // TODO(Walter) Use tf2::transform instead?
 
       // Propagate Odom transform in time
       mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
+      // TODO(Walter) MOVE THIS TO SL INSTEAD OF TF2:
+      // camera_pose_data = camera_pose_data * pose_camera.pose_data;
 
       if (mTwoDMode) {
         tf2::Vector3 tr_2d = mOdom2BaseTransf.getOrigin();
@@ -5339,9 +5347,13 @@ void ZedCamera::processPose()
   }
 
   if (!mGnssFusionEnabled) {
-    mPosTrackingStatus = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
+    mPosTrackingStatusWorld = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
   } else {
-    mPosTrackingStatus = mFusion.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD, mCamUuid);
+    mPosTrackingStatusWorld =
+      mFusion.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD /*, mCamUuid*/);
+    DEBUG_STREAM_GNSS(
+      "'mFusion.getPosition [WORLD]' camera uuid: " <<
+        static_cast<int>(mCamUuid.sn));
   }
 
   sl::Translation translation = mLastZedPose.getTranslation();
@@ -5354,7 +5366,14 @@ void ZedCamera::processPose()
   double roll, pitch, yaw;
   tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow)).getRPY(roll, pitch, yaw);
 
-  DEBUG_STREAM_PT("MAP -> Tracking Status: " << sl::toString(mPosTrackingStatus).c_str());
+  DEBUG_PT(
+    "Sensor POSE %s- [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
+    mDebugGnss ? "(`sl::Fusion`) " : "",
+    mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
+    translation.x, translation.y, translation.z,
+    roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+
+  DEBUG_STREAM_PT("MAP -> Tracking Status: " << sl::toString(mPosTrackingStatusWorld).c_str());
 
   if (mDebugGnss) {
     sl::Pose camera_pose;
@@ -5371,22 +5390,11 @@ void ZedCamera::processPose()
       translation.x, translation.y, translation.z,
       roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
 
-    DEBUG_PT(
-      "Sensor POSE (`sl::Fusion`) [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
-      mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
-      translation.x, translation.y, translation.z,
-      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-  } else {
-    DEBUG_PT(
-      "Sensor POSE [%s -> %s] - {%.2f,%.2f,%.2f} {%.2f,%.2f,%.2f}",
-      mLeftCamFrameId.c_str(), mMapFrameId.c_str(),
-      translation.x, translation.y, translation.z,
-      roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
   }
 
   if (
-    mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK ||
-    mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::SEARCHING)
+    mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK ||
+    mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::SEARCHING)
   {
     tf2::Transform map_to_sens_transf;
     map_to_sens_transf.setOrigin(tf2::Vector3(translation(0), translation(1), translation(2)));
@@ -5423,7 +5431,7 @@ void ZedCamera::processPose()
     if (!(mFloorAlignment)) {
       initOdom = mInitOdomWithPose;
     } else {
-      initOdom = mInitOdomWithPose & (mPosTrackingStatus == sl::POSITIONAL_TRACKING_STATE::OK);
+      initOdom = mInitOdomWithPose & (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK);
     }
 
     if (initOdom || mResetOdom) {
@@ -5545,7 +5553,7 @@ void ZedCamera::processGnssPose()
   mGnssPosStatus = mFusion.getGeoPose(mLastGeoPose);
 
   if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK ||
-    mPosTrackingStatus != sl::POSITIONAL_TRACKING_STATE::OK)
+    mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OK)
   {
     DEBUG_STREAM_THROTTLE_PT(1.0, "Waiting for good GNSS pose...");
     return;
@@ -6002,27 +6010,27 @@ void ZedCamera::applyVideoSettings()
 bool ZedCamera::isPosTrackingRequired()
 {
   if (mDepthDisabled) {
-    DEBUG_STREAM_PT("POS. TRACKING not required: Depth disabled.");
+    DEBUG_ONCE_PT("POS. TRACKING not required: Depth disabled.");
     return false;
   }
 
   if (mPosTrackingEnabled) {
-    DEBUG_STREAM_PT("POS. TRACKING required: enabled by param.");
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by param.");
     return true;
   }
 
   if (mPublishTF) {
-    DEBUG_STREAM_PT("POS. TRACKING required: enabled by TF param.");
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by TF param.");
     return true;
   }
 
   if (mDepthStabilization) {
-    DEBUG_STREAM_PT("POS. TRACKING required: enabled by depth stabilization param.");
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by depth stabilization param.");
     return true;
   }
 
   if (mMappingEnabled || mObjDetEnabled) {
-    DEBUG_STREAM_PT("POS. TRACKING required: enabled by mapping or object detection.");
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by mapping or object detection.");
     return true;
   }
 
@@ -6035,16 +6043,16 @@ bool ZedCamera::isPosTrackingRequired()
       count_subscribers(mPubOdomPath->get_topic_name());
   } catch (...) {
     rcutils_reset_error();
-    DEBUG_STREAM_PT("isPosTrackingRequired: Exception while counting subscribers");
+    RCLCPP_WARN(get_logger(), "isPosTrackingRequired: Exception while counting subscribers");
     return false;
   }
 
   if (topics_sub > 0) {
-    DEBUG_STREAM_PT("POS. TRACKING required: topic subscribed.");
+    DEBUG_ONCE_PT("POS. TRACKING required: topic subscribed.");
     return true;
   }
 
-  DEBUG_STREAM_PT("POS. TRACKING not required.");
+  DEBUG_ONCE_PT("POS. TRACKING not required.");
   return false;
 }
 
@@ -6402,11 +6410,11 @@ bool ZedCamera::publishLocalMap()
     return false;
   }
 
-  if (mPosTrackingStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
+  if (mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OK) {
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Terrain mapping: positional tracking not ready: " << sl::toString(
-        mPosTrackingStatus).c_str());
+        mPosTrackingStatusWorld).c_str());
     return false;
   }
 
@@ -7105,7 +7113,12 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
       }
 
       if (mPosTrackingStarted) {
-        stat.addf("Pos. Tracking status", "%s", sl::toString(mPosTrackingStatus).c_str());
+        stat.addf(
+          "Pos. Tracking status [Pose]", "%s",
+          sl::toString(mPosTrackingStatusWorld).c_str());
+        stat.addf(
+          "Pos. Tracking status [Odometry]", "%s", sl::toString(
+            mPosTrackingStatusCamera).c_str());
 
         if (mPublishTF) {
           double freq = 1. / mPubOdomTF_sec->getAvg();

@@ -581,7 +581,8 @@ private:
   bool mRecording = false;
   sl::RecordingStatus mRecStatus = sl::RecordingStatus();
   bool mPosTrackingReady = false;
-  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
+  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusWorld;
+  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusCamera;
   sl::POSITIONAL_TRACKING_STATE mGnssPosStatus;
   bool mResetOdom = false;
   bool mSpatialMappingRunning = false;

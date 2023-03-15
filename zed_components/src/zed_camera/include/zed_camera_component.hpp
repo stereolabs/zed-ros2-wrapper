@@ -46,6 +46,7 @@ protected:
   void getVideoParams();
   void getDepthParams();
   void getPosTrackingParams();
+  void getGnssFusionParams();
   void getSensorsParams();
   void getMappingParams();
   void getTerrainMappingParams();
@@ -160,7 +161,6 @@ protected:
   void publishTFs(rclcpp::Time t);
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
-  void publishGnssTF(rclcpp::Time t);
   rclcpp::Time publishSensorsData(rclcpp::Time t = TIMEZERO_ROS);
   // <---- Publishing functions
 
@@ -222,11 +222,11 @@ private:
   std::string mPoseTopic;
   std::string mPoseCovTopic;
   std::string mGnssPoseTopic;
+  std::string mGeoPoseTopic;
   std::string mPointcloudFusedTopic;
   std::string mObjectDetTopic;
   std::string mOdomPathTopic;
   std::string mMapPathTopic;
-  std::string mUtmPathTopic;
   std::string mClickedPtTopic;  // Clicked point
   // <---- Topics
 
@@ -273,9 +273,7 @@ private:
   bool mSensCameraSync = false;
   double mSensPubRate = 400.;
   bool mPosTrackingEnabled = false;
-  bool mGnssFusionEnabled = false;
-  std::string mGnssTopic = "/gps/fix";
-  bool mGnssZeroAltitude = false;
+
   bool mPublishTF = true;
   bool mPublishMapTF = true;
   bool mPublishImuTF = true;
@@ -295,6 +293,11 @@ private:
   bool mSetGravityAsOrigin = false;
   int mPathMaxCount = -1;
   bool mPublishPoseCov = true;
+  bool mGnssFusionEnabled = false;
+  std::string mGnssTopic = "/gps/fix";
+  bool mGnssZeroAltitude = false;
+  bool mPublishUtmTf = true;
+  bool mUtmAsParent = true;
   bool mMappingEnabled = false;
   float mMappingRes = 0.05f;
   float mMappingRangeMax = 10.0f;
@@ -470,7 +473,6 @@ private:
   odomPub mPubGnssPose;
   pathPub mPubOdomPath;
   pathPub mPubPosePath;
-  pathPub mPubUtmPath;
   imuPub mPubImu;
   imuPub mPubImuRaw;
   tempPub mPubImuTemp;
@@ -483,6 +485,8 @@ private:
   depthInfoPub mPubDepthInfo;
   planePub mPubPlane;
   markerPub mPubMarker;
+
+  geoPosePub mPubGeoPose;
 
   imagePub mPubElevMapImg;
   imagePub mPubColMapImg;
@@ -600,14 +604,16 @@ private:
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
   std::vector<geometry_msgs::msg::PoseStamped> mMapPath;
-  std::vector<geometry_msgs::msg::PoseStamped> mUtmPath;
   sl::GeoPose mLastGeoPose;
   sl::ECEF mLastEcefPose;
   sl::UTM mLastUtmPose;
   sl::LatLng mLastLatLongPose;
+  double mLastHeading;
+  tf2::Quaternion mLastHeadingQuat;
   sl::ECEF mInitEcefPose;
   sl::UTM mInitUtmPose;
   sl::LatLng mInitLatLongPose;
+  double mInitHeading;
   bool mGnssInitGood = false;
   // <---- Positional Tracking
 

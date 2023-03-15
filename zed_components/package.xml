@@ -21,6 +21,7 @@
 	<build_depend>geometry_msgs</build_depend>
 	<build_depend>nav_msgs</build_depend>
 	<build_depend>nmea_msgs</build_depend>
+	<build_depend>geographic_msgs</build_depend>	
 	<build_depend>grid_map_msgs</build_depend>
 	<build_depend>grid_map_ros</build_depend>
 	<build_depend>tf2</build_depend>
@@ -44,6 +45,7 @@
 	<exec_depend>geometry_msgs</exec_depend>
 	<exec_depend>nav_msgs</exec_depend>
 	<exec_depend>nmea_msgs</exec_depend>
+	<exec_depend>geographic_msgs</exec_depend>
 	<exec_depend>grid_map_msgs</exec_depend>
 	<exec_depend>grid_map_ros</exec_depend>
 	<exec_depend>tf2</exec_depend>

@@ -43,6 +43,7 @@
 #include <sensor_msgs/msg/temperature.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/nav_sat_status.hpp>
+#include <geographic_msgs/msg/geo_pose_stamped.hpp>
 #include <grid_map_msgs/msg/grid_map.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -100,6 +101,8 @@ typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>> mark
 
 typedef std::shared_ptr<rclcpp::Publisher<grid_map_msgs::msg::GridMap>> gridMapPub;
 
+typedef std::shared_ptr<rclcpp::Publisher<geographic_msgs::msg::GeoPoseStamped>> geoPosePub;
+
 typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> clickedPtSub;
 typedef std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>> gnssFixSub;
 
@@ -117,6 +120,8 @@ typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped> poseCovMs
 typedef std::unique_ptr<geometry_msgs::msg::TransformStamped> transfMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Odometry> odomMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
+
+typedef std::unique_ptr<geographic_msgs::msg::GeoPoseStamped> geoPoseMsgPtr;
 
 typedef std::unique_ptr<zed_interfaces::msg::ObjectsStamped> objDetMsgPtr;
 typedef std::unique_ptr<zed_interfaces::msg::DepthInfoStamped> depthInfoMsgPtr;

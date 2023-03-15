@@ -96,7 +96,8 @@ set(DEPENDENCIES
     geometry_msgs
     nav_msgs
     nmea_msgs
-    sensor_msgs    
+    geographic_msgs
+    sensor_msgs
     stereo_msgs
     grid_map_msgs
     grid_map_ros
@@ -124,6 +125,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(nmea_msgs REQUIRED)
+find_package(geographic_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
 find_package(grid_map_msgs REQUIRED)

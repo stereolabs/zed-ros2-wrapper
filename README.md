@@ -2,7 +2,7 @@
 
 # Stereolabs ZED Camera - ROS2 Foxy Fitzroy (Ubuntu 20.04) - ROS2 Humble Hawksbill (Ubuntu 22.04)
 
-# NOTE - THIS IS A BETA VERSION FOR DEVELOPMENT ONLY TO BE USED WITH ZED SDK V4.0-BETA
+# NOTE - THIS IS A NOT PUBLIC VERSION FOR INTERNAL R&D TO BE USED WITH ZED SDK V4.0-BETA - BRANCH: `1412-terrain-mapping-public`
 
 This package lets you use the ZED stereo cameras with ROS2. It provides access to the following data:
 

@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 3.5)
 project(zed_components)
 
-## Generate symbols for IDE indexer
+################################################
+# Build Options
+option(BUILD_WITH_TERRAIN_MAPPING "Enable the Terrain Mapping module. NOTE: THIS IS AN EXPERIMENTAL FEATURE NOT YET AVAILABLE" OFF)
+################################################
+
+################################################
+## Generate symbols for IDE indexer (VSCode)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ################################################
@@ -43,7 +49,6 @@ else()
 endif()
 ################################################
 
-
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
   set(CMAKE_C_STANDARD 99)
@@ -73,6 +78,11 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
     message(" * Debug Mode")
 endif()
 
+if(BUILD_WITH_TERRAIN_MAPPING)
+    add_definitions(-DWITH_TM)
+    message (STATUS "*** Terrain Mapping module enabled ***")
+endif()
+
 #############################################
 # Dependencies
 find_package(ZED 3 REQUIRED)
@@ -83,6 +93,12 @@ if(CMAKE_SYSTEM_NAME2 MATCHES "aarch64") # Jetson TX
 endif()
 
 find_package(CUDA REQUIRED)
+
+if(BUILD_WITH_TERRAIN_MAPPING)
+    set(TM_DEP
+        grid_map_msgs
+        grid_map_ros)
+endif()
 
 set(DEPENDENCIES
     rclcpp
@@ -99,8 +115,6 @@ set(DEPENDENCIES
     geographic_msgs
     sensor_msgs
     stereo_msgs
-    grid_map_msgs
-    grid_map_ros
     zed_interfaces
     std_srvs
     diagnostic_msgs
@@ -108,6 +122,7 @@ set(DEPENDENCIES
     visualization_msgs
     shape_msgs
     robot_localization
+    ${TM_DEP}
 )
 
 find_package(ament_cmake_auto REQUIRED)
@@ -128,8 +143,7 @@ find_package(nmea_msgs REQUIRED)
 find_package(geographic_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
-find_package(grid_map_msgs REQUIRED)
-find_package(grid_map_ros REQUIRED)
+
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
@@ -137,6 +151,11 @@ find_package(diagnostic_updater REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(shape_msgs REQUIRED)
 find_package(robot_localization REQUIRED)
+
+if(BUILD_WITH_TERRAIN_MAPPING) 
+    find_package(grid_map_msgs REQUIRED)
+    find_package(grid_map_ros REQUIRED)
+endif()
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -186,14 +205,23 @@ set(SL_TOOLS_SRC
 set(ZED_CAMERA_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/sl_types.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_component.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/cost_traversability.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_component.hpp    
 )
 
 set(ZED_CAMERA_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_component.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/cost_traversability.cpp
 )
+
+if(BUILD_WITH_TERRAIN_MAPPING)    
+    set(TM_INC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/cost_traversability.hpp
+    )
+
+    set(TM_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/cost_traversability.cpp
+    )
+endif()
+
 
 ###############################################################################
 # Bin and Install
@@ -203,6 +231,8 @@ add_library(zed_camera_component SHARED
     ${SL_TOOLS_SRC}
     ${ZED_CAMERA_INC}
     ${ZED_CAMERA_SRC}
+    ${TM_INC}
+    ${TM_SRC}
 )
 target_compile_definitions(zed_camera_component
     PRIVATE "COMPOSITION_BUILDING_DLL"

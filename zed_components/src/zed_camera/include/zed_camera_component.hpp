@@ -22,7 +22,9 @@
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
 
+#ifdef WITH_TM
 #include "cost_traversability.hpp"
+#endif
 
 namespace stereolabs
 {
@@ -49,7 +51,9 @@ protected:
   void getGnssFusionParams();
   void getSensorsParams();
   void getMappingParams();
+#ifdef WITH_TM
   void getTerrainMappingParams();
+#endif
   void getOdParams();
 
   void setTFCoordFrameNames();
@@ -68,14 +72,19 @@ protected:
   void stopObjDetect();
   bool startSvoRecording(std::string & errMsg);
   void stopSvoRecording();
+
+  #ifdef WITH_TM
   bool startTerrainMapping();
   void stopTerrainMapping();
+  #endif
   // <---- Initialization functions
 
   // ----> Callbacks
   void threadFunc_pubVideoDepth();
   void callback_pubFusedPc();
+  #ifdef WITH_TM
   void callback_pubLocalMap();
+  #endif
   void callback_pubPaths();
   void callback_pubTemp();
   void callback_gnssPubTimerTimeout();
@@ -153,7 +162,10 @@ protected:
   void publishVideoDepth(rclcpp::Time & out_pub_ts);
   void publishPointCloud();
   void publishImuFrameAndTopic();
+
+  #ifdef WITH_TM
   bool publishLocalMap();
+  #endif
 
   void publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t);
   void publishPose();
@@ -186,8 +198,11 @@ protected:
 
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
-  void startTerrainMappingTimer(double mapPubRate);
   void startTempPubTimer();
+
+  #ifdef WITH_TM
+  void startTerrainMappingTimer(double mapPubRate);
+  #endif
 
   template<typename T>
   void getParam(
@@ -239,7 +254,9 @@ private:
   bool mDebugGnss = false;
   bool mDebugSensors = false;
   bool mDebugMapping = false;
+#ifdef WITH_TM
   bool mDebugTerrainMapping = false;
+#endif
   bool mDebugObjectDet = false;
   int mCamId = 0;
   int mCamSerialNumber = 0;
@@ -301,6 +318,7 @@ private:
   bool mMappingEnabled = false;
   float mMappingRes = 0.05f;
   float mMappingRangeMax = 10.0f;
+#ifdef WITH_TM
   bool mTerrainMappingEnabled = false;
   float mTerrainMapPubFreq = 5.0f;  // Frequency of data publishing
   float mTerrainMappingRes = 0.05f;  // Terrain mapping resolution
@@ -310,6 +328,7 @@ private:
   float mTerrainMappingRobotStep = 0.1f;  // Max height of a step that the robot can overcome
   float mTerrainMappingRobotSlope = 20.0f;  // Max slope (degrees) that the robot can overcome
   float mTerrainMappingRobotRoughness = 0.1;  // Max roughness of the terrain that the robot can overcome
+#endif
   bool mObjDetEnabled = false;
   // TODO(Walter) Add support for Skeleton tracking -> SDK v4!!!
   bool mObjDetTracking = true;
@@ -325,7 +344,7 @@ private:
   bool mObjDetSportEnable = true;
   bool mObjDetBodyFitting = false;
   sl::BODY_FORMAT mObjDetBodyFmt = sl::BODY_FORMAT::BODY_38;
-  sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::HUMAN_BODY_FAST;
+  sl::OBJECT_DETECTION_MODEL mObjDetModel = sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST;
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
 
   // TODO(Walter) remove QoS parameters, use instead the new ROS2 Humble QoS settings engine
@@ -488,9 +507,11 @@ private:
 
   geoPosePub mPubGeoPose;
 
+#ifdef WITH_TM
   imagePub mPubElevMapImg;
   imagePub mPubColMapImg;
   gridMapPub mPubGridMap;
+#endif
   // <---- Publishers
 
   // <---- Publisher variables
@@ -534,10 +555,12 @@ private:
   gnssFixSub mGnssFixSub;
   // <---- Subscribers
 
+#ifdef WITH_TM
   // ----> Terraing Mapping
   stereolabs::cost_traversability::RobotParameters mAgentParams;
   stereolabs::cost_traversability::TraversabilityParameters mTraversabilityParams;
   // <---- Terraing Mapping
+#endif
 
   // ----> Threads and Timers
   sl::ERROR_CODE mGrabStatus;
@@ -550,7 +573,9 @@ private:
   bool mThreadStop = false;
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
+#ifdef WITH_TM
   rclcpp::TimerBase::SharedPtr mTerrainMapTimer;
+#endif
   rclcpp::TimerBase::SharedPtr mTempPubTimer;  // Timer to retrieve and publish CMOS temperatures
   rclcpp::TimerBase::SharedPtr mGnssPubCheckTimer;
   // <---- Threads and Timers
@@ -563,7 +588,9 @@ private:
   std::mutex mPosTrkMutex;
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
+#ifdef WITH_TM
   std::mutex mTerrainMappingMutex;
+#endif
   std::mutex mObjDetMutex;
   std::condition_variable mVideoDepthDataReadyCondVar;
   std::condition_variable mPcDataReadyCondVar;
@@ -590,7 +617,9 @@ private:
   sl::POSITIONAL_TRACKING_STATE mGnssPosStatus;
   bool mResetOdom = false;
   bool mSpatialMappingRunning = false;
+#ifdef WITH_TM
   bool mTerrainMappingRunning = false;
+#endif
   bool mObjDetRunning = false;
   bool mRgbSubscribed = false;
   bool mGnssMsgReceived = false; // Indicates if a NavSatFix topic has been received, also with invalid position fix

@@ -44,7 +44,9 @@
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/nav_sat_status.hpp>
 #include <geographic_msgs/msg/geo_pose_stamped.hpp>
-#include <grid_map_msgs/msg/grid_map.hpp>
+#ifdef WITH_TM
+  #include <grid_map_msgs/msg/grid_map.hpp>
+#endif
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <stereo_msgs/msg/disparity_image.hpp>
@@ -99,7 +101,9 @@ typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::DepthInfoStamped>
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PlaneStamped>> planePub;
 typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>> markerPub;
 
+#ifdef WITH_TM
 typedef std::shared_ptr<rclcpp::Publisher<grid_map_msgs::msg::GridMap>> gridMapPub;
+#endif
 
 typedef std::shared_ptr<rclcpp::Publisher<geographic_msgs::msg::GeoPoseStamped>> geoPosePub;
 

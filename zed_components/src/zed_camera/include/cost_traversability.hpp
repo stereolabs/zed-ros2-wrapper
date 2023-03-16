@@ -67,4 +67,5 @@ void compute_pca(
   std::vector<sl::float3> & points, sl::float3 & normal_vect, sl::float3 & centroid,
   sl::float3 & eigen_values);
 }
+
 #endif // COST_TRAVERSABILITY_HPP_

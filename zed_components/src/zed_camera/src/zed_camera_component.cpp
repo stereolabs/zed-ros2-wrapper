@@ -29,7 +29,9 @@
 #include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 
+#ifdef WITH_TM
 #include <grid_map_ros/grid_map_ros.hpp>
+#endif
 
 #ifdef FOUND_HUMBLE
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -141,10 +143,12 @@ ZedCamera::~ZedCamera()
     stop3dMapping();
   }
 
+#ifdef WITH_TM
   if (mTerrainMappingRunning) {
     std::lock_guard<std::mutex> lock(mTerrainMappingMutex);
     stopTerrainMapping();
   }
+#endif
 
   DEBUG_STREAM_PT("Stopping path timer");
   if (mPathTimer) {
@@ -154,10 +158,14 @@ ZedCamera::~ZedCamera()
   if (mFusedPcTimer) {
     mFusedPcTimer->cancel();
   }
+
+#ifdef WITH_TM
   DEBUG_STREAM_TM("Stopping terrain mapping timer");
   if (mTerrainMapTimer) {
     mTerrainMapTimer->cancel();
   }
+#endif
+
   DEBUG_STREAM_SENS("Stopping temperatures timer");
   if (mTempPubTimer) {
     mTempPubTimer->cancel();
@@ -368,11 +376,13 @@ void ZedCamera::initParameters()
     mMappingEnabled = false;
   }
 
+#ifdef WITH_TM
   if (!mDepthDisabled) {
     getTerrainMappingParams();
   } else {
     mTerrainMappingEnabled = false;
   }
+#endif
 
   // OD PARAMETERS
   if (!mDepthDisabled) {
@@ -478,10 +488,12 @@ void ZedCamera::getDebugParams()
   getParam("debug.debug_mapping", mDebugMapping, mDebugMapping);
   RCLCPP_INFO(get_logger(), " * Debug Mapping: %s", mDebugMapping ? "TRUE" : "FALSE");
 
+#ifdef WITH_TM
   getParam("debug.debug_terrain_mapping", mDebugTerrainMapping, mDebugTerrainMapping);
   RCLCPP_INFO(
     get_logger(), " * Debug Terrain Mapping: %s",
     mDebugTerrainMapping ? "TRUE" : "FALSE");
+#endif
 
   getParam("debug.debug_object_detection", mDebugObjectDet, mDebugObjectDet);
   RCLCPP_INFO(
@@ -490,8 +502,12 @@ void ZedCamera::getDebugParams()
 
 
   mDebugMode = mDebugCommon || mDebugVideoDepth || mDebugPointCloud ||
-    mDebugPosTracking || mDebugGnss || mDebugSensors || mDebugMapping || mDebugTerrainMapping ||
+    mDebugPosTracking || mDebugGnss || mDebugSensors || mDebugMapping ||
     mDebugObjectDet;
+
+#ifdef WITH_TM
+  mDebugMode |= mDebugTerrainMapping;
+#endif
 
   if (mDebugMode) {
     rcutils_ret_t res =
@@ -1103,6 +1119,7 @@ void ZedCamera::getMappingParams()
     get_logger(), " * Sensors QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 }
 
+#ifdef WITH_TM
 void ZedCamera::getTerrainMappingParams()
 {
   rclcpp::Parameter paramVal;
@@ -1153,6 +1170,7 @@ void ZedCamera::getTerrainMappingParams()
 
   // TODO(Walter) Add "TraversabilityParameters" parameters?
 }
+#endif
 
 void ZedCamera::getPosTrackingParams()
 {
@@ -1401,7 +1419,7 @@ void ZedCamera::getOdParams()
   RCLCPP_INFO_STREAM(get_logger(), " * OD tracking: " << (mObjDetTracking ? "TRUE" : "FALSE"));
   int model = 0;
   getParam("object_detection.model", model, model);
-  mObjDetModel = static_cast<sl::DETECTION_MODEL>(model);
+  mObjDetModel = static_cast<sl::OBJECT_DETECTION_MODEL>(model);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Object Detection model: " << model << " - " << sl::toString(mObjDetModel).c_str());
@@ -2499,6 +2517,7 @@ void ZedCamera::initPublishers()
   }
   // <---- Mapping
 
+#ifdef WITH_TM
   // ----> Terrain Mapping
   std::string loc_map_prefix = mTopicRoot + "local_map/";
   std::string loc_map_data;
@@ -2521,6 +2540,7 @@ void ZedCamera::initPublishers()
     mMappingQos);
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubColMapImg->get_topic_name());
   // <---- Terrain Mapping
+#endif
 
   // ----> Sensors
   if (!sl_tools::isZED(mCamRealModel)) {
@@ -3032,7 +3052,9 @@ bool ZedCamera::startCamera()
     DEBUG_GNSS(" Camera publishing OK");
 
     // Fusion subscrive to camera data
-    fus_err = mFusion.subscribe(mCamUuid, mFusionConfig->communication_parameters);
+    fus_err = mFusion.subscribe(
+      mCamUuid, mFusionConfig->communication_parameters,
+      mFusionConfig->pose);
     if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Error initializing the Fusion module: " << sl::toString(fus_err).c_str());
@@ -3081,6 +3103,7 @@ void ZedCamera::startFusedPcTimer(double fusedPcRate)
     std::bind(&ZedCamera::callback_pubFusedPc, this));
 }
 
+#ifdef WITH_TM
 void ZedCamera::startTerrainMappingTimer(double mapPubRate)
 {
   if (mTerrainMapTimer != nullptr) {
@@ -3092,6 +3115,7 @@ void ZedCamera::startTerrainMappingTimer(double mapPubRate)
     std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
     std::bind(&ZedCamera::callback_pubLocalMap, this));
 }
+#endif
 
 void ZedCamera::startPathPubTimer(double pathTimerRate)
 {
@@ -3248,7 +3272,19 @@ bool ZedCamera::start3dMapping()
     RCLCPP_WARN(get_logger(), "Cannot start 3D Mapping if `depth.quality` is set to `0` [NONE]");
     return false;
   }
-  if (!mMappingEnabled && !mTerrainMappingEnabled) {
+
+  if (mSpatialMappingRunning) {
+    RCLCPP_WARN(get_logger(), "Cannot start 3D Mapping. The module is already running!");
+    return false;
+  }
+
+  bool required = mMappingEnabled;
+
+#ifdef WITH_TM
+  required |= mTerrainMappingEnabled;
+#endif
+
+  if (!required) {
     return false;
   }
 
@@ -3351,6 +3387,7 @@ void ZedCamera::stop3dMapping()
   RCLCPP_INFO(get_logger(), "*** Spatial Mapping stopped ***");
 }
 
+#ifdef WITH_TM
 bool ZedCamera::startTerrainMapping()
 {
   if (mDepthDisabled) {
@@ -3400,6 +3437,7 @@ void ZedCamera::stopTerrainMapping()
 
   RCLCPP_INFO(get_logger(), "*** Terrain Mapping stopped ***");
 }
+#endif
 
 bool ZedCamera::startObjDetect()
 {
@@ -3977,13 +4015,18 @@ void ZedCamera::threadFunc_zedGrab()
     // ----> Check for Spatial Mapping requirement
     if (!mDepthDisabled) {
       mMappingMutex.lock();
-      if ((mMappingEnabled || mTerrainMappingEnabled) && !mSpatialMappingRunning) {
+      bool required = mMappingEnabled;
+#ifdef WITH_TM
+      required |= mTerrainMappingEnabled;
+#endif
+      if (required && !mSpatialMappingRunning) {
         start3dMapping();
       }
       mMappingMutex.unlock();
     }
     // <---- Check for Spatial Mapping requirement
 
+#ifdef WITH_TM
     // ----> Check for Terrain Mapping requirement
     if (!mDepthDisabled) {
       mTerrainMappingMutex.lock();
@@ -3993,6 +4036,7 @@ void ZedCamera::threadFunc_zedGrab()
       mTerrainMappingMutex.unlock();
     }
     // <---- Check for Terrain Mapping requirement
+#endif
 
     // ----> Check for Object Detection requirement
     if (!mDepthDisabled) {
@@ -6417,6 +6461,7 @@ void ZedCamera::callback_pubFusedPc()
   mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
 }
 
+#ifdef WITH_TM
 inline
 void updateGrid(
   sl::Terrain & terrain, grid_map::GridMap & map, std::string layer,
@@ -6597,6 +6642,7 @@ void ZedCamera::callback_pubLocalMap()
 
   publishLocalMap();
 }
+#endif
 
 void ZedCamera::callback_pubPaths()
 {

@@ -34,7 +34,7 @@
             hue: 0 # [DYNAMIC]
             saturation: 4 # [DYNAMIC]
             sharpness: 4 # [DYNAMIC]
-            gamma: 8 # [DYNAMIC] - Requires SDK >=v3.1
+            gamma: 8 # [DYNAMIC]
             auto_exposure_gain: true # [DYNAMIC]
             exposure: 80 # [DYNAMIC]
             gain: 80 # [DYNAMIC]
@@ -56,10 +56,10 @@
             qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
             qos_depth: 1 # Queue size if using KEEP_LAST
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT -
-            qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
+            qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE 
 
         pos_tracking:
-            pos_tracking_enabled: true # True to enable positional tracking from start
+            pos_tracking_enabled: true # True to enable positional tracking from start            
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [usually overwritten by launch file] publish `odom -> base_link` TF
             publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF
@@ -71,7 +71,7 @@
             area_memory: true # Enable to detect loop closure
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
             set_as_static: false # If 'true' the camera will be static and not move in the environment
-            set_gravity_as_origin: false # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
+            set_gravity_as_origin: true # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
             floor_alignment: false # Enable to automatically calculate camera/floor offset
             initial_base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial position of the `base_frame` in the map -> [X, Y, Z, R, P, Y]
             init_odom_with_first_valid_pose: true # Enable to initialize the odometry with the first valid pose
@@ -85,6 +85,14 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
             transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->base_link`` transform being generated
 
+        gnss_fusion:
+            gnss_fusion_enabled: false # fuse 'sensor_msg/NavSatFix' message information into pose data
+            gnss_fix_topic: "/gps/fix" # Name of the GNSS topic of type NavSatFix to subscribe [Default: "/gps/fix"]
+            gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
+            gnss_frame: "gnss_link" # [usually overwritten by launch file] The TF frame of the GNSS sensor
+            publish_utm_tf: true # Publish `utm` -> `map` TF
+            broadcast_utm_transform_as_parent_frame: false # if 'true' publish `utm` -> `map` TF, otherwise `map` -> `utm`
+
         mapping:
             mapping_enabled: false # True to enable mapping and fused point cloud pubblication
             resolution: 0.05 # maps resolution in meters [min: 0.01f - max: 0.2f]
@@ -96,7 +104,7 @@
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT -
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
-        local_mapping:
+        local_mapping: # EXPERIMENTAL - Require TERRAIN MAPPING MODULE (only for development)
             terrain_mapping_enabled: false # True to enable terrain mapping publishing a local obstacle map
             data_pub_rate: 3.0 # Local Map data publish frequency
             grid_resolution: 0.05 # Local Map resolution in meters [min: 0.01 - max: 1.0]
@@ -140,7 +148,8 @@
             debug_video_depth: false
             debug_point_cloud: false
             debug_positional_tracking: false
+            debug_gnss: true
             debug_sensors: false
-            debug_mapping : true
-            debug_terrain_mapping : true
+            debug_mapping : false
+            debug_terrain_mapping : false
             debug_object_detection : false

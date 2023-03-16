@@ -20,6 +20,8 @@
 	<build_depend>sensor_msgs</build_depend>
 	<build_depend>geometry_msgs</build_depend>
 	<build_depend>nav_msgs</build_depend>
+	<build_depend>nmea_msgs</build_depend>
+	<build_depend>geographic_msgs</build_depend>	
 	<build_depend>grid_map_msgs</build_depend>
 	<build_depend>grid_map_ros</build_depend>
 	<build_depend>tf2</build_depend>
@@ -30,6 +32,7 @@
 	<build_depend>diagnostic_msgs</build_depend>
 	<build_depend>diagnostic_updater</build_depend>
 	<build_depend>visualization_msgs</build_depend>
+	<build_depend>robot_localization</build_depend>
 	<exec_depend>launch_ros</exec_depend>
 	<exec_depend>zed_interfaces</exec_depend>
 	<exec_depend>rclcpp</exec_depend>
@@ -41,6 +44,8 @@
 	<exec_depend>sensor_msgs</exec_depend>
 	<exec_depend>geometry_msgs</exec_depend>
 	<exec_depend>nav_msgs</exec_depend>
+	<exec_depend>nmea_msgs</exec_depend>
+	<exec_depend>geographic_msgs</exec_depend>
 	<exec_depend>grid_map_msgs</exec_depend>
 	<exec_depend>grid_map_ros</exec_depend>
 	<exec_depend>tf2</exec_depend>
@@ -50,6 +55,7 @@
 	<exec_depend>diagnostic_msgs</exec_depend>
 	<exec_depend>diagnostic_updater</exec_depend>
 	<exec_depend>visualization_msgs</exec_depend>
+	<exec_depend>robot_localization</exec_depend>
 	<test_depend>ament_lint_auto</test_depend>
 	<test_depend>ament_cmake_copyright</test_depend>
 	<test_depend>ament_cmake_cppcheck</test_depend>

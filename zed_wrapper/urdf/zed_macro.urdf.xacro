@@ -167,5 +167,6 @@
         <origin xyz="0 0 0" rpy="0 0 0" />
       </joint>
     </xacro:if>
+
   </xacro:macro>
 </robot>

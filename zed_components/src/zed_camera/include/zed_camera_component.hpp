@@ -15,142 +15,19 @@
 #ifndef ZED_CAMERA_COMPONENT_HPP_
 #define ZED_CAMERA_COMPONENT_HPP_
 
-#include <rcutils/logging_macros.h>
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2_ros/transform_listener.h>
-
-#include <memory>
-#include <string>
-#include <vector>
-
-#include <diagnostic_msgs/msg/diagnostic_status.hpp>
-#include <diagnostic_updater/diagnostic_updater.hpp>
-#include <geometry_msgs/msg/point_stamped.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <image_transport/camera_publisher.hpp>
-#include <image_transport/image_transport.hpp>
-#include <image_transport/publisher.hpp>
-#include <nav_msgs/msg/odometry.hpp>
-#include <nav_msgs/msg/path.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/camera_info.hpp>
-#include <sensor_msgs/msg/fluid_pressure.hpp>
-#include <sensor_msgs/msg/imu.hpp>
-#include <sensor_msgs/msg/magnetic_field.hpp>
-#include <sensor_msgs/msg/point_cloud2.hpp>
-#include <sensor_msgs/msg/temperature.hpp>
-#include <grid_map_msgs/msg/grid_map.hpp>
 #include <sl/Camera.hpp>
-#include <std_srvs/srv/set_bool.hpp>
-#include <std_srvs/srv/trigger.hpp>
-#include <stereo_msgs/msg/disparity_image.hpp>
-#include <visualization_msgs/msg/marker.hpp>
-#include <zed_interfaces/msg/depth_info_stamped.hpp>
-#include <zed_interfaces/msg/object.hpp>
-#include <zed_interfaces/msg/objects_stamped.hpp>
-#include <zed_interfaces/msg/plane_stamped.hpp>
-#include <zed_interfaces/srv/set_pose.hpp>
-#include <zed_interfaces/srv/set_roi.hpp>
-#include <zed_interfaces/srv/start_svo_rec.hpp>
+#include <sl/Fusion.hpp>
 
 #include "sl_tools.hpp"
+#include "sl_types.hpp"
 #include "visibility_control.hpp"
 
+#ifdef WITH_TM
 #include "cost_traversability.hpp"
-
-#define TIMEZERO_ROS rclcpp::Time(0, 0, RCL_ROS_TIME)
-#define TIMEZERO_SYS rclcpp::Time(0, 0, RCL_SYSTEM_TIME)
+#endif
 
 namespace stereolabs
 {
-
-#ifdef _SL_JETSON_
-const bool IS_JETSON = true;
-#else
-const bool IS_JETSON = false;
-#endif
-
-const float NOT_VALID_TEMP = -273.15f;
-
-// ----> Typedefs to simplify declarations
-
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> imagePub;
-typedef std::shared_ptr<rclcpp::Publisher<stereo_msgs::msg::DisparityImage>> disparityPub;
-
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>> pointcloudPub;
-
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Imu>> imuPub;
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::MagneticField>> magPub;
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::FluidPressure>> pressPub;
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Temperature>> tempPub;
-
-typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> posePub;
-typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>>
-  poseCovPub;
-typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::TransformStamped>> transfPub;
-typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odomPub;
-typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
-
-typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::ObjectsStamped>> objPub;
-typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::DepthInfoStamped>> depthInfoPub;
-
-typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PlaneStamped>> planePub;
-typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>> markerPub;
-
-typedef std::shared_ptr<rclcpp::Publisher<grid_map_msgs::msg::GridMap>> gridMapPub;
-
-typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> clickedPtSub;
-
-typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
-typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
-typedef std::unique_ptr<sensor_msgs::msg::PointCloud2> pointcloudMsgPtr;
-typedef std::unique_ptr<sensor_msgs::msg::Imu> imuMsgPtr;
-typedef std::unique_ptr<sensor_msgs::msg::FluidPressure> pressMsgPtr;
-typedef std::unique_ptr<sensor_msgs::msg::Temperature> tempMsgPtr;
-typedef std::unique_ptr<sensor_msgs::msg::MagneticField> magMsgPtr;
-typedef std::unique_ptr<stereo_msgs::msg::DisparityImage> dispMsgPtr;
-
-typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
-typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped> poseCovMsgPtr;
-typedef std::unique_ptr<geometry_msgs::msg::TransformStamped> transfMsgPtr;
-typedef std::unique_ptr<nav_msgs::msg::Odometry> odomMsgPtr;
-typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
-
-typedef std::unique_ptr<zed_interfaces::msg::ObjectsStamped> objDetMsgPtr;
-typedef std::unique_ptr<zed_interfaces::msg::DepthInfoStamped> depthInfoMsgPtr;
-typedef std::unique_ptr<zed_interfaces::msg::PlaneStamped> planeMsgPtr;
-typedef std::unique_ptr<visualization_msgs::msg::Marker> markerMsgPtr;
-
-typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetOdomSrvPtr;
-typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetPosTrkSrvPtr;
-typedef rclcpp::Service<zed_interfaces::srv::SetPose>::SharedPtr setPoseSrvPtr;
-typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableObjDetPtr;
-typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;
-typedef rclcpp::Service<zed_interfaces::srv::StartSvoRec>::SharedPtr startSvoRecSrvPtr;
-typedef rclcpp::Service<zed_interfaces::srv::SetROI>::SharedPtr setRoiSrvPtr;
-typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
-typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoSrvPtr;
-typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetRoiSrvPtr;
-
-/*!
-   * @brief Video/Depth topic resolution
-   */
-typedef enum
-{
-  HD2K,  //!< 2208x1242
-  HD1080,  //!< 1920x1080
-  HD1200,  //!< 1920x1200
-  HD720,  //!< 1280x720
-  MEDIUM,  //!< 896x512
-  SVGA,  //!< 960x600
-  VGA,  //!< 672x376
-  LOW  //!< Half-MEDIUM 448x256
-} PubRes;
-// <---- Typedefs to simplify declarations
-
 
 class ZedCamera : public rclcpp::Node
 {
@@ -171,13 +48,17 @@ protected:
   void getVideoParams();
   void getDepthParams();
   void getPosTrackingParams();
+  void getGnssFusionParams();
   void getSensorsParams();
   void getMappingParams();
+#ifdef WITH_TM
   void getTerrainMappingParams();
+#endif
   void getOdParams();
 
   void setTFCoordFrameNames();
   void initPublishers();
+  void initSubscribers();
   void fillCamInfo(
     sl::Camera & zed, std::shared_ptr<sensor_msgs::msg::CameraInfo> leftCamInfoMsg,
     std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg, std::string leftFrameId,
@@ -191,16 +72,22 @@ protected:
   void stopObjDetect();
   bool startSvoRecording(std::string & errMsg);
   void stopSvoRecording();
+
+  #ifdef WITH_TM
   bool startTerrainMapping();
   void stopTerrainMapping();
+  #endif
   // <---- Initialization functions
 
   // ----> Callbacks
   void threadFunc_pubVideoDepth();
   void callback_pubFusedPc();
+  #ifdef WITH_TM
   void callback_pubLocalMap();
+  #endif
   void callback_pubPaths();
   void callback_pubTemp();
+  void callback_gnssPubTimerTimeout();
   rcl_interfaces::msg::SetParametersResult callback_paramChange(
     std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWrapper & stat);
@@ -238,6 +125,7 @@ protected:
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_clickedPoint(const geometry_msgs::msg::PointStamped::SharedPtr msg);
+  void callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
   void callback_setRoi(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_interfaces::srv::SetROI_Request> req,
@@ -246,6 +134,14 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_toLL(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<robot_localization::srv::ToLL_Request> req,
+    std::shared_ptr<robot_localization::srv::ToLL_Response> res);
+  void callback_fromLL(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<robot_localization::srv::FromLL_Request> req,
+    std::shared_ptr<robot_localization::srv::FromLL_Response> res);
   // <---- Callbacks
 
   // ----> Thread functions
@@ -266,10 +162,14 @@ protected:
   void publishVideoDepth(rclcpp::Time & out_pub_ts);
   void publishPointCloud();
   void publishImuFrameAndTopic();
+
+  #ifdef WITH_TM
   bool publishLocalMap();
+  #endif
 
   void publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t);
   void publishPose();
+  void publishGnssPose();
   void publishTFs(rclcpp::Time t);
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
@@ -285,6 +185,7 @@ protected:
 
   void processOdometry();
   void processPose();
+  void processGnssPose();
 
   void processDetectedObjects(rclcpp::Time t);
 
@@ -293,11 +194,15 @@ protected:
   bool getSens2BaseTransform();
   bool getSens2CameraTransform();
   bool getCamera2BaseTransform();
+  bool getGnss2BaseTransform();
 
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
-  void startTerrainMappingTimer(double mapPubRate);
   void startTempPubTimer();
+
+  #ifdef WITH_TM
+  void startTerrainMappingTimer(double mapPubRate);
+  #endif
 
   template<typename T>
   void getParam(
@@ -317,6 +222,13 @@ private:
   sl::InitParameters mInitParams;
   sl::RuntimeParameters mRunParams;
 
+  // ----> Fusion module
+  std::shared_ptr<sl::FusionConfiguration> mFusionConfig;
+  sl::Fusion mFusion;
+  sl::InitFusionParameters mFusionInitParams;
+  sl::CameraIdentifier mCamUuid;
+  // <---- Fusion module
+
   uint64_t mFrameCount = 0;
 
   // ----> Topics
@@ -324,6 +236,8 @@ private:
   std::string mOdomTopic;
   std::string mPoseTopic;
   std::string mPoseCovTopic;
+  std::string mGnssPoseTopic;
+  std::string mGeoPoseTopic;
   std::string mPointcloudFusedTopic;
   std::string mObjectDetTopic;
   std::string mOdomPathTopic;
@@ -332,16 +246,17 @@ private:
   // <---- Topics
 
   // ----> Parameter variables
-  bool mSimEnabled = false;  // Expecting simulation data?
   std::string mSimAddr = "localhost";  // The local address of the machine running the simulator
-  bool mDebugMode = false;
   bool mDebugCommon = false;
   bool mDebugVideoDepth = false;
   bool mDebugPointCloud = false;
   bool mDebugPosTracking = false;
+  bool mDebugGnss = false;
   bool mDebugSensors = false;
   bool mDebugMapping = false;
+#ifdef WITH_TM
   bool mDebugTerrainMapping = false;
+#endif
   bool mDebugObjectDet = false;
   int mCamId = 0;
   int mCamSerialNumber = 0;
@@ -375,6 +290,7 @@ private:
   bool mSensCameraSync = false;
   double mSensPubRate = 400.;
   bool mPosTrackingEnabled = false;
+
   bool mPublishTF = true;
   bool mPublishMapTF = true;
   bool mPublishImuTF = true;
@@ -394,9 +310,15 @@ private:
   bool mSetGravityAsOrigin = false;
   int mPathMaxCount = -1;
   bool mPublishPoseCov = true;
+  bool mGnssFusionEnabled = false;
+  std::string mGnssTopic = "/gps/fix";
+  bool mGnssZeroAltitude = false;
+  bool mPublishUtmTf = true;
+  bool mUtmAsParent = true;
   bool mMappingEnabled = false;
   float mMappingRes = 0.05f;
   float mMappingRangeMax = 10.0f;
+#ifdef WITH_TM
   bool mTerrainMappingEnabled = false;
   float mTerrainMapPubFreq = 5.0f;  // Frequency of data publishing
   float mTerrainMappingRes = 0.05f;  // Terrain mapping resolution
@@ -406,6 +328,7 @@ private:
   float mTerrainMappingRobotStep = 0.1f;  // Max height of a step that the robot can overcome
   float mTerrainMappingRobotSlope = 20.0f;  // Max slope (degrees) that the robot can overcome
   float mTerrainMappingRobotRoughness = 0.1;  // Max roughness of the terrain that the robot can overcome
+#endif
   bool mObjDetEnabled = false;
   // TODO(Walter) Add support for Skeleton tracking -> SDK v4!!!
   bool mObjDetTracking = true;
@@ -421,7 +344,7 @@ private:
   bool mObjDetSportEnable = true;
   bool mObjDetBodyFitting = false;
   sl::BODY_FORMAT mObjDetBodyFmt = sl::BODY_FORMAT::BODY_38;
-  sl::DETECTION_MODEL mObjDetModel = sl::DETECTION_MODEL::HUMAN_BODY_FAST;
+  sl::OBJECT_DETECTION_MODEL mObjDetModel = sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST;
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
 
   // TODO(Walter) remove QoS parameters, use instead the new ROS2 Humble QoS settings engine
@@ -435,6 +358,7 @@ private:
   rclcpp::QoS mMappingQos;
   rclcpp::QoS mObjDetQos;
   rclcpp::QoS mClickedPtQos;
+  rclcpp::QoS mGnssFixQos;
   // <---- Parameter variables
 
   // ----> Dynamic params
@@ -475,9 +399,11 @@ private:
   std::string mCloudFrameId;
   std::string mPointCloudFrameId;
 
+  std::string mUtmFrameId = "utm";
   std::string mMapFrameId = "map";
   std::string mOdomFrameId = "odom";
   std::string mBaseFrameId = "base_link";
+  std::string mGnssFrameId = "base_link";
 
   std::string mCameraFrameId;
 
@@ -515,12 +441,16 @@ private:
   tf2::Transform mSensor2BaseTransf;    // Coordinates of the base frame in sensor frame
   tf2::Transform mSensor2CameraTransf;  // Coordinates of the camera frame in sensor frame
   tf2::Transform mCamera2BaseTransf;    // Coordinates of the base frame in camera frame
+  tf2::Transform mMap2UtmTransf;        // Coordinates of the UTM frame in map frame
+  tf2::Transform mGnss2BaseTransf;      // Coordinates of the base in GNSS sensor frame
   // <---- TF Transforms
 
   // ----> TF Transforms Flags
   bool mSensor2BaseTransfValid = false;
   bool mSensor2CameraTransfValid = false;
   bool mCamera2BaseTransfValid = false;
+  bool mGnss2BaseTransfValid = false;
+  bool mMap2UtmTransfValid = false;
   // <---- TF Transforms Flags
 
   // ----> Messages (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
@@ -559,6 +489,7 @@ private:
   posePub mPubPose;
   poseCovPub mPubPoseCov;
   odomPub mPubOdom;
+  odomPub mPubGnssPose;
   pathPub mPubOdomPath;
   pathPub mPubPosePath;
   imuPub mPubImu;
@@ -574,9 +505,13 @@ private:
   planePub mPubPlane;
   markerPub mPubMarker;
 
+  geoPosePub mPubGeoPose;
+
+#ifdef WITH_TM
   imagePub mPubElevMapImg;
   imagePub mPubColMapImg;
   gridMapPub mPubGridMap;
+#endif
   // <---- Publishers
 
   // <---- Publisher variables
@@ -617,16 +552,20 @@ private:
 
   // ----> Subscribers
   clickedPtSub mClickedPtSub;
+  gnssFixSub mGnssFixSub;
   // <---- Subscribers
 
+#ifdef WITH_TM
   // ----> Terraing Mapping
   stereolabs::cost_traversability::RobotParameters mAgentParams;
   stereolabs::cost_traversability::TraversabilityParameters mTraversabilityParams;
   // <---- Terraing Mapping
+#endif
 
   // ----> Threads and Timers
   sl::ERROR_CODE mGrabStatus;
   sl::ERROR_CODE mConnStatus;
+  sl::FUSION_ERROR_CODE mFusionStatus;
   std::thread mGrabThread;        // Main grab thread
   std::thread mVideoDepthThread;  // RGB/Depth data publish thread
   std::thread mPcThread;          // Point Cloud publish thread
@@ -634,8 +573,11 @@ private:
   bool mThreadStop = false;
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
+#ifdef WITH_TM
   rclcpp::TimerBase::SharedPtr mTerrainMapTimer;
+#endif
   rclcpp::TimerBase::SharedPtr mTempPubTimer;  // Timer to retrieve and publish CMOS temperatures
+  rclcpp::TimerBase::SharedPtr mGnssPubCheckTimer;
   // <---- Threads and Timers
 
   // ----> Thread Sync
@@ -646,7 +588,9 @@ private:
   std::mutex mPosTrkMutex;
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
+#ifdef WITH_TM
   std::mutex mTerrainMappingMutex;
+#endif
   std::mutex mObjDetMutex;
   std::condition_variable mVideoDepthDataReadyCondVar;
   std::condition_variable mPcDataReadyCondVar;
@@ -655,6 +599,9 @@ private:
   // <---- Thread Sync
 
   // ----> Status Flags
+  bool mSimEnabled = false;  // Expecting simulation data?
+  bool mDebugMode = false;  // Debug mode active?
+  int mSimPort = 30000;
   bool mSvoMode = false;
   bool mSvoPause = false;
   bool mPosTrackingStarted = false;
@@ -665,20 +612,38 @@ private:
   bool mRecording = false;
   sl::RecordingStatus mRecStatus = sl::RecordingStatus();
   bool mPosTrackingReady = false;
-  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatus;
+  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusWorld;
+  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusCamera;
+  sl::POSITIONAL_TRACKING_STATE mGnssPosStatus;
   bool mResetOdom = false;
   bool mSpatialMappingRunning = false;
+#ifdef WITH_TM
   bool mTerrainMappingRunning = false;
+#endif
   bool mObjDetRunning = false;
   bool mRgbSubscribed = false;
+  bool mGnssMsgReceived = false; // Indicates if a NavSatFix topic has been received, also with invalid position fix
+  bool mGnssFixValid = false; // Used to keep track of signal loss
+  bool mGnssFixNew = false; // Used to keep track of signal loss
+  std::string mGnssService = "";
   // <---- Status Flags
 
-
   // ----> Positional Tracking
-  sl::Pose mLastZedPose;  // Sensor to Map transform
+  sl::Pose mLastZedPose;
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
   std::vector<geometry_msgs::msg::PoseStamped> mMapPath;
+  sl::GeoPose mLastGeoPose;
+  sl::ECEF mLastEcefPose;
+  sl::UTM mLastUtmPose;
+  sl::LatLng mLastLatLongPose;
+  double mLastHeading;
+  tf2::Quaternion mLastHeadingQuat;
+  sl::ECEF mInitEcefPose;
+  sl::UTM mInitUtmPose;
+  sl::LatLng mInitLatLongPose;
+  double mInitHeading;
+  bool mGnssInitGood = false;
   // <---- Positional Tracking
 
   // Diagnostic
@@ -700,6 +665,7 @@ private:
   std::unique_ptr<sl_tools::WinAvg> mPubOdomTF_sec;
   std::unique_ptr<sl_tools::WinAvg> mPubPoseTF_sec;
   std::unique_ptr<sl_tools::WinAvg> mPubImuTF_sec;
+  std::unique_ptr<sl_tools::WinAvg> mGnssFix_sec;
   bool mImuPublishing = false;
   bool mMagPublishing = false;
   bool mBaroPublishing = false;
@@ -709,6 +675,7 @@ private:
 
   // ----> Timestamps
   rclcpp::Time mFrameTimestamp;
+  rclcpp::Time mGnssTimestamp;
   // <---- Timestamps
 
   // ----> SVO Recording parameters
@@ -730,6 +697,8 @@ private:
   pauseSvoSrvPtr mPauseSvoSrv;
   setRoiSrvPtr mSetRoiSrv;
   resetRoiSrvPtr mResetRoiSrv;
+  toLLSrvPtr mToLlSrv;
+  fromLLSrvPtr mFromLlSrv;
   // <---- Services
 
   // ----> Services names
@@ -743,6 +712,8 @@ private:
   const std::string mSrvToggleSvoPauseName = "toggle_svo_pause";
   const std::string mSrvSetRoiName = "set_roi";
   const std::string mSrvResetRoiName = "reset_roi";
+  const std::string mSrvToLlName = "toLL";  // Convert from `map` to `Lat Long`
+  const std::string mSrvFromLlName = "fromLL";  // Convert from `Lat Long` to `map`
   // <---- Services names
 };
 

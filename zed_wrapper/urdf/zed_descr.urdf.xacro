@@ -26,11 +26,27 @@
   <xacro:arg name="cam_roll"      default="0.0" />
   <xacro:arg name="cam_pitch"     default="0.0" />
   <xacro:arg name="cam_yaw"       default="0.0" />
+  <xacro:arg name="gnss_frame"    default="" />
 
   <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
   <xacro:zed_camera name="$(arg camera_name)" model="$(arg camera_model)" parent="$(arg base_frame)">
-    <origin xyz="$(arg cam_pos_x) $(arg cam_pos_y) $(arg cam_pos_z)" rpy="$(arg cam_roll) $(arg cam_pitch) $(arg cam_yaw)" />
+    <origin 
+      xyz="$(arg cam_pos_x) $(arg cam_pos_y) $(arg cam_pos_z)" 
+      rpy="$(arg cam_roll) $(arg cam_pitch) $(arg cam_yaw)"
+    />
   </xacro:zed_camera>
 
   <link name="$(arg base_frame)" />
+
+  <xacro:property name="gnss_frame" value="$(arg gnss_frame)"/>
+
+  <!-- Set the position of the GNSS sensor relative to base_link if used -->
+  <xacro:if value="${gnss_frame != ''}">
+    <link name="$(arg gnss_frame)" />
+    <joint name="$(arg gnss_frame)_joint" type="fixed">
+      <parent link="$(arg base_frame)"/>
+      <child link="$(arg gnss_frame)"/>
+      <origin xyz="0 0 0.5" rpy="0 0 0" />
+    </joint>
+  </xacro:if>
 </robot>

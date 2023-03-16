@@ -1,6 +1,20 @@
 LATEST CHANGES
 ==============
 
+2023-03-15
+----------
+- Add `geographic_msgs::msg::GeoPoseStamped` message publisher
+- Add parameter `gnss_fusion.publish_utm_tf`
+- Add parameter `gnss_fusion.broadcast_utm_transform_as_parent_frame`
+
+2023-03-09
+----------
+- Add services `toLL` and `fromLL` to use the ZED ROS2 Wrapper with the Nav2 Waypoint Navigation package
+
+2023-03-06
+----------
+- Disable Area Memory (loop closure) when GNSS fusion is enabled.
+
 2023-03-03
 ----------
 - Add traversability cost computation for Terrain Mapping (local_mapping)
@@ -45,10 +59,25 @@ LATEST CHANGES
   - Add `display_zedxm.launch.py` for ZED-X Mini to ZED-ROS2-Examples
   - Add ZED-X and ZED-X Mini STL files to ZED-ROS2-Interfaces
 
+2023-02-07
+----------
+- GNSS fusion integration
+  - Add new launch parameter `gnss_frame` to enable the GNSS link in the ZED URDF
+  - Add new node parameter `gnss_fusion.gnss_zero_altitude` to ignore GNSS altitude information
+  - Add new node parameter `gnss_fusion.gnss_frame` to set the name of the frame link of the GNSS sensor
+
 2023-01-27
 ----------
 - Added `grid_map_msgs` dependency for Terrain Mapping topics
 - Converted `shared_ptr` to `unique_ptr` for IPC support
+
+2023-01-19
+----------
+- GNSS fusion integration
+  - New param `gnss_fusion.gnss_fusion_enabled` to enable GNSS fusion
+  - New param `gnss_fusion.gnss_fix_topic` name of the topic containing GNSS Fix data of type `sensor_msgs/NavSatFix`
+  - Add `nmea_msgs` dependency
+  - Add GNSS Fix Diagnostic
 
 2023-01-16
 ----------

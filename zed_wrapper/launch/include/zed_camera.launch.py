@@ -80,6 +80,8 @@ def launch_setup(context, *args, **kwargs):
     publish_map_tf = LaunchConfiguration('publish_map_tf')
     xacro_path = LaunchConfiguration('xacro_path')
 
+    gnss_frame = LaunchConfiguration('gnss_frame')
+
     camera_name_val = camera_name.perform(context)
     camera_model_val = camera_model.perform(context)
 
@@ -111,6 +113,7 @@ def launch_setup(context, *args, **kwargs):
                     'camera_name:=', camera_name_val, ' ',
                     'camera_model:=', camera_model_val, ' ',
                     'base_frame:=', base_frame, ' ',
+                    'gnss_frame:=', gnss_frame, ' ',
                     'cam_pos_x:=', cam_pose_array[0], ' ',
                     'cam_pos_y:=', cam_pose_array[1], ' ',
                     'cam_pos_z:=', cam_pose_array[2], ' ',
@@ -130,7 +133,7 @@ def launch_setup(context, *args, **kwargs):
         output='screen',
         # prefix=['xterm -e valgrind --tools=callgrind'],
         # prefix=['xterm -e gdb -ex run --args'],
-        # prefix=['gdbserver localhost:3000'],
+        #prefix=['gdbserver localhost:3000'],
         parameters=[
             # YAML files
             config_common_path,  # Common parameters
@@ -206,7 +209,11 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'base_frame',
                 default_value='base_link',
-                description='Name of the base link.'),
+                description='Name of the base link frame.'),
+            DeclareLaunchArgument(
+                'gnss_frame',
+                default_value='',
+                description='Name of the GNSS link frame. Leave empty if not used. Remember to set the transform `base_link` -> `gnss_frame` in the URDF file.'),
             DeclareLaunchArgument(
                 'cam_pose',
                 default_value='[0.0,0.0,0.0,0.0,0.0,0.0]',

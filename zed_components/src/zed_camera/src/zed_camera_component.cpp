@@ -810,28 +810,55 @@ void ZedCamera::getDepthParams()
 
   RCLCPP_INFO(get_logger(), "*** DEPTH parameters ***");
 
-  int depth_quality = static_cast<int>(mDepthQuality);
-  getParam("depth.quality", depth_quality, depth_quality);
-  mDepthQuality = static_cast<sl::DEPTH_MODE>(depth_quality);
+  std::string depth_mode_str = sl::toString(mDepthMode).c_str();
+  getParam("depth.depth_mode", depth_mode_str, depth_mode_str);
 
-  if (mDepthQuality == sl::DEPTH_MODE::NONE) {
+  bool matched = false;
+  for (int mode = static_cast<int>(sl::DEPTH_MODE::NONE);
+    mode < static_cast<int>(sl::DEPTH_MODE::LAST); ++mode)
+  {
+    std::string test_str = sl::toString(static_cast<sl::DEPTH_MODE>(mode)).c_str();
+    if (test_str == depth_mode_str) {
+      matched = true;
+      mDepthMode = static_cast<sl::DEPTH_MODE>(mode);
+      break;
+    }
+  }
+
+  if (!matched) {
+    RCLCPP_WARN(
+      get_logger(),
+      "The parameter 'depth.depth_mode' contains a not valid string. Please check it in 'common.yaml'.");
+    RCLCPP_WARN(get_logger(), "Using default DEPTH_MODE.");
+    mDepthMode = sl::DEPTH_MODE::PERFORMANCE;
+  }
+
+  if (mDepthMode == sl::DEPTH_MODE::NONE) {
     mDepthDisabled = true;
-    mDepthStabilization = false;
+    mDepthStabilization = 0;
     RCLCPP_INFO_STREAM(
       get_logger(),
-      " * Depth quality: " << depth_quality << " - " << mDepthQuality << " - DEPTH DISABLED");
+      " * Depth mode: " << sl::toString(mDepthMode).c_str() << " - DEPTH DISABLED");
   } else {
     mDepthDisabled = false;
     RCLCPP_INFO_STREAM(
-      get_logger(), " * Depth quality: " << depth_quality << " - " << mDepthQuality);
+      get_logger(), " * Depth mode: " << sl::toString(
+        mDepthMode).c_str() << " [" << static_cast<int>(mDepthMode) << "]");
   }
 
   if (!mDepthDisabled) {
     getParam("depth.min_depth", mCamMinDepth, mCamMinDepth, " * Min depth [m]: ");
     getParam("depth.max_depth", mCamMaxDepth, mCamMaxDepth, " * Max depth [m]: ");
 
-    getParam("depth.depth_stabilization", mDepthStabilization, mDepthStabilization);
-    RCLCPP_INFO(get_logger(), " * Depth Stabilization: %s", mDepthStabilization ? "TRUE" : "FALSE");
+    getParam(
+      "depth.depth_stabilization", mDepthStabilization, mDepthStabilization,
+      " * Depth Stabilization: ");
+    if (mDepthStabilization < 0 || mDepthStabilization > 100) {
+      mDepthStabilization = 1;
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "'depth.depth_stabilization' is not in the valid range [0,100]. Using the default value.");
+    }
 
     getParam("depth.openni_depth_mode", mOpenniDepthMode, mOpenniDepthMode);
     RCLCPP_INFO(
@@ -2677,10 +2704,10 @@ bool ZedCamera::startCamera()
 
   mInitParams.coordinate_system = ROS_COORDINATE_SYSTEM;
   mInitParams.coordinate_units = ROS_MEAS_UNITS;
-  mInitParams.depth_mode = mDepthQuality;
+  mInitParams.depth_mode = mDepthMode;
   mInitParams.sdk_verbose = mVerbose;
   mInitParams.sdk_gpu_id = mGpuId;
-  mInitParams.depth_stabilization = static_cast<int>(mDepthStabilization);
+  mInitParams.depth_stabilization = mDepthStabilization;
   mInitParams.camera_image_flip = mCameraFlip;
   mInitParams.depth_minimum_distance = mCamMinDepth;
   mInitParams.depth_maximum_distance = mCamMaxDepth;
@@ -4549,7 +4576,7 @@ void ZedCamera::publishTFs(rclcpp::Time t)
   }
 
   // Publish pose tf only if enabled
-  if (mDepthQuality != sl::DEPTH_MODE::NONE && mPublishTF) {
+  if (mDepthMode != sl::DEPTH_MODE::NONE && mPublishTF) {
     publishOdomTF(t);  // publish the base Frame in odometry frame
 
     if (mPublishMapTF) {
@@ -6104,7 +6131,7 @@ bool ZedCamera::isPosTrackingRequired()
     return true;
   }
 
-  if (mDepthStabilization) {
+  if (mDepthStabilization > 0) {
     DEBUG_ONCE_PT("POS. TRACKING required: enabled by depth stabilization param.");
     return true;
   }
@@ -7127,7 +7154,7 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
 
     if (isDepthRequired()) {
       stat.add("Depth status", "ACTIVE");
-      stat.add("Depth mode", sl::toString(mDepthQuality).c_str());
+      stat.add("Depth mode", sl::toString(mDepthMode).c_str());
 
       if (mPcPublishing) {
         double freq = 1. / mPcPeriodMean_sec->getAvg();

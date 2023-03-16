@@ -1,6 +1,12 @@
 LATEST CHANGES
 ==============
 
+2023-03-16
+----------
+- Remove 'depth.quality' parameter (replaced with 'depth.depth_mode')
+- Add 'depth.depth_mode' parameter: a string reflecting the ZED SDK `DEPTH_MODE` available values
+- The parameter 'depth.depth_stabilization' is now an integer in [0,100] reflecting ZED SDK behavior
+
 2023-03-15
 ----------
 - Add `geographic_msgs::msg::GeoPoseStamped` message publisher
@@ -13,9 +19,9 @@ LATEST CHANGES
 
 2023-03-06
 ----------
-- Disable Area Memory (loop closure) when GNSS fusion is enabled.
+- Disable Area Memory (loop closure) when GNSS fusion is enabled
 
-2023-03-03
+2023-03-03 (not publicly available)
 ----------
 - Add traversability cost computation for Terrain Mapping (local_mapping)
   - Change parameter `local_mapping.height_threshold` to `local_mapping.robot_heigth`
@@ -31,7 +37,7 @@ LATEST CHANGES
 - Remove `sensing_mode`, no more available in SDK v4.0
 - Remove `extrinsic_in_camera_frame`, no more available in SDK v4.0
 
-2023-02-22
+2023-02-22 (not publicly available)
 ----------
 - Add full Terrain Mapping (local obstacle detection) support
   - ZED SDK Terrain Mapping published as GridMap message

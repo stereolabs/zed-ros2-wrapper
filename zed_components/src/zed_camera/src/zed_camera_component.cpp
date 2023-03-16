@@ -4284,13 +4284,13 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   if (mSvoMode || mSensCameraSync || mSimEnabled) {
     sl::ERROR_CODE err = mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
     if (err != sl::ERROR_CODE::SUCCESS) {
-      DEBUG_STREAM_SENS("sl::getSensorsData error: " << sl::toString(err).c_str());
+      RCLCPP_WARN_STREAM(get_logger(), "sl::getSensorsData error: " << sl::toString(err).c_str());
       return TIMEZERO_ROS;
     }
   } else {
     sl::ERROR_CODE err = mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
     if (err != sl::ERROR_CODE::SUCCESS) {
-      DEBUG_STREAM_SENS("sl::getSensorsData error: " << sl::toString(err).c_str());
+      RCLCPP_WARN_STREAM(get_logger(), "sl::getSensorsData error: " << sl::toString(err).c_str());
       return TIMEZERO_ROS;
     }
   }

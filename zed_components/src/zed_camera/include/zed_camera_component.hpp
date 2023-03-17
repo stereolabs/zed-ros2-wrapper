@@ -51,10 +51,12 @@ protected:
   void getGnssFusionParams();
   void getSensorsParams();
   void getMappingParams();
+  void getOdParams();
+  void getSkTrackParams();
 #ifdef WITH_TM
   void getTerrainMappingParams();
 #endif
-  void getOdParams();
+  
 
   void setTFCoordFrameNames();
   void initPublishers();
@@ -246,7 +248,6 @@ private:
   // <---- Topics
 
   // ----> Parameter variables
-  std::string mSimAddr = "localhost";  // The local address of the machine running the simulator
   bool mDebugCommon = false;
   bool mDebugVideoDepth = false;
   bool mDebugPointCloud = false;
@@ -254,12 +255,15 @@ private:
   bool mDebugGnss = false;
   bool mDebugSensors = false;
   bool mDebugMapping = false;
+  bool mDebugObjectDet = false;
+  bool mDebugBodyTrack = false;
 #ifdef WITH_TM
   bool mDebugTerrainMapping = false;
 #endif
-  bool mDebugObjectDet = false;
+
   int mCamId = 0;
   int mCamSerialNumber = 0;
+  std::string mSimAddr = "localhost";  // The local address of the machine running the simulator
   sl::MODEL mCamUserModel = sl::MODEL::ZED;  // Default camera model
   sl::MODEL mCamRealModel;                   // Camera model requested to SDK
   unsigned int mCamFwVersion;                // Camera FW version
@@ -317,6 +321,7 @@ private:
   bool mMappingEnabled = false;
   float mMappingRes = 0.05f;
   float mMappingRangeMax = 10.0f;
+
 #ifdef WITH_TM
   bool mTerrainMappingEnabled = false;
   float mTerrainMapPubFreq = 5.0f;  // Frequency of data publishing
@@ -328,8 +333,8 @@ private:
   float mTerrainMappingRobotSlope = 20.0f;  // Max slope (degrees) that the robot can overcome
   float mTerrainMappingRobotRoughness = 0.1;  // Max roughness of the terrain that the robot can overcome
 #endif
+
   bool mObjDetEnabled = false;
-  // TODO(Walter) Add support for Skeleton tracking -> SDK v4!!!
   bool mObjDetTracking = true;
   float mObjDetConfidence = 40.0f;
   double mObjDetPredTimeout = 0.5;
@@ -347,8 +352,15 @@ private:
   sl::OBJECT_DETECTION_MODEL mObjDetModel = sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST;
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
 
-  sl::BODY_FORMAT mObjDetBodyFmt = sl::BODY_FORMAT::BODY_38;
-
+  bool mBodyTrackEnabled = false;
+  sl::BODY_TRACKING_MODEL mBodyTrackModel = sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST;
+  sl::BODY_FORMAT mBodyTrackFmt = sl::BODY_FORMAT::BODY_38;
+  bool mBodyTrackReducedPrecision = false;
+  float mBodyTrackMaxRange = 15.0f;
+  sl::BODY_KEYPOINTS_SELECTION mBodyTrackSelection = sl::BODY_KEYPOINTS_SELECTION::FULL;
+  bool mBodyTrackFitting = true;
+  bool mBodyTrackEnableTracking = true;
+  double mBodyTrackPredTimeout = 0.5;
 
   // TODO(Walter) remove QoS parameters, use instead the new ROS2 Humble QoS settings engine
 

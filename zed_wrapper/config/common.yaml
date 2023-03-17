@@ -124,7 +124,7 @@
 
         object_detection:
             od_enabled: false # True to enable Object Detection
-            model: 'MULTI_CLASS_BOX_FAST' # Object Detection module: 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE'
+            model: 'MULTI_CLASS_BOX_FAST' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE'
             allow_reduced_precision_inference: true # Allow inference to run at a lower precision to improve runtime and memory usage
             max_range: 15.0 # [m] Defines a upper depth range for detections
             confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,100]
@@ -136,16 +136,26 @@
             mc_animal: true # [DYNAMIC] - Enable/disable the detection of animals for 'MULTI_CLASS_X' models
             mc_electronics: true # [DYNAMIC] - Enable/disable the detection of electronic devices for 'MULTI_CLASS_X' models
             mc_fruit_vegetable: true # [DYNAMIC] - Enable/disable the detection of fruits and vegetables for 'MULTI_CLASS_X' models
-            mc_sport: true # [DYNAMIC] - Enable/disable the detection of sport-related objects for 'MULTI_CLASS_X' models
-            body_fitting: true # Enable/disable body fitting for 'HUMAN_BODY_FAST' and 'HUMAN_BODY_ACCURATE' models
-            body_format: 1 # '0': POSE_18 - '1': POSE_34 [Only if `HUMAN_BODY_*` model is selected]
+            mc_sport: true # [DYNAMIC] - Enable/disable the detection of sport-related objects for 'MULTI_CLASS_X' models            
             qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
             qos_depth: 1 # Queue size if using KEEP_LAST
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
         
-        skeleton_tracking:
-            skel_enabled: false # True to enable Skeleton Tracking
+        body_tracking:
+            bt_enabled: false # True to enable Body Tracking
+            detection_model: 'HUMAN_BODY_FAST' # 'HUMAN_BODY_FAST', 'HUMAN_BODY_MEDIUM', 'HUMAN_BODY_ACCURATE'
+            body_format: 'BODY_70' # 'BODY_18','BODY_34','BODY_38','BODY_70'
+            allow_reduced_precision_inference: true # Allow inference to run at a lower precision to improve runtime and memory usage
+            max_range: 15.0 # [m] Defines a upper depth range for detections
+            body_selection: 'FULL' # 'FULL', 'UPPER_BODY'
+            enable_body_fitting: true # Defines if the body fitting will be applied
+            enable_tracking: true # Defines if the object detection will track objects across images flow
+            prediction_timeout_s: 0.5 # During this time [sec], the skeleton will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
+            qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
+            qos_depth: 1 # Queue size if using KEEP_LAST
+            qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT
+            qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         debug:
             debug_common: false
@@ -157,3 +167,4 @@
             debug_mapping : false
             debug_terrain_mapping : false
             debug_object_detection : true
+            debug_body_tracking : true

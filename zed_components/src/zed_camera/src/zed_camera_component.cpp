@@ -388,9 +388,11 @@ void ZedCamera::initParameters()
   if (!mDepthDisabled) {
     if (sl_tools::isObjDetAvailable(mCamUserModel)) {
       getOdParams();
+      getSkTrackParams();
     }
   } else {
     mObjDetEnabled = false;
+    mBodyTrackEnabled = false;
   }
 }
 
@@ -488,6 +490,16 @@ void ZedCamera::getDebugParams()
   getParam("debug.debug_mapping", mDebugMapping, mDebugMapping);
   RCLCPP_INFO(get_logger(), " * Debug Mapping: %s", mDebugMapping ? "TRUE" : "FALSE");
 
+  getParam("debug.debug_object_detection", mDebugObjectDet, mDebugObjectDet);
+  RCLCPP_INFO(
+    get_logger(), " * Debug Object Detection: %s",
+    mDebugObjectDet ? "TRUE" : "FALSE");
+
+  getParam("debug.debug_body_tracking", mDebugBodyTrack, mDebugBodyTrack);
+  RCLCPP_INFO(
+    get_logger(), " * Debug Body Tracking: %s",
+    mDebugBodyTrack ? "TRUE" : "FALSE");
+
 #ifdef WITH_TM
   getParam("debug.debug_terrain_mapping", mDebugTerrainMapping, mDebugTerrainMapping);
   RCLCPP_INFO(
@@ -495,15 +507,9 @@ void ZedCamera::getDebugParams()
     mDebugTerrainMapping ? "TRUE" : "FALSE");
 #endif
 
-  getParam("debug.debug_object_detection", mDebugObjectDet, mDebugObjectDet);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Object Detection: %s",
-    mDebugObjectDet ? "TRUE" : "FALSE");
-
-
   mDebugMode = mDebugCommon || mDebugVideoDepth || mDebugPointCloud ||
     mDebugPosTracking || mDebugGnss || mDebugSensors || mDebugMapping ||
-    mDebugObjectDet;
+    mDebugObjectDet || mDebugBodyTrack;
 
 #ifdef WITH_TM
   mDebugMode |= mDebugTerrainMapping;
@@ -1523,22 +1529,7 @@ void ZedCamera::getOdParams()
   getParam("object_detection.mc_sport", mObjDetSportEnable, mObjDetSportEnable, "", true);
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * MultiClassBox sport-related objects: " << (mObjDetSportEnable ? "TRUE" : "FALSE"));
-  int bodyFormat = 0;
-  getParam("object_detection.body_format", bodyFormat, bodyFormat);
-  mObjDetBodyFmt = static_cast<sl::BODY_FORMAT>(bodyFormat);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Body format: " << bodyFormat << " - " << sl::toString(mObjDetBodyFmt).c_str());
-  if (mObjDetBodyFmt == sl::BODY_FORMAT::BODY_38) {
-    RCLCPP_INFO_STREAM(
-      get_logger(), " * Skeleton fitting: TRUE (forced by `object_detection.body_format`)");
-    mObjDetBodyFitting = true;
-  } else {
-    getParam("object_detection.body_fitting", mObjDetBodyFitting, mObjDetBodyFitting);
-    RCLCPP_INFO_STREAM(
-      get_logger(), " * Skeleton fitting: " << (mObjDetBodyFitting ? "TRUE" : "FALSE"));
-  }
+    " * MultiClassBox sport-related objects: " << (mObjDetSportEnable ? "TRUE" : "FALSE"));  
   // ------------------------------------------
 
   paramName = "object_detection.qos_history";
@@ -1607,6 +1598,30 @@ void ZedCamera::getOdParams()
 
   RCLCPP_INFO(
     get_logger(), " * Obj. Det. QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
+}
+
+void ZedCamera::getSkTrackParams() {
+  rclcpp::Parameter paramVal;
+  std::string paramName;
+
+  rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+  int qos_depth = 1;
+  rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+  rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+
+  rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
+  read_only_descriptor.read_only = true;
+
+  RCLCPP_INFO(get_logger(), "*** BODY TRACKING parameters ***");
+  if (sl_tools::isZED(mCamUserModel)) {
+    RCLCPP_WARN(get_logger(), "!!! Sk. Tracking parameters are not used with ZED!!!");
+    return;
+  }
+
+  getParam("body_tracking.bt_enabled", mBodyTrackEnabled, mBodyTrackEnabled);
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Body Tracking enabled: " << (mBodyTrackEnabled ? "TRUE" : "FALSE"));
+
 }
 
 rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
@@ -7460,7 +7475,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
 
   //std::lock_guard<std::mutex> lock(mGnssDataMutex);
   sl::GNSSData gnssData;
-  gnssData.ts.setNanoseconds(ts_gnss_nsec);
+  gnssData.ts.setNanoseconds(ts_gnss_nsec);  
   gnssData.altitude = altit;
   gnssData.latitude = latit * DEG2RAD;
   gnssData.longitude = longit * DEG2RAD;

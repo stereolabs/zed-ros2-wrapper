@@ -3042,6 +3042,8 @@ bool ZedCamera::startCamera()
   // ----> Timestamp
   if (mSvoMode) {
     mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+  } else if (mSimEnabled) {
+    mFrameTimestamp = get_clock()->now(); // We must use the simulation time, not the SDK time
   } else {
     mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
   }
@@ -4190,30 +4192,34 @@ void ZedCamera::threadFunc_zedGrab()
       // ----> Timestamp
       if (mSvoMode) {
         mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+      } else if (mSimEnabled) {
+        mFrameTimestamp = get_clock()->now(); // We must use the simulation time, not the SDK time
       } else {
         mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
       }
       // <---- Timestamp
 
-      if (mGnssFusionEnabled && mGnssFixNew) {
-        mGnssFixNew = false;
+      if (!mSimEnabled) {
+        if (mGnssFusionEnabled && mGnssFixNew) {
+          mGnssFixNew = false;
 
-        rclcpp::Time real_frame_ts =
-          sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
-        DEBUG_STREAM_GNSS("GNSS synced frame ts: " << real_frame_ts.nanoseconds() << " nsec");
-        float dT_sec =
-          (static_cast<float>(real_frame_ts.nanoseconds()) -
-          static_cast<float>(mGnssTimestamp.nanoseconds())) / 1e9;
-        DEBUG_STREAM_GNSS(
-          "DeltaT: " << dT_sec << " sec [" <<
-            std::fixed << std::setprecision(9) <<
-            static_cast<float>(real_frame_ts.nanoseconds()) / 1e9 << "-" <<
-            static_cast<float>(mGnssTimestamp.nanoseconds()) / 1e9);
+          rclcpp::Time real_frame_ts =
+            sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+          DEBUG_STREAM_GNSS("GNSS synced frame ts: " << real_frame_ts.nanoseconds() << " nsec");
+          float dT_sec =
+            (static_cast<float>(real_frame_ts.nanoseconds()) -
+            static_cast<float>(mGnssTimestamp.nanoseconds())) / 1e9;
+          DEBUG_STREAM_GNSS(
+            "DeltaT: " << dT_sec << " sec [" <<
+              std::fixed << std::setprecision(9) <<
+              static_cast<float>(real_frame_ts.nanoseconds()) / 1e9 << "-" <<
+              static_cast<float>(mGnssTimestamp.nanoseconds()) / 1e9);
 
-        if (real_frame_ts.nanoseconds() < mGnssTimestamp.nanoseconds() ) {
-          RCLCPP_WARN_STREAM(
-            get_logger(), "GNSS sensor and ZED Timestamps are not good. dT = "
-              << dT_sec << " sec");
+          if (real_frame_ts.nanoseconds() < mGnssTimestamp.nanoseconds() ) {
+            RCLCPP_WARN_STREAM(
+              get_logger(), "GNSS sensor and ZED Timestamps are not good. dT = "
+                << dT_sec << " sec");
+          }
         }
       }
 
@@ -4364,13 +4370,13 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   if (mSvoMode || mSensCameraSync || mSimEnabled) {
     sl::ERROR_CODE err = mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
     if (err != sl::ERROR_CODE::SUCCESS) {
-      DEBUG_STREAM_SENS("sl::getSensorsData error: " << sl::toString(err).c_str());
+      RCLCPP_WARN_STREAM(get_logger(), "sl::getSensorsData error: " << sl::toString(err).c_str());
       return TIMEZERO_ROS;
     }
   } else {
     sl::ERROR_CODE err = mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
     if (err != sl::ERROR_CODE::SUCCESS) {
-      DEBUG_STREAM_SENS("sl::getSensorsData error: " << sl::toString(err).c_str());
+      RCLCPP_WARN_STREAM(get_logger(), "sl::getSensorsData error: " << sl::toString(err).c_str());
       return TIMEZERO_ROS;
     }
   }
@@ -4379,6 +4385,10 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
     ts_imu = t;
     ts_baro = t;
     ts_mag = t;
+  } else if (mSimEnabled) {
+    ts_imu = get_clock()->now();
+    ts_baro = ts_imu;
+    ts_mag = ts_imu;
   } else {
     ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
     ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
@@ -5015,50 +5025,50 @@ void ZedCamera::retrieveVideoDepth()
   if (mRgbSubnumber + mLeftSubnumber + mStereoSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveImage(mMatLeft, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
-    mGrabTS = mMatLeft.timestamp;
+    mSdkGrabTS = mMatLeft.timestamp;
     mRgbSubscribed = true;
   }
   if (mRgbRawSubnumber + mLeftRawSubnumber + mStereoRawSubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveImage(mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
-    mGrabTS = mMatLeftRaw.timestamp;
+    mSdkGrabTS = mMatLeftRaw.timestamp;
   }
   if (mRightSubnumber + mStereoSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveImage(mMatRight, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
-    mGrabTS = mMatRight.timestamp;
+    mSdkGrabTS = mMatRight.timestamp;
   }
   if (mRightRawSubnumber + mStereoRawSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveImage(
       mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
-    mGrabTS = mMatRightRaw.timestamp;
+    mSdkGrabTS = mMatRightRaw.timestamp;
   }
   if (mRgbGraySubnumber + mLeftGraySubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveImage(mMatLeftGray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResol);
-    mGrabTS = mMatLeftGray.timestamp;
+    mSdkGrabTS = mMatLeftGray.timestamp;
   }
   if (mRgbGrayRawSubnumber + mLeftGrayRawSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(
       mMatLeftRawGray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
       sl::MEM::CPU, mMatResol);
-    mGrabTS = mMatLeftRawGray.timestamp;
+    mSdkGrabTS = mMatLeftRawGray.timestamp;
   }
   if (mRightGraySubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveImage(mMatRightGray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResol);
-    mGrabTS = mMatRightGray.timestamp;
+    mSdkGrabTS = mMatRightGray.timestamp;
   }
   if (mRightGrayRawSubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveImage(
       mMatRightRawGray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResol);
-    mGrabTS = mMatRightRawGray.timestamp;
+    mSdkGrabTS = mMatRightRawGray.timestamp;
   }
   DEBUG_STREAM_VD("Video Data retrieved");
   DEBUG_STREAM_VD("Retrieving Depth Data");
@@ -5067,25 +5077,25 @@ void ZedCamera::retrieveVideoDepth()
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveMeasure(mMatDepth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResol);
-    mGrabTS = mMatDepth.timestamp;
+    mSdkGrabTS = mMatDepth.timestamp;
   }
   if (mDisparitySubnumber > 0) {
     DEBUG_STREAM_VD("Retrieving Disparity");
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveMeasure(mMatDisp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResol);
-    mGrabTS = mMatDisp.timestamp;
+    mSdkGrabTS = mMatDisp.timestamp;
   }
   if (mConfMapSubnumber > 0) {
     DEBUG_STREAM_VD("Retrieving Confidence");
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveMeasure(mMatConf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResol);
-    mGrabTS = mMatConf.timestamp;
+    mSdkGrabTS = mMatConf.timestamp;
   }
   if (mDepthInfoSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS == mZed.getCurrentMinMaxDepth(mMinDepth, mMaxDepth);
-    mGrabTS = mMatConf.timestamp;
+    mSdkGrabTS = mMatConf.timestamp;
   }
   DEBUG_STREAM_VD("Depth Data retrieved");
   // <---- Retrieve all required data
@@ -5118,7 +5128,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   vdElabTimer.tic();
 
   // ----> Check if a grab has been done before publishing the same images
-  if (mGrabTS.data_ns == lastZedTs.data_ns) {
+  if (mSdkGrabTS.data_ns == lastZedTs.data_ns) {
     out_pub_ts = TIMEZERO_ROS;
     // Data not updated by a grab calling in the grab thread
     DEBUG_STREAM_VD("publishVideoDepth: ignoring not update data");
@@ -5126,7 +5136,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   }
 
   if (lastZedTs.data_ns != 0) {
-    double period_sec = static_cast<double>(mGrabTS.data_ns - lastZedTs.data_ns) / 1e9;
+    double period_sec = static_cast<double>(mSdkGrabTS.data_ns - lastZedTs.data_ns) / 1e9;
     DEBUG_STREAM_VD(
       "VIDEO/DEPTH PUB LAST PERIOD: " << period_sec << " sec @" << 1. / period_sec << " Hz");
 
@@ -5135,16 +5145,16 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
       "VIDEO/DEPTH PUB MEAN PERIOD: " << mVideoDepthPeriodMean_sec->getAvg() << " sec @"
                                       << 1. / mVideoDepthPeriodMean_sec->getAvg() << " Hz");
   }
-  lastZedTs = mGrabTS;
+  lastZedTs = mSdkGrabTS;
   // <---- Check if a grab has been done before publishing the same images
 
   static rclcpp::Time timeStamp;
-  if (!mSvoMode) {
-    timeStamp = sl_tools::slTime2Ros(mGrabTS, get_clock()->get_clock_type());
-  } else {
+  if (mSvoMode || mSimEnabled) {
     // timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT),
     // get_clock()->get_clock_type());
     timeStamp = mFrameTimestamp;
+  } else {
+    timeStamp = sl_tools::slTime2Ros(mSdkGrabTS, get_clock()->get_clock_type());
   }
 
   out_pub_ts = timeStamp;
@@ -6295,11 +6305,11 @@ void ZedCamera::publishPointCloud()
 
   int ptsCount = width * height;
 
-  if (!mSvoMode) {
-    pcMsg->header.stamp = sl_tools::slTime2Ros(mMatCloud.timestamp);
-  } else {
+  if (mSvoMode || mSimEnabled) {
     // pcMsg->header.stamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
     pcMsg->header.stamp = mFrameTimestamp;
+  } else {
+    pcMsg->header.stamp = sl_tools::slTime2Ros(mMatCloud.timestamp);
   }
 
   // ---> Check that `pcMsg->header.stamp` is not the same of the latest published pointcloud
@@ -6518,7 +6528,11 @@ void ZedCamera::callback_pubFusedPc()
         float * cloud_pts = reinterpret_cast<float *>(mFusedPC.chunks[c].vertices.data());
         memcpy(ptCloudPtr, cloud_pts, 4 * chunkSize * sizeof(float));
         ptCloudPtr += 4 * chunkSize;
-        pointcloudFusedMsg->header.stamp = sl_tools::slTime2Ros(mFusedPC.chunks[c].timestamp);
+        if (mSvoMode || mSimEnabled) {
+          pointcloudFusedMsg->header.stamp = mFrameTimestamp;
+        } else {
+          pointcloudFusedMsg->header.stamp = sl_tools::slTime2Ros(mFusedPC.chunks[c].timestamp);
+        }
       }
     } else {
       index += mFusedPC.chunks[c].vertices.size();
@@ -6580,7 +6594,7 @@ bool ZedCamera::publishLocalMap()
   }
 
   static rclcpp::Time timeStamp;
-  if (!mSvoMode) {
+  if (!mSvoMode && !mSimEnabled) {
     timeStamp = sl_tools::slTime2Ros(mGrabTS, get_clock()->get_clock_type());
   } else {
     // timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT),

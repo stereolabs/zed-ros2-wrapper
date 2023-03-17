@@ -3,7 +3,7 @@ project(zed_components)
 
 ################################################
 # Build Options
-option(BUILD_WITH_TERRAIN_MAPPING "Enable the Terrain Mapping module. NOTE: THIS IS AN EXPERIMENTAL FEATURE NOT YET AVAILABLE" OFF)
+option(BUILD_WITH_TERRAIN_MAPPING "Enable the Terrain Mapping module. NOTE: THIS IS AN EXPERIMENTAL FEATURE NOT YET AVAILABLE" ON)
 ################################################
 
 ################################################

@@ -530,7 +530,7 @@ private:
   // <---- Publishers
 
   // <---- Publisher variables
-  sl::Timestamp mGrabTS = 0;
+  sl::Timestamp mSdkGrabTS = 0;
   size_t mRgbSubnumber = 0;
   size_t mRgbRawSubnumber = 0;
   size_t mRgbGraySubnumber = 0;

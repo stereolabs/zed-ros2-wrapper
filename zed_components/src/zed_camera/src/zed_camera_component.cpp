@@ -592,10 +592,12 @@ void ZedCamera::getGeneralParams()
     mSvoFilepath = "";
   }
 
-  getParam("general.svo_loop", mSvoLoop, mSvoLoop);
-  RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop ? "TRUE" : "FALSE");
-  getParam("general.svo_realtime", mSvoRealtime, mSvoRealtime);
-  RCLCPP_INFO(get_logger(), " * SVO Realtime: %s", mSvoRealtime ? "TRUE" : "FALSE");
+  if (!mSvoFilepath.empty()) {
+    getParam("general.svo_loop", mSvoLoop, mSvoLoop);
+    RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop ? "TRUE" : "FALSE");
+    getParam("general.svo_realtime", mSvoRealtime, mSvoRealtime);
+    RCLCPP_INFO(get_logger(), " * SVO Realtime: %s", mSvoRealtime ? "TRUE" : "FALSE");
+  }
   getParam("general.camera_name", mCameraName, mCameraName, " * Camera name: ");
   getParam("general.zed_id", mCamId, mCamId, " * Camera ID: ");
   getParam("general.serial_number", mCamSerialNumber, mCamSerialNumber, " * Camera SN: ");
@@ -612,7 +614,10 @@ void ZedCamera::getGeneralParams()
 
   std::string resol = "HD720";
   getParam("general.grab_resolution", resol, resol);
-  if (sl_tools::isZEDX(mCamUserModel)) {
+  if (resol == "AUTO") {
+    mCamResol = sl::RESOLUTION::AUTO;
+  } else if (sl_tools::isZEDX(mCamUserModel)) {
+    // TODO(Walter) Add support for HD1080 when available
     if (resol == "HD1200") {
       mCamResol = sl::RESOLUTION::HD1200;
     } else if (resol == "SVGA") {
@@ -620,7 +625,7 @@ void ZedCamera::getGeneralParams()
     } else {
       RCLCPP_WARN(
         get_logger(),
-        "Not valid 'general.grab_resolution' value. Using default setting.");
+        "Not valid 'general.grab_resolution' value: '%s'. Using 'AUTO' setting.", resol.c_str());
       mCamResol = sl::RESOLUTION::AUTO;
     }
     RCLCPP_INFO_STREAM(
@@ -637,7 +642,7 @@ void ZedCamera::getGeneralParams()
     } else {
       RCLCPP_WARN(
         get_logger(),
-        "Not valid 'general.grab_resolution' value. Using default setting.");
+        "Not valid 'general.grab_resolution' value: '%s'. Using 'AUTO' setting.", resol.c_str());
       mCamResol = sl::RESOLUTION::AUTO;
     }
     RCLCPP_INFO_STREAM(
@@ -818,6 +823,7 @@ void ZedCamera::getDepthParams()
     mode < static_cast<int>(sl::DEPTH_MODE::LAST); ++mode)
   {
     std::string test_str = sl::toString(static_cast<sl::DEPTH_MODE>(mode)).c_str();
+    std::replace(test_str.begin(), test_str.end(), ' ', '_'); // Replace spaces with underscores to match the YAML setting
     if (test_str == depth_mode_str) {
       matched = true;
       mDepthMode = static_cast<sl::DEPTH_MODE>(mode);
@@ -1436,6 +1442,46 @@ void ZedCamera::getOdParams()
   getParam("object_detection.od_enabled", mObjDetEnabled, mObjDetEnabled);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Object Detection enabled: " << (mObjDetEnabled ? "TRUE" : "FALSE"));
+
+  std::string model_str;
+  getParam("object_detection.model", model_str, model_str);
+
+  DEBUG_STREAM_OD(" 'object_detection.model': " << model_str.c_str());
+
+  bool matched = false;
+  for (int model_idx = static_cast<int>(sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST);
+    model_idx < static_cast<int>(sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS); model_idx++)
+  {
+    sl::OBJECT_DETECTION_MODEL test_model = static_cast<sl::OBJECT_DETECTION_MODEL>(model_idx);
+    std::string test_model_str = sl::toString(test_model).c_str();
+    std::replace(test_model_str.begin(), test_model_str.end(), ' ', '_'); // Replace spaces with underscores to match the YAML setting
+    //DEBUG_OD(" Comparing '%s' to '%s'", test_model_str.c_str(), model_str.c_str());
+    if (model_str == test_model_str) {
+      mObjDetModel = test_model;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value of the parameter 'object_detection.model' is not valid: '" << model_str <<
+        "'. Using the default value.");
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Object Detection model: " << sl::toString(mObjDetModel).c_str());
+
+
+  getParam(
+    "object_detection.allow_reduced_precision_inference", mObjDetReducedPrecision,
+    mObjDetReducedPrecision);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * OD allow reduced precision: " << (mObjDetReducedPrecision ? "TRUE" : "FALSE"));
+  getParam(
+    "object_detection.max_range", mObjDetMaxRange, mObjDetMaxRange,
+    " * OD maximum range [m]: ");
   getParam(
     "object_detection.confidence_threshold", mObjDetConfidence, mObjDetConfidence,
     " * OD min. confidence: ");
@@ -1444,12 +1490,7 @@ void ZedCamera::getOdParams()
     " * OD prediction timeout [sec]: ");
   getParam("object_detection.object_tracking_enabled", mObjDetTracking, mObjDetTracking);
   RCLCPP_INFO_STREAM(get_logger(), " * OD tracking: " << (mObjDetTracking ? "TRUE" : "FALSE"));
-  int model = 0;
-  getParam("object_detection.model", model, model);
-  mObjDetModel = static_cast<sl::OBJECT_DETECTION_MODEL>(model);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Object Detection model: " << model << " - " << sl::toString(mObjDetModel).c_str());
+
   int filtering_mode = static_cast<int>(mObjFilterMode);
   getParam("object_detection.filtering_mode", filtering_mode, filtering_mode);
   mObjFilterMode = static_cast<sl::OBJECT_FILTERING_MODE>(filtering_mode);
@@ -2742,7 +2783,6 @@ bool ZedCamera::startCamera()
 
     if (mSvoMode) {
       RCLCPP_WARN(get_logger(), "Error opening SVO: %s", sl::toString(mConnStatus).c_str());
-
       return false;
     } else if (mSimEnabled) {
       RCLCPP_WARN(
@@ -2750,7 +2790,6 @@ bool ZedCamera::startCamera()
           mConnStatus).c_str());
     } else {
       RCLCPP_WARN(get_logger(), "Error opening camera: %s", sl::toString(mConnStatus).c_str());
-
       if (mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE &&
         sl_tools::isZEDM(mCamUserModel))
       {
@@ -2763,13 +2802,11 @@ bool ZedCamera::startCamera()
 
     if (!rclcpp::ok() || mThreadStop) {
       RCLCPP_INFO(get_logger(), "ZED activation interrupted by user.");
-
       return false;
     }
 
     if (connectTimer.toc() > mMaxReconnectTemp * mCamTimeoutSec) {
       RCLCPP_ERROR(get_logger(), "Camera detection timeout");
-
       return false;
     }
 
@@ -3497,16 +3534,17 @@ bool ZedCamera::startObjDetect()
   RCLCPP_INFO(get_logger(), "*** Starting Object Detection ***");
 
   sl::ObjectDetectionParameters od_p;
-  //od_p.enable_mask_output = false;
+  od_p.enable_segmentation = false;
   od_p.enable_tracking = mObjDetTracking;
   od_p.image_sync = true;
   od_p.detection_model = mObjDetModel;
   od_p.filtering_mode = mObjFilterMode;
-  //od_p.enable_body_fitting = mObjDetBodyFitting;
-  //od_p.body_format = mObjDetBodyFmt;
   od_p.prediction_timeout_s = mObjDetPredTimeout;
+  od_p.allow_reduced_precision_inference = mObjDetReducedPrecision;
+  od_p.max_range = mObjDetMaxRange;
 
-  // TODO(Walter) check new SDK v4 parameters
+  // TODO(Walter) Consider adding future support for `instance_module_id`
+  //od_p.instance_module_id = 0;
 
   mObjDetFilter.clear();
   if (mObjDetPeopleEnable) {
@@ -5939,7 +5977,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     idx++;
   }
 
-  DEBUG_STREAM_OD("Publishing OBJ DET message");
+  //DEBUG_STREAM_OD("Publishing OBJ DET message");
   mPubObjDet->publish(std::move(objMsg));
 
   // ----> Diagnostic information update

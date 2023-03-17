@@ -64,6 +64,7 @@
     get_logger(), stream_arg)
 
 // Object Detection
+#define DEBUG_OD(...) if (mDebugObjectDet) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_OD(stream_arg) if (mDebugObjectDet) RCLCPP_DEBUG_STREAM( \
     get_logger(), stream_arg)
 

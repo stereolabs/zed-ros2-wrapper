@@ -333,6 +333,8 @@ private:
   bool mObjDetTracking = true;
   float mObjDetConfidence = 40.0f;
   double mObjDetPredTimeout = 0.5;
+  bool mObjDetReducedPrecision = false;
+  float mObjDetMaxRange = 15.0f;
   std::vector<sl::OBJECT_CLASS> mObjDetFilter;
   bool mObjDetPeopleEnable = true;
   bool mObjDetVehiclesEnable = true;
@@ -342,9 +344,11 @@ private:
   bool mObjDetFruitsEnable = true;
   bool mObjDetSportEnable = true;
   bool mObjDetBodyFitting = false;
-  sl::BODY_FORMAT mObjDetBodyFmt = sl::BODY_FORMAT::BODY_38;
   sl::OBJECT_DETECTION_MODEL mObjDetModel = sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST;
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
+
+  sl::BODY_FORMAT mObjDetBodyFmt = sl::BODY_FORMAT::BODY_38;
+
 
   // TODO(Walter) remove QoS parameters, use instead the new ROS2 Humble QoS settings engine
 

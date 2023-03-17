@@ -1,11 +1,17 @@
 LATEST CHANGES
 ==============
 
+2023-03-17
+----------
+- Add `object_detection.allow_reduced_precision_inference` to allow inference to run at a lower precision to improve runtime and memory usage
+- Add `object_detection.max_range` to defines a upper depth range for detections
+- Remove `object_detection.body_format`
+
 2023-03-16
 ----------
-- Remove 'depth.quality' parameter (replaced with 'depth.depth_mode')
-- Add 'depth.depth_mode' parameter: a string reflecting the ZED SDK `DEPTH_MODE` available values
-- The parameter 'depth.depth_stabilization' is now an integer in [0,100] reflecting ZED SDK behavior
+- Remove `depth.quality` parameter (replaced with `depth.depth_mode`)
+- Add `depth.depth_mode` parameter: a string reflecting the ZED SDK `DEPTH_MODE` available value names
+- The parameter `depth.depth_stabilization` is now an integer in [0,100] reflecting ZED SDK behavior
 
 2023-03-15
 ----------

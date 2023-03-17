@@ -12,7 +12,7 @@
         general:
             svo_file: "" # usually overwritten by launch file
             svo_loop: false # Enable loop mode when using an SVO as input source
-            svo_realtime: true # if true SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
+            svo_realtime: true # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
             camera_timeout_sec: 5
             camera_max_reconnect: 5
             camera_flip: false
@@ -78,11 +78,11 @@
             path_max_count: -1 # use '-1' for unlimited path size
             two_d_mode: false # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
             fixed_z_value: 0.00 # Value to be used for Z coordinate if `two_d_mode` is true
+            transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->base_link`` transform being generated
             qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
             qos_depth: 1 # Queue size if using KEEP_LAST
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT
-            qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
-            transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->base_link`` transform being generated
+            qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE           
 
         gnss_fusion:
             gnss_fusion_enabled: false # fuse 'sensor_msg/NavSatFix' message information into pose data
@@ -123,10 +123,12 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         object_detection:
-            od_enabled: false # True to enable Object Detection [only ZED 2]
+            od_enabled: false # True to enable Object Detection
+            model: 'MULTI_CLASS_BOX_FAST' # Object Detection module: 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE'
+            allow_reduced_precision_inference: true # Allow inference to run at a lower precision to improve runtime and memory usage
+            max_range: 15.0 # [m] Defines a upper depth range for detections
             confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,100]
-            prediction_timeout: 0.5 # During this time [sec], the object will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
-            model: 0 # '0': MULTI_CLASS_BOX - '1': MULTI_CLASS_BOX_ACCURATE - '2': HUMAN_BODY_FAST - '3': HUMAN_BODY_ACCURATE - '4': MULTI_CLASS_BOX_MEDIUM - '5': HUMAN_BODY_MEDIUM - '6': PERSON_HEAD_BOX
+            prediction_timeout: 0.5 # During this time [sec], the object will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions            
             filtering_mode: 1 # '0': NONE - '1': NMS3D - '2': NMS3D_PER_CLASS
             mc_people: true # [DYNAMIC] - Enable/disable the detection of persons for 'MULTI_CLASS_X' models
             mc_vehicle: true # [DYNAMIC] - Enable/disable the detection of vehicles for 'MULTI_CLASS_X' models
@@ -141,6 +143,9 @@
             qos_depth: 1 # Queue size if using KEEP_LAST
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
+        
+        skeleton_tracking:
+            skel_enabled: false # True to enable Skeleton Tracking
 
         debug:
             debug_common: false
@@ -151,4 +156,4 @@
             debug_sensors: false
             debug_mapping : false
             debug_terrain_mapping : false
-            debug_object_detection : false
+            debug_object_detection : true

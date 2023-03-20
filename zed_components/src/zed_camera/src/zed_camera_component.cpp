@@ -3286,8 +3286,9 @@ bool ZedCamera::startCamera()
       std::make_shared<sl::FusionConfiguration>();
 
     if (mSimEnabled) {
-      mFusionConfig->input_type.setFromStream(mSimAddr.c_str(), mSimPort);
-      mFusionConfig->communication_parameters.setForLocalNetwork(mSimAddr.c_str(), mSimPort);
+      //TODO Modify when support for streaming input is added
+      mFusionConfig->input_type.setFromSerialNumber(mCamSerialNumber);
+      mFusionConfig->communication_parameters.setForSharedMemory();
     } else if (mSvoMode) {
       mFusionConfig->input_type.setFromSVOFile(mSvoFilepath.c_str());
       mFusionConfig->communication_parameters.setForSharedMemory();

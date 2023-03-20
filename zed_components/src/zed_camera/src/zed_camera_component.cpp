@@ -6515,7 +6515,7 @@ bool ZedCamera::publishLocalMap()
 
   static rclcpp::Time timeStamp;
   if (!mSvoMode && !mSimEnabled) {
-    timeStamp = sl_tools::slTime2Ros(mGrabTS, get_clock()->get_clock_type());
+    timeStamp = sl_tools::slTime2Ros(mSdkGrabTS, get_clock()->get_clock_type());
   } else {
     // timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT),
     // get_clock()->get_clock_type());

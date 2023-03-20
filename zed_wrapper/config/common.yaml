@@ -124,7 +124,7 @@
 
         object_detection:
             od_enabled: false # True to enable Object Detection
-            model: 'MULTI_CLASS_BOX_FAST' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE'
+            model: 'PERSON_HEAD_BOX_ACCURATE' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE'
             allow_reduced_precision_inference: true # Allow inference to run at a lower precision to improve runtime and memory usage
             max_range: 15.0 # [m] Defines a upper depth range for detections
             confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,100]
@@ -143,12 +143,12 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
         
         body_tracking:
-            bt_enabled: false # True to enable Body Tracking
-            detection_model: 'HUMAN_BODY_FAST' # 'HUMAN_BODY_FAST', 'HUMAN_BODY_MEDIUM', 'HUMAN_BODY_ACCURATE'
+            bt_enabled: true # True to enable Body Tracking
+            model: 'HUMAN_BODY_FAST' # 'HUMAN_BODY_FAST', 'HUMAN_BODY_MEDIUM', 'HUMAN_BODY_ACCURATE'
             body_format: 'BODY_70' # 'BODY_18','BODY_34','BODY_38','BODY_70'
             allow_reduced_precision_inference: true # Allow inference to run at a lower precision to improve runtime and memory usage
             max_range: 15.0 # [m] Defines a upper depth range for detections
-            body_selection: 'FULL' # 'FULL', 'UPPER_BODY'
+            body_kp_selection: 'UPPER_BODY' # 'FULL', 'UPPER_BODY'
             enable_body_fitting: true # Defines if the body fitting will be applied
             enable_tracking: true # Defines if the object detection will track objects across images flow
             prediction_timeout_s: 0.5 # During this time [sec], the skeleton will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
@@ -166,5 +166,5 @@
             debug_sensors: false
             debug_mapping : false
             debug_terrain_mapping : false
-            debug_object_detection : true
+            debug_object_detection : false
             debug_body_tracking : true

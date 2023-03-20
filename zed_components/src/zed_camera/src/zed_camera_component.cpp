@@ -74,6 +74,7 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mPoseQos(1),
   mMappingQos(1),
   mObjDetQos(1),
+  mBodyTrkQos(1),
   mClickedPtQos(1),
   mGnssFixQos(1)
 {
@@ -388,7 +389,7 @@ void ZedCamera::initParameters()
   if (!mDepthDisabled) {
     if (sl_tools::isObjDetAvailable(mCamUserModel)) {
       getOdParams();
-      getSkTrackParams();
+      getBodyTrackParams();
     }
   } else {
     mObjDetEnabled = false;
@@ -1455,10 +1456,10 @@ void ZedCamera::getOdParams()
   DEBUG_STREAM_OD(" 'object_detection.model': " << model_str.c_str());
 
   bool matched = false;
-  for (int model_idx = static_cast<int>(sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST);
-    model_idx < static_cast<int>(sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS); model_idx++)
+  for (int idx = static_cast<int>(sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST);
+    idx < static_cast<int>(sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS); idx++)
   {
-    sl::OBJECT_DETECTION_MODEL test_model = static_cast<sl::OBJECT_DETECTION_MODEL>(model_idx);
+    sl::OBJECT_DETECTION_MODEL test_model = static_cast<sl::OBJECT_DETECTION_MODEL>(idx);
     std::string test_model_str = sl::toString(test_model).c_str();
     std::replace(test_model_str.begin(), test_model_str.end(), ' ', '_'); // Replace spaces with underscores to match the YAML setting
     //DEBUG_OD(" Comparing '%s' to '%s'", test_model_str.c_str(), model_str.c_str());
@@ -1529,7 +1530,7 @@ void ZedCamera::getOdParams()
   getParam("object_detection.mc_sport", mObjDetSportEnable, mObjDetSportEnable, "", true);
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * MultiClassBox sport-related objects: " << (mObjDetSportEnable ? "TRUE" : "FALSE"));  
+    " * MultiClassBox sport-related objects: " << (mObjDetSportEnable ? "TRUE" : "FALSE"));
   // ------------------------------------------
 
   paramName = "object_detection.qos_history";
@@ -1600,7 +1601,8 @@ void ZedCamera::getOdParams()
     get_logger(), " * Obj. Det. QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 }
 
-void ZedCamera::getSkTrackParams() {
+void ZedCamera::getBodyTrackParams()
+{
   rclcpp::Parameter paramVal;
   std::string paramName;
 
@@ -1614,13 +1616,186 @@ void ZedCamera::getSkTrackParams() {
 
   RCLCPP_INFO(get_logger(), "*** BODY TRACKING parameters ***");
   if (sl_tools::isZED(mCamUserModel)) {
-    RCLCPP_WARN(get_logger(), "!!! Sk. Tracking parameters are not used with ZED!!!");
+    RCLCPP_WARN(get_logger(), "!!! Body Tracking parameters are not used with ZED!!!");
     return;
   }
 
   getParam("body_tracking.bt_enabled", mBodyTrackEnabled, mBodyTrackEnabled);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Body Tracking enabled: " << (mBodyTrackEnabled ? "TRUE" : "FALSE"));
+
+  bool matched = false;
+
+  std::string model_str = "HUMAN_BODY_FAST";
+  getParam("body_tracking.model", model_str, model_str);
+
+  for (int idx = static_cast<int>(sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST);
+    idx < static_cast<int>(sl::BODY_TRACKING_MODEL::LAST); idx++)
+  {
+    sl::BODY_TRACKING_MODEL test_model = static_cast<sl::BODY_TRACKING_MODEL>(idx);
+    std::string test_model_str = sl::toString(test_model).c_str();
+    std::replace(test_model_str.begin(), test_model_str.end(), ' ', '_'); // Replace spaces with underscores to match the YAML setting
+    //DEBUG_BT(" Comparing '%s' to '%s'", test_model_str.c_str(), model_str.c_str());
+    if (model_str == test_model_str) {
+      mBodyTrackModel = test_model;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value of the parameter 'body_tracking.model' is not valid: '" << model_str <<
+        "'. Using the default value.");
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Body Tracking model: " << sl::toString(mBodyTrackModel).c_str());
+
+  std::string fmt_str = "BODY_70";
+  getParam("body_tracking.body_format", fmt_str, fmt_str);
+
+  for (int idx = static_cast<int>(sl::BODY_FORMAT::BODY_18);
+    idx < static_cast<int>(sl::BODY_FORMAT::LAST); idx++)
+  {
+    sl::BODY_FORMAT test_fmt = static_cast<sl::BODY_FORMAT>(idx);
+    std::string test_fmt_str = sl::toString(test_fmt).c_str();
+    std::replace(test_fmt_str.begin(), test_fmt_str.end(), ' ', '_'); // Replace spaces with underscores to match the YAML setting
+    //DEBUG_BT(" Comparing '%s' to '%s'", test_fmt_str.c_str(), test_fmt.c_str());
+    if (fmt_str == test_fmt_str) {
+      mBodyTrackFmt = test_fmt;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value of the parameter 'body_tracking.body_format' is not valid: '" << fmt_str <<
+        "'. Using the default value.");
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Body Tracking format: " << sl::toString(mBodyTrackFmt).c_str());
+
+  getParam(
+    "body_tracking.allow_reduced_precision_inference", mBodyTrackReducedPrecision,
+    mBodyTrackReducedPrecision);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Body Track. allow reduced precision: " << (mObjDetReducedPrecision ? "TRUE" : "FALSE"));
+  getParam(
+    "body_tracking.max_range", mBodyTrackMaxRange, mBodyTrackMaxRange,
+    " * Body Track. maximum range [m]: ");
+
+  std::string body_sel_str = "FULL";
+  getParam("body_selection.body_kp_selection", body_sel_str, body_sel_str);
+
+  DEBUG_BT("body_selection.body_kp_selection: %s", body_sel_str.c_str());
+
+  for (int idx = static_cast<int>(sl::BODY_KEYPOINTS_SELECTION::FULL);
+    idx < static_cast<int>(sl::BODY_KEYPOINTS_SELECTION::LAST); idx++)
+  {
+    sl::BODY_KEYPOINTS_SELECTION test_kp_sel = static_cast<sl::BODY_KEYPOINTS_SELECTION>(idx);
+    std::string test_body_sel_str = sl::toString(test_kp_sel).c_str();
+    std::replace(test_body_sel_str.begin(), test_body_sel_str.end(), ' ', '_'); // Replace spaces with underscores to match the YAML setting
+    DEBUG_BT(" Comparing '%s' to '%s'", test_body_sel_str.c_str(), body_sel_str.c_str());
+    if (body_sel_str == test_body_sel_str) {
+      mBodyTrackKpSelection = test_kp_sel;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value of the parameter 'body_tracking.body_kp_selection' is not valid: '" << body_sel_str <<
+        "'. Using the default value.");
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Body Tracking KP selection: " << sl::toString(mBodyTrackKpSelection).c_str());
+
+
+/*
+  bool mBodyTrackFitting = true;
+  bool mBodyTrackEnableTracking = true;
+  double mBodyTrackPredTimeout = 0.5;
+
+  : 'FULL' # 'FULL', 'UPPER_BODY'
+  enable_body_fitting: true # Defines if the body fitting will be applied
+  enable_tracking: true # Defines if the object detection will track objects across images flow
+  prediction_timeout_s: 0.5 # During this time [sec], the skeleton will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
+  */
+
+  // ------------------------------------------
+
+  paramName = "body_tracking.qos_history";
+  declare_parameter(paramName, rclcpp::ParameterValue(qos_hist), read_only_descriptor);
+
+  if (get_parameter(paramName, paramVal)) {
+    qos_hist =
+      paramVal.as_int() == 1 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+    mBodyTrkQos.history(qos_hist);
+  } else {
+    RCLCPP_WARN(
+      get_logger(), "The parameter '%s' is not available, using the default value",
+      paramName.c_str());
+  }
+
+  RCLCPP_INFO(get_logger(), " * Body Track. QoS History: %s", sl_tools::qos2str(qos_hist).c_str());
+
+  // ------------------------------------------
+
+  paramName = "body_tracking.qos_depth";
+  declare_parameter(paramName, rclcpp::ParameterValue(qos_depth), read_only_descriptor);
+
+  if (get_parameter(paramName, paramVal)) {
+    qos_depth = paramVal.as_int();
+    mBodyTrkQos.keep_last(qos_depth);
+  } else {
+    RCLCPP_WARN(
+      get_logger(), "The parameter '%s' is not available, using the default value",
+      paramName.c_str());
+  }
+
+  RCLCPP_INFO(get_logger(), " * Body Track. QoS History depth: %d", qos_depth);
+
+  // ------------------------------------------
+
+  paramName = "body_tracking.qos_reliability";
+  declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability), read_only_descriptor);
+
+  if (get_parameter(paramName, paramVal)) {
+    qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+      RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    mBodyTrkQos.reliability(qos_reliability);
+  } else {
+    RCLCPP_WARN(
+      get_logger(), "The parameter '%s' is not available, using the default value",
+      paramName.c_str());
+  }
+
+  RCLCPP_INFO(
+    get_logger(), " * Body Track. QoS Reliability: %s", sl_tools::qos2str(qos_reliability).c_str());
+
+  // ------------------------------------------
+
+  paramName = "body_tracking.qos_durability";
+  declare_parameter(paramName, rclcpp::ParameterValue(qos_durability), read_only_descriptor);
+
+  if (get_parameter(paramName, paramVal)) {
+    qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+      RMW_QOS_POLICY_DURABILITY_VOLATILE;
+    mBodyTrkQos.durability(qos_durability);
+  } else {
+    RCLCPP_WARN(
+      get_logger(), "The parameter '%s' is not available, using the default value",
+      paramName.c_str());
+  }
+
+  RCLCPP_INFO(
+    get_logger(), " * Body Track. QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 
 }
 
@@ -5150,8 +5325,6 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   static rclcpp::Time timeStamp;
   if (mSvoMode || mSimEnabled) {
-    // timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT),
-    // get_clock()->get_clock_type());
     timeStamp = mFrameTimestamp;
   } else {
     timeStamp = sl_tools::slTime2Ros(mSdkGrabTS, get_clock()->get_clock_type());
@@ -6594,12 +6767,10 @@ bool ZedCamera::publishLocalMap()
   }
 
   static rclcpp::Time timeStamp;
-  if (!mSvoMode && !mSimEnabled) {
-    timeStamp = sl_tools::slTime2Ros(mGrabTS, get_clock()->get_clock_type());
-  } else {
-    // timeStamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT),
-    // get_clock()->get_clock_type());
+  if (mSvoMode || mSimEnabled) {
     timeStamp = mFrameTimestamp;
+  } else {
+    timeStamp = sl_tools::slTime2Ros(mSdkGrabTS, get_clock()->get_clock_type());
   }
 
   size_t imgColSub = 0;
@@ -7489,7 +7660,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
 
   //std::lock_guard<std::mutex> lock(mGnssDataMutex);
   sl::GNSSData gnssData;
-  gnssData.ts.setNanoseconds(ts_gnss_nsec);  
+  gnssData.ts.setNanoseconds(ts_gnss_nsec);
   gnssData.altitude = altit;
   gnssData.latitude = latit * DEG2RAD;
   gnssData.longitude = longit * DEG2RAD;

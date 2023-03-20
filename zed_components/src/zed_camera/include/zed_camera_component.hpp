@@ -52,11 +52,11 @@ protected:
   void getSensorsParams();
   void getMappingParams();
   void getOdParams();
-  void getSkTrackParams();
+  void getBodyTrackParams();
 #ifdef WITH_TM
   void getTerrainMappingParams();
 #endif
-  
+
 
   void setTFCoordFrameNames();
   void initPublishers();
@@ -357,7 +357,7 @@ private:
   sl::BODY_FORMAT mBodyTrackFmt = sl::BODY_FORMAT::BODY_38;
   bool mBodyTrackReducedPrecision = false;
   float mBodyTrackMaxRange = 15.0f;
-  sl::BODY_KEYPOINTS_SELECTION mBodyTrackSelection = sl::BODY_KEYPOINTS_SELECTION::FULL;
+  sl::BODY_KEYPOINTS_SELECTION mBodyTrackKpSelection = sl::BODY_KEYPOINTS_SELECTION::FULL;
   bool mBodyTrackFitting = true;
   bool mBodyTrackEnableTracking = true;
   double mBodyTrackPredTimeout = 0.5;
@@ -372,6 +372,7 @@ private:
   rclcpp::QoS mPoseQos;
   rclcpp::QoS mMappingQos;
   rclcpp::QoS mObjDetQos;
+  rclcpp::QoS mBodyTrkQos;
   rclcpp::QoS mClickedPtQos;
   rclcpp::QoS mGnssFixQos;
   // <---- Parameter variables

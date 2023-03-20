@@ -139,6 +139,11 @@ ZedCamera::~ZedCamera()
     stopObjDetect();
   }
 
+  if (mBodyTrackRunning) {
+    std::lock_guard<std::mutex> lock(mBodyTrackMutex);
+    stopBodyTracking();
+  }
+
   if (mSpatialMappingRunning) {
     std::lock_guard<std::mutex> lock(mMappingMutex);
     stop3dMapping();
@@ -385,7 +390,7 @@ void ZedCamera::initParameters()
   }
 #endif
 
-  // OD PARAMETERS
+  // AI PARAMETERS
   if (!mDepthDisabled) {
     if (sl_tools::isObjDetAvailable(mCamUserModel)) {
       getOdParams();
@@ -1440,7 +1445,7 @@ void ZedCamera::getOdParams()
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
 
-  RCLCPP_INFO(get_logger(), "*** OBJECT DETECTION parameters ***");
+  RCLCPP_INFO(get_logger(), "*** Object Det. parameters ***");
   if (sl_tools::isZED(mCamUserModel)) {
     RCLCPP_WARN(get_logger(), "!!! OD parameters are not used with ZED!!!");
     return;
@@ -1448,7 +1453,7 @@ void ZedCamera::getOdParams()
 
   getParam("object_detection.od_enabled", mObjDetEnabled, mObjDetEnabled);
   RCLCPP_INFO_STREAM(
-    get_logger(), " * Object Detection enabled: " << (mObjDetEnabled ? "TRUE" : "FALSE"));
+    get_logger(), " * Object Det. enabled: " << (mObjDetEnabled ? "TRUE" : "FALSE"));
 
   std::string model_str;
   getParam("object_detection.model", model_str, model_str);
@@ -1477,7 +1482,7 @@ void ZedCamera::getOdParams()
   }
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Object Detection model: " << sl::toString(mObjDetModel).c_str());
+    " * Object Det. model: " << sl::toString(mObjDetModel).c_str());
 
 
   getParam(
@@ -1485,18 +1490,20 @@ void ZedCamera::getOdParams()
     mObjDetReducedPrecision);
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * OD allow reduced precision: " << (mObjDetReducedPrecision ? "TRUE" : "FALSE"));
+    " * Object Det. allow reduced precision: " << (mObjDetReducedPrecision ? "TRUE" : "FALSE"));
   getParam(
     "object_detection.max_range", mObjDetMaxRange, mObjDetMaxRange,
-    " * OD maximum range [m]: ");
+    " * Object Det. maximum range [m]: ");
   getParam(
     "object_detection.confidence_threshold", mObjDetConfidence, mObjDetConfidence,
-    " * OD min. confidence: ");
+    " * Object Det. min. confidence: ", true);
   getParam(
     "object_detection.prediction_timeout", mObjDetPredTimeout, mObjDetPredTimeout,
-    " * OD prediction timeout [sec]: ");
+    " * Object Det. prediction timeout [sec]: ");
   getParam("object_detection.object_tracking_enabled", mObjDetTracking, mObjDetTracking);
-  RCLCPP_INFO_STREAM(get_logger(), " * OD tracking: " << (mObjDetTracking ? "TRUE" : "FALSE"));
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Object Det. tracking: " << (mObjDetTracking ? "TRUE" : "FALSE"));
 
   int filtering_mode = static_cast<int>(mObjFilterMode);
   getParam("object_detection.filtering_mode", filtering_mode, filtering_mode);
@@ -1614,7 +1621,7 @@ void ZedCamera::getBodyTrackParams()
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
 
-  RCLCPP_INFO(get_logger(), "*** BODY TRACKING parameters ***");
+  RCLCPP_INFO(get_logger(), "*** Body Track. parameters ***");
   if (sl_tools::isZED(mCamUserModel)) {
     RCLCPP_WARN(get_logger(), "!!! Body Tracking parameters are not used with ZED!!!");
     return;
@@ -1622,7 +1629,7 @@ void ZedCamera::getBodyTrackParams()
 
   getParam("body_tracking.bt_enabled", mBodyTrackEnabled, mBodyTrackEnabled);
   RCLCPP_INFO_STREAM(
-    get_logger(), " * Body Tracking enabled: " << (mBodyTrackEnabled ? "TRUE" : "FALSE"));
+    get_logger(), " * Body Track. enabled: " << (mBodyTrackEnabled ? "TRUE" : "FALSE"));
 
   bool matched = false;
 
@@ -1650,7 +1657,7 @@ void ZedCamera::getBodyTrackParams()
   }
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Body Tracking model: " << sl::toString(mBodyTrackModel).c_str());
+    " * Body Track. model: " << sl::toString(mBodyTrackModel).c_str());
 
   std::string fmt_str = "BODY_70";
   getParam("body_tracking.body_format", fmt_str, fmt_str);
@@ -1676,7 +1683,7 @@ void ZedCamera::getBodyTrackParams()
   }
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Body Tracking format: " << sl::toString(mBodyTrackFmt).c_str());
+    " * Body Track. format: " << sl::toString(mBodyTrackFmt).c_str());
 
   getParam(
     "body_tracking.allow_reduced_precision_inference", mBodyTrackReducedPrecision,
@@ -1689,7 +1696,9 @@ void ZedCamera::getBodyTrackParams()
     " * Body Track. maximum range [m]: ");
 
   std::string body_sel_str = "FULL";
-  getParam("body_selection.body_kp_selection", body_sel_str, body_sel_str);
+  getParam(
+    "body_tracking.body_kp_selection", body_sel_str, body_sel_str,
+    " * Body Track. KP selection: ");
 
   DEBUG_BT("body_selection.body_kp_selection: %s", body_sel_str.c_str());
 
@@ -1712,21 +1721,26 @@ void ZedCamera::getBodyTrackParams()
       "The value of the parameter 'body_tracking.body_kp_selection' is not valid: '" << body_sel_str <<
         "'. Using the default value.");
   }
+
+  getParam("body_tracking.enable_body_fitting", mBodyTrackFitting, mBodyTrackFitting);
   RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Body Tracking KP selection: " << sl::toString(mBodyTrackKpSelection).c_str());
+    get_logger(), " * Body fitting: " << (mBodyTrackFitting ? "TRUE" : "FALSE"));
 
+  getParam("body_tracking.enable_tracking", mBodyTrackEnableTracking, mBodyTrackEnableTracking);
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Body joints tracking: " << (mBodyTrackEnableTracking ? "TRUE" : "FALSE"));
 
-/*
-  bool mBodyTrackFitting = true;
-  bool mBodyTrackEnableTracking = true;
-  double mBodyTrackPredTimeout = 0.5;
+  getParam(
+    "body_tracking.prediction_timeout_s", mBodyTrackPredTimeout, mBodyTrackPredTimeout,
+    " * Body Track. prediction timeout [sec]: ");
 
-  : 'FULL' # 'FULL', 'UPPER_BODY'
-  enable_body_fitting: true # Defines if the body fitting will be applied
-  enable_tracking: true # Defines if the object detection will track objects across images flow
-  prediction_timeout_s: 0.5 # During this time [sec], the skeleton will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
-  */
+  getParam(
+    "body_tracking.confidence_threshold", mBodyTrackConfThresh, mBodyTrackConfThresh,
+    " * Body Track. confidence thresh.: ", true);
+
+  getParam(
+    "body_tracking.minimum_keypoints_threshold", mBodyTrackMinKp, mBodyTrackMinKp,
+    " * Body Track. min. KP thresh.: ", true);
 
   // ------------------------------------------
 
@@ -2343,6 +2357,52 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
           (mObjDetSportEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() == "body_tracking.confidence_threshold") {
+      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+      if (param.get_type() != correctType) {
+        result.successful = false;
+        result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+        RCLCPP_WARN_STREAM(get_logger(), result.reason);
+        break;
+      }
+
+      double val = param.as_double();
+
+      if ((val < 0.0) || (val >= 100.0)) {
+        result.successful = false;
+        result.reason =
+          param.get_name() + " must be positive double value in the range [0.0,100.0[";
+        RCLCPP_WARN_STREAM(get_logger(), result.reason);
+        break;
+      }
+
+      mBodyTrackConfThresh = val;
+
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+    } else if (param.get_name() == "body_tracking.minimum_keypoints_threshold") {
+      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+      if (param.get_type() != correctType) {
+        result.successful = false;
+        result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+        RCLCPP_WARN_STREAM(get_logger(), result.reason);
+        break;
+      }
+
+      double val = param.as_int();
+
+      if ((val < 0) || (val > 70)) {
+        result.successful = false;
+        result.reason =
+          param.get_name() + " must be positive double value in the range [0,70]";
+        RCLCPP_WARN_STREAM(get_logger(), result.reason);
+        break;
+      }
+
+      mBodyTrackMinKp = val;
+
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
     }
   }
 
@@ -2624,6 +2684,9 @@ void ZedCamera::initPublishers()
 
   std::string object_det_topic_root = "obj_det";
   mObjectDetTopic = mTopicRoot + object_det_topic_root + "/objects";
+
+  std::string body_trk_topic_root = "body_trk";
+  mBodyTrackTopic = mTopicRoot + body_trk_topic_root + "/skeletons";
 
   std::string confImgRoot = "confidence";
   std::string conf_map_topic_name = "confidence_map";
@@ -3233,6 +3296,8 @@ bool ZedCamera::startCamera()
   mPcProcMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
   mObjDetPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
   mObjDetElabMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
+  mBodyTrackPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
+  mBodyTrackElabMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
   mImuPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
   mBaroPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
   mMagPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
@@ -3526,6 +3591,7 @@ bool ZedCamera::startPosTracking()
 
 bool ZedCamera::start3dMapping()
 {
+  DEBUG_MAP("start3dMapping");
   if (mDepthDisabled) {
     RCLCPP_WARN(get_logger(), "Cannot start 3D Mapping if `depth.quality` is set to `0` [NONE]");
     return false;
@@ -3699,6 +3765,8 @@ void ZedCamera::stopTerrainMapping()
 
 bool ZedCamera::startObjDetect()
 {
+  DEBUG_OD("startObjDetect");
+
   if (!sl_tools::isObjDetAvailable(mCamRealModel)) {
     RCLCPP_ERROR(
       get_logger(),
@@ -3721,7 +3789,7 @@ bool ZedCamera::startObjDetect()
   }
 
   if (!mCamera2BaseTransfValid || !mSensor2CameraTransfValid || !mSensor2BaseTransfValid) {
-    DEBUG_STREAM_PT("Tracking transforms not yet ready, OD starting postponed");
+    DEBUG_OD("Tracking transforms not yet ready, OD starting postponed");
     return false;
   }
 
@@ -3777,6 +3845,13 @@ bool ZedCamera::startObjDetect()
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic " << mPubObjDet->get_topic_name());
   }
 
+  if (!mPubBodyTrack) {
+    mPubBodyTrack = create_publisher<zed_interfaces::msg::ObjectsStamped>(
+      mBodyTrackTopic,
+      mBodyTrkQos);
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic " << mPubBodyTrack->get_topic_name());
+  }
+
   mObjDetRunning = true;
   return true;
 }
@@ -3803,6 +3878,18 @@ void ZedCamera::stopObjDetect()
     // <---- Send an empty message to indicate that no more objects are tracked
     // (e.g clean Rviz2)
   }
+}
+
+bool ZedCamera::startBodyTracking()
+{
+  DEBUG_BT("startBodyTracking");
+
+  return false;
+}
+
+void ZedCamera::stopBodyTracking()
+{
+
 }
 
 bool ZedCamera::startSvoRecording(std::string & errMsg)
@@ -4310,6 +4397,19 @@ void ZedCamera::threadFunc_zedGrab()
     }
     // ----> Check for Object Detection requirement
 
+    // ----> Check for Body Tracking requirement
+    if (!mDepthDisabled) {
+      mBodyTrackMutex.lock();
+      if (mBodyTrackEnabled && !mBodyTrackRunning) {
+        startBodyTracking();
+        if (!sl_tools::isObjDetAvailable(mCamRealModel)) {
+          mBodyTrackEnabled = false;
+        }
+      }
+      mBodyTrackMutex.unlock();
+    }
+    // ----> Check for Object Detection requirement
+
     // ----> Grab freq calculation
     static sl_tools::StopWatch grabFreqTimer(get_clock());
 
@@ -4490,6 +4590,14 @@ void ZedCamera::threadFunc_zedGrab()
         processDetectedObjects(mFrameTimestamp);
       }
       mObjDetMutex.unlock();
+    }
+
+    if (!mDepthDisabled) {
+      mBodyTrackMutex.lock();
+      if (mBodyTrackRunning) {
+        processSkeletons(mFrameTimestamp);
+      }
+      mBodyTrackMutex.unlock();
     }
 
     // Diagnostic statistics update
@@ -6189,6 +6297,38 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   // <---- Diagnostic information update
 }
 
+void ZedCamera::processSkeletons(rclcpp::Time t)
+{
+  DEBUG_BT("processSkeletons");
+  size_t bt_sub_count = 0;
+
+  try {
+    bt_sub_count = count_subscribers(mPubBodyTrack->get_topic_name());
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_OD("processSkeletons: Exception while counting subscribers");
+    return;
+  }
+
+  if (bt_sub_count < 1) {
+    mObjDetSubscribed = false;
+    return;
+  }
+
+  sl_tools::StopWatch btElabTimer(get_clock());
+  static sl_tools::StopWatch btFreqTimer(get_clock());
+
+  sl::BodyTrackingRuntimeParameters bt_params_rt;
+  bt_params_rt.detection_confidence_threshold;
+  bt_params_rt.minimum_keypoints_threshold;
+
+  // ----> Diagnostic information update
+  mBodyTrackElabMean_sec->addValue(btElabTimer.toc());
+  mBodyTrackPeriodMean_sec->addValue(btFreqTimer.toc());
+  btFreqTimer.tic();
+  // <---- Diagnostic information update
+}
+
 bool ZedCamera::isDepthRequired()
 {
   // DEBUG_STREAM_VD( "isDepthRequired called");
@@ -7485,6 +7625,21 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
         }
       } else {
         stat.add("Object Detection", "INACTIVE");
+      }
+
+      if (mBodyTrackRunning) {
+        if (mBodyTrackSubscribed) {
+          double freq = 1. / mBodyTrackPeriodMean_sec->getAvg();
+          double freq_perc = 100. * freq / mPubFrameRate;
+          stat.addf("Body Tracking", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc);
+          stat.addf(
+            "Body Tracking", "Processing Time: %.3f sec (Max. %.3f sec)",
+            mBodyTrackElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
+        } else {
+          stat.add("Body Tracking", "Active, topic not subscribed");
+        }
+      } else {
+        stat.add("Body Tracking", "INACTIVE");
       }
     } else {
       stat.add("Depth status", "INACTIVE");

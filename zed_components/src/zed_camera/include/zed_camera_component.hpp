@@ -72,6 +72,8 @@ protected:
   void stop3dMapping();
   bool startObjDetect();
   void stopObjDetect();
+  bool startBodyTracking();
+  void stopBodyTracking();
   bool startSvoRecording(std::string & errMsg);
   void stopSvoRecording();
 
@@ -190,6 +192,7 @@ protected:
   void processGnssPose();
 
   void processDetectedObjects(rclcpp::Time t);
+  void processSkeletons(rclcpp::Time t);
 
   bool setPose(float xt, float yt, float zt, float rr, float pr, float yr);
   void initTransforms();
@@ -242,6 +245,7 @@ private:
   std::string mGeoPoseTopic;
   std::string mPointcloudFusedTopic;
   std::string mObjectDetTopic;
+  std::string mBodyTrackTopic;
   std::string mOdomPathTopic;
   std::string mMapPathTopic;
   std::string mClickedPtTopic;  // Clicked point
@@ -361,6 +365,8 @@ private:
   bool mBodyTrackFitting = true;
   bool mBodyTrackEnableTracking = true;
   double mBodyTrackPredTimeout = 0.5;
+  double mBodyTrackConfThresh = 0.5;
+  int mBodyTrackMinKp = 10;
 
   // TODO(Walter) remove QoS parameters, use instead the new ROS2 Humble QoS settings engine
 
@@ -517,6 +523,7 @@ private:
   tempPub mPubTempR;
   transfPub mPubCamImuTransf;
   objPub mPubObjDet;
+  objPub mPubBodyTrack;
   depthInfoPub mPubDepthInfo;
   planePub mPubPlane;
   markerPub mPubMarker;
@@ -608,6 +615,7 @@ private:
   std::mutex mTerrainMappingMutex;
 #endif
   std::mutex mObjDetMutex;
+  std::mutex mBodyTrackMutex;
   std::condition_variable mVideoDepthDataReadyCondVar;
   std::condition_variable mPcDataReadyCondVar;
   std::atomic_bool mPcDataReady;
@@ -637,6 +645,7 @@ private:
   bool mTerrainMappingRunning = false;
 #endif
   bool mObjDetRunning = false;
+  bool mBodyTrackRunning = false;
   bool mRgbSubscribed = false;
   bool mGnssMsgReceived = false; // Indicates if a NavSatFix topic has been received, also with invalid position fix
   bool mGnssFixValid = false; // Used to keep track of signal loss
@@ -677,6 +686,8 @@ private:
   std::unique_ptr<sl_tools::WinAvg> mMagPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mObjDetPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mObjDetElabMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mBodyTrackPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mBodyTrackElabMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mPubFusedCloudPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mPubOdomTF_sec;
   std::unique_ptr<sl_tools::WinAvg> mPubPoseTF_sec;
@@ -686,6 +697,7 @@ private:
   bool mMagPublishing = false;
   bool mBaroPublishing = false;
   bool mObjDetSubscribed = false;
+  bool mBodyTrackSubscribed = false;
 
   diagnostic_updater::Updater mDiagUpdater;  // Diagnostic Updater
 

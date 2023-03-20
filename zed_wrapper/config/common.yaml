@@ -127,7 +127,7 @@
             model: 'PERSON_HEAD_BOX_ACCURATE' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE'
             allow_reduced_precision_inference: true # Allow inference to run at a lower precision to improve runtime and memory usage
             max_range: 15.0 # [m] Defines a upper depth range for detections
-            confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,100]
+            confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
             prediction_timeout: 0.5 # During this time [sec], the object will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions            
             filtering_mode: 1 # '0': NONE - '1': NMS3D - '2': NMS3D_PER_CLASS
             mc_people: true # [DYNAMIC] - Enable/disable the detection of persons for 'MULTI_CLASS_X' models
@@ -152,6 +152,8 @@
             enable_body_fitting: true # Defines if the body fitting will be applied
             enable_tracking: true # Defines if the object detection will track objects across images flow
             prediction_timeout_s: 0.5 # During this time [sec], the skeleton will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
+            confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of skeleton key points [0,99]
+            minimum_keypoints_threshold: 10 # [DYNAMIC] - Minimum number of skeleton key points to be detected for a valid skeleton
             qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
             qos_depth: 1 # Queue size if using KEEP_LAST
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT

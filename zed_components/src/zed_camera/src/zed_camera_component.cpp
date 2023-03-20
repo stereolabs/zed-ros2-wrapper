@@ -3286,7 +3286,8 @@ bool ZedCamera::startCamera()
       std::make_shared<sl::FusionConfiguration>();
 
     if (mSimEnabled) {
-      //TODO Modify when support for streaming input is added
+      //TODO(Walter) Modify when support for streaming input is added in the SDK
+      //mFusionConfig->input_type.setFromStream(mSimAddr, mSimPort);
       mFusionConfig->input_type.setFromSerialNumber(mCamSerialNumber);
       mFusionConfig->communication_parameters.setForSharedMemory();
     } else if (mSvoMode) {
@@ -5844,7 +5845,9 @@ void ZedCamera::processGnssPose()
   if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK ||
     mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OK)
   {
-    DEBUG_STREAM_THROTTLE_PT(1.0, "Waiting for good GNSS pose...");
+    rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+    RCLCPP_DEBUG_THROTTLE(
+      get_logger(), steady_clock, 1.0, "Waiting for a valid GNSS fused pose...");
     return;
   }
 

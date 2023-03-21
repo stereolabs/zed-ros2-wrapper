@@ -292,7 +292,7 @@ void ZedCamera::initServices()
     mToLlSrv = create_service<robot_localization::srv::ToLL>(
       srv_name, std::bind(&ZedCamera::callback_toLL, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mToLlSrv->get_service_name());
-    
+
     srv_name = srv_prefix + mSrvFromLlName;
     mFromLlSrv = create_service<robot_localization::srv::FromLL>(
       srv_name, std::bind(&ZedCamera::callback_fromLL, this, _1, _2, _3));

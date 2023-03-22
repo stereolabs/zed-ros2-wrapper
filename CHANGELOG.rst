@@ -1,6 +1,21 @@
 LATEST CHANGES
 ==============
 
+2023-03-22
+- Add Support for the new Body Tracking module
+  - Add parameter `body_tracking.bt_enabled` to enable Body Tracking
+  - Add parameter `body_tracking.model`
+  - Add parameter `body_tracking.body_format`
+  - Add parameter `body_tracking.allow_reduced_precision_inference`
+  - Add parameter `body_tracking.max_range`
+  - Add parameter `body_tracking.body_kp_selection`
+  - Add parameter `body_tracking.enable_body_fitting`
+  - Add parameter `body_tracking.enable_tracking`
+  - Add parameter `body_tracking.prediction_timeout_s`
+  - Add parameter `body_tracking.confidence_threshold`
+  - Add parameter `body_tracking.minimum_keypoints_threshold`
+  - Publish new message on topic `~/body_trk/skeletons`
+
 2023-03-17
 ----------
 - Add `object_detection.allow_reduced_precision_inference` to allow inference to run at a lower precision to improve runtime and memory usage

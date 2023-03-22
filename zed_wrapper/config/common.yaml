@@ -45,7 +45,7 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         depth:
-            depth_mode: 'ULTRA' # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            depth_mode: 'NEURAL' # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             depth_stabilization: 1 # Forces positional tracking to start if major than 0 - Range: [0,100]
             openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
             point_cloud_freq: 15.0 # [DYNAMIC] - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
@@ -143,17 +143,17 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
         
         body_tracking:
-            bt_enabled: false # True to enable Body Tracking
-            model: 'HUMAN_BODY_FAST' # 'HUMAN_BODY_FAST', 'HUMAN_BODY_MEDIUM', 'HUMAN_BODY_ACCURATE'
-            body_format: 'BODY_70' # 'BODY_18','BODY_34','BODY_38','BODY_70'
-            allow_reduced_precision_inference: true # Allow inference to run at a lower precision to improve runtime and memory usage
+            bt_enabled: true # True to enable Body Tracking
+            model: 'HUMAN_BODY_ACCURATE' # 'HUMAN_BODY_FAST', 'HUMAN_BODY_MEDIUM', 'HUMAN_BODY_ACCURATE'
+            body_format: 'BODY_38' # 'BODY_18','BODY_34','BODY_38','BODY_70'
+            allow_reduced_precision_inference: false # Allow inference to run at a lower precision to improve runtime and memory usage
             max_range: 15.0 # [m] Defines a upper depth range for detections
-            body_kp_selection: 'UPPER_BODY' # 'FULL', 'UPPER_BODY'
-            enable_body_fitting: true # Defines if the body fitting will be applied
+            body_kp_selection: 'FULL' # 'FULL', 'UPPER_BODY'
+            enable_body_fitting: false # Defines if the body fitting will be applied
             enable_tracking: true # Defines if the object detection will track objects across images flow
             prediction_timeout_s: 0.5 # During this time [sec], the skeleton will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
             confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of skeleton key points [0,99]
-            minimum_keypoints_threshold: 10 # [DYNAMIC] - Minimum number of skeleton key points to be detected for a valid skeleton
+            minimum_keypoints_threshold: 5 # [DYNAMIC] - Minimum number of skeleton key points to be detected for a valid skeleton
             qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
             qos_depth: 1 # Queue size if using KEEP_LAST
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT
@@ -169,4 +169,4 @@
             debug_mapping : false
             debug_terrain_mapping : false
             debug_object_detection : false
-            debug_body_tracking : false
+            debug_body_tracking : true

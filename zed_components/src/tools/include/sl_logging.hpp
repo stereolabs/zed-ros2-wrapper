@@ -69,8 +69,8 @@
     get_logger(), stream_arg)
 
 // Body Tracking
-#define DEBUG_BT(...) if (mDebugBodyTrack) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
-#define DEBUG_STREAM_BT(stream_arg) if (mDebugBodyTrack) RCLCPP_DEBUG_STREAM( \
+#define DEBUG_BT(...) if (mDebugBodyTrk) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
+#define DEBUG_STREAM_BT(stream_arg) if (mDebugBodyTrk) RCLCPP_DEBUG_STREAM( \
     get_logger(), stream_arg)
 
 #ifdef WITH_TM

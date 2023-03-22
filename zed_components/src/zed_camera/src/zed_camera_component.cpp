@@ -318,6 +318,10 @@ std::string ZedCamera::getParam(std::string paramName, std::vector<std::vector<f
         "value: []");
   }
 
+  if (out_str.empty()) {
+    return std::string();
+  }
+
   std::string error;
   outVal = sl_tools::parseStringVector(out_str, error);
 
@@ -3231,24 +3235,26 @@ bool ZedCamera::startCamera()
   // <---- Camera information
 
   // ----> Set Region of Interest
-  RCLCPP_INFO(get_logger(), "*** Setting ROI ***");
-  sl::Resolution resol(mCamWidth, mCamHeight);
-  std::vector<sl::float2> sl_poly;
-  std::string log_msg = parseRoiPoly(mRoiParam, sl_poly);
+  if (!mRoiParam.empty()) {
+    RCLCPP_INFO(get_logger(), "*** Setting ROI ***");
+    sl::Resolution resol(mCamWidth, mCamHeight);
+    std::vector<sl::float2> sl_poly;
+    std::string log_msg = parseRoiPoly(mRoiParam, sl_poly);
 
-  // Create ROI mask
-  sl::Mat roi_mask(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
+    // Create ROI mask
+    sl::Mat roi_mask(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
 
-  if (!sl_tools::generateROI(sl_poly, roi_mask)) {
-    RCLCPP_WARN(get_logger(), " * Error generating the region of interest image mask.");
-  } else {
-    sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask);
-    if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        " * Error while setting ZED SDK region of interest: " << sl::toString(err).c_str());
+    if (!sl_tools::generateROI(sl_poly, roi_mask)) {
+      RCLCPP_WARN(get_logger(), " * Error generating the region of interest image mask.");
     } else {
-      RCLCPP_INFO(get_logger(), " * Region of Interest correctly set.");
+      sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask);
+      if (err != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_WARN_STREAM(
+          get_logger(),
+          " * Error while setting ZED SDK region of interest: " << sl::toString(err).c_str());
+      } else {
+        RCLCPP_INFO(get_logger(), " * Region of Interest correctly set.");
+      }
     }
   }
   // <---- Set Region of Interest

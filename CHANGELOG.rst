@@ -4,8 +4,7 @@ LATEST CHANGES
 v4.0.x
 ------
 - Add support for ZED-X and ZED-X Mini
-  - Move `general.grab_resolution` and `general.grab_frame_rate` to the yaml file specific for the relative camera model 
-    (i.e. `zed.yaml`, `zedm.yaml`, `zed2.yaml`, `zed2i.yaml`, `zedx.yaml`, `zedxm.yaml`)
+  - Move `general.grab_resolution` and `general.grab_frame_rate` to the yaml file specific for the relative camera model (i.e. `zed.yaml`, `zedm.yaml`, `zed2.yaml`, `zed2i.yaml`, `zedx.yaml`, `zedxm.yaml`)
   - Add `zedx.launch.py` for ZED-X
   - Add `zedxm.launch.py` for ZED-X Mini
   - Improve `zed_macro.urdf.xacro` with specific configuration for the new camera models
@@ -16,7 +15,7 @@ v4.0.x
 - Positional Tracking
   - Add `pos_tracking.set_as_static` parameters for applications with a static camera monitoring a robotics environment. See [PR #122](https://github.com/stereolabs/zed-ros2-wrapper/pull/122 ) Thx @gabor-kovacs
 
--Body Tracking
+- Body Tracking
   - Add Support for the new Body Tracking module
   - Add parameter `body_tracking.bt_enabled` to enable Body Tracking
   - Add parameter `body_tracking.model` to set the AI model to be used

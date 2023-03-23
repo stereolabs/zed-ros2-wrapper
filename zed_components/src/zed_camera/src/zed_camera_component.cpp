@@ -8462,35 +8462,10 @@ void ZedCamera::callback_toLL(
     return;
   }
 
-  // We must convert the map point into camera coordinate before passing it to the ZED SDK
-  geometry_msgs::msg::PoseStamped tf2_pt_cam;
-  try {
-    geometry_msgs::msg::PoseStamped tf2_pt_map;
-    tf2_pt_map.header.frame_id = mMapFrameId;
-    tf2_pt_map.header.stamp = get_clock()->now();
-    tf2_pt_map.pose.position.x = req->map_point.x;
-    tf2_pt_map.pose.position.y = req->map_point.y;
-    tf2_pt_map.pose.position.z = req->map_point.z;
-    tf2_pt_map.pose.orientation.x = 0;
-    tf2_pt_map.pose.orientation.y = 0;
-    tf2_pt_map.pose.orientation.z = 0;
-    tf2_pt_map.pose.orientation.w = 1.0;
-
-    mTfBuffer->transform<geometry_msgs::msg::PoseStamped>(
-      tf2_pt_map, tf2_pt_cam, mLeftCamFrameId,
-      tf2::durationFromSec(0.5));
-
-  } catch (tf2::TransformException & ex) {
-    RCLCPP_WARN(
-      get_logger(), " * Error transforming point from '%s' into '%s': %s",
-      mMapFrameId.c_str(), mLeftCamFrameId.c_str(), ex.what());
-    return;
-  }
-
   sl::Translation map_pt;
-  map_pt.x = tf2_pt_cam.pose.position.x;
-  map_pt.y = tf2_pt_cam.pose.position.y;
-  map_pt.z = tf2_pt_cam.pose.position.z;
+  map_pt.x = req->map_point.x;
+  map_pt.y = req->map_point.y;
+  map_pt.z = req->map_point.z;
 
   sl::GeoPose geo_pose;
   sl::Pose map_pose;

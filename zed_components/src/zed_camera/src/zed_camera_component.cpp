@@ -8462,35 +8462,10 @@ void ZedCamera::callback_toLL(
     return;
   }
 
-  // We must convert the map point into camera coordinate before passing it to the ZED SDK
-  geometry_msgs::msg::PoseStamped tf2_pt_cam;
-  try {
-    geometry_msgs::msg::PoseStamped tf2_pt_map;
-    tf2_pt_map.header.frame_id = mMapFrameId;
-    tf2_pt_map.header.stamp = get_clock()->now();
-    tf2_pt_map.pose.position.x = req->map_point.x;
-    tf2_pt_map.pose.position.y = req->map_point.y;
-    tf2_pt_map.pose.position.z = req->map_point.z;
-    tf2_pt_map.pose.orientation.x = 0;
-    tf2_pt_map.pose.orientation.y = 0;
-    tf2_pt_map.pose.orientation.z = 0;
-    tf2_pt_map.pose.orientation.w = 1.0;
-
-    mTfBuffer->transform<geometry_msgs::msg::PoseStamped>(
-      tf2_pt_map, tf2_pt_cam, mLeftCamFrameId,
-      tf2::durationFromSec(0.5));
-
-  } catch (tf2::TransformException & ex) {
-    RCLCPP_WARN(
-      get_logger(), " * Error transforming point from '%s' into '%s': %s",
-      mMapFrameId.c_str(), mLeftCamFrameId.c_str(), ex.what());
-    return;
-  }
-
   sl::Translation map_pt;
-  map_pt.x = tf2_pt_cam.pose.position.x;
-  map_pt.y = tf2_pt_cam.pose.position.y;
-  map_pt.z = tf2_pt_cam.pose.position.z;
+  map_pt.x = req->map_point.x;
+  map_pt.y = req->map_point.y;
+  map_pt.z = req->map_point.z;
 
   sl::GeoPose geo_pose;
   sl::Pose map_pose;
@@ -8528,45 +8503,16 @@ void ZedCamera::callback_fromLL(
 
   sl::Pose sl_pt_cam;
   mFusion.Geo2Camera(ll_pt, sl_pt_cam);
-
-  RCLCPP_INFO(
-    get_logger(), "* Converted the GeoPoint %.6f°,%.6f° / %.2f m to CAMERA point (%.2fm,%.2fm,%.2fm)",
-    ll_pt.getLatitude(false), ll_pt.getLongitude(false), ll_pt.getAltitude(),
-    sl_pt_cam.getTranslation().x, sl_pt_cam.getTranslation().y, sl_pt_cam.getTranslation().z);
-
-  // We must convert the point from left camera frame to `map` frame before returning it
-  geometry_msgs::msg::PoseStamped tf2_pt_map;
-  try {
-    geometry_msgs::msg::PoseStamped tf2_pt_cam;
-    tf2_pt_cam.header.frame_id = mLeftCamFrameId;
-    tf2_pt_cam.header.stamp = get_clock()->now();
-    tf2_pt_cam.pose.position.x = sl_pt_cam.getTranslation().x;
-    tf2_pt_cam.pose.position.y = sl_pt_cam.getTranslation().y;
-    tf2_pt_cam.pose.position.z = sl_pt_cam.getTranslation().z;
-    tf2_pt_cam.pose.orientation.x = 0;
-    tf2_pt_cam.pose.orientation.y = 0;
-    tf2_pt_cam.pose.orientation.z = 0;
-    tf2_pt_cam.pose.orientation.w = 1.0;
-
-    mTfBuffer->transform<geometry_msgs::msg::PoseStamped>(
-      tf2_pt_cam, tf2_pt_map, mMapFrameId,
-      tf2::durationFromSec(0.5));
-
-  } catch (tf2::TransformException & ex) {
-    RCLCPP_WARN(
-      get_logger(), " * Error transforming point from '%s' into '%s': %s",
-      mLeftCamFrameId.c_str(), mMapFrameId.c_str(), ex.what());
-    return;
-  }
-
-  res->map_point.x = tf2_pt_map.pose.position.x;
-  res->map_point.y = tf2_pt_map.pose.position.y;
-  res->map_point.z = tf2_pt_map.pose.position.z;
+  
+  // the point is already in the MAP Frame as it is converted from a GeoPoint
+  res->map_point.x = sl_pt_cam.getTranslation().x;
+  res->map_point.y = sl_pt_cam.getTranslation().y;
+  res->map_point.z = sl_pt_cam.getTranslation().z;
 
   RCLCPP_INFO(
     get_logger(), "* Converted the GeoPoint %.6f°,%.6f° / %.2f m to MAP point (%.2fm,%.2fm,%.2fm)",
     ll_pt.getLatitude(false), ll_pt.getLongitude(false), ll_pt.getAltitude(),
-    tf2_pt_map.pose.position.x, tf2_pt_map.pose.position.y, tf2_pt_map.pose.position.z);
+    res->map_point.x, res->map_point.y, res->map_point.z);
 }
 
 }  // namespace stereolabs

@@ -319,6 +319,7 @@ private:
   bool mPublishPoseCov = true;
   bool mGnssFusionEnabled = false;
   std::string mGnssTopic = "/gps/fix";
+  double mGnssInitDistance = 5.0;
   bool mGnssZeroAltitude = false;
   bool mPublishUtmTf = true;
   bool mUtmAsParent = true;

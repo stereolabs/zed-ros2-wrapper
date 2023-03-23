@@ -1429,6 +1429,10 @@ void ZedCamera::getGnssFusionParams()
   if (mGnssFusionEnabled) {
     getParam("gnss_fusion.gnss_frame", mGnssFrameId, mGnssFrameId, " * GNSS frame: ");
     getParam("gnss_fusion.gnss_fix_topic", mGnssTopic, mGnssTopic, " * GNSS topic name: ");
+    getParam(
+      "gnss_fusion.gnss_init_distance", mGnssInitDistance, mGnssInitDistance,
+      " * GNSS init. distance: ");
+
     getParam("gnss_fusion.gnss_zero_altitude", mGnssZeroAltitude, mGnssZeroAltitude);
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -3583,7 +3587,10 @@ bool ZedCamera::startPosTracking()
   if (mGnssFusionEnabled && err == sl::ERROR_CODE::SUCCESS) {
     mMap2UtmTransfValid = false;
 
-    sl::FUSION_ERROR_CODE fus_err = mFusion.enablePositionalTracking();
+    sl::PositionalTrackingFusionParameters params;
+    params.enable_GNSS_fusion = mGnssFusionEnabled;
+    params.gnss_initialisation_distance = mGnssInitDistance;
+    sl::FUSION_ERROR_CODE fus_err = mFusion.enablePositionalTracking(params);
 
     if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
       mPosTrackingStarted = false;
@@ -5688,7 +5695,8 @@ void ZedCamera::processOdometry()
       mPosTrackingStatusCamera = mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
     } else {
       mPosTrackingStatusCamera = mFusion.getPosition(
-        deltaOdom, sl::REFERENCE_FRAME::CAMERA /*,mCamUuid*/);
+        deltaOdom, sl::REFERENCE_FRAME::CAMERA /*,mCamUuid*/,
+        sl::CameraIdentifier(), sl::POSITION_TYPE::FUSION);
 
     }
 
@@ -5834,7 +5842,9 @@ void ZedCamera::processPose()
     mPosTrackingStatusWorld = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
   } else {
     mPosTrackingStatusWorld =
-      mFusion.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD /*,mCamUuid*/);
+      mFusion.getPosition(
+      mLastZedPose, sl::REFERENCE_FRAME::WORLD /*,mCamUuid*/,
+      sl::CameraIdentifier(), sl::POSITION_TYPE::FUSION);
   }
 
   sl::Translation translation = mLastZedPose.getTranslation();
@@ -6051,12 +6061,14 @@ void ZedCamera::processGnssPose()
   }
 
   // ----> Setup Lat/Long
-  mLastLatLongPose.latitude = mLastGeoPose.getLatitude();
-  mLastLatLongPose.longitude = mLastGeoPose.getLongitude();
-  mLastLatLongPose.altitude = mLastGeoPose.getAltitude();
+  double altitude = mLastGeoPose.latlng_coordinates.getAltitude();
   if (mGnssZeroAltitude) {
-    mLastLatLongPose.altitude = 0.0;
+    altitude = 0.0;
   }
+  mLastLatLongPose.setCoordinates(
+    mLastGeoPose.latlng_coordinates.getLatitude(),
+    mLastGeoPose.latlng_coordinates.getLongitude(), altitude, true);
+
   mLastHeading = mLastGeoPose.heading;
   // <---- Setup Lat/Long
 
@@ -6071,8 +6083,9 @@ void ZedCamera::processGnssPose()
     " * ECEF: %.6f m, %.6f m, %.6f m", mLastEcefPose.x, mLastEcefPose.y,
     mLastEcefPose.z);
   DEBUG_GNSS(
-    " * Lat. Long.: %.6f°, %.6f°,%.3f m", mLastLatLongPose.latitude, mLastLatLongPose.longitude,
-    mLastLatLongPose.altitude);
+    " * Lat. Long.: %.6f°, %.6f°,%.3f m", mLastLatLongPose.getLatitude(
+      false), mLastLatLongPose.getLongitude(false),
+    mLastLatLongPose.getAltitude());
   DEBUG_GNSS(
     " * Heading: %.3f°", mLastHeading * RAD2DEG);
   DEBUG_GNSS(
@@ -6098,7 +6111,9 @@ void ZedCamera::processGnssPose()
     // Set UTM transform
     // Get position from ZED SDK UTM pose
     mMap2UtmTransf.setOrigin(
-      tf2::Vector3(mLastUtmPose.easting, mLastUtmPose.northing, mLastGeoPose.getAltitude()));
+      tf2::Vector3(
+        mLastUtmPose.easting, mLastUtmPose.northing,
+        mLastGeoPose.latlng_coordinates.getAltitude()));
     mMap2UtmTransf.setRotation(pose_quat_yaw);
     // ----> Create (static) transform UTM to MAP
 
@@ -6223,9 +6238,9 @@ void ZedCamera::publishGnssPose()
     msg->header.frame_id = mGnssFrameId;
 
     // Latest Lat Long data
-    msg->pose.position.latitude = mLastLatLongPose.latitude;
-    msg->pose.position.longitude = mLastLatLongPose.longitude;
-    msg->pose.position.altitude = mLastLatLongPose.altitude;
+    msg->pose.position.latitude = mLastLatLongPose.getLatitude(false);
+    msg->pose.position.longitude = mLastLatLongPose.getLongitude(false);
+    msg->pose.position.altitude = mLastLatLongPose.getAltitude();
 
     // Latest Heading Quaternion
     msg->pose.orientation.x = mLastHeadingQuat.getX();
@@ -8007,9 +8022,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   //std::lock_guard<std::mutex> lock(mGnssDataMutex);
   sl::GNSSData gnssData;
   gnssData.ts.setNanoseconds(ts_gnss_nsec);
-  gnssData.altitude = altit;
-  gnssData.latitude = latit * DEG2RAD;
-  gnssData.longitude = longit * DEG2RAD;
+  gnssData.setCoordinates(latit, longit, altit, false);
 
 
   if (msg->position_covariance_type != sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN) {
@@ -8485,14 +8498,15 @@ void ZedCamera::callback_toLL(
   map_pose.pose_data.setTranslation(map_pt);
   mFusion.Camera2Geo(map_pose, geo_pose);
 
-  res->ll_point.altitude = geo_pose.getAltitude();
-  res->ll_point.latitude = geo_pose.getLatitude();
-  res->ll_point.longitude = geo_pose.getLongitude();
+  res->ll_point.altitude = geo_pose.latlng_coordinates.getAltitude();
+  res->ll_point.latitude = geo_pose.latlng_coordinates.getLatitude(false);
+  res->ll_point.longitude = geo_pose.latlng_coordinates.getLongitude(false);
 
   RCLCPP_INFO(
     get_logger(), "* Converted the MAP point (%.2fm,%.2fm,%.2fm)to GeoPoint %.6f°,%.6f° / %.2f m",
     req->map_point.x, req->map_point.y, req->map_point.z,
-    geo_pose.getLatitude(), geo_pose.getLongitude(), geo_pose.getAltitude());
+    geo_pose.latlng_coordinates.getLatitude(false), geo_pose.latlng_coordinates.getLongitude(
+      false), geo_pose.latlng_coordinates.getAltitude());
 }
 
 void ZedCamera::callback_fromLL(
@@ -8508,16 +8522,16 @@ void ZedCamera::callback_fromLL(
   }
 
   sl::LatLng ll_pt;
-  ll_pt.altitude = req->ll_point.altitude;
-  ll_pt.latitude = req->ll_point.latitude;
-  ll_pt.longitude = req->ll_point.longitude;
+  ll_pt.setCoordinates(
+    req->ll_point.latitude, req->ll_point.longitude, req->ll_point.altitude,
+    false);
 
   sl::Pose sl_pt_cam;
   mFusion.Geo2Camera(ll_pt, sl_pt_cam);
 
   RCLCPP_INFO(
     get_logger(), "* Converted the GeoPoint %.6f°,%.6f° / %.2f m to CAMERA point (%.2fm,%.2fm,%.2fm)",
-    ll_pt.latitude, ll_pt.longitude, ll_pt.altitude,
+    ll_pt.getLatitude(false), ll_pt.getLongitude(false), ll_pt.getAltitude(),
     sl_pt_cam.getTranslation().x, sl_pt_cam.getTranslation().y, sl_pt_cam.getTranslation().z);
 
   // We must convert the point from left camera frame to `map` frame before returning it
@@ -8551,7 +8565,7 @@ void ZedCamera::callback_fromLL(
 
   RCLCPP_INFO(
     get_logger(), "* Converted the GeoPoint %.6f°,%.6f° / %.2f m to MAP point (%.2fm,%.2fm,%.2fm)",
-    ll_pt.latitude, ll_pt.longitude, ll_pt.altitude,
+    ll_pt.getLatitude(false), ll_pt.getLongitude(false), ll_pt.getAltitude(),
     tf2_pt_map.pose.position.x, tf2_pt_map.pose.position.y, tf2_pt_map.pose.position.z);
 }
 

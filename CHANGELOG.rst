@@ -47,6 +47,7 @@ v4.0.x
   - Add `geographic_msgs::msg::GeoPoseStamped` message publisher
   - Add parameter `gnss_fusion.publish_utm_tf`
   - Add parameter `gnss_fusion.broadcast_utm_transform_as_parent_frame`
+  - Add parameter `gnss_fusion.gnss_init_distance`
 
 - Object Detection
 

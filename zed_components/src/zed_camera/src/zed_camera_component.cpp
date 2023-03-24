@@ -8479,6 +8479,17 @@ void ZedCamera::callback_toLL(
     return;
   }
 
+  if (!mGnssFusionEnabled) {
+    RCLCPP_WARN(get_logger(), " * GNSS fusion is not enabled");
+    return;
+  }
+
+  if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK)
+  {
+    RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");
+    return;
+  }
+
   sl::Translation map_pt;
   map_pt.x = req->map_point.x;
   map_pt.y = req->map_point.y;
@@ -8510,6 +8521,12 @@ void ZedCamera::callback_fromLL(
 
   if (!mGnssFusionEnabled) {
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not enabled");
+    return;
+  }
+
+  if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK)
+  {
+    RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");
     return;
   }
 

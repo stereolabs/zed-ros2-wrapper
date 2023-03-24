@@ -8484,8 +8484,7 @@ void ZedCamera::callback_toLL(
     return;
   }
 
-  if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK)
-  {
+  if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");
     return;
   }
@@ -8524,8 +8523,7 @@ void ZedCamera::callback_fromLL(
     return;
   }
 
-  if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK)
-  {
+  if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");
     return;
   }

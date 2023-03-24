@@ -145,7 +145,7 @@ ZedCamera::~ZedCamera()
 
   if (mBodyTrkRunning) {
     std::lock_guard<std::mutex> lock(mBodyTrkMutex);
-    stopBodyTrking();
+    stopBodyTracking();
   }
 
   if (mSpatialMappingRunning) {
@@ -259,6 +259,11 @@ void ZedCamera::initServices()
     mEnableObjDetSrv = create_service<std_srvs::srv::SetBool>(
       srv_name, std::bind(&ZedCamera::callback_enableObjDet, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mEnableObjDetSrv->get_service_name());
+
+    srv_name = srv_prefix + mSrvEnableBodyTrkName;
+    mEnableBodyTrkSrv = create_service<std_srvs::srv::SetBool>(
+      srv_name, std::bind(&ZedCamera::callback_enableBodyTrk, this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mEnableBodyTrkSrv->get_service_name());
 
     srv_name = srv_prefix + mSrvEnableMappingName;
     mEnableMappingSrv = create_service<std_srvs::srv::SetBool>(
@@ -3900,9 +3905,9 @@ void ZedCamera::stopObjDetect()
   }
 }
 
-bool ZedCamera::startBodyTrking()
+bool ZedCamera::startBodyTracking()
 {
-  DEBUG_BT("startBodyTrking");
+  DEBUG_BT("startBodyTracking");
 
   if (!sl_tools::isObjDetAvailable(mCamRealModel)) {
     RCLCPP_ERROR(
@@ -3970,7 +3975,7 @@ bool ZedCamera::startBodyTrking()
   return true;
 }
 
-void ZedCamera::stopBodyTrking()
+void ZedCamera::stopBodyTracking()
 {
   if (mBodyTrkRunning) {
     RCLCPP_INFO(get_logger(), "*** Stopping Body Tracking ***");
@@ -4503,7 +4508,7 @@ void ZedCamera::threadFunc_zedGrab()
     if (!mDepthDisabled) {
       mBodyTrkMutex.lock();
       if (mBodyTrkEnabled && !mBodyTrkRunning) {
-        startBodyTrking();
+        startBodyTracking();
         if (!sl_tools::isObjDetAvailable(mCamRealModel)) {
           mBodyTrkEnabled = false;
         }
@@ -4604,7 +4609,7 @@ void ZedCamera::threadFunc_zedGrab()
               static_cast<float>(real_frame_ts.nanoseconds()) / 1e9 << "-" <<
               static_cast<float>(mGnssTimestamp.nanoseconds()) / 1e9);
 
-          if (dT_sec < 0.0 ) {
+          if (dT_sec < 0.0) {
             RCLCPP_WARN_STREAM(
               get_logger(), "GNSS sensor and ZED Timestamps are not good. dT = "
                 << dT_sec << " sec");
@@ -5475,6 +5480,7 @@ void ZedCamera::retrieveVideoDepth()
       sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveMeasure(mMatDepth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatDepth.timestamp;
+    mMatDepth.write("depth_map.png");
   }
   if (mDisparitySubnumber > 0) {
     DEBUG_STREAM_VD("Retrieving Disparity");
@@ -7502,6 +7508,63 @@ void ZedCamera::callback_enableObjDet(
     stopObjDetect();
 
     res->message = "Object Detection stopped";
+    res->success = true;
+    return;
+  }
+}
+
+void ZedCamera::callback_enableBodyTrk(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+  std::shared_ptr<std_srvs::srv::SetBool_Response> res)
+{
+  (void)request_header;
+
+  RCLCPP_INFO(get_logger(), "** Enable Body Tracking service called **");
+
+  std::lock_guard<std::mutex> lock(mBodyTrkMutex);
+
+  if (sl_tools::isZED(mCamRealModel)) {
+    RCLCPP_WARN(get_logger(), "Body Tracking not available for ZED");
+    res->message = "Body Tracking  not available for ZED";
+    res->success = false;
+    return;
+  }
+
+  if (req->data) {
+    RCLCPP_INFO(get_logger(), "Starting Body Tracking");
+    // Start
+    if (mBodyTrkEnabled && mBodyTrkRunning) {
+      RCLCPP_WARN(get_logger(), "Body Tracking is already running");
+      res->message = "Body Tracking  is already running";
+      res->success = false;
+      return;
+    }
+
+    mBodyTrkEnabled = true;
+
+    if (startBodyTracking()) {
+      res->message = "Body Tracking started";
+      res->success = true;
+      return;
+    } else {
+      res->message = "Error occurred starting Body Tracking. See log for more info";
+      res->success = false;
+      return;
+    }
+  } else {
+    RCLCPP_INFO(get_logger(), "Stopping Body Tracking");
+    // Stop
+    if (!mBodyTrkEnabled || !mBodyTrkRunning) {
+      RCLCPP_WARN(get_logger(), "Body Tracking was not running");
+      res->message = "Body Tracking was not running";
+      res->success = false;
+      return;
+    }
+
+    stopBodyTracking();
+
+    res->message = "Body Tracking stopped";
     res->success = true;
     return;
   }

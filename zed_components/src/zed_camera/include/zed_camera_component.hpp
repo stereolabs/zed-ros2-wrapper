@@ -72,8 +72,8 @@ protected:
   void stop3dMapping();
   bool startObjDetect();
   void stopObjDetect();
-  bool startBodyTrking();
-  void stopBodyTrking();
+  bool startBodyTracking();
+  void stopBodyTracking();
   bool startSvoRecording(std::string & errMsg);
   void stopSvoRecording();
 
@@ -109,6 +109,10 @@ protected:
     const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
     std::shared_ptr<zed_interfaces::srv::SetPose_Response> res);
   void callback_enableObjDet(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+    std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+  void callback_enableBodyTrk(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
     std::shared_ptr<std_srvs::srv::SetBool_Response> res);
@@ -720,6 +724,7 @@ private:
   resetPosTrkSrvPtr mResetPosTrkSrv;
   setPoseSrvPtr mSetPoseSrv;
   enableObjDetPtr mEnableObjDetSrv;
+  enableBodyTrkPtr mEnableBodyTrkSrv;
   enableMappingPtr mEnableMappingSrv;
   startSvoRecSrvPtr mStartSvoRecSrv;
   stopSvoRecSrvPtr mStopSvoRecSrv;
@@ -735,6 +740,7 @@ private:
   const std::string mSrvResetPoseName = "reset_pos_tracking";
   const std::string mSrvSetPoseName = "set_pose";
   const std::string mSrvEnableObjDetName = "enable_obj_det";
+  const std::string mSrvEnableBodyTrkName = "enable_body_trk";
   const std::string mSrvEnableMappingName = "enable_mapping";
   const std::string mSrvStartSvoRecName = "start_svo_rec";
   const std::string mSrvStopSvoRecName = "stop_svo_rec";

@@ -32,6 +32,7 @@ v4.0.x
   - Add parameter `body_tracking.confidence_threshold` to set the detection confidence threshold
   - Add parameter `body_tracking.minimum_keypoints_threshold` to set the minimum number of detected key points to consider a body valid
   - Publish new message on topic `~/body_trk/skeletons`
+  - Add service `enable_body_trk` to start/stop body tracking
 
 - GNSS fusion integration
 

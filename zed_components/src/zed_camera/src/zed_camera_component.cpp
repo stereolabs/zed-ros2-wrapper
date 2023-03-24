@@ -3026,6 +3026,8 @@ bool ZedCamera::startCamera()
   mInitParams.camera_disable_self_calib = !mCameraSelfCalib;
   mInitParams.enable_image_enhancement = true;
   mInitParams.enable_right_side_measure = false;
+
+  mInitParams.async_grab_camera_recovery = true;
   // <---- ZED configuration
 
   // ----> Try to connect to a camera, to a stream, or to load an SVO
@@ -4530,8 +4532,18 @@ void ZedCamera::threadFunc_zedGrab()
       // ----> Grab errors?
       // Note: disconnection are automatically handled by the ZED SDK
       if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_ERROR_STREAM(get_logger(), "Camera error: " << sl::toString(mGrabStatus).c_str());
-        break;  // TODO(walter) verify what to do in case of grab errors
+        if (mGrabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
+          RCLCPP_ERROR_STREAM(
+            get_logger(),
+            "Connection issue detected: " << sl::toString(mGrabStatus).c_str());
+          rclcpp::sleep_for(500ms);
+          continue;
+        } else {
+          RCLCPP_ERROR_STREAM(
+            get_logger(), "Critical camera error: " << sl::toString(
+              mGrabStatus).c_str() << ". Node stopped.");
+          break;
+        }
       }
       // <---- Grab errors?
 
@@ -8503,7 +8515,7 @@ void ZedCamera::callback_fromLL(
 
   sl::Pose sl_pt_cam;
   mFusion.Geo2Camera(ll_pt, sl_pt_cam);
-  
+
   // the point is already in the MAP Frame as it is converted from a GeoPoint
   res->map_point.x = sl_pt_cam.getTranslation().x;
   res->map_point.y = sl_pt_cam.getTranslation().y;

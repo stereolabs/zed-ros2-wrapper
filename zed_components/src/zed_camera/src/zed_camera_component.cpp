@@ -55,6 +55,10 @@ using namespace std::placeholders;
 #define MEDIUM_W 896
 #define MEDIUM_H 512
 
+// AI Module
+#define OD_INSTANCE_MODULE_ID 0
+#define BT_INSTANCE_MODULE_ID 1
+
 namespace stereolabs
 {
 #ifndef DEG2RAD
@@ -3027,7 +3031,7 @@ bool ZedCamera::startCamera()
   mInitParams.enable_image_enhancement = true;
   mInitParams.enable_right_side_measure = false;
 
-  mInitParams.async_grab_camera_recovery = true;
+  mInitParams.async_grab_camera_recovery = true; // Camera recovery is handled asynchronously to provide information about this status
   // <---- ZED configuration
 
   // ----> Try to connect to a camera, to a stream, or to load an SVO
@@ -3829,8 +3833,7 @@ bool ZedCamera::startObjDetect()
   od_p.allow_reduced_precision_inference = mObjDetReducedPrecision;
   od_p.max_range = mObjDetMaxRange;
 
-  // TODO(Walter) Consider adding future support for `instance_module_id`
-  //od_p.instance_module_id = 0;
+  od_p.instance_module_id = OD_INSTANCE_MODULE_ID;
 
   mObjDetFilter.clear();
   if (mObjDetPeopleEnable) {
@@ -3943,8 +3946,7 @@ bool ZedCamera::startBodyTrking()
   bt_p.max_range = mBodyTrkMaxRange;
   bt_p.prediction_timeout_s = mBodyTrkPredTimeout;
 
-  // TODO(Walter) Consider adding future support for `instance_module_id`
-  //bt_p.instance_module_id = 0;
+  bt_p.instance_module_id = BT_INSTANCE_MODULE_ID;
 
   sl::ERROR_CODE btError = mZed.enableBodyTracking(bt_p);
 
@@ -6317,7 +6319,9 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   sl::Objects objects;
 
-  sl::ERROR_CODE objDetRes = mZed.retrieveObjects(objects, objectTracker_parameters_rt);
+  sl::ERROR_CODE objDetRes = mZed.retrieveObjects(
+    objects, objectTracker_parameters_rt,
+    OD_INSTANCE_MODULE_ID);
 
   if (objDetRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(get_logger(), "Object Detection error: " << sl::toString(objDetRes));
@@ -6430,7 +6434,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
   // <---- Process realtime dynamic parameters
 
   sl::Bodies bodies;
-  sl::ERROR_CODE btRes = mZed.retrieveBodies(bodies, bt_params_rt);
+  sl::ERROR_CODE btRes = mZed.retrieveBodies(bodies, bt_params_rt, BT_INSTANCE_MODULE_ID);
 
   if (btRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(get_logger(), "Body Tracking error: " << sl::toString(btRes));
@@ -6511,7 +6515,8 @@ void ZedCamera::processBodies(rclcpp::Time t)
     bodyMsg->objects[idx].skeleton_available = true;
 
     uint8_t kp_size = body.keypoint_2d.size();
-    if (kp_size == 18 || kp_size == 34) {
+    DEBUG_STREAM_BT(" * Skeleton KP: " << static_cast<int>(kp_size));
+    if (kp_size <= 70) {
       memcpy(
         &(bodyMsg->objects[idx].skeleton_2d.keypoints[0]), &(body.keypoint_2d[0]),
         2 * kp_size * sizeof(float));

@@ -4604,7 +4604,7 @@ void ZedCamera::threadFunc_zedGrab()
               static_cast<float>(real_frame_ts.nanoseconds()) / 1e9 << "-" <<
               static_cast<float>(mGnssTimestamp.nanoseconds()) / 1e9);
 
-          if (real_frame_ts.nanoseconds() < mGnssTimestamp.nanoseconds() ) {
+          if (dT_sec < 0.0 ) {
             RCLCPP_WARN_STREAM(
               get_logger(), "GNSS sensor and ZED Timestamps are not good. dT = "
                 << dT_sec << " sec");

@@ -28,9 +28,9 @@
             sdk_verbose: 1
 
         video:
-            brightness: 4 # [DYNAMIC]
-            contrast: 4 # [DYNAMIC]
-            hue: 0 # [DYNAMIC]
+            brightness: 4 # [DYNAMIC] Not available for ZED X/ZED X Mini
+            contrast: 4 # [DYNAMIC] Not available for ZED X/ZED X Mini
+            hue: 0 # [DYNAMIC] Not available for ZED X/ZED X Mini
             saturation: 4 # [DYNAMIC]
             sharpness: 4 # [DYNAMIC]
             gamma: 8 # [DYNAMIC]

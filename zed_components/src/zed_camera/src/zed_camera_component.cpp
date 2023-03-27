@@ -739,9 +739,11 @@ void ZedCamera::getVideoParams()
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
 
-  getParam("video.brightness", mCamBrightness, mCamBrightness, " * [DYN] Brightness: ", true);
-  getParam("video.contrast", mCamContrast, mCamContrast, " * [DYN] Contrast: ", true);
-  getParam("video.hue", mCamHue, mCamHue, " * [DYN] Hue: ", true);
+  if(!sl_tools::isZEDX(mCamRealModel)) {
+    getParam("video.brightness", mCamBrightness, mCamBrightness, " * [DYN] Brightness: ", true);
+    getParam("video.contrast", mCamContrast, mCamContrast, " * [DYN] Contrast: ", true);
+    getParam("video.hue", mCamHue, mCamHue, " * [DYN] Hue: ", true);
+  }
   getParam("video.saturation", mCamSaturation, mCamSaturation, " * [DYN] Saturation: ", true);
   getParam("video.sharpness", mCamSharpness, mCamSharpness, " * [DYN] Sharpness: ", true);
   getParam("video.gamma", mCamGamma, mCamGamma, " * [DYN] Gamma: ", true);
@@ -1882,6 +1884,12 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
     } else if (param.get_name() == "video.brightness") {
+      if(sl_tools::isZEDX(mCamRealModel)) {
+        RCLCPP_WARN_STREAM(
+        get_logger(), "Parameter '" << param.get_name() << "' not available for "<< sl::toString(mCamRealModel).c_str() );
+        break;
+      }
+
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
       if (param.get_type() != correctType) {
         result.successful = false;
@@ -1904,6 +1912,12 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
     } else if (param.get_name() == "video.contrast") {
+      if(sl_tools::isZEDX(mCamRealModel)) {
+        RCLCPP_WARN_STREAM(
+        get_logger(), "Parameter '" << param.get_name() << "' not available for "<< sl::toString(mCamRealModel).c_str() );
+        break;
+      }
+
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
       if (param.get_type() != correctType) {
         result.successful = false;
@@ -1926,6 +1940,12 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
     } else if (param.get_name() == "video.hue") {
+      if(sl_tools::isZEDX(mCamRealModel)) {
+        RCLCPP_WARN_STREAM(
+        get_logger(), "Parameter '" << param.get_name() << "' not available for "<< sl::toString(mCamRealModel).c_str() );
+        break;
+      }
+
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
       if (param.get_type() != correctType) {
         result.successful = false;
@@ -6731,7 +6751,6 @@ void ZedCamera::applyDepthSettings()
 void ZedCamera::applyVideoSettings()
 {
   sl::ERROR_CODE err;
-  // TODO(Walter) SDK v4 -> Add new settings for ZED-X
 
   if (!mSvoMode && mFrameCount % 5 == 0) {
     mDynParMutex.lock();
@@ -6777,35 +6796,40 @@ void ZedCamera::applyVideoSettings()
           "Error setting camera WHITE BALANCE: " << sl::toString(err).c_str() );
       }
     }
-    int brgt;
-    err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, brgt);
-    if (err == sl::ERROR_CODE::SUCCESS && brgt != mCamBrightness) {
-      mZed.setCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, mCamBrightness);
-    } else if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        "Error setting camera BRIGHTNESS: " << sl::toString(err).c_str() );
-    }
+    
+    // ----> BRIGHTNESS, CONTRAST, HUE controls not available for ZED X and ZED X Mini
+    if(!sl_tools::isZEDX(mCamRealModel)) {
+      int brgt;
+      err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, brgt);
+      if (err == sl::ERROR_CODE::SUCCESS && brgt != mCamBrightness) {
+        mZed.setCameraSettings(sl::VIDEO_SETTINGS::BRIGHTNESS, mCamBrightness);
+      } else if (err != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_WARN_STREAM(
+          get_logger(),
+          "Error setting camera BRIGHTNESS: " << sl::toString(err).c_str() );
+      }
 
-    int contr;
-    err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, contr);
-    if (err == sl::ERROR_CODE::SUCCESS && contr != mCamContrast) {
-      err = mZed.setCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, mCamContrast);
-    } else if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        "Error setting camera CONTRAST: " << sl::toString(err).c_str() );
-    }
+      int contr;
+      err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, contr);
+      if (err == sl::ERROR_CODE::SUCCESS && contr != mCamContrast) {
+        err = mZed.setCameraSettings(sl::VIDEO_SETTINGS::CONTRAST, mCamContrast);
+      } else if (err != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_WARN_STREAM(
+          get_logger(),
+          "Error setting camera CONTRAST: " << sl::toString(err).c_str() );
+      }
 
-    int hue;
-    err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::HUE, hue);
-    if (err == sl::ERROR_CODE::SUCCESS && hue != mCamHue) {
-      mZed.setCameraSettings(sl::VIDEO_SETTINGS::HUE, mCamHue);
-    } else if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        "Error setting camera HUE: " << sl::toString(err).c_str() );
+      int hue;
+      err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::HUE, hue);
+      if (err == sl::ERROR_CODE::SUCCESS && hue != mCamHue) {
+        mZed.setCameraSettings(sl::VIDEO_SETTINGS::HUE, mCamHue);
+      } else if (err != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_WARN_STREAM(
+          get_logger(),
+          "Error setting camera HUE: " << sl::toString(err).c_str() );
+      }
     }
+    // <---- BRIGHTNESS, CONTRAST, HUE controls not available for ZED X and ZED X Mini
 
     int sat;
     err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::SATURATION, sat);

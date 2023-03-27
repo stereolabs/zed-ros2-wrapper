@@ -597,21 +597,19 @@ void ZedCamera::getGeneralParams()
   } else if (camera_model == "zed2i") {
     mCamUserModel = sl::MODEL::ZED2i;
   } else if (camera_model == "zedx") {
-    if (IS_JETSON) {
-      mCamUserModel = sl::MODEL::ZED_X;
-    } else {
+    mCamUserModel = sl::MODEL::ZED_X;
+    if (!IS_JETSON) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Camera model " << sl::toString(
-          mCamUserModel) << " is available only with NVIDIA Jetson devices.");
+          mCamUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
   } else if (IS_JETSON && camera_model == "zedxm") {
-    if (IS_JETSON) {
-      mCamUserModel = sl::MODEL::ZED_XM;
-    } else {
+    mCamUserModel = sl::MODEL::ZED_XM;
+    if (!IS_JETSON) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Camera model " << sl::toString(
-          mCamUserModel) << " is available only with NVIDIA Jetson devices.");
+          mCamUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
   } else {
@@ -2720,11 +2718,15 @@ void ZedCamera::initPublishers()
 
   // Set the positional tracking topic names
   mPoseTopic = mTopicRoot + "pose";
+  mPoseStatusTopic = mPoseTopic + "/status";
   mPoseCovTopic = mPoseTopic + "_with_covariance";
   mGnssPoseTopic = mPoseTopic + "/filtered";
+  mGnssPoseStatusTopic = mGnssPoseTopic + "/status";
   mGeoPoseTopic = mTopicRoot + "geo_pose";
+  mGeoPoseStatusTopic = mGeoPoseTopic + "/status";
 
   mOdomTopic = mTopicRoot + "odom";
+  mOdomStatusTopic = mOdomTopic + "/status";
   mOdomPathTopic = mTopicRoot + "path_odom";
   mMapPathTopic = mTopicRoot + "path_map";
 
@@ -2825,11 +2827,19 @@ void ZedCamera::initPublishers()
   if (!mDepthDisabled) {
     mPubPose = create_publisher<geometry_msgs::msg::PoseStamped>(mPoseTopic, mPoseQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPose->get_topic_name());
+    mPubPoseStatus = create_publisher<zed_interfaces::msg::PosTrackStatus>(
+      mPoseStatusTopic,
+      mPoseQos);
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPoseStatus->get_topic_name());
     mPubPoseCov =
       create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(mPoseCovTopic, mPoseQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPoseCov->get_topic_name());
     mPubOdom = create_publisher<nav_msgs::msg::Odometry>(mOdomTopic, mPoseQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubOdom->get_topic_name());
+    mPubOdomStatus = create_publisher<zed_interfaces::msg::PosTrackStatus>(
+      mOdomStatusTopic,
+      mPoseQos);
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubOdomStatus->get_topic_name());
     mPubPosePath = create_publisher<nav_msgs::msg::Path>(mMapPathTopic, mPoseQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPosePath->get_topic_name());
     mPubOdomPath = create_publisher<nav_msgs::msg::Path>(mOdomPathTopic, mPoseQos);
@@ -2838,9 +2848,19 @@ void ZedCamera::initPublishers()
       mPubGnssPose = create_publisher<nav_msgs::msg::Odometry>(mGnssPoseTopic, mPoseQos);
       RCLCPP_INFO_STREAM(
         get_logger(), "Advertised on topic (GNSS): " << mPubGnssPose->get_topic_name());
+      mPubGnssPoseStatus = create_publisher<zed_interfaces::msg::PosTrackStatus>(
+        mGnssPoseStatusTopic, mPoseQos);
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "Advertised on topic: " << mPubGnssPoseStatus->get_topic_name());
       mPubGeoPose = create_publisher<geographic_msgs::msg::GeoPoseStamped>(mGeoPoseTopic, mPoseQos);
       RCLCPP_INFO_STREAM(
         get_logger(), "Advertised on topic (GNSS): " << mPubGeoPose->get_topic_name());
+      mPubGeoPoseStatus = create_publisher<zed_interfaces::msg::PosTrackStatus>(
+        mGeoPoseStatusTopic,
+        mPoseQos);
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Advertised on topic (GNSS): " << mPubGeoPoseStatus->get_topic_name());
     }
   }
   // <---- Pos Tracking
@@ -4659,7 +4679,7 @@ void ZedCamera::threadFunc_zedGrab()
           processOdometry();
           processPose();
           if (mGnssFusionEnabled) {
-            processGnssPose();
+            processGeoPose();
           }
         }
 
@@ -5717,8 +5737,9 @@ void ZedCamera::processOdometry()
       mPosTrackingStatusCamera = mFusion.getPosition(
         deltaOdom, sl::REFERENCE_FRAME::CAMERA /*,mCamUuid*/,
         sl::CameraIdentifier(), sl::POSITION_TYPE::FUSION);
-
     }
+
+    publishOdomStatus();
 
     DEBUG_PT(
       "delta ODOM %s- [%s]:\n%s",
@@ -5799,40 +5820,55 @@ void ZedCamera::processOdometry()
 
 void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t)
 {
-  odomMsgPtr odomMsg = std::make_unique<nav_msgs::msg::Odometry>();
+  size_t odomSub = 0;
+  size_t odomStatusSub = 0;
 
-  odomMsg->header.stamp = t;
-  odomMsg->header.frame_id = mOdomFrameId;  // frame
-  odomMsg->child_frame_id = mBaseFrameId;   // camera_frame
-
-  // Add all value in odometry message
-  odomMsg->pose.pose.position.x = odom2baseTransf.getOrigin().x();
-  odomMsg->pose.pose.position.y = odom2baseTransf.getOrigin().y();
-  odomMsg->pose.pose.position.z = odom2baseTransf.getOrigin().z();
-  odomMsg->pose.pose.orientation.x = odom2baseTransf.getRotation().x();
-  odomMsg->pose.pose.orientation.y = odom2baseTransf.getRotation().y();
-  odomMsg->pose.pose.orientation.z = odom2baseTransf.getRotation().z();
-  odomMsg->pose.pose.orientation.w = odom2baseTransf.getRotation().w();
-
-  // Odometry pose covariance
-  for (size_t i = 0; i < odomMsg->pose.covariance.size(); i++) {
-    odomMsg->pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]);
-
-    if (mTwoDMode) {
-      if (i == 14 || i == 21 || i == 28) {
-        odomMsg->pose.covariance[i] = 1e-9;  // Very low covariance if 2D mode
-      } else if (
-        (i >= 2 && i <= 4) || (i >= 8 && i <= 10) || (i >= 12 && i <= 13) || (i >= 15 && i <= 16) ||
-        (i >= 18 && i <= 20) || (i == 22) || (i >= 24 && i <= 27))
-      {
-        odomMsg->pose.covariance[i] = 0.0;
-      }
-    }
+  try {
+    odomSub = count_subscribers(mOdomTopic);        // mPubOdom subscribers
+    odomStatusSub = count_subscribers(mOdomStatusTopic); // mPubOdomStatus subscribers
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
+    return;
   }
 
-  // Publish odometry message
-  DEBUG_STREAM_PT("Publishing ODOM message");
-  mPubOdom->publish(std::move(odomMsg));
+  if (odomSub) {
+    odomMsgPtr odomMsg = std::make_unique<nav_msgs::msg::Odometry>();
+
+    odomMsg->header.stamp = t;
+    odomMsg->header.frame_id = mOdomFrameId; // frame
+    odomMsg->child_frame_id = mBaseFrameId; // camera_frame
+
+    // Add all value in odometry message
+    odomMsg->pose.pose.position.x = odom2baseTransf.getOrigin().x();
+    odomMsg->pose.pose.position.y = odom2baseTransf.getOrigin().y();
+    odomMsg->pose.pose.position.z = odom2baseTransf.getOrigin().z();
+    odomMsg->pose.pose.orientation.x = odom2baseTransf.getRotation().x();
+    odomMsg->pose.pose.orientation.y = odom2baseTransf.getRotation().y();
+    odomMsg->pose.pose.orientation.z = odom2baseTransf.getRotation().z();
+    odomMsg->pose.pose.orientation.w = odom2baseTransf.getRotation().w();
+
+    // Odometry pose covariance
+    for (size_t i = 0; i < odomMsg->pose.covariance.size(); i++) {
+      odomMsg->pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]);
+
+      if (mTwoDMode) {
+        if (i == 14 || i == 21 || i == 28) {
+          odomMsg->pose.covariance[i] = 1e-9; // Very low covariance if 2D mode
+        } else if (
+          (i >= 2 && i <= 4) || (i >= 8 && i <= 10) || (i >= 12 && i <= 13) ||
+          (i >= 15 && i <= 16) ||
+          (i >= 18 && i <= 20) || (i == 22) || (i >= 24 && i <= 27))
+        {
+          odomMsg->pose.covariance[i] = 0.0;
+        }
+      }
+    }
+
+    // Publish odometry message
+    DEBUG_STREAM_PT("Publishing ODOM message");
+    mPubOdom->publish(std::move(odomMsg));
+  }
 }
 
 void ZedCamera::processPose()
@@ -5849,15 +5885,6 @@ void ZedCamera::processPose()
     getCamera2BaseTransform();
   }
 
-  // size_t odomSub = 0;
-  // try {
-  //   odomSub = count_subscribers(mOdomTopic);  // mPubOdom subscribers
-  // } catch (...) {
-  //   rcutils_reset_error();
-  //   DEBUG_STREAM_PT("processPose: Exception while counting subscribers");
-  //   return;
-  // }
-
   if (!mGnssFusionEnabled) {
     mPosTrackingStatusWorld = mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
   } else {
@@ -5866,6 +5893,9 @@ void ZedCamera::processPose()
       mLastZedPose, sl::REFERENCE_FRAME::WORLD /*,mCamUuid*/,
       sl::CameraIdentifier(), sl::POSITION_TYPE::FUSION);
   }
+
+  publishPoseStatus();
+  publishGnssPoseStatus();
 
   sl::Translation translation = mLastZedPose.getTranslation();
   sl::Orientation quat = mLastZedPose.getOrientation();
@@ -5985,6 +6015,100 @@ void ZedCamera::processPose()
   }
 }
 
+void ZedCamera::publishPoseStatus()
+{
+  size_t statusSub = 0;
+
+  try {
+    statusSub = count_subscribers(mPoseStatusTopic); // mPubPoseStatus subscribers
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
+    return;
+  }
+
+  if (statusSub > 0) {
+    poseStatusMsgPtr msg = std::make_unique<zed_interfaces::msg::PosTrackStatus>();
+    msg->status = static_cast<uint8_t>(mPosTrackingStatusWorld);
+
+    mPubPoseStatus->publish(std::move(msg));
+  }
+}
+
+void ZedCamera::publishOdomStatus()
+{
+  size_t statusSub = 0;
+
+  try {
+    statusSub = count_subscribers(mOdomStatusTopic); // mOdomStatusTopic subscribers
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
+    return;
+  }
+
+  if (statusSub > 0) {
+    poseStatusMsgPtr msg = std::make_unique<zed_interfaces::msg::PosTrackStatus>();
+    msg->status = static_cast<uint8_t>(mPosTrackingStatusCamera);
+
+    mPubOdomStatus->publish(std::move(msg));
+  }
+}
+
+void ZedCamera::publishGnssPoseStatus()
+{
+  size_t statusSub = 0;
+
+  try {
+    statusSub = count_subscribers(mGnssPoseStatusTopic); // mPubGnssPoseStatus subscribers
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
+    return;
+  }
+
+  if (statusSub > 0) {
+    poseStatusMsgPtr msg = std::make_unique<zed_interfaces::msg::PosTrackStatus>();
+
+    if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
+      mGeoPoseStatus == sl::POSITIONAL_TRACKING_STATE::OK)
+    {
+      msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::OK);
+    } else {
+      msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::SEARCHING);
+    }
+
+    mPubGnssPoseStatus->publish(std::move(msg));
+  }
+}
+
+void ZedCamera::publishGeoPoseStatus()
+{
+  size_t statusSub = 0;
+
+  try {
+    statusSub = count_subscribers(mGeoPoseStatusTopic); // mPubGnssPoseStatus subscribers
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
+    return;
+  }
+
+  if (statusSub > 0) {
+    poseStatusMsgPtr msg = std::make_unique<zed_interfaces::msg::PosTrackStatus>();
+
+    if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
+      mGeoPoseStatus == sl::POSITIONAL_TRACKING_STATE::OK)
+    {
+      msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::OK);
+    } else {
+      msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::SEARCHING);
+    }
+
+    mPubGeoPoseStatus->publish(std::move(msg));
+  }
+}
+
 void ZedCamera::publishPose()
 {
   size_t poseSub = 0;
@@ -6059,7 +6183,7 @@ void ZedCamera::publishPose()
   }
 }
 
-void ZedCamera::processGnssPose()
+void ZedCamera::processGeoPose()
 {
   if (!mGnssFusionEnabled) {
     return;
@@ -6069,9 +6193,11 @@ void ZedCamera::processGnssPose()
     getGnss2BaseTransform();
   }
 
-  mGnssPosStatus = mFusion.getGeoPose(mLastGeoPose);
+  mGeoPoseStatus = mFusion.getGeoPose(mLastGeoPose);
 
-  if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK ||
+  publishGeoPoseStatus();
+
+  if (mGeoPoseStatus != sl::POSITIONAL_TRACKING_STATE::OK ||
     mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OK)
   {
     rclcpp::Clock steady_clock(RCL_STEADY_TIME);
@@ -6212,8 +6338,6 @@ void ZedCamera::publishGnssPose()
   }
 
   if (gnssSub > 0) {
-    // TODO(Walter) this must be fixed
-
     odomMsgPtr msg = std::make_unique<nav_msgs::msg::Odometry>();
 
     msg->header.stamp = mFrameTimestamp;
@@ -6255,7 +6379,7 @@ void ZedCamera::publishGnssPose()
     geoPoseMsgPtr msg = std::make_unique<geographic_msgs::msg::GeoPoseStamped>();
 
     msg->header.stamp = mFrameTimestamp;
-    msg->header.frame_id = mGnssFrameId;
+    msg->header.frame_id = mMapFrameId;
 
     // Latest Lat Long data
     msg->pose.position.latitude = mLastLatLongPose.getLatitude(false);
@@ -7842,7 +7966,7 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
       if (mGnssFusionEnabled) {
         stat.addf("Fusion status", sl::toString(mFusionStatus).c_str());
         if (mPosTrackingStarted) {
-          stat.addf("GNSS Tracking status", "%s", sl::toString(mGnssPosStatus).c_str());
+          stat.addf("GNSS Tracking status", "%s", sl::toString(mGeoPoseStatus).c_str());
         }
         if (mGnssMsgReceived) {
           double freq = 1. / mGnssFix_sec->getAvg();
@@ -8547,7 +8671,7 @@ void ZedCamera::callback_toLL(
     return;
   }
 
-  if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
+  if (mGeoPoseStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");
     return;
   }
@@ -8586,7 +8710,7 @@ void ZedCamera::callback_fromLL(
     return;
   }
 
-  if (mGnssPosStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
+  if (mGeoPoseStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");
     return;
   }

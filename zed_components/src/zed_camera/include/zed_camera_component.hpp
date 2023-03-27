@@ -178,6 +178,10 @@ protected:
   void publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t);
   void publishPose();
   void publishGnssPose();
+  void publishPoseStatus();
+  void publishOdomStatus();
+  void publishGnssPoseStatus();
+  void publishGeoPoseStatus();
   void publishTFs(rclcpp::Time t);
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
@@ -193,7 +197,7 @@ protected:
 
   void processOdometry();
   void processPose();
-  void processGnssPose();
+  void processGeoPose();
 
   void processDetectedObjects(rclcpp::Time t);
   void processBodies(rclcpp::Time t);
@@ -243,10 +247,14 @@ private:
   // ----> Topics
   std::string mTopicRoot = "~/";
   std::string mOdomTopic;
+  std::string mOdomStatusTopic;
   std::string mPoseTopic;
+  std::string mPoseStatusTopic;
   std::string mPoseCovTopic;
   std::string mGnssPoseTopic;
+  std::string mGnssPoseStatusTopic;
   std::string mGeoPoseTopic;
+  std::string mGeoPoseStatusTopic;
   std::string mPointcloudFusedTopic;
   std::string mObjectDetTopic;
   std::string mBodyTrkTopic;
@@ -514,9 +522,12 @@ private:
   pointcloudPub mPubCloud;
   pointcloudPub mPubFusedCloud;
   posePub mPubPose;
+  poseStatusPub mPubPoseStatus;
   poseCovPub mPubPoseCov;
   odomPub mPubOdom;
+  poseStatusPub mPubOdomStatus;
   odomPub mPubGnssPose;
+  poseStatusPub mPubGnssPoseStatus;
   pathPub mPubOdomPath;
   pathPub mPubPosePath;
   imuPub mPubImu;
@@ -534,6 +545,7 @@ private:
   markerPub mPubMarker;
 
   geoPosePub mPubGeoPose;
+  poseStatusPub mPubGeoPoseStatus;
 
 #ifdef WITH_TM
   imagePub mPubElevMapImg;
@@ -643,7 +655,7 @@ private:
   bool mPosTrackingReady = false;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusWorld;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusCamera;
-  sl::POSITIONAL_TRACKING_STATE mGnssPosStatus;
+  sl::POSITIONAL_TRACKING_STATE mGeoPoseStatus;
   bool mResetOdom = false;
   bool mSpatialMappingRunning = false;
 #ifdef WITH_TM

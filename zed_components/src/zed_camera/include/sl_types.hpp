@@ -58,6 +58,7 @@
 #include <zed_interfaces/srv/set_pose.hpp>
 #include <zed_interfaces/srv/set_roi.hpp>
 #include <zed_interfaces/srv/start_svo_rec.hpp>
+#include <zed_interfaces/msg/pos_track_status.hpp>
 
 #include <robot_localization/srv/from_ll.hpp>
 #include <robot_localization/srv/to_ll.hpp>
@@ -89,6 +90,7 @@ typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::FluidPressure>> pres
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Temperature>> tempPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> posePub;
+typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PosTrackStatus>> poseStatusPub;
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>>
   poseCovPub;
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::TransformStamped>> transfPub;
@@ -120,6 +122,7 @@ typedef std::unique_ptr<sensor_msgs::msg::MagneticField> magMsgPtr;
 typedef std::unique_ptr<stereo_msgs::msg::DisparityImage> dispMsgPtr;
 
 typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
+typedef std::unique_ptr<zed_interfaces::msg::PosTrackStatus> poseStatusMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped> poseCovMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::TransformStamped> transfMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Odometry> odomMsgPtr;

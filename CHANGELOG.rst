@@ -16,6 +16,9 @@ v4.0.x
 - Positional Tracking
 
   - Add `pos_tracking.set_as_static` parameters for applications with a static camera monitoring a robotics environment. See [PR #122](https://github.com/stereolabs/zed-ros2-wrapper/pull/122 ) Thx @gabor-kovacs
+  - Add custom message type `PosTrackStatus`
+  - Publish message on topic `~/pose/status` with the current status of the pose from the ZED SDK
+  - Publish message on topic `~/odom/status` with the current status of the odometry from the ZED SDK
 
 - Body Tracking
 
@@ -49,6 +52,9 @@ v4.0.x
   - Add parameter `gnss_fusion.publish_utm_tf`
   - Add parameter `gnss_fusion.broadcast_utm_transform_as_parent_frame`
   - Add parameter `gnss_fusion.gnss_init_distance`
+  - Publish message on topic `~/geo_pose/status` with the current status of the GeoPose from the ZED SDK
+  - Publish message on topic `~/pose/filtered` with the current GNSS filtered pose in `map` frame
+  - Publish message on topic `~/pose/filtered/status` with the current status of the GNSS filtered pose from the ZED SDK
 
 - Object Detection
 

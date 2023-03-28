@@ -125,7 +125,7 @@ v4.0.x
   - Convert `shared_ptr` to `unique_ptr` for IPC support
   - Improve the `zed_camera.launch.py`
 
-    - Adde support for `OpaqueFunction` in order to automatically configure the launch file according to the value of the launch parameter `cam_model`.
+    - Add support for `OpaqueFunction` in order to automatically configure the launch file according to the value of the launch parameter `cam_model`.
     - Change parameters to set camera pose in launch files. From 6 separated parameters (`cam_pos_x`,`cam_pos_y`,`cam_pos_z`,`cam_roll`,`cam_pitch`,`cam_yaw`) to one single array (`cam_pose`).
     - Remove the workaround for empty `svo_path` launch parameter values thanks to `TextSubstitution`.
     - Modify the "display" launch files in [zed-ros2-examples](https://github.com/stereolabs/zed-ros2-examples) to match the new configuration.

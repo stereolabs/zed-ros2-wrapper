@@ -6,9 +6,6 @@
 /**:
     ros__parameters:
 
-        use_sim_time: false  # Set to true to enable SIMULATION mode
-        sim_address: '192.168.1.90'  # The local address of the machine running the simulator
-
         general:
             svo_file: "" # usually overwritten by launch file
             svo_loop: false # Enable loop mode when using an SVO as input source
@@ -104,17 +101,6 @@
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT -
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
-        local_mapping: # EXPERIMENTAL - Require TERRAIN MAPPING MODULE (only for development)
-            terrain_mapping_enabled: false # True to enable terrain mapping publishing a local obstacle map
-            data_pub_rate: 3.0 # Local Map data publish frequency
-            grid_resolution: 0.05 # Local Map resolution in meters [min: 0.01 - max: 1.0]
-            grid_range: 4.0 # maximum depth range for local map generation [min: 1.0 - max: 8.0]
-            robot_heigth: 1.0 # height of the robot
-            robot_radius: 0.25 # radius of the robot
-            robot_max_step: 0.1 # the max height of a step that the robot can overcome
-            robot_max_slope: 20.0 # the max slope (degrees) that the robot can overcome
-            robot_max_roughness: 0.1 # the max roughness of the terrain that the robot can overcome
-
         sensors:
             sensors_image_sync: false # Synchronize Sensors messages with latest published video/depth message
             sensors_pub_rate: 200. # frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
@@ -125,7 +111,7 @@
 
         object_detection:
             od_enabled: false # True to enable Object Detection
-            model: 'MULTI_CLASS_BOX_ACCURATE' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE'
+            model: 'MULTI_CLASS_BOX_MEDIUM' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE'
             allow_reduced_precision_inference: true # Allow inference to run at a lower precision to improve runtime and memory usage
             max_range: 20.0 # [m] Defines a upper depth range for detections
             confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
@@ -145,7 +131,7 @@
         
         body_tracking:
             bt_enabled: false # True to enable Body Tracking
-            model: 'HUMAN_BODY_ACCURATE' # 'HUMAN_BODY_FAST', 'HUMAN_BODY_MEDIUM', 'HUMAN_BODY_ACCURATE'
+            model: 'HUMAN_BODY_MEDIUM' # 'HUMAN_BODY_FAST', 'HUMAN_BODY_MEDIUM', 'HUMAN_BODY_ACCURATE'
             body_format: 'BODY_38' # 'BODY_18','BODY_34','BODY_38','BODY_70'
             allow_reduced_precision_inference: false # Allow inference to run at a lower precision to improve runtime and memory usage
             max_range: 20.0 # [m] Defines a upper depth range for detections
@@ -159,6 +145,20 @@
             qos_depth: 1 # Queue size if using KEEP_LAST
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
+
+        use_sim_time: false # EXPERIMENTAL (only for development) - Set to true to enable SIMULATION mode # 
+        sim_address: '192.168.1.90' # EXPERIMENTAL (only for development) - The local address of the machine running the simulator
+
+        local_mapping: # EXPERIMENTAL (only for development) - TERRAIN MAPPING MODULE required
+            terrain_mapping_enabled: false # True to enable terrain mapping publishing a local obstacle map
+            data_pub_rate: 3.0 # Local Map data publish frequency
+            grid_resolution: 0.05 # Local Map resolution in meters [min: 0.01 - max: 1.0]
+            grid_range: 4.0 # maximum depth range for local map generation [min: 1.0 - max: 8.0]
+            robot_heigth: 1.0 # height of the robot
+            robot_radius: 0.25 # radius of the robot
+            robot_max_step: 0.1 # the max height of a step that the robot can overcome
+            robot_max_slope: 20.0 # the max slope (degrees) that the robot can overcome
+            robot_max_roughness: 0.1 # the max roughness of the terrain that the robot can overcome
 
         debug:
             debug_common: false

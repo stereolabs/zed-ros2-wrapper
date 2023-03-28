@@ -416,6 +416,18 @@ private:
   double mPcPubRate = 15.0;
   double mFusedPcPubRate = 1.0;
   bool mRemoveSatAreas = true;
+
+  int mGmslExpTime = 16666;
+  int mGmslAutoExpTimeRangeMin = 28;
+  int mGmslAutoExpTimeRangeMax = 16666;
+  int mGmslAutoExpComp = 50;
+  int mGmslAnalogGain = 8000;
+  int mGmslAnalogGainRangeMin = 1000;
+  int mGmslAnalogGainRangeMax = 16000;
+  int mGmslDigitalGain = 128;
+  int mGmslAutoDigitalGainRangeMin = 1;
+  int mGmslAutoDigitalGainRangeMax = 256;
+  int mGmslDenoising = 50;
   // <---- Dynamic params
 
   // ----> Frame IDs

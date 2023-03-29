@@ -27,6 +27,7 @@ env | grep ROS
 
 echo "${ttk} Install missing ZED ROS2 Package dependencies from the sources"
 cd ${WS_DIR}/src
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 42D5A192B819C5DA
 # xacro
 XACRO_VERSION=2.0.8
 wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz -O - | tar -xvz && mv xacro-${XACRO_VERSION} xacro
@@ -36,8 +37,17 @@ wget https://github.com/ros/diagnostics/archive/refs/tags/${DIAGNOSTICS_VERSION}
 # lint
 AMENT_LINT_VERSION=0.12.4
 wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}.tar.gz -O - | tar -xvz && mv ament_lint-${AMENT_LINT_VERSION} ament-lint
+# Geographic Info
+GEOGRAPHIC_INFO_VERSION=1.0.4
+wget https://github.com/ros-geographic-info/geographic_info/archive/refs/tags/${GEOGRAPHIC_INFO_VERSION}.tar.gz -O - | tar -xvz && mv geographic_info-${GEOGRAPHIC_INFO_VERSION} geographic-info
+cp -r geographic-info/geographic_msgs/ .
+rm -rf geographic-info
 # NMEA msgs
 git clone https://github.com/ros-drivers/nmea_msgs.git --branch ros2
+# Robot Localization
+git clone https://github.com/cra-ros-pkg/robot_localization.git --branch huble_sync
+# Angles
+git clone https://github.com/ros/angles.git --branch humble-devel
 
 echo "${ttk} Copy the ZED ROS2 Package sources in the workspace"
 cd ${WORKDIR}

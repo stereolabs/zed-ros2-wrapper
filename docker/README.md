@@ -67,6 +67,8 @@ This is easily done by using the following option:
 
     -v /tmp/zed_ai/:/usr/local/zed/resources/
 
+The first time you use the AI model inside the Docker image, it will be downloaded and optimized in the local shared folder, and stored there for the next runs.
+
 ### Start the Docker container
 
 The following command starts an interactive BaSH session:

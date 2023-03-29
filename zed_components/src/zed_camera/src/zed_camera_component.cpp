@@ -1934,7 +1934,8 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
         if ((val < 28) || (val > mGmslAutoExpTimeRangeMax)) {
           result.successful = false;
-          result.reason = param.get_name() + " must be a positive integer in the range [28,auto_exposure_time_range_max]";
+          result.reason = param.get_name() +
+            " must be a positive integer in the range [28,auto_exposure_time_range_max]";
           RCLCPP_WARN_STREAM(get_logger(), result.reason);
           break;
         }
@@ -1956,7 +1957,8 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
         if ((val < mGmslAutoExpTimeRangeMin) || (val > 16666)) {
           result.successful = false;
-          result.reason = param.get_name() + " must be a positive integer in the range [auto_exposure_time_range_min,16666]";
+          result.reason = param.get_name() +
+            " must be a positive integer in the range [auto_exposure_time_range_min,16666]";
           RCLCPP_WARN_STREAM(get_logger(), result.reason);
           break;
         }
@@ -2006,6 +2008,165 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
         }
 
         mGmslExposureComp = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+      } else if (param.get_name() == "video.analog_gain") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 1000) || (val > 16000)) {
+          result.successful = false;
+          result.reason = param.get_name() +
+            " must be a positive integer in the range [1000,16000]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mGmslAnalogGain = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+      } else if (param.get_name() == "video.auto_analog_gain_range_min") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 1000) || (val > mGmslAnalogGainRangeMax)) {
+          result.successful = false;
+          result.reason = param.get_name() +
+            " must be a positive integer in the range [1000,auto_analog_gain_range_max]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mGmslAnalogGainRangeMin = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+      } else if (param.get_name() == "video.auto_analog_gain_range_max") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < mGmslAnalogGainRangeMin) || (val > 16000)) {
+          result.successful = false;
+          result.reason = param.get_name() +
+            " must be a positive integer in the range [auto_analog_gain_range_min,16000]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mGmslAnalogGainRangeMax = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+      } else if (param.get_name() == "video.digital_gain") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 1) || (val > 256)) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a positive integer in the range [1,256]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mGmslDigitalGain = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+      } else if (param.get_name() == "video.auto_digital_gain_range_min") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 1) || (val > mGmslAutoDigitalGainRangeMax)) {
+          result.successful = false;
+          result.reason = param.get_name() +
+            " must be a positive integer in the range [1,auto_digital_gain_range_max]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mGmslAutoDigitalGainRangeMin = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+      } else if (param.get_name() == "video.auto_digital_gain_range_max") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < mGmslAutoDigitalGainRangeMin) || (val > 256)) {
+          result.successful = false;
+          result.reason = param.get_name() +
+            " must be a positive integer in the range [auto_digital_gain_range_min,256]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mGmslAutoDigitalGainRangeMax = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+      } else if (param.get_name() == "video.denoising") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 100)) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mGmslDenoising = val;
 
         RCLCPP_INFO_STREAM(
           get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);

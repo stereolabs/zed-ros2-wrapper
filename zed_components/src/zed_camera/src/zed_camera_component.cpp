@@ -1897,7 +1897,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
       DEBUG_STREAM_COMM("Param #" << count << ": " << param.get_name());
     }
 
-    if(sl_tools::isZEDX(mCamRealModel)) {
+    if (sl_tools::isZEDX(mCamRealModel)) {
       if (param.get_name() == "video.gain") {
         rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
         if (param.get_type() != correctType) {

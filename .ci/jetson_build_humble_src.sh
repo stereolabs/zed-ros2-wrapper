@@ -43,6 +43,8 @@ cp -r geographic-info/geographic_msgs/ .
 rm -rf geographic-info
 # NMEA msgs
 git clone https://github.com/ros-drivers/nmea_msgs.git --branch ros2
+# Robot Localization
+git clone https://github.com/cra-ros-pkg/robot_localization.git --branch huble_sync
 
 echo "${ttk} Copy the ZED ROS2 Package sources in the workspace"
 cd ${WORKDIR}

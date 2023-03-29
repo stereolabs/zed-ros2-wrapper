@@ -775,7 +775,7 @@ void ZedCamera::getVideoParams()
       "video.auto_exposure_time_range_max", mGmslAutoExpTimeRangeMax,
       mGmslAutoExpTimeRangeMax, " * [DYN] ZED X Auto Exp. time range max: ", true);
     getParam(
-      "video.exposure_compensation", mGmslAutoExpComp, mGmslAutoExpComp,
+      "video.exposure_compensation", mGmslExposureComp, mGmslExposureComp,
       " * [DYN] ZED X Exposure comp.: ", true);
     getParam(
       "video.analog_gain", mGmslAnalogGain, mGmslAnalogGain, " * [DYN] ZED X Analog Gain: ",
@@ -1898,7 +1898,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
     }
 
     if (sl_tools::isZEDX(mCamRealModel)) {
-      if (param.get_name() == "video.gain") {
+      if (param.get_name() == "video.exposure_time") {
         rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
         if (param.get_type() != correctType) {
           result.successful = false;
@@ -1909,15 +1909,103 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
         int val = param.as_int();
 
-        if ((val < 0) || (val > 100)) {
+        if ((val < 28) || (val > 16666)) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a positive integer in the range [28,16666]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mGmslExpTime = val;
+        mCamAutoExpGain = false;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+      } else if (param.get_name() == "video.auto_exposure_time_range_min") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 28) || (val > mGmslAutoExpTimeRangeMax)) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a positive integer in the range [28,auto_exposure_time_range_max]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mGmslAutoExpTimeRangeMin = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+      } else if (param.get_name() == "video.auto_exposure_time_range_max") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < mGmslAutoExpTimeRangeMin) || (val > 16666)) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a positive integer in the range [auto_exposure_time_range_min,16666]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mGmslAutoExpTimeRangeMax = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+      } else if (param.get_name() == "video.exposure_compensation") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 1000)) {
           result.successful = false;
           result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
           RCLCPP_WARN_STREAM(get_logger(), result.reason);
           break;
         }
 
-        mCamGain = val;
-        mCamAutoExpGain = false;
+        mGmslExposureComp = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+      } else if (param.get_name() == "video.exposure_compensation") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 1000)) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mGmslExposureComp = val;
 
         RCLCPP_INFO_STREAM(
           get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
@@ -6959,8 +7047,8 @@ void ZedCamera::applyVideoSettings()
       }
 
       err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION, value);
-      if (err == sl::ERROR_CODE::SUCCESS && value != mGmslAutoExpComp) {
-        err = mZed.setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION, mGmslAutoExpComp);
+      if (err == sl::ERROR_CODE::SUCCESS && value != mGmslExposureComp) {
+        err = mZed.setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION, mGmslExposureComp);
       } else if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_WARN_STREAM(
           get_logger(),

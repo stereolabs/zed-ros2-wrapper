@@ -420,7 +420,7 @@ private:
   int mGmslExpTime = 16666;
   int mGmslAutoExpTimeRangeMin = 28;
   int mGmslAutoExpTimeRangeMax = 16666;
-  int mGmslAutoExpComp = 50;
+  int mGmslExposureComp = 50;
   int mGmslAnalogGain = 8000;
   int mGmslAnalogGainRangeMin = 1000;
   int mGmslAnalogGainRangeMax = 16000;

@@ -1894,10 +1894,35 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
     count++;
 
     if (mDebugMode) {
-      DEBUG_STREAM_COMM("Changed parameter: " << param.get_name());
+      DEBUG_STREAM_COMM("Param #" << count << ": " << param.get_name());
     }
 
-    if (param.get_name() == "general.pub_frame_rate") {
+    if(sl_tools::isZEDX(mCamRealModel)) {
+      if (param.get_name() == "video.gain") {
+        rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 100)) {
+          result.successful = false;
+          result.reason = param.get_name() + " must be a positive integer in the range [0,100]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mCamGain = val;
+        mCamAutoExpGain = false;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name() << "' correctly set to " << val);
+      }
+    } else if (param.get_name() == "general.pub_frame_rate") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
       if (param.get_type() != correctType) {
         result.successful = false;

@@ -2,8 +2,8 @@ ARG IMAGE_NAME=dustynv/ros:humble-ros-base-l4t-r35.1.0
 
 FROM ${IMAGE_NAME}
 
-ARG ZED_SDK_MAJOR=3
-ARG ZED_SDK_MINOR=8
+ARG ZED_SDK_MAJOR=4
+ARG ZED_SDK_MINOR=0
 ARG JETPACK_MAJOR=5
 ARG JETPACK_MINOR=0
 ARG L4T_MAJOR=35
@@ -15,6 +15,7 @@ ARG ROS2_DIST=humble       # ROS2 distribution
 ARG XACRO_VERSION=2.0.8
 ARG DIAGNOSTICS_VERSION=3.0.0
 ARG AMENT_LINT_VERSION=0.12.4
+ARG GEOGRAPHIC_INFO_VERSION=1.0.4
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -23,9 +24,10 @@ ENV DEBIAN_FRONTEND noninteractive
 #  ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility
 
 # Disable apt-get warnings
-RUN apt-get update || true && apt-get install -y --no-install-recommends apt-utils dialog && \
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 42D5A192B819C5DA && \
+  apt-get update || true && apt-get install -y --no-install-recommends apt-utils dialog && \
   rm -rf /var/lib/apt/lists/*
-
+  
 ENV TZ=Europe/Paris
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \ 
@@ -57,8 +59,14 @@ RUN git clone --recursive https://github.com/stereolabs/zed-ros2-wrapper.git
 WORKDIR /root/ros2_ws/src
 RUN wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz -O - | tar -xvz && mv xacro-${XACRO_VERSION} xacro && \
   wget https://github.com/ros/diagnostics/archive/refs/tags/${DIAGNOSTICS_VERSION}.tar.gz -O - | tar -xvz && mv diagnostics-${DIAGNOSTICS_VERSION} diagnostics && \
-  wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}.tar.gz -O - | tar -xvz && mv ament_lint-${AMENT_LINT_VERSION} ament-lint
-  
+  wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}.tar.gz -O - | tar -xvz && mv ament_lint-${AMENT_LINT_VERSION} ament-lint && \
+  wget https://github.com/ros-geographic-info/geographic_info/archive/refs/tags/${GEOGRAPHIC_INFO_VERSION}.tar.gz -O - | tar -xvz && mv geographic_info-${GEOGRAPHIC_INFO_VERSION} geographic-info && \
+  cp -r geographic-info/geographic_msgs/ . && \
+  rm -rf geographic-info && \
+  git clone https://github.com/ros-drivers/nmea_msgs.git --branch ros2 && \
+  git clone https://github.com/cra-ros-pkg/robot_localization.git --branch huble_sync && \
+  git clone https://github.com/ros/angles.git --branch humble-devel
+
 
 # Check that all the dependencies are satisfied
 WORKDIR /root/ros2_ws

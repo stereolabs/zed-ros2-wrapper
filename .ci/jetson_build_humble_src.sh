@@ -27,14 +27,17 @@ env | grep ROS
 
 echo "${ttk} Install missing ZED ROS2 Package dependencies from the sources"
 cd ${WS_DIR}/src
+# xacro
 XACRO_VERSION=2.0.8
 wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz -O - | tar -xvz && mv xacro-${XACRO_VERSION} xacro
+# Diagnostic
 DIAGNOSTICS_VERSION=3.0.0
 wget https://github.com/ros/diagnostics/archive/refs/tags/${DIAGNOSTICS_VERSION}.tar.gz -O - | tar -xvz && mv diagnostics-${DIAGNOSTICS_VERSION} diagnostics
+# lint
 AMENT_LINT_VERSION=0.12.4
 wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}.tar.gz -O - | tar -xvz && mv ament_lint-${AMENT_LINT_VERSION} ament-lint
-NMEA_MSGS_VERSION=1.1.0
-wget https://github.com/ros-drivers/nmea_msgs/archive/refs/tags/${NMEA_MSGS_VERSION}.tar.gz -O - | tar -xvz && mv nmea_msgs-${NMEA_MSGS_VERSION} nmea-msgs
+# NMEA msgs
+git clone https://github.com/ros-drivers/nmea_msgs.git --branch ros2
 
 echo "${ttk} Copy the ZED ROS2 Package sources in the workspace"
 cd ${WORKDIR}

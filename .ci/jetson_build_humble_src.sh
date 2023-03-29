@@ -39,6 +39,8 @@ wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}
 # Geographic Info
 GEOGRAPHIC_INFO_VERSION=1.0.4
 wget https://github.com/ros-geographic-info/geographic_info/archive/refs/tags/${GEOGRAPHIC_INFO_VERSION}.tar.gz -O - | tar -xvz && mv geographic_info-${GEOGRAPHIC_INFO_VERSION} geographic-info
+cp -r geographic-info/geographic_msgs/ .
+rm -rf geographic-info
 # NMEA msgs
 git clone https://github.com/ros-drivers/nmea_msgs.git --branch ros2
 

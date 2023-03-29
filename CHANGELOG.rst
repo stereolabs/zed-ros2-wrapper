@@ -1,46 +1,25 @@
 LATEST CHANGES
 ==============
 
-2023-01-16
+v3.8.2
 ----------
 - Removed annoying build log messages. Only warning regarding unsupported ROS2 distributions will be displayed when required.
-
-2023-01-05
-----------
 - Added a check on timestamp to not publish already published point cloud messages in the point cloud thread
-
-2023-01-02
-----------
 - Added Docker files (`docker` folder) ready to create Docker images for desktop host devices: Ubuntu 22.04, ROS2 Foxy, ZED SDK v3.8.2.
 - Changed the default depth mode to `PERFORMANCE` (1) for a faster node start in the case that the NEURAL depth AI model is not present.
-
-2022-12-19
-----------
 - Change `general.grab_resolution` and `general.pub_resolution` from integer to string.
 - Add new `LOW` value for `general.pub_resolution` (half the `MEDIUM` output resolution).
 - Fix distortion model (see Issue [#128](https://github.com/stereolabs/zed-ros2-wrapper/issues/128))
-
-2022-12-12
-----------
 - Added diagnostic warning if the frequency of the camera grabbing thread is minor than the selected `general.grab_frame_rate` value.
-
-2022-12-10
-----------
 - Improved the code for Moving Average calculation for better node diagnostics.
 - Temperature diagnostic is now always updated even if `sensors.sensors_image_sync` is true and no image topics are subscribed.
 - Improve Grab thread and Video/Depth publishing thread elaboration time diagnostic.
 - Improve thread synchronization when the frequency of the `grab` SDK function is minor of the expected camera frame rate setting because of a leaking of elaboration power.
-
-2022-12-09
-----------
 - Removed node parameter `general.resolution`, replaced by `general.grab_resolution`.
 - Added node parameter `general.pub_resolution` used to reduce node computation and message bandwidth.
   - Available output resolutions: `HD2K`, `HD1080`, `HD720`, `MEDIUM`, `VGA`. `MEDIUM` is an optimized output resolution to maximize throughput and minimize processing costs.
 - Removed node parameters `video.img_downsample_factor` and `depth.depth_downsample_factor`. Use the new parameter `general.pub_resolution` instead.
 - Set default DEPTH MODE to NEURAL (4)
-
-2022-12-06
-----------
 - Improved the `zed_camera.launch.py`
 
   - Added support for `OpaqueFunction` in order to automatically configure the launch file according to the value of the launch parameter `cam_model`.
@@ -50,19 +29,10 @@ LATEST CHANGES
   - Added `publish_tf` and `publish_map_tf` launch parameters useful for multi-camera configuretion or external odometry fusion.
 
 - Added multi-camera example in `zed-ros2-examples` repository.
-
-2022-11-30
-----------
 - Added `pos_tracking.set_as_static` parameters for applications with a static camera monitoring a robotics environment. See [PR #122](https://github.com/stereolabs/zed-ros2-wrapper/pull/122 ) Thx @gabor-kovacs
-
-2022-11-18
-----------
 - Code lint and re-formatting according to [ROS2 code rules](https://docs.ros.org/en/humble/The-ROS2-Project/Contributing/Code-Style-Language-Versions.html).
 - Add support for automatic lint tools to all the packages.
 - Change LICENSE to Apache 2.0 to match ROS2 license.
-
-2022-11-17
-----------
 - Added `zed_id` and `serial_number` launch parameters to open the correct camera in multi-camera configurations.
 
 v3.8.x

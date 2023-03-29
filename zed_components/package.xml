@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
 	<name>zed_components</name>
-	<version>0.2.0</version>
+	<version>4.0.0</version>
 	<description>Contains the main ROS2 components to use a camera of the Ztereolabs ZED family</description>
 	<maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
 	<license>Apache License 2.0</license>

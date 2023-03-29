@@ -23,7 +23,8 @@ ENV DEBIAN_FRONTEND noninteractive
 #  ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility
 
 # Disable apt-get warnings
-RUN apt-get update || true && apt-get install -y --no-install-recommends apt-utils dialog && \
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 42D5A192B819C5DA && \
+  apt-get update || true && apt-get install -y --no-install-recommends apt-utils dialog && \
   rm -rf /var/lib/apt/lists/*
 
 ENV TZ=Europe/Paris

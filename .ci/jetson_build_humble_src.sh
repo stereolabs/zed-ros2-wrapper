@@ -36,6 +36,9 @@ wget https://github.com/ros/diagnostics/archive/refs/tags/${DIAGNOSTICS_VERSION}
 # lint
 AMENT_LINT_VERSION=0.12.4
 wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}.tar.gz -O - | tar -xvz && mv ament_lint-${AMENT_LINT_VERSION} ament-lint
+# Geographic Info
+GEOGRAPHIC_INFO_VERSION=1.0.4
+wget https://github.com/ros-geographic-info/geographic_info/archive/refs/tags/${GEOGRAPHIC_INFO_VERSION}.tar.gz -O - | tar -xvz && mv geographic_info-${GEOGRAPHIC_INFO_VERSION} geographic-info
 # NMEA msgs
 git clone https://github.com/ros-drivers/nmea_msgs.git --branch ros2
 

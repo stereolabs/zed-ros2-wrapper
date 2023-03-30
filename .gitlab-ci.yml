@@ -640,9 +640,8 @@ ros2_humble_u22_docker_image_dev:
 # ROS2 Humble U22 Docker Image RELEASE - clone the Github master branch to build the wrapper
 ros2_humble_u22_docker_image_rel:
   needs: 
-  - job: humble_u22_cu117_build
-    artifacts: true
-  stage: deploy
+  - job: github_push
+  stage: deploy_docker
   image: docker
   services: 
     - docker:dind
@@ -663,7 +662,7 @@ ros2_humble_l4t_docker_image_dev:
   needs: 
   - job: humble_l4t35_1_build
     artifacts: true
-  stage: deploy
+  stage: deploy_docker_dev
   image: docker
   services: 
     - docker:dind
@@ -678,16 +677,15 @@ ros2_humble_l4t_docker_image_dev:
     - rm -r ./tmp_sources
   when: manual
   tags: *linux_docker_builder_qemu_target_definition
-  except:
-    - master
+  #except:
+  #  - master
   allow_failure: true
 
 # ROS2 Humble L4T Docker Image RELEASE - clone the Github master branch to build the wrapper
 ros2_humble_l4t_docker_image_rel:
   needs: 
-  - job: humble_l4t35_1_build
-    artifacts: true
-  stage: deploy
+  - job: github_push
+  stage: deploy_docker
   image: docker
   services: 
     - docker:dind

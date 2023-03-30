@@ -56,7 +56,9 @@
 stages:
   - build
   - unit_test
+  - deploy_docker_dev
   - deploy
+  - deploy_docker
 
 
 variables:

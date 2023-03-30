@@ -619,7 +619,6 @@ unit_test_ros2_humble_u22_cu117:
 ros2_humble_u22_docker_image_dev:
   needs: 
   - job: humble_u22_cu117_build
-    artifacts: true
   stage: deploy_docker_dev
   image: docker
   services: 
@@ -664,7 +663,6 @@ ros2_humble_u22_docker_image_rel:
 ros2_humble_l4t_docker_image_dev:
   needs: 
   - job: humble_l4t35_1_build
-    artifacts: true
   stage: deploy_docker_dev
   image: docker
   services: 
@@ -709,6 +707,8 @@ ros2_humble_l4t_docker_image_rel:
 github_push:
   needs: 
   - job: humble_u22_cu117_build
+    artifacts: false
+  - job: humble_l4t35_1_build
     artifacts: false
   stage: deploy
   image: alpine

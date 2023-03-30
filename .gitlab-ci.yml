@@ -642,7 +642,8 @@ ros2_humble_u22_docker_image_dev:
 # ROS2 Humble U22 Docker Image RELEASE - clone the Github master branch to build the wrapper
 ros2_humble_u22_docker_image_rel:
   needs: 
-  - job: github_push
+    - job: github_push
+    - job: ros2_humble_u22_docker_image_dev
   stage: deploy_docker
   image: docker
   services: 
@@ -686,7 +687,8 @@ ros2_humble_l4t_docker_image_dev:
 # ROS2 Humble L4T Docker Image RELEASE - clone the Github master branch to build the wrapper
 ros2_humble_l4t_docker_image_rel:
   needs: 
-  - job: github_push
+    - job: github_push
+    - job: ros2_humble_l4t_docker_image_dev
   stage: deploy_docker
   image: docker
   services: 

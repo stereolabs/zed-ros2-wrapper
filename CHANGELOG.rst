@@ -1,7 +1,7 @@
 LATEST CHANGES
 ==============
 
-v4.0.x
+v4.0.0
 ------
 - Add support for ZED-X and ZED-X Mini
 

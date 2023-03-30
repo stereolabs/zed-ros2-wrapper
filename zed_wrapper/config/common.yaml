@@ -163,6 +163,7 @@
         debug:
             debug_common: false
             debug_video_depth: false
+            debug_camera_controls: false
             debug_point_cloud: false
             debug_positional_tracking: false
             debug_gnss: false

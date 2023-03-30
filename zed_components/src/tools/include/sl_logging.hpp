@@ -26,6 +26,11 @@
 #define DEBUG_STREAM_VD(stream_arg) if (mDebugVideoDepth) RCLCPP_DEBUG_STREAM( \
     get_logger(), stream_arg)
 
+// Camera Controls settings
+#define DEBUG_CTRL(...) if (mDebugCamCtrl) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
+#define DEBUG_STREAM_CTRL(stream_arg) if (mDebugCamCtrl) RCLCPP_DEBUG_STREAM( \
+    get_logger(), stream_arg)
+
 // Point Cloud
 #define DEBUG_STREAM_PC(stream_arg) if (mDebugPointCloud) RCLCPP_DEBUG_STREAM( \
     get_logger(), stream_arg)

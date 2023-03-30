@@ -266,6 +266,7 @@ private:
   // ----> Parameter variables
   bool mDebugCommon = false;
   bool mDebugVideoDepth = false;
+  bool mDebugCamCtrl = false;
   bool mDebugPointCloud = false;
   bool mDebugPosTracking = false;
   bool mDebugGnss = false;
@@ -419,7 +420,7 @@ private:
 
   int mGmslExpTime = 16666;
   int mGmslAutoExpTimeRangeMin = 28;
-  int mGmslAutoExpTimeRangeMax = 16666;
+  int mGmslAutoExpTimeRangeMax = 30000;
   int mGmslExposureComp = 50;
   int mGmslAnalogGain = 8000;
   int mGmslAnalogGainRangeMin = 1000;

@@ -71,7 +71,7 @@ The first time you use the AI model inside the Docker image, it will be download
 
 ### ZED X / ZED X Mini
 
-In order to use the ZED X and the ZED X Mini in a Docker container you must add two shared folders to your image environment: `/tmp/` and `/var/nvidia/nvcam/settings/`.
+In order to use the ZED X and the ZED X Mini in a Docker container you must bind mount the following folders to your container: `/tmp/` and `/var/nvidia/nvcam/settings/`.
 
 This is easily done by using the following option:
 

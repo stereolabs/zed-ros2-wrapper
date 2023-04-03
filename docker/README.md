@@ -60,14 +60,14 @@ rm -r ./tmp_sources
 It is important that the NVIDIA drivers are correctly accessible from the Docker image to run the ZED SDK code on the GPU.
 
 ### AI module
-If you plan to use the AI module of the ZED SDK (Object Detection, Skeleton Tracking, NEURAL depth) we suggest to create
-a shared folder in order to avoid downloading and optimize the AI models each time the Docker image is restarted.
+
+If you plan to use the AI module of the ZED SDK (Object Detection, Skeleton Tracking, NEURAL depth) we suggest binding mounting a folder to avoid downloading and optimizing the AI models each time the Docker image is restarted.
 
 This is easily done by using the following option:
 
     -v /tmp/zed_ai/:/usr/local/zed/resources/
 
-The first time you use the AI model inside the Docker image, it will be downloaded and optimized in the local shared folder, and stored there for the next runs.
+The first time you use the AI model inside the Docker image, it will be downloaded and optimized in the local bound-mounted folder, and stored there for the next runs.
 
 ### ZED X / ZED X Mini
 

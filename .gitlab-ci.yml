@@ -632,7 +632,7 @@ ros2_humble_u22_docker_image_dev:
     - docker build -t "myzhar/zed-ros2-devel:${IMG_TAG}" -f ./Dockerfile.u22-cu117-humble-devel .
     - docker push myzhar/zed-ros2-devel:${IMG_TAG}
     - rm -r ./tmp_sources
-  when: manual
+  when: on_success
   tags: *linux_docker_builder_target_definition
   #except:
   #  - master
@@ -653,7 +653,7 @@ ros2_humble_u22_docker_image_rel:
     - IMG_TAG=${CI_PROJECT_NAME}_u22_cuda117_humble_${CI_COMMIT_TAG}
     - docker build -t "stereolabs/zedbot:${IMG_TAG}" -f ./Dockerfile.u22-cu117-humble-release .
     - docker push stereolabs/zedbot:${IMG_TAG}
-  when: manual
+  when: on_success
   tags: *linux_docker_builder_target_definition
   only:
     - master
@@ -676,7 +676,7 @@ ros2_humble_l4t_docker_image_dev:
     - docker build -t "myzhar/zed-ros2-devel:${IMG_TAG}" -f ./Dockerfile.l4t35_1-humble-devel .
     - docker push myzhar/zed-ros2-devel:${IMG_TAG}
     - rm -r ./tmp_sources
-  when: manual
+  when: on_success
   tags: *linux_docker_builder_qemu_target_definition
   #except:
   #  - master
@@ -697,7 +697,7 @@ ros2_humble_l4t_docker_image_rel:
     - IMG_TAG=${CI_PROJECT_NAME}_l4t35_1_humble_${CI_COMMIT_TAG}
     - docker build -t "stereolabs/zedbot:${IMG_TAG}" -f ./Dockerfile.l4t35_1-humble-release .
     - docker push stereolabs/zedbot:${IMG_TAG}
-  when: manual
+  when: on_success
   tags: *linux_docker_builder_qemu_target_definition
   only:
     - master
@@ -725,7 +725,7 @@ github_push:
     - git pull origin master --allow-unrelated-histories
     #- git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
     - git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/zed-ros2-wrapper.git
-  when: manual
+  when: on_success
   tags:
     - docker-builder
     - linux

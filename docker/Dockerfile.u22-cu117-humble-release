@@ -92,6 +92,7 @@ RUN git clone --recursive https://github.com/stereolabs/zed-ros2-wrapper.git
 WORKDIR /root/ros2_ws
 
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
+  apt-get update -y || true && \
   rosdep install --from-paths src --ignore-src -r -y && \
   colcon build --parallel-workers $(nproc) --symlink-install \
   --event-handlers console_direct+ --base-paths src \

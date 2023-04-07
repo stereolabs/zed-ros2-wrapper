@@ -9,6 +9,8 @@ This folder contains a list of Dockerfile files to build Docker images ready to 
 
 Choose a name for the image and replace `<image_tag>` with it, e.g. `zed-ubuntu22.04-cuda11.7-ros2-humble`
 
+**Note:** You can find the Docker images pre-built for the latest version of the `master` branch in the Docker hub [stereolabs/zedbot](https://hub.docker.com/r/stereolabs/zedbot).
+
 ### Release image
 
 The Release image internally clones the master branch of this repository to build the ZED ROS2 Wrapper code.

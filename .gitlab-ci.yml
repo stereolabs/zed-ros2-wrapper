@@ -1,5 +1,3 @@
-#include:
-#  - local: '/ci-job-planning.yml'
 
 ##############################
 #  Artifacts default values  #
@@ -8,28 +6,6 @@
 .artifacts_files:
   paths: &artifacts_files_definition
     - ros2_ws/install
-    #- lib/build/*.a
-    #- lib/build/*.so
-    #- lib/build/Release/*.lib
-    #- lib/build/Release/*.dll
-    # Ninja output on a different path
-    #- lib/build/*.lib
-    #- lib/build/*.dll
-    #- lib/include/sl_zed/Camera.hpp
-    #- lib/include/sl_zed/defines.hpp
-    #- lib/include/sl_core/mapping/Mesh.hpp
-    #- lib/include/sl_core/utils/Core.hpp
-    #- lib/include/sl_core/utils/types.hpp
-    #- lib/include/sl_input
-    #- lib/include/sl_core
-    #- lib/include/sl_zed
-    #- lib/include/sl_fusion
-    #- lib/include/utils
-    #- lib/build/zed-config.cmake
-    #- lib/build/zed-config-version.cmake
-    #- ZED_SDK_*.run
-    #- ZED_SDK_*.exe
-    #- build-timers.json
 
 #Folders to be saved after the tests
 .test_artifacts_files:
@@ -200,12 +176,6 @@ variables:
   script: &humble_linux_build_script_definition
     - sudo chmod +x .ci/run_build_in_humble.sh
     - ./.ci/run_build_in_humble.sh
-  
-
-#.build_script_linux:
-#  script: &linux_build_script_definition
-#    - sudo chmod +x .ci/run_build_to_installer.sh
-#    - ./.ci/run_build_to_installer.sh
 
 #################
 #  Build Tasks  #
@@ -301,319 +271,9 @@ unit_test_ros2_humble_u22_cu117:
       artifacts: true
   when: manual
 
-#unit_l4t35_1_test:
-#  stage: unit_test
-#  tags: *runner_linux_jetson_l4t35_1_target_definition
-#  before_script: *linux_install_sdk_before_script_definition
-#  script: *linux_test_script_definition
-#  artifacts:
-#    when: always
-#    name: *linux_artifacts_naming_definition
-#    paths: *test_artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#    reports: *test_artifacts_report_files_definition
-#  needs: 
-#    - job: l4t35_1_jetsons_build
-#      artifacts: true
-#  when: manual
-
-#unit_l4t32_7_test:
-#  stage: unit_test
-#  tags: *runner_linux_jetson_l4t32_7_target_definition
-#  before_script: *linux_install_sdk_before_script_definition
-#  script: *linux_test_script_definition
-#  artifacts:
-#    when: always
-#    name: *linux_artifacts_naming_definition
-#    paths: *test_artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#    reports: *test_artifacts_report_files_definition
-#  needs: 
-#    - job: l4t32_7_jetsons_build
-#      artifacts: true
-#  when: manual
-
-#unit_u18_cu111_docker_test:
-#  stage: unit_test
-#  image: stereolabs/ci-runner:ubuntu18.04-cuda11.1
-#  tags: *runner_ubuntu_docker_desktop_target_definition
-#  before_script: *linux_docker_install_sdk_before_script_definition
-#  script: *linux_test_script_definition
-#  artifacts:
-#    when: always
-#    name: *linux_artifacts_naming_definition
-#    paths: *test_artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#    reports: *test_artifacts_report_files_definition
-#  needs: 
-#    - job: u18_cu117_build
-#      artifacts: true
-#  when: manual
-
-#unit_u20_cu114_docker_test:
-#  stage: unit_test
-#  image: stereolabs/ci-runner:ubuntu20.04-cuda11.4
-#  tags: *runner_ubuntu_docker_desktop_target_definition
-#  before_script: *linux_docker_install_sdk_before_script_definition
-#  script: *linux_test_script_definition
-#  artifacts:
-#    when: always
-#    name: *linux_artifacts_naming_definition
-#    paths: *test_artifacts_files_definition
-#    expire_in: *artifacts_expire_in_definition
-#    reports: *test_artifacts_report_files_definition
-#  needs: 
-#    - job: u20_cu117_build
-#      artifacts: true
-#  when: manual
-
-######################
-#     memory script    #
-######################
-# .memory_script_linux:
-#   script: &linux_memory_script_definition
-#     - mv ZED_SDK_*.run ZED_SDK_Linux.run
-#     - chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent
-#     - sudo chmod +x .ci/run_tests.sh
-#     - ./.ci/run_tests.sh -m
-
-# .gpu_memory_script_linux:
-#   script: &linux_gpu_memory_script_definition
-#     - mv ZED_SDK_*.run ZED_SDK_Linux.run
-#     - chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent
-#     - sudo chmod +x .ci/run_tests.sh
-#     - ./.ci/run_tests.sh -gpu
-
-# .docker_memory_pre_script_linux:
-#   script: &docker_memory_pre_script_linux_definition
-#     - apt update || true ; apt install -y zstd binutils-dev
-
-# #######################
-# #     memory tasks    #
-# #######################
-# mem_cpu_u20_docker_x86_test:
-#   stage: unit_test
-#   tags: *runner_ubuntu_docker_desktop_target_definition
-#   image: "stereolabs/ci-runner:ubuntu20.04-cuda11.4"
-#   script: *linux_memory_script_definition
-#   before_script: *docker_memory_pre_script_linux_definition
-#   artifacts:
-#     name: *linux_artifacts_naming_definition
-#     paths: *memory_test_artifacts_files_definition
-#     expire_in: *artifacts_expire_in_definition
-#   needs: 
-#     - job: u20_cu117_build
-#       artifacts: true
-#   when: manual
-#   #rules : !reference [.rule-if-merge-request-or-release-or-schedule-of-tag, rules]
-#   # allow_failure: true
-
-# mem_gpu_u20_docker_x86_test:
-#   stage: unit_test
-#   tags: *runner_ubuntu_docker_desktop_target_definition
-#   image: "stereolabs/ci-runner:ubuntu20.04-cuda11.7"
-#   script: *linux_gpu_memory_script_definition
-#   before_script: *docker_memory_pre_script_linux_definition
-#   artifacts:
-#     name: *linux_artifacts_naming_definition
-#     paths: *memory_test_artifacts_files_definition
-#     expire_in: *artifacts_expire_in_definition
-#   needs: 
-#     - job: u20_cu117_build
-#       artifacts: true
-#   #rules : !reference [.rule-if-merge-request-or-release-or-schedule-of-tag, rules]
-#   when: manual
-#   # allow_failure: true
-
-
-########################
-#  Deployment doc API  #
-########################
-# deploy_doc:
-#   stage: deploy
-#   image: stereolabs/ci-compiler:utils-lftp-uploader
-#   script:
-#     - echo "set ssl:verify-certificate no" > ~/.lftprc
-#     - echo "*** Installing ZED SDK"
-#     - INSTALLER_FILE=$(find . -maxdepth 1 -name 'ZED_SDK_*.run')
-#     - "if [ -z '$INSTALLER_FILE' ]; then echo 'Installer not found' ; exit 1 ; fi"
-#     - "echo 'Intsaller file:' $INSTALLER_FILE"
-#     - "if [ -d /usr/local/zed/doc/API/html/ ]; then rm -rf /usr/local/zed/doc/API/html/ ; fi"
-#     - chmod +x $INSTALLER_FILE
-#     - mkdir -p /usr/local/zed/
-#     - ./$INSTALLER_FILE --noexec --target /usr/local/zed/
-#     - echo "*** Files to copy"
-#     - ls /usr/local/zed/doc/API/html/
-#     - SDK_VERSION_FILE_PATH="/usr/local/zed/include/sl/Camera.hpp"
-#     - "if [ -e $SDK_VERSION_FILE_PATH ]; then echo Getting Version number; else echo Version number not found; exit 1; fi"
-#     - major=$(grep -oE "ZED_SDK_MAJOR_VERSION [0-9]" "$SDK_VERSION_FILE_PATH")
-#     - major=$(echo "$major" | egrep -o '[0-9]')
-#     - minor=$(grep -oE "ZED_SDK_MINOR_VERSION [0-9]" "$SDK_VERSION_FILE_PATH")
-#     - minor=$(echo "$minor" | egrep -o '[0-9]')
-#     - patch=$(grep -oE "ZED_SDK_PATCH_VERSION [0-9]" "$SDK_VERSION_FILE_PATH")
-#     - patch=$(echo "$patch" | egrep -o '[0-9]')
-#     - version="$major.$minor.$patch"
-#     - echo Deploying version $version
-#     - "if [ ! -f /usr/local/zed/doc/API/html/index.html ]; then echo 'index.html not found, not deploying' ; exit 1 ; fi"
-#     - lftp -e "mirror -R -e -p -P=10 /usr/local/zed/doc/API/html/ /" -u $ZED_DOC_API_FTP_USER,$ZED_DOC_API_FTP_PASSWORD $ZED_DOC_API_FTP_HOST
-#   needs: 
-#     - job: u18_cu117_build
-#       artifacts: true
-#   tags: *deploy_target_definition
-#   only:
-#     - tags
-#   when: manual
-#   # allow_failure: true
-
-# ###########################
-# #  Deployment of scripts  #
-# ###########################
-# deploy_scripts:
-#   stage: deploy
-#   image: stereolabs/ci-compiler:utils-boto3-uploader
-#   script:
-#     - mv .ci/deploy_scripts_to_digitalocean.py ./
-#     - python deploy_scripts_to_digitalocean.py
-#   tags: *deploy_target_definition
-#   only:
-#     - tags
-#   when: manual
-#   # allow_failure: true
-
-# ########################
-# #  Deployment installer to the DO bucket  #
-# ########################
-# .deploy_installer_template: &deploy_installer_definition
-#   stage: deploy
-#   image: stereolabs/ci-compiler:utils-boto3-uploader
-#   script: &deploy_installer_script_definition
-#     - mv .ci/push_to_digitalocean.py ./
-#     - python push_to_digitalocean.py
-#   tags: *deploy_target_definition
-#   only:
-#     - tags
-#   when: manual
-#   # allow_failure: true
-
-# .deploy_nuget_template: &deploy_nuget_definition
-#   stage: deploy
-#   tags: *windows10_csharp_builder_target_definition
-#   script: &deploy_nuget_script_definition
-#     - "& 'C:\\Program Files\\Git\\bin\\bash.exe' ./.ci/push_nuget.sh"
-#     #- If (Test-Path -Path "finished") {Remove-Item -Force "finished"}
-#     #- If (Test-Path -Path "result.log") {Remove-Item -Force "result.log"}
-#     #- If (Test-Path -Path "failure.txt") {Remove-Item -Force "failure.txt"}
-#     #- "& 'C:\\Program Files\\Git\\git-bash.exe' -c './.ci/push_nuget.sh > result.log 2>&1 ; touch finished'"
-#     #- Start-Process -Wait .\\.ci\\waitForFinished.bat
-#     #- type result.log
-#     #- If (Test-Path -Path "failure.txt") {exit 1}
-#   only:
-#     - tags
-#   when: manual
-#   # allow_failure: true
-
-# l4t32_3_installer_deploy:
-#   needs: 
-#     - job: l4t32_3_jetsons_build
-#       artifacts: true
-#   <<: *deploy_installer_definition
-
-# l4t32_4_installer_deploy:
-#   needs: 
-#     - job: l4t32_4_jetsons_build
-#       artifacts: true
-#   <<: *deploy_installer_definition
-
-# l4t32_5_installer_deploy:
-#   needs: 
-#     - job: l4t32_5_jetsons_build
-#       artifacts: true
-#   <<: *deploy_installer_definition
-
-# l4t32_6_installer_deploy:
-#   needs: 
-#     - job: l4t32_6_jetsons_build
-#       artifacts: true
-#   <<: *deploy_installer_definition
-
-# l4t32_7_installer_deploy:
-#   needs: 
-#     - job: l4t32_7_jetsons_build
-#       artifacts: true
-#   <<: *deploy_installer_definition
-
-# l4t35_1_installer_deploy:
-#   needs: 
-#     - job: l4t35_1_jetsons_build
-#       artifacts: true
-#   <<: *deploy_installer_definition
-
-# u18_cu102_installer_deploy:
-#   needs: 
-#     - job: u18_cu102_build
-#       artifacts: true
-#   <<: *deploy_installer_definition
-
-# # u18_cu114_installer_deploy:
-# #   needs: 
-# #     - job: u18_cu114_build
-# #       artifacts: true
-# #   <<: *deploy_installer_definition
-
-# # u20_cu114_installer_deploy:
-# #   needs: 
-# #     - job: u20_cu114_build
-# #       artifacts: true
-# #   <<: *deploy_installer_definition
-
-# u18_cu117_installer_deploy:
-#   needs: 
-#     - job: u18_cu117_build
-#       artifacts: true
-#   <<: *deploy_installer_definition
-
-# u20_cu117_installer_deploy:
-#   needs: 
-#     - job: u20_cu117_build
-#       artifacts: true
-#   <<: *deploy_installer_definition
-
-# u22_cu117_installer_deploy:
-#   needs: 
-#     - job: u22_cu117_build
-#       artifacts: true
-#   <<: *deploy_installer_definition
-
-# win10_cu102_installer_deploy:
-#   needs: 
-#     - job: sign_win10_cu102_sign_installer
-#       artifacts: true
-#   <<: *deploy_installer_definition
-
-# win10_cu117_installer_deploy:
-#   needs: 
-#     - job: sign_win10_cu117_sign_installer
-#       artifacts: true
-#   <<: *deploy_installer_definition
-
-# # Python
-# py_linux_aarch64_installer_deploy:
-#   needs: 
-#   - job: py_linux_aarch64_build
-#     artifacts: true
-#   <<: *deploy_installer_definition
-
-# py_linux_x86_64_installer_deploy:
-#   needs: 
-#   - job: py_linux_x86_64_build
-#     artifacts: true
-#   <<: *deploy_installer_definition
-
-# py_win_amd64_installer_deploy:
-#   needs: 
-#   - job: py_win_amd64_build
-#     artifacts: true
-#   <<: *deploy_installer_definition
+#####################
+# Docker Dev Deploy #
+#####################
 
 # ROS2 Humble U22 Docker Image DEVEL - use the current branch source to build the wrapper
 ros2_humble_u22_docker_image_dev:
@@ -636,27 +296,6 @@ ros2_humble_u22_docker_image_dev:
   tags: *linux_docker_builder_target_definition
   #except:
   #  - master
-  allow_failure: true
-
-# ROS2 Humble U22 Docker Image RELEASE - clone the Github master branch to build the wrapper
-ros2_humble_u22_docker_image_rel:
-  needs: 
-    - job: github_push
-    - job: ros2_humble_u22_docker_image_dev
-  stage: deploy_docker
-  image: docker
-  services: 
-    - docker:dind
-  script: 
-    - docker login -u $DOCKER_ZEDBOT_PUSH_USER -p $DOCKER_ZEDBOT_PUSH_PWD
-    - cd docker
-    - IMG_TAG=${CI_PROJECT_NAME}_u22_cuda117_humble_${CI_COMMIT_TAG}
-    - docker build -t "stereolabs/zedbot:${IMG_TAG}" -f ./Dockerfile.u22-cu117-humble-release .
-    - docker push stereolabs/zedbot:${IMG_TAG}
-  when: manual
-  tags: *linux_docker_builder_target_definition
-  only:
-    - master
   allow_failure: true
 
 # ROS2 Humble L4T Docker Image DEVEL - use the current branch source to build the wrapper
@@ -682,6 +321,31 @@ ros2_humble_l4t_docker_image_dev:
   #  - master
   allow_failure: true
 
+#########################
+# Docker Release Deploy #
+#########################
+
+# ROS2 Humble U22 Docker Image RELEASE - clone the Github master branch to build the wrapper
+ros2_humble_u22_docker_image_rel:
+  needs: 
+    - job: github_push
+    - job: ros2_humble_u22_docker_image_dev
+  stage: deploy_docker
+  image: docker
+  services: 
+    - docker:dind
+  script: 
+    - docker login -u $DOCKER_ZEDBOT_PUSH_USER -p $DOCKER_ZEDBOT_PUSH_PWD
+    - cd docker
+    - IMG_TAG=${CI_PROJECT_NAME}_u22_cuda117_humble_${CI_COMMIT_TAG}
+    - docker build -t "stereolabs/zedbot:${IMG_TAG}" -f ./Dockerfile.u22-cu117-humble-release .
+    - docker push stereolabs/zedbot:${IMG_TAG}
+  when: manual
+  tags: *linux_docker_builder_target_definition
+  only:
+    - master
+  allow_failure: true
+
 # ROS2 Humble L4T Docker Image RELEASE - clone the Github master branch to build the wrapper
 ros2_humble_l4t_docker_image_rel:
   needs: 
@@ -703,6 +367,10 @@ ros2_humble_l4t_docker_image_rel:
     - master
   allow_failure: true
 
+#################
+# GitHub Deploy #
+#################
+
   # Update Github master branch
 github_push:
   needs: 
@@ -718,12 +386,10 @@ github_push:
     - git config --global user.name "Stereolabs"
     - git clone --recurse-submodules http://wlucetti:${GITLAB_PULL_TOKEN}@192.168.1.92/sl/zed-ros2-wrapper.git
     - cd zed-ros2-wrapper
-    #- git remote set-url origin https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
     - git remote set-url origin https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/zed-ros2-wrapper.git
     - git remote -v
     - git config pull.rebase false
     - git pull origin master --allow-unrelated-histories
-    #- git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/dummy_repo.git
     - git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/zed-ros2-wrapper.git
   when: manual
   tags:

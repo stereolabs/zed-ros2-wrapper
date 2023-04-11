@@ -4250,7 +4250,7 @@ namespace stereolabs
     // Publish pose tf only if enabled
     if (mDepthQuality != sl::DEPTH_MODE::NONE && mPublishTF)
     {
-      publishOdomTF(t); // publish the base Frame in odometry frame
+      // publishOdomTF(t); // publish the base Frame in odometry frame
 
       if (mPublishMapTF)
       {

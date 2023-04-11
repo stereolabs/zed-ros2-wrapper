@@ -17,8 +17,8 @@
       grab_resolution: "HD720" # The native camera grab resolution. 'HD2K', 'HD1080', 'HD720', 'VGA'
       pub_resolution: "MEDIUM" # The resolution used for output. 'HD2K', 'HD1080', 'HD720', 'MEDIUM', 'VGA', 'LOW'
       sdk_verbose: 1
-      grab_frame_rate: 15 # ZED SDK internal grabbing rate
-      pub_frame_rate: 15.0 # [DYNAMIC] - frequency of publishing of visual images and depth images
+      grab_frame_rate: 60 # ZED SDK internal grabbing rate
+      pub_frame_rate: 60.0 # [DYNAMIC] - frequency of publishing of visual images and depth images
       gpu_id: -1
       region_of_interest: "" # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
       #region_of_interest: '[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
@@ -77,11 +77,11 @@
     pos_tracking:
       pos_tracking_enabled: true # True to enable positional tracking from start
       imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
-      publish_tf: true # [usually overwritten by launch file] publish `odom -> base_link` TF
-      publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF
+      publish_tf: false # [usually overwritten by launch file] publish `odom -> base_link` TF
+      publish_map_tf: false # [usually overwritten by launch file] publish `map -> odom` TF
       publish_imu_tf: true # [usually overwritten by launch file] enable/disable the IMU TF broadcasting
-      base_frame: "base_link" # usually overwritten by launch file
-      map_frame: "map"
+      base_frame: "puddles/zed2i_base_link" # usually overwritten by launch file
+      map_frame: "world"
       odometry_frame: "odom"
       area_memory_db_path: ""
       area_memory: true # Enable to detect loop closure
@@ -90,7 +90,7 @@
       set_gravity_as_origin: false # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
       floor_alignment: false # Enable to automatically calculate camera/floor offset
       initial_base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial position of the `base_frame` in the map -> [X, Y, Z, R, P, Y]
-      init_odom_with_first_valid_pose: true # Enable to initialize the odometry with the first valid pose
+      init_odom_with_first_valid_pose: false # Enable to initialize the odometry with the first valid pose
       path_pub_rate: 2.0 # [DYNAMIC] - Camera trajectory publishing frequency
       path_max_count: -1 # use '-1' for unlimited path size
       two_d_mode: false # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero

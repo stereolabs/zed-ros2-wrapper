@@ -292,10 +292,31 @@ ros2_humble_u22_docker_image_dev:
     - docker build -t "myzhar/zed-ros2-devel:${IMG_TAG}" -f ./Dockerfile.u22-cu117-humble-devel .
     - docker push myzhar/zed-ros2-devel:${IMG_TAG}
     - rm -r ./tmp_sources
-  when: manual
+  when: on_success
   tags: *linux_docker_builder_target_definition
   #except:
   #  - master
+  allow_failure: true
+
+# ROS2 Humble U22 Docker Image RELEASE - clone the Github master branch to build the wrapper
+ros2_humble_u22_docker_image_rel:
+  needs: 
+    - job: github_push
+    - job: ros2_humble_u22_docker_image_dev
+  stage: deploy_docker
+  image: docker
+  services: 
+    - docker:dind
+  script: 
+    - docker login -u $DOCKER_ZEDBOT_PUSH_USER -p $DOCKER_ZEDBOT_PUSH_PWD
+    - cd docker
+    - IMG_TAG=${CI_PROJECT_NAME}_u22_cuda117_humble_${CI_COMMIT_TAG}
+    - docker build -t "stereolabs/zedbot:${IMG_TAG}" -f ./Dockerfile.u22-cu117-humble-release .
+    - docker push stereolabs/zedbot:${IMG_TAG}
+  when: on_success
+  tags: *linux_docker_builder_target_definition
+  only:
+    - master
   allow_failure: true
 
 # ROS2 Humble L4T Docker Image DEVEL - use the current branch source to build the wrapper
@@ -315,7 +336,7 @@ ros2_humble_l4t_docker_image_dev:
     - docker build -t "myzhar/zed-ros2-devel:${IMG_TAG}" -f ./Dockerfile.l4t35_1-humble-devel .
     - docker push myzhar/zed-ros2-devel:${IMG_TAG}
     - rm -r ./tmp_sources
-  when: manual
+  when: on_success
   tags: *linux_docker_builder_qemu_target_definition
   #except:
   #  - master
@@ -361,7 +382,7 @@ ros2_humble_l4t_docker_image_rel:
     - IMG_TAG=${CI_PROJECT_NAME}_l4t35_1_humble_${CI_COMMIT_TAG}
     - docker build -t "stereolabs/zedbot:${IMG_TAG}" -f ./Dockerfile.l4t35_1-humble-release .
     - docker push stereolabs/zedbot:${IMG_TAG}
-  when: manual
+  when: on_success
   tags: *linux_docker_builder_qemu_target_definition
   only:
     - master
@@ -391,7 +412,7 @@ github_push:
     - git config pull.rebase false
     - git pull origin master --allow-unrelated-histories
     - git push https://${GITHUB_PUSH_TOKEN}@github.com/stereolabs/zed-ros2-wrapper.git
-  when: manual
+  when: on_success
   tags:
     - docker-builder
     - linux

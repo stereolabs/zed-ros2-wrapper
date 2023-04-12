@@ -281,10 +281,12 @@ void ZedCamera::initServices()
     srv_name, std::bind(&ZedCamera::callback_stopSvoRec, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", mStopSvoRecSrv->get_service_name());
 
-  srv_name = srv_prefix + mSrvToggleSvoPauseName;
-  mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(
-    srv_name, std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
-  RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+  if (mSvoMode && !mSvoRealtime) {
+    srv_name = srv_prefix + mSrvToggleSvoPauseName;
+    mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(
+      srv_name, std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+  }
 
   srv_name = srv_prefix + mSrvSetRoiName;
   mSetRoiSrv = create_service<zed_interfaces::srv::SetROI>(

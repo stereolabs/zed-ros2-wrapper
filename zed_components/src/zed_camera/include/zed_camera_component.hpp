@@ -22,10 +22,6 @@
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
 
-#ifdef WITH_TM
-#include "cost_traversability.hpp"
-#endif
-
 namespace stereolabs
 {
 
@@ -53,10 +49,6 @@ protected:
   void getMappingParams();
   void getOdParams();
   void getBodyTrkParams();
-#ifdef WITH_TM
-  void getTerrainMappingParams();
-#endif
-
 
   void setTFCoordFrameNames();
   void initPublishers();
@@ -76,19 +68,11 @@ protected:
   void stopBodyTracking();
   bool startSvoRecording(std::string & errMsg);
   void stopSvoRecording();
-
-  #ifdef WITH_TM
-  bool startTerrainMapping();
-  void stopTerrainMapping();
-  #endif
   // <---- Initialization functions
 
   // ----> Callbacks
   void threadFunc_pubVideoDepth();
   void callback_pubFusedPc();
-  #ifdef WITH_TM
-  void callback_pubLocalMap();
-  #endif
   void callback_pubPaths();
   void callback_pubTemp();
   void callback_gnssPubTimerTimeout();
@@ -171,10 +155,6 @@ protected:
   void publishPointCloud();
   void publishImuFrameAndTopic();
 
-  #ifdef WITH_TM
-  bool publishLocalMap();
-  #endif
-
   void publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t);
   void publishPose();
   void publishGnssPose();
@@ -212,10 +192,6 @@ protected:
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
   void startTempPubTimer();
-
-  #ifdef WITH_TM
-  void startTerrainMappingTimer(double mapPubRate);
-  #endif
 
   template<typename T>
   void getParam(
@@ -274,9 +250,6 @@ private:
   bool mDebugMapping = false;
   bool mDebugObjectDet = false;
   bool mDebugBodyTrk = false;
-#ifdef WITH_TM
-  bool mDebugTerrainMapping = false;
-#endif
 
   int mCamId = 0;
   int mCamSerialNumber = 0;
@@ -339,18 +312,6 @@ private:
   bool mMappingEnabled = false;
   float mMappingRes = 0.05f;
   float mMappingRangeMax = 10.0f;
-
-#ifdef WITH_TM
-  bool mTerrainMappingEnabled = false;
-  float mTerrainMapPubFreq = 5.0f;  // Frequency of data publishing
-  float mTerrainMappingRes = 0.05f;  // Terrain mapping resolution
-  float mTerrainMappingRange = 4.0f;  // Terrain mapping range
-  float mTerrainMappingRobotHeigth = 1.0f;  // Height of the robot
-  float mTerrainMappingRobotRadius = 0.25f;  // Radius of the robot
-  float mTerrainMappingRobotStep = 0.1f;  // Max height of a step that the robot can overcome
-  float mTerrainMappingRobotSlope = 20.0f;  // Max slope (degrees) that the robot can overcome
-  float mTerrainMappingRobotRoughness = 0.1;  // Max roughness of the terrain that the robot can overcome
-#endif
 
   bool mObjDetEnabled = false;
   bool mObjDetTracking = true;
@@ -559,12 +520,6 @@ private:
 
   geoPosePub mPubGeoPose;
   poseStatusPub mPubGeoPoseStatus;
-
-#ifdef WITH_TM
-  imagePub mPubElevMapImg;
-  imagePub mPubColMapImg;
-  gridMapPub mPubGridMap;
-#endif
   // <---- Publishers
 
   // <---- Publisher variables
@@ -608,13 +563,6 @@ private:
   gnssFixSub mGnssFixSub;
   // <---- Subscribers
 
-#ifdef WITH_TM
-  // ----> Terraing Mapping
-  stereolabs::cost_traversability::RobotParameters mAgentParams;
-  stereolabs::cost_traversability::TraversabilityParameters mTraversabilityParams;
-  // <---- Terraing Mapping
-#endif
-
   // ----> Threads and Timers
   sl::ERROR_CODE mGrabStatus;
   sl::ERROR_CODE mConnStatus;
@@ -626,9 +574,6 @@ private:
   bool mThreadStop = false;
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
-#ifdef WITH_TM
-  rclcpp::TimerBase::SharedPtr mTerrainMapTimer;
-#endif
   rclcpp::TimerBase::SharedPtr mTempPubTimer;  // Timer to retrieve and publish CMOS temperatures
   rclcpp::TimerBase::SharedPtr mGnssPubCheckTimer;
   // <---- Threads and Timers
@@ -641,9 +586,6 @@ private:
   std::mutex mPosTrkMutex;
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
-#ifdef WITH_TM
-  std::mutex mTerrainMappingMutex;
-#endif
   std::mutex mObjDetMutex;
   std::mutex mBodyTrkMutex;
   std::condition_variable mVideoDepthDataReadyCondVar;
@@ -671,9 +613,6 @@ private:
   sl::POSITIONAL_TRACKING_STATE mGeoPoseStatus;
   bool mResetOdom = false;
   bool mSpatialMappingRunning = false;
-#ifdef WITH_TM
-  bool mTerrainMappingRunning = false;
-#endif
   bool mObjDetRunning = false;
   bool mBodyTrkRunning = false;
   bool mRgbSubscribed = false;

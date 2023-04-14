@@ -78,13 +78,6 @@
 #define DEBUG_STREAM_BT(stream_arg) if (mDebugBodyTrk) RCLCPP_DEBUG_STREAM( \
     get_logger(), stream_arg)
 
-#ifdef WITH_TM
-// Terrain Mapping
-#define DEBUG_STREAM_TM(stream_arg) if (mDebugTerrainMapping) RCLCPP_DEBUG_STREAM( \
-    get_logger(), stream_arg)
-#define DEBUG_STREAM_ONCE_TM(stream_arg) if (mDebugTerrainMapping) RCLCPP_DEBUG_STREAM_ONCE( \
-    get_logger(), stream_arg)
-#endif
 // <---- DEBUG MACROS
 
 #endif  // SL_LOGGING_HPP_

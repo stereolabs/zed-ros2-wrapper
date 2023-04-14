@@ -29,10 +29,6 @@
 #include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 
-#ifdef WITH_TM
-#include <grid_map_ros/grid_map_ros.hpp>
-#endif
-
 #ifdef FOUND_HUMBLE
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #elif defined FOUND_FOXY
@@ -153,13 +149,6 @@ ZedCamera::~ZedCamera()
     stop3dMapping();
   }
 
-#ifdef WITH_TM
-  if (mTerrainMappingRunning) {
-    std::lock_guard<std::mutex> lock(mTerrainMappingMutex);
-    stopTerrainMapping();
-  }
-#endif
-
   DEBUG_STREAM_PT("Stopping path timer");
   if (mPathTimer) {
     mPathTimer->cancel();
@@ -168,13 +157,6 @@ ZedCamera::~ZedCamera()
   if (mFusedPcTimer) {
     mFusedPcTimer->cancel();
   }
-
-#ifdef WITH_TM
-  DEBUG_STREAM_TM("Stopping terrain mapping timer");
-  if (mTerrainMapTimer) {
-    mTerrainMapTimer->cancel();
-  }
-#endif
 
   DEBUG_STREAM_SENS("Stopping temperatures timer");
   if (mTempPubTimer) {
@@ -406,14 +388,6 @@ void ZedCamera::initParameters()
     mMappingEnabled = false;
   }
 
-#ifdef WITH_TM
-  if (!mDepthDisabled) {
-    getTerrainMappingParams();
-  } else {
-    mTerrainMappingEnabled = false;
-  }
-#endif
-
   // AI PARAMETERS
   if (!mDepthDisabled) {
     if (sl_tools::isObjDetAvailable(mCamUserModel)) {
@@ -533,20 +507,9 @@ void ZedCamera::getDebugParams()
     get_logger(), " * Debug Body Tracking: %s",
     mDebugBodyTrk ? "TRUE" : "FALSE");
 
-#ifdef WITH_TM
-  getParam("debug.debug_terrain_mapping", mDebugTerrainMapping, mDebugTerrainMapping);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Terrain Mapping: %s",
-    mDebugTerrainMapping ? "TRUE" : "FALSE");
-#endif
-
   mDebugMode = mDebugCommon || mDebugVideoDepth || mDebugCamCtrl || mDebugPointCloud ||
     mDebugPosTracking || mDebugGnss || mDebugSensors || mDebugMapping ||
     mDebugObjectDet || mDebugBodyTrk;
-
-#ifdef WITH_TM
-  mDebugMode |= mDebugTerrainMapping;
-#endif
 
   if (mDebugMode) {
     rcutils_ret_t res =
@@ -1235,59 +1198,6 @@ void ZedCamera::getMappingParams()
   RCLCPP_INFO(
     get_logger(), " * Sensors QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 }
-
-#ifdef WITH_TM
-void ZedCamera::getTerrainMappingParams()
-{
-  rclcpp::Parameter paramVal;
-  std::string paramName;
-
-  rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
-  read_only_descriptor.read_only = true;
-
-  RCLCPP_INFO(get_logger(), "*** Terrain Mapping parameters ***");
-
-  getParam("local_mapping.terrain_mapping_enabled", mTerrainMappingEnabled, mTerrainMappingEnabled);
-  RCLCPP_INFO_STREAM(
-    get_logger(), " * Terrain Mapping Enabled: " << (mTerrainMappingEnabled ? "TRUE" : "FALSE"));
-
-  getParam(
-    "local_mapping.max_mapping_range", mTerrainMappingRange, mTerrainMappingRange,
-    " * Grid range [m]: ");
-
-  getParam(
-    "local_mapping.resolution", mTerrainMappingRes, mTerrainMappingRes,
-    " * Grid resolution [m]: ");
-
-  getParam(
-    "local_mapping.robot_heigth", mTerrainMappingRobotHeigth, mTerrainMappingRobotHeigth,
-    " * Robot Heigth [m]: ");
-
-  getParam(
-    "local_mapping.robot_radius", mTerrainMappingRobotRadius, mTerrainMappingRobotRadius,
-    " * Robot Radius [m]: ");
-
-  getParam(
-    "local_mapping.robot_max_step", mTerrainMappingRobotStep, mTerrainMappingRobotStep,
-    " * Robot Max Step [m]: ");
-
-  getParam(
-    "local_mapping.robot_max_slope", mTerrainMappingRobotSlope, mTerrainMappingRobotSlope,
-    " * Robot Max Slope [deg]: ");
-
-  getParam(
-    "local_mapping.robot_max_roughness", mTerrainMappingRobotRoughness,
-    mTerrainMappingRobotRoughness,
-    " * Robot Max roughness: ");
-
-  mAgentParams.radius = mTerrainMappingRobotRadius;
-  mAgentParams.roughness_max = mTerrainMappingRobotRoughness;
-  mAgentParams.slope_max = mTerrainMappingRobotSlope;
-  mAgentParams.step_max = mTerrainMappingRobotStep;
-
-  // TODO(Walter) Add "TraversabilityParameters" parameters?
-}
-#endif
 
 void ZedCamera::getPosTrackingParams()
 {
@@ -3240,31 +3150,6 @@ void ZedCamera::initPublishers()
   }
   // <---- Mapping
 
-#ifdef WITH_TM
-  // ----> Terrain Mapping
-  std::string loc_map_prefix = mTopicRoot + "local_map/";
-  std::string loc_map_data;
-
-  loc_map_data = "gridmap";
-  mPubGridMap = create_publisher<grid_map_msgs::msg::GridMap>(
-    loc_map_prefix + loc_map_data,
-    mMappingQos);
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubGridMap->get_topic_name());
-
-  loc_map_data = "elev_img";
-  mPubElevMapImg = create_publisher<sensor_msgs::msg::Image>(
-    loc_map_prefix + loc_map_data,
-    mMappingQos);
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubElevMapImg->get_topic_name());
-
-  loc_map_data = "col_img";
-  mPubColMapImg = create_publisher<sensor_msgs::msg::Image>(
-    loc_map_prefix + loc_map_data,
-    mMappingQos);
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubColMapImg->get_topic_name());
-  // <---- Terrain Mapping
-#endif
-
   // ----> Sensors
   if (!sl_tools::isZED(mCamRealModel)) {
     mPubImu = create_publisher<sensor_msgs::msg::Imu>(imu_topic, mSensQos);
@@ -4041,20 +3926,6 @@ void ZedCamera::startFusedPcTimer(double fusedPcRate)
     std::bind(&ZedCamera::callback_pubFusedPc, this));
 }
 
-#ifdef WITH_TM
-void ZedCamera::startTerrainMappingTimer(double mapPubRate)
-{
-  if (mTerrainMapTimer != nullptr) {
-    mTerrainMapTimer->cancel();
-  }
-
-  std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0 / (mapPubRate)));
-  mTerrainMapTimer = create_wall_timer(
-    std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
-    std::bind(&ZedCamera::callback_pubLocalMap, this));
-}
-#endif
-
 void ZedCamera::startPathPubTimer(double pathTimerRate)
 {
   if (mPathTimer != nullptr) {
@@ -4222,10 +4093,6 @@ bool ZedCamera::start3dMapping()
 
   bool required = mMappingEnabled;
 
-#ifdef WITH_TM
-  required |= mTerrainMappingEnabled;
-#endif
-
   if (!required) {
     return false;
   }
@@ -4328,58 +4195,6 @@ void ZedCamera::stop3dMapping()
 
   RCLCPP_INFO(get_logger(), "*** Spatial Mapping stopped ***");
 }
-
-#ifdef WITH_TM
-bool ZedCamera::startTerrainMapping()
-{
-  if (mDepthDisabled) {
-    RCLCPP_WARN(
-      get_logger(),
-      "Cannot start Terrain Mapping if `depth.depth_mode` is set to `0` [NONE]");
-    return false;
-  }
-  if (!mTerrainMappingEnabled) {
-    return false;
-  }
-
-  RCLCPP_INFO_STREAM(get_logger(), "*** Starting Terrain Mapping ***");
-
-  sl::TerrainMappingParameters tm_params;
-
-  tm_params.setGridResolution(sl::UNIT::METER, mTerrainMappingRes);
-  tm_params.setGridRange(sl::UNIT::METER, mTerrainMappingRange);
-  tm_params.setCameraHeightThreshold(
-    sl::UNIT::METER,
-    mTerrainMappingRobotHeigth + 2.0f * mTerrainMappingRes);
-
-  sl::ERROR_CODE err = mZed.enableTerrainMapping(tm_params);
-
-  if (err != sl::ERROR_CODE::SUCCESS) {
-    mTerrainMappingRunning = false;
-
-    RCLCPP_WARN(get_logger(), "Terrain Mapping not activated: %s", sl::toString(err).c_str());
-
-    return false;
-  }
-
-  mTerrainMappingRunning = true;
-  startTerrainMappingTimer(mTerrainMapPubFreq);
-  return true;
-}
-
-void ZedCamera::stopTerrainMapping()
-{
-  if (mTerrainMapTimer) {
-    mTerrainMapTimer->cancel();
-  }
-  mTerrainMappingRunning = false;
-  mTerrainMappingEnabled = false;
-
-  mZed.disableTerrainMapping();
-
-  RCLCPP_INFO(get_logger(), "*** Terrain Mapping stopped ***");
-}
-#endif
 
 bool ZedCamera::startObjDetect()
 {
@@ -5054,27 +4869,13 @@ void ZedCamera::threadFunc_zedGrab()
     if (!mDepthDisabled) {
       mMappingMutex.lock();
       bool required = mMappingEnabled;
-#ifdef WITH_TM
-      required |= mTerrainMappingEnabled;
-#endif
+
       if (required && !mSpatialMappingRunning) {
         start3dMapping();
       }
       mMappingMutex.unlock();
     }
     // <---- Check for Spatial Mapping requirement
-
-#ifdef WITH_TM
-    // ----> Check for Terrain Mapping requirement
-    if (!mDepthDisabled) {
-      mTerrainMappingMutex.lock();
-      if (mSpatialMappingRunning && mTerrainMappingEnabled && !mTerrainMappingRunning) {
-        startTerrainMapping();
-      }
-      mTerrainMappingMutex.unlock();
-    }
-    // <---- Check for Terrain Mapping requirement
-#endif
 
     // ----> Check for Object Detection requirement
     if (!mDepthDisabled) {
@@ -7960,187 +7761,6 @@ void ZedCamera::callback_pubFusedPc()
   DEBUG_STREAM_MAP("Publishing FUSED POINT CLOUD message");
   mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
 }
-
-#ifdef WITH_TM
-inline
-void updateGrid(
-  sl::Terrain & terrain, grid_map::GridMap & map, std::string layer,
-  sl::LayerName layer_type)
-{
-  float x_ = 0, y_ = 0;
-  auto & chunk = terrain.getChunk(x_, y_);
-  auto & h_layer = chunk.getLayer(layer_type);
-
-  auto ptr_terrain = h_layer.getData().data();
-  auto ptr_grid = map.get(layer).data();
-
-  auto dim = chunk.getDimension();
-
-  memcpy(ptr_grid, ptr_terrain, sizeof(float) * dim.getFullSizeIdx());
-}
-
-bool ZedCamera::publishLocalMap()
-{
-  static rclcpp::Time prev_ts = TIMEZERO_ROS;
-
-  if (!mZed.isOpened()) {
-    return false;
-  }
-
-  if (!mSpatialMappingRunning || !mTerrainMappingRunning) {
-    return false;
-  }
-
-  if (mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OK) {
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Terrain mapping: positional tracking not ready: " << sl::toString(
-        mPosTrackingStatusWorld).c_str());
-    return false;
-  }
-
-  static rclcpp::Time timeStamp;
-  if (mSvoMode || mSimEnabled) {
-    timeStamp = mFrameTimestamp;
-  } else {
-    timeStamp = sl_tools::slTime2Ros(mSdkGrabTS, get_clock()->get_clock_type());
-  }
-
-  size_t imgColSub = 0;
-  size_t imgElevSub = 0;
-  size_t gridMapSub = 0;
-  size_t tot_sub = 0;
-  try {
-    imgColSub = count_subscribers(mPubColMapImg->get_topic_name());
-    imgElevSub = count_subscribers(mPubElevMapImg->get_topic_name());
-    gridMapSub = count_subscribers(mPubGridMap->get_topic_name());
-
-    tot_sub = imgColSub + imgElevSub + gridMapSub;
-  } catch (...) {
-    rcutils_reset_error();
-    DEBUG_STREAM_TM("publishLocalMap: Exception while counting subscribers");
-    return false;
-  }
-
-  if (tot_sub == 0) {
-    return false;
-  }
-
-  sl::ERROR_CODE err;
-
-  //DEBUG_STREAM_TM("Before retrieveTerrain...");
-  const sl::REFERENCE_FRAME terrain_ref = sl::REFERENCE_FRAME::CAMERA;
-  sl::Terrain sl_map;
-  err = mZed.retrieveTerrain(sl_map, terrain_ref);
-  //DEBUG_STREAM_TM("... after retrieveTerrain");
-
-  if (err != sl::ERROR_CODE::SUCCESS) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Terrain mapping retrieve error: " << sl::toString(err).c_str());
-    return false;
-  }
-
-  sl::Mat travMapImg, occMapImg, colorMapImg, elevMapImg;
-  sl::Mat elevMap, costMap, occMap;
-
-  if (gridMapSub > 0) {
-    DEBUG_STREAM_ONCE_TM("Terrain Mapping subscribed");
-    std::unique_ptr<grid_map_msgs::msg::GridMap> msg =
-      std::make_unique<grid_map_msgs::msg::GridMap>();
-
-    const std::string ELEVATION_GRID_STR("elevation");
-    const std::string RGB_GRID_STR("rgb");
-    const std::string TRAVERSABILITY_GRID_STR("traversability");
-
-    grid_map::GridMap gridmap;
-
-    // Initialization
-    gridmap.setGeometry(
-      grid_map::Length(
-        mTerrainMappingRange,
-        mTerrainMappingRange), mTerrainMappingRes);
-    gridmap.setFrameId(mCameraFrameId);
-
-    DEBUG_STREAM_TM(
-      "Created map with size " << gridmap.getLength().x() << "x" << gridmap.getLength().y()
-                               << "m (" << gridmap.getSize()(0) << "x" << gridmap.getSize()(
-        1) << " cells)");
-    DEBUG_STREAM_TM(
-      "Map center: (" << gridmap.getPosition().x() << "," << gridmap.getPosition().y() << ") Frame: " <<
-        gridmap.getFrameId().c_str());
-
-    sl::Terrain sl_traversability_map;
-    stereolabs::cost_traversability::initCostTraversibily(
-      sl_traversability_map, mTerrainMappingRes,
-      mTerrainMappingRange,
-      mTerrainMappingRobotHeigth);
-    stereolabs::cost_traversability::computeCost(
-      sl_map, sl_traversability_map,
-      gridmap.getResolution(), mAgentParams, mTraversabilityParams);
-
-    // Elevation is the main layer
-    gridmap.setBasicLayers({ELEVATION_GRID_STR});
-    gridmap.setTimestamp(timeStamp.nanoseconds());
-
-    // Add elevation layer
-    gridmap.add(ELEVATION_GRID_STR, std::numeric_limits<double>::quiet_NaN());
-    sl::LayerName sl_layer = sl::LayerName::ELEVATION;
-    updateGrid(sl_map, gridmap, ELEVATION_GRID_STR, sl_layer);
-
-    // Add color layer
-    gridmap.add(RGB_GRID_STR, std::numeric_limits<double>::quiet_NaN());
-    sl_layer = sl::LayerName::COLOR;
-    updateGrid(sl_map, gridmap, RGB_GRID_STR, sl_layer);
-
-    gridmap.add(TRAVERSABILITY_GRID_STR, std::numeric_limits<double>::quiet_NaN());
-    sl_layer = stereolabs::cost_traversability::TRAVERSABILITY_COST;
-    updateGrid(sl_traversability_map, gridmap, TRAVERSABILITY_GRID_STR, sl_layer);
-
-    // Send message
-    msg = grid_map::GridMapRosConverter::toMessage(gridmap);
-    mPubGridMap->publish(std::move(msg));
-  }
-
-  if (imgColSub > 0) {
-    //DEBUG_STREAM_TM("Before color_map...");
-
-    err = sl_map.retrieveView(colorMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::COLOR);
-    if (err == sl::ERROR_CODE::SUCCESS && colorMapImg.isInit()) {
-      //DEBUG_STREAM_TM("Terrain mapping: COLOR map OK");
-      mPubColMapImg->publish(*sl_tools::imageToROSmsg(colorMapImg, mDepthFrameId, timeStamp));
-    } else {
-      RCLCPP_WARN_STREAM(
-        get_logger(), "Terrain mapping generate COLOR layer error: " << sl::toString(
-          err).c_str());
-    }
-    //DEBUG_STREAM_TM("... after color_map");
-  }
-
-  if (imgElevSub > 0) {
-    //DEBUG_STREAM_TM("Before elev_map...");
-    err = sl_map.retrieveView(elevMapImg, sl::MAT_TYPE::U8_C4, sl::LayerName::ELEVATION);
-    if (err == sl::ERROR_CODE::SUCCESS && elevMapImg.isInit()) {
-      //DEBUG_STREAM_TM("Terrain mapping: ELEVATION map OK");
-      mPubElevMapImg->publish(*sl_tools::imageToROSmsg(elevMapImg, mDepthFrameId, timeStamp));
-    } else {
-      RCLCPP_WARN_STREAM(
-        get_logger(), "Terrain mapping generate ELEVATION layer error: " << sl::toString(
-          err).c_str());
-    }
-    //DEBUG_STREAM_TM("... after elev_map");
-  }
-
-  return true;
-}
-
-void ZedCamera::callback_pubLocalMap()
-{
-  DEBUG_STREAM_ONCE_TM("Terrain Mapping callback called");
-
-  publishLocalMap();
-}
-#endif
 
 void ZedCamera::callback_pubPaths()
 {

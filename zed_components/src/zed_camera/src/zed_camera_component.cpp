@@ -3835,7 +3835,7 @@ bool ZedCamera::startCamera()
     mFusionInitParams.coordinate_units = ROS_MEAS_UNITS;
     mFusionInitParams.verbose = mVerbose != 0;
     mFusionInitParams.output_performance_metrics = true;
-    mFusionInitParams.timeout_period_number = (1.0 / mCamGrabFrameRate) * mCamTimeoutSec;
+    mFusionInitParams.timeout_period_number = 20; // TODO(Walter) Evaluate this: mCamGrabFrameRate * mCamTimeoutSec;
 
     // Fusion initialization
     sl::FUSION_ERROR_CODE fus_err = mFusion.init(mFusionInitParams);

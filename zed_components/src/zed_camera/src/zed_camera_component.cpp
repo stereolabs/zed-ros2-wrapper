@@ -566,19 +566,23 @@ void ZedCamera::getGeneralParams()
     mCamUserModel = sl::MODEL::ZED2i;
   } else if (camera_model == "zedx") {
     mCamUserModel = sl::MODEL::ZED_X;
-    if (!IS_JETSON) {
-      RCLCPP_ERROR_STREAM(
-        get_logger(), "Camera model " << sl::toString(
-          mCamUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
-      exit(EXIT_FAILURE);
+    if (!mSvoMode && !mSimEnabled) {
+      if (!IS_JETSON) {
+        RCLCPP_ERROR_STREAM(
+          get_logger(), "Camera model " << sl::toString(
+            mCamUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
+        exit(EXIT_FAILURE);
+      }
     }
   } else if (IS_JETSON && camera_model == "zedxm") {
     mCamUserModel = sl::MODEL::ZED_XM;
-    if (!IS_JETSON) {
-      RCLCPP_ERROR_STREAM(
-        get_logger(), "Camera model " << sl::toString(
-          mCamUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
-      exit(EXIT_FAILURE);
+    if (!mSvoMode && !mSimEnabled) {
+      if (!IS_JETSON) {
+        RCLCPP_ERROR_STREAM(
+          get_logger(), "Camera model " << sl::toString(
+            mCamUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
+        exit(EXIT_FAILURE);
+      }
     }
   } else {
     RCLCPP_ERROR_STREAM(

@@ -42,10 +42,11 @@ GEOGRAPHIC_INFO_VERSION=1.0.4
 wget https://github.com/ros-geographic-info/geographic_info/archive/refs/tags/${GEOGRAPHIC_INFO_VERSION}.tar.gz -O - | tar -xvz && mv geographic_info-${GEOGRAPHIC_INFO_VERSION} geographic-info
 cp -r geographic-info/geographic_msgs/ .
 rm -rf geographic-info
+# Robot Localization
+ROBOT_LOCALIZATION_VERSION=3.4.2
+wget https://github.com/cra-ros-pkg/robot_localization/archive/refs/tags/${ROBOT_LOCALIZATION_VERSION}.tar.gz -O - | tar -xvz && mv robot_localization-${ROBOT_LOCALIZATION_VERSION} robot-localization
 # NMEA msgs
 git clone https://github.com/ros-drivers/nmea_msgs.git --branch ros2
-# Robot Localization
-git clone https://github.com/cra-ros-pkg/robot_localization.git --branch huble_sync
 # Angles
 git clone https://github.com/ros/angles.git --branch humble-devel
 

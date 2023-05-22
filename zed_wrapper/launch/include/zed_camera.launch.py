@@ -80,6 +80,8 @@ def launch_setup(context, *args, **kwargs):
     publish_map_tf = LaunchConfiguration('publish_map_tf')
     xacro_path = LaunchConfiguration('xacro_path')
 
+    ros_params_override_path = LaunchConfiguration('ros_params_override_path')
+
     gnss_frame = LaunchConfiguration('gnss_frame')
 
     camera_name_val = camera_name.perform(context)
@@ -149,7 +151,8 @@ def launch_setup(context, *args, **kwargs):
                 'pos_tracking.publish_tf': publish_tf,
                 'pos_tracking.publish_map_tf': publish_map_tf,
                 'pos_tracking.publish_imu_tf': publish_tf
-            }
+            },
+            ros_params_override_path,
         ]
     )
 
@@ -202,6 +205,10 @@ def generate_launch_description():
                 'xacro_path',
                 default_value=TextSubstitution(text=default_xacro_path),
                 description='Path to the camera URDF file as a xacro file.'),
+            DeclareLaunchArgument(
+                'ros_params_override_path',
+                default_value='',
+                description='The path to an additional parameters file to override the defaults'),
             DeclareLaunchArgument(
                 'svo_path',
                 default_value=TextSubstitution(text="live"),

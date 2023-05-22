@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2023-05-22
+----------
+- Add new launch parameter `ros_params_override_path` to provide the path to a custom YAML file to override the parameters of the ZED Node without modifying the original files in the `zed_wrapper/config` folder. Thank you David Lu @MetroRobots
+
 v4.0.0
 ------
 - Add support for ZED-X and ZED-X Mini

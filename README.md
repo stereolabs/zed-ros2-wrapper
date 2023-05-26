@@ -1,45 +1,26 @@
-![](./images/Picto+STEREOLABS_Black.jpg)
+<h1 align="center">
+  ZED SDK for ROS 2
+  <br>
+</h1>
+<p align="center">
+  ROS2 Foxy Fitzroy (Ubuntu 20.04)
+  ·
+  ROS2 Humble Hawksbill (Ubuntu 22.04)
+</p>
 
-# Stereolabs ZED Camera - ROS2 Foxy Fitzroy (Ubuntu 20.04) - ROS2 Humble Hawksbill (Ubuntu 22.04)
+This project provides a comprehensive **ROS2 wrapper for the ZED** stereo cameras from Stereolabs, enabling all of the camera's functionalities within the ROS2 framework.
 
-This package lets you use the ZED stereo cameras with ROS2. It provides access to the following data:
+![](https://cdn2.stereolabs.com/docs/ros/images/PointCloud_Depth_ROS.jpg)
 
-  - Left and right rectified/unrectified images
-  - Depth data
-  - Colored 3D point cloud
-  - Position and Mapping (with GNSS data fusion)
-  - Sensors data (not available with ZED)
-  - Detected objects (not available with ZED)
-  - Persons skeleton (not available with ZED)
+The ZED SDK ROS 2 Wrapper offers a complete set of features that enable users to seamlessly integrate the ZED stereo camera with ROS 2.These features include:
 
-[More information](https://www.stereolabs.com/docs/ros2/getting-started/)
-
-![](https://cdn.stereolabs.com/docs/ros/images/PointCloud_Depth_ROS.jpg)
-
-## Known issues
-
-### [ROS2 Foxy] Image Transport and topic subscriptions
-
-There is an **IMPORTANT** issue in ROS2 Foxy with the function `CameraPublisher::getNumSubscribers` preventing the correct counting of the number of nodes subscribing one of the topics published by an `image_transport::CameraPublisher` object and hence stopping the correct publishing of the subscribed topics.
-
-The only known solution is to install the exact version [v3.0.0](https://github.com/ros-perception/image_common/releases/tag/3.0.0) of the `image_transport` package, published on 2021-05-26, that contains the fix for this issue.
-
-To install the working version from the sources:
-
-    $ cd <colcon_workspace>/src # Access the source folder of your colcon workspace
-    $ git clone https://github.com/ros-perception/image_common.git --branch 3.0.0 --single-branch # clone the "v3.0.0" branch of the "image_common" repository
-    $ cd <colcon_workspace> # Go back to the root of your colcon workspace
-    $ colcon build --symlink-install # Compile everything and install
-
-Close the console and re-open it to apply the modifications.
-
-### [ROS2 Foxy] Image Transport Plugins and compressed topics
-
-The `image_transport_plugins` package is not correctly working with ROS2 Foxy (see [here](https://github.com/stereolabs/zed-ros2-wrapper/issues/31), [here](https://github.com/ros-perception/image_common/issues/184), [here](https://github.com/stereolabs/zed-ros2-wrapper/issues/31), and [here](https://github.com/ros-perception/image_transport_plugins/pull/58)). We suggest you remove it to avoid many annoying warning messages until the ROS2 developers do not fix it or we find a workaround:
-
-```
-$ sudo apt remove ros-foxy-image-transport-plugins ros-foxy-compressed-depth-image-transport ros-foxy-compressed-image-transport
-```
+ - Left and right rectified/unrectified images
+ - Depth data
+ - Colored 3D point cloud
+ - Position and Mapping (with GNSS data fusion)
+ - Sensors data
+ - Object detection
+ - Person skeleton detection and tracking
 
 ## Installation
 
@@ -70,13 +51,19 @@ $ echo source $(pwd)/install/local_setup.bash >> ~/.bashrc
 $ source ~/.bashrc
 ```
 
-**Note:** If `rosdep` is missing you can install it with:
+<details>
+<summary>Troubleshooting</summary>
 
-  ```$ sudo apt-get install python-rosdep python-rosinstall-generator python-vcstool python-rosinstall build-essential```
+<br>
+<p><strong>Note:</strong> If <code>rosdep</code> is missing you can install it with:</p>
+<pre><code>
+$ [sudo apt]-get install python-rosdep python-rosinstall-generator python-vcstool python-rosinstall build-essential
+</code></pre>
 
-**Note:** The option `--symlink-install` is very important, it allows to use symlinks instead of copying files to the ROS2 folders during the installation, where possible. Each package in ROS2 must be installed and all the files used by the nodes must be copied into the installation folders. Using symlinks allows you to modify them in your workspace, reflecting the modification during the next executions without the needing to issue a new `colcon build` command. This is true only for all the files that don't need to be compiled (Python scripts, configurations, etc.).
+<p><strong>Note:</strong> The option <code>--symlink-install</code> is very important, it allows to use symlinks instead of copying files to the ROS2 folders during the installation, where possible. Each package in ROS2 must be installed and all the files used by the nodes must be copied into the installation folders. Using symlinks allows you to modify them in your workspace, reflecting the modification during the next executions without the needing to issue a new <code>colcon build</code> command. This is true only for all the files that don't need to be compiled (Python scripts, configurations, etc.).</p>
 
-**Note:** If you are using a different console interface like zsh, you have to change the `source` command as follows: `echo source $(pwd)/install/local_setup.zsh >> ~/.zshrc` and `source ~/.zshrc`.
+<p><strong>Note:</strong> If you are using a different console interface like zsh, you have to change the <code>source</code> command as follows: <code>echo source $(pwd)/install/local_setup.zsh &gt;&gt; ~/.zshrc</code> and <code>source ~/.zshrc</code>.</p>
+</details>
 
 #### Update the local repository
 
@@ -101,41 +88,37 @@ $ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --paral
 
 To start the ZED node, open a terminal and use the [CLI](https://index.ros.org/doc/ros2/Tutorials/Introspection-with-command-line-tools/) command `ros2 launch`:
 
-ZED:
 ```bash
-$ ros2 launch zed_wrapper zed.launch.py
+$ ros2 launch zed_wrapper {zed-model}.launch.py
 ```
 
-ZED Mini:
-```bash
-$ ros2 launch zed_wrapper zedm.launch.py
-```
+> **Note**: `zed-model` can be one of the following: `zed`, `zedm`, `zed2`, `zed2i`, `zedx`, `zedxm`
 
-ZED 2:
-```bash
-$ ros2 launch zed_wrapper zed2.launch.py
-```
-
-ZED 2i:
-```bash
-$ ros2 launch zed_wrapper zed2i.launch.py
-```
-
-ZED X:
-```bash
-$ ros2 launch zed_wrapper zedx.launch.py
-```
-
-ZED X Mini:
-```bash
-$ ros2 launch zed_wrapper zedxm.launch.py
-```
-
-The `zed.launch.py`, `zedm.launch.py`, `zed2.launch.py`, `zed2i.launch.py`, `zedx.launch.py`, and `zedxm.launch.py` are Python launch scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/), loading the parameters from the correct "YAML files" and creating the camera model from the correct "URDF file".
+The `{zed-model}.launch.py` scripts are Python launch scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/), loading the parameters from the correct "YAML files" and creating the camera model from the correct "URDF file".
 
 **Note:** You can set your own configurations modifying the parameters in the files **common.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, and **zedxm.yaml** available in the folder `zed_wrapper/config`.
-For full descriptions of each parameter, follow the complete guide [here](https://www.stereolabs.com/docs/ros2/zed_node#configuration-parameters).
 
+## Documentation
+
+For detailed documentation on how to use the ZED SDK ROS 2 Wrapper, including a full list of topics and parameters exposed by the wrapper, please visit our documentation website [here](https://www.stereolabs.com/docs/ros2/zed-node/).
+
+## Examples and Tutorials
+To learn more about how to use the ZED SDK ROS 2 Wrapper and integrate it, you can check out the ZED ROS 2 [examples and tutorials](https://github.com/stereolabs/zed-ros2-examples).
+
+### Rviz2 visualization examples
+
+ - Example launch files to start a preconfigured instance of Rviz displaying all the ZED Wrapper node information: [zed_display_rviz2](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
+ - ROS2 plugin for ZED2 to visualize the results of the Object Detection and Body Tracking modules (bounding boxes and skeletons): [rviz-plugin-zed-od](https://github.com/stereolabs/zed-ros2-examples/tree/master/rviz-plugin-zed-od)
+
+### Tutorials
+
+ - [Images subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_video_tutorial)
+ - [Depth subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_depth_tutorial)
+ - [Pose/Odometry subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_pose_tutorial)
+ - [ROS2 Composition + BGRA2BGR conversion tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_rgb_convert)
+
+
+## Main Features
 ### Rviz visualization
 Example launch files to start a pre-configured Rviz environment to visualize the data of `ZED`, `ZED Mini`, `ZED2`, `ZED2i`, `ZED-X`, and `ZED-X Mini` cameras are provided in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
     
@@ -170,19 +153,3 @@ The services `toLL` and `fromLL` can be used to convert Latitude/Longitude coord
 For robots moving on a planar surface it is possible to activate the "2D mode" (parameter `pos_tracking/two_d_mode` in `common.yaml`). 
 The value of the coordinate Z for odometry and pose will have a fixed value (parameter `pos_tracking/fixed_z_value` in `common.yaml`). 
 Roll and pitch and relative velocities will be fixed to zero.
-
-## Examples and Tutorials
-Examples and tutorials are provided to better understand how to use the ZED wrapper and how to integrate it in the ROS2 framework.
-See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples)
-
-### Rviz2 visualization examples
-
- - Example launch files to start a preconfigured instance of Rviz displaying all the ZED Wrapper node information: [zed_display_rviz2](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
- - ROS2 plugin for ZED2 to visualize the results of the Object Detection and Body Tracking modules (bounding boxes and skeletons): [rviz-plugin-zed-od](https://github.com/stereolabs/zed-ros2-examples/tree/master/rviz-plugin-zed-od)
-
-### Tutorials
-
- - [Images subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_video_tutorial)
- - [Depth subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_depth_tutorial)
- - [Pose/Odometry subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_pose_tutorial)
- - [ROS2 Composition + BGRA2BGR conversion tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_rgb_convert)

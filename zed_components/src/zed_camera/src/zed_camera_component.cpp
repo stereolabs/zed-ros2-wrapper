@@ -4047,7 +4047,7 @@ bool ZedCamera::startPosTracking()
   // Tracking parameters
   sl::PositionalTrackingParameters trackParams;
 
-  mPoseSmoothing = false;  // Always false. Pose Smoothing is to be enabled only
+  mPoseSmoothing = true;  // Always false. Pose Smoothing is to be enabled only
                            // for VR/AR applications
 
   trackParams.enable_pose_smoothing = mPoseSmoothing;

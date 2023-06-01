@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-printf "Building zed-ros2-wrapper, tmp_sources should not exist already"
+printf "Building zed-ros2-wrapper, tmp_sources should not exist already \n"
 
 mkdir tmp_sources
 cp -r ../zed* ./tmp_sources

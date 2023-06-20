@@ -673,27 +673,56 @@ void ZedCamera::getGeneralParams()
   std::string out_resol = "MEDIUM";
   getParam("general.pub_resolution", out_resol, out_resol);
   if (out_resol == "HD2K") {
-    mPubResolution = PubRes::HD2K;
+    mPubImgResolution = PubRes::HD2K;
   } else if (out_resol == "HD1080") {
-    mPubResolution = PubRes::HD1080;
+    mPubImgResolution = PubRes::HD1080;
   } else if (out_resol == "HD1200") {
-    mPubResolution = PubRes::HD1200;
+    mPubImgResolution = PubRes::HD1200;
   } else if (out_resol == "HD720") {
-    mPubResolution = PubRes::HD720;
+    mPubImgResolution = PubRes::HD720;
   } else if (out_resol == "SVGA") {
-    mPubResolution = PubRes::SVGA;
+    mPubImgResolution = PubRes::SVGA;
   } else if (out_resol == "VGA") {
-    mPubResolution = PubRes::VGA;
+    mPubImgResolution = PubRes::VGA;
   } else if (out_resol == "MEDIUM") {
-    mPubResolution = PubRes::MEDIUM;
+    mPubImgResolution = PubRes::MEDIUM;
   } else if (out_resol == "LOW") {
-    mPubResolution = PubRes::LOW;
+    mPubImgResolution = PubRes::LOW;
   } else {
-    RCLCPP_INFO(get_logger(), "Not valid 'general.pub_resolution' value. Using default setting.");
+    RCLCPP_INFO(
+      get_logger(),
+      "Not valid 'general.pub_img_resolution' value. Using default setting.");
     out_resol = "MEDIUM";
-    mPubResolution = PubRes::MEDIUM;
+    mPubImgResolution = PubRes::MEDIUM;
   }
-  RCLCPP_INFO_STREAM(get_logger(), " * Publishing resolution: " << out_resol.c_str());
+  RCLCPP_INFO_STREAM(get_logger(), " * Publishing image resolution: " << out_resol.c_str());
+
+  std::string out_depth_resol = out_resol;  // use the same resolution unless specified otherwise
+  getParam("general.pub_depth_resolution", out_depth_resol, out_depth_resol);
+  if (out_depth_resol == "HD2K") {
+    mPubDepthResolution = PubRes::HD2K;
+  } else if (out_depth_resol == "HD1080") {
+    mPubDepthResolution = PubRes::HD1080;
+  } else if (out_depth_resol == "HD1200") {
+    mPubDepthResolution = PubRes::HD1200;
+  } else if (out_depth_resol == "HD720") {
+    mPubDepthResolution = PubRes::HD720;
+  } else if (out_depth_resol == "SVGA") {
+    mPubDepthResolution = PubRes::SVGA;
+  } else if (out_depth_resol == "VGA") {
+    mPubDepthResolution = PubRes::VGA;
+  } else if (out_depth_resol == "MEDIUM") {
+    mPubDepthResolution = PubRes::MEDIUM;
+  } else if (out_depth_resol == "LOW") {
+    mPubDepthResolution = PubRes::LOW;
+  } else {
+    RCLCPP_INFO(
+      get_logger(),
+      "Not valid 'general.pub_depth_resolution' value. Using default setting.");
+    out_depth_resol = "MEDIUM";
+    mPubDepthResolution = PubRes::MEDIUM;
+  }
+  RCLCPP_INFO_STREAM(get_logger(), " * Publishing depth resolution: " << out_depth_resol.c_str());
 
   std::string parsed_str = getParam("general.region_of_interest", mRoiParam);
   RCLCPP_INFO_STREAM(get_logger(), " * Region of interest: " << parsed_str.c_str());
@@ -2800,9 +2829,9 @@ void ZedCamera::fillCamInfo(
 
   if (rawParam) {
     zedParam =
-      zed.getCameraInformation(mMatResol).camera_configuration.calibration_parameters_raw;
+      zed.getCameraInformation(mMatImgResol).camera_configuration.calibration_parameters_raw;
   } else {
-    zedParam = zed.getCameraInformation(mMatResol).camera_configuration.calibration_parameters;
+    zedParam = zed.getCameraInformation(mMatImgResol).camera_configuration.calibration_parameters;
   }
 
   float baseline = zedParam.getCameraBaseline();
@@ -2935,8 +2964,8 @@ void ZedCamera::fillCamInfo(
   rightCamInfoMsg->p[5] = static_cast<double>(zedParam.right_cam.fy);
   rightCamInfoMsg->p[6] = static_cast<double>(zedParam.right_cam.cy);
   rightCamInfoMsg->p[10] = 1.0;
-  leftCamInfoMsg->width = rightCamInfoMsg->width = static_cast<uint32_t>(mMatResol.width);
-  leftCamInfoMsg->height = rightCamInfoMsg->height = static_cast<uint32_t>(mMatResol.height);
+  leftCamInfoMsg->width = rightCamInfoMsg->width = static_cast<uint32_t>(mMatImgResol.width);
+  leftCamInfoMsg->height = rightCamInfoMsg->height = static_cast<uint32_t>(mMatImgResol.height);
   leftCamInfoMsg->header.frame_id = leftFrameId;
   rightCamInfoMsg->header.frame_id = rightFrameId;
 }
@@ -3480,54 +3509,105 @@ bool ZedCamera::startCamera()
   RCLCPP_INFO_STREAM(
     get_logger(), " * Camera grab frame size -> " << mCamWidth << "x" << mCamHeight);
 
-  int pub_w, pub_h;
-  switch (mPubResolution) {
+  // Image resolution setting
+  int pub_img_w, pub_img_h;
+  switch (mPubImgResolution) {
     case PubRes::HD2K:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      pub_img_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
+      pub_img_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
       break;
 
     case PubRes::HD1080:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD1080).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD1080).height;
+      pub_img_w = sl::getResolution(sl::RESOLUTION::HD1080).width;
+      pub_img_h = sl::getResolution(sl::RESOLUTION::HD1080).height;
       break;
 
     case PubRes::HD720:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD720).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD720).height;
+      pub_img_w = sl::getResolution(sl::RESOLUTION::HD720).width;
+      pub_img_h = sl::getResolution(sl::RESOLUTION::HD720).height;
       break;
 
     case PubRes::MEDIUM:
-      pub_w = MEDIUM_W;
-      pub_h = MEDIUM_H;
+      pub_img_w = MEDIUM_W;
+      pub_img_h = MEDIUM_H;
       break;
 
     case PubRes::VGA:
-      pub_w = sl::getResolution(sl::RESOLUTION::VGA).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::VGA).height;
+      pub_img_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
+      pub_img_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
       break;
 
     case PubRes::LOW:
-      pub_w = MEDIUM_W / 2;
-      pub_h = MEDIUM_H / 2;
+      pub_img_w = MEDIUM_W / 2;
+      pub_img_h = MEDIUM_H / 2;
       break;
   }
 
-  if (pub_w > mCamWidth || pub_h > mCamHeight) {
+  // RCLCPP_WARN_STREAM(get_logger(), "The publishing resolution is (" << pub_w << "x" << pub_h << ")");
+
+  if (pub_img_w > mCamWidth || pub_img_h > mCamHeight) {
     RCLCPP_WARN_STREAM(
       get_logger(),
       "The publishing resolution (" <<
-        pub_w << "x" << pub_h <<
+        pub_img_w << "x" << pub_img_h <<
         ") cannot be higher than the grabbing resolution (" <<
         mCamWidth << "x" << mCamHeight <<
         "). Using grab resolution for output messages.");
-    pub_w = mCamWidth;
-    pub_h = mCamHeight;
+    pub_img_w = mCamWidth;
+    pub_img_h = mCamHeight;
   }
 
-  mMatResol = sl::Resolution(pub_w, pub_h);
+  // Depth resolution setting
+  int pub_depth_w, pub_depth_h;
+  switch (mPubDepthResolution) {
+    case PubRes::HD2K:
+      pub_depth_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
+      pub_depth_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      break;
+
+    case PubRes::HD1080:
+      pub_depth_w = sl::getResolution(sl::RESOLUTION::HD1080).width;
+      pub_depth_h = sl::getResolution(sl::RESOLUTION::HD1080).height;
+      break;
+
+    case PubRes::HD720:
+      pub_depth_w = sl::getResolution(sl::RESOLUTION::HD720).width;
+      pub_depth_h = sl::getResolution(sl::RESOLUTION::HD720).height;
+      break;
+
+    case PubRes::MEDIUM:
+      pub_depth_w = MEDIUM_W;
+      pub_depth_h = MEDIUM_H;
+      break;
+
+    case PubRes::VGA:
+      pub_depth_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
+      pub_depth_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      break;
+
+    case PubRes::LOW:
+      pub_depth_w = MEDIUM_W / 2;
+      pub_depth_h = MEDIUM_H / 2;
+      break;
+  }
+
+  if (pub_depth_w > mCamWidth || pub_depth_h > mCamHeight) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The publishing resolution (" <<
+        pub_depth_w << "x" << pub_depth_h <<
+        ") cannot be higher than the grabbing resolution (" <<
+        mCamWidth << "x" << mCamHeight <<
+        "). Using grab resolution for output messages.");
+    pub_depth_w = mCamWidth;
+    pub_depth_h = mCamHeight;
+  }
+
+  mMatImgResol = sl::Resolution(pub_img_w, pub_img_h);
+  mMatDepthResol = sl::Resolution(pub_depth_w, pub_depth_h);
   RCLCPP_INFO_STREAM(
-    get_logger(), " * Publishing frame size  -> " << mMatResol.width << "x" << mMatResol.height);
+    get_logger(),
+    " * Publishing frame size  -> " << mMatImgResol.width << "x" << mMatImgResol.height);
   // <---- Camera information
 
   // ----> Set Region of Interest
@@ -3781,6 +3861,8 @@ bool ZedCamera::startCamera()
   mRgbCamInfoMsg = mLeftCamInfoMsg;
   mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
   mDepthCamInfoMsg = mLeftCamInfoMsg;
+  mDepthCamInfoMsg->width = static_cast<uint32_t>(mMatDepthResol.width);
+  mDepthCamInfoMsg->height = static_cast<uint32_t>(mMatDepthResol.height);
   // <---- Camera Info messages
 
   initPublishers();  // Requires mZedRealCamModel available only after camera
@@ -5094,7 +5176,7 @@ void ZedCamera::threadFunc_zedGrab()
 
         if (pc_lock.try_lock()) {
           DEBUG_STREAM_PC("Retrieving point cloud");
-          mZed.retrieveMeasure(mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mMatResol);
+          mZed.retrieveMeasure(mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mMatDepthResol);
 
           // Signal Pointcloud thread that a new pointcloud is ready
           mPcDataReadyCondVar.notify_one();
@@ -5832,50 +5914,50 @@ void ZedCamera::retrieveVideoDepth()
   DEBUG_STREAM_VD("Retrieving Video Data");
   if (mRgbSubnumber + mLeftSubnumber + mStereoSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(mMatLeft, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
+      mZed.retrieveImage(mMatLeft, sl::VIEW::LEFT, sl::MEM::CPU, mMatImgResol);
     mSdkGrabTS = mMatLeft.timestamp;
     mRgbSubscribed = true;
   }
   if (mRgbRawSubnumber + mLeftRawSubnumber + mStereoRawSubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
+      mZed.retrieveImage(mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatImgResol);
     mSdkGrabTS = mMatLeftRaw.timestamp;
   }
   if (mRightSubnumber + mStereoSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(mMatRight, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
+      mZed.retrieveImage(mMatRight, sl::VIEW::RIGHT, sl::MEM::CPU, mMatImgResol);
     mSdkGrabTS = mMatRight.timestamp;
   }
   if (mRightRawSubnumber + mStereoRawSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveImage(
-      mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
+      mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatImgResol);
     mSdkGrabTS = mMatRightRaw.timestamp;
   }
   if (mRgbGraySubnumber + mLeftGraySubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(mMatLeftGray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResol);
+      mZed.retrieveImage(mMatLeftGray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatImgResol);
     mSdkGrabTS = mMatLeftGray.timestamp;
   }
   if (mRgbGrayRawSubnumber + mLeftGrayRawSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(
       mMatLeftRawGray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
-      sl::MEM::CPU, mMatResol);
+      sl::MEM::CPU, mMatImgResol);
     mSdkGrabTS = mMatLeftRawGray.timestamp;
   }
   if (mRightGraySubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(mMatRightGray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResol);
+      mZed.retrieveImage(mMatRightGray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatImgResol);
     mSdkGrabTS = mMatRightGray.timestamp;
   }
   if (mRightGrayRawSubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveImage(
-      mMatRightRawGray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResol);
+      mMatRightRawGray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatImgResol);
     mSdkGrabTS = mMatRightRawGray.timestamp;
   }
   DEBUG_STREAM_VD("Video Data retrieved");
@@ -5884,7 +5966,7 @@ void ZedCamera::retrieveVideoDepth()
     DEBUG_STREAM_VD("Retrieving Depth");
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveMeasure(mMatDepth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResol);
+      mZed.retrieveMeasure(mMatDepth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatDepthResol);
     mSdkGrabTS = mMatDepth.timestamp;
     mMatDepth.write("depth_map.png");
   }
@@ -5892,14 +5974,14 @@ void ZedCamera::retrieveVideoDepth()
     DEBUG_STREAM_VD("Retrieving Disparity");
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveMeasure(mMatDisp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatResol);
+      mZed.retrieveMeasure(mMatDisp, sl::MEASURE::DISPARITY, sl::MEM::CPU, mMatDepthResol);
     mSdkGrabTS = mMatDisp.timestamp;
   }
   if (mConfMapSubnumber > 0) {
     DEBUG_STREAM_VD("Retrieving Confidence");
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveMeasure(mMatConf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatResol);
+      mZed.retrieveMeasure(mMatConf, sl::MEASURE::CONFIDENCE, sl::MEM::CPU, mMatDepthResol);
     mSdkGrabTS = mMatConf.timestamp;
   }
   if (mDepthInfoSubnumber > 0) {
@@ -7497,7 +7579,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 
 void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
 {
-  sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResol);
+  sl::CameraInformation zedParam = mZed.getCameraInformation(mMatDepthResol);
 
   std::unique_ptr<sensor_msgs::msg::Image> disparity_image =
     sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, t);
@@ -7527,8 +7609,8 @@ void ZedCamera::publishPointCloud()
   // Initialize Point Cloud message
   // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
-  int width = mMatResol.width;
-  int height = mMatResol.height;
+  int width = mMatDepthResol.width;
+  int height = mMatDepthResol.height;
 
   int ptsCount = width * height;
 
@@ -8711,14 +8793,14 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
 
   // ----> Project the point into 2D image coordinates
   sl::CalibrationParameters zedParam;
-  zedParam = mZed.getCameraInformation(mMatResol).camera_configuration.calibration_parameters;  // ok
+  zedParam = mZed.getCameraInformation(mMatImgResol).camera_configuration.calibration_parameters;  // ok
 
   float f_x = zedParam.left_cam.fx;
   float f_y = zedParam.left_cam.fy;
   float c_x = zedParam.left_cam.cx;
   float c_y = zedParam.left_cam.cy;
 
-  float out_scale_factor = mMatResol.width / mCamWidth;
+  float out_scale_factor = mMatImgResol.width / mCamWidth;
 
   float u = ((camX / camZ) * f_x + c_x) / out_scale_factor;
   float v = ((camY / camZ) * f_y + c_y) / out_scale_factor;

@@ -266,7 +266,8 @@ private:
   int mVerbose = 1;
   int mGpuId = -1;
   sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720;  // Default resolution: RESOLUTION_HD720
-  PubRes mPubResolution = MEDIUM;  // Use native DNN resolution for NEURAL depth to improve speed and quality.
+  PubRes mPubImgResolution = MEDIUM;
+  PubRes mPubDepthResolution = MEDIUM;  // Use native DNN resolution for NEURAL depth to improve speed and quality.
   sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::PERFORMANCE;  // Default depth mode: DEPTH_MODE_PERFORMANCE
   bool mDepthDisabled =
     false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE se for )
@@ -431,7 +432,8 @@ private:
   // ----> Stereolabs Mat Info
   int mCamWidth;   // Camera frame width
   int mCamHeight;  // Camera frame height
-  sl::Resolution mMatResol;
+  sl::Resolution mMatImgResol;
+  sl::Resolution mMatDepthResol;
   // <---- Stereolabs Mat Info
 
   // Camera IMU transform

@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2023-06-28
+----------
+- Fixed depth grab by removing a [not required `PNG Write` call](https://github.com/stereolabs/zed-ros2-wrapper/pull/164). Thank you Esteban Zamora @ezamoraa 
+
 2023-06-15
 ----------
 - Fix bug with `general.pub_resolution` value, not allowing to select the correct data publish resolution

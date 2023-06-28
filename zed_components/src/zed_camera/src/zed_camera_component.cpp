@@ -5886,7 +5886,6 @@ void ZedCamera::retrieveVideoDepth()
       sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveMeasure(mMatDepth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatDepth.timestamp;
-    mMatDepth.write("depth_map.png");
   }
   if (mDisparitySubnumber > 0) {
     DEBUG_STREAM_VD("Retrieving Disparity");

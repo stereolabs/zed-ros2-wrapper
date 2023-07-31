@@ -3484,13 +3484,13 @@ bool ZedCamera::startCamera()
       break;
 
     case PubRes::HD1080:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      pub_w = sl::getResolution(sl::RESOLUTION::HD1080).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::HD1080).height;
       break;
 
     case PubRes::HD720:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      pub_w = sl::getResolution(sl::RESOLUTION::HD720).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::HD720).height;
       break;
 
     case PubRes::MEDIUM:
@@ -3499,8 +3499,8 @@ bool ZedCamera::startCamera()
       break;
 
     case PubRes::VGA:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      pub_w = sl::getResolution(sl::RESOLUTION::VGA).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::VGA).height;
       break;
 
     case PubRes::LOW:
@@ -5884,7 +5884,6 @@ void ZedCamera::retrieveVideoDepth()
       sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveMeasure(mMatDepth, sl::MEASURE::DEPTH, sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatDepth.timestamp;
-    mMatDepth.write("depth_map.png");
   }
   if (mDisparitySubnumber > 0) {
     DEBUG_STREAM_VD("Retrieving Disparity");

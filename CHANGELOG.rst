@@ -1,9 +1,13 @@
 LATEST CHANGES
 ==============
 
+2023-07-31
+----------
+- Fix issue with Body Tracking start/stop by service call. Now Body Tracking can be restarted multiple times
+
 2023-06-28
 ----------
-- Fixed depth grab performance by removing a [not required `PNG Write` call](https://github.com/stereolabs/zed-ros2-wrapper/pull/164). Thank you Esteban Zamora @ezamoraa 
+- Fix depth grab performance by removing a [not required `PNG Write` call](https://github.com/stereolabs/zed-ros2-wrapper/pull/164). Thank you Esteban Zamora @ezamoraa 
 
 2023-06-15
 ----------

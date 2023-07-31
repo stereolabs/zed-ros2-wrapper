@@ -51,10 +51,6 @@ using namespace std::placeholders;
 #define MEDIUM_W 896
 #define MEDIUM_H 512
 
-// AI Module
-#define OD_INSTANCE_MODULE_ID 0
-#define BT_INSTANCE_MODULE_ID 1
-
 namespace stereolabs
 {
 #ifndef DEG2RAD
@@ -4258,7 +4254,8 @@ bool ZedCamera::startObjDetect()
   od_p.allow_reduced_precision_inference = mObjDetReducedPrecision;
   od_p.max_range = mObjDetMaxRange;
 
-  od_p.instance_module_id = OD_INSTANCE_MODULE_ID;
+  mObjDetInstID = ++mAiInstanceID;
+  od_p.instance_module_id = mObjDetInstID;
 
   mObjDetFilter.clear();
   if (mObjDetPeopleEnable) {
@@ -4371,7 +4368,8 @@ bool ZedCamera::startBodyTracking()
   bt_p.max_range = mBodyTrkMaxRange;
   bt_p.prediction_timeout_s = mBodyTrkPredTimeout;
 
-  bt_p.instance_module_id = BT_INSTANCE_MODULE_ID;
+  mBodyTrkInstID = ++mAiInstanceID;
+  bt_p.instance_module_id = mBodyTrkInstID;
 
   sl::ERROR_CODE btError = mZed.enableBodyTracking(bt_p);
 
@@ -6837,7 +6835,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   sl::ERROR_CODE objDetRes = mZed.retrieveObjects(
     objects, objectTracker_parameters_rt,
-    OD_INSTANCE_MODULE_ID);
+    mObjDetInstID);
 
   if (objDetRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(get_logger(), "Object Detection error: " << sl::toString(objDetRes));
@@ -6950,7 +6948,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
   // <---- Process realtime dynamic parameters
 
   sl::Bodies bodies;
-  sl::ERROR_CODE btRes = mZed.retrieveBodies(bodies, bt_params_rt, BT_INSTANCE_MODULE_ID);
+  sl::ERROR_CODE btRes = mZed.retrieveBodies(bodies, bt_params_rt, mBodyTrkInstID);
 
   if (btRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(get_logger(), "Body Tracking error: " << sl::toString(btRes));

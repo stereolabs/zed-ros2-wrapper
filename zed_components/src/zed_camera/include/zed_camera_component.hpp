@@ -22,6 +22,8 @@
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
 
+#include <atomic>
+
 namespace stereolabs
 {
 
@@ -460,6 +462,10 @@ private:
   bool mCamera2BaseTransfValid = false;
   bool mGnss2BaseTransfValid = false;
   bool mMap2UtmTransfValid = false;
+
+  std::atomic_uint16_t mAiInstanceID = 0;
+  uint16_t mObjDetInstID;
+  uint16_t mBodyTrkInstID;
   // <---- TF Transforms Flags
 
   // ----> Messages (ONLY THOSE NOT CHANGING WHILE NODE RUNS)

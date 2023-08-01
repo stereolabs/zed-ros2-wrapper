@@ -154,7 +154,8 @@ typedef enum
   MEDIUM,  //!< 896x512
   SVGA,  //!< 960x600
   VGA,  //!< 672x376
-  LOW  //!< Half-MEDIUM 448x256
+  LOW,  //!< Half-MEDIUM 448x256
+  CUSTOM_RESCALE //!< Custom Rescale Factor
 } PubRes;
 // <---- Typedefs to simplify declarations
 }  // namespace stereolabs

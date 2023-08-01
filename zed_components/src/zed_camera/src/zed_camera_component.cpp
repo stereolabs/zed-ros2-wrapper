@@ -630,14 +630,15 @@ void ZedCamera::getGeneralParams()
 
   // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
 
-  std::string resol = "HD720";
+  std::string resol = "AUTO";
   getParam("general.grab_resolution", resol, resol);
   if (resol == "AUTO") {
     mCamResol = sl::RESOLUTION::AUTO;
   } else if (sl_tools::isZEDX(mCamUserModel)) {
-    // TODO(Walter) Add support for HD1080 when available
     if (resol == "HD1200") {
       mCamResol = sl::RESOLUTION::HD1200;
+    } else if (resol == "HD1080") {
+      mCamResol = sl::RESOLUTION::HD1080;
     } else if (resol == "SVGA") {
       mCamResol = sl::RESOLUTION::SVGA;
     } else {
@@ -685,12 +686,20 @@ void ZedCamera::getGeneralParams()
     mPubResolution = PubRes::MEDIUM;
   } else if (out_resol == "LOW") {
     mPubResolution = PubRes::LOW;
+  } else if (out_resol == "CUSTOM_RESCALE") {
+    mPubResolution = PubRes::CUSTOM_RESCALE;
   } else {
     RCLCPP_INFO(get_logger(), "Not valid 'general.pub_resolution' value. Using default setting.");
-    out_resol = "MEDIUM";
-    mPubResolution = PubRes::MEDIUM;
+    out_resol = "CUSTOM_RESCALE";
+    mPubResolution = PubRes::CUSTOM_RESCALE;
   }
   RCLCPP_INFO_STREAM(get_logger(), " * Publishing resolution: " << out_resol.c_str());
+
+  if (mPubResolution == PubRes::CUSTOM_RESCALE) {
+    getParam(
+      "general.pub_resolution_scale", mCustomRescaleFactor, mCustomRescaleFactor,
+      " * Publishing rescale factor: ");
+  }
 
   std::string parsed_str = getParam("general.region_of_interest", mRoiParam);
   RCLCPP_INFO_STREAM(get_logger(), " * Region of interest: " << parsed_str.c_str());
@@ -3507,6 +3516,11 @@ bool ZedCamera::startCamera()
     case PubRes::LOW:
       pub_w = MEDIUM_W / 2;
       pub_h = MEDIUM_H / 2;
+      break;
+
+    case PubRes::CUSTOM_RESCALE:
+      pub_w = static_cast<int>(mCamWidth / mCustomRescaleFactor);
+      pub_h = static_cast<int>(mCamHeight / mCustomRescaleFactor);
       break;
   }
 

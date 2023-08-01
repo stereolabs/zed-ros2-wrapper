@@ -269,6 +269,7 @@ private:
   int mGpuId = -1;
   sl::RESOLUTION mCamResol = sl::RESOLUTION::HD720;  // Default resolution: RESOLUTION_HD720
   PubRes mPubResolution = MEDIUM;  // Use native DNN resolution for NEURAL depth to improve speed and quality.
+  double mCustomRescaleFactor = 2.0; // Used to rescale data with user factor
   sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::PERFORMANCE;  // Default depth mode: DEPTH_MODE_PERFORMANCE
   bool mDepthDisabled =
     false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE se for )

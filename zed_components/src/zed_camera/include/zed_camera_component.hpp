@@ -463,7 +463,7 @@ private:
   bool mGnss2BaseTransfValid = false;
   bool mMap2UtmTransfValid = false;
 
-  std::atomic_uint16_t mAiInstanceID = 0;
+  std::atomic_uint16_t mAiInstanceID;
   uint16_t mObjDetInstID;
   uint16_t mBodyTrkInstID;
   // <---- TF Transforms Flags

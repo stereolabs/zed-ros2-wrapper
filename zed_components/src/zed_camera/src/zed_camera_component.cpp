@@ -63,7 +63,6 @@ namespace stereolabs
 
 ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
 : Node("zed_node", options),
-  mDiagUpdater(this),
   mVideoQos(1),
   mDepthQos(1),
   mSensQos(1),
@@ -72,7 +71,9 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mObjDetQos(1),
   mBodyTrkQos(1),
   mClickedPtQos(1),
-  mGnssFixQos(1)
+  mGnssFixQos(1),
+  mAiInstanceID(0),
+  mDiagUpdater(this)
 {
   RCLCPP_INFO(get_logger(), "********************************");
   RCLCPP_INFO(get_logger(), "      ZED Camera Component ");

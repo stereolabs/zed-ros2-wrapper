@@ -16,7 +16,7 @@
             zed_id: 0 # IMPORTANT: to be used in simulation to distinguish individual cameras im multi-camera configurations - usually overwritten by launch file
             serial_number: 0 # usually overwritten by launch file
             pub_resolution: 'CUSTOM_RESCALE' # The resolution used for output. 'CUSTOM_RESCALE', 'HD2K', 'HD1080', 'HD1200', 'HD720', 'MEDIUM', 'SVGA', 'VGA', 'LOW'
-            pub_resolution_scale: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM_RESCALE'
+            pub_resolution_scale: 1.8 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM_RESCALE'
             pub_frame_rate: 15.0 # [DYNAMIC] - frequency of publishing of visual images and depth images
             gpu_id: -1
             region_of_interest: '[]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.

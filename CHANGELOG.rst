@@ -5,6 +5,7 @@ LATEST CHANGES
 ----------
 - Add new parameter `general.pub_resolution_scale` to be used with the new option `CUSTOM_RESCALE` for the parameter `general.pub_resolution`
 - `ULTRA` is the new default value for `depth.depth_mode` (better performance for odometry and positional tracking)
+- Add resolution `HD1080` for ZED X
 
 2023-07-31
 ----------

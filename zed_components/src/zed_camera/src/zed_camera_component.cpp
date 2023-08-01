@@ -3519,8 +3519,8 @@ bool ZedCamera::startCamera()
       break;
 
     case PubRes::CUSTOM_RESCALE:
-      pub_w = static_cast<int>(mCamWidth / mCustomRescaleFactor);
-      pub_h = static_cast<int>(mCamHeight / mCustomRescaleFactor);
+      pub_w = static_cast<int>(std::round(mCamWidth / mCustomRescaleFactor));
+      pub_h = static_cast<int>(std::round(mCamHeight / mCustomRescaleFactor));
       break;
   }
 

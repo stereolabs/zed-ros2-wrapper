@@ -671,7 +671,9 @@ void ZedCamera::getGeneralParams()
   } else if (out_resol == "CUSTOM") {
     mPubResolution = PubRes::CUSTOM;
   } else {
-    RCLCPP_INFO(get_logger(), "Not valid 'general.pub_resolution' value. Using default setting.");
+    RCLCPP_WARN(
+      get_logger(), "Not valid 'general.pub_resolution' value: '%s'. Using default setting instead.",
+      out_resol.c_str());
     out_resol = "NATIVE";
     mPubResolution = PubRes::NATIVE;
   }

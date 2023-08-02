@@ -1,6 +1,13 @@
 LATEST CHANGES
 ==============
 
+2023-08-02
+----------
+- The parameter `general.pub_resolution` can now take only `NATIVE` and `CUSTOM` values. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
+- Add new parameter `general.pub_downscale_factor` to be used with the new option `CUSTOM` for the parameter `general.pub_resolution`
+- `ULTRA` is the new default value for `depth.depth_mode` (better performance for odometry and positional tracking)
+- Add resolution `HD1080` for ZED X
+
 2023-07-31
 ----------
 - Fix issue with Body Tracking start/stop by service call. Now Body Tracking can be restarted multiple times

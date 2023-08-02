@@ -147,14 +147,8 @@ typedef rclcpp::Service<robot_localization::srv::FromLL>::SharedPtr fromLLSrvPtr
    */
 typedef enum
 {
-  HD2K,  //!< 2208x1242
-  HD1080,  //!< 1920x1080
-  HD1200,  //!< 1920x1200
-  HD720,  //!< 1280x720
-  MEDIUM,  //!< 896x512
-  SVGA,  //!< 960x600
-  VGA,  //!< 672x376
-  LOW  //!< Half-MEDIUM 448x256
+  NATIVE,  //!< Same camera grab resolution
+  CUSTOM   //!< Custom Rescale Factor
 } PubRes;
 // <---- Typedefs to simplify declarations
 }  // namespace stereolabs

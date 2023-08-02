@@ -47,10 +47,6 @@ using namespace std::placeholders;
 // Used for simulation data input
 #define ZED_SDK_PORT 30000
 
-// Custom output resolution
-#define MEDIUM_W 896
-#define MEDIUM_H 512
-
 namespace stereolabs
 {
 #ifndef DEG2RAD
@@ -630,14 +626,15 @@ void ZedCamera::getGeneralParams()
 
   // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
 
-  std::string resol = "HD720";
+  std::string resol = "AUTO";
   getParam("general.grab_resolution", resol, resol);
   if (resol == "AUTO") {
     mCamResol = sl::RESOLUTION::AUTO;
   } else if (sl_tools::isZEDX(mCamUserModel)) {
-    // TODO(Walter) Add support for HD1080 when available
     if (resol == "HD1200") {
       mCamResol = sl::RESOLUTION::HD1200;
+    } else if (resol == "HD1080") {
+      mCamResol = sl::RESOLUTION::HD1080;
     } else if (resol == "SVGA") {
       mCamResol = sl::RESOLUTION::SVGA;
     } else {
@@ -669,28 +666,26 @@ void ZedCamera::getGeneralParams()
 
   std::string out_resol = "MEDIUM";
   getParam("general.pub_resolution", out_resol, out_resol);
-  if (out_resol == "HD2K") {
-    mPubResolution = PubRes::HD2K;
-  } else if (out_resol == "HD1080") {
-    mPubResolution = PubRes::HD1080;
-  } else if (out_resol == "HD1200") {
-    mPubResolution = PubRes::HD1200;
-  } else if (out_resol == "HD720") {
-    mPubResolution = PubRes::HD720;
-  } else if (out_resol == "SVGA") {
-    mPubResolution = PubRes::SVGA;
-  } else if (out_resol == "VGA") {
-    mPubResolution = PubRes::VGA;
-  } else if (out_resol == "MEDIUM") {
-    mPubResolution = PubRes::MEDIUM;
-  } else if (out_resol == "LOW") {
-    mPubResolution = PubRes::LOW;
+  if (out_resol == "NATIVE") {
+    mPubResolution = PubRes::NATIVE;
+  } else if (out_resol == "CUSTOM") {
+    mPubResolution = PubRes::CUSTOM;
   } else {
-    RCLCPP_INFO(get_logger(), "Not valid 'general.pub_resolution' value. Using default setting.");
-    out_resol = "MEDIUM";
-    mPubResolution = PubRes::MEDIUM;
+    RCLCPP_WARN(
+      get_logger(), "Not valid 'general.pub_resolution' value: '%s'. Using default setting instead.",
+      out_resol.c_str());
+    out_resol = "NATIVE";
+    mPubResolution = PubRes::NATIVE;
   }
   RCLCPP_INFO_STREAM(get_logger(), " * Publishing resolution: " << out_resol.c_str());
+
+  if (mPubResolution == PubRes::CUSTOM) {
+    getParam(
+      "general.pub_downscale_factor", mCustomDownscaleFactor, mCustomDownscaleFactor,
+      " * Publishing downscale factor: ");
+  } else {
+    mCustomDownscaleFactor = 1.0;
+  }
 
   std::string parsed_str = getParam("general.region_of_interest", mRoiParam);
   RCLCPP_INFO_STREAM(get_logger(), " * Region of interest: " << parsed_str.c_str());
@@ -3478,37 +3473,8 @@ bool ZedCamera::startCamera()
     get_logger(), " * Camera grab frame size -> " << mCamWidth << "x" << mCamHeight);
 
   int pub_w, pub_h;
-  switch (mPubResolution) {
-    case PubRes::HD2K:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
-      break;
-
-    case PubRes::HD1080:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD1080).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD1080).height;
-      break;
-
-    case PubRes::HD720:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD720).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD720).height;
-      break;
-
-    case PubRes::MEDIUM:
-      pub_w = MEDIUM_W;
-      pub_h = MEDIUM_H;
-      break;
-
-    case PubRes::VGA:
-      pub_w = sl::getResolution(sl::RESOLUTION::VGA).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::VGA).height;
-      break;
-
-    case PubRes::LOW:
-      pub_w = MEDIUM_W / 2;
-      pub_h = MEDIUM_H / 2;
-      break;
-  }
+  pub_w = static_cast<int>(std::round(mCamWidth / mCustomDownscaleFactor));
+  pub_h = static_cast<int>(std::round(mCamHeight / mCustomDownscaleFactor));
 
   if (pub_w > mCamWidth || pub_h > mCamHeight) {
     RCLCPP_WARN_STREAM(

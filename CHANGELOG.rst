@@ -1,9 +1,10 @@
 LATEST CHANGES
 ==============
 
-2023-08-01
+2023-08-02
 ----------
-- Add new parameter `general.pub_resolution_scale` to be used with the new option `CUSTOM_RESCALE` for the parameter `general.pub_resolution`
+- The parameter `general.pub_resolution` can now take only `NATIVE` and `CUSTOM` values. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
+- Add new parameter `general.pub_downscale_factor` to be used with the new option `CUSTOM` for the parameter `general.pub_resolution`
 - `ULTRA` is the new default value for `depth.depth_mode` (better performance for odometry and positional tracking)
 - Add resolution `HD1080` for ZED X
 

@@ -75,7 +75,7 @@ endif()
 
 #############################################
 # Dependencies
-find_package(ZED 3 REQUIRED)
+find_package(ZED 4 REQUIRED)
 
 exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
 if(CMAKE_SYSTEM_NAME2 MATCHES "aarch64") # Jetson TX

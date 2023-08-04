@@ -1142,6 +1142,14 @@ void ZedCamera::getMappingParams()
 
   getParam(
     "mapping.clicked_point_topic", mClickedPtTopic, mClickedPtTopic, " * Clicked point topic: ");
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  getParam(
+    "mapping.pd_max_distance_threshold", mPdMaxDistanceThreshold, mPdMaxDistanceThreshold,
+    " * Plane Det. Max Dist. Thresh.: ");
+  getParam(
+    "mapping.pd_normal_similarity_threshold", mPdNormalSimilarityThreshold,
+    mPdNormalSimilarityThreshold, " * Plane Det. Normals Sim. Thresh.: ");
+#endif
   // ------------------------------------------
 
   paramName = "mapping.qos_history";
@@ -3466,7 +3474,10 @@ bool ZedCamera::startCamera()
   RCLCPP_INFO_STREAM(get_logger(), " * Camera Model  -> " << sl::toString(mCamRealModel).c_str());
   mCamSerialNumber = camInfo.serial_number;
   RCLCPP_INFO_STREAM(get_logger(), " * Serial Number -> " << mCamSerialNumber);
-  RCLCPP_INFO_STREAM(get_logger(), " * Focal Lenght -> " << camInfo.camera_configuration.calibration_parameters.left_cam.focal_length_metric << " m");
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Focal Lenght -> " << camInfo.camera_configuration.calibration_parameters.left_cam.focal_length_metric <<
+      " m");
 
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -8750,7 +8761,14 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
 
   // ----> Extract plane from clicked point
   sl::Plane plane;
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
   sl::ERROR_CODE err = mZed.findPlaneAtHit(sl::uint2(u, v), plane);
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  sl::PlaneDetectionParameters params;
+  params.max_distance_threshold = mPdMaxDistanceThreshold;
+  params.normal_similarity_threshold = mPdNormalSimilarityThreshold;
+  sl::ERROR_CODE err = mZed.findPlaneAtHit(sl::uint2(u, v), plane, params);
+#endif
   if (err != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN(
       get_logger(), "Error extracting plane at point [%.3f,%.3f,%.3f]: %s", X, Y, Z,

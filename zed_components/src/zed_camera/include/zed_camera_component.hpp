@@ -354,6 +354,11 @@ private:
   double mBodyTrkConfThresh = 50.0;
   int mBodyTrkMinKp = 10;
 
+  #if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  double mPdMaxDistanceThreshold = 0.15;
+  double mPdNormalSimilarityThreshold = 15.0;
+  #endif
+
   // TODO(Walter) remove QoS parameters, use instead the new ROS2 Humble QoS settings engine
 
   // QoS parameters

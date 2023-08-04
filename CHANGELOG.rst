@@ -4,7 +4,8 @@ LATEST CHANGES
 2023-08-04
 ----------
 - Add support for ZED SDK v4.0.6
-- New GNSS calibration parameters: `enable_reinitialization`, `enable_rolling_calibration`, `enable_translation_uncertainty_target`, `gnss_vio_reinit_threshold`, `target_translation_uncertainty`, `target_yaw_uncertainty`
+- Add new GNSS calibration parameters: `enable_reinitialization`, `enable_rolling_calibration`, `enable_translation_uncertainty_target`, `gnss_vio_reinit_threshold`, `target_translation_uncertainty`, `target_yaw_uncertainty`
+- Add new Plane Detection paramters: `pd_max_distance_threshold`, `pd_normal_similarity_threshold`
 
 v4.0.5
 ----------

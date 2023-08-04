@@ -3474,10 +3474,12 @@ bool ZedCamera::startCamera()
   RCLCPP_INFO_STREAM(get_logger(), " * Camera Model  -> " << sl::toString(mCamRealModel).c_str());
   mCamSerialNumber = camInfo.serial_number;
   RCLCPP_INFO_STREAM(get_logger(), " * Serial Number -> " << mCamSerialNumber);
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Focal Lenght -> " << camInfo.camera_configuration.calibration_parameters.left_cam.focal_length_metric <<
       " m");
+#endif
 
   RCLCPP_INFO_STREAM(
     get_logger(),

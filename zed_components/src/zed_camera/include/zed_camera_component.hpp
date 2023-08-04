@@ -307,7 +307,16 @@ private:
   bool mPublishPoseCov = true;
   bool mGnssFusionEnabled = false;
   std::string mGnssTopic = "/gps/fix";
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
   double mGnssInitDistance = 5.0;
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  bool mGnssEnableReinitialization = true;
+  bool mGnssEnableRollingCalibration = true;
+  bool mGnssEnableTranslationUncertaintyTarget = false;
+  double mGnssVioReinitThreshold = 5.0;
+  double mGnssTargetTranslationUncertainty = 10e-2;
+  double mGnssTargetYawUncertainty = 0.1;
+#endif
   bool mGnssZeroAltitude = false;
   bool mPublishUtmTf = true;
   bool mUtmAsParent = true;
@@ -617,9 +626,9 @@ private:
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusWorld;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusCamera;
 
-#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_MINOR_VERSION < 6)
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
   sl::POSITIONAL_TRACKING_STATE mGeoPoseStatus;
-#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_MINOR_VERSION >= 6)
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
   sl::GNSS_CALIBRATION_STATE mGeoPoseStatus;
 #endif
 

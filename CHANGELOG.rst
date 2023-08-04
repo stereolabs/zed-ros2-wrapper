@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2023-08-04
+----------
+- Add support for ZED SDK v4.0.6
+- New GNSS calibration parameters: `enable_reinitialization`, `enable_rolling_calibration`, `enable_translation_uncertainty_target`, `gnss_vio_reinit_threshold`, `target_translation_uncertainty`, `target_yaw_uncertainty`
+
 v4.0.5
 ----------
 - The parameter `general.pub_resolution` can now take only `NATIVE` and `CUSTOM` values. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission

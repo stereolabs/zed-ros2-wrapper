@@ -1411,9 +1411,7 @@ void ZedCamera::getGnssFusionParams()
   if (mGnssFusionEnabled) {
     getParam("gnss_fusion.gnss_frame", mGnssFrameId, mGnssFrameId, " * GNSS frame: ");
     getParam("gnss_fusion.gnss_fix_topic", mGnssTopic, mGnssTopic, " * GNSS topic name: ");
-    getParam(
-      "gnss_fusion.gnss_init_distance", mGnssInitDistance, mGnssInitDistance,
-      " * GNSS init. distance: ");
+    getParam("gnss_fusion.gnss_init_distance", mGnssInitDistance, mGnssInitDistance," * GNSS init. distance: ");
 
     getParam("gnss_fusion.gnss_zero_altitude", mGnssZeroAltitude, mGnssZeroAltitude);
     RCLCPP_INFO_STREAM(
@@ -4039,7 +4037,11 @@ bool ZedCamera::startPosTracking()
 
     sl::PositionalTrackingFusionParameters params;
     params.enable_GNSS_fusion = mGnssFusionEnabled;
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_MINOR_VERSION < 6)
     params.gnss_initialisation_distance = mGnssInitDistance;
+#else
+    params.gnss_calibration_parameters = gnss_par;
+#endif
     sl::FUSION_ERROR_CODE fus_err = mFusion.enablePositionalTracking(params);
 
     if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
@@ -6546,9 +6548,13 @@ void ZedCamera::processGeoPose()
   mGeoPoseStatus = mFusion.getGeoPose(mLastGeoPose);
 
   publishGeoPoseStatus();
-
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_MINOR_VERSION < 6)
   if (mGeoPoseStatus != sl::POSITIONAL_TRACKING_STATE::OK ||
     mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OK)
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_MINOR_VERSION >= 6)
+  if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED ||
+    mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OK)
+#endif
   {
     rclcpp::Clock steady_clock(RCL_STEADY_TIME);
     RCLCPP_DEBUG_THROTTLE(

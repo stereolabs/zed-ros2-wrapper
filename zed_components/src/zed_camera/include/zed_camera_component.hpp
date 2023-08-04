@@ -616,7 +616,13 @@ private:
   bool mPosTrackingReady = false;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusWorld;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusCamera;
+
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_MINOR_VERSION < 6)
   sl::POSITIONAL_TRACKING_STATE mGeoPoseStatus;
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_MINOR_VERSION >= 6)
+  sl::GNSS_CALIBRATION_STATE mGeoPoseStatus;
+#endif
+
   bool mResetOdom = false;
   bool mSpatialMappingRunning = false;
   bool mObjDetRunning = false;

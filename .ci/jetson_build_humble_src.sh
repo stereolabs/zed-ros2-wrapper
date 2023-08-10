@@ -61,6 +61,11 @@ cd ${WS_DIR}
 apt-get update -y || true && rosdep update
 rosdep install --from-paths src --ignore-src -r -y
 
+# TODO QUICK FIX THIS SHOUD BE REMOVED
+# TODO MOVE TO USING BUILT DOCKER IMAGE
+echo "${ttk} Bump Cython to 3.0.0"
+python3 -m pip install --upgrade pip
+
 echo "${ttk} Build the ZED ROS2 Package and the dependencies"
 cd ${WS_DIR}
 colcon build --cmake-args ' -DCMAKE_BUILD_TYPE=Release' ' -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs' ' -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"' ' --no-warn-unused-cli' --parallel-workers $(nproc)

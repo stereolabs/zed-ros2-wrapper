@@ -64,7 +64,7 @@ rosdep install --from-paths src --ignore-src -r -y
 # TODO QUICK FIX THIS SHOUD BE REMOVED
 # TODO MOVE TO USING BUILT DOCKER IMAGE
 echo "${ttk} Bump Cython to 3.0.0"
-python3 -m pip install --upgrade pip
+python3 -m pip install --upgrade cython
 
 echo "${ttk} Build the ZED ROS2 Package and the dependencies"
 cd ${WS_DIR}

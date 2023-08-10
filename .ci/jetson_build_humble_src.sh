@@ -35,7 +35,7 @@ wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz -O -
 DIAGNOSTICS_VERSION=3.0.0
 wget https://github.com/ros/diagnostics/archive/refs/tags/${DIAGNOSTICS_VERSION}.tar.gz -O - | tar -xvz && mv diagnostics-${DIAGNOSTICS_VERSION} diagnostics
 # lint
-AMENT_LINT_VERSION=0.12.4
+AMENT_LINT_VERSION=0.12.7
 wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}.tar.gz -O - | tar -xvz && mv ament_lint-${AMENT_LINT_VERSION} ament-lint
 # Geographic Info
 GEOGRAPHIC_INFO_VERSION=1.0.4
@@ -61,10 +61,6 @@ cd ${WS_DIR}
 apt-get update -y || true && rosdep update
 rosdep install --from-paths src --ignore-src -r -y
 
-# TODO QUICK FIX THIS SHOUD BE REMOVED
-# TODO MOVE TO USING BUILT DOCKER IMAGE
-echo "${ttk} Bump Cython to 3.0.0"
-python3 -m pip install --upgrade cython
 
 echo "${ttk} Build the ZED ROS2 Package and the dependencies"
 cd ${WS_DIR}

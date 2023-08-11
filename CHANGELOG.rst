@@ -1,27 +1,21 @@
 LATEST CHANGES
 ==============
 
-2023-08-02
+2023-08-04
+----------
+- Add support for ZED SDK v4.0.6
+- Add new GNSS calibration parameters: `enable_reinitialization`, `enable_rolling_calibration`, `enable_translation_uncertainty_target`, `gnss_vio_reinit_threshold`, `target_translation_uncertainty`, `target_yaw_uncertainty`
+- Add new Plane Detection paramters: `pd_max_distance_threshold`, `pd_normal_similarity_threshold`
+
+v4.0.5
 ----------
 - The parameter `general.pub_resolution` can now take only `NATIVE` and `CUSTOM` values. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
 - Add new parameter `general.pub_downscale_factor` to be used with the new option `CUSTOM` for the parameter `general.pub_resolution`
 - `ULTRA` is the new default value for `depth.depth_mode` (better performance for odometry and positional tracking)
 - Add resolution `HD1080` for ZED X
-
-2023-07-31
-----------
 - Fix issue with Body Tracking start/stop by service call. Now Body Tracking can be restarted multiple times
-
-2023-06-28
-----------
 - Fix depth grab performance by removing a [not required `PNG Write` call](https://github.com/stereolabs/zed-ros2-wrapper/pull/164). Thank you Esteban Zamora @ezamoraa 
-
-2023-06-15
-----------
 - Fix bug with `general.pub_resolution` value, not allowing to select the correct data publish resolution
-
-2023-05-22
-----------
 - Add new launch parameter `ros_params_override_path` to provide the path to a custom YAML file to override the parameters of the ZED Node without modifying the original files in the `zed_wrapper/config` folder. Thank you David Lu @MetroRobots
 
 v4.0.0

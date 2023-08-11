@@ -67,7 +67,7 @@ If you plan to use the AI module of the ZED SDK (Object Detection, Skeleton Trac
 
 This is easily done by using the following option:
 
-    -v /tmp/zed_ai/:/usr/local/zed/resources/
+    -v ${HOME}/zed_docker_ai/:/usr/local/zed/resources/
 
 The first time you use the AI model inside the Docker image, it will be downloaded and optimized in the local bound-mounted folder, and stored there for the next runs.
 
@@ -86,7 +86,7 @@ The following command starts an interactive BaSH session:
 ```bash
 docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e DISPLAY \
   -v /dev/shm:/dev/shm -v /tmp/.X11-unix/:/tmp/.X11-unix \
-  -v /tmp/zed_ai/:/usr/local/zed/resources/ \
+  -v ${HOME}/zed_docker_ai/:/usr/local/zed/resources/ \
   <image_tag>
 ```
 
@@ -96,6 +96,6 @@ For ZED X and ZED X Mini
 docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e DISPLAY \
   -v /dev/shm:/dev/shm \
   -v /tmp/:/tmp/ -v /var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/ \
-  -v /tmp/zed_ai/:/usr/local/zed/resources/ \
+  -v ${HOME}/zed_docker_ai/:/usr/local/zed/resources/ \
   <image_tag>
 ```

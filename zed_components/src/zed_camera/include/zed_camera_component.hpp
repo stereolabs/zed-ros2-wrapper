@@ -307,7 +307,16 @@ private:
   bool mPublishPoseCov = true;
   bool mGnssFusionEnabled = false;
   std::string mGnssTopic = "/gps/fix";
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
   double mGnssInitDistance = 5.0;
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  bool mGnssEnableReinitialization = true;
+  bool mGnssEnableRollingCalibration = true;
+  bool mGnssEnableTranslationUncertaintyTarget = false;
+  double mGnssVioReinitThreshold = 5.0;
+  double mGnssTargetTranslationUncertainty = 10e-2;
+  double mGnssTargetYawUncertainty = 0.1;
+#endif
   bool mGnssZeroAltitude = false;
   bool mPublishUtmTf = true;
   bool mUtmAsParent = true;
@@ -344,6 +353,11 @@ private:
   double mBodyTrkPredTimeout = 0.5;
   double mBodyTrkConfThresh = 50.0;
   int mBodyTrkMinKp = 10;
+
+  #if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  double mPdMaxDistanceThreshold = 0.15;
+  double mPdNormalSimilarityThreshold = 15.0;
+  #endif
 
   // TODO(Walter) remove QoS parameters, use instead the new ROS2 Humble QoS settings engine
 
@@ -616,7 +630,13 @@ private:
   bool mPosTrackingReady = false;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusWorld;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusCamera;
+
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
   sl::POSITIONAL_TRACKING_STATE mGeoPoseStatus;
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  sl::GNSS_CALIBRATION_STATE mGeoPoseStatus;
+#endif
+
   bool mResetOdom = false;
   bool mSpatialMappingRunning = false;
   bool mObjDetRunning = false;

@@ -77,6 +77,8 @@ RUN apt-get update -y || true && rosdep update && \
   rosdep install --from-paths src --ignore-src -r -y && \
   rm -rf /var/lib/apt/lists/*
 
+RUN python3 -m pip install --upgrade cython
+
 # Build the dependencies and the ZED ROS2 Wrapper
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/install/setup.bash && \
   colcon build --parallel-workers $(nproc) --symlink-install \

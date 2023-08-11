@@ -1142,6 +1142,14 @@ void ZedCamera::getMappingParams()
 
   getParam(
     "mapping.clicked_point_topic", mClickedPtTopic, mClickedPtTopic, " * Clicked point topic: ");
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  getParam(
+    "mapping.pd_max_distance_threshold", mPdMaxDistanceThreshold, mPdMaxDistanceThreshold,
+    " * Plane Det. Max Dist. Thresh.: ");
+  getParam(
+    "mapping.pd_normal_similarity_threshold", mPdNormalSimilarityThreshold,
+    mPdNormalSimilarityThreshold, " * Plane Det. Normals Sim. Thresh.: ");
+#endif
   // ------------------------------------------
 
   paramName = "mapping.qos_history";
@@ -1411,9 +1419,41 @@ void ZedCamera::getGnssFusionParams()
   if (mGnssFusionEnabled) {
     getParam("gnss_fusion.gnss_frame", mGnssFrameId, mGnssFrameId, " * GNSS frame: ");
     getParam("gnss_fusion.gnss_fix_topic", mGnssTopic, mGnssTopic, " * GNSS topic name: ");
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
     getParam(
       "gnss_fusion.gnss_init_distance", mGnssInitDistance, mGnssInitDistance,
       " * GNSS init. distance: ");
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+    getParam(
+      "gnss_fusion.enable_reinitialization", mGnssEnableReinitialization,
+      mGnssEnableReinitialization);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * GNSS Reinitialization: " << (mGnssEnableReinitialization ? "TRUE" : "FALSE"));
+    getParam(
+      "gnss_fusion.enable_rolling_calibration", mGnssEnableRollingCalibration,
+      mGnssEnableRollingCalibration);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * GNSS Rolling Calibration: " << (mGnssEnableRollingCalibration ? "TRUE" : "FALSE"));
+    getParam(
+      "gnss_fusion.enable_translation_uncertainty_target", mGnssEnableTranslationUncertaintyTarget,
+      mGnssEnableTranslationUncertaintyTarget);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * GNSS Transl. Uncert. Target: " <<
+        (mGnssEnableTranslationUncertaintyTarget ? "TRUE" : "FALSE"));
+    getParam(
+      "gnss_fusion.gnss_vio_reinit_threshold", mGnssVioReinitThreshold, mGnssVioReinitThreshold,
+      " * GNSS VIO Reinit. Thresh.: ");
+    getParam(
+      "gnss_fusion.target_translation_uncertainty", mGnssTargetTranslationUncertainty,
+      mGnssTargetTranslationUncertainty,
+      " * GNSS Target Transl. Uncert.: ");
+    getParam(
+      "gnss_fusion.target_yaw_uncertainty", mGnssTargetYawUncertainty, mGnssTargetYawUncertainty,
+      " * GNSS Target Yaw Uncert.: ");
+#endif
 
     getParam("gnss_fusion.gnss_zero_altitude", mGnssZeroAltitude, mGnssZeroAltitude);
     RCLCPP_INFO_STREAM(
@@ -3434,6 +3474,12 @@ bool ZedCamera::startCamera()
   RCLCPP_INFO_STREAM(get_logger(), " * Camera Model  -> " << sl::toString(mCamRealModel).c_str());
   mCamSerialNumber = camInfo.serial_number;
   RCLCPP_INFO_STREAM(get_logger(), " * Serial Number -> " << mCamSerialNumber);
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Focal Lenght -> " << camInfo.camera_configuration.calibration_parameters.left_cam.focal_length_metric <<
+      " m");
+#endif
 
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -4039,7 +4085,19 @@ bool ZedCamera::startPosTracking()
 
     sl::PositionalTrackingFusionParameters params;
     params.enable_GNSS_fusion = mGnssFusionEnabled;
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
     params.gnss_initialisation_distance = mGnssInitDistance;
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+    sl::GNSSCalibrationParameters gnss_par;
+    gnss_par.enable_reinitialization = mGnssEnableReinitialization;
+    gnss_par.enable_rolling_calibration = mGnssEnableRollingCalibration;
+    gnss_par.enable_translation_uncertainty_target = mGnssEnableTranslationUncertaintyTarget;
+    gnss_par.gnss_vio_reinit_threshold = mGnssVioReinitThreshold;
+    gnss_par.target_translation_uncertainty = mGnssTargetTranslationUncertainty;
+    gnss_par.target_yaw_uncertainty = mGnssTargetYawUncertainty;
+
+    params.gnss_calibration_parameters = gnss_par;
+#endif
     sl::FUSION_ERROR_CODE fus_err = mFusion.enablePositionalTracking(params);
 
     if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
@@ -6420,8 +6478,13 @@ void ZedCamera::publishGnssPoseStatus()
   if (statusSub > 0) {
     poseStatusMsgPtr msg = std::make_unique<zed_interfaces::msg::PosTrackStatus>();
 
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
     if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
       mGeoPoseStatus == sl::POSITIONAL_TRACKING_STATE::OK)
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+    if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
+      mGeoPoseStatus == sl::GNSS_CALIBRATION_STATE::CALIBRATED)
+#endif
     {
       msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::OK);
     } else {
@@ -6447,8 +6510,13 @@ void ZedCamera::publishGeoPoseStatus()
   if (statusSub > 0) {
     poseStatusMsgPtr msg = std::make_unique<zed_interfaces::msg::PosTrackStatus>();
 
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
     if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
       mGeoPoseStatus == sl::POSITIONAL_TRACKING_STATE::OK)
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+    if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
+      mGeoPoseStatus == sl::GNSS_CALIBRATION_STATE::CALIBRATED)
+#endif
     {
       msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::OK);
     } else {
@@ -6546,9 +6614,13 @@ void ZedCamera::processGeoPose()
   mGeoPoseStatus = mFusion.getGeoPose(mLastGeoPose);
 
   publishGeoPoseStatus();
-
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
   if (mGeoPoseStatus != sl::POSITIONAL_TRACKING_STATE::OK ||
     mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OK)
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED ||
+    mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OK)
+#endif
   {
     rclcpp::Clock steady_clock(RCL_STEADY_TIME);
     RCLCPP_DEBUG_THROTTLE(
@@ -8691,7 +8763,14 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
 
   // ----> Extract plane from clicked point
   sl::Plane plane;
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
   sl::ERROR_CODE err = mZed.findPlaneAtHit(sl::uint2(u, v), plane);
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  sl::PlaneDetectionParameters params;
+  params.max_distance_threshold = mPdMaxDistanceThreshold;
+  params.normal_similarity_threshold = mPdNormalSimilarityThreshold;
+  sl::ERROR_CODE err = mZed.findPlaneAtHit(sl::uint2(u, v), plane, params);
+#endif
   if (err != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN(
       get_logger(), "Error extracting plane at point [%.3f,%.3f,%.3f]: %s", X, Y, Z,
@@ -9015,7 +9094,11 @@ void ZedCamera::callback_toLL(
     return;
   }
 
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
   if (mGeoPoseStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED) {
+#endif
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");
     return;
   }
@@ -9054,7 +9137,11 @@ void ZedCamera::callback_fromLL(
     return;
   }
 
+#if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
   if (mGeoPoseStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
+#elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
+  if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED) {
+#endif
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");
     return;
   }

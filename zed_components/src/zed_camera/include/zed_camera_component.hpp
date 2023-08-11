@@ -472,9 +472,13 @@ private:
 
   // ----> TF Transforms Flags
   bool mSensor2BaseTransfValid = false;
+  bool mSensor2BaseTransfFirstError = true;
   bool mSensor2CameraTransfValid = false;
+  bool mSensor2CameraTransfFirstError = true;
   bool mCamera2BaseTransfValid = false;
+  bool mCamera2BaseTransfFirstError = true;
   bool mGnss2BaseTransfValid = false;
+  bool mGnss2BaseTransfFirstError = true;
   bool mMap2UtmTransfValid = false;
 
   std::atomic_uint16_t mAiInstanceID;
@@ -571,6 +575,11 @@ private:
 
   float mMinDepth = 0.0f;
   float mMaxDepth = 0.0f;
+
+  uint64_t mLastTs_gnssNsec;
+
+  int mHitPtId;
+  int mPlaneMeshId;
   // <---- Publisher variables
 
   // ----> Point cloud variables
@@ -693,6 +702,33 @@ private:
   bool mBaroPublishing = false;
   bool mObjDetSubscribed = false;
   bool mBodyTrkSubscribed = false;
+
+  sl_tools::StopWatch mImuTfFreqTimer;
+  sl_tools::StopWatch mGrabFreqTimer;
+  sl_tools::StopWatch mImuFreqTimer;
+  sl_tools::StopWatch mBaroFreqTimer;
+  sl_tools::StopWatch mMagFreqTimer;
+  sl_tools::StopWatch mOdomFreqTimer;
+  sl_tools::StopWatch mPoseFreqTimer;
+  sl_tools::StopWatch mPcPubFreqTimer;
+  sl_tools::StopWatch mVdPubFreqTimer;
+  sl_tools::StopWatch mSensPubFreqTimer;
+  sl_tools::StopWatch mOdFreqTimer;
+  sl_tools::StopWatch mBtFreqTimer;
+  sl_tools::StopWatch mPcFreqTimer;
+  sl_tools::StopWatch mGnssFixFreqTimer;
+
+  rclcpp::Time mLastTs_imu;
+  rclcpp::Time mLastTs_baro;
+  rclcpp::Time mLastTs_mag;
+  rclcpp::Time mLastTs_odom;
+  rclcpp::Time mLastTs_poseTf;
+  rclcpp::Time mLastTs_pc;
+  rclcpp::Time mLastTs_fusedPc;
+
+  sl::Timestamp mLastTs_sdkGrab;  // Used to calculate stable publish frequency
+
+  int mDiagnosticOverloadCount;
 
   diagnostic_updater::Updater mDiagUpdater;  // Diagnostic Updater
 

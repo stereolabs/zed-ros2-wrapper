@@ -61,6 +61,11 @@ cd ${WS_DIR}
 apt-get update -y || true && rosdep update
 rosdep install --from-paths src --ignore-src -r -y
 
+# force install cython to make sure all pacakges are clean
+python3 -m pip install --force-reinstall cython
+#make sure the installed version is the latest
+echo "${ttk} check installed cython version"
+pip freeze | grep cython
 
 echo "${ttk} Build the ZED ROS2 Package and the dependencies"
 cd ${WS_DIR}

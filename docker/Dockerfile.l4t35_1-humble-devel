@@ -69,13 +69,14 @@ RUN wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz 
   git clone https://github.com/ros-drivers/nmea_msgs.git --branch ros2 && \  
   git clone https://github.com/ros/angles.git --branch humble-devel
 
-  
-
 # Check that all the dependencies are satisfied
 WORKDIR /root/ros2_ws
 RUN apt-get update -y || true && rosdep update && \
   rosdep install --from-paths src --ignore-src -r -y && \
   rm -rf /var/lib/apt/lists/*
+
+# Install cython
+RUN python3 -m pip install --upgrade cython
 
 # Build the dependencies and the ZED ROS2 Wrapper
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/install/setup.bash && \

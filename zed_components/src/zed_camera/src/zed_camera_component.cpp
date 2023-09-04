@@ -16,6 +16,7 @@
 #include <type_traits>
 #include <vector>
 #include <limits>
+#include <sys/resource.h>
 
 #include "zed_camera_component.hpp"
 #include "sl_logging.hpp"
@@ -391,6 +392,8 @@ void ZedCamera::initParameters()
     mObjDetEnabled = false;
     mBodyTrkEnabled = false;
   }
+
+  getAdvancedParams();
 }
 
 std::string ZedCamera::parseRoiPoly(
@@ -500,9 +503,12 @@ void ZedCamera::getDebugParams()
     get_logger(), " * Debug Body Tracking: %s",
     mDebugBodyTrk ? "TRUE" : "FALSE");
 
+  getParam("debug.debug_advanced", mDebugAdvanced, mDebugAdvanced);
+  RCLCPP_INFO(get_logger(), " * Debug Advanced: %s", mDebugAdvanced ? "TRUE" : "FALSE");
+
   mDebugMode = mDebugCommon || mDebugVideoDepth || mDebugCamCtrl || mDebugPointCloud ||
     mDebugPosTracking || mDebugGnss || mDebugSensors || mDebugMapping ||
-    mDebugObjectDet || mDebugBodyTrk;
+    mDebugObjectDet || mDebugBodyTrk || mDebugAdvanced;
 
   if (mDebugMode) {
     rcutils_ret_t res =
@@ -1863,6 +1869,41 @@ void ZedCamera::getBodyTrkParams()
   RCLCPP_INFO(
     get_logger(), " * Body Track. QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
 
+}
+
+void ZedCamera::getAdvancedParams()
+{
+  rclcpp::Parameter paramVal;
+  std::string paramName;
+
+  rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
+  read_only_descriptor.read_only = true;
+
+  RCLCPP_INFO(get_logger(), "*** Advanced parameters ***");
+
+  getParam(
+    "advanced.thread_sched_policy", mThreadSchedPolicy, mThreadSchedPolicy,
+    " * Thread sched. policy: ");
+
+  if (mThreadSchedPolicy == "SCHED_FIFO" || mThreadSchedPolicy == "SCHED_RR") {
+    if (!sl_tools::checkRoot()) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "'sudo' permissions required to set " << mThreadSchedPolicy <<
+          " thread scheduling policy. Using Linux default.");
+      mThreadSchedPolicy = "SCHED_OTHER";
+    } else {
+      getParam(
+        "advanced.thread_grab_priority", mThreadPrioGrab, mThreadPrioGrab,
+        " * Grab thread priority: ");
+      getParam(
+        "advanced.thread_sensor_priority", mThreadPrioSens, mThreadPrioSens,
+        " * Sensors thread priority: ");
+      getParam(
+        "advanced.thread_pointcloud_priority", mThreadPrioPointCloud, mThreadPrioPointCloud,
+        " * Point Cloud thread priority: ");
+    }
+  }
 }
 
 rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
@@ -3851,24 +3892,6 @@ bool ZedCamera::startCamera()
   mGnssFix_sec = std::make_unique<sl_tools::WinAvg>(10);
   // <---- Initialize Diagnostic statistics
 
-  // ----> Start Pointcloud thread
-  if (!mDepthDisabled) {
-    mPcDataReady = false;
-    // DEBUG_STREAM_PC( "on_activate -> mPcDataReady FALSE")
-    mPcThread = std::thread(&ZedCamera::threadFunc_pointcloudElab, this);
-  }
-  // <---- Start Pointcloud thread
-
-  // ----> Start Sensors thread if not sync
-  if (!mSvoMode && !mSensCameraSync && !sl_tools::isZED(mCamRealModel)) {
-    mSensThread = std::thread(&ZedCamera::threadFunc_pubSensorsData, this);
-  }
-  // <---- Start Sensors thread if not sync
-
-  // Start positional tracking
-  //startPosTracking();
-  //mZed.grab();
-
   if (mGnssFusionEnabled) {
     DEBUG_GNSS("Initialize Fusion module");
     // ----> Initialize Fusion module
@@ -3931,19 +3954,37 @@ bool ZedCamera::startCamera()
     // <---- Initialize Fusion module
   }
 
-  // Start grab thread
-  mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
-
-  // Start data publishing timer
-  //mVideoDepthThread = std::thread(&ZedCamera::threadFunc_pubVideoDepth, this);
-
-  // Start CMOS Temperatures thread
-  if (!mSimEnabled && !sl_tools::isZED(mCamRealModel) && !sl_tools::isZEDM(mCamRealModel)) {
-    startTempPubTimer();
-  }
+  // Init and start threads
+  initThreads();
 
   return true;
 }  // namespace stereolabs
+
+void ZedCamera::initThreads()
+{
+  // ----> Start CMOS Temperatures thread
+  if (!mSimEnabled && !sl_tools::isZED(mCamRealModel) && !sl_tools::isZEDM(mCamRealModel)) {
+    startTempPubTimer();
+  }
+  // <---- Start CMOS Temperatures thread
+
+  // ----> Start Sensors thread if not sync
+  if (!mSvoMode && !mSensCameraSync && !sl_tools::isZED(mCamRealModel)) {
+    mSensThread = std::thread(&ZedCamera::threadFunc_pubSensorsData, this);
+  }
+  // <---- Start Sensors thread if not sync
+
+  // ----> Start Pointcloud thread
+  if (!mDepthDisabled) {
+    mPcDataReady = false;
+    // DEBUG_STREAM_PC( "on_activate -> mPcDataReady FALSE")
+    mPcThread = std::thread(&ZedCamera::threadFunc_pointcloudElab, this);
+  }
+  // <---- Start Pointcloud thread
+
+  // Start grab thread
+  mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
+}
 
 void ZedCamera::startTempPubTimer()
 {
@@ -4874,6 +4915,75 @@ void ZedCamera::threadFunc_zedGrab()
 {
   DEBUG_STREAM_COMM("Grab thread started");
 
+  // ----> Advanced thread settings
+  DEBUG_STREAM_ADV("Grab thread settings");
+  if (mDebugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno) );
+    } else {
+      DEBUG_STREAM_ADV(
+        " * Default GRAB thread (#" << pthread_self() << ") settings - Policy: " <<
+          sl_tools::threadSched2Str(policy).c_str() << " - Priority: " <<
+          par.sched_priority);
+    }
+  }
+
+  if (mThreadSchedPolicy == "SCHED_OTHER") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_BATCH") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_BATCH, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_FIFO") {
+    sched_param par;
+    par.sched_priority = mThreadPrioGrab;
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_RR") {
+    sched_param par;
+    par.sched_priority = mThreadPrioGrab;
+    if (pthread_setschedparam(pthread_self(), SCHED_RR, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else {
+    RCLCPP_WARN_STREAM(get_logger(), " ! Failed to set thread params! - Policy not supported");
+  }
+
+  if (mDebugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno) );
+    } else {
+      DEBUG_STREAM_ADV(
+        " * New GRAB thread (#" << pthread_self() << ") settings - Policy: " <<
+          sl_tools::threadSched2Str(policy).c_str() << " - Priority: " <<
+          par.sched_priority);
+    }
+  }
+  // <---- Advanced thread settings
+
   mFrameCount = 0;
 
   // ----> Grab Runtime parameters
@@ -5095,9 +5205,6 @@ void ZedCamera::threadFunc_zedGrab()
           }
         }
 
-        // // Signal Pointcloud thread that a new pointcloud is ready
-        // mVideoDepthDataReadyCondVar.notify_one();
-        // mVideoDepthDataReady = true;
         mVdPublishing = true;
       }
     } else {
@@ -5614,6 +5721,76 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
 void ZedCamera::threadFunc_pointcloudElab()
 {
   DEBUG_STREAM_PC("Point Cloud thread started");
+
+  // ----> Advanced thread settings
+  DEBUG_STREAM_ADV("Point Cloud thread settings");
+  if (mDebugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno) );
+    } else {
+      DEBUG_STREAM_ADV(
+        " * Default Point Cloud thread (#" << pthread_self() << ") settings - Policy: " <<
+          sl_tools::threadSched2Str(policy).c_str() << " - Priority: " <<
+          par.sched_priority);
+    }
+  }
+
+  if (mThreadSchedPolicy == "SCHED_OTHER") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_BATCH") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_BATCH, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_FIFO") {
+    sched_param par;
+    par.sched_priority = mThreadPrioPointCloud;
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_RR") {
+    sched_param par;
+    par.sched_priority = mThreadPrioPointCloud;
+    if (pthread_setschedparam(pthread_self(), SCHED_RR, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else {
+    RCLCPP_WARN_STREAM(get_logger(), " ! Failed to set thread params! - Policy not supported");
+  }
+
+  if (mDebugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno) );
+    } else {
+      DEBUG_STREAM_ADV(
+        " * New Point Cloud thread (#" << pthread_self() << ") settings - Policy: " <<
+          sl_tools::threadSched2Str(policy).c_str() << " - Priority: " <<
+          par.sched_priority);
+    }
+  }
+  // <---- Advanced thread settings
+
   mPcDataReady = false;
 
   std::unique_lock<std::mutex> lock(mPcMutex);
@@ -5676,67 +5853,78 @@ void ZedCamera::threadFunc_pointcloudElab()
   DEBUG_STREAM_PC("Pointcloud thread finished");
 }
 
-void ZedCamera::threadFunc_pubVideoDepth()
-{
-  DEBUG_STREAM_VD("Video Depth thread started");
-  mVideoDepthDataReady = false;
-
-  std::unique_lock<std::mutex> lock(mVideoDepthMutex);
-
-  while (1) {
-    if (!rclcpp::ok()) {
-      DEBUG_STREAM_VD("Ctrl+C received: stopping video depth thread");
-      break;
-    }
-
-    // DEBUG_STREAM_VD( "threadFunc_pubVideoDepth -> mVideoDepthDataReady value:
-    // %s", mVideoDepthDataReady ? "TRUE" : "FALSE");
-
-    while (!mVideoDepthDataReady) {  // loop to avoid spurious wakeups
-      if (
-        mVideoDepthDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) ==
-        std::cv_status::timeout)
-      {
-        // Check thread stopping
-        if (!rclcpp::ok()) {
-          DEBUG_STREAM_VD("Ctrl+C received: stopping video depth thread");
-          mThreadStop = true;
-          break;
-        }
-        if (mThreadStop) {
-          DEBUG_STREAM_VD("threadFunc_pubVideoDepth (2): video depth thread stopped");
-          break;
-        } else {
-          // DEBUG_STREAM_VD( "threadFunc_pubVideoDepth -> WAIT FOR DATA");
-          continue;
-        }
-      }
-    }
-
-    if (mThreadStop) {
-      DEBUG_STREAM_VD("threadFunc_pubVideoDepth (1): video depth thread stopped");
-      break;
-    }
-
-    rclcpp::Time pub_ts;
-    publishVideoDepth(pub_ts);
-
-    if (!sl_tools::isZED(mCamRealModel) && mVdPublishing && pub_ts != TIMEZERO_ROS) {
-      if (mSensCameraSync || mSvoMode) {
-        publishSensorsData(pub_ts);
-      }
-    }
-
-    mVideoDepthDataReady = false;
-    // DEBUG_STREAM_VD( "threadFunc_pubVideoDepth -> mVideoDepthDataReady FALSE")
-  }
-
-  DEBUG_STREAM_VD("Pointcloud thread finished");
-}
-
 void ZedCamera::threadFunc_pubSensorsData()
 {
   DEBUG_STREAM_SENS("Sensors thread started");
+
+  // ----> Advanced thread settings
+  DEBUG_STREAM_ADV("Sensors thread settings");
+  if (mDebugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno) );
+    } else {
+      DEBUG_STREAM_ADV(
+        " * Default Sensors thread (#" << pthread_self() << ") settings - Policy: " <<
+          sl_tools::threadSched2Str(policy).c_str() << " - Priority: " <<
+          par.sched_priority);
+    }
+  }
+
+  if (mThreadSchedPolicy == "SCHED_OTHER") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_BATCH") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_BATCH, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_FIFO") {
+    sched_param par;
+    par.sched_priority = mThreadPrioSens;
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else if (mThreadSchedPolicy == "SCHED_RR") {
+    sched_param par;
+    par.sched_priority = mThreadPrioSens;
+    if (pthread_setschedparam(pthread_self(), SCHED_RR, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to set thread params! - " << std::strerror(errno) );
+    }
+  } else {
+    RCLCPP_WARN_STREAM(get_logger(), " ! Failed to set thread params! - Policy not supported");
+  }
+
+  if (mDebugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno) );
+    } else {
+      DEBUG_STREAM_ADV(
+        " * New Sensors thread (#" << pthread_self() << ") settings - Policy: " <<
+          sl_tools::threadSched2Str(policy).c_str() << " - Priority: " <<
+          par.sched_priority);
+    }
+  }
+  // <---- Advanced thread settings
 
   while (1) {
     if (!rclcpp::ok()) {
@@ -8366,10 +8554,11 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
     if (mVdPublishing) {
       freq = 1. / mVideoDepthPeriodMean_sec->getAvg();
       freq_perc = 100. * freq / mPubFrameRate;
+      double frame_grab_period = 1. / mPubFrameRate;
       stat.addf("Video/Depth", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
       stat.addf(
         "Video/Depth", "Processing Time: %.6f sec (Max. %.3f sec)",
-        mVideoDepthElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
+        mVideoDepthElabMean_sec->getAvg(), 1. / frame_grab_period);
     } else {
       stat.add("Video/Depth", "Topics not subscribed");
     }
@@ -8464,10 +8653,11 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
         if (mObjDetSubscribed) {
           double freq = 1. / mObjDetPeriodMean_sec->getAvg();
           double freq_perc = 100. * freq / mPubFrameRate;
+          double frame_grab_period = 1. / mPubFrameRate;
           stat.addf("Object detection", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc);
           stat.addf(
             "Object detection", "Processing Time: %.3f sec (Max. %.3f sec)",
-            mObjDetElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
+            mObjDetElabMean_sec->getAvg(), 1. / frame_grab_period);
         } else {
           stat.add("Object Detection", "Active, topic not subscribed");
         }
@@ -8479,10 +8669,11 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
         if (mBodyTrkSubscribed) {
           double freq = 1. / mBodyTrkPeriodMean_sec->getAvg();
           double freq_perc = 100. * freq / mPubFrameRate;
+          double frame_grab_period = 1. / mPubFrameRate;
           stat.addf("Body Tracking", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc);
           stat.addf(
             "Body Tracking", "Processing Time: %.3f sec (Max. %.3f sec)",
-            mBodyTrkElabMean_sec->getAvg(), 1. / mCamGrabFrameRate);
+            mBodyTrkElabMean_sec->getAvg(), 1. / frame_grab_period);
         } else {
           stat.add("Body Tracking", "Active, topic not subscribed");
         }

@@ -39,6 +39,7 @@ protected:
   // ----> Initialization functions
   void initParameters();
   void initServices();
+  void initThreads();
 
   void getDebugParams();
   void getSimParams();
@@ -51,6 +52,7 @@ protected:
   void getMappingParams();
   void getOdParams();
   void getBodyTrkParams();
+  void getAdvancedParams();
 
   void setTFCoordFrameNames();
   void initPublishers();
@@ -73,7 +75,6 @@ protected:
   // <---- Initialization functions
 
   // ----> Callbacks
-  void threadFunc_pubVideoDepth();
   void callback_pubFusedPc();
   void callback_pubPaths();
   void callback_pubTemp();
@@ -252,6 +253,7 @@ private:
   bool mDebugMapping = false;
   bool mDebugObjectDet = false;
   bool mDebugBodyTrk = false;
+  bool mDebugAdvanced = false;
 
   int mCamId = 0;
   int mCamSerialNumber = 0;
@@ -372,6 +374,11 @@ private:
   rclcpp::QoS mBodyTrkQos;
   rclcpp::QoS mClickedPtQos;
   rclcpp::QoS mGnssFixQos;
+
+  std::string mThreadSchedPolicy;
+  int mThreadPrioGrab;
+  int mThreadPrioSens;
+  int mThreadPrioPointCloud;
   // <---- Parameter variables
 
   // ----> Dynamic params
@@ -608,10 +615,8 @@ private:
   std::mutex mMappingMutex;
   std::mutex mObjDetMutex;
   std::mutex mBodyTrkMutex;
-  std::condition_variable mVideoDepthDataReadyCondVar;
   std::condition_variable mPcDataReadyCondVar;
   std::atomic_bool mPcDataReady;
-  std::atomic_bool mVideoDepthDataReady;
   // <---- Thread Sync
 
   // ----> Status Flags
@@ -666,7 +671,7 @@ private:
   bool mGnssInitGood = false;
   // <---- Positional Tracking
 
-  // Diagnostic
+  // ----> Diagnostic
   float mTempImu = NOT_VALID_TEMP;
   float mTempLeft = NOT_VALID_TEMP;
   float mTempRight = NOT_VALID_TEMP;
@@ -695,6 +700,7 @@ private:
   bool mBodyTrkSubscribed = false;
 
   diagnostic_updater::Updater mDiagUpdater;  // Diagnostic Updater
+  // <---- Diagnostic
 
   // ----> Timestamps
   rclcpp::Time mFrameTimestamp;

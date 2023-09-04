@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2023-09-03
+----------
+- New Video/Depth processing throttling method by using the `grab_compute_capping_fps` ZED SDK parameter instead of a dedicated thread
+- Advanced parameters to handle Thread scheduling policy and priorities (sudo required):`thread_sched_policy`,`thread_grab_priority`,`thread_sensor_priority`,`thread_pointcloud_priority`
+
 2023-08-04
 ----------
 - Add support for ZED SDK v4.0.6

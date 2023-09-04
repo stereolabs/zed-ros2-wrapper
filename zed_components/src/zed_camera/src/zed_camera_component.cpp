@@ -1890,7 +1890,7 @@ void ZedCamera::getAdvancedParams()
       RCLCPP_WARN_STREAM(
         get_logger(),
         "'sudo' permissions required to set " << mThreadSchedPolicy <<
-          " thread scheduling policy. Using Linux default.");
+          " thread scheduling policy. Using Linux default [SCHED_OTHER]");
       mThreadSchedPolicy = "SCHED_OTHER";
     } else {
       getParam(

@@ -1258,6 +1258,24 @@ void ZedCamera::getPosTrackingParams()
   RCLCPP_INFO_STREAM(
     get_logger(), " * Positional tracking enabled: " << (mPosTrackingEnabled ? "TRUE" : "FALSE"));
 
+  std::string pos_trk_mode;
+  getParam("pos_tracking.pos_tracking_mode", pos_trk_mode, pos_trk_mode);
+  if (pos_trk_mode == "QUALITY") {
+    mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
+  } else if (pos_trk_mode == "STANDARD") {
+    mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::STANDARD;
+  } else {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "'pos_tracking.pos_tracking_mode' not valid ('" << pos_trk_mode <<
+        "'). Using default value.");
+    mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::QUALITY;
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Positional tracking mode: " << sl::toString(
+      mPosTrkMode).c_str());
+
+
   getParam("pos_tracking.base_frame", mBaseFrameId, mBaseFrameId, " * Base frame id: ");
   getParam("pos_tracking.map_frame", mMapFrameId, mMapFrameId, " * Map frame id: ");
   getParam("pos_tracking.odometry_frame", mOdomFrameId, mOdomFrameId, " * Odometry frame id: ");
@@ -4123,6 +4141,7 @@ bool ZedCamera::startPosTracking()
   trackParams.depth_min_range = mPosTrackDepthMinRange;
   trackParams.set_as_static = mSetAsStatic;
   trackParams.set_gravity_as_origin = mSetGravityAsOrigin;
+  trackParams.mode = mPosTrkMode;
 
   sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
 

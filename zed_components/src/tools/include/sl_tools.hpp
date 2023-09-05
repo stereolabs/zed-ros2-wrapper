@@ -118,6 +118,19 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi);
 std::vector<std::vector<float>> parseStringVector(
   const std::string & input, std::string & error_return);
 
+/*!
+ * @brief Convert thread policy to string
+ * @param thread_sched_policy
+ * @return policy string
+ */
+std::string threadSched2Str(int thread_sched_policy);
+
+/*!
+ * @brief check if root is available
+ * @return true if root
+ */
+bool checkRoot();
+
 /**
  * @brief Stop Timer used to measure time intervals
  *

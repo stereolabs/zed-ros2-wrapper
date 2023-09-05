@@ -17,7 +17,7 @@
             serial_number: 0 # usually overwritten by launch file
             pub_resolution: 'CUSTOM' # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
-            pub_frame_rate: 15.0 # [DYNAMIC] - frequency of publishing of visual images and depth images
+            pub_frame_rate: 15.0 # frequency of publishing of visual images and depth images
             gpu_id: -1
             region_of_interest: '[]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
             #region_of_interest: '[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
@@ -158,6 +158,14 @@
         use_sim_time: false # EXPERIMENTAL (only for development) - Set to true to enable SIMULATION mode # 
         sim_address: '192.168.1.90' # EXPERIMENTAL (only for development) - The local address of the machine running the simulator
 
+        advanced: # WARNING: do not modify unless you are confident of what you are doing
+        # Reference documentation: https://man7.org/linux/man-pages/man7/sched.7.html
+            thread_sched_policy: 'SCHED_BATCH' # 'SCHED_OTHER', 'SCHED_BATCH', 'SCHED_FIFO', 'SCHED_RR' - NOTE: 'SCHED_FIFO' and 'SCHED_RR' require 'sudo'
+            thread_grab_priority: 50 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
+            thread_sensor_priority: 70 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
+            thread_pointcloud_priority: 60 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
+            
+
         debug:
             debug_common: false
             debug_video_depth: false
@@ -170,3 +178,4 @@
             debug_terrain_mapping : false
             debug_object_detection : false
             debug_body_tracking : false
+            debug_advanced: false

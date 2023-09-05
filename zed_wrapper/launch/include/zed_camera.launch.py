@@ -78,6 +78,7 @@ def launch_setup(context, *args, **kwargs):
     publish_urdf = LaunchConfiguration('publish_urdf')
     publish_tf = LaunchConfiguration('publish_tf')
     publish_map_tf = LaunchConfiguration('publish_map_tf')
+    publish_imu_tf = LaunchConfiguration('publish_imu_tf')
     xacro_path = LaunchConfiguration('xacro_path')
 
     ros_params_override_path = LaunchConfiguration('ros_params_override_path')
@@ -150,7 +151,7 @@ def launch_setup(context, *args, **kwargs):
                 'general.serial_number': serial_number,
                 'pos_tracking.publish_tf': publish_tf,
                 'pos_tracking.publish_map_tf': publish_map_tf,
-                'pos_tracking.publish_imu_tf': publish_tf
+                'pos_tracking.publish_imu_tf': publish_imu_tf
             },
             ros_params_override_path,
         ]
@@ -201,6 +202,10 @@ def generate_launch_description():
                 'publish_map_tf',
                 default_value='true',
                 description='Enable publication of the `map -> odom` TF. Note: Ignored if `publish_tf` is False.'),
+            DeclareLaunchArgument(
+                'publish_imu_tf',
+                default_value='true',
+                description='Enable publication of the IMU TF. Note: Ignored if `publish_tf` is False.'),
             DeclareLaunchArgument(
                 'xacro_path',
                 default_value=TextSubstitution(text=default_xacro_path),

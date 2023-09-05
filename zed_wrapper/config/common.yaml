@@ -57,7 +57,7 @@
 
         pos_tracking:
             pos_tracking_enabled: true # True to enable positional tracking from start
-            pos_tracking_mode: 'QUALITY' # Matches the ZED SDK setting: 'QUALITY', 'STANDARD'
+            pos_tracking_mode: 'STANDARD' # Matches the ZED SDK setting: 'QUALITY', 'STANDARD'
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [usually overwritten by launch file] publish `odom -> base_link` TF
             publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF

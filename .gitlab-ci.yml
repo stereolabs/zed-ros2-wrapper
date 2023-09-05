@@ -293,8 +293,8 @@ ros2_humble_u22_docker_image_dev:
     - rm -r ./tmp_sources
   when: on_success
   tags: *linux_docker_builder_target_definition
-  #except:
-  #  - master
+  except:
+    - master
   allow_failure: true
 
 # ROS2 Humble U22 Docker Image RELEASE - clone the Github master branch to build the wrapper
@@ -337,8 +337,8 @@ ros2_humble_l4t_docker_image_dev:
     - rm -r ./tmp_sources
   when: on_success
   tags: *linux_docker_builder_qemu_target_definition
-  #except:
-  #  - master
+  except:
+    - master
   allow_failure: true
 
 #########################

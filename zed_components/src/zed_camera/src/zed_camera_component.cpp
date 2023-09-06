@@ -1284,13 +1284,14 @@ void ZedCamera::getPosTrackingParams()
   RCLCPP_INFO_STREAM(get_logger(), " * Broadcast Odometry TF: " << (mPublishTF ? "TRUE" : "FALSE"));
   if (mPublishTF) {
     getParam("pos_tracking.publish_map_tf", mPublishMapTF, mPublishMapTF);
-    RCLCPP_INFO_STREAM(
-      get_logger(), " * Broadcast Pose TF: " << (mPublishMapTF ? "TRUE" : "FALSE"));
-    getParam("pos_tracking.publish_imu_tf", mPublishImuTF, mPublishImuTF);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Broadcast Static IMU TF [not for ZED]: " << (mPublishImuTF ? "TRUE" : "FALSE"));
+  } else {
+    mPublishMapTF = false;
   }
+  RCLCPP_INFO_STREAM(get_logger(), " * Broadcast Pose TF: " << (mPublishMapTF ? "TRUE" : "FALSE"));
+  getParam("pos_tracking.publish_imu_tf", mPublishImuTF, mPublishImuTF);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Broadcast IMU TF [not for ZED]: " << (mPublishImuTF ? "TRUE" : "FALSE"));
 
   getParam(
     "pos_tracking.depth_min_range", mPosTrackDepthMinRange, mPosTrackDepthMinRange,
@@ -4919,7 +4920,6 @@ void ZedCamera::publishImuFrameAndTopic()
   transformStamped.transform.translation.z = sl_tr.z;
 
   mTfBroadcaster->sendTransform(transformStamped);
-
   // <---- Publish TF
 
   // IMU TF publishing diagnostic
@@ -8652,20 +8652,19 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
           } else {
             stat.add("TF Pose", "DISABLED");
           }
-
-          if (mPublishImuTF) {
-            double freq = 1. / mPubImuTF_sec->getAvg();
-            stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
-          } else {
-            stat.add("TF IMU", "DISABLED");
-          }
         } else {
           stat.add("TF Odometry", "DISABLED");
           stat.add("TF Pose", "DISABLED");
-          stat.add("TF IMU", "DISABLED");
         }
       } else {
         stat.add("Pos. Tracking status", "INACTIVE");
+      }
+
+      if (mPublishImuTF) {
+        double freq = 1. / mPubImuTF_sec->getAvg();
+        stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
+      } else {
+        stat.add("TF IMU", "DISABLED");
       }
 
       if (mObjDetRunning) {

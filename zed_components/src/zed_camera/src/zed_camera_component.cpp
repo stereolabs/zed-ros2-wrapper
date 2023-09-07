@@ -1049,6 +1049,11 @@ void ZedCamera::getSensorsParams()
     return;
   }
 
+  getParam("sensors.publish_imu_tf", mPublishImuTF, mPublishImuTF);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Broadcast IMU TF [not for ZED]: " << (mPublishImuTF ? "TRUE" : "FALSE"));
+
   getParam("sensors.sensors_image_sync", mSensCameraSync, mSensCameraSync);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Sensors Camera Sync: " << (mSensCameraSync ? "TRUE" : "FALSE"));
@@ -1288,10 +1293,6 @@ void ZedCamera::getPosTrackingParams()
     mPublishMapTF = false;
   }
   RCLCPP_INFO_STREAM(get_logger(), " * Broadcast Pose TF: " << (mPublishMapTF ? "TRUE" : "FALSE"));
-  getParam("pos_tracking.publish_imu_tf", mPublishImuTF, mPublishImuTF);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Broadcast IMU TF [not for ZED]: " << (mPublishImuTF ? "TRUE" : "FALSE"));
 
   getParam(
     "pos_tracking.depth_min_range", mPosTrackDepthMinRange, mPosTrackDepthMinRange,
@@ -8660,13 +8661,6 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
         stat.add("Pos. Tracking status", "INACTIVE");
       }
 
-      if (mPublishImuTF) {
-        double freq = 1. / mPubImuTF_sec->getAvg();
-        stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
-      } else {
-        stat.add("TF IMU", "DISABLED");
-      }
-
       if (mObjDetRunning) {
         if (mObjDetSubscribed) {
           double freq = 1. / mObjDetPeriodMean_sec->getAvg();
@@ -8700,6 +8694,13 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
       }
     } else {
       stat.add("Depth status", "INACTIVE");
+    }
+
+    if (mPublishImuTF) {
+      double freq = 1. / mPubImuTF_sec->getAvg();
+      stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
+    } else {
+      stat.add("TF IMU", "DISABLED");
     }
   } else {
     stat.summaryf(

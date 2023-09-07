@@ -288,9 +288,9 @@ private:
   double mSensPubRate = 400.;
   bool mPosTrackingEnabled = false;
 
-  bool mPublishTF = true;
-  bool mPublishMapTF = true;
-  bool mPublishImuTF = true;
+  bool mPublishTF = false;
+  bool mPublishMapTF = false;
+  bool mPublishImuTF = false;
   bool mPoseSmoothing = false;
   bool mAreaMemory = true;
   std::string mAreaMemoryDbPath = "";

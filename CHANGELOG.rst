@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2023-09-07
+----------
+- Move parameter `publish_imu_tf` from `pos_tracking` to `sensors` to make it available also in "no depth" configurations of the node
+
 2023-09-04
 ----------
 - Add new parameter `pos_tracking.pos_tracking_mode` to exploit the new ZED SDK `QUALITY` mode for improved odometry and localization

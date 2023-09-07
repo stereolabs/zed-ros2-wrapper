@@ -151,7 +151,7 @@ def launch_setup(context, *args, **kwargs):
                 'general.serial_number': serial_number,
                 'pos_tracking.publish_tf': publish_tf,
                 'pos_tracking.publish_map_tf': publish_map_tf,
-                'pos_tracking.publish_imu_tf': publish_imu_tf
+                'sensors.publish_imu_tf': publish_imu_tf
             },
             ros_params_override_path,
         ]

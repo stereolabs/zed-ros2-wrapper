@@ -480,9 +480,13 @@ private:
 
   // ----> TF Transforms Flags
   bool mSensor2BaseTransfValid = false;
+  bool mSensor2BaseTransfFirstErr = true;
   bool mSensor2CameraTransfValid = false;
+  bool mSensor2CameraTransfFirstErr = true;
   bool mCamera2BaseTransfValid = false;
+  bool mCamera2BaseFirstErr = true;
   bool mGnss2BaseTransfValid = false;
+  bool mGnss2BaseTransfFirstErr = true;
   bool mMap2UtmTransfValid = false;
 
   std::atomic_uint16_t mAiInstanceID;
@@ -699,11 +703,37 @@ private:
   bool mBodyTrkSubscribed = false;
 
   diagnostic_updater::Updater mDiagUpdater;  // Diagnostic Updater
+
+  sl_tools::StopWatch mImuTfFreqTimer;
+  sl_tools::StopWatch mGrabFreqTimer;
+  sl_tools::StopWatch mImuFreqTimer;
+  sl_tools::StopWatch mBaroFreqTimer;
+  sl_tools::StopWatch mMagFreqTimer;
+  sl_tools::StopWatch mOdomFreqTimer;
+  sl_tools::StopWatch mPoseFreqTimer;
+  sl_tools::StopWatch mPcPubFreqTimer;
+  sl_tools::StopWatch mVdPubFreqTimer;
+  sl_tools::StopWatch mSensPubFreqTimer;
+  sl_tools::StopWatch mOdFreqTimer;
+  sl_tools::StopWatch mBtFreqTimer;
+  sl_tools::StopWatch mPcFreqTimer;
+  sl_tools::StopWatch mGnssFixFreqTimer;
+
+  int mSysOverloadCount = 0;
   // <---- Diagnostic
 
   // ----> Timestamps
+  sl::Timestamp mLastTs_grab = 0;  // Used to calculate stable publish frequency
   rclcpp::Time mFrameTimestamp;
   rclcpp::Time mGnssTimestamp;
+  rclcpp::Time mLastTs_imu;
+  rclcpp::Time mLastTs_baro;
+  rclcpp::Time mLastTs_mag;
+  rclcpp::Time mLastTs_odom;
+  rclcpp::Time mLastTs_pose;
+  rclcpp::Time mLastTs_pc;
+  rclcpp::Time mPrevTs_pc;
+  uint64_t mLastTs_gnss_nsec = 0;
   // <---- Timestamps
 
   // ----> SVO Recording parameters

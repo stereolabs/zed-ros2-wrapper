@@ -607,15 +607,13 @@ private:
   // <---- Threads and Timers
 
   // ----> Thread Sync
-  // std::mutex mCloseZedMutex;
-  std::mutex mVideoDepthMutex;
-  std::mutex mPcMutex;
   std::mutex mRecMutex;
   std::mutex mPosTrkMutex;
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
   std::mutex mObjDetMutex;
   std::mutex mBodyTrkMutex;
+  std::mutex mPcMutex;
   std::condition_variable mPcDataReadyCondVar;
   std::atomic_bool mPcDataReady;
   // <---- Thread Sync

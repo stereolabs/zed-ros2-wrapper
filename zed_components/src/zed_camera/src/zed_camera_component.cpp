@@ -5207,26 +5207,19 @@ void ZedCamera::threadFunc_zedGrab()
     // ----> Retrieve Image/Depth data if someone has subscribed to
     // Retrieve data if there are subscriber to topics
     if (areVideoDepthSubscribed()) {
-      // Run the point cloud conversion asynchronously to avoid slowing down
-      // all the program
-      // Retrieve raw pointCloud data if latest Pointcloud is ready
-      std::unique_lock<std::mutex> vd_lock(mVideoDepthMutex, std::defer_lock);
+      DEBUG_STREAM_VD("Retrieving video/depth data");
+      retrieveVideoDepth();
 
-      if (vd_lock.try_lock()) {
-        DEBUG_STREAM_VD("Retrieving video/depth data");
-        retrieveVideoDepth();
+      rclcpp::Time pub_ts;
+      publishVideoDepth(pub_ts);
 
-        rclcpp::Time pub_ts;
-        publishVideoDepth(pub_ts);
-
-        if (!sl_tools::isZED(mCamRealModel) && mVdPublishing && pub_ts != TIMEZERO_ROS) {
-          if (mSensCameraSync || mSvoMode) {
-            publishSensorsData(pub_ts);
-          }
+      if (!sl_tools::isZED(mCamRealModel) && mVdPublishing && pub_ts != TIMEZERO_ROS) {
+        if (mSensCameraSync || mSvoMode) {
+          publishSensorsData(pub_ts);
         }
-
-        mVdPublishing = true;
       }
+
+      mVdPublishing = true;
     } else {
       mVdPublishing = false;
     }

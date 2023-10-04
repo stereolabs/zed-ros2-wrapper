@@ -6190,7 +6190,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   rclcpp::Time timeStamp;
   if (mSvoMode || mSimEnabled) {
-    timeStamp = sl_tools::slTime2Ros(ts_rgb);
+    timeStamp = mFrameTimestamp;
   } else {
     timeStamp = sl_tools::slTime2Ros(mSdkGrabTS, get_clock()->get_clock_type());
   }
@@ -6199,30 +6199,30 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // ----> Publish the left=rgb image if someone has subscribed to
   if (mLeftSubnumber > 0) {
-    publishImageWithInfo(mMatLeft, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, timeStamp);
+    publishImageWithInfo(mMatLeft, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, out_pub_ts);
   }
   if (mRgbSubnumber > 0) {
-    publishImageWithInfo(mMatLeft, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, timeStamp);
+    publishImageWithInfo(mMatLeft, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, out_pub_ts);
   }
   // <---- Publish the left=rgb image if someone has subscribed to
 
   // ----> Publish the left_raw=rgb_raw image if someone has subscribed to
   if (mLeftRawSubnumber > 0) {
     publishImageWithInfo(
-      mMatLeftRaw, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
+      mMatLeftRaw, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, out_pub_ts);
   }
   if (mRgbRawSubnumber > 0) {
-    publishImageWithInfo(mMatLeftRaw, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId, timeStamp);
+    publishImageWithInfo(mMatLeftRaw, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId, out_pub_ts);
   }
   // <---- Publish the left_raw=rgb_raw image if someone has subscribed to
 
   // ----> Publish the left_gray=rgb_gray image if someone has subscribed to
   if (mLeftGraySubnumber > 0) {
     publishImageWithInfo(
-      mMatLeftGray, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId, timeStamp);
+      mMatLeftGray, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId, out_pub_ts);
   }
   if (mRgbGraySubnumber > 0) {
-    publishImageWithInfo(mMatLeftGray, mPubRgbGray, mRgbCamInfoMsg, mDepthOptFrameId, timeStamp);
+    publishImageWithInfo(mMatLeftGray, mPubRgbGray, mRgbCamInfoMsg, mDepthOptFrameId, out_pub_ts);
   }
   // <---- Publish the left_raw=rgb_raw image if someone has subscribed to
 
@@ -6230,45 +6230,45 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // subscribed to
   if (mLeftGrayRawSubnumber > 0) {
     publishImageWithInfo(
-      mMatLeftRawGray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, timeStamp);
+      mMatLeftRawGray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, out_pub_ts);
   }
   if (mRgbGrayRawSubnumber > 0) {
     publishImageWithInfo(
-      mMatLeftRawGray, mPubRawRgbGray, mRgbCamInfoRawMsg, mDepthOptFrameId, timeStamp);
+      mMatLeftRawGray, mPubRawRgbGray, mRgbCamInfoRawMsg, mDepthOptFrameId, out_pub_ts);
   }
   // ----> Publish the left_raw_gray=rgb_raw_gray image if someone has
   // subscribed to
 
   // ----> Publish the right image if someone has subscribed to
   if (mRightSubnumber > 0) {
-    publishImageWithInfo(mMatRight, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, timeStamp);
+    publishImageWithInfo(mMatRight, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, out_pub_ts);
   }
   // <---- Publish the right image if someone has subscribed to
 
   // ----> Publish the right raw image if someone has subscribed to
   if (mRightRawSubnumber > 0) {
     publishImageWithInfo(
-      mMatRightRaw, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, timeStamp);
+      mMatRightRaw, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, out_pub_ts);
   }
   // <---- Publish the right raw image if someone has subscribed to
 
   // ----> Publish the right gray image if someone has subscribed to
   if (mRightGraySubnumber > 0) {
     publishImageWithInfo(
-      mMatRightGray, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, timeStamp);
+      mMatRightGray, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, out_pub_ts);
   }
   // <---- Publish the right gray image if someone has subscribed to
 
   // ----> Publish the right raw gray image if someone has subscribed to
   if (mRightGrayRawSubnumber > 0) {
     publishImageWithInfo(
-      mMatRightRawGray, mPubRawRightGray, mRightCamInfoRawMsg, mRightCamOptFrameId, timeStamp);
+      mMatRightRawGray, mPubRawRightGray, mRightCamInfoRawMsg, mRightCamOptFrameId, out_pub_ts);
   }
   // <---- Publish the right raw gray image if someone has subscribed to
 
   // ----> Publish the side-by-side image if someone has subscribed to
   if (mStereoSubnumber > 0) {
-    auto combined = sl_tools::imagesToROSmsg(mMatLeft, mMatRight, mCameraFrameId, timeStamp);
+    auto combined = sl_tools::imagesToROSmsg(mMatLeft, mMatRight, mCameraFrameId, out_pub_ts);
     DEBUG_STREAM_VD("Publishing SIDE-BY-SIDE message");
     mPubStereo.publish(std::move(combined));
   }
@@ -6277,7 +6277,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // ----> Publish the side-by-side image if someone has subscribed to
   if (mStereoRawSubnumber > 0) {
     auto combined =
-      sl_tools::imagesToROSmsg(mMatLeftRaw, mMatRightRaw, mCameraFrameId, timeStamp);
+      sl_tools::imagesToROSmsg(mMatLeftRaw, mMatRightRaw, mCameraFrameId, out_pub_ts);
     DEBUG_STREAM_VD("Publishing SIDE-BY-SIDE RAW message");
     mPubRawStereo.publish(std::move(combined));
   }
@@ -6285,20 +6285,20 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // ---->  Publish the depth image if someone has subscribed to
   if (mDepthSubnumber > 0) {
-    publishDepthMapWithInfo(mMatDepth, timeStamp);
+    publishDepthMapWithInfo(mMatDepth, out_pub_ts);
   }
   // <----  Publish the depth image if someone has subscribed to
 
   // ---->  Publish the confidence image and map if someone has subscribed to
   if (mConfMapSubnumber > 0) {
     DEBUG_STREAM_VD("Publishing CONF MAP message");
-    mPubConfMap->publish(*sl_tools::imageToROSmsg(mMatConf, mDepthOptFrameId, timeStamp));
+    mPubConfMap->publish(*sl_tools::imageToROSmsg(mMatConf, mDepthOptFrameId, out_pub_ts));
   }
   // <----  Publish the confidence image and map if someone has subscribed to
 
   // ----> Publish the disparity image if someone has subscribed to
   if (mDisparitySubnumber > 0) {
-    publishDisparity(mMatDisp, timeStamp);
+    publishDisparity(mMatDisp, out_pub_ts);
   }
   // <---- Publish the disparity image if someone has subscribed to
 
@@ -6337,7 +6337,7 @@ void ZedCamera::publishImageWithInfo(
 {
   auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
   camInfoMsg->header.stamp = t;
-  DEBUG_STREAM_VD("Publishing IMAGE message");
+  DEBUG_STREAM_VD("Publishing IMAGE message: " << t.nanoseconds() << " nsec");
   pubImg.publish(std::move(image), camInfoMsg);
 }
 
@@ -7714,7 +7714,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 
   if (!mOpenniDepthMode) {
     auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t);
-    DEBUG_STREAM_VD("Publishing DEPTH message");
+    DEBUG_STREAM_VD("Publishing DEPTH message: " << t.nanoseconds() << " nsec");
     mPubDepth.publish(std::move(depth_img), mDepthCamInfoMsg);
     return;
   }

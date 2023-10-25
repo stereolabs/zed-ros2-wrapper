@@ -4,7 +4,7 @@ FROM ${IMAGE_NAME}
 
 ARG ZED_SDK_MAJOR=4
 ARG ZED_SDK_MINOR=0
-ARG ZED_SDK_PATCH=5
+ARG ZED_SDK_PATCH=7
 ARG JETPACK_MAJOR=5
 ARG JETPACK_MINOR=0
 ARG L4T_MAJOR=35
@@ -18,11 +18,10 @@ ARG DIAGNOSTICS_VERSION=3.0.0
 ARG AMENT_LINT_VERSION=0.12.4
 ARG GEOGRAPHIC_INFO_VERSION=1.0.4
 ARG ROBOT_LOCALIZATION_VERSION=3.4.2
-
 ENV DEBIAN_FRONTEND noninteractive
 
 # Disable apt-get warnings
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 42D5A192B819C5DA && \
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 42D5A192B819C5DA || true && \
   apt-get update || true && apt-get install -y --no-install-recommends apt-utils dialog && \
   rm -rf /var/lib/apt/lists/*
   
@@ -65,7 +64,6 @@ RUN wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz 
   git clone https://github.com/ros-drivers/nmea_msgs.git --branch ros2 && \  
   git clone https://github.com/ros/angles.git --branch humble-devel
 
-
 # Check that all the dependencies are satisfied
 WORKDIR /root/ros2_ws
 RUN apt-get update -y || true && rosdep update && \
@@ -77,7 +75,7 @@ RUN python3 -m pip install --upgrade cython
 
 # Build the dependencies and the ZED ROS2 Wrapper
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/install/setup.bash && \
-  colcon build --parallel-workers $(nproc) --symlink-install \
+  colcon build --parallel-workers $(nproc) \
   --event-handlers console_direct+ --base-paths src \
   --cmake-args ' -DCMAKE_BUILD_TYPE=Release' \
   ' -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs' \
@@ -92,5 +90,4 @@ RUN sudo chmod 755 /sbin/ros_entrypoint.sh
 
 ENTRYPOINT ["/sbin/ros_entrypoint.sh"]
 CMD ["bash"]
-
 

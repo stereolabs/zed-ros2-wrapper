@@ -89,7 +89,7 @@ def launch_setup(context, *args, **kwargs):
     camera_model_val = camera_model.perform(context)
 
     if (camera_name_val == ""):
-        camera_name_val = camera_model_val
+        camera_name_val = "zed_camera"
 
     config_camera_path = os.path.join(
         get_package_share_directory('zed_wrapper'),
@@ -173,7 +173,7 @@ def generate_launch_description():
                 description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`. Leave empty to use the camera model as camera name.'),
             DeclareLaunchArgument(
                 'camera_model',
-                description='The model of the camera. Using a wrong camera model can disable camera features. Valid models: `zed`, `zedm`, `zed2`, `zed2i`.'),
+                description='The model of the camera. Using a wrong camera model can disable camera features. Valid models: `zed`, `zedm`, `zed2`, `zed2i`, `zedx`, `zedxm`.'),
             DeclareLaunchArgument(
                 'node_name',
                 default_value='zed_node',

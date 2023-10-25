@@ -68,33 +68,33 @@ By setting the right camera model, the ZED node will run using the camera model 
 **Note:** You can set your own configurations modifying the parameters in the files **common.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, and **zedxm.yaml** available in the folder `zed_wrapper/config`.
 For full descriptions of each parameter, follow the complete guide [here](https://www.stereolabs.com/docs/ros2/zed_node#configuration-parameters).
 
-### Rviz visualization
+## Rviz visualization
 
+You can check that your data is correctly retrieved in rviz with `rviz2 -d ./zed_wrapper/config/rviz2/generic_zed.rviz`.
 
-Example launch files to start a pre-configured Rviz environment to visualize the data of `ZED`, `ZED Mini`, `ZED2`, `ZED2i`, `ZED-X`, and `ZED-X Mini` cameras are provided in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
+To start a pre-configured Rviz environment and visualize the data of all ZED cameras, we provide in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2). You'll see there more advanced examples and visualisation that demonstrate depth, point clouds, odometry, object detection, etc.
     
+## More features
 ### SVO recording
 [SVO recording](https://www.stereolabs.com/docs/video/recording/) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.
 [More information](https://www.stereolabs.com/docs/ros2/zed_node/#services)
 
 ### Object Detection
-The SDK v3.0 introduced the Object Detection and Tracking module. **The Object Detection module is not available for the ZED Camera**. 
-
 The Object Detection can be enabled *automatically* when the node start by setting the parameter `object_detection/od_enabled` to `true` in the file `common.yaml`.
-
 The Object Detection can be enabled/disabled *manually* by calling the services `enable_obj_det`.
 
-### Body Tracking
-The SDK v4.0 introduced the Body Tracking module (now separated from the Object Detection module). **The Body Tracking module is not available for the ZED Camera**. 
 
+### Body Tracking
 The Body Tracking can be enabled *automatically* when the node start by setting the parameter `body_tracking/bt_enabled` to `true` in the file `common.yaml`.
+
+*The Object Detection module is not available on the very first generation of ZED cameras.*
 
 ### Spatial Mapping
 The Spatial Mapping can be enabled automatically when the node start setting the parameter `mapping/mapping_enabled` to `true` in the file `common.yaml`.
 The Spatial Mapping can be enabled/disabled manually calling the services `enable_mapping`.
 
 ### GNSS fusion
-The SDK v4.0 introduced GNSS fusion. The ZED ROS2 Wrapper can subscribe to a `NavSatFix` topic and fuse GNSS data information
+The ZED ROS2 Wrapper can subscribe to a `NavSatFix` topic and fuse GNSS data information
 with Positional Tracking information to obtain a precise robot localization referred to Earth coordinates.
 To enable GNSS fusion set the parameter `gnss_fusion.gnss_fusion_enabled` to `true`.
 It is important that you set the correct `gnss_frame` parameter when launching the node, e.g. `gnss_frame:='gnss_link'`.

@@ -30,12 +30,14 @@
 #include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 
-#ifdef FOUND_HUMBLE
+#ifdef FOUND_ROLLING
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-#elif defined FOUND_FOXY
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#else
-#error Unsupported ROS2 distro
+#elif defined FOUND_HUMBLE
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#elif defined FOUND_FOXY	
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>	
+#else	
+#error Unsupported ROS2 distro	
 #endif
 
 #include <sl/Camera.hpp>

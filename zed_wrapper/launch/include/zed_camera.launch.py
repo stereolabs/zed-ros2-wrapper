@@ -89,7 +89,7 @@ def launch_setup(context, *args, **kwargs):
     camera_model_val = camera_model.perform(context)
 
     if (camera_name_val == ""):
-        camera_name_val = "zed_camera"
+        camera_name_val = camera_model_val
 
     config_camera_path = os.path.join(
         get_package_share_directory('zed_wrapper'),

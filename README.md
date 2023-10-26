@@ -1,6 +1,14 @@
-![](./images/Picto+STEREOLABS_Black.jpg)
+<h1 align="center">
+   <img src="./images/Picto+STEREOLABS_Black.jpg" alt="Stereolabs" title="Stereolabs" /><br \>
+   ROS2 wrapper
+</h1>
 
-# Stereolabs ZED Camera - ROS2 Foxy Fitzroy (Ubuntu 20.04) - ROS2 Humble Hawksbill (Ubuntu 22.04)
+<p align="center">
+  ROS2 packages for using Stereolabs ZED Camera cameras.<br>
+  ROS2 Foxy Fitzroy (Ubuntu 20.04) - ROS2 Humble Hawksbill (Ubuntu 22.04)
+</p>
+
+<hr>
 
 This package lets you use the ZED stereo cameras with ROS2. It provides access to the following data:
 
@@ -36,7 +44,7 @@ The **zed_ros2_wrapper** is a [colcon](http://design.ros2.org/articles/build_too
 To install the **zed_ros2_wrapper**, open a bash terminal, clone the package from Github, and build it:
 
 ```bash
-mkdir -p ~/ros2_ws/src/ # in case it's not created yet
+mkdir -p ~/ros2_ws/src/ # create your workspace if it does not exist
 cd ~/ros2_ws/src/ #use your current ros2 workspace folder
 git clone  --recursive https://github.com/stereolabs/zed-ros2-wrapper.git
 cd ..
@@ -58,22 +66,47 @@ source ~/.bashrc
 
 To start the ZED node, open a bash terminal and use the [CLI](https://index.ros.org/doc/ros2/Tutorials/Introspection-with-command-line-tools/) command `ros2 launch`:
 
+ZED:
 ```bash
-# camera model can be zed, zed2, zed2i, zedm, zedx, zedxm
-ros2 launch zed_wrapper zed_camera.launch.py camera_model:='zed2i'
+ros2 launch zed_wrapper zed.launch.py
 ```
 
+ZED Mini:
+```bash
+ros2 launch zed_wrapper zedm.launch.py
+```
+
+ZED 2:
+```bash
+ros2 launch zed_wrapper zed2.launch.py
+```
+
+ZED 2i:
+```bash
+ros2 launch zed_wrapper zed2i.launch.py
+```
+
+ZED X:
+```bash
+ros2 launch zed_wrapper zedx.launch.py
+```
+
+ZED X Mini:
+```bash
+ros2 launch zed_wrapper zedxm.launch.py
+```
 By setting the right camera model, the ZED node will run using the camera model from the correct "URDF file". 
 
-**Note:** You can set your own configurations modifying the parameters in the files **common.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, and **zedxm.yaml** available in the folder `zed_wrapper/config`.
+**Note:** You can set your own configurations modifying the parameters in the `yaml` files available in the folder `zed_wrapper/config`.
 For full descriptions of each parameter, follow the complete guide [here](https://www.stereolabs.com/docs/ros2/zed_node#configuration-parameters).
 
 ## Rviz visualization
-
-You can check that your data is correctly retrieved in rviz with `rviz2 -d ./zed_wrapper/config/rviz2/generic_zed.rviz`.
-
 To start a pre-configured Rviz environment and visualize the data of all ZED cameras, we provide in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2). You'll see there more advanced examples and visualisation that demonstrate depth, point clouds, odometry, object detection, etc.
     
+
+You can also quickly check that your depth data is correctly retrieved in rviz with `rviz2 -d ./zed_wrapper/config/rviz2/<your camera model>.rviz`. Be aware that rviz subscribes to numerous ROS topics, which can potentially impact the performance of your application compared to when it runs without rviz.
+
+
 ## More features
 ### SVO recording
 [SVO recording](https://www.stereolabs.com/docs/video/recording/) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.

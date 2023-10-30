@@ -48,6 +48,7 @@ mkdir -p ~/ros2_ws/src/ # create your workspace if it does not exist
 cd ~/ros2_ws/src/ #use your current ros2 workspace folder
 git clone  --recursive https://github.com/stereolabs/zed-ros2-wrapper.git
 cd ..
+sudo apt update
 rosdep install --from-paths src --ignore-src -r -y # install dependencies
 colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc) # build the workspace
 echo source $(pwd)/install/local_setup.bash >> ~/.bashrc # automatically source the installation in every new bash (optional)

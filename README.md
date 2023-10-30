@@ -101,37 +101,13 @@ $ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --paral
 
 To start the ZED node, open a terminal and use the [CLI](https://index.ros.org/doc/ros2/Tutorials/Introspection-with-command-line-tools/) command `ros2 launch`:
 
-ZED:
 ```bash
-$ ros2 launch zed_wrapper zed.launch.py
+$ ros2 launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>
 ```
 
-ZED Mini:
-```bash
-$ ros2 launch zed_wrapper zedm.launch.py
-```
+Please replace `<camera_model>` with the model of the camera that you are using: `'zed'`, `'zedm'`, `'zed2'`, `'zed2i'`, `'zedx'`, `'zedxm'`.
 
-ZED 2:
-```bash
-$ ros2 launch zed_wrapper zed2.launch.py
-```
-
-ZED 2i:
-```bash
-$ ros2 launch zed_wrapper zed2i.launch.py
-```
-
-ZED X:
-```bash
-$ ros2 launch zed_wrapper zedx.launch.py
-```
-
-ZED X Mini:
-```bash
-$ ros2 launch zed_wrapper zedxm.launch.py
-```
-
-The `zed.launch.py`, `zedm.launch.py`, `zed2.launch.py`, `zed2i.launch.py`, `zedx.launch.py`, and `zedxm.launch.py` are Python launch scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/), loading the parameters from the correct "YAML files" and creating the camera model from the correct "URDF file".
+The `zed_camera.launch.py` is a Python launch scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/), loading the parameters from the correct "YAML files" and creating the camera model from the correct "URDF file".
 
 **Note:** You can set your own configurations modifying the parameters in the files **common.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, and **zedxm.yaml** available in the folder `zed_wrapper/config`.
 For full descriptions of each parameter, follow the complete guide [here](https://www.stereolabs.com/docs/ros2/zed_node#configuration-parameters).

@@ -30,9 +30,6 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node
 
-# Set LOG format
-
-
 # ZED Configurations to be loaded by ZED Node
 default_config_common = os.path.join(
     get_package_share_directory('zed_wrapper'),
@@ -72,9 +69,6 @@ def launch_setup(context, *args, **kwargs):
     zed_id = LaunchConfiguration('zed_id')
     serial_number = LaunchConfiguration('serial_number')
 
-    base_frame = LaunchConfiguration('base_frame')
-    cam_pose = LaunchConfiguration('cam_pose')
-
     publish_urdf = LaunchConfiguration('publish_urdf')
     publish_tf = LaunchConfiguration('publish_tf')
     publish_map_tf = LaunchConfiguration('publish_map_tf')
@@ -89,17 +83,13 @@ def launch_setup(context, *args, **kwargs):
     camera_model_val = camera_model.perform(context)
 
     if (camera_name_val == ""):
-        camera_name_val = camera_model_val
+        camera_name_val = 'zed'
 
     config_camera_path = os.path.join(
         get_package_share_directory('zed_wrapper'),
         'config',
         camera_model_val + '.yaml'
     )
-
-    # Convert 'cam_pose' parameter
-    cam_pose_str = cam_pose.perform(context)
-    cam_pose_array = parse_array_param(cam_pose_str)
 
     # Robot State Publisher node
     rsp_node = Node(
@@ -114,15 +104,7 @@ def launch_setup(context, *args, **kwargs):
                 [
                     'xacro', ' ', xacro_path, ' ',
                     'camera_name:=', camera_name_val, ' ',
-                    'camera_model:=', camera_model_val, ' ',
-                    'base_frame:=', base_frame, ' ',
-                    'gnss_frame:=', gnss_frame, ' ',
-                    'cam_pos_x:=', cam_pose_array[0], ' ',
-                    'cam_pos_y:=', cam_pose_array[1], ' ',
-                    'cam_pos_z:=', cam_pose_array[2], ' ',
-                    'cam_roll:=', cam_pose_array[3], ' ',
-                    'cam_pitch:=', cam_pose_array[4], ' ',
-                    'cam_yaw:=', cam_pose_array[5]
+                    'camera_model:=', camera_model_val, ' '
                 ])
         }]
     )
@@ -146,7 +128,6 @@ def launch_setup(context, *args, **kwargs):
                 'general.camera_name': camera_name_val,
                 'general.camera_model': camera_model_val,
                 'general.svo_file': svo_path,
-                'pos_tracking.base_frame': base_frame,
                 'general.zed_id': zed_id,
                 'general.serial_number': serial_number,
                 'pos_tracking.publish_tf': publish_tf,
@@ -169,11 +150,12 @@ def generate_launch_description():
             SetEnvironmentVariable(name='RCUTILS_COLORIZED_OUTPUT', value='1'),
             DeclareLaunchArgument(
                 'camera_name',
-                default_value=TextSubstitution(text=""),
-                description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`. Leave empty to use the camera model as camera name.'),
+                default_value=TextSubstitution(text="zed"),
+                description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.'),
             DeclareLaunchArgument(
                 'camera_model',
-                description='The model of the camera. Using a wrong camera model can disable camera features. Valid models: `zed`, `zedm`, `zed2`, `zed2i`.'),
+                description='[REQUIRED] The model of the camera. Using a wrong camera model can disable camera features.',
+                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm']),
             DeclareLaunchArgument(
                 'node_name',
                 default_value='zed_node',
@@ -193,19 +175,23 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'publish_urdf',
                 default_value='true',
-                description='Enable URDF processing and starts Robot State Published to propagate static TF.'),
+                description='Enable URDF processing and starts Robot State Published to propagate static TF.',
+                choices=['true', 'false']),
             DeclareLaunchArgument(
                 'publish_tf',
                 default_value='true',
-                description='Enable publication of the `odom -> base_link` TF.'),
+                description='Enable publication of the `odom -> camera_link` TF.',
+                choices=['true', 'false']),
             DeclareLaunchArgument(
                 'publish_map_tf',
                 default_value='true',
-                description='Enable publication of the `map -> odom` TF. Note: Ignored if `publish_tf` is False.'),
+                description='Enable publication of the `map -> odom` TF. Note: Ignored if `publish_tf` is False.',
+                choices=['true', 'false']),
             DeclareLaunchArgument(
                 'publish_imu_tf',
                 default_value='true',
-                description='Enable publication of the IMU TF. Note: Ignored if `publish_tf` is False.'),
+                description='Enable publication of the IMU TF. Note: Ignored if `publish_tf` is False.',
+                choices=['true', 'false']),
             DeclareLaunchArgument(
                 'xacro_path',
                 default_value=TextSubstitution(text=default_xacro_path),
@@ -219,17 +205,9 @@ def generate_launch_description():
                 default_value=TextSubstitution(text="live"),
                 description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.'),
             DeclareLaunchArgument(
-                'base_frame',
-                default_value='base_link',
-                description='Name of the base link frame.'),
-            DeclareLaunchArgument(
                 'gnss_frame',
                 default_value='',
-                description='Name of the GNSS link frame. Leave empty if not used. Remember to set the transform `base_link` -> `gnss_frame` in the URDF file.'),
-            DeclareLaunchArgument(
-                'cam_pose',
-                default_value='[0.0,0.0,0.0,0.0,0.0,0.0]',
-                description='Pose of the camera with respect to the base frame (i.e. `base_link`): [x,y,z,r,p,y]. Note: Orientation in rad.)'),
+                description='Name of the GNSS link frame. Leave empty if not used. Remember to set the transform `camera_link` -> `gnss_frame` in the URDF file.'),            
             OpaqueFunction(function=launch_setup)
         ]
     )

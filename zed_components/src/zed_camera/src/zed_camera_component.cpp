@@ -1303,8 +1303,9 @@ void ZedCamera::getPosTrackingParams()
     get_logger(), " * Positional tracking mode: " << sl::toString(
       mPosTrkMode).c_str());
 
+  mBaseFrameId = mCameraName;
+  mBaseFrameId += "_camera_link";
 
-  getParam("pos_tracking.base_frame", mBaseFrameId, mBaseFrameId, " * Base frame id: ");
   getParam("pos_tracking.map_frame", mMapFrameId, mMapFrameId, " * Map frame id: ");
   getParam("pos_tracking.odometry_frame", mOdomFrameId, mOdomFrameId, " * Odometry frame id: ");
 
@@ -4576,10 +4577,10 @@ void ZedCamera::initTransforms()
 {
   // According to REP 105 -> http://www.ros.org/reps/rep-0105.html
 
-  // base_link <- odom <- map
-  //     ^                 |
-  //     |                 |
-  //     -------------------
+  // camera_link <- odom <- map
+  //     ^                   |
+  //     |                   |
+  //     ---------------------
 
   // ----> Dynamic transforms
   mOdom2BaseTransf.setIdentity();  // broadcasted if `publish_tf` is true

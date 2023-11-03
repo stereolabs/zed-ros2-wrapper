@@ -1,7 +1,12 @@
 LATEST CHANGES
 ==============
 
+2023-11-03
+----------
+- The multi-camera example has been updated to match the new TF configuration
+
 2023-10-30
+----------
 - The old launch files are now obsolete: 'ros2 launch zed_wrapper <camera_model>.launch.py' is replaced by 'ros2 
   launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>'
 - The reference link for positional tracking is no more 'base_link' but `<camera_name>_camera_link`. 

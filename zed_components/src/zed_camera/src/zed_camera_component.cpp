@@ -1303,8 +1303,9 @@ void ZedCamera::getPosTrackingParams()
     get_logger(), " * Positional tracking mode: " << sl::toString(
       mPosTrkMode).c_str());
 
+  mBaseFrameId = mCameraName;
+  mBaseFrameId += "_camera_link";
 
-  getParam("pos_tracking.base_frame", mBaseFrameId, mBaseFrameId, " * Base frame id: ");
   getParam("pos_tracking.map_frame", mMapFrameId, mMapFrameId, " * Map frame id: ");
   getParam("pos_tracking.odometry_frame", mOdomFrameId, mOdomFrameId, " * Odometry frame id: ");
 
@@ -3089,8 +3090,8 @@ void ZedCamera::initPublishers()
   std::string stereoTopicRoot = "stereo";
   std::string img_topic = "/image_rect_color";
   std::string img_raw_topic = "/image_raw_color";
-  std::string img_gray_topic = "/image_rect_gray";
-  std::string img_raw_gray_topic_ = "/image_raw_gray";
+  std::string img_gray_topic = "_gray/image_rect_gray";
+  std::string img_raw_gray_topic_ = "_gray/image_raw_gray";
   std::string raw_suffix = "_raw";
   std::string left_topic = mTopicRoot + leftTopicRoot + img_topic;
   std::string left_raw_topic = mTopicRoot + leftTopicRoot + raw_suffix + img_raw_topic;
@@ -3170,45 +3171,51 @@ void ZedCamera::initPublishers()
   mPubRgb =
     image_transport::create_camera_publisher(this, rgb_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getTopic());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
   mPubRgbGray =
     image_transport::create_camera_publisher(this, rgb_gray_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgbGray.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgbGray.getInfoTopic());
   mPubRawRgb =
     image_transport::create_camera_publisher(this, rgb_raw_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getTopic());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getInfoTopic());
   mPubRawRgbGray = image_transport::create_camera_publisher(
     this, rgb_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgbGray.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getInfoTopic());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgbGray.getInfoTopic());
   mPubLeft =
     image_transport::create_camera_publisher(this, left_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getTopic());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getInfoTopic());
   mPubLeftGray = image_transport::create_camera_publisher(
     this, left_gray_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeftGray.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getInfoTopic());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeftGray.getInfoTopic());
   mPubRawLeft =
     image_transport::create_camera_publisher(this, left_raw_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getTopic());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getInfoTopic());
   mPubRawLeftGray = image_transport::create_camera_publisher(
     this, left_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeftGray.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getInfoTopic());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeftGray.getInfoTopic());
   mPubRight =
     image_transport::create_camera_publisher(this, right_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getTopic());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getInfoTopic());
   mPubRightGray = image_transport::create_camera_publisher(
     this, right_gray_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRightGray.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getInfoTopic());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRightGray.getInfoTopic());
   mPubRawRight = image_transport::create_camera_publisher(
     this, right_raw_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getTopic());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getInfoTopic());
   mPubRawRightGray = image_transport::create_camera_publisher(
     this, right_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRightGray.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getInfoTopic());
+  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRightGray.getInfoTopic());
 
   if (!mDepthDisabled) {
     mPubDepth =
@@ -4576,10 +4583,10 @@ void ZedCamera::initTransforms()
 {
   // According to REP 105 -> http://www.ros.org/reps/rep-0105.html
 
-  // base_link <- odom <- map
-  //     ^                 |
-  //     |                 |
-  //     -------------------
+  // camera_link <- odom <- map
+  //     ^                   |
+  //     |                   |
+  //     ---------------------
 
   // ----> Dynamic transforms
   mOdom2BaseTransf.setIdentity();  // broadcasted if `publish_tf` is true
@@ -6199,29 +6206,36 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // ----> Publish the left=rgb image if someone has subscribed to
   if (mLeftSubnumber > 0) {
+    DEBUG_STREAM_VD("mLeftSubnumber: " << mLeftSubnumber);
     publishImageWithInfo(mMatLeft, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, out_pub_ts);
   }
+
   if (mRgbSubnumber > 0) {
+    DEBUG_STREAM_VD("mRgbSubnumber: " << mRgbSubnumber);
     publishImageWithInfo(mMatLeft, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, out_pub_ts);
   }
   // <---- Publish the left=rgb image if someone has subscribed to
 
   // ----> Publish the left_raw=rgb_raw image if someone has subscribed to
   if (mLeftRawSubnumber > 0) {
+    DEBUG_STREAM_VD("mLeftRawSubnumber: " << mLeftRawSubnumber);
     publishImageWithInfo(
       mMatLeftRaw, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, out_pub_ts);
   }
   if (mRgbRawSubnumber > 0) {
+    DEBUG_STREAM_VD("mRgbRawSubnumber: " << mRgbRawSubnumber);
     publishImageWithInfo(mMatLeftRaw, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId, out_pub_ts);
   }
   // <---- Publish the left_raw=rgb_raw image if someone has subscribed to
 
   // ----> Publish the left_gray=rgb_gray image if someone has subscribed to
   if (mLeftGraySubnumber > 0) {
+    DEBUG_STREAM_VD("mLeftGraySubnumber: " << mLeftGraySubnumber);
     publishImageWithInfo(
       mMatLeftGray, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId, out_pub_ts);
   }
   if (mRgbGraySubnumber > 0) {
+    DEBUG_STREAM_VD("mRgbGraySubnumber: " << mRgbGraySubnumber);
     publishImageWithInfo(mMatLeftGray, mPubRgbGray, mRgbCamInfoMsg, mDepthOptFrameId, out_pub_ts);
   }
   // <---- Publish the left_raw=rgb_raw image if someone has subscribed to
@@ -6229,10 +6243,12 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // ----> Publish the left_raw_gray=rgb_raw_gray image if someone has
   // subscribed to
   if (mLeftGrayRawSubnumber > 0) {
+    DEBUG_STREAM_VD("mLeftGrayRawSubnumber: " << mLeftGrayRawSubnumber);
     publishImageWithInfo(
       mMatLeftRawGray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, out_pub_ts);
   }
   if (mRgbGrayRawSubnumber > 0) {
+    DEBUG_STREAM_VD("mRgbGrayRawSubnumber: " << mRgbGrayRawSubnumber);
     publishImageWithInfo(
       mMatLeftRawGray, mPubRawRgbGray, mRgbCamInfoRawMsg, mDepthOptFrameId, out_pub_ts);
   }
@@ -6241,12 +6257,14 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // ----> Publish the right image if someone has subscribed to
   if (mRightSubnumber > 0) {
+    DEBUG_STREAM_VD("mRightSubnumber: " << mRightSubnumber);
     publishImageWithInfo(mMatRight, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, out_pub_ts);
   }
   // <---- Publish the right image if someone has subscribed to
 
   // ----> Publish the right raw image if someone has subscribed to
   if (mRightRawSubnumber > 0) {
+    DEBUG_STREAM_VD("mRightRawSubnumber: " << mRightRawSubnumber);
     publishImageWithInfo(
       mMatRightRaw, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, out_pub_ts);
   }
@@ -6254,6 +6272,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // ----> Publish the right gray image if someone has subscribed to
   if (mRightGraySubnumber > 0) {
+    DEBUG_STREAM_VD("mRightGraySubnumber: " << mRightGraySubnumber);
     publishImageWithInfo(
       mMatRightGray, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, out_pub_ts);
   }
@@ -6261,6 +6280,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // ----> Publish the right raw gray image if someone has subscribed to
   if (mRightGrayRawSubnumber > 0) {
+    DEBUG_STREAM_VD("mRightGrayRawSubnumber: " << mRightGrayRawSubnumber);
     publishImageWithInfo(
       mMatRightRawGray, mPubRawRightGray, mRightCamInfoRawMsg, mRightCamOptFrameId, out_pub_ts);
   }
@@ -6268,6 +6288,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // ----> Publish the side-by-side image if someone has subscribed to
   if (mStereoSubnumber > 0) {
+    DEBUG_STREAM_VD("mStereoSubnumber: " << mStereoSubnumber);
     auto combined = sl_tools::imagesToROSmsg(mMatLeft, mMatRight, mCameraFrameId, out_pub_ts);
     DEBUG_STREAM_VD("Publishing SIDE-BY-SIDE message");
     mPubStereo.publish(std::move(combined));
@@ -6276,6 +6297,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // ----> Publish the side-by-side image if someone has subscribed to
   if (mStereoRawSubnumber > 0) {
+    DEBUG_STREAM_VD("mStereoRawSubnumber: " << mStereoRawSubnumber);
     auto combined =
       sl_tools::imagesToROSmsg(mMatLeftRaw, mMatRightRaw, mCameraFrameId, out_pub_ts);
     DEBUG_STREAM_VD("Publishing SIDE-BY-SIDE RAW message");

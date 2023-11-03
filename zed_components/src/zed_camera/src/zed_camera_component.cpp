@@ -3088,8 +3088,8 @@ void ZedCamera::initPublishers()
   std::string leftTopicRoot = "left";
   std::string stereoTopicRoot = "stereo";
   std::string img_topic = "/image_rect_color";
-  std::string img_raw_topic = "/image_raw_color";
-  std::string img_gray_topic = "/image_rect_gray";
+  std::string img_raw_topic = "_gray/image_raw_color";
+  std::string img_gray_topic = "_gray/image_rect_gray";
   std::string img_raw_gray_topic_ = "/image_raw_gray";
   std::string raw_suffix = "_raw";
   std::string left_topic = mTopicRoot + leftTopicRoot + img_topic;

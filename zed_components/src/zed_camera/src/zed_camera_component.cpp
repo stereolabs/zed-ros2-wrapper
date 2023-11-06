@@ -8197,7 +8197,7 @@ void ZedCamera::callback_setPose(
 
   RCLCPP_INFO(get_logger(), "** Set Pose service called **");
 
-  if (!mGnssFusionEnabled) {
+  if (mGnssFusionEnabled) {
     RCLCPP_WARN(get_logger(), "Service call not valid: GNSS fusion is enabled.");
     res->message = "GNSS fusion is enabled";
     res->success = false;

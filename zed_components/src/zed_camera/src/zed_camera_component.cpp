@@ -5183,11 +5183,11 @@ void ZedCamera::threadFunc_zedGrab()
 
       // ----> Timestamp
       if (mSvoMode) {
-        mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+        mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
       } else if (mSimEnabled) {
         mFrameTimestamp = get_clock()->now(); // We must use the simulation time, not the SDK time
       } else {
-        mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+        mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
       }
       // <---- Timestamp
 

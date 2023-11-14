@@ -3291,12 +3291,14 @@ void ZedCamera::initPublishers()
   // <---- Pos Tracking
 
   // ----> Mapping
-  if (!mDepthDisabled && mMappingEnabled) {
-    mPubFusedCloud =
-      create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudFusedTopic, mMappingQos);
-    RCLCPP_INFO_STREAM(
-      get_logger(), "Advertised on topic " << mPubFusedCloud->get_topic_name() << " @ " <<
-        mFusedPcPubRate << " Hz");
+  if (!mDepthDisabled) {
+    if (mMappingEnabled) {
+      mPubFusedCloud =
+        create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudFusedTopic, mMappingQos);
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Advertised on topic " << mPubFusedCloud->get_topic_name() << " @ " <<
+          mFusedPcPubRate << " Hz");
+    }
 
     std::string marker_topic = "plane_marker";
     std::string plane_topic = "plane";
@@ -5173,7 +5175,8 @@ void ZedCamera::threadFunc_zedGrab()
         mFusionStatus = mFusion.process();
         // ----> Fusion errors?
         if (mFusionStatus != sl::FUSION_ERROR_CODE::SUCCESS &&
-            mFusionStatus != sl::FUSION_ERROR_CODE::NO_NEW_DATA_AVAILABLE) {
+          mFusionStatus != sl::FUSION_ERROR_CODE::NO_NEW_DATA_AVAILABLE)
+        {
           RCLCPP_ERROR_STREAM(
             get_logger(),
             "Fusion error: " << sl::toString(mFusionStatus).c_str());
@@ -8912,12 +8915,14 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
 
   if (mZed.isOpened() && mZed.isPositionalTrackingEnabled() ) {
     auto ingest_error = mFusion.ingestGNSSData(gnssData);
-    if (ingest_error == sl::FUSION_ERROR_CODE::SUCCESS){
-        DEBUG_STREAM_GNSS("Datum ingested - [" << mGnssTimestamp.nanoseconds() << " nsec] " << latit << "°," << longit << "° / " << altit << " m");
+    if (ingest_error == sl::FUSION_ERROR_CODE::SUCCESS) {
+      DEBUG_STREAM_GNSS(
+        "Datum ingested - [" << mGnssTimestamp.nanoseconds() << " nsec] " << latit << "°," << longit << "° / " << altit <<
+          " m");
     } else {
-    	RCLCPP_ERROR_STREAM(
-    	  get_logger(),
-          "Ingest error occurred when ingesting GNSSData: " << ingest_error);
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "Ingest error occurred when ingesting GNSSData: " << ingest_error);
     }
     mGnssFixNew = true;
   }
@@ -8997,11 +9002,13 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
   float c_x = zedParam.left_cam.cx;
   float c_y = zedParam.left_cam.cy;
 
-  float out_scale_factor = mMatResol.width / mCamWidth;
+  float out_scale_factor = static_cast<float>(mMatResol.width) / mCamWidth;
 
   float u = ((camX / camZ) * f_x + c_x) / out_scale_factor;
   float v = ((camY / camZ) * f_y + c_y) / out_scale_factor;
-  DEBUG_STREAM_MAP("Clicked point image coordinates: [" << u << "," << v << "]");
+  DEBUG_STREAM_MAP(
+    "Clicked point image coordinates: [" << u << "," << v << "] - out_scale_factor: " <<
+      out_scale_factor);
   // <---- Project the point into 2D image coordinates
 
   // ----> Extract plane from clicked point

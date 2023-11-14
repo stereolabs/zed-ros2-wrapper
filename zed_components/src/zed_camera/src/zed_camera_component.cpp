@@ -6474,6 +6474,9 @@ void ZedCamera::processOdometry()
 
 void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t)
 {
+  static tf2::Transform lastOdom2baseTransf;
+  static rclcpp::Time lastT;
+
   size_t odomSub = 0;
   size_t odomStatusSub = 0;
 
@@ -6482,7 +6485,7 @@ void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose,
     odomStatusSub = count_subscribers(mOdomStatusTopic); // mPubOdomStatus subscribers
   } catch (...) {
     rcutils_reset_error();
-    DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
+    DEBUG_STREAM_PT("publishOdom: Exception while counting subscribers");
     return;
   }
 
@@ -6501,6 +6504,27 @@ void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose,
     odomMsg->pose.pose.orientation.y = odom2baseTransf.getRotation().y();
     odomMsg->pose.pose.orientation.z = odom2baseTransf.getRotation().z();
     odomMsg->pose.pose.orientation.w = odom2baseTransf.getRotation().w();
+
+    // Calculate twist
+    try {
+      const double deltaT = (t - lastT).seconds();
+      fprintf(stderr, "deltaT %lf\n", deltaT);
+      // TODO: technically, I think we need to transform lastOdom into the current odom frame.
+      const auto deltaPosition = odom2baseTransf.getOrigin() - lastOdom2baseTransf.getOrigin();
+      odomMsg->twist.twist.linear.x = deltaPosition.x() / deltaT;
+      odomMsg->twist.twist.linear.y = deltaPosition.y() / deltaT;
+      odomMsg->twist.twist.linear.z = deltaPosition.z() / deltaT;
+      // See: https://mariogc.com/post/angular-velocity-quaternions/
+      const auto q1 = odom2baseTransf.getRotation();
+      const auto q0 = lastOdom2baseTransf.getRotation();
+      odomMsg->twist.twist.angular.x = 2 / deltaT * (q0.w() * q1.x() - q0.x() * q1.w() - q0.y() * q1.z() + q0.z() * q1.y());
+      odomMsg->twist.twist.angular.y = 2 / deltaT * (q0.w() * q1.y() + q0.x() * q1.z() - q0.y() * q1.w() - q0.z() * q1.x());
+      odomMsg->twist.twist.angular.z = 2 / deltaT * (q0.w() * q1.z() - q0.x() * q1.y() + q0.y() * q1.x() - q0.z() * q1.w());
+    } catch (...) {
+      DEBUG_STREAM_PT("publishOdom: Exception while calculating deltaT");
+      lastT = t;
+      return;
+    }
 
     // Odometry pose covariance
     for (size_t i = 0; i < odomMsg->pose.covariance.size(); i++) {
@@ -6523,6 +6547,8 @@ void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose,
     DEBUG_STREAM_PT("Publishing ODOM message");
     mPubOdom->publish(std::move(odomMsg));
   }
+  lastT = t;
+  lastOdom2baseTransf = odom2baseTransf;
 }
 
 void ZedCamera::processPose()

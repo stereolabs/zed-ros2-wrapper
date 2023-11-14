@@ -93,7 +93,8 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mLastTs_baro(TIMEZERO_ROS),
   mLastTs_mag(TIMEZERO_ROS),
   mLastTs_odom(TIMEZERO_ROS),
-  mLastTs_pose(TIMEZERO_ROS),
+  mLastTs_odomTF(TIMEZERO_ROS),
+  mLastTs_poseTF(TIMEZERO_ROS),
   mLastTs_pc(TIMEZERO_ROS),
   mPrevTs_pc(TIMEZERO_ROS)
 {
@@ -4592,6 +4593,7 @@ void ZedCamera::initTransforms()
 
   // ----> Dynamic transforms
   mOdom2BaseTransf.setIdentity();  // broadcasted if `publish_tf` is true
+  mLastOdom2BaseTransf.setIdentity();  // used internally, not broadcasted
   mMap2OdomTransf.setIdentity();   // broadcasted if `publish_map_tf` is true
   mMap2BaseTransf.setIdentity();   // used internally, but not broadcasted
   mMap2UtmTransf.setIdentity();   // broadcasted if GNSS Fusion is enabled
@@ -5644,10 +5646,10 @@ void ZedCamera::publishOdomTF(rclcpp::Time t)
   // DEBUG_STREAM_PT("publishOdomTF");
 
   // ----> Avoid duplicated TF publishing
-  if (t == mLastTs_odom) {
+  if (t == mLastTs_odomTF) {
     return;
   }
-  mLastTs_odom = t;
+  mLastTs_odomTF = t;
   // <---- Avoid duplicated TF publishing
 
   if (!mSensor2BaseTransfValid) {
@@ -5695,10 +5697,10 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
   // DEBUG_STREAM_PT("publishPoseTF");
 
   // ----> Avoid duplicated TF publishing
-  if (t == mLastTs_pose) {
+  if (t == mLastTs_poseTF) {
     return;
   }
-  mLastTs_pose = t;
+  mLastTs_poseTF = t;
   // <---- Avoid duplicated TF publishing
 
   if (!mSensor2BaseTransfValid) {
@@ -6474,9 +6476,6 @@ void ZedCamera::processOdometry()
 
 void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t)
 {
-  static tf2::Transform lastOdom2baseTransf;
-  static rclcpp::Time lastT;
-
   size_t odomSub = 0;
   size_t odomStatusSub = 0;
 
@@ -6508,21 +6507,18 @@ void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose,
     // Calculate twist
     // See: https://mariogc.com/post/angular-velocity-quaternions/
     try {
-      const double deltaT = (t - lastT).seconds();
-      const auto deltaPosition = lastOdom2baseTransf.inverseTimes(odom2baseTransf).getOrigin();
+      const double deltaT = (t - mLastTs_odom).seconds();
+      const auto deltaPosition = mLastOdom2BaseTransf.inverseTimes(odom2baseTransf).getOrigin();
       odomMsg->twist.twist.linear.x = deltaPosition.x() / deltaT;
       odomMsg->twist.twist.linear.y = deltaPosition.y() / deltaT;
       odomMsg->twist.twist.linear.z = deltaPosition.z() / deltaT;
       const auto q1 = odom2baseTransf.getRotation();
-      const auto q0 = lastOdom2baseTransf.getRotation();
+      const auto q0 = mLastOdom2BaseTransf.getRotation();
       odomMsg->twist.twist.angular.x = 2 / deltaT * (q0.w() * q1.x() - q0.x() * q1.w() - q0.y() * q1.z() + q0.z() * q1.y());
       odomMsg->twist.twist.angular.y = 2 / deltaT * (q0.w() * q1.y() + q0.x() * q1.z() - q0.y() * q1.w() - q0.z() * q1.x());
       odomMsg->twist.twist.angular.z = 2 / deltaT * (q0.w() * q1.z() - q0.x() * q1.y() + q0.y() * q1.x() - q0.z() * q1.w());
     } catch (...) {
-      DEBUG_STREAM_PT("publishOdom: Exception while calculating deltaT");
-      lastT = t;
-      lastOdom2baseTransf = odom2baseTransf;
-      return;
+      DEBUG_STREAM_PT("publishOdom: Exception while calculating twist");
     }
 
     // Odometry pose covariance
@@ -6546,8 +6542,8 @@ void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose,
     DEBUG_STREAM_PT("Publishing ODOM message");
     mPubOdom->publish(std::move(odomMsg));
   }
-  lastT = t;
-  lastOdom2baseTransf = odom2baseTransf;
+  mLastTs_odom = t;
+  mLastOdom2BaseTransf = odom2baseTransf;
 }
 
 void ZedCamera::processPose()

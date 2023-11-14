@@ -32,6 +32,8 @@
 
 #ifdef FOUND_HUMBLE
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#elif defined FOUND_IRON
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #elif defined FOUND_FOXY
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #else
@@ -3289,12 +3291,14 @@ void ZedCamera::initPublishers()
   // <---- Pos Tracking
 
   // ----> Mapping
-  if (!mDepthDisabled && mMappingEnabled) {
-    mPubFusedCloud =
-      create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudFusedTopic, mMappingQos);
-    RCLCPP_INFO_STREAM(
-      get_logger(), "Advertised on topic " << mPubFusedCloud->get_topic_name() << " @ " <<
-        mFusedPcPubRate << " Hz");
+  if (!mDepthDisabled) {
+    if (mMappingEnabled) {
+      mPubFusedCloud =
+        create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudFusedTopic, mMappingQos);
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Advertised on topic " << mPubFusedCloud->get_topic_name() << " @ " <<
+          mFusedPcPubRate << " Hz");
+    }
 
     std::string marker_topic = "plane_marker";
     std::string plane_topic = "plane";
@@ -3990,7 +3994,7 @@ bool ZedCamera::startCamera()
     mZed.startPublishing(mFusionConfig->communication_parameters);
     DEBUG_GNSS(" Camera publishing OK");
 
-    // Fusion subscrive to camera data
+    // Fusion subscribe to camera data
     fus_err = mFusion.subscribe(
       mCamUuid, mFusionConfig->communication_parameters,
       mFusionConfig->pose);
@@ -5170,7 +5174,9 @@ void ZedCamera::threadFunc_zedGrab()
         // Process Fusion data
         mFusionStatus = mFusion.process();
         // ----> Fusion errors?
-        if (mFusionStatus != sl::FUSION_ERROR_CODE::SUCCESS) {
+        if (mFusionStatus != sl::FUSION_ERROR_CODE::SUCCESS &&
+          mFusionStatus != sl::FUSION_ERROR_CODE::NO_NEW_DATA_AVAILABLE)
+        {
           RCLCPP_ERROR_STREAM(
             get_logger(),
             "Fusion error: " << sl::toString(mFusionStatus).c_str());
@@ -5202,7 +5208,7 @@ void ZedCamera::threadFunc_zedGrab()
             "DeltaT: " << dT_sec << " sec [" <<
               std::fixed << std::setprecision(9) <<
               static_cast<float>(real_frame_ts.nanoseconds()) / 1e9 << "-" <<
-              static_cast<float>(mGnssTimestamp.nanoseconds()) / 1e9);
+              static_cast<float>(mGnssTimestamp.nanoseconds()) / 1e9 << "]");
 
           if (dT_sec < 0.0) {
             RCLCPP_WARN_STREAM(
@@ -6867,7 +6873,7 @@ void ZedCamera::processGeoPose()
   {
     rclcpp::Clock steady_clock(RCL_STEADY_TIME);
     RCLCPP_DEBUG_THROTTLE(
-      get_logger(), steady_clock, 1.0, "Waiting for a valid GNSS fused pose...");
+      get_logger(), steady_clock, 1000.0, "Waiting for a valid GNSS fused pose...");
     return;
   }
 
@@ -8881,7 +8887,6 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   gnssData.ts.setNanoseconds(ts_gnss_nsec);
   gnssData.setCoordinates(latit, longit, altit, false);
 
-
   if (msg->position_covariance_type != sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN) {
 
     // TODO(Walter) Handle the new covariance mode in the SDK
@@ -8909,10 +8914,16 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   mGnssFixValid = true; // Used to keep track of signal loss
 
   if (mZed.isOpened() && mZed.isPositionalTrackingEnabled() ) {
-    DEBUG_STREAM_GNSS(
-      "Datum ingested - [" << mGnssTimestamp.nanoseconds() << " nsec] " << latit << "°," << longit << "° / " << altit <<
-        " m");
-    mFusion.ingestGNSSData(gnssData);
+    auto ingest_error = mFusion.ingestGNSSData(gnssData);
+    if (ingest_error == sl::FUSION_ERROR_CODE::SUCCESS) {
+      DEBUG_STREAM_GNSS(
+        "Datum ingested - [" << mGnssTimestamp.nanoseconds() << " nsec] " << latit << "°," << longit << "° / " << altit <<
+          " m");
+    } else {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "Ingest error occurred when ingesting GNSSData: " << ingest_error);
+    }
     mGnssFixNew = true;
   }
 }
@@ -8991,11 +9002,13 @@ void ZedCamera::callback_clickedPoint(const geometry_msgs::msg::PointStamped::Sh
   float c_x = zedParam.left_cam.cx;
   float c_y = zedParam.left_cam.cy;
 
-  float out_scale_factor = mMatResol.width / mCamWidth;
+  float out_scale_factor = static_cast<float>(mMatResol.width) / mCamWidth;
 
   float u = ((camX / camZ) * f_x + c_x) / out_scale_factor;
   float v = ((camY / camZ) * f_y + c_y) / out_scale_factor;
-  DEBUG_STREAM_MAP("Clicked point image coordinates: [" << u << "," << v << "]");
+  DEBUG_STREAM_MAP(
+    "Clicked point image coordinates: [" << u << "," << v << "] - out_scale_factor: " <<
+      out_scale_factor);
   // <---- Project the point into 2D image coordinates
 
   // ----> Extract plane from clicked point

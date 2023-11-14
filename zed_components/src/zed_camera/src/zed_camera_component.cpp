@@ -6506,15 +6506,13 @@ void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose,
     odomMsg->pose.pose.orientation.w = odom2baseTransf.getRotation().w();
 
     // Calculate twist
+    // See: https://mariogc.com/post/angular-velocity-quaternions/
     try {
       const double deltaT = (t - lastT).seconds();
-      fprintf(stderr, "deltaT %lf\n", deltaT);
-      // TODO: technically, I think we need to transform lastOdom into the current odom frame.
-      const auto deltaPosition = odom2baseTransf.getOrigin() - lastOdom2baseTransf.getOrigin();
+      const auto deltaPosition = lastOdom2baseTransf.inverseTimes(odom2baseTransf).getOrigin();
       odomMsg->twist.twist.linear.x = deltaPosition.x() / deltaT;
       odomMsg->twist.twist.linear.y = deltaPosition.y() / deltaT;
       odomMsg->twist.twist.linear.z = deltaPosition.z() / deltaT;
-      // See: https://mariogc.com/post/angular-velocity-quaternions/
       const auto q1 = odom2baseTransf.getRotation();
       const auto q0 = lastOdom2baseTransf.getRotation();
       odomMsg->twist.twist.angular.x = 2 / deltaT * (q0.w() * q1.x() - q0.x() * q1.w() - q0.y() * q1.z() + q0.z() * q1.y());
@@ -6523,6 +6521,7 @@ void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose,
     } catch (...) {
       DEBUG_STREAM_PT("publishOdom: Exception while calculating deltaT");
       lastT = t;
+      lastOdom2baseTransf = odom2baseTransf;
       return;
     }
 

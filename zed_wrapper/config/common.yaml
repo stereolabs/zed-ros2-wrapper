@@ -60,7 +60,7 @@
             pos_tracking_mode: 'STANDARD' # Matches the ZED SDK setting: 'QUALITY', 'STANDARD'
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [usually overwritten by launch file] publish `odom -> camera_link` TF
-            publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF            
+            publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF
             map_frame: "map"
             odometry_frame: "odom"
             area_memory_db_path: ""

@@ -1,6 +1,19 @@
 LATEST CHANGES
 ==============
 
+2023-11-28
+----------
+- Add 'simulation.sim_enabled' parameter to enable the simulation mode
+- Add 'simulation.sim_address' parameter to set the simulation server address
+- Add 'simulation.sim_port' parameter to set the simulation server port
+- Add `/clock` subscriber to check the presence of the required messager when `use_sim_time` is true
+- Force `grab_frame_rate` and `pub_frame_rate` to 60 Hz in simulation
+- Force `grab_resolution` to `HD1080` in simulation
+
+2023-11-27
+----------
+- Remove the `general.zed_id` parameter. Always use `general.serial_number` to distinguish between different cameras in a multi-camera configuration.
+
 2023-11-03
 ----------
 - The multi-camera example has been updated to match the new TF configuration

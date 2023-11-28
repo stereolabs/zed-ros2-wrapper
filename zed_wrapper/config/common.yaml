@@ -6,6 +6,13 @@
 /**:
     ros__parameters:
 
+        use_sim_time: false # Set to `true` only if there is a publisher for the simulated clock to the `/clock` topic
+
+        simulation:
+            sim_enabled: false # Set to `true` to enable the simulation mode and connect to a simulation server
+            sim_address: '127.0.0.1' # The connection address of the simulation server. See the documentation of the supported simulation plugins for more information.
+            sim_port: 30000 # The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.
+
         general:
             svo_file: '' # usually overwritten by launch file
             svo_loop: false # Enable loop mode when using an SVO as input source
@@ -13,7 +20,6 @@
             camera_timeout_sec: 5
             camera_max_reconnect: 5
             camera_flip: false
-            zed_id: 0 # IMPORTANT: to be used in simulation to distinguish individual cameras im multi-camera configurations - usually overwritten by launch file
             serial_number: 0 # usually overwritten by launch file
             pub_resolution: 'CUSTOM' # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
@@ -155,19 +161,16 @@
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
-        use_sim_time: false # EXPERIMENTAL (only for development) - Set to true to enable SIMULATION mode # 
-        sim_address: '' # EXPERIMENTAL (only for development) - The local address of the machine running the simulator
-
         advanced: # WARNING: do not modify unless you are confident of what you are doing
         # Reference documentation: https://man7.org/linux/man-pages/man7/sched.7.html
             thread_sched_policy: 'SCHED_BATCH' # 'SCHED_OTHER', 'SCHED_BATCH', 'SCHED_FIFO', 'SCHED_RR' - NOTE: 'SCHED_FIFO' and 'SCHED_RR' require 'sudo'
             thread_grab_priority: 50 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
             thread_sensor_priority: 70 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
             thread_pointcloud_priority: 60 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
-            
 
         debug:
             debug_common: false
+            debug_sim: false
             debug_video_depth: false
             debug_camera_controls: false
             debug_point_cloud: false

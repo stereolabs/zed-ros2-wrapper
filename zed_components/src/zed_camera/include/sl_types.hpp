@@ -48,6 +48,7 @@
 #include <std_srvs/srv/trigger.hpp>
 #include <stereo_msgs/msg/disparity_image.hpp>
 #include <visualization_msgs/msg/marker.hpp>
+#include <rosgraph_msgs/msg/clock.hpp>
 #include <zed_interfaces/msg/depth_info_stamped.hpp>
 #include <zed_interfaces/msg/object.hpp>
 #include <zed_interfaces/msg/objects_stamped.hpp>
@@ -104,6 +105,7 @@ typedef std::shared_ptr<rclcpp::Publisher<geographic_msgs::msg::GeoPoseStamped>>
 
 typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> clickedPtSub;
 typedef std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>> gnssFixSub;
+typedef std::shared_ptr<rclcpp::Subscription<rosgraph_msgs::msg::Clock>> clockSub;
 
 typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;

@@ -1,13 +1,13 @@
-# Copyright 2022 Stereolabs
+# Copyright 2023 Stereolabs
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
+# distributed under the License is distributed on an 'AS IS' BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
@@ -82,7 +82,7 @@ def launch_setup(context, *args, **kwargs):
     camera_name_val = camera_name.perform(context)
     camera_model_val = camera_model.perform(context)
 
-    if (camera_name_val == ""):
+    if (camera_name_val == ''):
         camera_name_val = 'zed'
 
     config_camera_path = os.path.join(
@@ -150,7 +150,7 @@ def generate_launch_description():
             SetEnvironmentVariable(name='RCUTILS_COLORIZED_OUTPUT', value='1'),
             DeclareLaunchArgument(
                 'camera_name',
-                default_value=TextSubstitution(text="zed"),
+                default_value=TextSubstitution(text='zed'),
                 description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.'),
             DeclareLaunchArgument(
                 'camera_model',
@@ -202,7 +202,7 @@ def generate_launch_description():
                 description='The path to an additional parameters file to override the defaults'),
             DeclareLaunchArgument(
                 'svo_path',
-                default_value=TextSubstitution(text="live"),
+                default_value=TextSubstitution(text='live'),
                 description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.'),
             DeclareLaunchArgument(
                 'gnss_frame',

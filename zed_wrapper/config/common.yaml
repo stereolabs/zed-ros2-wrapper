@@ -7,7 +7,7 @@
     ros__parameters:
 
         general:
-            svo_file: "" # usually overwritten by launch file
+            svo_file: '' # usually overwritten by launch file
             svo_loop: false # Enable loop mode when using an SVO as input source
             svo_realtime: true # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
             camera_timeout_sec: 5
@@ -60,10 +60,10 @@
             pos_tracking_mode: 'STANDARD' # Matches the ZED SDK setting: 'QUALITY', 'STANDARD'
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [usually overwritten by launch file] publish `odom -> camera_link` TF
-            publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF            
-            map_frame: "map"
-            odometry_frame: "odom"
-            area_memory_db_path: ""
+            publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF
+            map_frame: 'map'
+            odometry_frame: 'odom'
+            area_memory_db_path: ''
             area_memory: true # Enable to detect loop closure
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
             set_as_static: false # If 'true' the camera will be static and not move in the environment
@@ -73,7 +73,7 @@
             init_odom_with_first_valid_pose: true # Enable to initialize the odometry with the first valid pose
             path_pub_rate: 2.0 # [DYNAMIC] - Camera trajectory publishing frequency
             path_max_count: -1 # use '-1' for unlimited path size
-            two_d_mode: false # Force navigation on a plane. If true the Z value will be fixed to "fixed_z_value", roll and pitch to zero
+            two_d_mode: false # Force navigation on a plane. If true the Z value will be fixed to 'fixed_z_value', roll and pitch to zero
             fixed_z_value: 0.00 # Value to be used for Z coordinate if `two_d_mode` is true
             transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->camera_link` transform being generated
             qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
@@ -83,10 +83,10 @@
 
         gnss_fusion:
             gnss_fusion_enabled: false # fuse 'sensor_msg/NavSatFix' message information into pose data
-            gnss_fix_topic: "/gps/fix" # Name of the GNSS topic of type NavSatFix to subscribe [Default: "/gps/fix"]
+            gnss_fix_topic: '/gps/fix' # Name of the GNSS topic of type NavSatFix to subscribe [Default: '/gps/fix']
             gnss_init_distance: 5.0 # The minimum distance traveled by the robot required to initilize the GNSS fusion [SDK <= v4.0.5]
             gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
-            gnss_frame: "gnss_link" # [usually overwritten by launch file] The TF frame of the GNSS sensor
+            gnss_frame: 'gnss_link' # [usually overwritten by launch file] The TF frame of the GNSS sensor
             publish_utm_tf: true # Publish `utm` -> `map` TF
             broadcast_utm_transform_as_parent_frame: false # if 'true' publish `utm` -> `map` TF, otherwise `map` -> `utm`
             enable_reinitialization: true # determines whether reinitialization should be performed between GNSS and VIO fusion when a significant disparity is detected between GNSS data and the current fusion data. It becomes particularly crucial during prolonged GNSS signal loss scenarios.
@@ -101,7 +101,7 @@
             resolution: 0.05 # maps resolution in meters [min: 0.01f - max: 0.2f]
             max_mapping_range: 5.0 # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
             fused_pointcloud_freq: 1.0 # frequency of the publishing of the fused colored point cloud
-            clicked_point_topic: "/clicked_point" # Topic published by Rviz when a point of the cloud is clicked. Used for plane detection
+            clicked_point_topic: '/clicked_point' # Topic published by Rviz when a point of the cloud is clicked. Used for plane detection
             pd_max_distance_threshold: 0.15 # Plane detection: controls the spread of plane by checking the position difference.
             pd_normal_similarity_threshold:  15.0 # Plane detection: controls the spread of plane by checking the angle difference.
             qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL

@@ -577,11 +577,16 @@ void StopWatch::tic()
   mStartTime = mClockPtr->now();  // Reset the start time point
 }
 
-double StopWatch::toc()
+double StopWatch::toc(std::string func_name)
 {
   auto now = mClockPtr->now();
 
   double elapsed_nsec = (now - mStartTime).nanoseconds();
+  if (!func_name.empty()) {
+    std::cerr << func_name << " -> toc elapsed_sec: " << elapsed_nsec / 1e9 << std::endl <<
+      std::flush;
+  }
+
   return elapsed_nsec / 1e9;  // Returns elapsed time in seconds
 }
 

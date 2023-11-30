@@ -5936,10 +5936,14 @@ void ZedCamera::threadFunc_pointcloudElab()
     // ----> Check publishing frequency
     double pc_period_usec = 1e6 / mPcPubRate;
 
-    double elapsed_usec = mPcPubFreqTimer.toc() * 1e6;
+    double elapsed_usec = mPcPubFreqTimer.toc("mPcPubFreqTimer") * 1e6;
+
+    DEBUG_STREAM_PC("threadFunc_pointcloudElab: elapsed_usec " << elapsed_usec);
 
     if (elapsed_usec < pc_period_usec) {
-      rclcpp::sleep_for(std::chrono::microseconds(static_cast<int>(pc_period_usec - elapsed_usec)));
+      int wait_usec = static_cast<int>(pc_period_usec - elapsed_usec);+
+      rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+      DEBUG_STREAM_PC("threadFunc_pointcloudElab: wait_usec " << wait_usec);
     }
 
     mPcPubFreqTimer.tic();

@@ -78,35 +78,81 @@ A Robot State Publisher node is started to publish the camera static links and j
 
 **Note:** You can set your own configurations modifying the parameters in the files **common.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, and **zedxm.yaml** available in the folder `zed_wrapper/config`.
 
+You can get the list of all the available launch parameters by using the `-s` launch option:
+
+```bash
+$ ros2 launch zed_wrapper zed_camera.launch.py -s
+$ ros2 launch zed_display_rviz2 display_zed_cam.launch.py -s
+```
+
 For full descriptions of each parameter, follow the complete guide [here](https://www.stereolabs.com/docs/ros2/zed_node#configuration-parameters).
 
-## Rviz visualization
+### Rviz visualization
+
 To start a pre-configured Rviz environment and visualize the data of all ZED cameras, we provide in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2). You'll see there more advanced examples and visualisation that demonstrate depth, point clouds, odometry, object detection, etc.
-    
 
 You can also quickly check that your depth data is correctly retrieved in rviz with `rviz2 -d ./zed_wrapper/config/rviz2/<your camera model>.rviz`. Be aware that rviz subscribes to numerous ROS topics, which can potentially impact the performance of your application compared to when it runs without rviz.
 
+### Simulation mode
+
+Launch a standalone ZED ROS 2 node with simulated ZED data as input by using the following command:
+
+```bash
+ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zedx sim_mode:=true use_sim_time:=true
+```
+
+Launch options: 
+* [Mandatory] `sim_mode`: start the ZED node in simulation mode if `true`.
+* [Mandatory] `use_sim_time`: force the node to wait for valid messages on the topic `/clock`, and use the simulation time as the reference.
+* [Optional] `sim_address`: set the address of the simulation server. Default is `127.0.0.1` and it's valid if the node runs on the same machine as the simulator.
+* [Optional] `sim_port`: set the port of the simulation server. It must match the value of the field `Streaming Port` of the properties of the `ZED camera streamer` Action Graph node. A different `Streaming Port` value for each camera is required in multi-camera simulations.
+
+> `camera_model` is currently limited to `zedx`. We are working to support other models in the near future.
+
+You can also start a preconfigured instance of `rviz2` to visualize all the information available in simulation by using the command:
+
+```bash
+ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx sim_mode:=true use_sim_time:=true
+```
+
+the `display_zed_cam.launch.py` launch file includes the `zed_camera.launch.py` launch file, so it provides the same parameters.
+
+Here's an example of `rviz2` running with the simulated information obtained by placing the ZED camera on a shelf of a simulated warehouse:
+
+![](./images/sim_rviz.jpg)
+
+![](./images/zed_shelves.jpg)
+
+Supported simulation environments:
+
+* [NVIDIA Omniverse Isaac Sim](https://www.stereolabs.com/docs/isaac-sim/)
 
 ## More features
+
 ### SVO recording
+
 [SVO recording](https://www.stereolabs.com/docs/video/recording/) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.
 [More information](https://www.stereolabs.com/docs/ros2/zed_node/#services)
 
 ### Object Detection
+
 The Object Detection can be enabled *automatically* when the node start by setting the parameter `object_detection/od_enabled` to `true` in the file `common.yaml`.
 The Object Detection can be enabled/disabled *manually* by calling the services `enable_obj_det`.
 
 
 ### Body Tracking
+
 The Body Tracking can be enabled *automatically* when the node start by setting the parameter `body_tracking/bt_enabled` to `true` in the file `common.yaml`.
 
 *The Object Detection module is not available on the very first generation of ZED cameras.*
 
 ### Spatial Mapping
+
 The Spatial Mapping can be enabled automatically when the node start setting the parameter `mapping/mapping_enabled` to `true` in the file `common.yaml`.
 The Spatial Mapping can be enabled/disabled manually calling the services `enable_mapping`.
 
 ### GNSS fusion
+
 The ZED ROS2 Wrapper can subscribe to a `NavSatFix` topic and fuse GNSS data information
 with Positional Tracking information to obtain a precise robot localization referred to Earth coordinates.
 To enable GNSS fusion set the parameter `gnss_fusion.gnss_fusion_enabled` to `true`.
@@ -114,11 +160,13 @@ It is important that you set the correct `gnss_frame` parameter when launching t
 The services `toLL` and `fromLL` can be used to convert Latitude/Longitude coordinates to robot `map` coordinates.
 
 ### 2D mode
+
 For robots moving on a planar surface it is possible to activate the "2D mode" (parameter `pos_tracking/two_d_mode` in `common.yaml`). 
 The value of the coordinate Z for odometry and pose will have a fixed value (parameter `pos_tracking/fixed_z_value` in `common.yaml`). 
 Roll and pitch and relative velocities will be fixed to zero.
 
 ## Examples and Tutorials
+
 Examples and tutorials are provided to better understand how to use the ZED wrapper and how to integrate it in the ROS2 framework.
 See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples)
 

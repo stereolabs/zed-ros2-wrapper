@@ -98,21 +98,20 @@ You can also quickly check that your depth data is correctly retrieved in rviz w
 Launch a standalone ZED ROS 2 node with simulated ZED data as input by using the following command:
 
 ```bash
-ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zedx sim_mode:=true use_sim_time:=true
+ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zedx sim_mode:=true
 ```
 
 Launch options: 
+* [Mandatory] `camera_model`: indicates the model of the simulated camera. It's required that this parameter matches the model of the simulated camera. In most case it will be a ZED X, since the first versions of the simulation plugins that we released are simulating this type of device.
 * [Mandatory] `sim_mode`: start the ZED node in simulation mode if `true`.
-* [Mandatory] `use_sim_time`: force the node to wait for valid messages on the topic `/clock`, and use the simulation time as the reference.
+* [Optional] `use_sim_time`: force the node to wait for valid messages on the topic `/clock`, and so use the simulation clock as time reference.
 * [Optional] `sim_address`: set the address of the simulation server. Default is `127.0.0.1` and it's valid if the node runs on the same machine as the simulator.
 * [Optional] `sim_port`: set the port of the simulation server. It must match the value of the field `Streaming Port` of the properties of the `ZED camera streamer` Action Graph node. A different `Streaming Port` value for each camera is required in multi-camera simulations.
-
-> `camera_model` is currently limited to `zedx`. We are working to support other models in the near future.
 
 You can also start a preconfigured instance of `rviz2` to visualize all the information available in simulation by using the command:
 
 ```bash
-ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx sim_mode:=true use_sim_time:=true
+ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx sim_mode:=true
 ```
 
 the `display_zed_cam.launch.py` launch file includes the `zed_camera.launch.py` launch file, so it provides the same parameters.

@@ -19,8 +19,19 @@
 
 // ----> DEBUG MACROS
 // Common
+#define DEBUG_COMM(...) if (mDebugCommon) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_COMM(stream_arg) if (mDebugCommon) RCLCPP_DEBUG_STREAM( \
     get_logger(), stream_arg)
+
+// Simulation
+#define DEBUG_SIM(...) if (mDebugSim) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
+#define DEBUG_ONCE_SIM(...) if (mDebugSim) RCLCPP_DEBUG_ONCE(get_logger(), __VA_ARGS__)
+#define DEBUG_STREAM_SIM(stream_arg) if (mDebugSim) RCLCPP_DEBUG_STREAM( \
+    get_logger(), stream_arg)
+#define DEBUG_STREAM_THROTTLE_SIM(duration, stream_arg) \
+  if (mDebugSim) { \
+    rclcpp::Clock steady_clock(RCL_STEADY_TIME); \
+    RCLCPP_DEBUG_STREAM_THROTTLE(get_logger(), steady_clock, duration, stream_arg);}
 
 // Advanced
 #define DEBUG_ADV(...) if (mDebugAdvanced) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
@@ -33,6 +44,7 @@
     RCLCPP_DEBUG_STREAM_THROTTLE(get_logger(), steady_clock, duration, stream_arg);}
 
 // Video Depth
+#define DEBUG_VD(...) if (mDebugVideoDepth) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_VD(stream_arg) if (mDebugVideoDepth) RCLCPP_DEBUG_STREAM( \
     get_logger(), stream_arg)
 

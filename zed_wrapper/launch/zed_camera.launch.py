@@ -1,13 +1,13 @@
-# Copyright 2022 Stereolabs
+# Copyright 2023 Stereolabs
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
+# distributed under the License is distributed on an 'AS IS' BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
@@ -59,6 +59,11 @@ def launch_setup(context, *args, **kwargs):
     # Launch configuration variables
     svo_path = LaunchConfiguration('svo_path')
 
+    use_sim_time = LaunchConfiguration('use_sim_time')
+    sim_mode = LaunchConfiguration('sim_mode')
+    sim_address = LaunchConfiguration('sim_address')
+    sim_port = LaunchConfiguration('sim_port')
+
     camera_name = LaunchConfiguration('camera_name')
     camera_model = LaunchConfiguration('camera_model')
 
@@ -66,7 +71,6 @@ def launch_setup(context, *args, **kwargs):
 
     config_common_path = LaunchConfiguration('config_path')
 
-    zed_id = LaunchConfiguration('zed_id')
     serial_number = LaunchConfiguration('serial_number')
 
     publish_urdf = LaunchConfiguration('publish_urdf')
@@ -82,7 +86,7 @@ def launch_setup(context, *args, **kwargs):
     camera_name_val = camera_name.perform(context)
     camera_model_val = camera_model.perform(context)
 
-    if (camera_name_val == ""):
+    if (camera_name_val == ''):
         camera_name_val = 'zed'
 
     config_camera_path = os.path.join(
@@ -125,10 +129,13 @@ def launch_setup(context, *args, **kwargs):
             config_camera_path,  # Camera related parameters
             # Overriding
             {
+                'use_sim_time': use_sim_time,
+                'simulation.sim_enabled': sim_mode,
+                'simulation.sim_address': sim_address,
+                'simulation.sim_port': sim_port,
                 'general.camera_name': camera_name_val,
                 'general.camera_model': camera_model_val,
                 'general.svo_file': svo_path,
-                'general.zed_id': zed_id,
                 'general.serial_number': serial_number,
                 'pos_tracking.publish_tf': publish_tf,
                 'pos_tracking.publish_map_tf': publish_map_tf,
@@ -150,7 +157,7 @@ def generate_launch_description():
             SetEnvironmentVariable(name='RCUTILS_COLORIZED_OUTPUT', value='1'),
             DeclareLaunchArgument(
                 'camera_name',
-                default_value=TextSubstitution(text="zed"),
+                default_value=TextSubstitution(text='zed'),
                 description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.'),
             DeclareLaunchArgument(
                 'camera_model',
@@ -165,13 +172,9 @@ def generate_launch_description():
                 default_value=TextSubstitution(text=default_config_common),
                 description='Path to the YAML configuration file for the camera.'),
             DeclareLaunchArgument(
-                'zed_id',
-                default_value='0',
-                description='The index of the camera to be opened. To be used in multi-camera rigs.'),
-            DeclareLaunchArgument(
                 'serial_number',
                 default_value='0',
-                description='The serial number of the camera to be opened. To be used in multi-camera rigs. Has priority with respect to `zed_id`.'),
+                description='The serial number of the camera to be opened. It is mandatory to use this parameter in multi-camera rigs to distinguish between different cameras.'),
             DeclareLaunchArgument(
                 'publish_urdf',
                 default_value='true',
@@ -202,12 +205,30 @@ def generate_launch_description():
                 description='The path to an additional parameters file to override the defaults'),
             DeclareLaunchArgument(
                 'svo_path',
-                default_value=TextSubstitution(text="live"),
+                default_value=TextSubstitution(text='live'),
                 description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.'),
             DeclareLaunchArgument(
                 'gnss_frame',
                 default_value='',
-                description='Name of the GNSS link frame. Leave empty if not used. Remember to set the transform `camera_link` -> `gnss_frame` in the URDF file.'),            
+                description='Name of the GNSS link frame. Leave empty if not used. Remember to set the transform `camera_link` -> `gnss_frame` in the URDF file.'),
+            DeclareLaunchArgument(
+                'use_sim_time',
+                default_value='false',
+                description='Enable simulation time mode.',
+                choices=['true', 'false']),
+            DeclareLaunchArgument(
+                'sim_mode',
+                default_value='false',
+                description='Enable simulation mode. Set `sim_address` and `sim_port` to configure the simulator input.',
+                choices=['true', 'false']),
+            DeclareLaunchArgument(
+                'sim_address',
+                default_value='127.0.0.1',
+                description='The connection address of the simulation server. See the documentation of the supported simulation plugins for more information.'),
+            DeclareLaunchArgument(
+                'sim_port',
+                default_value='30000',
+                description='The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.'),
             OpaqueFunction(function=launch_setup)
         ]
     )

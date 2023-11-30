@@ -4189,7 +4189,7 @@ bool ZedCamera::startPosTracking()
     //   .count();
     elapsed = stopWatch.toc();
 
-    rclcpp::sleep_for(500ms);
+    rclcpp::sleep_for(1ms);
 
     if (elapsed > 10000) {
       RCLCPP_WARN(
@@ -8693,7 +8693,7 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
       stat.addf("Video/Depth", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
       stat.addf(
         "Video/Depth", "Processing Time: %.6f sec (Max. %.3f sec)",
-        mVideoDepthElabMean_sec->getAvg(), 1. / frame_grab_period);
+        mVideoDepthElabMean_sec->getAvg(), frame_grab_period);
     } else {
       stat.add("Video/Depth", "Topics not subscribed");
     }
@@ -8784,7 +8784,7 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
           stat.addf("Object detection", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc);
           stat.addf(
             "Object detection", "Processing Time: %.3f sec (Max. %.3f sec)",
-            mObjDetElabMean_sec->getAvg(), 1. / frame_grab_period);
+            mObjDetElabMean_sec->getAvg(), frame_grab_period);
         } else {
           stat.add("Object Detection", "Active, topic not subscribed");
         }
@@ -8800,7 +8800,7 @@ void ZedCamera::callback_updateDiagnostic(diagnostic_updater::DiagnosticStatusWr
           stat.addf("Body Tracking", "Mean Frequency: %.3f Hz  (%.1f%%)", freq, freq_perc);
           stat.addf(
             "Body Tracking", "Processing Time: %.3f sec (Max. %.3f sec)",
-            mBodyTrkElabMean_sec->getAvg(), 1. / frame_grab_period);
+            mBodyTrkElabMean_sec->getAvg(), frame_grab_period);
         } else {
           stat.add("Body Tracking", "Active, topic not subscribed");
         }

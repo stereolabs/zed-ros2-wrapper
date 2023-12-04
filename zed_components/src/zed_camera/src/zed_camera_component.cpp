@@ -5936,7 +5936,7 @@ void ZedCamera::threadFunc_pointcloudElab()
     // ----> Check publishing frequency
     double pc_period_usec = 1e6 / mPcPubRate;
 
-    double elapsed_usec = mPcPubFreqTimer.toc("mPcPubFreqTimer") * 1e6;
+    double elapsed_usec = mPcPubFreqTimer.toc() * 1e6;
 
     DEBUG_STREAM_PC("threadFunc_pointcloudElab: elapsed_usec " << elapsed_usec);
 

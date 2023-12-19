@@ -58,6 +58,7 @@ RUN apt-get update || true && \
   ros-${ROS2_DIST}-image-transport-plugins \
   ros-${ROS2_DIST}-diagnostic-updater \
   ros-${ROS2_DIST}-xacro \
+  ros-${ROS2_DIST}-rmw-cyclonedds-cpp \
   python3-flake8-docstrings \
   python3-pip \
   python3-pytest-cov \

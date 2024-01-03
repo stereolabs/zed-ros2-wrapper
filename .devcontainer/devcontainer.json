@@ -2,8 +2,8 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.245.2/containers/ubuntu
 {
 	"name": "ZED",
+	"dockerFile": "../docker/Dockerfile.u22-cu117-humble-devel",
 	"build": {
-		"dockerfile": "../docker/Dockerfile.u22-cu117-humble-release",
 		"args": { }
 	},
 	"context": "${localWorkspaceFolder}",

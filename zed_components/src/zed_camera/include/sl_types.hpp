@@ -28,6 +28,7 @@
 #include <diagnostic_updater/diagnostic_updater.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <std_msgs/msg/float32.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <image_transport/camera_publisher.hpp>
 #include <image_transport/image_transport.hpp>
@@ -88,6 +89,7 @@ typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::FluidPressure>> pres
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Temperature>> tempPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> posePub;
+typedef std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32>> poseDelayPub;
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PosTrackStatus>> poseStatusPub;
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>>
   poseCovPub;

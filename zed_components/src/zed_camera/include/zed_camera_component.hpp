@@ -162,6 +162,7 @@ protected:
   void publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose, rclcpp::Time t);
   void publishPose();
   void publishGnssPose();
+  void publishPoseDelay();
   void publishPoseStatus();
   void publishOdomStatus();
   void publishGnssPoseStatus();
@@ -230,6 +231,7 @@ private:
   std::string mOdomStatusTopic;
   std::string mPoseTopic;
   std::string mPoseStatusTopic;
+  std::string mPoseDelayTopic;
   std::string mPoseCovTopic;
   std::string mGnssPoseTopic;
   std::string mGnssPoseStatusTopic;
@@ -533,6 +535,7 @@ private:
   pointcloudPub mPubCloud;
   pointcloudPub mPubFusedCloud;
   posePub mPubPose;
+  poseDelayPub mPubPoseDelay;
   poseStatusPub mPubPoseStatus;
   poseCovPub mPubPoseCov;
   odomPub mPubOdom;

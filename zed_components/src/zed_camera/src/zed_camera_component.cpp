@@ -3169,6 +3169,7 @@ void ZedCamera::initPublishers()
 
   // Set the positional tracking topic names
   mPoseTopic = mTopicRoot + "pose";
+  mPoseDelayTopic = mPoseTopic + "/delay_ms";
   mPoseStatusTopic = mPoseTopic + "/status";
   mPoseCovTopic = mPoseTopic + "_with_covariance";
   mGnssPoseTopic = mPoseTopic + "/filtered";
@@ -3288,6 +3289,10 @@ void ZedCamera::initPublishers()
       mPoseStatusTopic,
       mPoseQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPoseStatus->get_topic_name());
+    mPubPoseDelay = create_publisher<std_msgs::msg::Float32>(
+      mPoseDelayTopic,
+      mPoseQos);
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPoseDelay->get_topic_name());
     mPubPoseCov =
       create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(mPoseCovTopic, mPoseQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPoseCov->get_topic_name());
@@ -6641,6 +6646,7 @@ void ZedCamera::processPose()
       sl::CameraIdentifier(), sl::POSITION_TYPE::FUSION);
   }
 
+  publishPoseDelay();
   publishPoseStatus();
   publishGnssPoseStatus();
 
@@ -6759,6 +6765,29 @@ void ZedCamera::processPose()
     // Publish Pose message
     publishPose();
     mPosTrackingReady = true;
+  }
+}
+
+void ZedCamera::publishPoseDelay()
+{
+  size_t statusSub = 0;
+
+  try {
+    statusSub = count_subscribers(mPoseDelayTopic); // mPubPoseStatus subscribers
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_PT("publishPoseDelay: Exception while counting subscribers");
+    return;
+  }
+
+  if (statusSub > 0) {
+    rclcpp::Time current_time = get_clock()->now();
+    auto diff = current_time - mFrameTimestamp;
+    auto diff_ns = diff.nanoseconds();
+    auto diff_ms = diff_ns / 1000000.0;
+    std::unique_ptr<std_msgs::msg::Float32> msg = std::make_unique<std_msgs::msg::Float32>();
+    msg->data = static_cast<float>(diff_ms);
+    mPubPoseDelay->publish(std::move(msg));
   }
 }
 

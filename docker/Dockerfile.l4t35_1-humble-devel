@@ -55,7 +55,10 @@ ENV ROS_DISTRO ${ROS2_DIST}
 
 # Copy the sources in the Docker image
 WORKDIR /root/ros2_ws/src
-COPY tmp_sources/ ./
+ADD zed_components/ /root/ros2_ws/src/zed_components/
+ADD zed_ros2/ /root/ros2_ws/src/zed_ros2/
+ADD zed_wrapper/ /root/ros2_ws/src/zed_wrapper/
+ADD zed-ros2-interfaces/ /root/ros2_ws/src/zed-ros2-interfaces/
 
 # Install missing dependencies
 WORKDIR /root/ros2_ws/src
@@ -91,7 +94,7 @@ RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/install/setup.bash && \
 WORKDIR /root/ros2_ws
 
 # Setup environment variables 
-COPY ros_entrypoint_jetson.sh /sbin/ros_entrypoint.sh
+COPY docker/ros_entrypoint_jetson.sh /sbin/ros_entrypoint.sh
 RUN sudo chmod 755 /sbin/ros_entrypoint.sh
 
 ENTRYPOINT ["/sbin/ros_entrypoint.sh"]

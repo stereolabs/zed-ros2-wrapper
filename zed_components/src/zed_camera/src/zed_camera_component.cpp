@@ -1499,6 +1499,11 @@ void ZedCamera::getGnssFusionParams()
   rclcpp::Parameter paramVal;
   std::string paramName;
 
+  rmw_qos_history_policy_t qos_hist = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+  int qos_depth = 1;
+  rmw_qos_reliability_policy_t qos_reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+  rmw_qos_durability_policy_t qos_durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
 
@@ -1539,7 +1544,7 @@ void ZedCamera::getGnssFusionParams()
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * GNSS Transl. Uncert. Target: " <<
-        (mGnssEnableTranslationUncertaintyTarget ? "TRUE" : "FALSE"));
+      (mGnssEnableTranslationUncertaintyTarget ? "TRUE" : "FALSE"));
     getParam(
       "gnss_fusion.gnss_vio_reinit_threshold", mGnssVioReinitThreshold, mGnssVioReinitThreshold,
       " * GNSS VIO Reinit. Thresh.: ");
@@ -1564,8 +1569,79 @@ void ZedCamera::getGnssFusionParams()
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Publish UTM TF as parent of 'map': " << (mUtmAsParent ? "TRUE" : "FALSE"));
-  }
 
+    // ------------------------------------------
+
+    paramName = "gnss_fusion.qos_history";
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_hist), read_only_descriptor);
+
+    if (get_parameter(paramName, paramVal)) {
+      qos_hist =
+        paramVal.as_int() == 1 ? RMW_QOS_POLICY_HISTORY_KEEP_LAST : RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+      mGnssFixQos.history(qos_hist);
+    } else {
+      RCLCPP_WARN(
+        get_logger(), "The parameter '%s' is not available, using the default value",
+        paramName.c_str());
+    }
+
+    RCLCPP_INFO(
+      get_logger(), " * Gnss Fusion QoS History: %s",
+      sl_tools::qos2str(qos_hist).c_str());
+
+    // ------------------------------------------
+
+    paramName = "gnss_fusion.qos_depth";
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_depth), read_only_descriptor);
+
+    if (get_parameter(paramName, paramVal)) {
+      qos_depth = paramVal.as_int();
+      mGnssFixQos.keep_last(qos_depth);
+    } else {
+      RCLCPP_WARN(
+        get_logger(), "The parameter '%s' is not available, using the default value",
+        paramName.c_str());
+    }
+
+    RCLCPP_INFO(get_logger(), " * Gnss Fusion QoS History depth: %d", qos_depth);
+
+    // ------------------------------------------
+
+    paramName = "gnss_fusion.qos_reliability";
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_reliability), read_only_descriptor);
+
+    if (get_parameter(paramName, paramVal)) {
+      qos_reliability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_RELIABILITY_RELIABLE :
+        RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+      mGnssFixQos.reliability(qos_reliability);
+    } else {
+      RCLCPP_WARN(
+        get_logger(), "The parameter '%s' is not available, using the default value",
+        paramName.c_str());
+    }
+
+    RCLCPP_INFO(
+      get_logger(), " * Gnss Fusion QoS Reliability: %s",
+      sl_tools::qos2str(qos_reliability).c_str());
+
+    // ------------------------------------------
+
+    paramName = "gnss_fusion.qos_durability";
+    declare_parameter(paramName, rclcpp::ParameterValue(qos_durability), read_only_descriptor);
+
+    if (get_parameter(paramName, paramVal)) {
+      qos_durability = paramVal.as_int() == 1 ? RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL :
+        RMW_QOS_POLICY_DURABILITY_VOLATILE;
+      mGnssFixQos.durability(qos_durability);
+    } else {
+      RCLCPP_WARN(
+        get_logger(), "The parameter '%s' is not available, using the default value",
+        paramName.c_str());
+    }
+
+    RCLCPP_INFO(
+      get_logger(), " * Gnss Fusion QoS Durability: %s", sl_tools::qos2str(qos_durability).c_str());
+  }
 }
 
 void ZedCamera::getOdParams()
@@ -2650,7 +2726,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-          (mRemoveSatAreas ? "TRUE" : "FALSE"));
+        (mRemoveSatAreas ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "pos_tracking.transform_time_offset") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
       if (param.get_type() != correctType) {
@@ -2747,7 +2823,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-          (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
+        (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "object_detection.mc_vehicle") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
@@ -2761,7 +2837,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-          (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
+        (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "object_detection.mc_bag") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
@@ -2775,7 +2851,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-          (mObjDetBagsEnable ? "TRUE" : "FALSE"));
+        (mObjDetBagsEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "object_detection.mc_animal") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
@@ -2789,7 +2865,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-          (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
+        (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "object_detection.mc_electronics") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
@@ -2803,7 +2879,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-          (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
+        (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "object_detection.mc_fruit_vegetable") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
@@ -2817,7 +2893,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-          (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
+        (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "object_detection.mc_sport") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
@@ -2831,7 +2907,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
 
       RCLCPP_INFO_STREAM(
         get_logger(), "Parameter '" << param.get_name() << "' correctly set to " <<
-          (mObjDetSportEnable ? "TRUE" : "FALSE"));
+        (mObjDetSportEnable ? "TRUE" : "FALSE"));
     } else if (param.get_name() == "body_tracking.confidence_threshold") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
       if (param.get_type() != correctType) {
@@ -3426,8 +3502,8 @@ void ZedCamera::initSubscribers()
     mGnssMsgReceived = false;
     mGnssFixValid = false;
 
-    mGnssFixQos.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
-    mGnssFixQos.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+    // mGnssFixQos.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+    // mGnssFixQos.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
     mGnssFixSub = create_subscription<sensor_msgs::msg::NavSatFix>(
       mGnssTopic, mGnssFixQos, std::bind(&ZedCamera::callback_gnssFix, this, _1));
 
@@ -4663,8 +4739,8 @@ void ZedCamera::initTransforms()
 bool ZedCamera::getCamera2BaseTransform()
 {
   DEBUG_STREAM_PT(
-    "Getting static TF from '" << mCameraFrameId.c_str()
-                               << "' to '" << mBaseFrameId.c_str() << "'");
+    "Getting static TF from '" << mCameraFrameId.c_str() <<
+      "' to '" << mBaseFrameId.c_str() << "'");
 
   mCamera2BaseTransfValid = false;
 
@@ -5285,8 +5361,8 @@ void ZedCamera::threadFunc_zedGrab()
 
           if (dT_sec < 0.0) {
             RCLCPP_WARN_STREAM(
-              get_logger(), "GNSS sensor and ZED Timestamps are not good. dT = "
-                << dT_sec << " sec");
+              get_logger(), "GNSS sensor and ZED Timestamps are not good. dT = " <<
+                dT_sec << " sec");
           }
         }
       }
@@ -6277,8 +6353,8 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
     mVideoDepthPeriodMean_sec->addValue(period_sec);
     DEBUG_STREAM_VD(
-      "VIDEO/DEPTH PUB MEAN PERIOD: " << mVideoDepthPeriodMean_sec->getAvg() << " sec @"
-                                      << 1. / mVideoDepthPeriodMean_sec->getAvg() << " Hz");
+      "VIDEO/DEPTH PUB MEAN PERIOD: " << mVideoDepthPeriodMean_sec->getAvg() << " sec @" <<
+        1. / mVideoDepthPeriodMean_sec->getAvg() << " Hz");
   }
   mLastTs_grab = mSdkGrabTS;
   // <---- Check if a grab has been done before publishing the same images
@@ -7509,7 +7585,7 @@ void ZedCamera::applyVideoSettings()
         mTriggerAutoExpGain = false;
         DEBUG_STREAM_CTRL(
           "New setting for " << sl::toString(setting).c_str() << ": " <<
-            (mCamAutoExpGain ? 1 : 0));
+          (mCamAutoExpGain ? 1 : 0));
       }
     }
 
@@ -7549,7 +7625,7 @@ void ZedCamera::applyVideoSettings()
         mTriggerAutoWB = false;
         DEBUG_STREAM_CTRL(
           "New setting for " << sl::toString(setting).c_str() << ": " <<
-            (mCamAutoWB ? 1 : 0));
+          (mCamAutoWB ? 1 : 0));
       }
     }
 

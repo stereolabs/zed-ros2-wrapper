@@ -101,7 +101,10 @@
             gnss_vio_reinit_threshold: 5 # determines the threshold for GNSS/VIO reinitialization. If the fused position deviates beyond out of the region defined by the product of the GNSS covariance and the gnss_vio_reinit_threshold, a reinitialization will be triggered.
             target_translation_uncertainty: 10e-2 # defines the target translation uncertainty at which the calibration process between GNSS and VIO concludes. By default, the threshold is set at 10 centimeters.
             target_yaw_uncertainty: 0.1 # defines the target yaw uncertainty at which the calibration process between GNSS and VIO concludes. The unit of this parameter is in radian. By default, the threshold is set at 0.1 radians.
-
+            qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
+            qos_depth: 1 # Queue size if using KEEP_LAST
+            qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT
+            qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
         mapping:
             mapping_enabled: false # True to enable mapping and fused point cloud pubblication
             resolution: 0.05 # maps resolution in meters [min: 0.01f - max: 0.2f]

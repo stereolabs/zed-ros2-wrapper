@@ -1,0 +1,28 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.245.2/containers/ubuntu
+{
+	"name": "ZED",
+	"build": {
+		"dockerfile": "../docker/Dockerfile.u22-cu117-humble-release",
+		"args": { }
+	},
+	"context": "${localWorkspaceFolder}",
+
+	"runArgs": [
+		"--runtime", "nvidia", 
+		"-it", 
+		"--privileged", 
+		"--network=host", 
+		"--ipc=host", 
+		"--pid=host", 
+		"-e", "RMW_IMPLEMENTATION=rmw_cyclonedds_cpp", 
+		"-e", "CYCLONEDDS_URI=file:///mtb_generic_config/dds/humble_cyclonedds_config.xml", 
+		"-e", "NVIDIA_DRIVER_CAPABILITIES=all", 
+		"-e", "DISPLAY", 
+		"-e", "ROS_DOMAIN_ID=${localEnv:ROS_DOMAIN_ID}", 
+		"-v", "${localEnv:MTB_GENERIC_CONFIG_PATH}:/mtb_generic_config/", 
+		"-v", "/dev:/dev", 
+		"-v", "/tmp/.X11-unix/:/tmp/.X11-unix", 
+		"-v", "${localEnv:HOME}/zed_docker_ai/:/usr/local/zed/resources/",
+	],
+}

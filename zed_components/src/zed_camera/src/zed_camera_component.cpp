@@ -762,7 +762,7 @@ void ZedCamera::getGeneralParams()
     getParam("general.pub_frame_rate", mPubFrameRate, mPubFrameRate, "", false);
     if (mPubFrameRate > mCamGrabFrameRate) {
       RCLCPP_WARN(get_logger(), "'pub_frame_rate' cannot be bigger than 'grab_frame_rate'");
-      mPubFrameRate = mCamGrabFrameRate;
+      // mPubFrameRate = mCamGrabFrameRate;
     }
     if (mPubFrameRate < 0.1) {
       RCLCPP_WARN(get_logger(), "'pub_frame_rate' cannot be lower than 0.1 Hz or negative.");

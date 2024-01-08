@@ -1,12 +1,11 @@
 # config/common_yaml
 # Common parameters to Stereolabs ZED and ZED mini cameras
-#
-# Note: the parameter svo_file is passed as exe argumet
+
 ---
 /**:
     ros__parameters:
 
-        use_sim_time: false # Set to `true` only if there is a publisher for the simulated clock to the `/clock` topic
+        use_sim_time: false # Set to `true` only if there is a publisher for the simulated clock to the `/clock` topic. Normally used in simulation mode.
 
         simulation:
             sim_enabled: false # Set to `true` to enable the simulation mode and connect to a simulation server
@@ -25,11 +24,11 @@
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
             pub_frame_rate: 15.0 # frequency of publishing of visual images and depth images
             gpu_id: -1
+            optional_opencv_calibration_file: 'test.yaml' # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19 
             region_of_interest: '[]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
             #region_of_interest: '[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
             #region_of_interest: '[[0.25,0.25],[0.75,0.25],[0.75,0.75],[0.25,0.75]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
             #region_of_interest: '[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
-            sdk_verbose: 1
 
         video:
             brightness: 4 # [DYNAMIC] Not available for ZED X/ZED X Mini
@@ -169,6 +168,7 @@
             thread_pointcloud_priority: 60 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
 
         debug:
+            sdk_verbose: 0 # Set the verbose level of the ZED SDK 
             debug_common: false
             debug_sim: false
             debug_video_depth: false

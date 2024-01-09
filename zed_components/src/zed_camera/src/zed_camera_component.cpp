@@ -3558,7 +3558,7 @@ bool ZedCamera::startCamera()
           get_logger(),
           "Please check the correctness of the path of the calibration file in the parameter 'general.optional_opencv_calibration_file': '" <<
             mOpencvCalibFile << "'.");
-        RCLCPP_ERROR(get_logger(), "If the file exists, it can contain not valid information.");
+        RCLCPP_ERROR(get_logger(), "If the file exists, it may contain invalid information.");
       }
       return false;
     }

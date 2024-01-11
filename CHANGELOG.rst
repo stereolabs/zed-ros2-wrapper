@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2023-01-24
+- The parameter `general.sdk_verbose` has been moved to `debug.sdk_verbose` and set to `0` as default.
+- Add new parameter `general.optional_opencv_calibration_file` to use custom OpenCV camera calibrations.
+
 2023-11-28
 ----------
 - Add 'simulation.sim_enabled' parameter to enable the simulation mode

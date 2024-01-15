@@ -530,14 +530,11 @@ private:
   image_transport::CameraPublisher mPubRightGray;
   image_transport::CameraPublisher mPubRawRightGray;
 
-  //ptTranspPtr mPcTransp;
   point_cloud_transport::Publisher mPubCloud;
   point_cloud_transport::Publisher mPubFusedCloud;
 
   imagePub mPubConfMap;
   disparityPub mPubDisparity;
-  //pointcloudPub mPubCloud;
-  //pointcloudPub mPubFusedCloud;
   posePub mPubPose;
   poseStatusPub mPubPoseStatus;
   poseCovPub mPubPoseCov;

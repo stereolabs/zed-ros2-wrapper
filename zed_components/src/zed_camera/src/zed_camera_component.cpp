@@ -3293,7 +3293,6 @@ void ZedCamera::initPublishers()
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubConfMap->get_topic_name());
     mPubDisparity = create_publisher<stereo_msgs::msg::DisparityImage>(disparity_topic, mDepthQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDisparity->get_topic_name());
-    //mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>(pointcloud_topic, mDepthQos);
     mPubCloud = point_cloud_transport::create_publisher(
       this->shared_from_this(), pointcloud_topic, mDepthQos.get_rmw_qos_profile());
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCloud.getTopic());
@@ -3345,8 +3344,6 @@ void ZedCamera::initPublishers()
   // ----> Mapping
   if (!mDepthDisabled) {
     if (mMappingEnabled) {
-      // mPubFusedCloud =
-      //   create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudFusedTopic, mMappingQos);
       mPubFusedCloud = point_cloud_transport::create_publisher(
         this->shared_from_this(), mPointcloudFusedTopic, mMappingQos.get_rmw_qos_profile());
       RCLCPP_INFO_STREAM(
@@ -4406,8 +4403,6 @@ bool ZedCamera::start3dMapping()
 
   if (err == sl::ERROR_CODE::SUCCESS) {
     if (mPubFusedCloud == nullptr) {
-      // mPubFusedCloud =
-      //   create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudFusedTopic, mMappingQos);
       mPubFusedCloud = point_cloud_transport::create_publisher(
         this->shared_from_this(), mPointcloudFusedTopic,
         mMappingQos.get_rmw_qos_profile());

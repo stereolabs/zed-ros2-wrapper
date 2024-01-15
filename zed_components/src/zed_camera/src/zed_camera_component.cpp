@@ -494,6 +494,8 @@ void ZedCamera::getDebugParams()
 
   RCLCPP_INFO(get_logger(), "*** DEBUG parameters ***");
 
+  getParam("debug.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
+
   getParam("debug.debug_common", mDebugCommon, mDebugCommon);
   RCLCPP_INFO(get_logger(), " * Debug Common: %s", mDebugCommon ? "TRUE" : "FALSE");
 
@@ -658,7 +660,6 @@ void ZedCamera::getGeneralParams()
   }
   RCLCPP_INFO_STREAM(get_logger(), " * Camera model: " << camera_model << " - " << mCamUserModel);
 
-  getParam("general.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
   getParam("general.camera_name", mCameraName, mCameraName, " * Camera name: ");
   getParam("general.serial_number", mCamSerialNumber, mCamSerialNumber, " * Camera SN: ");
   getParam(
@@ -743,6 +744,10 @@ void ZedCamera::getGeneralParams()
   } else {
     mCustomDownscaleFactor = 1.0;
   }
+
+  getParam(
+    "general.optional_opencv_calibration_file", mOpencvCalibFile, mOpencvCalibFile,
+    " * OpenCV custom calibration: ");
 
   std::string parsed_str = getParam("general.region_of_interest", mRoiParam);
   RCLCPP_INFO_STREAM(get_logger(), " * Region of interest: " << parsed_str.c_str());
@@ -3512,6 +3517,10 @@ bool ZedCamera::startCamera()
   mInitParams.depth_minimum_distance = mCamMinDepth;
   mInitParams.depth_maximum_distance = mCamMaxDepth;
 
+  if (!mOpencvCalibFile.empty()) {
+    mInitParams.optional_opencv_calibration_file = mOpencvCalibFile.c_str();
+  }
+
   mInitParams.camera_disable_self_calib = !mCameraSelfCalib;
   mInitParams.enable_image_enhancement = true;
   mInitParams.enable_right_side_measure = false;
@@ -3538,6 +3547,20 @@ bool ZedCamera::startCamera()
     if (mConnStatus == sl::ERROR_CODE::SUCCESS) {
       DEBUG_STREAM_COMM("Opening successfull");
       break;
+    }
+
+    if (mConnStatus == sl::ERROR_CODE::INVALID_CALIBRATION_FILE) {
+      if (mOpencvCalibFile.empty()) {
+        RCLCPP_ERROR_STREAM(get_logger(), "Calibration file error: " << sl::toVerbose(mConnStatus));
+      } else {
+        RCLCPP_ERROR(get_logger(), "Custom OpenCV calibration file error.");
+        RCLCPP_ERROR_STREAM(
+          get_logger(),
+          "Please check the correctness of the path of the calibration file in the parameter 'general.optional_opencv_calibration_file': '" <<
+            mOpencvCalibFile << "'.");
+        RCLCPP_ERROR(get_logger(), "If the file exists, it may contain invalid information.");
+      }
+      return false;
     }
 
     if (mSvoMode) {

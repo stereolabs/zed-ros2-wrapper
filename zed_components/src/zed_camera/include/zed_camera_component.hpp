@@ -273,6 +273,7 @@ private:
   bool mSvoRealtime = false;
   int mVerbose = 1;
   int mGpuId = -1;
+  std::string mOpencvCalibFile;
   sl::RESOLUTION mCamResol = sl::RESOLUTION::HD1080;  // Default resolution: RESOLUTION_HD1080
   PubRes mPubResolution = PubRes::NATIVE;   // Use native grab resolution by default
   double mCustomDownscaleFactor = 1.0; // Used to rescale data with user factor

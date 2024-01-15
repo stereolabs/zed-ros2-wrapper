@@ -91,6 +91,7 @@ set(DEPENDENCIES
     rclcpp
     rclcpp_components
     image_transport
+    point_cloud_transport
     builtin_interfaces
     std_msgs
     tf2
@@ -132,6 +133,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
 
 find_package(image_transport REQUIRED)
+find_package(point_cloud_transport REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
 find_package(diagnostic_updater REQUIRED)

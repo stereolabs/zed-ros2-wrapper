@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2024-01-11
+----------
+- Add support for point cloud transport
+
 2023-11-28
 ----------
 - Add 'simulation.sim_enabled' parameter to enable the simulation mode

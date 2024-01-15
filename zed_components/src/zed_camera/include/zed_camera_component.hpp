@@ -37,6 +37,7 @@ public:
 
 protected:
   // ----> Initialization functions
+  void init();
   void initParameters();
   void initServices();
   void initThreads();
@@ -528,10 +529,14 @@ private:
   image_transport::CameraPublisher mPubRightGray;
   image_transport::CameraPublisher mPubRawRightGray;
 
+  //ptTranspPtr mPcTransp;
+  point_cloud_transport::Publisher mPubCloud;
+  point_cloud_transport::Publisher mPubFusedCloud;
+
   imagePub mPubConfMap;
   disparityPub mPubDisparity;
-  pointcloudPub mPubCloud;
-  pointcloudPub mPubFusedCloud;
+  //pointcloudPub mPubCloud;
+  //pointcloudPub mPubFusedCloud;
   posePub mPubPose;
   poseStatusPub mPubPoseStatus;
   poseCovPub mPubPoseCov;
@@ -610,6 +615,7 @@ private:
   std::thread mPcThread;          // Point Cloud publish thread
   std::thread mSensThread;        // Sensors data publish thread
   bool mThreadStop = false;
+  rclcpp::TimerBase::SharedPtr mInitTimer;
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
   rclcpp::TimerBase::SharedPtr mTempPubTimer;  // Timer to retrieve and publish CMOS temperatures

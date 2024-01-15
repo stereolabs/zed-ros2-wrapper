@@ -124,6 +124,19 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
     exit(EXIT_FAILURE);
   }
 
+  // ----> Start a "one shot timer" to initialize the node and make `shared_from_this` available
+  std::chrono::milliseconds init_msec(static_cast<int>(50.0));
+  mInitTimer = create_wall_timer(
+    std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
+    std::bind(&ZedCamera::init, this));
+  // <---- Start a "one shot timer" to initialize the node and make `shared_from_this` available
+}
+
+void ZedCamera::init()
+{
+  // Stop the timer for "one shot" initialization
+  mInitTimer->cancel();
+
   // Parameters initialization
   initParameters();
 
@@ -3280,8 +3293,10 @@ void ZedCamera::initPublishers()
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubConfMap->get_topic_name());
     mPubDisparity = create_publisher<stereo_msgs::msg::DisparityImage>(disparity_topic, mDepthQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDisparity->get_topic_name());
-    mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>(pointcloud_topic, mDepthQos);
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCloud->get_topic_name());
+    //mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>(pointcloud_topic, mDepthQos);
+    mPubCloud = point_cloud_transport::create_publisher(
+      this->shared_from_this(), pointcloud_topic, mDepthQos.get_rmw_qos_profile());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCloud.getTopic());
   }
   // <---- Depth publishers
 
@@ -3330,10 +3345,12 @@ void ZedCamera::initPublishers()
   // ----> Mapping
   if (!mDepthDisabled) {
     if (mMappingEnabled) {
-      mPubFusedCloud =
-        create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudFusedTopic, mMappingQos);
+      // mPubFusedCloud =
+      //   create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudFusedTopic, mMappingQos);
+      mPubFusedCloud = point_cloud_transport::create_publisher(
+        this->shared_from_this(), mPointcloudFusedTopic, mMappingQos.get_rmw_qos_profile());
       RCLCPP_INFO_STREAM(
-        get_logger(), "Advertised on topic " << mPubFusedCloud->get_topic_name() << " @ " <<
+        get_logger(), "Advertised on topic " << mPubFusedCloud.getTopic() << " @ " <<
           mFusedPcPubRate << " Hz");
     }
 
@@ -4389,10 +4406,13 @@ bool ZedCamera::start3dMapping()
 
   if (err == sl::ERROR_CODE::SUCCESS) {
     if (mPubFusedCloud == nullptr) {
-      mPubFusedCloud =
-        create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudFusedTopic, mMappingQos);
+      // mPubFusedCloud =
+      //   create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudFusedTopic, mMappingQos);
+      mPubFusedCloud = point_cloud_transport::create_publisher(
+        this->shared_from_this(), mPointcloudFusedTopic,
+        mMappingQos.get_rmw_qos_profile());
       RCLCPP_INFO_STREAM(
-        get_logger(), "Advertised on topic " << mPubFusedCloud->get_topic_name() << " @ " <<
+        get_logger(), "Advertised on topic " << mPubFusedCloud.getTopic() << " @ " <<
           mFusedPcPubRate << " Hz");
     }
 
@@ -5353,7 +5373,8 @@ void ZedCamera::threadFunc_zedGrab()
     if (!mDepthDisabled) {
       size_t cloudSubnumber = 0;
       try {
-        cloudSubnumber = count_subscribers(mPubCloud->get_topic_name());
+        //cloudSubnumber = count_subscribers(mPubCloud->get_topic_name());
+        cloudSubnumber = mPubCloud.getNumSubscribers();
       } catch (...) {
         rcutils_reset_error();
         DEBUG_STREAM_PC("threadFunc_zedGrab: Exception while counting point cloud subscribers");
@@ -7479,7 +7500,8 @@ bool ZedCamera::isDepthRequired()
     depthSub = mPubDepth.getNumSubscribers();
     confMapSub = count_subscribers(mPubConfMap->get_topic_name());
     dispSub = count_subscribers(mPubDisparity->get_topic_name());
-    pcSub = count_subscribers(mPubCloud->get_topic_name());
+    //pcSub = count_subscribers(mPubCloud->get_topic_name());
+    pcSub = mPubCloud.getNumSubscribers();
     depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
 
     tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub;
@@ -7974,7 +7996,7 @@ void ZedCamera::publishPointCloud()
 
   // Pointcloud publishing
   DEBUG_STREAM_PC("Publishing POINT CLOUD message");
-  mPubCloud->publish(std::move(pcMsg));
+  mPubCloud.publish(std::move(pcMsg));
 
   // Publish freq calculation
   double mean = mPcPeriodMean_sec->addValue(mPcFreqTimer.toc());
@@ -8089,7 +8111,8 @@ void ZedCamera::callback_pubFusedPc()
 
   uint32_t fusedCloudSubnumber = 0;
   try {
-    fusedCloudSubnumber = count_subscribers(mPubFusedCloud->get_topic_name());
+    //fusedCloudSubnumber = count_subscribers(mPubFusedCloud->get_topic_name());
+    fusedCloudSubnumber = mPubFusedCloud.getNumSubscribers();
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_MAP("pubFusedPc: Exception while counting subscribers");
@@ -8183,7 +8206,7 @@ void ZedCamera::callback_pubFusedPc()
 
   // Pointcloud publishing
   DEBUG_STREAM_MAP("Publishing FUSED POINT CLOUD message");
-  mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
+  mPubFusedCloud.publish(std::move(pointcloudFusedMsg));
 }
 
 void ZedCamera::callback_pubPaths()

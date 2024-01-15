@@ -10,6 +10,10 @@ LATEST CHANGES
 ----------
 - Add [new tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_robot_integration) to illustrate how to integrate one or more ZED cameras on a robot
 
+2024-01-11
+----------
+- Add support for point cloud transport
+
 2023-11-28
 ----------
 - Add 'simulation.sim_enabled' parameter to enable the simulation mode

@@ -5310,6 +5310,24 @@ void ZedCamera::threadFunc_zedGrab()
       // <---- Check recording status
     }
 
+    // ----> Localization processing
+    if (!mDepthDisabled) {
+      if (mPosTrackingStarted) {
+        if (!mSvoPause) {
+          processOdometry();
+          processPose();
+          if (mGnssFusionEnabled) {
+            processGeoPose();
+          }
+        }
+
+        // Publish `odom` and `map` TFs at the grab frequency
+        // RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_zedGrab");
+        publishTFs(mFrameTimestamp);
+      }
+    }
+    // <---- Localization processing
+
     // ----> Retrieve Image/Depth data if someone has subscribed to
     // Retrieve data if there are subscriber to topics
     if (areVideoDepthSubscribed()) {
@@ -5363,23 +5381,6 @@ void ZedCamera::threadFunc_zedGrab()
     }
     // <---- Retrieve the point cloud if someone has subscribed to
 
-    // ----> Localization processing
-    if (!mDepthDisabled) {
-      if (mPosTrackingStarted) {
-        if (!mSvoPause) {
-          processOdometry();
-          processPose();
-          if (mGnssFusionEnabled) {
-            processGeoPose();
-          }
-        }
-
-        // Publish `odom` and `map` TFs at the grab frequency
-        // RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_zedGrab");
-        publishTFs(mFrameTimestamp);
-      }
-    }
-    // <---- Localization processing
 
     if (!mDepthDisabled) {
       mObjDetMutex.lock();

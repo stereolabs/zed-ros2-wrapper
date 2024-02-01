@@ -121,6 +121,7 @@ protected:
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_clickedPoint(const geometry_msgs::msg::PointStamped::SharedPtr msg);
   void callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
+  void callback_clock(const rosgraph_msgs::msg::Clock::SharedPtr msg);
   void callback_setRoi(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_interfaces::srv::SetROI_Request> req,
@@ -244,6 +245,7 @@ private:
 
   // ----> Parameter variables
   bool mDebugCommon = false;
+  bool mDebugSim = false;
   bool mDebugVideoDepth = false;
   bool mDebugCamCtrl = false;
   bool mDebugPointCloud = false;
@@ -255,9 +257,11 @@ private:
   bool mDebugBodyTrk = false;
   bool mDebugAdvanced = false;
 
-  int mCamId = 0;
   int mCamSerialNumber = 0;
-  std::string mSimAddr = "localhost";  // The local address of the machine running the simulator
+  bool mSimMode = false;  // Expecting simulation data?
+  bool mUseSimTime = false; // Use sim time?
+  std::string mSimAddr = "127.0.0.1";  // The local address of the machine running the simulator
+  int mSimPort = 30000; // The port to be used to connect to the simulator
   sl::MODEL mCamUserModel = sl::MODEL::ZED;  // Default camera model
   sl::MODEL mCamRealModel;                   // Camera model requested to SDK
   unsigned int mCamFwVersion;                // Camera FW version
@@ -269,6 +273,7 @@ private:
   bool mSvoRealtime = false;
   int mVerbose = 1;
   int mGpuId = -1;
+  std::string mOpencvCalibFile;
   sl::RESOLUTION mCamResol = sl::RESOLUTION::HD1080;  // Default resolution: RESOLUTION_HD1080
   PubRes mPubResolution = PubRes::NATIVE;   // Use native grab resolution by default
   double mCustomDownscaleFactor = 1.0; // Used to rescale data with user factor
@@ -375,6 +380,7 @@ private:
   rclcpp::QoS mBodyTrkQos;
   rclcpp::QoS mClickedPtQos;
   rclcpp::QoS mGnssFixQos;
+  rclcpp::QoS mClockQos;
 
   std::string mThreadSchedPolicy;
   int mThreadPrioGrab;
@@ -593,6 +599,7 @@ private:
   // ----> Subscribers
   clickedPtSub mClickedPtSub;
   gnssFixSub mGnssFixSub;
+  clockSub mClockSub;
   // <---- Subscribers
 
   // ----> Threads and Timers
@@ -623,9 +630,7 @@ private:
   // <---- Thread Sync
 
   // ----> Status Flags
-  bool mSimEnabled = false;  // Expecting simulation data?
   bool mDebugMode = false;  // Debug mode active?
-  int mSimPort = 30000;
   bool mSvoMode = false;
   bool mSvoPause = false;
   bool mPosTrackingStarted = false;
@@ -654,6 +659,7 @@ private:
   bool mGnssFixValid = false; // Used to keep track of signal loss
   bool mGnssFixNew = false; // Used to keep track of signal loss
   std::string mGnssService = "";
+  std::atomic<bool> mClockAvailable; // Indicates if the "/clock" topic is published when `use_sim_time` is true
   // <---- Status Flags
 
   // ----> Positional Tracking
@@ -734,6 +740,7 @@ private:
   rclcpp::Time mLastTs_pc;
   rclcpp::Time mPrevTs_pc;
   uint64_t mLastTs_gnss_nsec = 0;
+  rclcpp::Time mLastClock;
   // <---- Timestamps
 
   // ----> SVO Recording parameters

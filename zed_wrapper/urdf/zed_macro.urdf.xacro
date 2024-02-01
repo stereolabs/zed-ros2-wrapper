@@ -88,6 +88,7 @@
         <material name="${model}_mat" />
       </visual>
       <collision>
+        <origin xyz="${screw_offset_x} 0 ${screw_offset_z}" rpy="0 0 0"/>
         <geometry>
           <mesh filename="package://zed_interfaces/meshes/${model}.stl" />
         </geometry>

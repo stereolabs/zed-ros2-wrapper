@@ -142,7 +142,7 @@ public:
   ~StopWatch() {}
 
   void tic();    //!< Set the reference time point to the current time
-  double toc();  //!< Returns the seconds elapsed from the last tic in ROS clock reference (it works also in simulation)
+  double toc(std::string func_name = std::string() );  //!< Returns the seconds elapsed from the last tic in ROS clock reference (it works also in simulation)
 
 private:
   rclcpp::Time mStartTime;  // Reference time point

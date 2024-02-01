@@ -143,7 +143,7 @@
             mc_electronics: true # [DYNAMIC] - Enable/disable the detection of electronic devices for 'MULTI_CLASS_X' models
             mc_fruit_vegetable: true # [DYNAMIC] - Enable/disable the detection of fruits and vegetables for 'MULTI_CLASS_X' models
             mc_sport: true # [DYNAMIC] - Enable/disable the detection of sport-related objects for 'MULTI_CLASS_X' models            
-            qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL>>>>>>> master
+            qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL
             qos_depth: 1 # Queue size if using KEEP_LAST
             qos_reliability: 1 # '1': RELIABLE - '2': BEST_EFFORT
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
@@ -155,8 +155,8 @@
             allow_reduced_precision_inference: false # Allow inference to run at a lower precision to improve runtime and memory usage
             max_range: 20.0 # [m] Defines a upper depth range for detections
             body_kp_selection: 'FULL' # 'FULL', 'UPPER_BODY'
-            enable_body_fitting: true # Defines if the body fitting will be applied
-            enable_tracking: true # Defines if the object detection will track objects across images flow
+            enable_body_fitting: false # Defines if the body fitting will be applied
+            enable_tracking: false # Defines if the object detection will track objects across images flow
             prediction_timeout_s: 0.5 # During this time [sec], the skeleton will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
             confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of skeleton key points [0,99]
             minimum_keypoints_threshold: 5 # [DYNAMIC] - Minimum number of skeleton key points to be detected for a valid skeleton

@@ -476,6 +476,7 @@ private:
   // ----> TF Transforms
   tf2::Transform mMap2OdomTransf;       // Coordinates of the odometry frame in map frame
   tf2::Transform mOdom2BaseTransf;      // Coordinates of the base in odometry frame
+  tf2::Transform mLastOdom2BaseTransf;  // Previous iteration of mOdom2BaseTransf
   tf2::Transform mMap2BaseTransf;       // Coordinates of the base in map frame
   tf2::Transform mSensor2BaseTransf;    // Coordinates of the base frame in sensor frame
   tf2::Transform mSensor2CameraTransf;  // Coordinates of the camera frame in sensor frame
@@ -736,7 +737,8 @@ private:
   rclcpp::Time mLastTs_baro;
   rclcpp::Time mLastTs_mag;
   rclcpp::Time mLastTs_odom;
-  rclcpp::Time mLastTs_pose;
+  rclcpp::Time mLastTs_odomTF;
+  rclcpp::Time mLastTs_poseTF;
   rclcpp::Time mLastTs_pc;
   rclcpp::Time mPrevTs_pc;
   uint64_t mLastTs_gnss_nsec = 0;

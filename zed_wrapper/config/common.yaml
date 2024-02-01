@@ -156,7 +156,7 @@
             max_range: 20.0 # [m] Defines a upper depth range for detections
             body_kp_selection: 'FULL' # 'FULL', 'UPPER_BODY'
             enable_body_fitting: false # Defines if the body fitting will be applied
-            enable_tracking: true # Defines if the object detection will track objects across images flow
+            enable_tracking: false # Defines if the object detection will track objects across images flow
             prediction_timeout_s: 0.5 # During this time [sec], the skeleton will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
             confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of skeleton key points [0,99]
             minimum_keypoints_threshold: 5 # [DYNAMIC] - Minimum number of skeleton key points to be detected for a valid skeleton

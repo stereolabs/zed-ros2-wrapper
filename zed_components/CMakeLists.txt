@@ -78,7 +78,7 @@ endif()
 
 #############################################
 # Dependencies
-find_package(ZED 4 REQUIRED)
+find_package(ZED REQUIRED)
 
 exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
 if(CMAKE_SYSTEM_NAME2 MATCHES "aarch64") # Jetson TX
@@ -151,14 +151,8 @@ file(GLOB_RECURSE all_files ${CMAKE_SOURCE_DIR}/*)
 add_custom_target(all_${PROJECT_NAME}_files SOURCES ${all_files})
 
 ###############################################################################
-# INCLUDES and LIBS
-include_directories(
-    ${CUDA_INCLUDE_DIRS}
-    ${ZED_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
-)
+# LIBS
+
 
 # create ament index resource which references the libraries in the binary dir
 set(node_plugins "")
@@ -202,6 +196,13 @@ add_library(zed_camera_component SHARED
     ${SL_TOOLS_SRC}
     ${ZED_CAMERA_INC}
     ${ZED_CAMERA_SRC}
+)
+target_include_directories(zed_camera_component PUBLIC
+    ${CUDA_INCLUDE_DIRS}
+    ${ZED_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
 )
 target_compile_definitions(zed_camera_component
     PRIVATE "COMPOSITION_BUILDING_DLL"

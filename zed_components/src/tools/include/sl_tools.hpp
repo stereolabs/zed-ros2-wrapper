@@ -24,7 +24,6 @@
 #include <sl/Camera.hpp>
 
 #include "sl_win_avg.hpp"
-
 namespace sl_tools
 {
 
@@ -138,7 +137,7 @@ bool checkRoot();
 class StopWatch
 {
 public:
-  StopWatch(rclcpp::Clock::SharedPtr clock);
+  explicit StopWatch(rclcpp::Clock::SharedPtr clock);
   ~StopWatch() {}
 
   void tic();    //!< Set the reference time point to the current time

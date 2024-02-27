@@ -23,9 +23,10 @@
   <!--
     Parameters:
       - name: the camera's name.  should match the parameter sent to the launch file for this camera
-      - model: the tye of camera, one of zed, zedm, zed2, zed2i
+      - model: the type of camera, one of zed, zedm, zed2, zed2i, zedx, zedxm
+      - enable_gnss: if true enable the URDF link
   -->
-  <xacro:macro name="zed_camera" params="name=zed model=zed">
+  <xacro:macro name="zed_camera" params="name=zed model=zed enable_gnss=false *gnss_origin">
     <xacro:if value="${model == 'zed'}">
       <xacro:property name="baseline" value="0.12" />
       <xacro:property name="height" value="0.03" />
@@ -130,7 +131,6 @@
       <child link="${name}_right_camera_optical_frame"/>
     </joint>
 
-
     <!-- ZED2 Sensors -->
     <xacro:if value="${model == 'zed2'}">
       <link name="${name}_mag_link" />
@@ -159,6 +159,15 @@
         <parent link="${name}_right_camera_frame"/>
         <child link="${name}_temp_right_link"/>
         <origin xyz="0 0 0" rpy="0 0 0" />
+      </joint>
+    </xacro:if>
+
+    <xacro:if value="${enable_gnss}">
+      <link name="${name}_gnss_link" />
+      <joint name="${name}_gnss_joint" type="fixed">
+        <parent link="${name}_camera_link"/>
+        <child link="${name}_gnss_link"/>
+        <xacro:insert_block name="gnss_origin" />
       </joint>
     </xacro:if>
 

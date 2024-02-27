@@ -5115,20 +5115,24 @@ bool ZedCamera::startPosTracking()
   if (mGnssFusionEnabled && err == sl::ERROR_CODE::SUCCESS) {
     mMap2UtmTransfValid = false;
 
-    sl::PositionalTrackingFusionParameters params;
-    params.enable_GNSS_fusion = mGnssFusionEnabled;
+    sl::PositionalTrackingFusionParameters fusion_params;
+    fusion_params.enable_GNSS_fusion = mGnssFusionEnabled;
 
     sl::GNSSCalibrationParameters gnss_par;
-    gnss_par.enable_reinitialization = mGnssEnableReinitialization;
-    gnss_par.enable_rolling_calibration = mGnssEnableRollingCalibration;
-    gnss_par.enable_translation_uncertainty_target =
-      mGnssEnableTranslationUncertaintyTarget;
-    gnss_par.gnss_vio_reinit_threshold = mGnssVioReinitThreshold;
-    gnss_par.target_translation_uncertainty = mGnssTargetTranslationUncertainty;
     gnss_par.target_yaw_uncertainty = mGnssTargetYawUncertainty;
-    params.gnss_calibration_parameters = gnss_par;
+    gnss_par.enable_translation_uncertainty_target =
+        mGnssEnableTranslationUncertaintyTarget;
+    gnss_par.target_translation_uncertainty = mGnssTargetTranslationUncertainty;
+    gnss_par.enable_reinitialization = mGnssEnableReinitialization;
+    gnss_par.gnss_vio_reinit_threshold = mGnssVioReinitThreshold;
+    gnss_par.enable_rolling_calibration = mGnssEnableRollingCalibration;
 
-    sl::FUSION_ERROR_CODE fus_err = mFusion.enablePositionalTracking(params);
+    // TODO Retrieve TF for antenna pose
+    
+    fusion_params.gnss_calibration_parameters = gnss_par;
+
+    sl::FUSION_ERROR_CODE fus_err =
+        mFusion.enablePositionalTracking(fusion_params);
 
     if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
       mPosTrackingStarted = false;
@@ -7126,7 +7130,7 @@ bool ZedCamera::areVideoDepthSubscribed()
 void ZedCamera::retrieveVideoDepth()
 {
   mRgbSubscribed = false;
-  bool retrieved;
+  bool retrieved=false;
 
   // ----> Retrieve all required data
   DEBUG_STREAM_VD("Retrieving Video Data");
@@ -9235,7 +9239,6 @@ void ZedCamera::callback_pubFusedPc()
     resized = true;
   }
 
-  size_t index = 0;
   float * ptCloudPtr = reinterpret_cast<float *>(&pointcloudFusedMsg->data[0]);
   int updated = 0;
 
@@ -9263,8 +9266,6 @@ void ZedCamera::callback_pubFusedPc()
             sl_tools::slTime2Ros(mFusedPC.chunks[c].timestamp);
         }
       }
-    } else {
-      index += mFusedPC.chunks[c].vertices.size();
     }
   }
 

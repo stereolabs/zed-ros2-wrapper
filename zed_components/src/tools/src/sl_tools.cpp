@@ -136,7 +136,7 @@ rclcpp::Time slTime2Ros(sl::Timestamp t, rcl_clock_type_t clock_type)
 }
 
 std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
-  sl::Mat & img, std::string frameId, rclcpp::Time t)
+  const sl::Mat & img, const std::string & frameId, const rclcpp::Time & t)
 {
   std::unique_ptr<sensor_msgs::msg::Image> imgMessage = std::make_unique<sensor_msgs::msg::Image>();
 
@@ -210,7 +210,8 @@ std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
 }
 
 std::unique_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
-  sl::Mat & left, sl::Mat & right, std::string frameId, rclcpp::Time t)
+  const sl::Mat & left, const sl::Mat & right, const std::string & frameId,
+  const rclcpp::Time & t)
 {
   std::unique_ptr<sensor_msgs::msg::Image> imgMsgPtr = std::make_unique<sensor_msgs::msg::Image>();
 

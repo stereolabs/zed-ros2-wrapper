@@ -78,7 +78,7 @@ bool isObjDetAvailable(sl::MODEL camModel);
  * \param t : rclcpp ros::Time to stamp the image
  */
 std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
-  sl::Mat & img, std::string frameId, rclcpp::Time t);
+  const sl::Mat & img, const std::string & frameId, const rclcpp::Time & t);
 
 /*! \brief sl::Mat to ros message conversion
  * \param left : the left image to convert and stitch
@@ -87,7 +87,8 @@ std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
  * \param t : rclcpp rclcpp::Time to stamp the image
  */
 std::unique_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
-  sl::Mat & left, sl::Mat & right, std::string frameId, rclcpp::Time t);
+  const sl::Mat & left, const sl::Mat & right, const std::string & frameId,
+  const rclcpp::Time & t);
 
 /*! \brief qos value to string
  * \param qos the value to convert

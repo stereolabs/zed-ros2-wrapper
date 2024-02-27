@@ -5121,18 +5121,18 @@ bool ZedCamera::startPosTracking()
     sl::GNSSCalibrationParameters gnss_par;
     gnss_par.target_yaw_uncertainty = mGnssTargetYawUncertainty;
     gnss_par.enable_translation_uncertainty_target =
-        mGnssEnableTranslationUncertaintyTarget;
+      mGnssEnableTranslationUncertaintyTarget;
     gnss_par.target_translation_uncertainty = mGnssTargetTranslationUncertainty;
     gnss_par.enable_reinitialization = mGnssEnableReinitialization;
     gnss_par.gnss_vio_reinit_threshold = mGnssVioReinitThreshold;
     gnss_par.enable_rolling_calibration = mGnssEnableRollingCalibration;
 
     // TODO Retrieve TF for antenna pose
-    
+
     fusion_params.gnss_calibration_parameters = gnss_par;
 
     sl::FUSION_ERROR_CODE fus_err =
-        mFusion.enablePositionalTracking(fusion_params);
+      mFusion.enablePositionalTracking(fusion_params);
 
     if (fus_err != sl::FUSION_ERROR_CODE::SUCCESS) {
       mPosTrackingStarted = false;
@@ -7130,7 +7130,7 @@ bool ZedCamera::areVideoDepthSubscribed()
 void ZedCamera::retrieveVideoDepth()
 {
   mRgbSubscribed = false;
-  bool retrieved=false;
+  bool retrieved = false;
 
   // ----> Retrieve all required data
   DEBUG_STREAM_VD("Retrieving Video Data");
@@ -9841,7 +9841,7 @@ void ZedCamera::callback_updateDiagnostic(
         "Video/Depth", "Processing Time: %.6f sec (Max. %.3f sec)",
         mVideoDepthElabMean_sec->getAvg(), frame_grab_period);
     } else {
-      stat.add("Video/Depth", "Topics not subscribed");
+      stat.add("Video/Depth", "Topic not subscribed");
     }
 
     if (mSvoMode) {

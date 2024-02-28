@@ -306,6 +306,7 @@ private:
   double mFixedZValue = 0.0;
   std::vector<double> mInitialBasePose = std::vector<double>(6, 0.0);
   bool mInitOdomWithPose = true;
+  bool mResetOdomWhenPoseBackOK = true;
   double mPathPubRate = 2.0;
   double mTfOffset = 0.05;
   double mPosTrackDepthMinRange = 0.0;
@@ -635,8 +636,12 @@ private:
   bool mRecording = false;
   sl::RecordingStatus mRecStatus = sl::RecordingStatus();
   bool mPosTrackingReady = false;
-  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusWorld;
-  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusCamera;
+  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusWorld =
+    sl::POSITIONAL_TRACKING_STATE::SEARCHING;
+  sl::POSITIONAL_TRACKING_STATE mPrevPosTrackingStatusWorld =
+    sl::POSITIONAL_TRACKING_STATE::SEARCHING;
+  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusCamera =
+    sl::POSITIONAL_TRACKING_STATE::SEARCHING;
 
   sl::GNSS_CALIBRATION_STATE mGeoPoseStatus;
 
@@ -668,6 +673,7 @@ private:
   sl::LatLng mInitLatLongPose;
   double mInitHeading;
   bool mGnssInitGood = false;
+  float3 mGnssAntennaPose;
   // <---- Positional Tracking
 
   // ----> Diagnostic

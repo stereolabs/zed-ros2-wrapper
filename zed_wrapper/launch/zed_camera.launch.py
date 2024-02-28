@@ -81,7 +81,7 @@ def launch_setup(context, *args, **kwargs):
 
     ros_params_override_path = LaunchConfiguration('ros_params_override_path')
 
-    gnss_frame = LaunchConfiguration('gnss_frame')
+    enable_gnss = LaunchConfiguration('enable_gnss')
 
     camera_name_val = camera_name.perform(context)
     camera_model_val = camera_model.perform(context)
@@ -208,9 +208,10 @@ def generate_launch_description():
                 default_value=TextSubstitution(text='live'),
                 description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.'),
             DeclareLaunchArgument(
-                'gnss_frame',
-                default_value='',
-                description='Name of the GNSS link frame. Leave empty if not used. Remember to set the transform `camera_link` -> `gnss_frame` in the URDF file.'),
+                'enable_gnss',
+                default_value='Enable GNSS fusion to fix positional tracking pose with GNSS data from messages of type `sensor_msgs::msg::NavSatFix`',
+                description='',
+                choices=['true', 'false']),),
             DeclareLaunchArgument(
                 'use_sim_time',
                 default_value='false',

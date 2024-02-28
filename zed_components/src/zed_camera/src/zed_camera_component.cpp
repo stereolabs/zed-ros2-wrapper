@@ -1691,6 +1691,13 @@ void ZedCamera::getPosTrackingParams()
     get_logger(),
     " * Init Odometry with first valid pose data: "
       << (mInitOdomWithPose ? "TRUE" : "FALSE"));
+  getParam(
+    "pos_tracking.reset_odom_when_pose_is_ok_again",
+    mResetOdomWhenPoseBackOK, mResetOdomWhenPoseBackOK);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Reset Odometry when Pose is back OK: "
+      << (mResetOdomWhenPoseBackOK ? "TRUE" : "FALSE"));
   getParam("pos_tracking.two_d_mode", mTwoDMode, mTwoDMode);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -1814,9 +1821,8 @@ void ZedCamera::getGnssFusionParams()
     " * GNSS fusion enabled: " << (mGnssFusionEnabled ? "TRUE" : "FALSE"));
 
   if (mGnssFusionEnabled) {
-    getParam(
-      "gnss_fusion.gnss_frame", mGnssFrameId, mGnssFrameId,
-      " * GNSS frame: ");
+    mGnssFrameId = mCameraName + "_gnss_link";
+
     getParam(
       "gnss_fusion.gnss_fix_topic", mGnssTopic, mGnssTopic,
       " * GNSS topic name: ");
@@ -4853,6 +4859,63 @@ bool ZedCamera::startCamera()
 
   if (mGnssFusionEnabled) {
     DEBUG_GNSS("Initialize Fusion module");
+
+    // ----> Retrieve GNSS to ZED transform
+    tf2::Transform camera2gnss;
+    try {
+      // Save the transformation
+      geometry_msgs::msg::TransformStamped g2c = mTfBuffer->lookupTransform(
+        mDepthFrameId, mGnssFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
+
+      // Get the TF2 transformation
+      // tf2::fromMsg(g2c.transform, camera2gnss);
+      geometry_msgs::msg::Transform in = g2c.transform;
+      camera2gnss.setOrigin(
+        tf2::Vector3(in.translation.x, in.translation.y, in.translation.z));
+      // w at the end in the constructor
+      camera2gnss.setRotation(
+        tf2::Quaternion(
+          in.rotation.x, in.rotation.y,
+          in.rotation.z, in.rotation.w));
+
+      double roll, pitch, yaw;
+      tf2::Matrix3x3(camera2gnss.getRotation()).getRPY(roll, pitch, yaw);
+
+      RCLCPP_INFO(
+        get_logger(),
+        " Static transform Camera Link to GNSS frame [%s -> %s]",
+        mDepthFrameId.c_str(), mGnssFrameId.c_str());
+      RCLCPP_INFO(
+        get_logger(), "  * Translation: {%.3f,%.3f,%.3f}",
+        camera2gnss.getOrigin().x(), camera2gnss.getOrigin().y(),
+        camera2gnss.getOrigin().z());
+      RCLCPP_INFO(
+        get_logger(), "  * Rotation: {%.3f,%.3f,%.3f}",
+        roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+    } catch (tf2::TransformException & ex) {
+      rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), steady_clock, 1000.0,
+        "Transform error: %s", ex.what());
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), steady_clock, 1000.0,
+        "The tf from '%s' to '%s' is not available.",
+        mDepthFrameId.c_str(), mGnssFrameId.c_str());
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), steady_clock, 1000.0,
+        "Note: one of the possible cause of the problem is the absense of "
+        "an instance of the `robot_state_publisher` node publishing the correct static "
+        "TF transformations or a modified URDF not correctly reproducing the ZED "
+        "TF chain '%s' -> '%s'",
+        mGnssFrameId.c_str(), mDepthFrameId.c_str());
+      exit(EXIT_FAILURE);
+    }
+    
+    mGnssAntennaPose[0] = camera2gnss.getOrigin().x();
+    mGnssAntennaPose[1] = camera2gnss.getOrigin().y();
+    mGnssAntennaPose[2] = camera2gnss.getOrigin().z();
+    // <---- Retrieve GNSS to ZED transform
+
     // ----> Initialize Fusion module
 
     // Fusion parameters
@@ -5030,6 +5093,10 @@ bool ZedCamera::startPosTracking()
   mPosTrackingReady = false;
   mGnssInitGood = false;
 
+  mPosTrackingStatusWorld = sl::POSITIONAL_TRACKING_STATE::SEARCHING;
+  mPrevPosTrackingStatusWorld = sl::POSITIONAL_TRACKING_STATE::SEARCHING;
+  mPosTrackingStatusCamera = sl::POSITIONAL_TRACKING_STATE::SEARCHING;
+
   // auto start = std::chrono::high_resolution_clock::now();
 
   sl_tools::StopWatch stopWatch(get_clock());
@@ -5083,23 +5150,23 @@ bool ZedCamera::startPosTracking()
   }
 
   // Tracking parameters
-  sl::PositionalTrackingParameters trackParams;
+  sl::PositionalTrackingParameters ptParams;
 
   mPoseSmoothing = false;  // Always false. Pose Smoothing is to be enabled only
                            // for VR/AR applications
 
-  trackParams.enable_pose_smoothing = mPoseSmoothing;
-  trackParams.enable_area_memory = mAreaMemory;
-  trackParams.area_file_path = mAreaMemoryDbPath.c_str();
-  trackParams.enable_imu_fusion = mImuFusion;
-  trackParams.initial_world_transform = mInitialPoseSl;
-  trackParams.set_floor_as_origin = mFloorAlignment;
-  trackParams.depth_min_range = mPosTrackDepthMinRange;
-  trackParams.set_as_static = mSetAsStatic;
-  trackParams.set_gravity_as_origin = mSetGravityAsOrigin;
-  trackParams.mode = mPosTrkMode;
+  ptParams.enable_pose_smoothing = mPoseSmoothing;
+  ptParams.enable_area_memory = mAreaMemory;
+  ptParams.area_file_path = mAreaMemoryDbPath.c_str();
+  ptParams.enable_imu_fusion = mImuFusion;
+  ptParams.initial_world_transform = mInitialPoseSl;
+  ptParams.set_floor_as_origin = mFloorAlignment;
+  ptParams.depth_min_range = mPosTrackDepthMinRange;
+  ptParams.set_as_static = mSetAsStatic;
+  ptParams.set_gravity_as_origin = mSetGravityAsOrigin;
+  ptParams.mode = mPosTrkMode;
 
-  sl::ERROR_CODE err = mZed.enablePositionalTracking(trackParams);
+  sl::ERROR_CODE err = mZed.enablePositionalTracking(ptParams);
 
   if (err != sl::ERROR_CODE::SUCCESS) {
     mPosTrackingStarted = false;
@@ -5126,8 +5193,7 @@ bool ZedCamera::startPosTracking()
     gnss_par.enable_reinitialization = mGnssEnableReinitialization;
     gnss_par.gnss_vio_reinit_threshold = mGnssVioReinitThreshold;
     gnss_par.enable_rolling_calibration = mGnssEnableRollingCalibration;
-
-    // TODO Retrieve TF for antenna pose
+    gnss_par.gnss_antenna_position = mGnssAntennaPose;
 
     fusion_params.gnss_calibration_parameters = gnss_par;
 
@@ -5637,8 +5703,8 @@ bool ZedCamera::getCamera2BaseTransform()
     mCamera2BaseTransf.setIdentity();
     return false;
   }
-
   // <---- Static transforms
+
   mCamera2BaseTransfValid = true;
   return true;
 }
@@ -7537,11 +7603,7 @@ void ZedCamera::processOdometry()
         camera_delta_odom.pose_data.getInfos().c_str());
     }
 
-    if (mPosTrackingStatusCamera == sl::POSITIONAL_TRACKING_STATE::OK ||
-      mPosTrackingStatusCamera == sl::POSITIONAL_TRACKING_STATE::SEARCHING ||
-      mPosTrackingStatusCamera ==
-      sl::POSITIONAL_TRACKING_STATE::FPS_TOO_LOW)
-    {
+    if (mPosTrackingStatusCamera != sl::POSITIONAL_TRACKING_STATE::OFF) {
       sl::Translation translation = deltaOdom.getTranslation();
       sl::Orientation quat = deltaOdom.getOrientation();
 
@@ -7705,9 +7767,7 @@ void ZedCamera::processPose()
       camera_pose.pose_data.getInfos().c_str());
   }
 
-  if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK ||
-    mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::SEARCHING)
-  {
+  if (mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OFF) {
     double roll, pitch, yaw;
     tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow))
     .getRPY(roll, pitch, yaw);
@@ -7746,15 +7806,25 @@ void ZedCamera::processPose()
 
     bool initOdom = false;
 
-    if (!(mFloorAlignment)) {
-      initOdom = mInitOdomWithPose;
-    } else {
-      initOdom = mInitOdomWithPose &
-        (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK);
+    // if (!mFloorAlignment) {
+    //   initOdom = mInitOdomWithPose;
+    // } else {
+    //   initOdom = mInitOdomWithPose &
+    //     (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK);
+    // }
+
+    if (mInitOdomWithPose) {
+      initOdom = true;
+    } else if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
+      mPrevPosTrackingStatusWorld !=
+      sl::POSITIONAL_TRACKING_STATE::OK)
+    {
+      mResetOdom = mResetOdomWhenPoseBackOK;
     }
+    mPrevPosTrackingStatusWorld = mPosTrackingStatusWorld;
 
     if (initOdom || mResetOdom) {
-      RCLCPP_INFO(get_logger(), "Odometry aligned to last tracking pose");
+      RCLCPP_INFO(get_logger(), "Odometry aligned to the last tracking pose");
 
       // Propagate Odom transform in time
       mOdom2BaseTransf = mMap2BaseTransf;
@@ -7764,11 +7834,13 @@ void ZedCamera::processPose()
 
       RCLCPP_INFO(
         get_logger(),
-        " * Initial odometry [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+        " * Initial odometry [%s -> %s] - {%.3f,%.3f,%.3f} "
+        "{%.3f,%.3f,%.3f}",
         mOdomFrameId.c_str(), mBaseFrameId.c_str(),
-        mOdom2BaseTransf.getOrigin().x(), mOdom2BaseTransf.getOrigin().y(),
-        mOdom2BaseTransf.getOrigin().z(), roll * RAD2DEG, pitch * RAD2DEG,
-        yaw * RAD2DEG);
+        mOdom2BaseTransf.getOrigin().x(),
+        mOdom2BaseTransf.getOrigin().y(),
+        mOdom2BaseTransf.getOrigin().z(), roll * RAD2DEG,
+        pitch * RAD2DEG, yaw * RAD2DEG);
 
       // if (odomSub > 0) {
       //   // Publish odometry message
@@ -7858,7 +7930,6 @@ void ZedCamera::publishGnssPoseStatus()
     poseStatusMsgPtr msg =
       std::make_unique<zed_interfaces::msg::PosTrackStatus>();
 
-
     if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
       mGeoPoseStatus == sl::GNSS_CALIBRATION_STATE::CALIBRATED)
     {
@@ -7888,7 +7959,6 @@ void ZedCamera::publishGeoPoseStatus()
   if (statusSub > 0) {
     poseStatusMsgPtr msg =
       std::make_unique<zed_interfaces::msg::PosTrackStatus>();
-
 
     if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
       mGeoPoseStatus == sl::GNSS_CALIBRATION_STATE::CALIBRATED)
@@ -9872,7 +9942,9 @@ void ZedCamera::callback_updateDiagnostic(
       }
 
       if (mFloorAlignment) {
-        if (mInitOdomWithPose) {
+        if (mPosTrackingStatusWorld ==
+          sl::POSITIONAL_TRACKING_STATE::SEARCHING_FLOOR_PLANE)
+        {
           stat.add("Floor Detection", "NOT INITIALIZED");
         } else {
           stat.add("Floor Detection", "INITIALIZED");
@@ -10654,7 +10726,6 @@ void ZedCamera::callback_toLL(
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not enabled");
     return;
   }
-
 
   if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED) {
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");

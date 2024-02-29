@@ -27,8 +27,6 @@
 
   <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
   <xacro:zed_camera name="$(arg camera_name)" model="$(arg camera_model)" enable_gnss="$(arg enable_gnss)">
-    <gnss_origin>
-	    <origin xyz="$(arg gnss_x) $(arg gnss_y) -$(arg gnss_z)" rpy="0 0 0"/>
-    </gnss_origin>
+	    <origin xyz="$(arg gnss_x) $(arg gnss_y) $(arg gnss_z)" rpy="0 0 0"/>
   </xacro:zed_camera>
 </robot>

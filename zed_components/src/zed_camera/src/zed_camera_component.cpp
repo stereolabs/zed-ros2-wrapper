@@ -4861,59 +4861,14 @@ bool ZedCamera::startCamera()
     DEBUG_GNSS("Initialize Fusion module");
 
     // ----> Retrieve GNSS to ZED transform
-    tf2::Transform camera2gnss;
-    try {
-      // Save the transformation
-      geometry_msgs::msg::TransformStamped g2c = mTfBuffer->lookupTransform(
-        mDepthFrameId, mGnssFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
-
-      // Get the TF2 transformation
-      // tf2::fromMsg(g2c.transform, camera2gnss);
-      geometry_msgs::msg::Transform in = g2c.transform;
-      camera2gnss.setOrigin(
-        tf2::Vector3(in.translation.x, in.translation.y, in.translation.z));
-      // w at the end in the constructor
-      camera2gnss.setRotation(
-        tf2::Quaternion(
-          in.rotation.x, in.rotation.y,
-          in.rotation.z, in.rotation.w));
-
-      double roll, pitch, yaw;
-      tf2::Matrix3x3(camera2gnss.getRotation()).getRPY(roll, pitch, yaw);
-
-      RCLCPP_INFO(
-        get_logger(),
-        " Static transform Camera Link to GNSS frame [%s -> %s]",
-        mDepthFrameId.c_str(), mGnssFrameId.c_str());
-      RCLCPP_INFO(
-        get_logger(), "  * Translation: {%.3f,%.3f,%.3f}",
-        camera2gnss.getOrigin().x(), camera2gnss.getOrigin().y(),
-        camera2gnss.getOrigin().z());
-      RCLCPP_INFO(
-        get_logger(), "  * Rotation: {%.3f,%.3f,%.3f}",
-        roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
-    } catch (tf2::TransformException & ex) {
-      rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), steady_clock, 1000.0,
-        "Transform error: %s", ex.what());
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), steady_clock, 1000.0,
-        "The tf from '%s' to '%s' is not available.",
-        mDepthFrameId.c_str(), mGnssFrameId.c_str());
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), steady_clock, 1000.0,
-        "Note: one of the possible cause of the problem is the absense of "
-        "an instance of the `robot_state_publisher` node publishing the correct static "
-        "TF transformations or a modified URDF not correctly reproducing the ZED "
-        "TF chain '%s' -> '%s'",
-        mGnssFrameId.c_str(), mDepthFrameId.c_str());
-      exit(EXIT_FAILURE);
+    RCLCPP_INFO(get_logger(), "*** Initialize GNSS Offset ***");
+    if (!mGnss2BaseTransfValid) {
+      getGnss2BaseTransform();
     }
-    
-    mGnssAntennaPose[0] = camera2gnss.getOrigin().x();
-    mGnssAntennaPose[1] = camera2gnss.getOrigin().y();
-    mGnssAntennaPose[2] = camera2gnss.getOrigin().z();
+
+    mGnssAntennaPose[0] = mGnss2BaseTransf.getOrigin().x();
+    mGnssAntennaPose[1] = mGnss2BaseTransf.getOrigin().y();
+    mGnssAntennaPose[2] = mGnss2BaseTransf.getOrigin().z();
     // <---- Retrieve GNSS to ZED transform
 
     // ----> Initialize Fusion module
@@ -5084,7 +5039,7 @@ bool ZedCamera::startPosTracking()
     return false;
   }
 
-  RCLCPP_INFO_STREAM(get_logger(), "*** Starting Positional Tracking ***");
+  RCLCPP_INFO(get_logger(), "*** Starting Positional Tracking ***");
 
   RCLCPP_INFO(get_logger(), " * Waiting for valid static transformations...");
 
@@ -5194,6 +5149,11 @@ bool ZedCamera::startPosTracking()
     gnss_par.gnss_vio_reinit_threshold = mGnssVioReinitThreshold;
     gnss_par.enable_rolling_calibration = mGnssEnableRollingCalibration;
     gnss_par.gnss_antenna_position = mGnssAntennaPose;
+
+    DEBUG_STREAM_GNSS(
+      "GNSS antenna pose in ZED SDK coordinate: "
+        << mGnssAntennaPose[0] << "," << mGnssAntennaPose[1]
+        << "," << mGnssAntennaPose[2]);
 
     fusion_params.gnss_calibration_parameters = gnss_par;
 
@@ -5740,7 +5700,7 @@ bool ZedCamera::getSens2CameraTransform()
 
     RCLCPP_INFO(
       get_logger(),
-      " Static transform Sensor to Camera Center [%s -> %s]",
+      " Static transform ref. CMOS Sensor to Camera Center [%s -> %s]",
       mDepthFrameId.c_str(), mCameraFrameId.c_str());
     RCLCPP_INFO(
       get_logger(), "  * Translation: {%.3f,%.3f,%.3f}",
@@ -5811,7 +5771,8 @@ bool ZedCamera::getSens2BaseTransform()
     tf2::Matrix3x3(mSensor2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
     RCLCPP_INFO(
-      get_logger(), " Static transform Sensor to Base [%s -> %s]",
+      get_logger(),
+      " Static transform ref. CMOS Sensor to Base [%s -> %s]",
       mDepthFrameId.c_str(), mBaseFrameId.c_str());
     RCLCPP_INFO(
       get_logger(), "  * Translation: {%.3f,%.3f,%.3f}",
@@ -5882,7 +5843,7 @@ bool ZedCamera::getGnss2BaseTransform()
     tf2::Matrix3x3(mGnss2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
     RCLCPP_INFO(
-      get_logger(), " Static transform Sensor to Base [%s -> %s]",
+      get_logger(), " Static transform GNSS Antenna to Camera Base [%s -> %s]",
       mGnssFrameId.c_str(), mBaseFrameId.c_str());
     RCLCPP_INFO(
       get_logger(), "  * Translation: {%.3f,%.3f,%.3f}",
@@ -6151,16 +6112,13 @@ void ZedCamera::threadFunc_zedGrab()
 
     // ----> Check for Positional Tracking requirement
     if (isPosTrackingRequired() && !mPosTrackingStarted) {
-      if (mGnssFusionEnabled && !mGnssFixValid) {
-        RCLCPP_INFO_ONCE(
-          get_logger(),
-          "*** Positional Tracking with GNSS fusion ***");
-        RCLCPP_INFO_ONCE(
-          get_logger(),
-          " * Waiting for the first valid GNSS fix...");
-      } else {
-        startPosTracking();
-      }
+      startPosTracking();
+    }
+    if (mGnssFusionEnabled && !mGnssFixValid) {
+      rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), steady_clock, 5000.0,
+        " * Waiting for the first valid GNSS fix...");
     }
     // ----> Check for Positional Tracking requirement
 
@@ -7806,26 +7764,23 @@ void ZedCamera::processPose()
 
     bool initOdom = false;
 
-    // if (!mFloorAlignment) {
-    //   initOdom = mInitOdomWithPose;
-    // } else {
-    //   initOdom = mInitOdomWithPose &
-    //     (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK);
-    // }
-
     if (mInitOdomWithPose) {
       initOdom = true;
+      RCLCPP_INFO(
+        get_logger(), "*** Odometry initialization ***" );
     } else if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
       mPrevPosTrackingStatusWorld !=
       sl::POSITIONAL_TRACKING_STATE::OK)
     {
       mResetOdom = mResetOdomWhenPoseBackOK;
+      RCLCPP_INFO_STREAM(
+        get_logger(), "*** Odometry reset. Old status: " << sl::toString(
+          mPrevPosTrackingStatusWorld) << " - New status: " <<
+          sl::toString(mPosTrackingStatusWorld) << " ***");
     }
     mPrevPosTrackingStatusWorld = mPosTrackingStatusWorld;
 
     if (initOdom || mResetOdom) {
-      RCLCPP_INFO(get_logger(), "Odometry aligned to the last tracking pose");
-
       // Propagate Odom transform in time
       mOdom2BaseTransf = mMap2BaseTransf;
       mMap2BaseTransf.setIdentity();
@@ -7834,18 +7789,13 @@ void ZedCamera::processPose()
 
       RCLCPP_INFO(
         get_logger(),
-        " * Initial odometry [%s -> %s] - {%.3f,%.3f,%.3f} "
+        " * Odometri TF [%s -> %s] - {%.3f,%.3f,%.3f} "
         "{%.3f,%.3f,%.3f}",
         mOdomFrameId.c_str(), mBaseFrameId.c_str(),
         mOdom2BaseTransf.getOrigin().x(),
         mOdom2BaseTransf.getOrigin().y(),
         mOdom2BaseTransf.getOrigin().z(), roll * RAD2DEG,
         pitch * RAD2DEG, yaw * RAD2DEG);
-
-      // if (odomSub > 0) {
-      //   // Publish odometry message
-      //   publishOdom(mOdom2BaseTransf, mLastZedPose, mFrameTimestamp);
-      // }
 
       mInitOdomWithPose = false;
       mResetOdom = false;

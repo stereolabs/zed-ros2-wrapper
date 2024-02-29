@@ -673,7 +673,7 @@ private:
   sl::LatLng mInitLatLongPose;
   double mInitHeading;
   bool mGnssInitGood = false;
-  float3 mGnssAntennaPose;
+  sl::float3 mGnssAntennaPose;
   // <---- Positional Tracking
 
   // ----> Diagnostic

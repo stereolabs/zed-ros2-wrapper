@@ -82,9 +82,12 @@ def launch_setup(context, *args, **kwargs):
     ros_params_override_path = LaunchConfiguration('ros_params_override_path')
 
     enable_gnss = LaunchConfiguration('enable_gnss')
+    gnss_antenna_offset = LaunchConfiguration('gnss_antenna_offset')
 
     camera_name_val = camera_name.perform(context)
     camera_model_val = camera_model.perform(context)
+    enable_gnss_val = enable_gnss.perform(context)
+    gnss_coords = parse_array_param(gnss_antenna_offset.perform(context))
 
     if (camera_name_val == ''):
         camera_name_val = 'zed'
@@ -95,6 +98,34 @@ def launch_setup(context, *args, **kwargs):
         camera_model_val + '.yaml'
     )
 
+    # Xacro command with options
+    xacro_command = []
+    xacro_command.append('xacro')
+    xacro_command.append(' ')
+    xacro_command.append(xacro_path.perform(context))
+    xacro_command.append(' ')
+    xacro_command.append('camera_name:=')
+    xacro_command.append(camera_name_val)
+    xacro_command.append(' ')
+    xacro_command.append('camera_model:=')
+    xacro_command.append(camera_model_val)
+    xacro_command.append(' ')
+    if(enable_gnss_val=='true'):
+        xacro_command.append('enable_gnss:=true')
+        xacro_command.append(' ')
+        if(len(gnss_coords)==3):
+            xacro_command.append('gnss_x:=')
+            xacro_command.append(gnss_coords[0])
+            xacro_command.append(' ')
+            xacro_command.append('gnss_y:=')
+            xacro_command.append(gnss_coords[1])
+            xacro_command.append(' ')
+            xacro_command.append('gnss_z:=')
+            xacro_command.append(gnss_coords[2])
+            xacro_command.append(' ')
+
+    print(xacro_command)
+
     # Robot State Publisher node
     rsp_node = Node(
         condition=IfCondition(publish_urdf),
@@ -104,12 +135,7 @@ def launch_setup(context, *args, **kwargs):
         name='zed_state_publisher',
         output='screen',
         parameters=[{
-            'robot_description': Command(
-                [
-                    'xacro', ' ', xacro_path, ' ',
-                    'camera_name:=', camera_name_val, ' ',
-                    'camera_model:=', camera_model_val, ' '
-                ])
+            'robot_description': Command(xacro_command)
         }]
     )
 
@@ -139,7 +165,8 @@ def launch_setup(context, *args, **kwargs):
                 'general.serial_number': serial_number,
                 'pos_tracking.publish_tf': publish_tf,
                 'pos_tracking.publish_map_tf': publish_map_tf,
-                'sensors.publish_imu_tf': publish_imu_tf
+                'sensors.publish_imu_tf': publish_imu_tf,
+                'gnss_fusion.gnss_fusion_enabled': enable_gnss
             },
             ros_params_override_path,
         ]
@@ -209,13 +236,17 @@ def generate_launch_description():
                 description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.'),
             DeclareLaunchArgument(
                 'enable_gnss',
-                default_value='Enable GNSS fusion to fix positional tracking pose with GNSS data from messages of type `sensor_msgs::msg::NavSatFix`',
-                description='',
-                choices=['true', 'false']),),
+                default_value='false',
+                description='Enable GNSS fusion to fix positional tracking pose with GNSS data from messages of type `sensor_msgs::msg::NavSatFix`. The fix topic can be customized in `common.yaml`.',
+                choices=['true', 'false']),
+            DeclareLaunchArgument(
+                'gnss_antenna_offset',
+                default_value='[]',
+                description='Position of the GNSS antenna with respect to the mounting point of the ZED camera. Format: [x,y,z]'),
             DeclareLaunchArgument(
                 'use_sim_time',
                 default_value='false',
-                description='Enable simulation time mode.',
+                description='If set to `true` the node will wait for messages on the `/clock` topic to start and will use this information as the timestamp reference',
                 choices=['true', 'false']),
             DeclareLaunchArgument(
                 'sim_mode',

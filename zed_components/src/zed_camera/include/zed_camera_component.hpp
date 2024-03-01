@@ -362,20 +362,11 @@ private:
   double mPdMaxDistanceThreshold = 0.15;
   double mPdNormalSimilarityThreshold = 15.0;
 
-  // TODO(Walter) remove QoS parameters, use instead the new ROS2 Humble QoS settings engine
-
   // QoS parameters
   // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
-  rclcpp::QoS mVideoQos;
-  rclcpp::QoS mDepthQos;
-  rclcpp::QoS mSensQos;
-  rclcpp::QoS mPoseQos;
-  rclcpp::QoS mMappingQos;
-  rclcpp::QoS mObjDetQos;
-  rclcpp::QoS mBodyTrkQos;
-  rclcpp::QoS mClickedPtQos;
-  rclcpp::QoS mGnssFixQos;
-  rclcpp::QoS mClockQos;
+  rclcpp::QoS mQos;
+  rclcpp::PublisherOptions mPubOpt;
+  rclcpp::SubscriptionOptions mSubOpt;
 
   std::string mThreadSchedPolicy;
   int mThreadPrioGrab;

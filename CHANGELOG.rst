@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2023-03-01
+----------
+- Remove QoS parameters to use ROS 2 QoS overwrite -> https://design.ros2.org/articles/qos_configurability.html
+
 2023-02-28
 ----------
 - Add parameter `pos_tracking.init_odom_with_first_valid_pose` for automatic odometry reset when Pose is OK after a not OK status

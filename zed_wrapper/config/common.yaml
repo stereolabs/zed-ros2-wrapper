@@ -24,11 +24,7 @@
             pub_frame_rate: 30.0 # frequency of publishing of visual images and depth images
             gpu_id: -1
             optional_opencv_calibration_file: "" # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
-            region_of_interest: "[]" # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
-            #region_of_interest: '[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
-            #region_of_interest: '[[0.25,0.25],[0.75,0.25],[0.75,0.75],[0.25,0.75]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
-            #region_of_interest: '[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
-
+            
         video:
             brightness: 4 # [DYNAMIC] Not available for ZED X/ZED X Mini
             contrast: 4 # [DYNAMIC] Not available for ZED X/ZED X Mini
@@ -41,6 +37,20 @@
             gain: 80 # [DYNAMIC]
             auto_whitebalance: true # [DYNAMIC]
             whitebalance_temperature: 42 # [DYNAMIC] - [28,65] works only if `auto_whitebalance` is false
+              
+        region_of_interest:
+            automatic_roi: true # Enable the automatic ROI generation to automatically detect part of the robot in the FoV and remove them from the processing. Note: if enabled the value of `manual_polygon` is ignored
+            depth_far_threshold_meters: 2.5 # Filtering how far object in the ROI should be considered, this is useful for a vehicle for instance
+            image_height_ratio_cutoff: 0.5 # By default consider only the lower half of the image, can be useful to filter out the sky
+            apply_to_depth: true # Apply ROI to depth processing
+            apply_to_positional_tracking: true # Apply ROI to positional tracking processing
+            apply_to_object_detection: true # Apply ROI to object detection processing
+            apply_to_body_tracking: true # Apply ROI to body tracking processing
+            apply_to_spatial_mapping: true # Apply ROI to spatial mapping processing
+            manual_polygon: "[]" # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+            #manual_polygon: '[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+            #manual_polygon: '[[0.25,0.25],[0.75,0.25],[0.75,0.75],[0.25,0.75]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+            #manual_polygon: '[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.          
 
         depth:
             depth_mode: 'NEURAL_PLUS' # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)

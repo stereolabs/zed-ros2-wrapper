@@ -237,63 +237,54 @@ std::unique_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
 
   sl::MAT_TYPE dataType = left.getDataType();
 
-  int dataSize = 0;
   char * srcL;
   char * srcR;
 
   switch (dataType) {
     case sl::MAT_TYPE::F32_C1: /**< float 1 channel.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
-      dataSize = sizeof(float);
       srcL = reinterpret_cast<char *>(left.getPtr<sl::float1>());
       srcR = reinterpret_cast<char *>(right.getPtr<sl::float1>());
       break;
 
     case sl::MAT_TYPE::F32_C2: /**< float 2 channels.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::TYPE_32FC2;
-      dataSize = 2 * sizeof(float);
       srcL = reinterpret_cast<char *>(left.getPtr<sl::float2>());
       srcR = reinterpret_cast<char *>(right.getPtr<sl::float2>());
       break;
 
     case sl::MAT_TYPE::F32_C3: /**< float 3 channels.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::TYPE_32FC3;
-      dataSize = 3 * sizeof(float);
       srcL = reinterpret_cast<char *>(left.getPtr<sl::float3>());
       srcR = reinterpret_cast<char *>(right.getPtr<sl::float3>());
       break;
 
     case sl::MAT_TYPE::F32_C4: /**< float 4 channels.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::TYPE_32FC4;
-      dataSize = 4 * sizeof(float);
       srcL = reinterpret_cast<char *>(left.getPtr<sl::float4>());
       srcR = reinterpret_cast<char *>(right.getPtr<sl::float4>());
       break;
 
     case sl::MAT_TYPE::U8_C1: /**< unsigned char 1 channel.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::MONO8;
-      dataSize = sizeof(char);
       srcL = reinterpret_cast<char *>(left.getPtr<sl::uchar1>());
       srcR = reinterpret_cast<char *>(right.getPtr<sl::uchar1>());
       break;
 
     case sl::MAT_TYPE::U8_C2: /**< unsigned char 2 channels.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::TYPE_8UC2;
-      dataSize = 2 * sizeof(char);
       srcL = reinterpret_cast<char *>(left.getPtr<sl::uchar2>());
       srcR = reinterpret_cast<char *>(right.getPtr<sl::uchar2>());
       break;
 
     case sl::MAT_TYPE::U8_C3: /**< unsigned char 3 channels.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::BGR8;
-      dataSize = 3 * sizeof(char);
       srcL = reinterpret_cast<char *>(left.getPtr<sl::uchar3>());
       srcR = reinterpret_cast<char *>(right.getPtr<sl::uchar3>());
       break;
 
     case sl::MAT_TYPE::U8_C4: /**< unsigned char 4 channels.*/
       imgMsgPtr->encoding = sensor_msgs::image_encodings::BGRA8;
-      dataSize = 4 * sizeof(char);
       srcL = reinterpret_cast<char *>(left.getPtr<sl::uchar4>());
       srcR = reinterpret_cast<char *>(right.getPtr<sl::uchar4>());
       break;
@@ -353,7 +344,7 @@ std::string qos2str(rmw_qos_durability_policy_t qos)
   return "Unknown QoS value";
 }
 
-inline bool contains(std::vector<sl::float2> & poly, sl::float2 test)
+inline bool contains(const std::vector<sl::float2> & poly, sl::float2 test)
 {
   int i, j;
   bool c = false;

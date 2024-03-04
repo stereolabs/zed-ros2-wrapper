@@ -421,11 +421,14 @@ void ZedCamera::initParameters()
 
   // POS. TRACKING and GNSS FUSION parameters
   if (!mDepthDisabled) {
+    getRoiParams();
     getGnssFusionParams();
     getPosTrackingParams();
   } else {
     mGnssFusionEnabled = false;
     mPosTrackingEnabled = false;
+    mRoyPolyParam.clear();
+    mAutoRoiEnabled = false;
   }
 
   // SENSORS parameters
@@ -834,11 +837,6 @@ void ZedCamera::getGeneralParams()
     "general.optional_opencv_calibration_file", mOpencvCalibFile,
     mOpencvCalibFile, " * OpenCV custom calibration: ");
 
-  std::string parsed_str = getParam("general.region_of_interest", mRoiParam);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Region of interest: " << parsed_str.c_str());
-
   getParam("general.self_calib", mCameraSelfCalib, mCameraSelfCalib);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -980,10 +978,90 @@ void ZedCamera::getVideoParams()
   }
 }
 
+void ZedCamera::getRoiParams()
+{
+  rclcpp::Parameter paramVal;
+
+  rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
+  read_only_descriptor.read_only = true;
+
+  RCLCPP_INFO(get_logger(), "*** Region of Interest parameters ***");
+
+  getParam(
+    "region_of_interest.automatic_roi", mAutoRoiEnabled,
+    mAutoRoiEnabled);
+  RCLCPP_INFO(
+    get_logger(), " * Automatic ROI generation: %s",
+    mAutoRoiEnabled ? "TRUE" : "FALSE");
+
+  if (mAutoRoiEnabled) {
+    getParam(
+      "region_of_interest.depth_far_threshold_meters",
+      mRoiDepthFarThresh, mRoiDepthFarThresh,
+      " * Depth far threshold [m]: ");
+    getParam(
+      "region_of_interest.image_height_ratio_cutoff",
+      mRoiImgHeightRationCutOff, mRoiImgHeightRationCutOff,
+      " * Image Height Ratio Cut Off: ");
+
+    mRoiModules.clear();
+    bool apply = true;
+
+    getParam("region_of_interest.apply_to_depth", apply, apply);
+    RCLCPP_INFO(
+      get_logger(), " * Apply to depth: %s",
+      apply ? "TRUE" : "FALSE");
+    if (apply) {
+      mRoiModules.insert(sl::MODULE::DEPTH);
+    }
+
+    apply = true;
+    getParam("region_of_interest.apply_to_positional_tracking", apply, apply);
+    RCLCPP_INFO(
+      get_logger(), " * Apply to positional tracking: %s",
+      apply ? "TRUE" : "FALSE");
+    if (apply) {
+      mRoiModules.insert(sl::MODULE::POSITIONAL_TRACKING);
+    }
+
+    apply = true;
+    getParam("region_of_interest.apply_to_object_detection", apply, apply);
+    RCLCPP_INFO(
+      get_logger(), " * Apply to object detection: %s",
+      apply ? "TRUE" : "FALSE");
+    if (apply) {
+      mRoiModules.insert(sl::MODULE::OBJECT_DETECTION);
+    }
+
+    apply = true;
+    getParam("region_of_interest.apply_to_body_tracking", apply, apply);
+    RCLCPP_INFO(
+      get_logger(), " * Apply to body tracking: %s",
+      apply ? "TRUE" : "FALSE");
+    if (apply) {
+      mRoiModules.insert(sl::MODULE::BODY_TRACKING);
+    }
+
+    apply = true;
+    getParam("region_of_interest.apply_to_spatial_mapping", apply, apply);
+    RCLCPP_INFO(
+      get_logger(), " * Apply to spatial mapping: %s",
+      apply ? "TRUE" : "FALSE");
+    if (apply) {
+      mRoiModules.insert(sl::MODULE::SPATIAL_MAPPING);
+    }
+  } else {
+    std::string parsed_str =
+      getParam("region_of_interest.manual_polygon", mRoyPolyParam);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Region of interest: " << parsed_str.c_str());
+  }
+}
+
 void ZedCamera::getDepthParams()
 {
   rclcpp::Parameter paramVal;
-  std::string paramName;
 
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
@@ -1094,7 +1172,6 @@ void ZedCamera::getDepthParams()
 void ZedCamera::getSensorsParams()
 {
   rclcpp::Parameter paramVal;
-  std::string paramName;
 
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
@@ -1129,7 +1206,6 @@ void ZedCamera::getSensorsParams()
 void ZedCamera::getMappingParams()
 {
   rclcpp::Parameter paramVal;
-  std::string paramName;
 
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
@@ -1167,7 +1243,6 @@ void ZedCamera::getMappingParams()
     "mapping.pd_normal_similarity_threshold",
     mPdNormalSimilarityThreshold, mPdNormalSimilarityThreshold,
     " * Plane Det. Normals Sim. Thresh.: ");
-
 }
 
 void ZedCamera::getPosTrackingParams()
@@ -1328,8 +1403,6 @@ void ZedCamera::getPosTrackingParams()
       "pos_tracking.fixed_z_value", mFixedZValue, mFixedZValue,
       " * Fixed Z value: ");
   }
-
-
 }
 
 void ZedCamera::getGnssFusionParams()
@@ -1416,7 +1489,6 @@ void ZedCamera::getGnssFusionParams()
 void ZedCamera::getOdParams()
 {
   rclcpp::Parameter paramVal;
-  std::string paramName;
 
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
@@ -1544,13 +1616,11 @@ void ZedCamera::getOdParams()
     get_logger(),
     " * MultiClassBox sport-related objects: "
       << (mObjDetSportEnable ? "TRUE" : "FALSE"));
-
 }
 
 void ZedCamera::getBodyTrkParams()
 {
   rclcpp::Parameter paramVal;
-  std::string paramName;
 
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
@@ -2832,7 +2902,7 @@ void ZedCamera::setTFCoordFrameNames()
   // Note: Depth image frame id must match color image frame id
   mCloudFrameId = mDepthOptFrameId;
   mRgbFrameId = mDepthFrameId;
-  mRgbOptFrameId = mCloudFrameId;
+  mRgbOptFrameId = mDepthOptFrameId;
   mDisparityFrameId = mDepthFrameId;
   mDisparityOptFrameId = mDepthOptFrameId;
   mConfidenceFrameId = mDepthFrameId;
@@ -2843,22 +2913,22 @@ void ZedCamera::setTFCoordFrameNames()
   RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t-> " << mOdomFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t\t-> " << mBaseFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t-> " << mCameraFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t\t-> " << mCameraFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t\t-> " << mLeftCamFrameId);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Left Optical\t\t-> " << mLeftCamOptFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * RGB\t\t\t-> " << mRgbFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * RGB Optical\t\t-> " << mRgbFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Right\t\t-> " << mRightCamFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * RGB Optical\t\t-> " << mRgbOptFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Right\t\t\t-> " << mRightCamFrameId);
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Right Optical\t-> " << mRightCamOptFrameId);
+    " * Right Optical\t\t-> " << mRightCamOptFrameId);
   if (!mDepthDisabled) {
-    RCLCPP_INFO_STREAM(get_logger(), " * Depth\t\t-> " << mDepthFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Depth\t\t\t-> " << mDepthFrameId);
     RCLCPP_INFO_STREAM(
       get_logger(),
-      " * Depth Optical\t-> " << mDepthOptFrameId);
+      " * Depth Optical\t\t-> " << mDepthOptFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Point Cloud\t\t-> " << mCloudFrameId);
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -3106,6 +3176,8 @@ void ZedCamera::initPublishers()
   std::string depth_topic = mTopicRoot + depth_topic_root + "/depth_registered";
   std::string depth_info_topic = mTopicRoot + depth_topic_root + "/depth_info";
 
+  mRoiMaskTopic = mTopicRoot + "/roi_mask";
+
   std::string pointcloud_topic = mTopicRoot + "point_cloud/cloud_registered";
   mPointcloudFusedTopic = mTopicRoot + "mapping/fused_cloud";
 
@@ -3269,15 +3341,25 @@ void ZedCamera::initPublishers()
     RCLCPP_INFO_STREAM(
       get_logger(), "Advertised on topic: "
         << mPubDepthInfo->get_topic_name());
+
+    if (mAutoRoiEnabled || mManualRoiEnabled) {
+      mPubRoiMask = image_transport::create_camera_publisher(
+        this, mRoiMaskTopic, mQos.get_rmw_qos_profile());
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "Advertised on topic: " << mPubRoiMask.getTopic());
+    }
   }
 
   mPubStereo = image_transport::create_publisher(
-    this, stereo_topic, mQos.get_rmw_qos_profile());
+    this, stereo_topic,
+    mQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(
     get_logger(),
     "Advertised on topic: " << mPubStereo.getTopic());
   mPubRawStereo = image_transport::create_publisher(
-    this, stereo_raw_topic, mQos.get_rmw_qos_profile());
+    this, stereo_raw_topic,
+    mQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(
     get_logger(),
     "Advertised on topic: " << mPubRawStereo.getTopic());
@@ -3302,8 +3384,9 @@ void ZedCamera::initPublishers()
     // <---- Depth publishers
 
     // ----> Pos Tracking
-    mPubPose =
-      create_publisher<geometry_msgs::msg::PoseStamped>(mPoseTopic, mQos, mPubOpt);
+    mPubPose = create_publisher<geometry_msgs::msg::PoseStamped>(
+      mPoseTopic,
+      mQos, mPubOpt);
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Advertised on topic: " << mPubPose->get_topic_name());
@@ -3500,8 +3583,8 @@ void ZedCamera::initSubscribers()
     mGnssFixValid = false;
 
     mGnssFixSub = create_subscription<sensor_msgs::msg::NavSatFix>(
-      mGnssTopic, mQos,
-      std::bind(&ZedCamera::callback_gnssFix, this, _1), mSubOpt);
+      mGnssTopic, mQos, std::bind(&ZedCamera::callback_gnssFix, this, _1),
+      mSubOpt);
 
     RCLCPP_INFO_STREAM(
       get_logger(), " * GNSS Fix: '" << mGnssFixSub->get_topic_name() << "'");
@@ -3525,7 +3608,8 @@ void ZedCamera::initSubscribers()
     mClockAvailable = false;
 
     mClockSub = create_subscription<rosgraph_msgs::msg::Clock>(
-      "/clock", mQos, std::bind(&ZedCamera::callback_clock, this, _1), mSubOpt);
+      "/clock", mQos, std::bind(&ZedCamera::callback_clock, this, _1),
+      mSubOpt);
 
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -3626,10 +3710,10 @@ bool ZedCamera::startCamera()
           get_logger(), "Calibration file error: "
             << sl::toVerbose(mConnStatus));
       } else {
-        RCLCPP_ERROR(get_logger(), "Custom OpenCV calibration file error.");
         RCLCPP_ERROR_STREAM(
           get_logger(),
-          "Please check the correctness of the path of the calibration file "
+          "If you are using a custom OpenCV calibration file, please check "
+          "the correctness of the path of the calibration file "
           "in the parameter 'general.optional_opencv_calibration_file': '"
             << mOpencvCalibFile << "'.");
         RCLCPP_ERROR(
@@ -3823,28 +3907,51 @@ bool ZedCamera::startCamera()
   // <---- Camera information
 
   // ----> Set Region of Interest
-  if (!mRoiParam.empty()) {
-    RCLCPP_INFO(get_logger(), "*** Setting ROI ***");
-    sl::Resolution resol(mCamWidth, mCamHeight);
-    std::vector<sl::float2> sl_poly;
-    parseRoiPoly(mRoiParam, sl_poly);
+  if (!mDepthDisabled) {
+    if (mAutoRoiEnabled) {
+      sl::RegionOfInterestParameters roi_param;
+      roi_param.depth_far_threshold_meters = mRoiDepthFarThresh;
+      roi_param.image_height_ratio_cutoff = mRoiImgHeightRationCutOff;
+      roi_param.auto_apply_module = mRoiModules;
 
-    // Create ROI mask
-    sl::Mat roi_mask(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
-
-    if (!sl_tools::generateROI(sl_poly, roi_mask)) {
-      RCLCPP_WARN(
-        get_logger(),
-        " * Error generating the region of interest image mask.");
-    } else {
-      sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask);
+      sl::ERROR_CODE err = mZed.startRegionOfInterestAutoDetection(roi_param);
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_WARN_STREAM(
           get_logger(),
-          " * Error while setting ZED SDK region of interest: "
+          " * Error while starting automatic ROI generation: "
             << sl::toString(err).c_str());
       } else {
-        RCLCPP_INFO(get_logger(), " * Region of Interest correctly set.");
+        RCLCPP_INFO(
+          get_logger(),
+          " * Automatic Region of Interest generation started.");
+      }
+
+    } else if (!mRoyPolyParam.empty()) {
+      RCLCPP_INFO(get_logger(), "*** Setting ROI ***");
+      sl::Resolution resol(mCamWidth, mCamHeight);
+      std::vector<sl::float2> sl_poly;
+      parseRoiPoly(mRoyPolyParam, sl_poly);
+
+      // Create ROI mask
+      mRoiMask = sl::Mat(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
+
+      if (!sl_tools::generateROI(sl_poly, mRoiMask)) {
+        RCLCPP_WARN(
+          get_logger(),
+          " * Error generating the manual region of interest image mask.");
+      } else {
+        sl::ERROR_CODE err = mZed.setRegionOfInterest(mRoiMask);
+        if (err != sl::ERROR_CODE::SUCCESS) {
+          RCLCPP_WARN_STREAM(
+            get_logger(),
+            " * Error while setting ZED SDK manual region of interest: "
+              << sl::toString(err).c_str());
+        } else {
+          RCLCPP_INFO(
+            get_logger(),
+            " * Manual Region of Interest correctly set.");
+          mManualRoiEnabled = true;
+        }
       }
     }
   }
@@ -4031,12 +4138,14 @@ bool ZedCamera::startCamera()
       // setting = sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE;
       // err = mZed.getCameraSettings(setting, value_min, value_max);
       // if(err!=sl::ERROR_CODE::SUCCESS) {
-      //   RCLCPP_ERROR_STREAM( get_logger(), "Error Getting default param for "
+      //   RCLCPP_ERROR_STREAM( get_logger(), "Error Getting default param for
+      //   "
       //   << sl::toString(setting).c_str() << ": " <<
       //   sl::toString(err).c_str()); exit(EXIT_FAILURE);
       // }
       // DEBUG_STREAM_CTRL("[ZEDX] Default value for " <<
-      // sl::toString(setting).c_str() << ": [" << value_min << "," << value_max
+      // sl::toString(setting).c_str() << ": [" << value_min << "," <<
+      // value_max
       // << "]");
 
       setting = sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION;
@@ -4071,12 +4180,14 @@ bool ZedCamera::startCamera()
       // setting = sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE;
       // err = mZed.getCameraSettings(setting, value_min, value_max);
       // if(err!=sl::ERROR_CODE::SUCCESS) {
-      //   RCLCPP_ERROR_STREAM( get_logger(), "Error Getting default param for "
+      //   RCLCPP_ERROR_STREAM( get_logger(), "Error Getting default param for
+      //   "
       //   << sl::toString(setting).c_str() << ": " <<
       //   sl::toString(err).c_str()); exit(EXIT_FAILURE);
       // }
       // DEBUG_STREAM_CTRL("[ZEDX] Default value for " <<
-      // sl::toString(setting).c_str() << ": [" << value_min << "," << value_max
+      // sl::toString(setting).c_str() << ": [" << value_min << "," <<
+      // value_max
       // << "]");
 
       setting = sl::VIDEO_SETTINGS::DIGITAL_GAIN;
@@ -4097,12 +4208,14 @@ bool ZedCamera::startCamera()
       // setting = sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE;
       // err = mZed.getCameraSettings(setting, value_min, value_max);
       // if(err!=sl::ERROR_CODE::SUCCESS) {
-      //   RCLCPP_ERROR_STREAM( get_logger(), "Error Getting default param for "
+      //   RCLCPP_ERROR_STREAM( get_logger(), "Error Getting default param for
+      //   "
       //   << sl::toString(setting).c_str() << ": " <<
       //   sl::toString(err).c_str()); exit(EXIT_FAILURE);
       // }
       // DEBUG_STREAM_CTRL("[ZEDX] Default value for " <<
-      // sl::toString(setting).c_str() << ": [" << value_min << "," << value_max
+      // sl::toString(setting).c_str() << ": [" << value_min << "," <<
+      // value_max
       // << "]");
 
       setting = sl::VIDEO_SETTINGS::DENOISING;
@@ -4222,7 +4335,8 @@ bool ZedCamera::startCamera()
     mFusionInitParams.verbose = mVerbose != 0;
     mFusionInitParams.output_performance_metrics = true;
     mFusionInitParams.timeout_period_number =
-      20;    // TODO(Walter) Evaluate this: mCamGrabFrameRate * mCamTimeoutSec;
+      20;    // TODO(Walter) Evaluate this: mCamGrabFrameRate *
+             // mCamTimeoutSec;
 
     // Fusion initialization
     sl::FUSION_ERROR_CODE fus_err = mFusion.init(mFusionInitParams);
@@ -5186,7 +5300,8 @@ bool ZedCamera::getGnss2BaseTransform()
     tf2::Matrix3x3(mGnss2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
     RCLCPP_INFO(
-      get_logger(), " Static transform GNSS Antenna to Camera Base [%s -> %s]",
+      get_logger(),
+      " Static transform GNSS Antenna to Camera Base [%s -> %s]",
       mGnssFrameId.c_str(), mBaseFrameId.c_str());
     RCLCPP_INFO(
       get_logger(), "  * Translation: {%.3f,%.3f,%.3f}",
@@ -7106,17 +7221,17 @@ void ZedCamera::processPose()
 
     if (mInitOdomWithPose) {
       initOdom = true;
-      RCLCPP_INFO(
-        get_logger(), "*** Odometry initialization ***");
+      RCLCPP_INFO(get_logger(), "*** Odometry initialization ***");
     } else if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
       mPrevPosTrackingStatusWorld !=
       sl::POSITIONAL_TRACKING_STATE::OK)
     {
       mResetOdom = mResetOdomWhenPoseBackOK;
       RCLCPP_INFO_STREAM(
-        get_logger(), "*** Odometry reset. Old status: " << sl::toString(
-          mPrevPosTrackingStatusWorld) << " - New status: " <<
-          sl::toString(mPosTrackingStatusWorld) << " ***");
+        get_logger(), "*** Odometry reset. Old status: "
+          << sl::toString(mPrevPosTrackingStatusWorld)
+          << " - New status: "
+          << sl::toString(mPosTrackingStatusWorld) << " ***");
     }
     mPrevPosTrackingStatusWorld = mPosTrackingStatusWorld;
 
@@ -7129,7 +7244,7 @@ void ZedCamera::processPose()
 
       RCLCPP_INFO(
         get_logger(),
-        " * Odometri TF [%s -> %s] - {%.3f,%.3f,%.3f} "
+        " * Odometry TF [%s -> %s] - {%.3f,%.3f,%.3f} "
         "{%.3f,%.3f,%.3f}",
         mOdomFrameId.c_str(), mBaseFrameId.c_str(),
         mOdom2BaseTransf.getOrigin().x(),
@@ -9905,6 +10020,18 @@ void ZedCamera::callback_setRoi(
   (void)request_header;
 
   RCLCPP_INFO(get_logger(), "** Set ROI service called **");
+
+  if (mDepthDisabled) {
+    std::string err_msg =
+      "Error while setting ZED SDK region of interest: depth processing is disabled!";
+
+    RCLCPP_WARN_STREAM(get_logger(), " * " << err_msg);
+
+    res->message = err_msg;
+    res->success = false;
+    return;
+  }
+
   RCLCPP_INFO_STREAM(get_logger(), " * ROI string: " << req->roi.c_str());
 
   if (req->roi == "") {
@@ -9943,8 +10070,8 @@ void ZedCamera::callback_setRoi(
   parseRoiPoly(parsed_poly, sl_poly);
 
   sl::Resolution resol(mCamWidth, mCamHeight);
-  sl::Mat roi_mask(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
-  if (!sl_tools::generateROI(sl_poly, roi_mask)) {
+  mRoiMask = sl::Mat(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
+  if (!sl_tools::generateROI(sl_poly, mRoiMask)) {
     std::string err_msg =
       "Error generating the region of interest image mask. ";
     err_msg += error;
@@ -9955,18 +10082,30 @@ void ZedCamera::callback_setRoi(
     res->success = false;
     return;
   } else {
-    sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask);
+    sl::ERROR_CODE err = mZed.setRegionOfInterest(mRoiMask);
     if (err != sl::ERROR_CODE::SUCCESS) {
       std::string err_msg = "Error while setting ZED SDK region of interest: ";
       err_msg += sl::toString(err).c_str();
 
       RCLCPP_WARN_STREAM(get_logger(), "  * " << err_msg);
 
+      mManualRoiEnabled = false;
+
+      if (mPubRoiMask.getTopic().empty()) {
+        mPubRoiMask = image_transport::create_camera_publisher(
+          this, mRoiMaskTopic, mQos.get_rmw_qos_profile());
+        RCLCPP_INFO_STREAM(
+          get_logger(),
+          "Advertised on topic: " << mPubRoiMask.getTopic());
+      }
+
       res->message = err_msg;
       res->success = false;
       return;
     } else {
       RCLCPP_INFO(get_logger(), "  * Region of Interest correctly set.");
+
+      mManualRoiEnabled = true;
 
       res->message = "Region of Interest correctly set.";
       res->success = true;
@@ -9983,6 +10122,18 @@ void ZedCamera::callback_resetRoi(
 {
   RCLCPP_INFO(get_logger(), "** Reset ROI service called **");
 
+  if (mDepthDisabled) {
+    std::string err_msg =
+      "Error while resetting ZED SDK region of interest: depth processing is "
+      "disabled!";
+
+    RCLCPP_WARN_STREAM(get_logger(), " * " << err_msg);
+
+    res->message = err_msg;
+    res->success = false;
+    return;
+  }
+
   sl::Mat empty_roi;
   sl::ERROR_CODE err = mZed.setRegionOfInterest(empty_roi);
 
@@ -9995,10 +10146,15 @@ void ZedCamera::callback_resetRoi(
       get_logger(),
       " * Error while resetting ZED SDK region of interest: " << err_msg);
 
+    mManualRoiEnabled = false;
+
     res->message = err_msg;
     res->success = false;
   } else {
     RCLCPP_INFO(get_logger(), " * Region of Interest correctly reset.");
+
+    mManualRoiEnabled = false;
+
     res->message = "Region of Interest correctly reset.";
     res->success = true;
     return;

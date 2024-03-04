@@ -1,6 +1,18 @@
 LATEST CHANGES
 ==============
 
+2023-03-04
+- Move the parameter `general.region_of_interest` to `region_of_interest.manual_polygon`
+- Add automatic Region of Interest support
+- Add parameter `region_of_interest.automatic_roi`
+- Add parameter `region_of_interest.depth_far_threshold_meters`
+- Add parameter `region_of_interest.image_height_ratio_cutoff`
+- Add parameter `region_of_interest.apply_to_depth`
+- Add parameter `region_of_interest.apply_to_positional_tracking`
+- Add parameter `region_of_interest.apply_to_object_detection`
+- Add parameter `region_of_interest.apply_to_body_tracking`
+- Add parameter `region_of_interest.apply_to_spatial_mapping`
+
 2023-03-01
 ----------
 - Remove QoS parameters to use ROS 2 QoS overwrite -> https://design.ros2.org/articles/qos_configurability.html

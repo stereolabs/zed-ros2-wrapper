@@ -194,6 +194,8 @@ protected:
   void processDetectedObjects(rclcpp::Time t);
   void processBodies(rclcpp::Time t);
 
+  void processRtRoi(rclcpp::Time t);
+
   bool setPose(float xt, float yt, float zt, float rr, float pr, float yr);
   void initTransforms();
   bool getSens2BaseTransform();
@@ -268,6 +270,7 @@ private:
   bool mDebugObjectDet = false;
   bool mDebugBodyTrk = false;
   bool mDebugAdvanced = false;
+  bool mDebugRoi = false;
 
   int mCamSerialNumber = 0;
   bool mSimMode = false;     // Expecting simulation data?
@@ -672,6 +675,9 @@ private:
     sl::POSITIONAL_TRACKING_STATE::SEARCHING;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusCamera =
     sl::POSITIONAL_TRACKING_STATE::SEARCHING;
+
+  sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE mAutoRoiStatus =
+    sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::NOT_ENABLED;
 
   sl::GNSS_CALIBRATION_STATE mGeoPoseStatus;
 

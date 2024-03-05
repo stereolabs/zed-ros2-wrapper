@@ -421,9 +421,14 @@ void ZedCamera::initParameters()
 
   // POS. TRACKING and GNSS FUSION parameters
   if (!mDepthDisabled) {
-    getRoiParams();
+    // GNSS Fusion parameters
     getGnssFusionParams();
+
+    // Positional Tracking parameters
     getPosTrackingParams();
+
+    // Region of Interest parameters
+    getRoiParams();
   } else {
     mGnssFusionEnabled = false;
     mPosTrackingEnabled = false;
@@ -585,6 +590,9 @@ void ZedCamera::getDebugParams()
     get_logger(), " * Debug Body Tracking: %s",
     mDebugBodyTrk ? "TRUE" : "FALSE");
 
+  getParam("debug.debug_roi", mDebugRoi, mDebugRoi);
+  RCLCPP_INFO(get_logger(), " * Debug ROI: %s", mDebugRoi ? "TRUE" : "FALSE");
+
   getParam("debug.debug_advanced", mDebugAdvanced, mDebugAdvanced);
   RCLCPP_INFO(
     get_logger(), " * Debug Advanced: %s",
@@ -593,7 +601,7 @@ void ZedCamera::getDebugParams()
   mDebugMode = mDebugCommon || mDebugSim || mDebugVideoDepth || mDebugCamCtrl ||
     mDebugPointCloud || mDebugPosTracking || mDebugGnss ||
     mDebugSensors || mDebugMapping || mDebugObjectDet ||
-    mDebugBodyTrk || mDebugAdvanced;
+    mDebugBodyTrk || mDebugAdvanced || mDebugRoi;
 
   if (mDebugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(
@@ -995,6 +1003,16 @@ void ZedCamera::getRoiParams()
     mAutoRoiEnabled ? "TRUE" : "FALSE");
 
   if (mAutoRoiEnabled) {
+    if (mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_1) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "Automatic ROI generation with '"
+          << sl::toString(mPosTrkMode)
+          << "' is not recommended. Please set the parameter "
+          "'pos_tracking.pos_tracking_mode' to 'GEN_2' for "
+          "improved results.");
+    }
+
     getParam(
       "region_of_interest.depth_far_threshold_meters",
       mRoiDepthFarThresh, mRoiDepthFarThresh,
@@ -1003,7 +1021,15 @@ void ZedCamera::getRoiParams()
       "region_of_interest.image_height_ratio_cutoff",
       mRoiImgHeightRationCutOff, mRoiImgHeightRationCutOff,
       " * Image Height Ratio Cut Off: ");
+  } else {
+    std::string parsed_str =
+      getParam("region_of_interest.manual_polygon", mRoyPolyParam);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Manual ROI polygon: " << parsed_str.c_str());
+  }
 
+  if (mRoyPolyParam.size() > 0 || mAutoRoiEnabled) {
     mRoiModules.clear();
     bool apply = true;
 
@@ -1050,12 +1076,6 @@ void ZedCamera::getRoiParams()
     if (apply) {
       mRoiModules.insert(sl::MODULE::SPATIAL_MAPPING);
     }
-  } else {
-    std::string parsed_str =
-      getParam("region_of_interest.manual_polygon", mRoyPolyParam);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Region of interest: " << parsed_str.c_str());
   }
 }
 
@@ -3176,7 +3196,7 @@ void ZedCamera::initPublishers()
   std::string depth_topic = mTopicRoot + depth_topic_root + "/depth_registered";
   std::string depth_info_topic = mTopicRoot + depth_topic_root + "/depth_info";
 
-  mRoiMaskTopic = mTopicRoot + "/roi_mask";
+  mRoiMaskTopic = mTopicRoot + "roi_mask";
 
   std::string pointcloud_topic = mTopicRoot + "point_cloud/cloud_registered";
   mPointcloudFusedTopic = mTopicRoot + "mapping/fused_cloud";
@@ -3909,6 +3929,8 @@ bool ZedCamera::startCamera()
   // ----> Set Region of Interest
   if (!mDepthDisabled) {
     if (mAutoRoiEnabled) {
+      RCLCPP_INFO(get_logger(), "*** Enabling Automatic ROI ***");
+
       sl::RegionOfInterestParameters roi_param;
       roi_param.depth_far_threshold_meters = mRoiDepthFarThresh;
       roi_param.image_height_ratio_cutoff = mRoiImgHeightRationCutOff;
@@ -3925,22 +3947,29 @@ bool ZedCamera::startCamera()
           get_logger(),
           " * Automatic Region of Interest generation started.");
       }
-
     } else if (!mRoyPolyParam.empty()) {
-      RCLCPP_INFO(get_logger(), "*** Setting ROI ***");
+      RCLCPP_INFO(get_logger(), "*** Setting Manual ROI ***");
       sl::Resolution resol(mCamWidth, mCamHeight);
       std::vector<sl::float2> sl_poly;
-      parseRoiPoly(mRoyPolyParam, sl_poly);
 
-      // Create ROI mask
+      DEBUG_ROI("Parse ROI Polygon parameter");
+      std::string poly_str = parseRoiPoly(mRoyPolyParam, sl_poly);
+      DEBUG_STREAM_ROI("Parsed ROI Polygon: " << poly_str);
+
+      DEBUG_ROI("Create ROI Mask mat");
       mRoiMask = sl::Mat(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
 
+      // Create ROI mask
+      DEBUG_ROI("Generate ROI Mask");
       if (!sl_tools::generateROI(sl_poly, mRoiMask)) {
         RCLCPP_WARN(
           get_logger(),
           " * Error generating the manual region of interest image mask.");
       } else {
-        sl::ERROR_CODE err = mZed.setRegionOfInterest(mRoiMask);
+        mRoiMask.write("~/roi.png");
+        DEBUG_ROI("Enable ROI");
+        sl::ERROR_CODE err = mZed.setRegionOfInterest(mRoiMask, mRoiModules);
+        DEBUG_ROI("ROI Enabled");
         if (err != sl::ERROR_CODE::SUCCESS) {
           RCLCPP_WARN_STREAM(
             get_logger(),
@@ -5823,7 +5852,6 @@ void ZedCamera::threadFunc_zedGrab()
         // RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_zedGrab");
         publishTFs(mFrameTimestamp);
       }
-
       // <---- Localization processing
 
       mObjDetMutex.lock();
@@ -5837,6 +5865,10 @@ void ZedCamera::threadFunc_zedGrab()
         processBodies(mFrameTimestamp);
       }
       mBodyTrkMutex.unlock();
+
+      // ----> Region of interest
+      processRtRoi(mFrameTimestamp);
+      // <---- Region of interest
     }
 
     // Diagnostic statistics update
@@ -9356,6 +9388,12 @@ void ZedCamera::callback_updateDiagnostic(
         }
       }
 
+      if (mAutoRoiEnabled) {
+        stat.add("Automatic ROI", sl::toString(mAutoRoiStatus).c_str());
+      } else if (mManualRoiEnabled) {
+        stat.add("Manual ROI", "ENABLED");
+      }
+
       if (mGnssFusionEnabled) {
         stat.addf("Fusion status", sl::toString(mFusionStatus).c_str());
         if (mPosTrackingStarted) {
@@ -10023,7 +10061,8 @@ void ZedCamera::callback_setRoi(
 
   if (mDepthDisabled) {
     std::string err_msg =
-      "Error while setting ZED SDK region of interest: depth processing is disabled!";
+      "Error while setting ZED SDK region of interest: depth processing is "
+      "disabled!";
 
     RCLCPP_WARN_STREAM(get_logger(), " * " << err_msg);
 
@@ -10265,6 +10304,52 @@ void ZedCamera::callback_clock(const rosgraph_msgs::msg::Clock::SharedPtr msg)
         << static_cast<int>(mLastClock.get_clock_type()));
 
     mClockAvailable = false;
+  }
+}
+
+void ZedCamera::processRtRoi(rclcpp::Time ts)
+{
+  if (!mAutoRoiEnabled && !mManualRoiEnabled) {
+    mAutoRoiStatus = sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::NOT_ENABLED;
+    return;
+  }
+
+  if (mAutoRoiEnabled) {
+    mAutoRoiStatus = mZed.getRegionOfInterestAutoDetectionStatus();
+    DEBUG_STREAM_ROI("Automatic ROI Status:" << sl::toString(mAutoRoiStatus));
+    if (mAutoRoiStatus ==
+      sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::RUNNING)
+    {
+      if (mAutoRoiStatus ==
+        sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::READY)
+      {
+        RCLCPP_INFO(get_logger(), "Region of interest auto detection is done!");
+      }
+    }
+  }
+
+  if (mAutoRoiStatus == sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::READY ||
+    mManualRoiEnabled)
+  {
+    uint8_t subCount = 0;
+
+    try {
+      subCount = mPubRoiMask.getNumSubscribers();
+    } catch (...) {
+      rcutils_reset_error();
+      DEBUG_STREAM_VD("processRtRoi: Exception while counting subscribers");
+      return;
+    }
+
+    if (subCount > 0) {
+      DEBUG_ROI("Retrieve ROI Mask");
+      mZed.getRegionOfInterest(mRoiMask);
+
+      DEBUG_ROI("Publish ROI Mask");
+      publishImageWithInfo(
+        mRoiMask, mPubRoiMask, mLeftCamInfoMsg,
+        mLeftCamOptFrameId, ts);
+    }
   }
 }
 

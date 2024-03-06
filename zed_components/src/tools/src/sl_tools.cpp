@@ -369,15 +369,16 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi)
   }
 
   // Set each pixel to valid
-  std::cerr << "Setting ROI mask to full valid" << std::endl;
+  //std::cerr << "Setting ROI mask to full valid" << std::endl;
   out_roi.setTo<sl::uchar1>(255, sl::MEM::CPU);
 
   // ----> De-normalize coordinates
   size_t w = out_roi.getWidth();
   size_t h = out_roi.getHeight();
 
-  std::cerr << "De-normalize coordinates" << std::endl;
-  std::cerr << "Image resolution: " << w << "x" << h << std::endl;
+  //std::cerr << "De-normalize coordinates" << std::endl;
+  //std::cerr << "Image resolution: " << w << "x" << h << std::endl;
+  //std::cerr << "Polygon size: " << poly.size() << std::endl;
   std::vector<sl::float2> poly_img;
   size_t idx = 0;
   for (auto & it : poly) {
@@ -394,13 +395,14 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi)
 
     poly_img.push_back(pt);
 
+    //std::cerr << "Pushed pt #: " << idx << std::endl;
     ++idx;
   }
   // <---- De-normalize coordinates
 
   // ----> Unset ROI pixels outside the polygon
-  std::cerr << "Unset ROI pixels outside the polygon" << std::endl;
-  std::cerr << "Set mask" << std::endl;
+  //std::cerr << "Unset ROI pixels outside the polygon" << std::endl;
+  //std::cerr << "Set mask" << std::endl;
   for (int v = 0; v < h; v++) {
     for (int u = 0; u < w; u++) {
       if (!contains(poly_img, sl::float2(u, v))) {
@@ -408,8 +410,8 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi)
       }
     }
   }
-  std::cerr << "Mask ready" << std::endl;
-  std::cerr << "ROI resolution: " << w << "x" << h << std::endl;
+  //std::cerr << "Mask ready" << std::endl;
+  //std::cerr << "ROI resolution: " << w << "x" << h << std::endl;
   // <---- Unset ROI pixels outside the polygon
 
   return true;

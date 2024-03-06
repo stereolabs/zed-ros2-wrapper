@@ -1,16 +1,39 @@
 LATEST CHANGES
 ==============
 
-2023-02-28
+2024-03-05
+----------
+- Add ROI diagnostic
+- Add parameter `debug.debug_roi`
+- Publish ROI mask image on topic `~/roi_mask` using image transport
+
+2024-03-04
+----------
+- Move the parameter `general.region_of_interest` to `region_of_interest.manual_polygon`
+- Add automatic Region of Interest support
+- Add parameter `region_of_interest.automatic_roi`
+- Add parameter `region_of_interest.depth_far_threshold_meters`
+- Add parameter `region_of_interest.image_height_ratio_cutoff`
+- Add parameter `region_of_interest.apply_to_depth`
+- Add parameter `region_of_interest.apply_to_positional_tracking`
+- Add parameter `region_of_interest.apply_to_object_detection`
+- Add parameter `region_of_interest.apply_to_body_tracking`
+- Add parameter `region_of_interest.apply_to_spatial_mapping`
+
+2024-03-01
+----------
+- Remove QoS parameters to use ROS 2 QoS overwrite -> https://design.ros2.org/articles/qos_configurability.html
+
+2024-02-28
 ----------
 - Add parameter `pos_tracking.init_odom_with_first_valid_pose` for automatic odometry reset when Pose is OK after a not OK status
 - Add support for new `NEURAL_PLUS` depth mode
 
-2023-02-26
+2024-02-26
 ----------
 - Add new `<camera_name>_gnss_link` frame to URDF to set the position of the GNSS antenna with respect to the camera position
 
-2023-01-24
+2024-01-24
 ----------
 - The parameter `general.sdk_verbose` has been moved to `debug.sdk_verbose` and set to `0` as default.
 - Add new parameter `general.optional_opencv_calibration_file` to use custom OpenCV camera calibrations.

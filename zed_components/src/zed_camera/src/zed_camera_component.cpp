@@ -9614,22 +9614,23 @@ void ZedCamera::callback_gnssFix(
     get_logger(),
     " * First message received. GNSS Sender active.");
 
-  switch (msg->status.service) {
-    case sensor_msgs::msg::NavSatStatus::SERVICE_GPS:
-      mGnssService = "GNSS";
-      break;
-    case sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS:
-      mGnssService = "GLONASS";
-      break;
-    case sensor_msgs::msg::NavSatStatus::SERVICE_COMPASS:
-      mGnssService = "COMPASS";
-      break;
-    case sensor_msgs::msg::NavSatStatus::SERVICE_GALILEO:
-      mGnssService = "GALILEO";
-      break;
+  mGnssService = "";
+  if (msg->status.service & sensor_msgs::msg::NavSatStatus::SERVICE_GPS) {
+    mGnssService += "GPS ";
+  }
+  if (msg->status.service & sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS) {
+    mGnssService += "GLONASS ";
+  }
+  if (msg->status.service & sensor_msgs::msg::NavSatStatus::SERVICE_COMPASS) {
+    mGnssService += "COMPASS ";
+  }
+  if (msg->status.service & sensor_msgs::msg::NavSatStatus::SERVICE_GALILEO) {
+    mGnssService += "GALILEO";
   }
 
-  RCLCPP_INFO_STREAM_ONCE(get_logger(), " * Service: " << mGnssService.c_str());
+  RCLCPP_INFO_STREAM_ONCE(
+    get_logger(),
+    " * Service: " << mGnssService.c_str());
 
   if (msg->status.status == sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX) {
     DEBUG_GNSS("callback_gnssFix: fix not valid");

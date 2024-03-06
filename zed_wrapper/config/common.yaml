@@ -86,7 +86,7 @@
 
         gnss_fusion:
             gnss_fusion_enabled: false # fuse 'sensor_msg/NavSatFix' message information into pose data
-            gnss_fix_topic: "/gps/fix" # Name of the GNSS topic of type NavSatFix to subscribe [Default: '/gps/fix']
+            gnss_fix_topic: "/fix" # Name of the GNSS topic of type NavSatFix to subscribe [Default: '/gps/fix']
             gnss_init_distance: 5.0 # The minimum distance traveled by the robot required to initilize the GNSS fusion [SDK <= v4.0.5]
             gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
             publish_utm_tf: true # Publish `utm` -> `map` TF

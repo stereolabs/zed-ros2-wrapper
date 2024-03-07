@@ -3955,20 +3955,20 @@ bool ZedCamera::startCamera()
       DEBUG_ROI("Parse ROI Polygon parameter");
       std::string poly_str = parseRoiPoly(mRoyPolyParam, sl_poly);
       DEBUG_STREAM_ROI("Parsed ROI Polygon: " << poly_str);
+      DEBUG_STREAM_ROI(" * Polygon size: " << sl_poly.size());
 
       DEBUG_ROI("Create ROI Mask mat");
-      mRoiMask = sl::Mat(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
+      sl::Mat roi_mask(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
 
       // Create ROI mask
       DEBUG_ROI("Generate ROI Mask");
-      if (!sl_tools::generateROI(sl_poly, mRoiMask)) {
+      if (!sl_tools::generateROI(sl_poly, roi_mask)) {
         RCLCPP_WARN(
           get_logger(),
           " * Error generating the manual region of interest image mask.");
       } else {
-        mRoiMask.write("~/roi.png");
         DEBUG_ROI("Enable ROI");
-        sl::ERROR_CODE err = mZed.setRegionOfInterest(mRoiMask, mRoiModules);
+        sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask, mRoiModules);
         DEBUG_ROI("ROI Enabled");
         if (err != sl::ERROR_CODE::SUCCESS) {
           RCLCPP_WARN_STREAM(
@@ -10110,8 +10110,8 @@ void ZedCamera::callback_setRoi(
   parseRoiPoly(parsed_poly, sl_poly);
 
   sl::Resolution resol(mCamWidth, mCamHeight);
-  mRoiMask = sl::Mat(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
-  if (!sl_tools::generateROI(sl_poly, mRoiMask)) {
+  sl::Mat roi_mask(resol, sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
+  if (!sl_tools::generateROI(sl_poly, roi_mask)) {
     std::string err_msg =
       "Error generating the region of interest image mask. ";
     err_msg += error;
@@ -10122,7 +10122,7 @@ void ZedCamera::callback_setRoi(
     res->success = false;
     return;
   } else {
-    sl::ERROR_CODE err = mZed.setRegionOfInterest(mRoiMask);
+    sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask);
     if (err != sl::ERROR_CODE::SUCCESS) {
       std::string err_msg = "Error while setting ZED SDK region of interest: ";
       err_msg += sl::toString(err).c_str();
@@ -10344,11 +10344,12 @@ void ZedCamera::processRtRoi(rclcpp::Time ts)
 
     if (subCount > 0) {
       DEBUG_ROI("Retrieve ROI Mask");
-      mZed.getRegionOfInterest(mRoiMask);
+      sl::Mat roi_mask;
+      mZed.getRegionOfInterest(roi_mask);
 
       DEBUG_ROI("Publish ROI Mask");
       publishImageWithInfo(
-        mRoiMask, mPubRoiMask, mLeftCamInfoMsg,
+        roi_mask, mPubRoiMask, mLeftCamInfoMsg,
         mLeftCamOptFrameId, ts);
     }
   }

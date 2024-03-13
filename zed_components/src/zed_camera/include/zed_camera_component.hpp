@@ -224,7 +224,7 @@ protected:
 
 private:
   // ZED SDK
-  sl::Camera mZed;
+  sl::Camera mZed; MODIFICARE IN SHARED POINTER!!!
   sl::InitParameters mInitParams;
   sl::RuntimeParameters mRunParams;
 
@@ -248,6 +248,7 @@ private:
   std::string mGnssPoseStatusTopic;
   std::string mGeoPoseTopic;
   std::string mGeoPoseStatusTopic;
+  std::string mFusedFixTopic;
   std::string mPointcloudFusedTopic;
   std::string mObjectDetTopic;
   std::string mBodyTrkTopic;
@@ -342,6 +343,7 @@ private:
   bool mSetGravityAsOrigin = false;
   int mPathMaxCount = -1;
   bool mPublishPoseCov = true;
+
   bool mGnssFusionEnabled = false;
   std::string mGnssTopic = "/gps/fix";
   bool mGnssEnableReinitialization = true;
@@ -350,9 +352,12 @@ private:
   double mGnssVioReinitThreshold = 5.0;
   double mGnssTargetTranslationUncertainty = 10e-2;
   double mGnssTargetYawUncertainty = 0.1;
+  double mGnssHcovMul = 1.0;
+  double mGnssVcovMul = 1.0;
   bool mGnssZeroAltitude = false;
   bool mPublishUtmTf = true;
   bool mUtmAsParent = true;
+
   bool mMappingEnabled = false;
   float mMappingRes = 0.05f;
   float mMappingRangeMax = 10.0f;
@@ -582,6 +587,7 @@ private:
 
   geoPosePub mPubGeoPose;
   poseStatusPub mPubGeoPoseStatus;
+  fusedFixPub mPubFusedFix;
   // <---- Publishers
 
   // <---- Publisher variables
@@ -678,7 +684,8 @@ private:
   sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE mAutoRoiStatus =
     sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::NOT_ENABLED;
 
-  sl::GNSS_CALIBRATION_STATE mGeoPoseStatus;
+  sl::GNSS_FUSION_STATUS mGeoPoseStatus = sl::GNSS_FUSION_STATUS::OFF;
+  sl::GNSS_FUSION_STATUS mPrevGeoPoseStatus = sl::GNSS_FUSION_STATUS::OFF;
 
   bool mResetOdom = false;
   bool mSpatialMappingRunning = false;
@@ -689,9 +696,10 @@ private:
                                   // received, also with invalid position fix
   bool mGnssFixValid = false;     // Used to keep track of signal loss
   bool mGnssFixNew = false;       // Used to keep track of signal loss
-  std::string mGnssService = "";
+  std::string mGnssServiceStr = "";
+  uint16_t mGnssService;
   std::atomic<bool> mClockAvailable;  // Indicates if the "/clock" topic is
-                                      // published when `use_sim_time` is true
+  // published when `use_sim_time` is true
   // <---- Status Flags
 
   // ----> Positional Tracking
@@ -816,6 +824,10 @@ private:
   const std::string mSrvFromLlName =
     "fromLL";    // Convert from `Lat Long` to `map`
   // <---- Services names
+
+  // ----> SVO v2
+  std::unique_ptr<sl_tools::GNSSReplay> mGnssReplay;
+  // <---- SVO v2
 };
 
 }  // namespace stereolabs

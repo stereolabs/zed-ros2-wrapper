@@ -17,12 +17,13 @@
 
 #include <chrono>
 #include <memory>
-#include <string>
-#include <vector>
 #include <rclcpp/clock.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sl/Camera.hpp>
+#include <string>
+#include <vector>
 
+#include "gnss_replay.hpp"
 #include "sl_win_avg.hpp"
 namespace sl_tools
 {

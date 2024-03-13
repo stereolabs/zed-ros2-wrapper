@@ -171,11 +171,14 @@ set(SL_TOOLS_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_tools.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_win_avg.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_logging.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/json.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/gnss_replay.hpp
 )
 
 set(SL_TOOLS_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_win_avg.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/gnss_replay.cpp
 )
 
 set(ZED_CAMERA_INC

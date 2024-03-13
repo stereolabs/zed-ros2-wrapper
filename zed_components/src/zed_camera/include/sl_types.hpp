@@ -115,6 +115,8 @@ typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>>
 
 typedef std::shared_ptr<rclcpp::Publisher<geographic_msgs::msg::GeoPoseStamped>>
   geoPosePub;
+typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::NavSatFix>>
+  fusedFixPub;
 
 typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>>
   clickedPtSub;
@@ -141,6 +143,7 @@ typedef std::unique_ptr<nav_msgs::msg::Odometry> odomMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
 
 typedef std::unique_ptr<geographic_msgs::msg::GeoPoseStamped> geoPoseMsgPtr;
+typedef std::unique_ptr<sensor_msgs::msg::NavSatFix> navsatMsgPtr;
 
 typedef std::unique_ptr<zed_interfaces::msg::ObjectsStamped> objDetMsgPtr;
 typedef std::unique_ptr<zed_interfaces::msg::DepthInfoStamped> depthInfoMsgPtr;

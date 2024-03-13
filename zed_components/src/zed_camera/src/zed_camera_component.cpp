@@ -1486,13 +1486,20 @@ void ZedCamera::getGnssFusionParams()
     getParam(
       "gnss_fusion.target_yaw_uncertainty", mGnssTargetYawUncertainty,
       mGnssTargetYawUncertainty, " * GNSS Target Yaw Uncert.: ");
-
     getParam(
       "gnss_fusion.gnss_zero_altitude", mGnssZeroAltitude,
       mGnssZeroAltitude);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * GNSS Zero Altitude: " << (mGnssZeroAltitude ? "TRUE" : "FALSE"));
+
+    getParam(
+      "gnss_fusion.h_covariance_mul", mGnssHcovMul, mGnssHcovMul,
+      " * Horiz. Covariance mult.: ");
+    getParam(
+      "gnss_fusion.v_covariance_mul", mGnssVcovMul, mGnssVcovMul,
+      " * Vert. Covariance mult.: ");
+
     getParam("gnss_fusion.publish_utm_tf", mPublishUtmTf, mPublishUtmTf);
     RCLCPP_INFO_STREAM(
       get_logger(), " * Publish UTM TF: "
@@ -3220,6 +3227,7 @@ void ZedCamera::initPublishers()
   mGnssPoseStatusTopic = mGnssPoseTopic + "/status";
   mGeoPoseTopic = mTopicRoot + "geo_pose";
   mGeoPoseStatusTopic = mGeoPoseTopic + "/status";
+  mFusedFixTopic = mPoseTopic + "/fused_fix";
 
   mOdomTopic = mTopicRoot + "odom";
   mOdomStatusTopic = mOdomTopic + "/status";
@@ -3464,6 +3472,11 @@ void ZedCamera::initPublishers()
         get_logger(),
         "Advertised on topic (GNSS): "
           << mPubGeoPoseStatus->get_topic_name());
+      mPubFusedFix = create_publisher<sensor_msgs::msg::NavSatFix>(
+        mFusedFixTopic, mQos, mPubOpt);
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Advertised on topic (GNSS): "
+          << mPubFusedFix->get_topic_name());
     }
     // <---- Pos Tracking
 
@@ -3598,7 +3611,7 @@ void ZedCamera::initSubscribers()
         Liveliness: AUTOMATIC
         Liveliness lease duration: Infinite
   */
-  if (mGnssFusionEnabled) {
+  if (mGnssFusionEnabled && !mSvoMode) {
     mGnssMsgReceived = false;
     mGnssFixValid = false;
 
@@ -3781,6 +3794,22 @@ bool ZedCamera::startCamera()
     rclcpp::sleep_for(std::chrono::seconds(mCamTimeoutSec));
   }
   // ----> Try to connect to a camera, to a stream, or to load an SVO
+
+
+  // ----> If SVO and GNSS enabled check that it's a valid SV0 Gen.2
+  if(mSvoMode && mGnssFusionEnabled) {
+    // TODO(Walter) Check SVO version when it's available
+
+    mGnssReplay = std::make_unique<sl_tools::GNSSReplay>(mZed);
+  }
+  // <---- If SVO and GNSS enabled check that it's a valid SV0 Gen.2
+
+  // ----> If SVO and positional tracking Gen2 check that it's a valid SV0 Gen2
+  if (mSvoMode && mPosTrackingEnabled &&
+      mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_2) {
+    // TODO(Walter) Check SVO version when it's available
+  }
+  // <---- If SVO and positional tracking Gen2 check that it's a valid SV0 Gen2
 
   // ----> Camera information
   sl::CameraInformation camInfo = mZed.getCameraInformation();
@@ -7368,7 +7397,7 @@ void ZedCamera::publishGnssPoseStatus()
       std::make_unique<zed_interfaces::msg::PosTrackStatus>();
 
     if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
-      mGeoPoseStatus == sl::GNSS_CALIBRATION_STATE::CALIBRATED)
+      mGeoPoseStatus == sl::GNSS_FUSION_STATUS::OK)
     {
       msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::OK);
     } else {
@@ -7398,7 +7427,7 @@ void ZedCamera::publishGeoPoseStatus()
       std::make_unique<zed_interfaces::msg::PosTrackStatus>();
 
     if (mPosTrackingStatusWorld == sl::POSITIONAL_TRACKING_STATE::OK &&
-      mGeoPoseStatus == sl::GNSS_CALIBRATION_STATE::CALIBRATED)
+      mGeoPoseStatus == sl::GNSS_FUSION_STATUS::OK)
     {
       msg->status = static_cast<uint8_t>(sl::POSITIONAL_TRACKING_STATE::OK);
     } else {
@@ -7500,15 +7529,15 @@ void ZedCamera::processGeoPose()
 
   publishGeoPoseStatus();
 
-  if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED ||
-    mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OK)
-  {
-    rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-    RCLCPP_DEBUG_THROTTLE(
-      get_logger(), steady_clock, 1000.0,
-      "Waiting for a valid GNSS fused pose...");
-    return;
-  }
+  // if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED ||
+  //   mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OK)
+  // {
+  //   rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+  //   RCLCPP_DEBUG_THROTTLE(
+  //     get_logger(), steady_clock, 1000.0,
+  //     "Waiting for a valid GNSS fused pose...");
+  //   return;
+  // }
 
   // ----> Setup Lat/Long
   double altitude = mLastGeoPose.latlng_coordinates.getAltitude();
@@ -7547,7 +7576,11 @@ void ZedCamera::processGeoPose()
     mInitLatLongPose = mLastLatLongPose;
     mInitHeading = mLastHeading;
 
-    mGnssInitGood = true;
+    if (mGeoPoseStatus != sl::GNSS_FUSION_STATUS::OK &&
+      mPosTrackingStatusWorld != sl::POSITIONAL_TRACKING_STATE::OK)
+    {
+      mGnssInitGood = true;
+    }
 
     RCLCPP_INFO(get_logger(), "GNSS reference localization initialized");
 
@@ -7626,12 +7659,16 @@ void ZedCamera::processGeoPose()
 
 void ZedCamera::publishGnssPose()
 {
+  DEBUG_GNSS("*** publishGnssPose ***");
+
   size_t gnssSub = 0;
   size_t geoPoseSub = 0;
+  size_t fusedFixSub = 0;
 
   try {
     gnssSub = count_subscribers(mGnssPoseTopic);
     geoPoseSub = count_subscribers(mGeoPoseTopic);
+    fusedFixSub = count_subscribers(mFusedFixTopic);
   } catch (...) {
     rcutils_reset_error();
     DEBUG_GNSS("publishGnssPose: Exception while counting subscribers");
@@ -7694,7 +7731,46 @@ void ZedCamera::publishGnssPose()
     msg->pose.orientation.z = mLastHeadingQuat.getZ();
     msg->pose.orientation.w = mLastHeadingQuat.getW();
 
+    // Publish gnss message
+    // DEBUG_GNSS("Publishing GeoPose message");
     mPubGeoPose->publish(std::move(msg));
+  }
+
+  if (fusedFixSub > 0) {
+    navsatMsgPtr msg = std::make_unique<sensor_msgs::msg::NavSatFix>();
+
+    msg->header.stamp = mFrameTimestamp;
+    msg->header.frame_id = mBaseFrameId;
+
+    msg->status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
+    msg->status.service = mGnssService;
+    msg->latitude = mLastLatLongPose.getLatitude(false);
+    msg->longitude = mLastLatLongPose.getLongitude(false);
+    msg->altitude = mLastLatLongPose.getAltitude();
+
+    // ----> Covariance
+    msg->position_covariance_type =
+      sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_KNOWN;
+    for (size_t i = 0; i < msg->position_covariance.size(); i++) {
+      msg->position_covariance[i] =
+        static_cast<double>(mLastZedPose.pose_covariance[i]);
+
+      if (mTwoDMode) {
+        if (i == 14 || i == 21 || i == 28) {
+          msg->position_covariance[i] = 1e-9;  // Very low covariance if 2D mode
+        } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
+          (i >= 12 && i <= 13) || (i >= 15 && i <= 16) ||
+          (i >= 18 && i <= 20) || (i == 22) || (i >= 24 && i <= 27))
+        {
+          msg->position_covariance[i] = 0.0;
+        }
+      }
+    }
+    // <---- Covariance
+
+    // Publish Fused Fix message
+    // DEBUG_GNSS("Publishing Fused Fix message");
+    mPubFusedFix->publish(std::move(msg));
   }
 }
 
@@ -7752,8 +7828,8 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   sl::Objects objects;
 
-  sl::ERROR_CODE objDetRes =
-    mZed.retrieveObjects(objects, objectTracker_parameters_rt, mObjDetInstID);
+  sl::ERROR_CODE objDetRes = mZed.retrieveObjects(
+    objects, objectTracker_parameters_rt, mObjDetInstID);
 
   if (objDetRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(
@@ -7762,7 +7838,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     return;
   }
 
-  if (!objects.is_new) {  // Async object detection. Update data only if new
+  if (!objects.is_new) {    // Async object detection. Update data only if new
     // detection is available
     return;
   }
@@ -7772,7 +7848,8 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   size_t objCount = objects.object_list.size();
 
-  objDetMsgPtr objMsg = std::make_unique<zed_interfaces::msg::ObjectsStamped>();
+  objDetMsgPtr objMsg =
+    std::make_unique<zed_interfaces::msg::ObjectsStamped>();
 
   objMsg->header.stamp = t;
   objMsg->header.frame_id = mLeftCamFrameId;
@@ -7799,7 +7876,8 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     objMsg->objects[idx].tracking_available = mObjDetTracking;
     objMsg->objects[idx].tracking_state =
       static_cast<int8_t>(data.tracking_state);
-    objMsg->objects[idx].action_state = static_cast<int8_t>(data.action_state);
+    objMsg->objects[idx].action_state =
+      static_cast<int8_t>(data.action_state);
 
     if (data.bounding_box_2d.size() == 4) {
       memcpy(
@@ -7886,7 +7964,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
     return;
   }
 
-  if (!bodies.is_new) {  // Async body tracking. Update data only if new
+  if (!bodies.is_new) {    // Async body tracking. Update data only if new
     // detection is available
     DEBUG_BT("No new bodies detected");
     return;
@@ -7929,7 +8007,8 @@ void ZedCamera::processBodies(rclcpp::Time t)
     bodyMsg->objects[idx].tracking_available = mBodyTrkEnableTracking;
     bodyMsg->objects[idx].tracking_state =
       static_cast<int8_t>(body.tracking_state);
-    bodyMsg->objects[idx].action_state = static_cast<int8_t>(body.action_state);
+    bodyMsg->objects[idx].action_state =
+      static_cast<int8_t>(body.action_state);
     DEBUG_BT(" - Status OK");
 
     if (body.bounding_box_2d.size() == 4) {
@@ -7964,8 +8043,8 @@ void ZedCamera::processBodies(rclcpp::Time t)
     }
 
     memcpy(
-      &(bodyMsg->objects[idx].head_position[0]), &(body.head_position[0]),
-      3 * sizeof(float));
+      &(bodyMsg->objects[idx].head_position[0]),
+      &(body.head_position[0]), 3 * sizeof(float));
 
     bodyMsg->objects[idx].skeleton_available = true;
 
@@ -8039,9 +8118,9 @@ void ZedCamera::applyDepthSettings()
   if (isDepthRequired()) {
     std::lock_guard<std::mutex> lock(mDynParMutex);
     mRunParams.confidence_threshold =
-      mDepthConf;    // Update depth confidence if changed
+      mDepthConf;      // Update depth confidence if changed
     mRunParams.texture_confidence_threshold =
-      mDepthTextConf;    // Update depth texture confidence if changed
+      mDepthTextConf;      // Update depth texture confidence if changed
     mRunParams.remove_saturated_areas = mRemoveSatAreas;
 
     DEBUG_STREAM_COMM("Depth extraction enabled");
@@ -8139,8 +8218,8 @@ void ZedCamera::applyVideoSettings()
       }
     }
 
-    // ----> BRIGHTNESS, CONTRAST, HUE controls not available for ZED X and ZED
-    // X Mini
+    // ----> BRIGHTNESS, CONTRAST, HUE controls not available for ZED X and
+    // ZED X Mini
     if (!sl_tools::isZEDX(mCamRealModel)) {
       int value;
       setting = sl::VIDEO_SETTINGS::BRIGHTNESS;
@@ -8185,8 +8264,8 @@ void ZedCamera::applyVideoSettings()
             << sl::toString(err).c_str());
       }
     }
-    // <---- BRIGHTNESS, CONTRAST, HUE controls not available for ZED X and ZED
-    // X Mini
+    // <---- BRIGHTNESS, CONTRAST, HUE controls not available for ZED X and
+    // ZED X Mini
 
     setting = sl::VIDEO_SETTINGS::SATURATION;
     int value;
@@ -8197,9 +8276,10 @@ void ZedCamera::applyVideoSettings()
 
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
-        get_logger(),
-        "Error setting " << sl::toString(setting).c_str()
-                         << ": " << sl::toString(err).c_str());
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
     }
 
     setting = sl::VIDEO_SETTINGS::SHARPNESS;
@@ -8210,9 +8290,10 @@ void ZedCamera::applyVideoSettings()
 
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
-        get_logger(),
-        "Error setting " << sl::toString(setting).c_str()
-                         << ": " << sl::toString(err).c_str());
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
     }
 
     setting = sl::VIDEO_SETTINGS::GAMMA;
@@ -8223,9 +8304,10 @@ void ZedCamera::applyVideoSettings()
 
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
-        get_logger(),
-        "Error setting " << sl::toString(setting).c_str()
-                         << ": " << sl::toString(err).c_str());
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
     }
 
     if (sl_tools::isZEDX(mCamRealModel)) {
@@ -8235,17 +8317,17 @@ void ZedCamera::applyVideoSettings()
         if (err == sl::ERROR_CODE::SUCCESS && value != mGmslExpTime) {
           err = mZed.setCameraSettings(setting, mGmslExpTime);
           DEBUG_STREAM_CTRL(
-            "New setting for " << sl::toString(setting).c_str()
-                               << ": " << mGmslExpTime
-                               << " [Old " << value << "]");
+            "New setting for "
+              << sl::toString(setting).c_str() << ": "
+              << mGmslExpTime << " [Old " << value << "]");
         }
 
         if (err != sl::ERROR_CODE::SUCCESS) {
           RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting "
-              << sl::toString(setting).c_str()
-              << ": "
-              << sl::toString(err).c_str());
+            get_logger(),
+            "Error setting " << sl::toString(setting).c_str()
+                             << ": "
+                             << sl::toString(err).c_str());
         }
       }
 
@@ -8291,17 +8373,17 @@ void ZedCamera::applyVideoSettings()
         if (err == sl::ERROR_CODE::SUCCESS && value != mGmslAnalogGain) {
           err = mZed.setCameraSettings(setting, mGmslAnalogGain);
           DEBUG_STREAM_CTRL(
-            "New setting for " << sl::toString(setting).c_str()
-                               << ": " << mGmslAnalogGain
-                               << " [Old " << value << "]");
+            "New setting for "
+              << sl::toString(setting).c_str() << ": "
+              << mGmslAnalogGain << " [Old " << value << "]");
         }
 
         if (err != sl::ERROR_CODE::SUCCESS) {
           RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting "
-              << sl::toString(setting).c_str()
-              << ": "
-              << sl::toString(err).c_str());
+            get_logger(),
+            "Error setting " << sl::toString(setting).c_str()
+                             << ": "
+                             << sl::toString(err).c_str());
         }
 
         // TODO(Walter) Enable when fixed in the SDK
@@ -8327,17 +8409,17 @@ void ZedCamera::applyVideoSettings()
         if (err == sl::ERROR_CODE::SUCCESS && value != mGmslDigitalGain) {
           err = mZed.setCameraSettings(setting, mGmslDigitalGain);
           DEBUG_STREAM_CTRL(
-            "New setting for " << sl::toString(setting).c_str()
-                               << ": " << mGmslDigitalGain
-                               << " [Old " << value << "]");
+            "New setting for "
+              << sl::toString(setting).c_str() << ": "
+              << mGmslDigitalGain << " [Old " << value << "]");
         }
 
         if (err != sl::ERROR_CODE::SUCCESS) {
           RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting "
-              << sl::toString(setting).c_str()
-              << ": "
-              << sl::toString(err).c_str());
+            get_logger(),
+            "Error setting " << sl::toString(setting).c_str()
+                             << ": "
+                             << sl::toString(err).c_str());
         }
       }
 
@@ -8439,7 +8521,9 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 
   if (!mOpenniDepthMode) {
     auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t);
-    DEBUG_STREAM_VD("Publishing DEPTH message: " << t.nanoseconds() << " nsec");
+    DEBUG_STREAM_VD(
+      "Publishing DEPTH message: " << t.nanoseconds()
+                                   << " nsec");
     mPubDepth.publish(std::move(depth_img), mDepthCamInfoMsg);
     return;
   }
@@ -8453,7 +8537,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
   openniDepthMsg->height = depth.getHeight();
   openniDepthMsg->width = depth.getWidth();
 
-  int num = 1;  // for endianness detection
+  int num = 1;    // for endianness detection
   openniDepthMsg->is_bigendian = !(*reinterpret_cast<char *>(&num) == 1);
 
   openniDepthMsg->step = openniDepthMsg->width * sizeof(uint16_t);
@@ -8469,7 +8553,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 
   for (int i = 0; i < dataSize; i++) {
     *(data++) = static_cast<uint16_t>(
-      std::round(*(depthDataPtr++) * 1000));    // in mm, rounded
+      std::round(*(depthDataPtr++) * 1000));      // in mm, rounded
   }
 
   DEBUG_STREAM_VD("Publishing OPENNI DEPTH message");
@@ -8489,11 +8573,13 @@ void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
   disparityMsg->header = disparityMsg->image.header;
   disparityMsg->f =
     zedParam.camera_configuration.calibration_parameters.left_cam.fx;
-  disparityMsg->t =
-    zedParam.camera_configuration.calibration_parameters.getCameraBaseline();
-  disparityMsg->min_disparity = disparityMsg->f * disparityMsg->t /
+  disparityMsg->t = zedParam.camera_configuration.calibration_parameters
+    .getCameraBaseline();
+  disparityMsg->min_disparity =
+    disparityMsg->f * disparityMsg->t /
     mZed.getInitParameters().depth_minimum_distance;
-  disparityMsg->max_disparity = disparityMsg->f * disparityMsg->t /
+  disparityMsg->max_disparity =
+    disparityMsg->f * disparityMsg->t /
     mZed.getInitParameters().depth_maximum_distance;
 
   DEBUG_STREAM_VD("Publishing DISPARITY message");
@@ -8541,7 +8627,7 @@ void ZedCamera::publishPointCloud()
 
   if (pcMsg->width != width || pcMsg->height != height) {
     pcMsg->header.frame_id =
-      mPointCloudFrameId;    // Set the header values of the ROS message
+      mPointCloudFrameId;      // Set the header values of the ROS message
 
     pcMsg->is_bigendian = false;
     pcMsg->is_dense = false;
@@ -8551,11 +8637,10 @@ void ZedCamera::publishPointCloud()
 
     sensor_msgs::PointCloud2Modifier modifier(*(pcMsg.get()));
     modifier.setPointCloud2Fields(
-      4, "x", 1,
-      sensor_msgs::msg::PointField::FLOAT32, "y", 1,
+      4, "x", 1, sensor_msgs::msg::PointField::FLOAT32, "y", 1,
       sensor_msgs::msg::PointField::FLOAT32, "z", 1,
-      sensor_msgs::msg::PointField::FLOAT32, "rgb",
-      1, sensor_msgs::msg::PointField::FLOAT32);
+      sensor_msgs::msg::PointField::FLOAT32, "rgb", 1,
+      sensor_msgs::msg::PointField::FLOAT32);
   }
 
   sl::Vector4<float> * cpu_cloud = mMatCloud.getPtr<sl::float4>();
@@ -8585,7 +8670,8 @@ void ZedCamera::callback_pubTemp()
 
   if (sl_tools::isZED(mCamRealModel) || sl_tools::isZEDM(mCamRealModel)) {
     DEBUG_SENS(
-      "callback_pubTemp: the callback should never be called for the ZED or "
+      "callback_pubTemp: the callback should never be called for the ZED "
+      "or "
       "ZEDM camera models!");
     return;
   }
@@ -8634,7 +8720,8 @@ void ZedCamera::callback_pubTemp()
     tempImuSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
   } catch (...) {
     rcutils_reset_error();
-    DEBUG_STREAM_SENS("callback_pubTemp: Exception while counting subscribers");
+    DEBUG_STREAM_SENS(
+      "callback_pubTemp: Exception while counting subscribers");
     return;
   }
   // <---- Subscribers count
@@ -8642,7 +8729,8 @@ void ZedCamera::callback_pubTemp()
   rclcpp::Time now = get_clock()->now();
 
   if (tempLeftSubNumber > 0) {
-    tempMsgPtr leftTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+    tempMsgPtr leftTempMsg =
+      std::make_unique<sensor_msgs::msg::Temperature>();
 
     leftTempMsg->header.stamp = now;
 
@@ -8654,7 +8742,8 @@ void ZedCamera::callback_pubTemp()
   }
 
   if (tempRightSubNumber > 0) {
-    tempMsgPtr rightTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+    tempMsgPtr rightTempMsg =
+      std::make_unique<sensor_msgs::msg::Temperature>();
 
     rightTempMsg->header.stamp = now;
 
@@ -8729,7 +8818,7 @@ void ZedCamera::callback_pubFusedPc()
     // Initialize Point Cloud message
     // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
     pointcloudFusedMsg->header.frame_id =
-      mMapFrameId;    // Set the header values of the ROS message
+      mMapFrameId;      // Set the header values of the ROS message
     pointcloudFusedMsg->is_bigendian = false;
     pointcloudFusedMsg->is_dense = false;
     pointcloudFusedMsg->width = ptsCount;
@@ -8737,11 +8826,10 @@ void ZedCamera::callback_pubFusedPc()
 
     sensor_msgs::PointCloud2Modifier modifier(*pointcloudFusedMsg);
     modifier.setPointCloud2Fields(
-      4, "x", 1,
-      sensor_msgs::msg::PointField::FLOAT32, "y", 1,
+      4, "x", 1, sensor_msgs::msg::PointField::FLOAT32, "y", 1,
       sensor_msgs::msg::PointField::FLOAT32, "z", 1,
-      sensor_msgs::msg::PointField::FLOAT32, "rgb",
-      1, sensor_msgs::msg::PointField::FLOAT32);
+      sensor_msgs::msg::PointField::FLOAT32, "rgb", 1,
+      sensor_msgs::msg::PointField::FLOAT32);
 
     resized = true;
   }
@@ -8809,7 +8897,7 @@ void ZedCamera::callback_pubPaths()
 
   odomPose.header.stamp =
     mFrameTimestamp + rclcpp::Duration(0, mTfOffset * 1e9);
-  odomPose.header.frame_id = mMapFrameId;  // map_frame
+  odomPose.header.frame_id = mMapFrameId;    // map_frame
   odomPose.pose.position.x = mOdom2BaseTransf.getOrigin().x();
   odomPose.pose.position.y = mOdom2BaseTransf.getOrigin().y();
   odomPose.pose.position.z = mOdom2BaseTransf.getOrigin().z();
@@ -8818,8 +8906,9 @@ void ZedCamera::callback_pubPaths()
   odomPose.pose.orientation.z = mOdom2BaseTransf.getRotation().z();
   odomPose.pose.orientation.w = mOdom2BaseTransf.getRotation().w();
 
-  mapPose.header.stamp = mFrameTimestamp + rclcpp::Duration(0, mTfOffset * 1e9);
-  mapPose.header.frame_id = mMapFrameId;  // map_frame
+  mapPose.header.stamp =
+    mFrameTimestamp + rclcpp::Duration(0, mTfOffset * 1e9);
+  mapPose.header.frame_id = mMapFrameId;    // map_frame
   mapPose.pose.position.x = mMap2BaseTransf.getOrigin().x();
   mapPose.pose.position.y = mMap2BaseTransf.getOrigin().y();
   mapPose.pose.position.z = mMap2BaseTransf.getOrigin().z();
@@ -8831,7 +8920,7 @@ void ZedCamera::callback_pubPaths()
   if (mGnssFusionEnabled) {
     utmPose.header.stamp =
       mFrameTimestamp + rclcpp::Duration(0, mTfOffset * 1e9);
-    utmPose.header.frame_id = mMapFrameId;  // mUtmFrameId;  // map_frame
+    utmPose.header.frame_id = mMapFrameId;    // mUtmFrameId;  // map_frame
     utmPose.pose.position.x = mMap2UtmTransf.getOrigin().x();
     utmPose.pose.position.y = mMap2UtmTransf.getOrigin().y();
     utmPose.pose.position.z = mMap2UtmTransf.getOrigin().z();
@@ -9184,9 +9273,11 @@ void ZedCamera::callback_startSvoRec(
   if (mSvoRecCompr >= sl::SVO_COMPRESSION_MODE::LAST) {
     RCLCPP_WARN(
       get_logger(),
-      "'compression_mode' mode not valid. Please use a value in range [0,2]");
+      "'compression_mode' mode not valid. Please use a value in "
+      "range [0,2]");
     res->message =
-      "'compression_mode' mode not valid. Please use a value in range [0,2]";
+      "'compression_mode' mode not valid. Please use a value in range "
+      "[0,2]";
     res->success = false;
     return;
   }
@@ -9214,8 +9305,8 @@ void ZedCamera::callback_startSvoRec(
     get_logger(),
     " * Input Transcode: " << (mSvoRecTranscode ? "TRUE" : "FALSE"));
   RCLCPP_INFO_STREAM(
-    get_logger(), " * Filename: " << (mSvoRecFilename.empty() ?
-    "zed.svo" :
+    get_logger(),
+    " * Filename: " << (mSvoRecFilename.empty() ? "zed.svo" :
     mSvoRecFilename));
 
   res->message = "SVO Recording started";
@@ -9404,14 +9495,14 @@ void ZedCamera::callback_updateDiagnostic(
         if (mGnssMsgReceived) {
           freq = 1. / mGnssFix_sec->getAvg();
           stat.addf("GNSS input", "Mean Frequency: %.1f Hz", freq);
-          stat.addf("GNSS Service", "%s", mGnssService.c_str());
+          stat.addf("GNSS Services", "%s", mGnssServiceStr.c_str());
           if (mGnssFixValid) {
             stat.add("GNSS Status", "FIX OK");
           } else {
             stat.add("GNSS Status", "NO FIX");
           }
         } else {
-          stat.add("GNSS Fusion", "GNSS Data not available");
+          stat.add("GNSS Fusion", "Waiting for GNSS messages");
         }
       } else {
         stat.add("GNSS Fusion", "DISABLED");
@@ -9468,8 +9559,8 @@ void ZedCamera::callback_updateDiagnostic(
           freq_perc = 100. * freq / mPubFrameRate;
           frame_grab_period = 1. / mPubFrameRate;
           stat.addf(
-            "Body Tracking", "Mean Frequency: %.3f Hz  (%.1f%%)", freq,
-            freq_perc);
+            "Body Tracking", "Mean Frequency: %.3f Hz  (%.1f%%)",
+            freq, freq_perc);
           stat.addf(
             "Body Tracking",
             "Processing Time: %.3f sec (Max. %.3f sec)",
@@ -9601,7 +9692,8 @@ void ZedCamera::callback_gnssFix(
   if (!mGnssPubCheckTimer) {
     std::chrono::milliseconds gnssTimeout_msec(static_cast<int>(2000.0));
     mGnssPubCheckTimer = create_wall_timer(
-      std::chrono::duration_cast<std::chrono::milliseconds>(gnssTimeout_msec),
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+        gnssTimeout_msec),
       std::bind(&ZedCamera::callback_gnssPubTimerTimeout, this));
   } else {
     mGnssPubCheckTimer->reset();
@@ -9614,23 +9706,24 @@ void ZedCamera::callback_gnssFix(
     get_logger(),
     " * First message received. GNSS Sender active.");
 
-  mGnssService = "";
-  if (msg->status.service & sensor_msgs::msg::NavSatStatus::SERVICE_GPS) {
-    mGnssService += "GPS ";
+  mGnssServiceStr = "";
+  mGnssService = msg->status.service;
+  if (mGnssService & sensor_msgs::msg::NavSatStatus::SERVICE_GPS) {
+    mGnssServiceStr += "GPS ";
   }
-  if (msg->status.service & sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS) {
-    mGnssService += "GLONASS ";
+  if (mGnssService & sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS) {
+    mGnssServiceStr += "GLONASS ";
   }
-  if (msg->status.service & sensor_msgs::msg::NavSatStatus::SERVICE_COMPASS) {
-    mGnssService += "COMPASS ";
+  if (mGnssService & sensor_msgs::msg::NavSatStatus::SERVICE_COMPASS) {
+    mGnssServiceStr += "COMPASS ";
   }
-  if (msg->status.service & sensor_msgs::msg::NavSatStatus::SERVICE_GALILEO) {
-    mGnssService += "GALILEO";
+  if (mGnssService & sensor_msgs::msg::NavSatStatus::SERVICE_GALILEO) {
+    mGnssServiceStr += "GALILEO";
   }
 
   RCLCPP_INFO_STREAM_ONCE(
     get_logger(),
-    " * Service: " << mGnssService.c_str());
+    " * Service: " << mGnssServiceStr.c_str());
 
   if (msg->status.status == sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX) {
     DEBUG_GNSS("callback_gnssFix: fix not valid");
@@ -9648,13 +9741,14 @@ void ZedCamera::callback_gnssFix(
   //       "sensor_msgs/TimeReference message", e.g. `/time_reference`
   uint64_t ts_gnss_part_sec =
     static_cast<uint64_t>(msg->header.stamp.sec) * 1000000000;
-  uint64_t ts_gnss_part_nsec = static_cast<uint64_t>(msg->header.stamp.nanosec);
+  uint64_t ts_gnss_part_nsec =
+    static_cast<uint64_t>(msg->header.stamp.nanosec);
   uint64_t ts_gnss_nsec = ts_gnss_part_sec + ts_gnss_part_nsec;
 
   DEBUG_STREAM_GNSS(
     "GNSS Ts: " << ts_gnss_part_sec / 1000000000 << " sec + "
-                << ts_gnss_part_nsec
-                << " nsec = " << ts_gnss_nsec << " nsec fused");
+                << ts_gnss_part_nsec << " nsec = "
+                << ts_gnss_nsec << " nsec fused");
 
   if (ts_gnss_nsec <= mLastTs_gnss_nsec) {
     DEBUG_GNSS(
@@ -9662,7 +9756,9 @@ void ZedCamera::callback_gnssFix(
     return;
   }
 
-  DEBUG_STREAM_GNSS("GNSS dT: " << ts_gnss_nsec - mLastTs_gnss_nsec << " nsec");
+  DEBUG_STREAM_GNSS(
+    "GNSS dT: " << ts_gnss_nsec - mLastTs_gnss_nsec
+                << " nsec");
   mLastTs_gnss_nsec = ts_gnss_nsec;
   // <---- Check timestamp
 
@@ -9684,7 +9780,6 @@ void ZedCamera::callback_gnssFix(
   if (msg->position_covariance_type !=
     sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN)
   {
-    // TODO(Walter) Handle the new covariance mode in the SDK
     gnssData.latitude_std = msg->position_covariance[0];
     gnssData.longitude_std = msg->position_covariance[1 * 3 + 1];
     gnssData.altitude_std = msg->position_covariance[2 * 3 + 2];
@@ -9692,9 +9787,11 @@ void ZedCamera::callback_gnssFix(
       gnssData.altitude_std = 1e-9;
     }
     std::array<double, 9> position_covariance;
-    position_covariance[0] = gnssData.latitude_std * 5.f;           // X
-    position_covariance[1 * 3 + 1] = gnssData.longitude_std * 5.f;  // Y
-    position_covariance[2 * 3 + 2] = gnssData.altitude_std * 10.f;  // Z
+    position_covariance[0] = gnssData.latitude_std * mGnssHcovMul;    // X
+    position_covariance[1 * 3 + 1] =
+      gnssData.longitude_std * mGnssHcovMul;      // Y
+    position_covariance[2 * 3 + 2] =
+      gnssData.altitude_std * mGnssVcovMul;      // Z
     gnssData.position_covariance = position_covariance;
   }
 
@@ -9707,7 +9804,7 @@ void ZedCamera::callback_gnssFix(
         << " m");
   }
 
-  mGnssFixValid = true;  // Used to keep track of signal loss
+  mGnssFixValid = true;    // Used to keep track of signal loss
 
   if (mZed.isOpened() && mZed.isPositionalTrackingEnabled()) {
     auto ingest_error = mFusion.ingestGNSSData(gnssData);
@@ -9719,7 +9816,8 @@ void ZedCamera::callback_gnssFix(
     } else {
       RCLCPP_ERROR_STREAM(
         get_logger(),
-        "Ingest error occurred when ingesting GNSSData: " << ingest_error);
+        "Ingest error occurred when ingesting GNSSData: "
+          << sl::toString(ingest_error));
     }
     mGnssFixNew = true;
   }
@@ -9806,7 +9904,7 @@ void ZedCamera::callback_clickedPoint(
   // ----> Project the point into 2D image coordinates
   sl::CalibrationParameters zedParam;
   zedParam = mZed.getCameraInformation(mMatResol)
-    .camera_configuration.calibration_parameters;               // ok
+    .camera_configuration.calibration_parameters;                 // ok
 
   float f_x = zedParam.left_cam.fx;
   float f_y = zedParam.left_cam.fy;
@@ -9832,8 +9930,8 @@ void ZedCamera::callback_clickedPoint(
   if (err != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN(
       get_logger(),
-      "Error extracting plane at point [%.3f,%.3f,%.3f]: %s", X, Y, Z,
-      sl::toString(err).c_str());
+      "Error extracting plane at point [%.3f,%.3f,%.3f]: %s", X, Y,
+      Z, sl::toString(err).c_str());
     return;
   }
 
@@ -9842,8 +9940,8 @@ void ZedCamera::callback_clickedPoint(
 
   if (dims[0] == 0 || dims[1] == 0) {
     RCLCPP_INFO(
-      get_logger(), "Plane not found at point [%.3f,%.3f,%.3f]", X, Y,
-      Z);
+      get_logger(), "Plane not found at point [%.3f,%.3f,%.3f]", X,
+      Y, Z);
     return;
   }
 
@@ -9857,19 +9955,19 @@ void ZedCamera::callback_clickedPoint(
     // ----> Publish a blue sphere in the clicked point
     markerMsgPtr pt_marker =
       std::make_unique<visualization_msgs::msg::Marker>();
-    // Set the frame ID and timestamp.  See the TF tutorials for information on
-    // these.
+    // Set the frame ID and timestamp.  See the TF tutorials for information
+    // on these.
     static int hit_pt_id =
-      0;    // This ID must be unique in the same process. Thus it is good to
-            // keep it as a static variable
+      0;      // This ID must be unique in the same process. Thus it is good to
+              // keep it as a static variable
     pt_marker->header.stamp = ts;
     // Set the marker action.  Options are ADD and DELETE
     pt_marker->action = visualization_msgs::msg::Marker::ADD;
     pt_marker->lifetime = rclcpp::Duration(0, 0);
 
-    // Set the namespace and id for this marker.  This serves to create a unique
-    // ID Any marker sent with the same namespace and id will overwrite the old
-    // one
+    // Set the namespace and id for this marker.  This serves to create a
+    // unique ID Any marker sent with the same namespace and id will overwrite
+    // the old one
     pt_marker->ns = "plane_hit_points";
     pt_marker->id = hit_pt_id++;
     pt_marker->header.frame_id = mMapFrameId;
@@ -9907,19 +10005,19 @@ void ZedCamera::callback_clickedPoint(
     // ----> Publish the plane as green mesh
     markerMsgPtr plane_marker =
       std::make_unique<visualization_msgs::msg::Marker>();
-    // Set the frame ID and timestamp.  See the TF tutorials for information on
-    // these.
+    // Set the frame ID and timestamp.  See the TF tutorials for information
+    // on these.
     static int plane_mesh_id =
-      0;    // This ID must be unique in the same process. Thus it is good to
-            // keep it as a static variable
+      0;      // This ID must be unique in the same process. Thus it is good to
+              // keep it as a static variable
     plane_marker->header.stamp = ts;
     // Set the marker action.  Options are ADD and DELETE
     plane_marker->action = visualization_msgs::msg::Marker::ADD;
     plane_marker->lifetime = rclcpp::Duration(0, 0);
 
-    // Set the namespace and id for this marker.  This serves to create a unique
-    // ID Any marker sent with the same namespace and id will overwrite the old
-    // one
+    // Set the namespace and id for this marker.  This serves to create a
+    // unique ID Any marker sent with the same namespace and id will overwrite
+    // the old one
     plane_marker->ns = "plane_meshes";
     plane_marker->id = plane_mesh_id++;
     plane_marker->header.frame_id = mLeftCamFrameId;
@@ -10124,7 +10222,8 @@ void ZedCamera::callback_setRoi(
   } else {
     sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask);
     if (err != sl::ERROR_CODE::SUCCESS) {
-      std::string err_msg = "Error while setting ZED SDK region of interest: ";
+      std::string err_msg =
+        "Error while setting ZED SDK region of interest: ";
       err_msg += sl::toString(err).c_str();
 
       RCLCPP_WARN_STREAM(get_logger(), "  * " << err_msg);
@@ -10164,7 +10263,8 @@ void ZedCamera::callback_resetRoi(
 
   if (mDepthDisabled) {
     std::string err_msg =
-      "Error while resetting ZED SDK region of interest: depth processing is "
+      "Error while resetting ZED SDK region of interest: depth processing "
+      "is "
       "disabled!";
 
     RCLCPP_WARN_STREAM(get_logger(), " * " << err_msg);
@@ -10213,7 +10313,7 @@ void ZedCamera::callback_toLL(
     return;
   }
 
-  if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED) {
+  if (mGeoPoseStatus != sl::GNSS_FUSION_STATUS::OK) {
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");
     return;
   }
@@ -10255,7 +10355,7 @@ void ZedCamera::callback_fromLL(
     return;
   }
 
-  if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED) {
+  if (mGeoPoseStatus != sl::GNSS_FUSION_STATUS::OK) {
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");
     return;
   }
@@ -10282,7 +10382,8 @@ void ZedCamera::callback_fromLL(
     res->map_point.z);
 }
 
-void ZedCamera::callback_clock(const rosgraph_msgs::msg::Clock::SharedPtr msg)
+void ZedCamera::callback_clock(
+  const rosgraph_msgs::msg::Clock::SharedPtr msg)
 {
   DEBUG_SIM("*** CLOCK CALLBACK ***");
   rclcpp::Time msg_time(msg->clock, RCL_ROS_TIME);
@@ -10324,7 +10425,9 @@ void ZedCamera::processRtRoi(rclcpp::Time ts)
       if (mAutoRoiStatus ==
         sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::READY)
       {
-        RCLCPP_INFO(get_logger(), "Region of interest auto detection is done!");
+        RCLCPP_INFO(
+          get_logger(),
+          "Region of interest auto detection is done!");
       }
     }
   }

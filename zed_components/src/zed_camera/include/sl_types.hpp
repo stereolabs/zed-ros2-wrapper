@@ -57,6 +57,7 @@
 #include <zed_interfaces/srv/set_roi.hpp>
 #include <zed_interfaces/srv/start_svo_rec.hpp>
 #include <zed_interfaces/msg/pos_track_status.hpp>
+#include <zed_interfaces/msg/mag_heading_status.hpp>
 
 #include <robot_localization/srv/from_ll.hpp>
 #include <robot_localization/srv/to_ll.hpp>
@@ -86,6 +87,8 @@ typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Imu>> imuPub;
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::MagneticField>> magPub;
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::FluidPressure>> pressPub;
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Temperature>> tempPub;
+typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Imu>> magHeadingPub;
+typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::MagHeadingStatus>> magHeadingStatusPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> posePub;
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PosTrackStatus>> poseStatusPub;
@@ -114,6 +117,8 @@ typedef std::unique_ptr<sensor_msgs::msg::Imu> imuMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::FluidPressure> pressMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::Temperature> tempMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::MagneticField> magMsgPtr;
+typedef std::unique_ptr<sensor_msgs::msg::Imu> magHeadingMsgPtr;
+typedef std::unique_ptr<zed_interfaces::msg::MagHeadingStatus> magHeadingStatusMsgPtr;
 typedef std::unique_ptr<stereo_msgs::msg::DisparityImage> dispMsgPtr;
 
 typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;

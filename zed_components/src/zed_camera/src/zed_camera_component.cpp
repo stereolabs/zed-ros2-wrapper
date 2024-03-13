@@ -3192,14 +3192,17 @@ void ZedCamera::initPublishers()
   std::string imuTopicRoot = "imu";
   std::string imu_topic_name = "data";
   std::string imu_topic_raw_name = "data_raw";
-  std::string imu_topic_mag_name = "mag";
   // std::string imu_topic_mag_raw_name = "mag_raw";
   std::string pressure_topic_name = "atm_press";
 
   std::string imu_topic = mTopicRoot + imuTopicRoot + "/" + imu_topic_name;
   std::string imu_topic_raw = mTopicRoot + imuTopicRoot + "/" + imu_topic_raw_name;
   std::string imu_temp_topic = mTopicRoot + temp_topic_root + "/" + imuTopicRoot;
-  std::string imu_mag_topic = mTopicRoot + imuTopicRoot + "/" + imu_topic_mag_name;
+
+  mMagTopic = mTopicRoot + "imu/mag";
+  mMagRawTopic = mTopicRoot + "imu/mag_raw";
+  mMagHeadingTopic = mTopicRoot + "imu/mag/heading";
+  mMagHeadingStatusTopic = mTopicRoot + "imu/mag/heading/status";
   // std::string imu_mag_topic_raw = imuTopicRoot + "/" +
   // imu_topic_mag_raw_name;
   std::string pressure_topic = mTopicRoot + /*imuTopicRoot + "/" +*/ pressure_topic_name;
@@ -3362,8 +3365,14 @@ void ZedCamera::initPublishers()
     }
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-      mPubImuMag = create_publisher<sensor_msgs::msg::MagneticField>(imu_mag_topic, mSensQos);
-      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubImuMag->get_topic_name());
+      mPubMag = create_publisher<sensor_msgs::msg::MagneticField>(mMagTopic, mSensQos);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubMag->get_topic_name());
+      mPubMagRaw = create_publisher<sensor_msgs::msg::MagneticField>(mMagRawTopic, mSensQos);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubMagRaw->get_topic_name());
+      mPubMagHeading = create_publisher<sensor_msgs::msg::Imu>(mMagHeadingTopic, mSensQos);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubMagHeading->get_topic_name());
+      mPubMagHeadingStatus = create_publisher<zed_interfaces::msg::MagHeadingStatus>(mMagHeadingStatusTopic, mSensQos);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubMagHeadingStatus->get_topic_name());
       mPubPressure = create_publisher<sensor_msgs::msg::FluidPressure>(pressure_topic, mSensQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubPressure->get_topic_name());
       mPubTempL = create_publisher<sensor_msgs::msg::Temperature>(temp_topic_left, mSensQos);
@@ -5433,6 +5442,8 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   size_t imu_RawSubNumber = 0;
   size_t imu_TempSubNumber = 0;
   size_t imu_MagSubNumber = 0;
+  size_t imu_MagRawSubNumber = 0;
+  size_t imu_MagHeadingSubNumber = 0;
   size_t pressSubNumber = 0;
 
   try {
@@ -5442,7 +5453,9 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
     pressSubNumber = 0;
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-      imu_MagSubNumber = count_subscribers(mPubImuMag->get_topic_name());
+      imu_MagSubNumber = count_subscribers(mPubMag->get_topic_name());
+      imu_MagRawSubNumber = count_subscribers(mPubMagRaw->get_topic_name());
+      imu_MagHeadingSubNumber = count_subscribers(mPubMagHeading->get_topic_name());
       pressSubNumber = count_subscribers(mPubPressure->get_topic_name());
     }
   } catch (...) {
@@ -5554,13 +5567,17 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
 
       imuMsgPtr imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
-      imuMsg->header.stamp = ts_imu;
+      // Imu timestamps are busted -- other sensors probably are too!
+//      imuMsg->header.stamp = ts_imu;
+      imuMsg->header.stamp = get_clock()->now();
       imuMsg->header.frame_id = mImuFrameId;
 
       imuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
       imuMsg->orientation.y = sens_data.imu.pose.getOrientation()[1];
       imuMsg->orientation.z = sens_data.imu.pose.getOrientation()[2];
       imuMsg->orientation.w = sens_data.imu.pose.getOrientation()[3];
+//      sl::float3 angles = sens_data.imu.pose.getEulerAngles(false);
+//      fprintf(stderr, "%0.2f %0.2f %0.2f\n", angles[0], angles[1], angles[2]);
 
       imuMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
       imuMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
@@ -5708,9 +5725,59 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
       magMsg->magnetic_field_covariance[8] = 0.047e-6;
 
       DEBUG_STREAM_SENS("Publishing MAG message");
-      mPubImuMag->publish(std::move(magMsg));
+      mPubMag->publish(std::move(magMsg));
     } else {
       mMagPublishing = false;
+    }
+    if (imu_MagRawSubNumber > 0) {
+      mMagRawPublishing = true;
+
+      magMsgPtr magRawMsg = std::make_unique<sensor_msgs::msg::MagneticField>();
+
+      magRawMsg->header.stamp = ts_mag;
+      magRawMsg->header.frame_id = mMagFrameId;
+      magRawMsg->magnetic_field.x =
+        sens_data.magnetometer.magnetic_field_uncalibrated.x * 1e-6;  // Tesla
+      magRawMsg->magnetic_field.y =
+        sens_data.magnetometer.magnetic_field_uncalibrated.y * 1e-6;  // Tesla
+      magRawMsg->magnetic_field.z =
+        sens_data.magnetometer.magnetic_field_uncalibrated.z * 1e-6;  // Tesla
+      // Not sure what the uncalibrated covariance matrix should look like...
+      magRawMsg->magnetic_field_covariance[0] = 0.039e-6;
+      magRawMsg->magnetic_field_covariance[1] = 0.0f;
+      magRawMsg->magnetic_field_covariance[2] = 0.0f;
+      magRawMsg->magnetic_field_covariance[3] = 0.0f;
+      magRawMsg->magnetic_field_covariance[4] = 0.037e-6;
+      magRawMsg->magnetic_field_covariance[5] = 0.0f;
+      magRawMsg->magnetic_field_covariance[6] = 0.0f;
+      magRawMsg->magnetic_field_covariance[7] = 0.0f;
+      magRawMsg->magnetic_field_covariance[8] = 0.047e-6;
+
+      DEBUG_STREAM_SENS("Publishing MAG RAW message");
+      mPubMagRaw->publish(std::move(magRawMsg));
+    } else {
+      mMagRawPublishing = false;
+    }
+    if (imu_MagHeadingSubNumber > 0) {
+      mMagHeadingPublishing = true;
+      magHeadingMsgPtr magHeadingMsg = std::make_unique<sensor_msgs::msg::Imu>();
+      magHeadingMsg->header.stamp = ts_mag;
+      magHeadingMsg->header.frame_id = mMagFrameId;
+      tf2::Quaternion quat_2d;
+      quat_2d.setRPY(0.0, 0.0, sens_data.magnetometer.magnetic_heading * DEG2RAD);
+      magHeadingMsg->orientation.x = quat_2d.x();
+      magHeadingMsg->orientation.y = quat_2d.y();
+      magHeadingMsg->orientation.z = quat_2d.z();
+      magHeadingMsg->orientation.w = quat_2d.w();
+      magHeadingMsg->orientation_covariance[8] = sens_data.magnetometer.magnetic_heading_accuracy;
+      DEBUG_STREAM_SENS("Publishing MAG HEADING message");
+      mPubMagHeading->publish(std::move(magHeadingMsg));
+      
+      magHeadingStatusMsgPtr magHeadingStatusMsg = std::make_unique<zed_interfaces::msg::MagHeadingStatus>();
+      magHeadingStatusMsg->status = static_cast<uint8_t>(sens_data.magnetometer.magnetic_heading_state);
+      mPubMagHeadingStatus->publish(std::move(magHeadingStatusMsg));
+    } else {
+      mMagHeadingPublishing = false;
     }
   }
   // <---- Sensors data publishing
@@ -9037,13 +9104,12 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
   gnssData.setCoordinates(latit, longit, altit, false);
 
   if (msg->position_covariance_type != sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN) {
-
     // TODO(Walter) Handle the new covariance mode in the SDK
     gnssData.latitude_std = msg->position_covariance[0];
     gnssData.longitude_std = msg->position_covariance[1 * 3 + 1];
     gnssData.altitude_std = msg->position_covariance[2 * 3 + 2];
     if (mGnssZeroAltitude) {
-      gnssData.altitude_std = 1e-9;
+      gnssData.altitude_std = 1e-9; // NOTE: this causes INVALID_COVARIANCE errors... :(
     }
     std::array<double, 9> position_covariance;
     position_covariance[0] = gnssData.latitude_std * 5.f;  // X
@@ -9051,6 +9117,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
     position_covariance[2 * 3 + 2] = gnssData.altitude_std * 10.f; // Z
     gnssData.position_covariance = position_covariance;
   }
+  //fprintf(stderr, "GNSS STD %lf %lf %lf\n", gnssData.latitude_std, gnssData.longitude_std, gnssData.altitude_std);
 
   if (!mGnssFixValid) {
     DEBUG_GNSS("GNSS: valid fix received.");

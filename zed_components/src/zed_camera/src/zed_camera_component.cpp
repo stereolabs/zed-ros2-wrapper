@@ -5567,13 +5567,17 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
 
       imuMsgPtr imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
-      imuMsg->header.stamp = ts_imu;
+      // Imu timestamps are busted -- other sensors probably are too!
+//      imuMsg->header.stamp = ts_imu;
+      imuMsg->header.stamp = get_clock()->now();
       imuMsg->header.frame_id = mImuFrameId;
 
       imuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
       imuMsg->orientation.y = sens_data.imu.pose.getOrientation()[1];
       imuMsg->orientation.z = sens_data.imu.pose.getOrientation()[2];
       imuMsg->orientation.w = sens_data.imu.pose.getOrientation()[3];
+//      sl::float3 angles = sens_data.imu.pose.getEulerAngles(false);
+//      fprintf(stderr, "%0.2f %0.2f %0.2f\n", angles[0], angles[1], angles[2]);
 
       imuMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
       imuMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
@@ -6683,6 +6687,23 @@ void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose,
     odomMsg->pose.pose.orientation.z = odom2baseTransf.getRotation().z();
     odomMsg->pose.pose.orientation.w = odom2baseTransf.getRotation().w();
 
+    // Calculate twist
+    // See: https://mariogc.com/post/angular-velocity-quaternions/
+    try {
+      const double deltaT = (t - mLastTs_odom).seconds();
+      const auto deltaPosition = mLastOdom2BaseTransf.inverseTimes(odom2baseTransf).getOrigin();
+      odomMsg->twist.twist.linear.x = deltaPosition.x() / deltaT;
+      odomMsg->twist.twist.linear.y = deltaPosition.y() / deltaT;
+      odomMsg->twist.twist.linear.z = deltaPosition.z() / deltaT;
+      const auto q1 = odom2baseTransf.getRotation();
+      const auto q0 = mLastOdom2BaseTransf.getRotation();
+      odomMsg->twist.twist.angular.x = 2 / deltaT * (q0.w() * q1.x() - q0.x() * q1.w() - q0.y() * q1.z() + q0.z() * q1.y());
+      odomMsg->twist.twist.angular.y = 2 / deltaT * (q0.w() * q1.y() + q0.x() * q1.z() - q0.y() * q1.w() - q0.z() * q1.x());
+      odomMsg->twist.twist.angular.z = 2 / deltaT * (q0.w() * q1.z() - q0.x() * q1.y() + q0.y() * q1.x() - q0.z() * q1.w());
+    } catch (...) {
+      DEBUG_STREAM_PT("publishOdom: Exception while calculating twist");
+    }
+
     // Odometry pose covariance
     for (size_t i = 0; i < odomMsg->pose.covariance.size(); i++) {
       odomMsg->pose.covariance[i] = static_cast<double>(slPose.pose_covariance[i]);
@@ -6704,6 +6725,8 @@ void ZedCamera::publishOdom(tf2::Transform & odom2baseTransf, sl::Pose & slPose,
     DEBUG_STREAM_PT("Publishing ODOM message");
     mPubOdom->publish(std::move(odomMsg));
   }
+  mLastTs_odom = t;
+  mLastOdom2BaseTransf = odom2baseTransf;
 }
 
 void ZedCamera::processPose()
@@ -9094,6 +9117,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
     position_covariance[2 * 3 + 2] = gnssData.altitude_std * 10.f; // Z
     gnssData.position_covariance = position_covariance;
   }
+  //fprintf(stderr, "GNSS STD %lf %lf %lf\n", gnssData.latitude_std, gnssData.longitude_std, gnssData.altitude_std);
 
   if (!mGnssFixValid) {
     DEBUG_GNSS("GNSS: valid fix received.");

@@ -24,18 +24,16 @@
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
 
-namespace stereolabs
-{
+namespace stereolabs {
 
-class ZedCamera : public rclcpp::Node
-{
-public:
+class ZedCamera : public rclcpp::Node {
+ public:
   ZED_COMPONENTS_PUBLIC
-  explicit ZedCamera(const rclcpp::NodeOptions & options);
+  explicit ZedCamera(const rclcpp::NodeOptions& options);
 
   virtual ~ZedCamera();
 
-protected:
+ protected:
   // ----> Initialization functions
   void initParameters();
   void initServices();
@@ -62,7 +60,8 @@ protected:
       const std::shared_ptr<sl::Camera> zed,
       const std::shared_ptr<sensor_msgs::msg::CameraInfo>& leftCamInfoMsg,
       const std::shared_ptr<sensor_msgs::msg::CameraInfo>& rightCamInfoMsg,
-      const std::string& leftFrameId, const std::string& rightFrameId, bool rawParam = false);
+      const std::string& leftFrameId, const std::string& rightFrameId,
+      bool rawParam = false);
 
   bool startCamera();
   bool startPosTracking();
@@ -72,7 +71,7 @@ protected:
   void stopObjDetect();
   bool startBodyTracking();
   void stopBodyTracking();
-  bool startSvoRecording(std::string & errMsg);
+  bool startSvoRecording(std::string& errMsg);
   void stopSvoRecording();
   // <---- Initialization functions
 
@@ -82,66 +81,66 @@ protected:
   void callback_pubTemp();
   void callback_gnssPubTimerTimeout();
   rcl_interfaces::msg::SetParametersResult callback_paramChange(
-    std::vector<rclcpp::Parameter> parameters);
+      std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(
-    diagnostic_updater::DiagnosticStatusWrapper & stat);
+      diagnostic_updater::DiagnosticStatusWrapper& stat);
 
   void callback_resetOdometry(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+      std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_resetPosTracking(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+      std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_setPose(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
-    std::shared_ptr<zed_interfaces::srv::SetPose_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
+      std::shared_ptr<zed_interfaces::srv::SetPose_Response> res);
   void callback_enableObjDet(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
-    std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+      std::shared_ptr<std_srvs::srv::SetBool_Response> res);
   void callback_enableBodyTrk(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
-    std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+      std::shared_ptr<std_srvs::srv::SetBool_Response> res);
   void callback_enableMapping(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
-    std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+      std::shared_ptr<std_srvs::srv::SetBool_Response> res);
   void callback_startSvoRec(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
-    std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
+      std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
   void callback_stopSvoRec(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+      std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_pauseSvoInput(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+      std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_clickedPoint(
-    const geometry_msgs::msg::PointStamped::SharedPtr msg);
+      const geometry_msgs::msg::PointStamped::SharedPtr msg);
   void callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
   void callback_clock(const rosgraph_msgs::msg::Clock::SharedPtr msg);
   void callback_setRoi(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<zed_interfaces::srv::SetROI_Request> req,
-    std::shared_ptr<zed_interfaces::srv::SetROI_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<zed_interfaces::srv::SetROI_Request> req,
+      std::shared_ptr<zed_interfaces::srv::SetROI_Response> res);
   void callback_resetRoi(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+      std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_toLL(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<robot_localization::srv::ToLL_Request> req,
-    std::shared_ptr<robot_localization::srv::ToLL_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<robot_localization::srv::ToLL_Request> req,
+      std::shared_ptr<robot_localization::srv::ToLL_Response> res);
   void callback_fromLL(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<robot_localization::srv::FromLL_Request> req,
-    std::shared_ptr<robot_localization::srv::FromLL_Response> res);
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<robot_localization::srv::FromLL_Request> req,
+      std::shared_ptr<robot_localization::srv::FromLL_Response> res);
   // <---- Callbacks
 
   // ----> Thread functions
@@ -151,23 +150,21 @@ protected:
   // <---- Thread functions
 
   // ----> Publishing functions
-  void publishImageWithInfo(
-    sl::Mat & img,
-    image_transport::CameraPublisher & pubImg,
-    camInfoMsgPtr & camInfoMsg, std::string imgFrameId,
-    rclcpp::Time t);
-  void publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t);
+  void publishImageWithInfo(sl::Mat& img,
+                            image_transport::CameraPublisher& pubImg,
+                            camInfoMsgPtr& camInfoMsg, std::string imgFrameId,
+                            rclcpp::Time t);
+  void publishDepthMapWithInfo(sl::Mat& depth, rclcpp::Time t);
   void publishDisparity(sl::Mat disparity, rclcpp::Time t);
 
   bool areVideoDepthSubscribed();
   void retrieveVideoDepth();
-  void publishVideoDepth(rclcpp::Time & out_pub_ts);
+  void publishVideoDepth(rclcpp::Time& out_pub_ts);
   void publishPointCloud();
   void publishImuFrameAndTopic();
 
-  void publishOdom(
-    tf2::Transform & odom2baseTransf, sl::Pose & slPose,
-    rclcpp::Time t);
+  void publishOdom(tf2::Transform& odom2baseTransf, sl::Pose& slPose,
+                   rclcpp::Time t);
   void publishPose();
   void publishGnssPose();
   void publishPoseStatus();
@@ -190,6 +187,7 @@ protected:
   void processOdometry();
   void processPose();
   void processGeoPose();
+  void processSvoGnssData();
 
   void processDetectedObjects(rclcpp::Time t);
   void processBodies(rclcpp::Time t);
@@ -207,24 +205,21 @@ protected:
   void startPathPubTimer(double pathTimerRate);
   void startTempPubTimer();
 
-  template<typename T>
-  void getParam(
-    std::string paramName, T defValue, T & outVal,
-    std::string log_info = std::string(), bool dynamic = false);
+  template <typename T>
+  void getParam(std::string paramName, T defValue, T& outVal,
+                std::string log_info = std::string(), bool dynamic = false);
 
   // Region of Interest
-  std::string getParam(
-    std::string paramName,
-    std::vector<std::vector<float>> & outVal);
-  std::string parseRoiPoly(
-    const std::vector<std::vector<float>> & in_poly,
-    std::vector<sl::float2> & out_poly);
+  std::string getParam(std::string paramName,
+                       std::vector<std::vector<float>>& outVal);
+  std::string parseRoiPoly(const std::vector<std::vector<float>>& in_poly,
+                           std::vector<sl::float2>& out_poly);
   void resetRoi();
   // <---- Utility functions
 
-private:
+ private:
   // ZED SDK
-  std::shared_ptr<sl::Camera> mZed; 
+  std::shared_ptr<sl::Camera> mZed;
   sl::InitParameters mInitParams;
   sl::RuntimeParameters mRunParams;
 
@@ -249,6 +244,7 @@ private:
   std::string mGeoPoseTopic;
   std::string mGeoPoseStatusTopic;
   std::string mFusedFixTopic;
+  std::string mOriginFixTopic;
   std::string mPointcloudFusedTopic;
   std::string mObjectDetTopic;
   std::string mBodyTrkTopic;
@@ -277,7 +273,7 @@ private:
   bool mSimMode = false;     // Expecting simulation data?
   bool mUseSimTime = false;  // Use sim time?
   std::string mSimAddr =
-    "127.0.0.1";    // The local address of the machine running the simulator
+      "127.0.0.1";  // The local address of the machine running the simulator
   int mSimPort = 30000;  // The port to be used to connect to the simulator
   sl::MODEL mCamUserModel = sl::MODEL::ZED;  // Default camera model
   sl::MODEL mCamRealModel;                   // Camera model requested to SDK
@@ -292,12 +288,12 @@ private:
   int mGpuId = -1;
   std::string mOpencvCalibFile;
   sl::RESOLUTION mCamResol =
-    sl::RESOLUTION::HD1080;    // Default resolution: RESOLUTION_HD1080
+      sl::RESOLUTION::HD1080;  // Default resolution: RESOLUTION_HD1080
   PubRes mPubResolution =
-    PubRes::NATIVE;                     // Use native grab resolution by default
+      PubRes::NATIVE;                   // Use native grab resolution by default
   double mCustomDownscaleFactor = 1.0;  // Used to rescale data with user factor
   sl::DEPTH_MODE mDepthMode =
-    sl::DEPTH_MODE::ULTRA;      // Default depth mode: ULTRA
+      sl::DEPTH_MODE::ULTRA;    // Default depth mode: ULTRA
   bool mDepthDisabled = false;  // Indicates if depth calculation is not
                                 // required (DEPTH_MODE::NONE)
   int mDepthStabilization = 1;
@@ -306,7 +302,7 @@ private:
   bool mCameraSelfCalib = true;
   bool mCameraFlip = false;
   bool mOpenniDepthMode =
-    false;    // 16 bit UC data in mm else 32F in m,
+      false;  // 16 bit UC data in mm else 32F in m,
               // for more info -> http://www.ros.org/reps/rep-0118.html
   double mCamMinDepth = 0.2;
   double mCamMaxDepth = 10.0;
@@ -328,7 +324,7 @@ private:
   bool mAreaMemory = true;
   std::string mAreaMemoryDbPath = "";
   sl::POSITIONAL_TRACKING_MODE mPosTrkMode =
-    sl::POSITIONAL_TRACKING_MODE::GEN_2;
+      sl::POSITIONAL_TRACKING_MODE::GEN_2;
   bool mImuFusion = true;
   bool mFloorAlignment = false;
   bool mTwoDMode = false;
@@ -378,17 +374,17 @@ private:
   bool mObjDetSportEnable = true;
   bool mObjDetBodyFitting = false;
   sl::OBJECT_DETECTION_MODEL mObjDetModel =
-    sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST;
+      sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST;
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
 
   bool mBodyTrkEnabled = false;
   sl::BODY_TRACKING_MODEL mBodyTrkModel =
-    sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST;
+      sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST;
   sl::BODY_FORMAT mBodyTrkFmt = sl::BODY_FORMAT::BODY_38;
   bool mBodyTrkReducedPrecision = false;
   float mBodyTrkMaxRange = 15.0f;
   sl::BODY_KEYPOINTS_SELECTION mBodyTrkKpSelection =
-    sl::BODY_KEYPOINTS_SELECTION::FULL;
+      sl::BODY_KEYPOINTS_SELECTION::FULL;
   bool mBodyTrkFitting = true;
   bool mBodyTrkEnableTracking = true;
   double mBodyTrkPredTimeout = 0.5;
@@ -465,6 +461,7 @@ private:
   std::string mOdomFrameId = "odom";
   std::string mBaseFrameId = "";
   std::string mGnssFrameId = "";
+  std::string mGnssOriginFrameId = "gnss_ref_pose";
 
   std::string mCameraFrameId;
 
@@ -497,18 +494,18 @@ private:
 
   // ----> TF Transforms
   tf2::Transform
-    mMap2OdomTransf;    // Coordinates of the odometry frame in map frame
+      mMap2OdomTransf;  // Coordinates of the odometry frame in map frame
   tf2::Transform mOdom2BaseTransf;  // Coordinates of the base in odometry frame
   tf2::Transform mMap2BaseTransf;   // Coordinates of the base in map frame
   tf2::Transform
-    mSensor2BaseTransf;    // Coordinates of the base frame in sensor frame
+      mSensor2BaseTransf;  // Coordinates of the base frame in sensor frame
   tf2::Transform
-    mSensor2CameraTransf;    // Coordinates of the camera frame in sensor frame
+      mSensor2CameraTransf;  // Coordinates of the camera frame in sensor frame
   tf2::Transform
-    mCamera2BaseTransf;    // Coordinates of the base frame in camera frame
+      mCamera2BaseTransf;  // Coordinates of the base frame in camera frame
   tf2::Transform mMap2UtmTransf;  // Coordinates of the UTM frame in map frame
   tf2::Transform
-    mGnss2BaseTransf;    // Coordinates of the base in GNSS sensor frame
+      mGnss2BaseTransf;  // Coordinates of the base in GNSS sensor frame
   // <---- TF Transforms
 
   // ----> TF Transforms Flags
@@ -587,7 +584,8 @@ private:
 
   geoPosePub mPubGeoPose;
   poseStatusPub mPubGeoPoseStatus;
-  fusedFixPub mPubFusedFix;
+  gnssFixPub mPubFusedFix;
+  gnssFixPub mPubOriginFix;
   // <---- Publishers
 
   // <---- Publisher variables
@@ -635,7 +633,7 @@ private:
   // ----> Threads and Timers
   sl::ERROR_CODE mGrabStatus;
   sl::ERROR_CODE mConnStatus;
-  sl::FUSION_ERROR_CODE mFusionStatus;
+  sl::FUSION_ERROR_CODE mFusionStatus = sl::FUSION_ERROR_CODE::MODULE_NOT_ENABLED;
   std::thread mGrabThread;        // Main grab thread
   std::thread mVideoDepthThread;  // RGB/Depth data publish thread
   std::thread mPcThread;          // Point Cloud publish thread
@@ -644,7 +642,7 @@ private:
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
   rclcpp::TimerBase::SharedPtr
-    mTempPubTimer;    // Timer to retrieve and publish CMOS temperatures
+      mTempPubTimer;  // Timer to retrieve and publish CMOS temperatures
   rclcpp::TimerBase::SharedPtr mGnssPubCheckTimer;
   // <---- Threads and Timers
 
@@ -668,21 +666,22 @@ private:
   bool mVdPublishing = false;  // Indicates if video and depth data are
                                // subscribed and then published
   bool mPcPublishing =
-    false;    // Indicates if point cloud data are subscribed and then published
+      false;  // Indicates if point cloud data are subscribed and then published
   bool mTriggerAutoExpGain = true;  // Triggered on start
   bool mTriggerAutoWB = true;       // Triggered on start
   bool mRecording = false;
   sl::RecordingStatus mRecStatus = sl::RecordingStatus();
   bool mPosTrackingReady = false;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusWorld =
-    sl::POSITIONAL_TRACKING_STATE::SEARCHING;
+      sl::POSITIONAL_TRACKING_STATE::SEARCHING;
   sl::POSITIONAL_TRACKING_STATE mPrevPosTrackingStatusWorld =
-    sl::POSITIONAL_TRACKING_STATE::SEARCHING;
+      sl::POSITIONAL_TRACKING_STATE::SEARCHING;
   sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusCamera =
-    sl::POSITIONAL_TRACKING_STATE::SEARCHING;
+      sl::POSITIONAL_TRACKING_STATE::SEARCHING;
+  sl::FusedPositionalTrackingStatus mFusedPosTrackingStatus;
 
   sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE mAutoRoiStatus =
-    sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::NOT_ENABLED;
+      sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::NOT_ENABLED;
 
   sl::GNSS_FUSION_STATUS mGeoPoseStatus = sl::GNSS_FUSION_STATUS::OFF;
   sl::GNSS_FUSION_STATUS mPrevGeoPoseStatus = sl::GNSS_FUSION_STATUS::OFF;
@@ -822,7 +821,7 @@ private:
   const std::string mSrvResetRoiName = "reset_roi";
   const std::string mSrvToLlName = "toLL";  // Convert from `map` to `Lat Long`
   const std::string mSrvFromLlName =
-    "fromLL";    // Convert from `Lat Long` to `map`
+      "fromLL";  // Convert from `Lat Long` to `map`
   // <---- Services names
 
   // ----> SVO v2

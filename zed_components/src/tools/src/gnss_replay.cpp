@@ -16,7 +16,7 @@ inline bool is_nanoseconds(uint64_t timestamp) {
 
 GNSSReplay::GNSSReplay(const std::shared_ptr<sl::Camera> &zed){_zed = zed;}
 
-GNSSReplay::~GNSSReplay() {}
+GNSSReplay::~GNSSReplay() {close();}
 
 bool GNSSReplay::initialize() {
   auto svo_custom_data_keys = _zed->getSVODataKeys();
@@ -93,57 +93,57 @@ bool GNSSReplay::initialize() {
   auto tmp_array = json::array();
   for (auto &it : data) {
     try {
-      auto gnss_data_point =
+      auto _gnss_data_point =
           json::parse(it.second.content.begin(), it.second.content.end());
-      auto gnss_data_point_formatted = json::object();
+      auto _gnss_data_point_formatted = json::object();
 
-      if (!gnss_data_point["Geopoint"].is_null()) {
-        gnss_data_point_formatted["coordinates"] = {
-            {"latitude", gnss_data_point["Geopoint"]["Latitude"]},
-            {"longitude", gnss_data_point["Geopoint"]["Longitude"]},
-            {"altitude", gnss_data_point["Geopoint"]["Altitude"]},
+      if (!_gnss_data_point["Geopoint"].is_null()) {
+        _gnss_data_point_formatted["coordinates"] = {
+            {"latitude", _gnss_data_point["Geopoint"]["Latitude"]},
+            {"longitude", _gnss_data_point["Geopoint"]["Longitude"]},
+            {"altitude", _gnss_data_point["Geopoint"]["Altitude"]},
         };
-        gnss_data_point_formatted["ts"] = gnss_data_point["EpochTimeStamp"];
+        _gnss_data_point_formatted["ts"] = _gnss_data_point["EpochTimeStamp"];
 
-        float latitude_std = gnss_data_point["Eph"];
-        float longitude_std = gnss_data_point["Eph"];
-        float altitude_std = gnss_data_point["Epv"];
+        float latitude_std = _gnss_data_point["Eph"];
+        float longitude_std = _gnss_data_point["Eph"];
+        float altitude_std = _gnss_data_point["Epv"];
 
-        gnss_data_point_formatted["latitude_std"] = latitude_std;
-        gnss_data_point_formatted["longitude_std"] = longitude_std;
-        gnss_data_point_formatted["altitude_std"] = altitude_std;
+        _gnss_data_point_formatted["latitude_std"] = latitude_std;
+        _gnss_data_point_formatted["longitude_std"] = longitude_std;
+        _gnss_data_point_formatted["altitude_std"] = altitude_std;
 
-        gnss_data_point_formatted["position_covariance"] =
+        _gnss_data_point_formatted["position_covariance"] =
             json::array({longitude_std + longitude_std, 0, 0, 0,
                          latitude_std + latitude_std, 0, 0, 0,
                          altitude_std + altitude_std});
 
-        gnss_data_point_formatted["original_gnss_data"] = gnss_data_point;
+        _gnss_data_point_formatted["original__gnss_data"] = _gnss_data_point;
 
-      } else if (!gnss_data_point["coordinates"].is_null() &&
-                 !gnss_data_point["latitude_std"].is_null() &&
-                 !gnss_data_point["longitude_std"].is_null()) {
+      } else if (!_gnss_data_point["coordinates"].is_null() &&
+                 !_gnss_data_point["latitude_std"].is_null() &&
+                 !_gnss_data_point["longitude_std"].is_null()) {
         // no conversion
-        gnss_data_point_formatted = gnss_data_point;
+        _gnss_data_point_formatted = _gnss_data_point;
       }
 
-      tmp_array.push_back(gnss_data_point_formatted);
+      tmp_array.push_back(_gnss_data_point_formatted);
 
     } catch (const std::runtime_error &e) {
       std::cerr << "Error while reading GNSS data: " << e.what() << std::endl;
     }
   }
-  gnss_data["GNSS"] = tmp_array;
+  _gnss_data["GNSS"] = tmp_array;
 
-  current_gnss_idx = 0;
-  previous_ts = 0;
+  _current_gnss_idx = 0;
+  _previous_ts = 0;
 
   return true;
 }
 
 void GNSSReplay::close() {
-    gnss_data.clear();
-    current_gnss_idx = 0;
+    _gnss_data.clear();
+    _current_gnss_idx = 0;
 }
 
 
@@ -185,115 +185,116 @@ inline std::string gps_mode2str(int status) {
     return out;
 }
 
-sl::GNSSData getGNSSData(json &gnss_data, int gnss_idx) {
-    sl::GNSSData current_gnss_data;
-    current_gnss_data.ts = 0;
+sl::GNSSData getGNSSData(json &_gnss_data, int gnss_idx) {
+    sl::GNSSData current__gnss_data;
+    current__gnss_data.ts = 0;
 
     // If we are at the end of GNSS data, exit
-    if (gnss_idx >= gnss_data["GNSS"].size()) {
+    if (gnss_idx >= _gnss_data["GNSS"].size()) {
         std::cout << "Reached the end of the GNSS playback data." << std::endl;
-        return current_gnss_data;
+        return current__gnss_data;
     }
 
-    json current_gnss_data_json = gnss_data["GNSS"][gnss_idx];
+    json current__gnss_data_json = _gnss_data["GNSS"][gnss_idx];
     // Check inputs:
     if (
-            current_gnss_data_json["coordinates"].is_null()
-            || current_gnss_data_json["coordinates"]["latitude"].is_null()
-            || current_gnss_data_json["coordinates"]["longitude"].is_null()
-            || current_gnss_data_json["coordinates"]["altitude"].is_null()
-            || current_gnss_data_json["ts"].is_null()
+            current__gnss_data_json["coordinates"].is_null()
+            || current__gnss_data_json["coordinates"]["latitude"].is_null()
+            || current__gnss_data_json["coordinates"]["longitude"].is_null()
+            || current__gnss_data_json["coordinates"]["altitude"].is_null()
+            || current__gnss_data_json["ts"].is_null()
             ) {
         std::cout << "Null GNSS playback data." << std::endl;
-        return current_gnss_data;
+        return current__gnss_data;
     }
 
-    if (!current_gnss_data_json["original_gnss_data"].is_null()) {
-        if (!current_gnss_data_json["original_gnss_data"]["fix"].is_null()) {
-            if (!current_gnss_data_json["original_gnss_data"]["fix"]["status"].is_null())
-                std::cout << "GNSS info: " << gps_mode2str(current_gnss_data_json["original_gnss_data"]["fix"]["status"]) << " " << current_gnss_data_json["longitude_std"] << " " << current_gnss_data_json["altitude_std"] << std::endl;
-        }
-    }
+    
+    // if (!current__gnss_data_json["original__gnss_data"].is_null()) {
+    //     if (!current__gnss_data_json["original__gnss_data"]["fix"].is_null()) {
+    //         if (!current__gnss_data_json["original__gnss_data"]["fix"]["status"].is_null())
+    //             std::cout << "GNSS info: " << gps_mode2str(current__gnss_data_json["original__gnss_data"]["fix"]["status"]) << " " << current__gnss_data_json["longitude_std"] << " " << current__gnss_data_json["altitude_std"] << std::endl;
+    //     }
+    // }
 
-    auto gnss_timestamp = current_gnss_data_json["ts"].get<uint64_t>();
+    auto gnss_timestamp = current__gnss_data_json["ts"].get<uint64_t>();
     // Fill out timestamp:
     if (is_microseconds(gnss_timestamp))
-        current_gnss_data.ts.setMicroseconds(gnss_timestamp);
+        current__gnss_data.ts.setMicroseconds(gnss_timestamp);
     else if (is_nanoseconds(gnss_timestamp))
-        current_gnss_data.ts.setNanoseconds(gnss_timestamp);
+        current__gnss_data.ts.setNanoseconds(gnss_timestamp);
     else
         std::cerr << "Warning: Invalid timestamp format from GNSS file" << std::endl;
 
     // Fill out coordinates:
-    current_gnss_data.setCoordinates(current_gnss_data_json["coordinates"]["latitude"].get<float>(),
-            current_gnss_data_json["coordinates"]["longitude"].get<float>(),
-            current_gnss_data_json["coordinates"]["altitude"].get<float>(),
+    current__gnss_data.setCoordinates(current__gnss_data_json["coordinates"]["latitude"].get<float>(),
+            current__gnss_data_json["coordinates"]["longitude"].get<float>(),
+            current__gnss_data_json["coordinates"]["altitude"].get<float>(),
             false);
 
     // Fill out default standard deviation:
-    current_gnss_data.longitude_std = current_gnss_data_json["longitude_std"];
-    current_gnss_data.latitude_std = current_gnss_data_json["latitude_std"];
-    current_gnss_data.altitude_std = current_gnss_data_json["altitude_std"];
+    current__gnss_data.longitude_std = current__gnss_data_json["longitude_std"];
+    current__gnss_data.latitude_std = current__gnss_data_json["latitude_std"];
+    current__gnss_data.altitude_std = current__gnss_data_json["altitude_std"];
     // Fill out covariance [must be not null]
     std::array<double, 9> position_covariance;
     for (unsigned i = 0; i < 9; i++)
         position_covariance[i] = 0.0; // initialize empty covariance
 
     // set covariance diagonal
-    position_covariance[0] = current_gnss_data.longitude_std * current_gnss_data.longitude_std;
-    position_covariance[1 * 3 + 1] = current_gnss_data.latitude_std * current_gnss_data.latitude_std;
-    position_covariance[2 * 3 + 2] = current_gnss_data.altitude_std * current_gnss_data.altitude_std;
-    current_gnss_data.position_covariance = position_covariance;
+    position_covariance[0] = current__gnss_data.longitude_std * current__gnss_data.longitude_std;
+    position_covariance[1 * 3 + 1] = current__gnss_data.latitude_std * current__gnss_data.latitude_std;
+    position_covariance[2 * 3 + 2] = current__gnss_data.altitude_std * current__gnss_data.altitude_std;
+    current__gnss_data.position_covariance = position_covariance;
 
-    return current_gnss_data;
+    return current__gnss_data;
 }
 
 sl::GNSSData GNSSReplay::getNextGNSSValue(uint64_t current_timestamp) {
-    sl::GNSSData current_gnss_data = getGNSSData(gnss_data, current_gnss_idx);
+    sl::GNSSData current__gnss_data = getGNSSData(_gnss_data, _current_gnss_idx);
 
-    if (current_gnss_data.ts.data_ns == 0)
-        return current_gnss_data;
+    if (current__gnss_data.ts.data_ns == 0)
+        return current__gnss_data;
 
-    if (current_gnss_data.ts.data_ns > current_timestamp) {
-        current_gnss_data.ts.data_ns = 0;
-        return current_gnss_data;
+    if (current__gnss_data.ts.data_ns > current_timestamp) {
+        current__gnss_data.ts.data_ns = 0;
+        return current__gnss_data;
     }
 
     sl::GNSSData last_data;
     int step = 1;
     while (1) {
-        last_data = current_gnss_data;
-        int diff_last = current_timestamp - current_gnss_data.ts.data_ns;
-        current_gnss_data = getGNSSData(gnss_data, current_gnss_idx + step++);
-        if (current_gnss_data.ts.data_ns == 0) //error / end of file 
+        last_data = current__gnss_data;
+        int diff_last = current_timestamp - current__gnss_data.ts.data_ns;
+        current__gnss_data = getGNSSData(_gnss_data, _current_gnss_idx + step++);
+        if (current__gnss_data.ts.data_ns == 0) //error / end of file 
             break;
 
-        if (current_gnss_data.ts.data_ns > current_timestamp) {
-            if ((current_gnss_data.ts.data_ns - current_timestamp) > diff_last) // keep last
-                current_gnss_data = last_data;
+        if (current__gnss_data.ts.data_ns > current_timestamp) {
+            if ((current__gnss_data.ts.data_ns - current_timestamp) > diff_last) // keep last
+                current__gnss_data = last_data;
             break;
         }
-        current_gnss_idx++;
+        _current_gnss_idx++;
     }
 
-    return current_gnss_data;
+    return current__gnss_data;
 }
 
 sl::FUSION_ERROR_CODE GNSSReplay::grab(sl::GNSSData &current_data, uint64_t current_timestamp) {
     current_data.ts.data_ns = 0;
 
-    if (current_timestamp > 0 && (current_timestamp > last_cam_ts))
+    if (current_timestamp > 0 && (current_timestamp > _last_cam_ts))
         current_data = getNextGNSSValue(current_timestamp);
 
-    if (current_data.ts.data_ns == previous_ts)
+    if (current_data.ts.data_ns == _previous_ts)
         current_data.ts.data_ns = 0;
 
-    last_cam_ts = current_timestamp;
+    _last_cam_ts = current_timestamp;
 
     if (current_data.ts.data_ns == 0) // Invalid data
         return sl::FUSION_ERROR_CODE::FAILURE;
 
-    previous_ts = current_data.ts.data_ns;
+    _previous_ts = current_data.ts.data_ns;
     return sl::FUSION_ERROR_CODE::SUCCESS;
 }
 

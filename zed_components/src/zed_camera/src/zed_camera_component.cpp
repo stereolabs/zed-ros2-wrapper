@@ -3227,6 +3227,7 @@ void ZedCamera::initPublishers()
   mGeoPoseTopic = mTopicRoot + "geo_pose";
   mGeoPoseStatusTopic = mGeoPoseTopic + "/status";
   mFusedFixTopic = mPoseTopic + "/fused_fix";
+  mOriginFixTopic = mPoseTopic + "/origin_fix";
 
   mOdomTopic = mTopicRoot + "odom";
   mOdomStatusTopic = mOdomTopic + "/status";
@@ -3476,6 +3477,11 @@ void ZedCamera::initPublishers()
       RCLCPP_INFO_STREAM(
         get_logger(), "Advertised on topic (GNSS): "
           << mPubFusedFix->get_topic_name());
+
+      mPubOriginFix = create_publisher<sensor_msgs::msg::NavSatFix>(
+          mOriginFixTopic, mQos, mPubOpt);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic (GNSS origin): "
+                                           << mPubOriginFix->get_topic_name());
     }
     // <---- Pos Tracking
 
@@ -3802,6 +3808,15 @@ bool ZedCamera::startCamera()
     // TODO(Walter) Check SVO version when it's available
 
     mGnssReplay = std::make_unique<sl_tools::GNSSReplay>(mZed);
+    if(!mGnssReplay->initialize()) {
+      RCLCPP_ERROR(get_logger(), "The SVO file does not contain valid GNSS information.");
+      return false;
+    }
+    else
+    {
+      RCLCPP_INFO(get_logger(),
+                   "GNSS information will be retrieved from the SVO file.");
+    }
   }
   // <---- If SVO and GNSS enabled check that it's a valid SV0 Gen.2
 
@@ -4347,6 +4362,14 @@ bool ZedCamera::startCamera()
       sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
   }
   // <---- Timestamp
+
+  RCLCPP_INFO_STREAM(get_logger(),
+                     "Timestamp - CURRENT: "
+                         << mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT).getNanoseconds());
+  RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Timestamp - IMAGE: "
+          << mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE).getNanoseconds());
 
   // ----> Initialize Diagnostic statistics
   mElabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
@@ -5631,6 +5654,7 @@ void ZedCamera::threadFunc_zedGrab()
     if (isPosTrackingRequired() && !mPosTrackingStarted) {
       startPosTracking();
     }
+
     if (mGnssFusionEnabled && !mGnssFixValid) {
       rclcpp::Clock steady_clock(RCL_STEADY_TIME);
       RCLCPP_WARN_THROTTLE(
@@ -5874,6 +5898,9 @@ void ZedCamera::threadFunc_zedGrab()
           processOdometry();
           processPose();
           if (mGnssFusionEnabled) {
+            if(mSvoMode) {
+              processSvoGnssData();
+            }
             processGeoPose();
           }
         }
@@ -7204,13 +7231,19 @@ void ZedCamera::processPose()
     getCamera2BaseTransform();
   }
 
-  if (!mGnssFusionEnabled) {
+  if (!mGnssFusionEnabled && mFusionStatus != sl::FUSION_ERROR_CODE::SUCCESS) {
     mPosTrackingStatusWorld =
       mZed->getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
   } else {
     mPosTrackingStatusWorld = mFusion.getPosition(
       mLastZedPose, sl::REFERENCE_FRAME::WORLD /*,mCamUuid*/,
       sl::CameraIdentifier(), sl::POSITION_TYPE::FUSION);
+  }
+
+  if (mPosTrackingStatusWorld > sl::POSITIONAL_TRACKING_STATE::NOT_OK) {
+    RCLCPP_FATAL_STREAM(get_logger(),
+                        "!!! WRONG 'sl::POSITIONAL_TRACKING_STATE' value: "
+                            << static_cast<int>(mPosTrackingStatusWorld));
   }
 
   publishPoseStatus();
@@ -7290,10 +7323,12 @@ void ZedCamera::processPose()
     {
       mResetOdom = mResetOdomWhenPoseBackOK;
       RCLCPP_INFO_STREAM(
-        get_logger(), "*** Odometry reset. Old status: "
-          << sl::toString(mPrevPosTrackingStatusWorld)
-          << " - New status: "
-          << sl::toString(mPosTrackingStatusWorld) << " ***");
+          get_logger(),
+          "*** Odometry reset. Old status: "
+              << sl::toString(mPrevPosTrackingStatusWorld) << "["
+              << static_cast<int>(mPrevPosTrackingStatusWorld)
+              << "] - New status: " << sl::toString(mPosTrackingStatusWorld)
+              << "[" << static_cast<int>(mPosTrackingStatusWorld) << "] ***");
     }
     mPrevPosTrackingStatusWorld = mPosTrackingStatusWorld;
 
@@ -7301,6 +7336,7 @@ void ZedCamera::processPose()
       // Propagate Odom transform in time
       mOdom2BaseTransf = mMap2BaseTransf;
       mMap2BaseTransf.setIdentity();
+      mOdomPath.clear();
 
       tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -7518,9 +7554,13 @@ void ZedCamera::publishPose()
 
 void ZedCamera::processGeoPose()
 {
-  if (!mGnssFusionEnabled) {
+  if (!mGnssMsgReceived) {
     return;
   }
+
+  if (!mGnssFusionEnabled) {
+      return;
+    }
 
   if (!mGnss2BaseTransfValid) {
     getGnss2BaseTransform();
@@ -7540,8 +7580,10 @@ void ZedCamera::processGeoPose()
   //   return;
   // }
 
-  // ----> Setup Lat/Long
-  double altitude = mLastGeoPose.latlng_coordinates.getAltitude();
+  TODO mFusedPosTrackingStatus = mFusion.getPositionalTrackingStatus();
+
+      // ----> Setup Lat/Long
+      double altitude = mLastGeoPose.latlng_coordinates.getAltitude();
   if (mGnssZeroAltitude) {
     altitude = 0.0;
   }
@@ -7665,11 +7707,13 @@ void ZedCamera::publishGnssPose()
   size_t gnssSub = 0;
   size_t geoPoseSub = 0;
   size_t fusedFixSub = 0;
+  size_t originFixSub = 0;
 
   try {
     gnssSub = count_subscribers(mGnssPoseTopic);
     geoPoseSub = count_subscribers(mGeoPoseTopic);
     fusedFixSub = count_subscribers(mFusedFixTopic);
+    originFixSub = count_subscribers(mOriginFixTopic);
   } catch (...) {
     rcutils_reset_error();
     DEBUG_GNSS("publishGnssPose: Exception while counting subscribers");
@@ -7741,7 +7785,7 @@ void ZedCamera::publishGnssPose()
     navsatMsgPtr msg = std::make_unique<sensor_msgs::msg::NavSatFix>();
 
     msg->header.stamp = mFrameTimestamp;
-    msg->header.frame_id = mBaseFrameId;
+    msg->header.frame_id = mMapFrameId;
 
     msg->status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
     msg->status.service = mGnssService;
@@ -7772,6 +7816,31 @@ void ZedCamera::publishGnssPose()
     // Publish Fused Fix message
     // DEBUG_GNSS("Publishing Fused Fix message");
     mPubFusedFix->publish(std::move(msg));
+  }
+
+  if (originFixSub > 0) {
+    navsatMsgPtr msg = std::make_unique<sensor_msgs::msg::NavSatFix>();
+
+    msg->header.stamp = mFrameTimestamp;
+    msg->header.frame_id = mGnssOriginFrameId;
+
+    msg->status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
+    msg->status.service = mGnssService;
+    msg->latitude = mInitLatLongPose.getLatitude(false);
+    msg->longitude = mInitLatLongPose.getLongitude(false);
+    msg->altitude = mInitLatLongPose.getAltitude();
+
+    // ----> Covariance
+    msg->position_covariance_type =
+        sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN;
+    for (size_t i = 0; i < msg->position_covariance.size(); i++) {
+      msg->position_covariance[i] = -1.0;
+    }
+    // <---- Covariance
+
+    // Publish Fused Fix message
+    // DEBUG_GNSS("Publishing Fused Fix message");
+    mPubOriginFix->publish(std::move(msg));
   }
 }
 
@@ -9681,9 +9750,66 @@ void ZedCamera::callback_gnssPubTimerTimeout()
   mGnssPubCheckTimer.reset();
 }
 
-void ZedCamera::callback_gnssFix(
-  const sensor_msgs::msg::NavSatFix::SharedPtr msg)
-{
+void ZedCamera::processSvoGnssData() {
+  if (!mGnssReplay) {
+    mGnssFixValid = false;
+    return;
+  }
+  uint64_t current_ts = mLastZedPose.timestamp.getNanoseconds();
+  static uint64_t old_gnss_ts = 0;
+
+  if (current_ts == old_gnss_ts) {
+    return;
+  }
+  old_gnss_ts = current_ts;
+
+  // DEBUG_STREAM_GNSS("Retrieving GNSS data from SVO. TS: " << current_ts
+  //                                                         << " nsec");
+
+  sl::GNSSData gnssData;
+  auto err = mGnssReplay->grab(gnssData, current_ts);
+  if (err != sl::FUSION_ERROR_CODE::SUCCESS) {
+    //DEBUG_STREAM_GNSS("Error grabbing GNSS data from SVO: " << sl::toString(err));
+    return;
+  }
+
+  mGnssMsgReceived = true;
+
+  // ----> GNSS Fix stats
+  double elapsed_sec = mGnssFixFreqTimer.toc();
+  mGnssFix_sec->addValue(elapsed_sec);
+  mGnssFixFreqTimer.tic();
+  // <---- GNSS Fix stats
+
+  double latitude;
+  double longitude; 
+  double altitude;
+
+  gnssData.getCoordinates(latitude, longitude, altitude, false);
+  mGnssTimestamp = rclcpp::Time(gnssData.ts.getNanoseconds(), RCL_ROS_TIME);
+
+  DEBUG_STREAM_GNSS("Latest GNSS data from SVO - ["
+                    << mGnssTimestamp.nanoseconds() << " nsec] " << latitude
+                    << "°," << longitude << "° / " << altitude << " m");
+
+  mGnssFixValid = true;  // Used to keep track of signal loss
+
+  if (mZed->isOpened() && mZed->isPositionalTrackingEnabled()) {
+    auto ingest_error = mFusion.ingestGNSSData(gnssData);
+    if (ingest_error == sl::FUSION_ERROR_CODE::SUCCESS) {
+      DEBUG_STREAM_GNSS("Datum ingested - ["
+                        << mGnssTimestamp.nanoseconds() << " nsec] " << latitude
+                        << "°," << longitude << "° / " << altitude << " m");
+    } else {
+      RCLCPP_ERROR_STREAM(get_logger(),
+                          "Ingest error occurred when ingesting GNSSData: "
+                              << sl::toString(ingest_error));
+    }
+    mGnssFixNew = true;
+  }
+}
+
+void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
   // ----> GNSS Fix stats
   double elapsed_sec = mGnssFixFreqTimer.toc();
   mGnssFix_sec->addValue(elapsed_sec);

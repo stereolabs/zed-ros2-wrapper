@@ -2989,19 +2989,18 @@ void ZedCamera::setTFCoordFrameNames()
 }
 
 void ZedCamera::fillCamInfo(
-  sl::Camera & zed,
-  std::shared_ptr<sensor_msgs::msg::CameraInfo> leftCamInfoMsg,
-  std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg,
-  std::string leftFrameId, std::string rightFrameId,
-  bool rawParam /*= false*/)
-{
+    const std::shared_ptr<sl::Camera> zed,
+    const std::shared_ptr<sensor_msgs::msg::CameraInfo> &leftCamInfoMsg,
+    const std::shared_ptr<sensor_msgs::msg::CameraInfo> &rightCamInfoMsg,
+    const std::string &leftFrameId, const std::string &rightFrameId,
+    bool rawParam /*= false*/) {
   sl::CalibrationParameters zedParam;
 
   if (rawParam) {
-    zedParam = zed.getCameraInformation(mMatResol)
+    zedParam = zed->getCameraInformation(mMatResol)
       .camera_configuration.calibration_parameters_raw;
   } else {
-    zedParam = zed.getCameraInformation(mMatResol)
+    zedParam = zed->getCameraInformation(mMatResol)
       .camera_configuration.calibration_parameters;
   }
 
@@ -3654,11 +3653,13 @@ bool ZedCamera::startCamera()
 {
   RCLCPP_INFO(get_logger(), "***** STARTING CAMERA *****");
 
+  // Create a ZED object
+  mZed = std::make_shared<sl::Camera>();
+
   // ----> SDK version
-  RCLCPP_INFO(
-    get_logger(), "ZED SDK Version: %d.%d.%d - Build %s",
-    ZED_SDK_MAJOR_VERSION, ZED_SDK_MINOR_VERSION,
-    ZED_SDK_PATCH_VERSION, ZED_SDK_BUILD_ID);
+  RCLCPP_INFO(get_logger(), "ZED SDK Version: %d.%d.%d - Build %s",
+              ZED_SDK_MAJOR_VERSION, ZED_SDK_MINOR_VERSION,
+              ZED_SDK_PATCH_VERSION, ZED_SDK_BUILD_ID);
   // <---- SDK version
 
   // ----> TF2 Transform
@@ -3730,7 +3731,7 @@ bool ZedCamera::startCamera()
   while (1) {
     rclcpp::sleep_for(500ms);
 
-    mConnStatus = mZed.open(mInitParams);
+    mConnStatus = mZed->open(mInitParams);
 
     if (mConnStatus == sl::ERROR_CODE::SUCCESS) {
       DEBUG_STREAM_COMM("Opening successfull");
@@ -3812,7 +3813,7 @@ bool ZedCamera::startCamera()
   // <---- If SVO and positional tracking Gen2 check that it's a valid SV0 Gen2
 
   // ----> Camera information
-  sl::CameraInformation camInfo = mZed.getCameraInformation();
+  sl::CameraInformation camInfo = mZed->getCameraInformation();
 
   float realFps = camInfo.camera_configuration.fps;
   if (realFps != static_cast<float>(mCamGrabFrameRate)) {
@@ -3892,16 +3893,16 @@ bool ZedCamera::startCamera()
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Input\t -> "
-      << sl::toString(mZed.getCameraInformation().input_type).c_str());
+      << sl::toString(mZed->getCameraInformation().input_type).c_str());
   if (mSvoMode) {
     RCLCPP_INFO(
       get_logger(), " * SVO resolution\t-> %ldx%ld",
-      mZed.getCameraInformation().camera_configuration.resolution.width,
-      mZed.getCameraInformation().camera_configuration.resolution.height);
+      mZed->getCameraInformation().camera_configuration.resolution.width,
+      mZed->getCameraInformation().camera_configuration.resolution.height);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * SVO framerate\t-> "
-        << (mZed.getCameraInformation().camera_configuration.fps));
+        << (mZed->getCameraInformation().camera_configuration.fps));
   }
 
   // Firmwares
@@ -3965,7 +3966,7 @@ bool ZedCamera::startCamera()
       roi_param.image_height_ratio_cutoff = mRoiImgHeightRationCutOff;
       roi_param.auto_apply_module = mRoiModules;
 
-      sl::ERROR_CODE err = mZed.startRegionOfInterestAutoDetection(roi_param);
+      sl::ERROR_CODE err = mZed->startRegionOfInterestAutoDetection(roi_param);
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_WARN_STREAM(
           get_logger(),
@@ -3997,7 +3998,7 @@ bool ZedCamera::startCamera()
           " * Error generating the manual region of interest image mask.");
       } else {
         DEBUG_ROI("Enable ROI");
-        sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask, mRoiModules);
+        sl::ERROR_CODE err = mZed->setRegionOfInterest(roi_mask, mRoiModules);
         DEBUG_ROI("ROI Enabled");
         if (err != sl::ERROR_CODE::SUCCESS) {
           RCLCPP_WARN_STREAM(
@@ -4023,7 +4024,7 @@ bool ZedCamera::startCamera()
 
     if (!sl_tools::isZEDX(mCamRealModel)) {
       setting = sl::VIDEO_SETTINGS::BRIGHTNESS;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR_STREAM(
           get_logger(), "Error Getting default param for "
@@ -4037,7 +4038,7 @@ bool ZedCamera::startCamera()
                              << ": " << value);
 
       setting = sl::VIDEO_SETTINGS::CONTRAST;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR_STREAM(
           get_logger(), "Error Getting default param for "
@@ -4051,7 +4052,7 @@ bool ZedCamera::startCamera()
                              << ": " << value);
 
       setting = sl::VIDEO_SETTINGS::HUE;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR_STREAM(
           get_logger(), "Error Getting default param for "
@@ -4066,7 +4067,7 @@ bool ZedCamera::startCamera()
     }
 
     setting = sl::VIDEO_SETTINGS::SATURATION;
-    err = mZed.getCameraSettings(setting, value);
+    err = mZed->getCameraSettings(setting, value);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Error Getting default param for "
@@ -4080,7 +4081,7 @@ bool ZedCamera::startCamera()
                            << ": " << value);
 
     setting = sl::VIDEO_SETTINGS::SHARPNESS;
-    err = mZed.getCameraSettings(setting, value);
+    err = mZed->getCameraSettings(setting, value);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Error Getting default param for "
@@ -4094,7 +4095,7 @@ bool ZedCamera::startCamera()
                            << ": " << value);
 
     setting = sl::VIDEO_SETTINGS::GAMMA;
-    err = mZed.getCameraSettings(setting, value);
+    err = mZed->getCameraSettings(setting, value);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Error Getting default param for "
@@ -4108,7 +4109,7 @@ bool ZedCamera::startCamera()
                            << ": " << value);
 
     setting = sl::VIDEO_SETTINGS::AEC_AGC;
-    err = mZed.getCameraSettings(setting, value);
+    err = mZed->getCameraSettings(setting, value);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Error Getting default param for "
@@ -4122,7 +4123,7 @@ bool ZedCamera::startCamera()
                            << ": " << value);
 
     setting = sl::VIDEO_SETTINGS::EXPOSURE;
-    err = mZed.getCameraSettings(setting, value);
+    err = mZed->getCameraSettings(setting, value);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Error Getting default param for "
@@ -4136,7 +4137,7 @@ bool ZedCamera::startCamera()
                            << ": " << value);
 
     setting = sl::VIDEO_SETTINGS::GAIN;
-    err = mZed.getCameraSettings(setting, value);
+    err = mZed->getCameraSettings(setting, value);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Error Getting default param for "
@@ -4150,7 +4151,7 @@ bool ZedCamera::startCamera()
                            << ": " << value);
 
     setting = sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO;
-    err = mZed.getCameraSettings(setting, value);
+    err = mZed->getCameraSettings(setting, value);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Error Getting default param for "
@@ -4164,7 +4165,7 @@ bool ZedCamera::startCamera()
                            << ": " << value);
 
     setting = sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE;
-    err = mZed.getCameraSettings(setting, value);
+    err = mZed->getCameraSettings(setting, value);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Error Getting default param for "
@@ -4179,7 +4180,7 @@ bool ZedCamera::startCamera()
 
     if (sl_tools::isZEDX(mCamRealModel)) {
       setting = sl::VIDEO_SETTINGS::EXPOSURE_TIME;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR_STREAM(
           get_logger(), "Error Getting default param for "
@@ -4194,7 +4195,7 @@ bool ZedCamera::startCamera()
 
       // TODO(Walter) Enable when fixed in the SDK
       // setting = sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE;
-      // err = mZed.getCameraSettings(setting, value_min, value_max);
+      // err = mZed->getCameraSettings(setting, value_min, value_max);
       // if(err!=sl::ERROR_CODE::SUCCESS) {
       //   RCLCPP_ERROR_STREAM( get_logger(), "Error Getting default param for
       //   "
@@ -4207,7 +4208,7 @@ bool ZedCamera::startCamera()
       // << "]");
 
       setting = sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR_STREAM(
           get_logger(), "Error Getting default param for "
@@ -4221,7 +4222,7 @@ bool ZedCamera::startCamera()
           << sl::toString(setting).c_str() << ": " << value);
 
       setting = sl::VIDEO_SETTINGS::ANALOG_GAIN;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR_STREAM(
           get_logger(), "Error Getting default param for "
@@ -4236,7 +4237,7 @@ bool ZedCamera::startCamera()
 
       // TODO(Walter) Enable when fixed in the SDK
       // setting = sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE;
-      // err = mZed.getCameraSettings(setting, value_min, value_max);
+      // err = mZed->getCameraSettings(setting, value_min, value_max);
       // if(err!=sl::ERROR_CODE::SUCCESS) {
       //   RCLCPP_ERROR_STREAM( get_logger(), "Error Getting default param for
       //   "
@@ -4249,7 +4250,7 @@ bool ZedCamera::startCamera()
       // << "]");
 
       setting = sl::VIDEO_SETTINGS::DIGITAL_GAIN;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR_STREAM(
           get_logger(), "Error Getting default param for "
@@ -4264,7 +4265,7 @@ bool ZedCamera::startCamera()
 
       // TODO(Walter) Enable when fixed in the SDK
       // setting = sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE;
-      // err = mZed.getCameraSettings(setting, value_min, value_max);
+      // err = mZed->getCameraSettings(setting, value_min, value_max);
       // if(err!=sl::ERROR_CODE::SUCCESS) {
       //   RCLCPP_ERROR_STREAM( get_logger(), "Error Getting default param for
       //   "
@@ -4277,7 +4278,7 @@ bool ZedCamera::startCamera()
       // << "]");
 
       setting = sl::VIDEO_SETTINGS::DENOISING;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_ERROR_STREAM(
           get_logger(), "Error Getting default param for "
@@ -4323,27 +4324,27 @@ bool ZedCamera::startCamera()
   // Disable AEC_AGC and Auto Whitebalance to trigger it if user set it to
   // automatic
   if (!mSvoMode && !mSimMode) {
-    mZed.setCameraSettings(sl::VIDEO_SETTINGS::AEC_AGC, 0);
-    mZed.setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, 0);
+    mZed->setCameraSettings(sl::VIDEO_SETTINGS::AEC_AGC, 0);
+    mZed->setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, 0);
     // Force parameters with a dummy grab
-    mZed.grab();
+    mZed->grab();
   }
 
   // Initialialized timestamp to avoid wrong initial data
   // ----> Timestamp
   if (mSvoMode) {
     mFrameTimestamp =
-      sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+      sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
   } else if (mSimMode) {
     if (mUseSimTime) {
       mFrameTimestamp = get_clock()->now();
     } else {
       mFrameTimestamp =
-        sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+        sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
     }
   } else {
     mFrameTimestamp =
-      sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+      sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
   }
   // <---- Timestamp
 
@@ -4430,7 +4431,7 @@ bool ZedCamera::startCamera()
     mCamUuid.sn = mCamSerialNumber;
 
     // Enable camera publishing to Fusion
-    mZed.startPublishing(mFusionConfig->communication_parameters);
+    mZed->startPublishing(mFusionConfig->communication_parameters);
     DEBUG_GNSS(" Camera publishing OK");
 
     // Fusion subscribe to camera data
@@ -4636,7 +4637,7 @@ bool ZedCamera::startPosTracking()
   ptParams.set_gravity_as_origin = mSetGravityAsOrigin;
   ptParams.mode = mPosTrkMode;
 
-  sl::ERROR_CODE err = mZed.enablePositionalTracking(ptParams);
+  sl::ERROR_CODE err = mZed->enablePositionalTracking(ptParams);
 
   if (err != sl::ERROR_CODE::SUCCESS) {
     mPosTrackingStarted = false;
@@ -4680,7 +4681,7 @@ bool ZedCamera::startPosTracking()
       RCLCPP_WARN(
         get_logger(), "Fusion Pos. Tracking not started: %s",
         sl::toString(fus_err).c_str());
-      mZed.disablePositionalTracking();
+      mZed->disablePositionalTracking();
       return false;
     }
     DEBUG_GNSS("Fusion Positional Tracking started");
@@ -4755,7 +4756,7 @@ bool ZedCamera::start3dMapping()
 
   if (mMappingRangeMax < 0) {
     mMappingRangeMax =
-      sl::SpatialMappingParameters::getRecommendedRange(mMappingRes, mZed);
+      sl::SpatialMappingParameters::getRecommendedRange(mMappingRes, *mZed.get());
     RCLCPP_INFO_STREAM(
       get_logger(), "Mapping: max range set to "
         << mMappingRangeMax
@@ -4781,7 +4782,7 @@ bool ZedCamera::start3dMapping()
 
   params.range_meter = mMappingRangeMax;
 
-  sl::ERROR_CODE err = mZed.enableSpatialMapping(params);
+  sl::ERROR_CODE err = mZed->enableSpatialMapping(params);
 
   if (err == sl::ERROR_CODE::SUCCESS) {
     if (mPubFusedCloud == nullptr) {
@@ -4830,7 +4831,7 @@ void ZedCamera::stop3dMapping()
   }
   mSpatialMappingRunning = false;
   mMappingEnabled = false;
-  mZed.disableSpatialMapping();
+  mZed->disableSpatialMapping();
 
   RCLCPP_INFO(get_logger(), "*** Spatial Mapping stopped ***");
 }
@@ -4906,7 +4907,7 @@ bool ZedCamera::startObjDetect()
     mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
   }
 
-  sl::ERROR_CODE objDetError = mZed.enableObjectDetection(od_p);
+  sl::ERROR_CODE objDetError = mZed->enableObjectDetection(od_p);
 
   if (objDetError != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_ERROR_STREAM(
@@ -4934,7 +4935,7 @@ void ZedCamera::stopObjDetect()
     RCLCPP_INFO(get_logger(), "*** Stopping Object Detection ***");
     mObjDetRunning = false;
     mObjDetEnabled = false;
-    mZed.disableObjectDetection();
+    mZed->disableObjectDetection();
 
     // ----> Send an empty message to indicate that no more objects are tracked
     // (e.g clean Rviz2)
@@ -5008,7 +5009,7 @@ bool ZedCamera::startBodyTracking()
   mBodyTrkInstID = ++mAiInstanceID;
   bt_p.instance_module_id = mBodyTrkInstID;
 
-  sl::ERROR_CODE btError = mZed.enableBodyTracking(bt_p);
+  sl::ERROR_CODE btError = mZed->enableBodyTracking(bt_p);
 
   if (btError != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_ERROR_STREAM(
@@ -5041,7 +5042,7 @@ void ZedCamera::stopBodyTracking()
     RCLCPP_INFO(get_logger(), "*** Stopping Body Tracking ***");
     mBodyTrkRunning = false;
     mBodyTrkEnabled = false;
-    mZed.disableBodyTracking();
+    mZed->disableBodyTracking();
 
     // ----> Send an empty message to indicate that no more objects are tracked
     // (e.g clean Rviz2)
@@ -5072,7 +5073,7 @@ bool ZedCamera::startSvoRecording(std::string & errMsg)
   params.transcode_streaming_input = mSvoRecTranscode;
   params.video_filename = mSvoRecFilename.c_str();
 
-  sl::ERROR_CODE err = mZed.enableRecording(params);
+  sl::ERROR_CODE err = mZed->enableRecording(params);
   errMsg = sl::toString(err);
 
   if (err != sl::ERROR_CODE::SUCCESS) {
@@ -5091,7 +5092,7 @@ void ZedCamera::stopSvoRecording()
 {
   if (mRecording) {
     mRecording = false;
-    mZed.disableRecording();
+    mZed->disableRecording();
   }
 }
 
@@ -5690,7 +5691,7 @@ void ZedCamera::threadFunc_zedGrab()
       grabElabTimer.tic();
 
       // ZED grab
-      mGrabStatus = mZed.grab(mRunParams);
+      mGrabStatus = mZed->grab(mRunParams);
 
       // ----> Grab errors?
       // Note: disconnection are automatically handled by the ZED SDK
@@ -5715,7 +5716,7 @@ void ZedCamera::threadFunc_zedGrab()
       // ----> Check SVO status
       if (mSvoMode && mGrabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
         if (mSvoLoop) {
-          mZed.setSVOPosition(0);
+          mZed->setSVOPosition(0);
           RCLCPP_WARN(
             get_logger(),
             "SVO reached the end and has been restarted.");
@@ -5751,17 +5752,17 @@ void ZedCamera::threadFunc_zedGrab()
       // ----> Timestamp
       if (mSvoMode) {
         mFrameTimestamp = sl_tools::slTime2Ros(
-          mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+          mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
       } else if (mSimMode) {
         if (mUseSimTime) {
           mFrameTimestamp = get_clock()->now();
         } else {
           mFrameTimestamp = sl_tools::slTime2Ros(
-            mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+            mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
         }
       } else {
         mFrameTimestamp =
-          sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+          sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
       }
       // <---- Timestamp
 
@@ -5770,7 +5771,7 @@ void ZedCamera::threadFunc_zedGrab()
           mGnssFixNew = false;
 
           rclcpp::Time real_frame_ts = sl_tools::slTime2Ros(
-            mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+            mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
           DEBUG_STREAM_GNSS(
             "GNSS synced frame ts: "
               << real_frame_ts.nanoseconds() << " nsec");
@@ -5795,7 +5796,7 @@ void ZedCamera::threadFunc_zedGrab()
       // ----> Check recording status
       mRecMutex.lock();
       if (mRecording) {
-        mRecStatus = mZed.getRecordingStatus();
+        mRecStatus = mZed->getRecordingStatus();
 
         if (!mRecStatus.status) {
           rclcpp::Clock steady_clock(RCL_STEADY_TIME);
@@ -5853,7 +5854,7 @@ void ZedCamera::threadFunc_zedGrab()
 
         if (pc_lock.try_lock()) {
           DEBUG_STREAM_PC("Retrieving point cloud");
-          mZed.retrieveMeasure(
+          mZed->retrieveMeasure(
             mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU,
             mMatResol);
 
@@ -5947,7 +5948,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
 
   if (mSvoMode || mSensCameraSync || mSimMode) {
     sl::ERROR_CODE err =
-      mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
+      mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
         get_logger(), "sl::getSensorsData error: "
@@ -5956,7 +5957,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
     }
   } else {
     sl::ERROR_CODE err =
-      mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+      mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
         get_logger(), "sl::getSensorsData error: "
@@ -6573,7 +6574,7 @@ void ZedCamera::threadFunc_pubSensorsData()
     }
 
     // std::lock_guard<std::mutex> lock(mCloseZedMutex);
-    if (!mZed.isOpened()) {
+    if (!mZed->isOpened()) {
       DEBUG_STREAM_SENS("threadFunc_pubSensorsData: the camera is not open");
       continue;
     }
@@ -6680,13 +6681,13 @@ void ZedCamera::retrieveVideoDepth()
   if (mRgbSubnumber + mLeftSubnumber + mStereoSubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(mMatLeft, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
+      mZed->retrieveImage(mMatLeft, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatLeft.timestamp;
     mRgbSubscribed = true;
   }
   if (mRgbRawSubnumber + mLeftRawSubnumber + mStereoRawSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(
+      mZed->retrieveImage(
       mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatLeftRaw.timestamp;
@@ -6694,19 +6695,19 @@ void ZedCamera::retrieveVideoDepth()
   if (mRightSubnumber + mStereoSubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(mMatRight, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
+      mZed->retrieveImage(mMatRight, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatRight.timestamp;
   }
   if (mRightRawSubnumber + mStereoRawSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(
+      mZed->retrieveImage(
       mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatRightRaw.timestamp;
   }
   if (mRgbGraySubnumber + mLeftGraySubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(
+      mZed->retrieveImage(
       mMatLeftGray, sl::VIEW::LEFT_GRAY,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatLeftGray.timestamp;
@@ -6714,14 +6715,14 @@ void ZedCamera::retrieveVideoDepth()
   if (mRgbGrayRawSubnumber + mLeftGrayRawSubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(
+      mZed->retrieveImage(
       mMatLeftRawGray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatLeftRawGray.timestamp;
   }
   if (mRightGraySubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(
+      mZed->retrieveImage(
       mMatRightGray, sl::VIEW::RIGHT_GRAY,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatRightGray.timestamp;
@@ -6729,7 +6730,7 @@ void ZedCamera::retrieveVideoDepth()
   if (mRightGrayRawSubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(
+      mZed->retrieveImage(
       mMatRightRawGray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatRightRawGray.timestamp;
@@ -6743,7 +6744,7 @@ void ZedCamera::retrieveVideoDepth()
   if (mDepthSubnumber > 0 || mDepthInfoSubnumber > 0) {
     DEBUG_STREAM_VD("Retrieving Depth");
     retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveMeasure(
+      mZed->retrieveMeasure(
       mMatDepth, sl::MEASURE::DEPTH,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatDepth.timestamp;
@@ -6751,7 +6752,7 @@ void ZedCamera::retrieveVideoDepth()
   if (mDisparitySubnumber > 0) {
     DEBUG_STREAM_VD("Retrieving Disparity");
     retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveMeasure(
+      mZed->retrieveMeasure(
       mMatDisp, sl::MEASURE::DISPARITY,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatDisp.timestamp;
@@ -6759,14 +6760,14 @@ void ZedCamera::retrieveVideoDepth()
   if (mConfMapSubnumber > 0) {
     DEBUG_STREAM_VD("Retrieving Confidence");
     retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveMeasure(
+      mZed->retrieveMeasure(
       mMatConf, sl::MEASURE::CONFIDENCE,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatConf.timestamp;
   }
   if (mDepthInfoSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.getCurrentMinMaxDepth(mMinDepth, mMaxDepth);
+      mZed->getCurrentMinMaxDepth(mMinDepth, mMaxDepth);
     mSdkGrabTS = mMatConf.timestamp;
   }
   if (retrieved) {
@@ -6839,7 +6840,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
       timeStamp = get_clock()->now();
     } else {
       timeStamp =
-        sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
+        sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
     }
   } else {
     timeStamp = sl_tools::slTime2Ros(mSdkGrabTS, get_clock()->get_clock_type());
@@ -7055,7 +7056,7 @@ void ZedCamera::processOdometry()
 
     if (!mGnssFusionEnabled) {
       mPosTrackingStatusCamera =
-        mZed.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
+        mZed->getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
     } else {
       mPosTrackingStatusCamera = mFusion.getPosition(
         deltaOdom, sl::REFERENCE_FRAME::CAMERA /*,mCamUuid*/,
@@ -7072,7 +7073,7 @@ void ZedCamera::processOdometry()
     if (mDebugGnss) {
       sl::Pose camera_delta_odom;
       auto status =
-        mZed.getPosition(camera_delta_odom, sl::REFERENCE_FRAME::CAMERA);
+        mZed->getPosition(camera_delta_odom, sl::REFERENCE_FRAME::CAMERA);
 
       DEBUG_PT(
         "delta ODOM (`sl::Camera`) [%s]:\n%s",
@@ -7205,7 +7206,7 @@ void ZedCamera::processPose()
 
   if (!mGnssFusionEnabled) {
     mPosTrackingStatusWorld =
-      mZed.getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
+      mZed->getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
   } else {
     mPosTrackingStatusWorld = mFusion.getPosition(
       mLastZedPose, sl::REFERENCE_FRAME::WORLD /*,mCamUuid*/,
@@ -7233,7 +7234,7 @@ void ZedCamera::processPose()
 
   if (mDebugGnss) {
     sl::Pose camera_pose;
-    mZed.getPosition(camera_pose, sl::REFERENCE_FRAME::WORLD);
+    mZed->getPosition(camera_pose, sl::REFERENCE_FRAME::WORLD);
 
     DEBUG_PT(
       "Sensor POSE (`sl::Camera`) [%s -> %s]:\n%s",
@@ -7828,7 +7829,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   sl::Objects objects;
 
-  sl::ERROR_CODE objDetRes = mZed.retrieveObjects(
+  sl::ERROR_CODE objDetRes = mZed->retrieveObjects(
     objects, objectTracker_parameters_rt, mObjDetInstID);
 
   if (objDetRes != sl::ERROR_CODE::SUCCESS) {
@@ -7955,7 +7956,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
 
   sl::Bodies bodies;
   sl::ERROR_CODE btRes =
-    mZed.retrieveBodies(bodies, bt_params_rt, mBodyTrkInstID);
+    mZed->retrieveBodies(bodies, bt_params_rt, mBodyTrkInstID);
 
   if (btRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(
@@ -8141,7 +8142,7 @@ void ZedCamera::applyVideoSettings()
 
     if (mTriggerAutoExpGain) {
       setting = sl::VIDEO_SETTINGS::AEC_AGC;
-      err = mZed.setCameraSettings(setting, (mCamAutoExpGain ? 1 : 0));
+      err = mZed->setCameraSettings(setting, (mCamAutoExpGain ? 1 : 0));
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_WARN_STREAM(
           get_logger(), "Error setting AEC_AGC: "
@@ -8157,9 +8158,9 @@ void ZedCamera::applyVideoSettings()
 
     if (!mCamAutoExpGain) {
       int value;
-      err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, value);
+      err = mZed->getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, value);
       if (err == sl::ERROR_CODE::SUCCESS && value != mCamExposure) {
-        mZed.setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, mCamExposure);
+        mZed->setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, mCamExposure);
       }
 
       if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8170,9 +8171,9 @@ void ZedCamera::applyVideoSettings()
             << sl::toString(err).c_str());
       }
 
-      err = mZed.getCameraSettings(sl::VIDEO_SETTINGS::GAIN, value);
+      err = mZed->getCameraSettings(sl::VIDEO_SETTINGS::GAIN, value);
       if (err == sl::ERROR_CODE::SUCCESS && value != mCamGain) {
-        err = mZed.setCameraSettings(sl::VIDEO_SETTINGS::GAIN, mCamGain);
+        err = mZed->setCameraSettings(sl::VIDEO_SETTINGS::GAIN, mCamGain);
       }
 
       if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8186,7 +8187,7 @@ void ZedCamera::applyVideoSettings()
 
     if (mTriggerAutoWB) {
       setting = sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO;
-      err = mZed.setCameraSettings(setting, (mCamAutoWB ? 1 : 0));
+      err = mZed->setCameraSettings(setting, (mCamAutoWB ? 1 : 0));
       if (err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_WARN_STREAM(
           get_logger(), "Error setting "
@@ -8204,9 +8205,9 @@ void ZedCamera::applyVideoSettings()
     if (!mCamAutoWB) {
       int value;
       setting = sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err == sl::ERROR_CODE::SUCCESS && value != mCamWBTemp) {
-        err = mZed.setCameraSettings(setting, mCamWBTemp);
+        err = mZed->setCameraSettings(setting, mCamWBTemp);
       }
 
       if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8223,9 +8224,9 @@ void ZedCamera::applyVideoSettings()
     if (!sl_tools::isZEDX(mCamRealModel)) {
       int value;
       setting = sl::VIDEO_SETTINGS::BRIGHTNESS;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err == sl::ERROR_CODE::SUCCESS && value != mCamBrightness) {
-        mZed.setCameraSettings(setting, mCamBrightness);
+        mZed->setCameraSettings(setting, mCamBrightness);
       }
 
       if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8237,9 +8238,9 @@ void ZedCamera::applyVideoSettings()
       }
 
       setting = sl::VIDEO_SETTINGS::CONTRAST;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err == sl::ERROR_CODE::SUCCESS && value != mCamContrast) {
-        err = mZed.setCameraSettings(setting, mCamContrast);
+        err = mZed->setCameraSettings(setting, mCamContrast);
       }
 
       if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8251,9 +8252,9 @@ void ZedCamera::applyVideoSettings()
       }
 
       setting = sl::VIDEO_SETTINGS::HUE;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err == sl::ERROR_CODE::SUCCESS && value != mCamHue) {
-        mZed.setCameraSettings(setting, mCamHue);
+        mZed->setCameraSettings(setting, mCamHue);
       }
 
       if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8269,9 +8270,9 @@ void ZedCamera::applyVideoSettings()
 
     setting = sl::VIDEO_SETTINGS::SATURATION;
     int value;
-    err = mZed.getCameraSettings(setting, value);
+    err = mZed->getCameraSettings(setting, value);
     if (err == sl::ERROR_CODE::SUCCESS && value != mCamSaturation) {
-      mZed.setCameraSettings(setting, mCamSaturation);
+      mZed->setCameraSettings(setting, mCamSaturation);
     }
 
     if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8283,9 +8284,9 @@ void ZedCamera::applyVideoSettings()
     }
 
     setting = sl::VIDEO_SETTINGS::SHARPNESS;
-    err = mZed.getCameraSettings(setting, value);
+    err = mZed->getCameraSettings(setting, value);
     if (err == sl::ERROR_CODE::SUCCESS && value != mCamSharpness) {
-      mZed.setCameraSettings(setting, mCamSharpness);
+      mZed->setCameraSettings(setting, mCamSharpness);
     }
 
     if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8297,9 +8298,9 @@ void ZedCamera::applyVideoSettings()
     }
 
     setting = sl::VIDEO_SETTINGS::GAMMA;
-    err = mZed.getCameraSettings(setting, value);
+    err = mZed->getCameraSettings(setting, value);
     if (err == sl::ERROR_CODE::SUCCESS && value != mCamGamma) {
-      err = mZed.setCameraSettings(setting, mCamGamma);
+      err = mZed->setCameraSettings(setting, mCamGamma);
     }
 
     if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8313,9 +8314,9 @@ void ZedCamera::applyVideoSettings()
     if (sl_tools::isZEDX(mCamRealModel)) {
       if (!mCamAutoExpGain) {
         setting = sl::VIDEO_SETTINGS::EXPOSURE_TIME;
-        err = mZed.getCameraSettings(setting, value);
+        err = mZed->getCameraSettings(setting, value);
         if (err == sl::ERROR_CODE::SUCCESS && value != mGmslExpTime) {
-          err = mZed.setCameraSettings(setting, mGmslExpTime);
+          err = mZed->setCameraSettings(setting, mGmslExpTime);
           DEBUG_STREAM_CTRL(
             "New setting for "
               << sl::toString(setting).c_str() << ": "
@@ -8332,14 +8333,14 @@ void ZedCamera::applyVideoSettings()
       }
 
       // TODO(Walter) Enable when fixed in the SDK
-      // err = mZed.getCameraSettings(
+      // err = mZed->getCameraSettings(
       //   sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE, value_min,
       //   value_max);
       // if (err == sl::ERROR_CODE::SUCCESS &&
       //   (value_min != mGmslAutoExpTimeRangeMin || value_max !=
       //   mGmslAutoExpTimeRangeMax))
       // {
-      //   err = mZed.setCameraSettings(
+      //   err = mZed->setCameraSettings(
       //     sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE,
       //     mGmslAutoExpTimeRangeMin, mGmslAutoExpTimeRangeMax);
       // } else if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8350,9 +8351,9 @@ void ZedCamera::applyVideoSettings()
       // }
 
       setting = sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err == sl::ERROR_CODE::SUCCESS && value != mGmslExposureComp) {
-        err = mZed.setCameraSettings(setting, mGmslExposureComp);
+        err = mZed->setCameraSettings(setting, mGmslExposureComp);
         DEBUG_STREAM_CTRL(
           "New setting for " << sl::toString(setting).c_str()
                              << ": " << mGmslExposureComp
@@ -8369,9 +8370,9 @@ void ZedCamera::applyVideoSettings()
 
       setting = sl::VIDEO_SETTINGS::ANALOG_GAIN;
       if (!mCamAutoExpGain) {
-        err = mZed.getCameraSettings(setting, value);
+        err = mZed->getCameraSettings(setting, value);
         if (err == sl::ERROR_CODE::SUCCESS && value != mGmslAnalogGain) {
-          err = mZed.setCameraSettings(setting, mGmslAnalogGain);
+          err = mZed->setCameraSettings(setting, mGmslAnalogGain);
           DEBUG_STREAM_CTRL(
             "New setting for "
               << sl::toString(setting).c_str() << ": "
@@ -8388,13 +8389,13 @@ void ZedCamera::applyVideoSettings()
 
         // TODO(Walter) Enable when fixed in the SDK
         // err =
-        //   mZed.getCameraSettings(sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE,
+        //   mZed->getCameraSettings(sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE,
         //   value_min, value_max);
         // if (err == sl::ERROR_CODE::SUCCESS &&
         //   (value_min != mGmslAnalogGainRangeMin || value_max !=
         //   mGmslAnalogGainRangeMax))
         // {
-        //   err = mZed.setCameraSettings(
+        //   err = mZed->setCameraSettings(
         //     sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE,
         //     mGmslAnalogGainRangeMin, mGmslAnalogGainRangeMax);
         // } else if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8405,9 +8406,9 @@ void ZedCamera::applyVideoSettings()
         // }
 
         setting = sl::VIDEO_SETTINGS::DIGITAL_GAIN;
-        err = mZed.getCameraSettings(setting, value);
+        err = mZed->getCameraSettings(setting, value);
         if (err == sl::ERROR_CODE::SUCCESS && value != mGmslDigitalGain) {
-          err = mZed.setCameraSettings(setting, mGmslDigitalGain);
+          err = mZed->setCameraSettings(setting, mGmslDigitalGain);
           DEBUG_STREAM_CTRL(
             "New setting for "
               << sl::toString(setting).c_str() << ": "
@@ -8425,13 +8426,13 @@ void ZedCamera::applyVideoSettings()
 
       // TODO(Walter) Enable when fixed in the SDK
       // err =
-      //   mZed.getCameraSettings(sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE,
+      //   mZed->getCameraSettings(sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE,
       //   value_min, value_max);
       // if (err == sl::ERROR_CODE::SUCCESS &&
       //   (value_min != mGmslAutoDigitalGainRangeMin || value_max !=
       //   mGmslAutoDigitalGainRangeMax))
       // {
-      //   err = mZed.setCameraSettings(
+      //   err = mZed->setCameraSettings(
       //     sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE,
       //     mGmslAutoDigitalGainRangeMin, mGmslAnalogGainRangeMax);
       // } else if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8442,9 +8443,9 @@ void ZedCamera::applyVideoSettings()
       // }
 
       setting = sl::VIDEO_SETTINGS::DENOISING;
-      err = mZed.getCameraSettings(setting, value);
+      err = mZed->getCameraSettings(setting, value);
       if (err == sl::ERROR_CODE::SUCCESS && value != mGmslDenoising) {
-        err = mZed.setCameraSettings(setting, mGmslDenoising);
+        err = mZed->setCameraSettings(setting, mGmslDenoising);
         DEBUG_STREAM_CTRL(
           "New setting for " << sl::toString(setting).c_str()
                              << ": " << mGmslDenoising
@@ -8562,7 +8563,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 
 void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
 {
-  sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResol);
+  sl::CameraInformation zedParam = mZed->getCameraInformation(mMatResol);
 
   std::unique_ptr<sensor_msgs::msg::Image> disparity_image =
     sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, t);
@@ -8577,10 +8578,10 @@ void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
     .getCameraBaseline();
   disparityMsg->min_disparity =
     disparityMsg->f * disparityMsg->t /
-    mZed.getInitParameters().depth_minimum_distance;
+    mZed->getInitParameters().depth_minimum_distance;
   disparityMsg->max_disparity =
     disparityMsg->f * disparityMsg->t /
-    mZed.getInitParameters().depth_maximum_distance;
+    mZed->getInitParameters().depth_maximum_distance;
 
   DEBUG_STREAM_VD("Publishing DISPARITY message");
   mPubDisparity->publish(std::move(disparityMsg));
@@ -8602,7 +8603,7 @@ void ZedCamera::publishPointCloud()
 
   if (mSvoMode) {
     // pcMsg->header.stamp =
-    // sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::CURRENT));
+    // sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
     pcMsg->header.stamp = mFrameTimestamp;
   } else if (mSimMode) {
     if (mUseSimTime) {
@@ -8679,7 +8680,7 @@ void ZedCamera::callback_pubTemp()
   // ----> Always update temperature values for diagnostic
   sl::SensorsData sens_data;
   sl::ERROR_CODE err =
-    mZed.getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+    mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
     DEBUG_STREAM_SENS(
       "[callback_pubTemp] sl::getSensorsData error: "
@@ -8789,18 +8790,18 @@ void ZedCamera::callback_pubFusedPc()
     return;
   }
 
-  if (!mZed.isOpened()) {
+  if (!mZed->isOpened()) {
     return;
   }
 
-  mZed.requestSpatialMapAsync();
+  mZed->requestSpatialMapAsync();
 
-  while (mZed.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::FAILURE) {
+  while (mZed->getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::FAILURE) {
     // Mesh is still generating
     rclcpp::sleep_for(1ms);
   }
 
-  sl::ERROR_CODE res = mZed.retrieveSpatialMapAsync(mFusedPC);
+  sl::ERROR_CODE res = mZed->retrieveSpatialMapAsync(mFusedPC);
 
   if (res != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(
@@ -9443,8 +9444,8 @@ void ZedCamera::callback_updateDiagnostic(
     }
 
     if (mSvoMode) {
-      int frame = mZed.getSVOPosition();
-      int totFrames = mZed.getSVONumberOfFrames();
+      int frame = mZed->getSVOPosition();
+      int totFrames = mZed->getSVONumberOfFrames();
       double svo_perc = 100. * (static_cast<double>(frame) / totFrames);
 
       stat.addf(
@@ -9806,7 +9807,7 @@ void ZedCamera::callback_gnssFix(
 
   mGnssFixValid = true;    // Used to keep track of signal loss
 
-  if (mZed.isOpened() && mZed.isPositionalTrackingEnabled()) {
+  if (mZed->isOpened() && mZed->isPositionalTrackingEnabled()) {
     auto ingest_error = mFusion.ingestGNSSData(gnssData);
     if (ingest_error == sl::FUSION_ERROR_CODE::SUCCESS) {
       DEBUG_STREAM_GNSS(
@@ -9903,7 +9904,7 @@ void ZedCamera::callback_clickedPoint(
 
   // ----> Project the point into 2D image coordinates
   sl::CalibrationParameters zedParam;
-  zedParam = mZed.getCameraInformation(mMatResol)
+  zedParam = mZed->getCameraInformation(mMatResol)
     .camera_configuration.calibration_parameters;                 // ok
 
   float f_x = zedParam.left_cam.fx;
@@ -9926,7 +9927,7 @@ void ZedCamera::callback_clickedPoint(
   sl::PlaneDetectionParameters params;
   params.max_distance_threshold = mPdMaxDistanceThreshold;
   params.normal_similarity_threshold = mPdNormalSimilarityThreshold;
-  sl::ERROR_CODE err = mZed.findPlaneAtHit(sl::uint2(u, v), plane, params);
+  sl::ERROR_CODE err = mZed->findPlaneAtHit(sl::uint2(u, v), plane, params);
   if (err != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN(
       get_logger(),
@@ -10220,7 +10221,7 @@ void ZedCamera::callback_setRoi(
     res->success = false;
     return;
   } else {
-    sl::ERROR_CODE err = mZed.setRegionOfInterest(roi_mask);
+    sl::ERROR_CODE err = mZed->setRegionOfInterest(roi_mask);
     if (err != sl::ERROR_CODE::SUCCESS) {
       std::string err_msg =
         "Error while setting ZED SDK region of interest: ";
@@ -10275,7 +10276,7 @@ void ZedCamera::callback_resetRoi(
   }
 
   sl::Mat empty_roi;
-  sl::ERROR_CODE err = mZed.setRegionOfInterest(empty_roi);
+  sl::ERROR_CODE err = mZed->setRegionOfInterest(empty_roi);
 
   if (err != sl::ERROR_CODE::SUCCESS) {
     std::string err_msg =
@@ -10417,7 +10418,7 @@ void ZedCamera::processRtRoi(rclcpp::Time ts)
   }
 
   if (mAutoRoiEnabled) {
-    mAutoRoiStatus = mZed.getRegionOfInterestAutoDetectionStatus();
+    mAutoRoiStatus = mZed->getRegionOfInterestAutoDetectionStatus();
     DEBUG_STREAM_ROI("Automatic ROI Status:" << sl::toString(mAutoRoiStatus));
     if (mAutoRoiStatus ==
       sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::RUNNING)
@@ -10448,7 +10449,7 @@ void ZedCamera::processRtRoi(rclcpp::Time ts)
     if (subCount > 0) {
       DEBUG_ROI("Retrieve ROI Mask");
       sl::Mat roi_mask;
-      mZed.getRegionOfInterest(roi_mask);
+      mZed->getRegionOfInterest(roi_mask);
 
       DEBUG_ROI("Publish ROI Mask");
       publishImageWithInfo(

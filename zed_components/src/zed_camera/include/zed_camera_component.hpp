@@ -59,10 +59,10 @@ protected:
   void initPublishers();
   void initSubscribers();
   void fillCamInfo(
-    sl::Camera & zed,
-    std::shared_ptr<sensor_msgs::msg::CameraInfo> leftCamInfoMsg,
-    std::shared_ptr<sensor_msgs::msg::CameraInfo> rightCamInfoMsg,
-    std::string leftFrameId, std::string rightFrameId, bool rawParam = false);
+      const std::shared_ptr<sl::Camera> zed,
+      const std::shared_ptr<sensor_msgs::msg::CameraInfo>& leftCamInfoMsg,
+      const std::shared_ptr<sensor_msgs::msg::CameraInfo>& rightCamInfoMsg,
+      const std::string& leftFrameId, const std::string& rightFrameId, bool rawParam = false);
 
   bool startCamera();
   bool startPosTracking();
@@ -224,7 +224,7 @@ protected:
 
 private:
   // ZED SDK
-  sl::Camera mZed; MODIFICARE IN SHARED POINTER!!!
+  std::shared_ptr<sl::Camera> mZed; 
   sl::InitParameters mInitParams;
   sl::RuntimeParameters mRunParams;
 

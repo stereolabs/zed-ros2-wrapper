@@ -1,10 +1,13 @@
 LATEST CHANGES
 ==============
 
+2024-03-15
+- Add new positional tracking information to the `PosTrackStatus` message
+- Add new `GnssFusionStatus` message with GNSS Fusion status information
+
 2024-03-07
 ----------
 - Add new parameters `gnss_fusion.h_covariance_mul` and `gnss_fusion.v_covariance_mul` to control the effects of the GNSS covariance
-- Add 
 
 2024-03-05
 ----------

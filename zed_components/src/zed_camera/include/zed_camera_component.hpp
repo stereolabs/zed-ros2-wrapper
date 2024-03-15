@@ -168,7 +168,6 @@ class ZedCamera : public rclcpp::Node {
   void publishPose();
   void publishGnssPose();
   void publishPoseStatus();
-  void publishOdomStatus();
   void publishGnssPoseStatus();
   void publishGeoPoseStatus();
   void publishTFs(rclcpp::Time t);
@@ -235,7 +234,6 @@ class ZedCamera : public rclcpp::Node {
   // ----> Topics
   std::string mTopicRoot = "~/";
   std::string mOdomTopic;
-  std::string mOdomStatusTopic;
   std::string mPoseTopic;
   std::string mPoseStatusTopic;
   std::string mPoseCovTopic;
@@ -563,9 +561,8 @@ class ZedCamera : public rclcpp::Node {
   poseStatusPub mPubPoseStatus;
   poseCovPub mPubPoseCov;
   odomPub mPubOdom;
-  poseStatusPub mPubOdomStatus;
   odomPub mPubGnssPose;
-  poseStatusPub mPubGnssPoseStatus;
+  gnssFusionStatusPub mPubGnssPoseStatus;
   pathPub mPubOdomPath;
   pathPub mPubPosePath;
   imuPub mPubImu;
@@ -583,7 +580,7 @@ class ZedCamera : public rclcpp::Node {
   markerPub mPubMarker;
 
   geoPosePub mPubGeoPose;
-  poseStatusPub mPubGeoPoseStatus;
+  gnssFusionStatusPub mPubGeoPoseStatus;
   gnssFixPub mPubFusedFix;
   gnssFixPub mPubOriginFix;
   // <---- Publishers
@@ -672,19 +669,12 @@ class ZedCamera : public rclcpp::Node {
   bool mRecording = false;
   sl::RecordingStatus mRecStatus = sl::RecordingStatus();
   bool mPosTrackingReady = false;
-  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusWorld =
-      sl::POSITIONAL_TRACKING_STATE::SEARCHING;
-  sl::POSITIONAL_TRACKING_STATE mPrevPosTrackingStatusWorld =
-      sl::POSITIONAL_TRACKING_STATE::SEARCHING;
-  sl::POSITIONAL_TRACKING_STATE mPosTrackingStatusCamera =
-      sl::POSITIONAL_TRACKING_STATE::SEARCHING;
+
   sl::FusedPositionalTrackingStatus mFusedPosTrackingStatus;
+  sl::PositionalTrackingStatus mPosTrackingStatus;
 
   sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE mAutoRoiStatus =
       sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::NOT_ENABLED;
-
-  sl::GNSS_FUSION_STATUS mGeoPoseStatus = sl::GNSS_FUSION_STATUS::OFF;
-  sl::GNSS_FUSION_STATUS mPrevGeoPoseStatus = sl::GNSS_FUSION_STATUS::OFF;
 
   bool mResetOdom = false;
   bool mSpatialMappingRunning = false;

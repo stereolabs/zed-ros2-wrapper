@@ -51,6 +51,7 @@
 #include <vector>
 #include <visualization_msgs/msg/marker.hpp>
 #include <zed_interfaces/msg/depth_info_stamped.hpp>
+#include <zed_interfaces/msg/gnss_fusion_status.hpp>
 #include <zed_interfaces/msg/object.hpp>
 #include <zed_interfaces/msg/objects_stamped.hpp>
 #include <zed_interfaces/msg/plane_stamped.hpp>
@@ -93,6 +94,8 @@ typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>>
     posePub;
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PosTrackStatus>>
     poseStatusPub;
+typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::GnssFusionStatus>>
+    gnssFusionStatusPub;
 typedef std::shared_ptr<
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>>
     poseCovPub;
@@ -135,6 +138,7 @@ typedef std::unique_ptr<stereo_msgs::msg::DisparityImage> dispMsgPtr;
 
 typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
 typedef std::unique_ptr<zed_interfaces::msg::PosTrackStatus> poseStatusMsgPtr;
+typedef std::unique_ptr<zed_interfaces::msg::GnssFusionStatus> gnssFusionStatusMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped>
     poseCovMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::TransformStamped> transfMsgPtr;
@@ -155,8 +159,7 @@ typedef rclcpp::Service<zed_interfaces::srv::SetPose>::SharedPtr setPoseSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableObjDetPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableBodyTrkPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;
-typedef rclcpp::Service<zed_interfaces::srv::StartSvoRec>::SharedPtr
-    startSvoRecSrvPtr;
+typedef rclcpp::Service<zed_interfaces::srv::StartSvoRec>::SharedPtr startSvoRecSrvPtr;
 typedef rclcpp::Service<zed_interfaces::srv::SetROI>::SharedPtr setRoiSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoSrvPtr;

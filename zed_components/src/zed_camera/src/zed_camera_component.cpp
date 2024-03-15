@@ -7515,9 +7515,13 @@ void ZedCamera::processGeoPose()
   mFusion.getGeoPose(mLastGeoPose);  
 
   // ----> Update GeoPose status
-  mFusedPosTrackingStatus = mFusion.getFusedPositionalTrackingStatus();  
-
+  mFusedPosTrackingStatus = mFusion.getFusedPositionalTrackingStatus();
   publishGeoPoseStatus();
+
+  if (mFusedPosTrackingStatus.gnss_fusion_status !=
+      sl::GNSS_FUSION_STATUS::OK) {
+    mGnssInitGood = false;
+  }
   // <---- Update GeoPose status
 
   // ----> Setup Lat/Long

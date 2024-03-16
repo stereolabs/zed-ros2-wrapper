@@ -4687,7 +4687,6 @@ void ZedCamera::initTransforms()
 
   // ----> Dynamic transforms
   mOdom2BaseTransf.setIdentity();  // broadcasted if `publish_tf` is true
-  mLastOdom2BaseTransf.setIdentity();  // used internally, not broadcasted
   mMap2OdomTransf.setIdentity();   // broadcasted if `publish_map_tf` is true
   mMap2BaseTransf.setIdentity();   // used internally, but not broadcasted
   mMap2UtmTransf.setIdentity();   // broadcasted if GNSS Fusion is enabled

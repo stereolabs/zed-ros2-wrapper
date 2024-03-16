@@ -480,7 +480,6 @@ private:
   // ----> TF Transforms
   tf2::Transform mMap2OdomTransf;       // Coordinates of the odometry frame in map frame
   tf2::Transform mOdom2BaseTransf;      // Coordinates of the base in odometry frame
-  tf2::Transform mLastOdom2BaseTransf;  // Previous iteration of mOdom2BaseTransf
   tf2::Transform mMap2BaseTransf;       // Coordinates of the base in map frame
   tf2::Transform mSensor2BaseTransf;    // Coordinates of the base frame in sensor frame
   tf2::Transform mSensor2CameraTransf;  // Coordinates of the camera frame in sensor frame

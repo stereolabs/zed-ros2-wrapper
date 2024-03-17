@@ -293,6 +293,11 @@ private:
   double mSensPubRate = 400.;
   bool mPosTrackingEnabled = false;
 
+  bool mPublishStereo = true;
+  bool mPublishGray = true;
+  bool mPublishRect = true;
+  bool mPublishRaw = true;
+
   bool mPublishTF = false;
   bool mPublishMapTF = false;
   bool mPublishImuTF = false;

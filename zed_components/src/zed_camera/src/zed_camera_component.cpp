@@ -5504,9 +5504,12 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
     ts_baro = ts_imu;
     ts_mag = ts_imu;
   } else {
-    ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
-    ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
-    ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
+    // HACK: Something is busted with sensor data timestamps. They intermittently jump up to ~1.1s from clock->now. So
+    // just override them for now.
+//    ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
+//    ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
+//    ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
+    ts_imu = ts_baro = ts_mag = get_clock()->now();
   }
   // <---- Grab data and setup timestamps
 

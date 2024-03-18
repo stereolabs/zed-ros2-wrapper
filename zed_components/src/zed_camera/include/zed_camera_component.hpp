@@ -241,6 +241,10 @@ private:
   std::string mOdomPathTopic;
   std::string mMapPathTopic;
   std::string mClickedPtTopic;  // Clicked point
+  std::string mMagTopic;
+  std::string mMagRawTopic;
+  std::string mMagHeadingTopic;
+  std::string mMagHeadingStatusTopic;
   // <---- Topics
 
   // ----> Parameter variables
@@ -545,7 +549,10 @@ private:
   imuPub mPubImu;
   imuPub mPubImuRaw;
   tempPub mPubImuTemp;
-  magPub mPubImuMag;
+  magPub mPubMag;
+  magPub mPubMagRaw;
+  magHeadingPub mPubMagHeading;
+  magHeadingStatusPub mPubMagHeadingStatus;
   pressPub mPubPressure;
   tempPub mPubTempL;
   tempPub mPubTempR;
@@ -704,6 +711,8 @@ private:
   std::unique_ptr<sl_tools::WinAvg> mGnssFix_sec;
   bool mImuPublishing = false;
   bool mMagPublishing = false;
+  bool mMagRawPublishing = false;
+  bool mMagHeadingPublishing = false;
   bool mBaroPublishing = false;
   bool mObjDetSubscribed = false;
   bool mBodyTrkSubscribed = false;
@@ -736,7 +745,8 @@ private:
   rclcpp::Time mLastTs_baro;
   rclcpp::Time mLastTs_mag;
   rclcpp::Time mLastTs_odom;
-  rclcpp::Time mLastTs_pose;
+  rclcpp::Time mLastTs_odomTF;
+  rclcpp::Time mLastTs_poseTF;
   rclcpp::Time mLastTs_pc;
   rclcpp::Time mPrevTs_pc;
   uint64_t mLastTs_gnss_nsec = 0;

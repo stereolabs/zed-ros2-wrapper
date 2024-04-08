@@ -23,7 +23,7 @@ docker build -t "<image_tag>" -f Dockerfile.u22-cu117-humble-release .
 or build the image for Jetson:
 
 ```bash
-docker build -t "<image_tag>" -f Dockerfile.l4t35_1-humble-release .
+docker build -t "<image_tag>" -f Dockerfile.l4t-release .
 ```
 
 ### Devel image
@@ -46,7 +46,7 @@ docker build -t "<image_tag>" -f Dockerfile.u22-cu117-humble-devel .
 or build the image for Jetson:
 
 ```bash
-docker build -t "<image_tag>" -f Dockerfile.l4t35_1-humble-devel .
+docker build -t "<image_tag>" -f Dockerfile.l4t-devel .
 ```
 
 Remove the temporary sources to avoid future compiling issues:

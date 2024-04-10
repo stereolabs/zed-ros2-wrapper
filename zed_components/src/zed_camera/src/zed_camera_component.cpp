@@ -9473,10 +9473,11 @@ void ZedCamera::callback_toLL(
   }
 
 #if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
-  if (mGeoPoseStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
+  if (mGeoPoseStatus != sl::POSITIONAL_TRACKING_STATE::OK)
 #elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
-  if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED) {
+  if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED)
 #endif
+  {
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");
     return;
   }
@@ -9516,10 +9517,11 @@ void ZedCamera::callback_fromLL(
   }
 
 #if (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION < 6)
-  if (mGeoPoseStatus != sl::POSITIONAL_TRACKING_STATE::OK) {
+  if (mGeoPoseStatus != sl::POSITIONAL_TRACKING_STATE::OK)
 #elif (ZED_SDK_MINOR_VERSION == 0 && ZED_SDK_PATCH_VERSION >= 6)
-  if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED) {
+  if (mGeoPoseStatus != sl::GNSS_CALIBRATION_STATE::CALIBRATED)
 #endif
+  {
     RCLCPP_WARN(get_logger(), " * GNSS fusion is not ready");
     return;
   }

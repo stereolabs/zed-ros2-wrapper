@@ -66,8 +66,8 @@
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [usually overwritten by launch file] publish `odom -> camera_link` TF
             publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF
-            map_frame: 'map'
-            odometry_frame: 'odom'
+            map_frame: 'zed2i_camera_map'
+            odometry_frame: 'zed2i_camera_odom'
             area_memory_db_path: ''
             area_memory: true # Enable to detect loop closure
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
@@ -78,7 +78,7 @@
             init_odom_with_first_valid_pose: true # Enable to initialize the odometry with the first valid pose
             path_pub_rate: 2.0 # [DYNAMIC] - Camera trajectory publishing frequency
             path_max_count: -1 # use '-1' for unlimited path size
-            two_d_mode: false # Force navigation on a plane. If true the Z value will be fixed to 'fixed_z_value', roll and pitch to zero
+            two_d_mode: true # Force navigation on a plane. If true the Z value will be fixed to 'fixed_z_value', roll and pitch to zero
             fixed_z_value: 0.00 # Value to be used for Z coordinate if `two_d_mode` is true
             transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->camera_link` transform being generated
             qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL

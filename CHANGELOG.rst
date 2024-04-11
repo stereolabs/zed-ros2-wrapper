@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2024-04-11
+----------
+- Add parameter `pos_tracking.reset_odom_with_loop_closure` to automatically reset odometry when a lood closure is detected
+
 2024-03-15
 - Add new positional tracking information to the `PosTrackStatus` message
 - Add new `GnssFusionStatus` message with GNSS Fusion status information

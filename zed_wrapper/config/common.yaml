@@ -77,7 +77,7 @@
             floor_alignment: false # Enable to automatically calculate camera/floor offset
             initial_base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial position of the `camera_link` frame in the map -> [X, Y, Z, R, P, Y]
             init_odom_with_first_valid_pose: true # Enable to initialize the odometry with the first valid pose
-            reset_odom_when_pose_is_ok_again: true # Re-initialize odometry to the last valid pose when the status of positional tracking becomes OK and it was not OK previously.
+            reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
             path_pub_rate: 2.0 # [DYNAMIC] - Camera trajectory publishing frequency
             path_max_count: -1 # use '-1' for unlimited path size
             two_d_mode: false # Force navigation on a plane. If true the Z value will be fixed to 'fixed_z_value', roll and pitch to zero

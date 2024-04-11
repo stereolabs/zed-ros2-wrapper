@@ -1408,7 +1408,7 @@ void ZedCamera::getPosTrackingParams()
     " * Init Odometry with first valid pose data: "
       << (mInitOdomWithPose ? "TRUE" : "FALSE"));
   getParam(
-    "pos_tracking.reset_odom_when_pose_is_ok_again",
+    "pos_tracking.reset_odom_with_loop_closure",
     mResetOdomWhenPoseBackOK, mResetOdomWhenPoseBackOK);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -7310,8 +7310,9 @@ void ZedCamera::processPose()
 
     if (initOdom || mResetOdom) {
       // Propagate Odom transform in time
-      mOdom2BaseTransf = mMap2BaseTransf;
-      mMap2BaseTransf.setIdentity();
+      /*mOdom2BaseTransf = mMap2BaseTransf;
+      mMap2BaseTransf.setIdentity()*/
+      mOdom2BaseTransf.setIdentity();
       mOdomPath.clear();
 
       tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
@@ -8972,7 +8973,7 @@ void ZedCamera::callback_pubPaths()
 
   if (odomPathSub > 0) {
     pathMsgPtr odomPathMsg = std::make_unique<nav_msgs::msg::Path>();
-    odomPathMsg->header.frame_id = mMapFrameId;
+    odomPathMsg->header.frame_id = mOdomFrameId;
     odomPathMsg->header.stamp = mFrameTimestamp;
     odomPathMsg->poses = mOdomPath;
 

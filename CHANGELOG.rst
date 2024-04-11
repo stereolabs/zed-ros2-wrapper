@@ -1,106 +1,33 @@
 LATEST CHANGES
 ==============
 
-2024-04-11
-----------
-- Add parameter `pos_tracking.reset_odom_with_loop_closure` to automatically reset odometry when a lood closure is detected
-
-2024-03-15
-- Add new positional tracking information to the `PosTrackStatus` message
-- Add new `GnssFusionStatus` message with GNSS Fusion status information
-
-2024-03-07
-----------
-- Add new parameters `gnss_fusion.h_covariance_mul` and `gnss_fusion.v_covariance_mul` to control the effects of the GNSS covariance
-
-2024-03-05
-----------
-- Add ROI diagnostic
-- Add parameter `debug.debug_roi`
-- Publish ROI mask image on topic `~/roi_mask` using image transport
-
-2024-03-04
-----------
-- Move the parameter `general.region_of_interest` to `region_of_interest.manual_polygon`
-- Add automatic Region of Interest support
-- Add parameter `region_of_interest.automatic_roi`
-- Add parameter `region_of_interest.depth_far_threshold_meters`
-- Add parameter `region_of_interest.image_height_ratio_cutoff`
-- Add parameter `region_of_interest.apply_to_depth`
-- Add parameter `region_of_interest.apply_to_positional_tracking`
-- Add parameter `region_of_interest.apply_to_object_detection`
-- Add parameter `region_of_interest.apply_to_body_tracking`
-- Add parameter `region_of_interest.apply_to_spatial_mapping`
-
-2024-03-01
-----------
-- Remove QoS parameters to use ROS 2 QoS overwrite -> https://design.ros2.org/articles/qos_configurability.html
-
-2024-02-28
-----------
-- Add parameter `pos_tracking.init_odom_with_first_valid_pose` for automatic odometry reset when Pose is OK after a not OK status
-- Add support for new `NEURAL_PLUS` depth mode
-
-2024-02-26
-----------
-- Add new `<camera_name>_gnss_link` frame to URDF to set the position of the GNSS antenna with respect to the camera position
-
-2024-01-24
-----------
+v4.0.8
+------
 - The parameter `general.sdk_verbose` has been moved to `debug.sdk_verbose` and set to `0` as default.
 - Add new parameter `general.optional_opencv_calibration_file` to use custom OpenCV camera calibrations.
-
-2023-12-21
-----------
 - Add [new tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_robot_integration) to illustrate how to integrate one or more ZED cameras on a robot
-
-2023-11-28
-----------
 - Add 'simulation.sim_enabled' parameter to enable the simulation mode
 - Add 'simulation.sim_address' parameter to set the simulation server address
 - Add 'simulation.sim_port' parameter to set the simulation server port
-- Add `/clock` subscriber to check the presence of the required messager when `use_sim_time` is true
+- Add `/clock` subscriber to check the presence of the required message when `use_sim_time` is true
 - Force `grab_frame_rate` and `pub_frame_rate` to 60 Hz in simulation
 - Force `grab_resolution` to `HD1080` in simulation
-
-2023-11-27
-----------
 - Remove the `general.zed_id` parameter. Always use `general.serial_number` to distinguish between different cameras in a multi-camera configuration.
-
-2023-11-03
-----------
 - The multi-camera example has been updated to match the new TF configuration
-
-2023-10-30
-----------
 - The old launch files are now obsolete: 'ros2 launch zed_wrapper <camera_model>.launch.py' is replaced by 'ros2 
   launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>'
-- The reference link for positional tracking is no more 'base_link' but `<camera_name>_camera_link`. 
-  This will allow an easier ZED integration in existing robot configuration because the transfomr `base_link` -> `camera_link` 
-  is no more published by the ZED ROS2 Wrapper. Thanks @SteveMacenski for the advise
-
+- The reference link for positional tracking is no longer 'base_link' but `<camera_name>_camera_link`. 
+  This will allow an easier ZED integration in existing robot configuration because the transform `base_link` -> `camera_link` 
+  is no longer published by the ZED ROS2 Wrapper. Thanks to @SteveMacenski for the advice
   - Remove `parent` and `origin` parameters from `zed_macro.urdf.xacro`
   - Remove launch argument `cam_pose` from `zed_camera.launch.py`
-
-2023-09-07
-----------
 - Move parameter `publish_imu_tf` from `pos_tracking` to `sensors` to make it available also in "no depth" configurations of the node
-
-2023-09-04
-----------
 - Add new parameter `pos_tracking.pos_tracking_mode` to exploit the new ZED SDK `QUALITY` mode for improved odometry and localization
-
-2023-09-03
-----------
 - New Video/Depth processing throttling method by using the `grab_compute_capping_fps` ZED SDK parameter instead of a dedicated thread
 - Advanced parameters to handle Thread scheduling policy and priorities (sudo required):`thread_sched_policy`,`thread_grab_priority`,
   `thread_sensor_priority`,`thread_pointcloud_priority`
-
-2023-08-04
-----------
-- Add support for ZED SDK v4.0.6
 - Add new GNSS calibration parameters: `enable_reinitialization`, `enable_rolling_calibration`, `enable_translation_uncertainty_target`, `gnss_vio_reinit_threshold`, `target_translation_uncertainty`, `target_yaw_uncertainty`
-- Add new Plane Detection paramters: `pd_max_distance_threshold`, `pd_normal_similarity_threshold`
+- Add new Plane Detection parameters: `pd_max_distance_threshold`, `pd_normal_similarity_threshold`
 
 v4.0.5
 ----------

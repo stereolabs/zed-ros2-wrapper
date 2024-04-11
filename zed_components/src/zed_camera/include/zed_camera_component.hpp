@@ -328,7 +328,6 @@ class ZedCamera : public rclcpp::Node {
   bool mTwoDMode = false;
   double mFixedZValue = 0.0;
   std::vector<double> mInitialBasePose = std::vector<double>(6, 0.0);
-  bool mInitOdomWithPose = true;
   bool mResetOdomWhenPoseBackOK = true;
   double mPathPubRate = 2.0;
   double mTfOffset = 0.05;

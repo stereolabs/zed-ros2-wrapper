@@ -1401,13 +1401,6 @@ void ZedCamera::getPosTrackingParams()
     get_logger(), " * Floor Alignment: "
       << (mFloorAlignment ? "TRUE" : "FALSE"));
   getParam(
-    "pos_tracking.init_odom_with_first_valid_pose", mInitOdomWithPose,
-    mInitOdomWithPose);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Init Odometry with first valid pose data: "
-      << (mInitOdomWithPose ? "TRUE" : "FALSE"));
-  getParam(
     "pos_tracking.reset_odom_with_loop_closure",
     mResetOdomWhenPoseBackOK, mResetOdomWhenPoseBackOK);
   RCLCPP_INFO_STREAM(
@@ -7067,7 +7060,7 @@ void ZedCamera::processOdometry()
     getCamera2BaseTransform();
   }
 
-  if (!mInitOdomWithPose) {
+
     sl::Pose deltaOdom;
 
     if (!mGnssFusionEnabled) {
@@ -7150,7 +7143,7 @@ void ZedCamera::processOdometry()
       "Odometry will be published as soon as the floor as "
       "been detected for the first time");
   }
-}
+
 
 void ZedCamera::publishOdom(
   tf2::Transform & odom2baseTransf, sl::Pose & slPose,
@@ -7297,21 +7290,15 @@ void ZedCamera::processPose()
 
     bool initOdom = false;
 
-    if (mInitOdomWithPose) {
-      initOdom = true;
-      RCLCPP_INFO(get_logger(), "*** Odometry initialization ***");
-    } else if (mPosTrackingStatus.spatial_memory_status == sl::SPATIAL_MEMORY_STATUS::LOOP_CLOSED) {
+    if (mPosTrackingStatus.spatial_memory_status == sl::SPATIAL_MEMORY_STATUS::LOOP_CLOSED) {
       mResetOdom = mResetOdomWhenPoseBackOK;
       if (mResetOdom) {
         RCLCPP_INFO_STREAM(get_logger(),
                            "*** Odometry reset for LOOP CLOSURE event ***");
       }
-    }
 
-    if (initOdom || mResetOdom) {
+    if (mResetOdom) {
       // Propagate Odom transform in time
-      /*mOdom2BaseTransf = mMap2BaseTransf;
-      mMap2BaseTransf.setIdentity()*/
       mOdom2BaseTransf.setIdentity();
       mOdomPath.clear();
 
@@ -7327,7 +7314,6 @@ void ZedCamera::processPose()
         mOdom2BaseTransf.getOrigin().z(), roll * RAD2DEG,
         pitch * RAD2DEG, yaw * RAD2DEG);
 
-      mInitOdomWithPose = false;
       mResetOdom = false;
     } else {
       // Transformation from map to odometry frame
@@ -9053,8 +9039,6 @@ void ZedCamera::callback_setPose(
     res->success = false;
     return;
   }
-
-  // mInitOdomWithPose = true;
 
   mInitialBasePose[0] = req->pos[0];
   mInitialBasePose[1] = req->pos[1];

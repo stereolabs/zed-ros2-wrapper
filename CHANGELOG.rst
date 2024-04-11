@@ -1,5 +1,47 @@
 LATEST CHANGES
 ==============
+2024-04-11
+----------
+- Add parameter `pos_tracking.reset_odom_with_loop_closure` to automatically reset odometry when a lood closure is detected
+
+2024-03-15
+- Add new positional tracking information to the `PosTrackStatus` message
+- Add new `GnssFusionStatus` message with GNSS Fusion status information
+
+2024-03-07
+----------
+- Add new parameters `gnss_fusion.h_covariance_mul` and `gnss_fusion.v_covariance_mul` to control the effects of the GNSS covariance
+
+2024-03-05
+----------
+- Add ROI diagnostic
+- Add parameter `debug.debug_roi`
+- Publish ROI mask image on topic `~/roi_mask` using image transport
+
+2024-03-04
+----------
+- Move the parameter `general.region_of_interest` to `region_of_interest.manual_polygon`
+- Add automatic Region of Interest support
+- Add parameter `region_of_interest.automatic_roi`
+- Add parameter `region_of_interest.depth_far_threshold_meters`
+- Add parameter `region_of_interest.image_height_ratio_cutoff`
+- Add parameter `region_of_interest.apply_to_depth`
+- Add parameter `region_of_interest.apply_to_positional_tracking`
+- Add parameter `region_of_interest.apply_to_object_detection`
+- Add parameter `region_of_interest.apply_to_body_tracking`
+- Add parameter `region_of_interest.apply_to_spatial_mapping`
+
+2024-03-01
+----------
+- Remove QoS parameters to use ROS 2 QoS overwrite -> https://design.ros2.org/articles/qos_configurability.html
+
+2024-02-28
+----------
+- Add support for new `NEURAL_PLUS` depth mode
+
+2024-02-26
+----------
+- Add new `<camera_name>_gnss_link` frame to URDF to set the position of the GNSS antenna with respect to the camera position
 
 v4.0.8
 ------

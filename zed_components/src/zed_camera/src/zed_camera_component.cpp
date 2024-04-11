@@ -4888,7 +4888,6 @@ bool ZedCamera::startObjDetect()
   sl::ObjectDetectionParameters od_p;
   od_p.enable_segmentation = false;
   od_p.enable_tracking = mObjDetTracking;
-  od_p.image_sync = true;
   od_p.detection_model = mObjDetModel;
   od_p.filtering_mode = mObjFilterMode;
   od_p.prediction_timeout_s = mObjDetPredTimeout;
@@ -5016,7 +5015,6 @@ bool ZedCamera::startBodyTracking()
   bt_p.enable_body_fitting = mBodyTrkFitting;
   bt_p.enable_segmentation = false;
   bt_p.enable_tracking = mBodyTrkEnableTracking;
-  bt_p.image_sync = true;
   bt_p.max_range = mBodyTrkMaxRange;
   bt_p.prediction_timeout_s = mBodyTrkPredTimeout;
 
@@ -7082,7 +7080,7 @@ void ZedCamera::processOdometry()
     mPosTrackingStatus = mZed->getPositionalTrackingStatus();
 
     DEBUG_PT("delta ODOM %s- [%s]:\n%s", mDebugGnss ? "(`sl::Fusion`) " : "",
-             sl::toString(mPosTrackingStatus.visual_odometry_tracking_status)
+             sl::toString(mPosTrackingStatus.odometry_status)
                  .c_str(),
              deltaOdom.pose_data.getInfos().c_str());
 
@@ -7097,8 +7095,8 @@ void ZedCamera::processOdometry()
         camera_delta_odom.pose_data.getInfos().c_str());
     }   
 
-    if (mPosTrackingStatus.visual_odometry_tracking_status !=
-        sl::VISUAL_ODOMETRY_TRACKING_STATUS::NOT_OK) {
+    if (mPosTrackingStatus.odometry_status !=
+        sl::ODOMETRY_STATUS::UNAVAILABLE) {
       sl::Translation translation = deltaOdom.getTranslation();
       sl::Orientation quat = deltaOdom.getOrientation();
 
@@ -7243,7 +7241,7 @@ void ZedCamera::processPose()
 
   DEBUG_STREAM_PT(
       "MAP -> Tracking Status: "
-      << sl::toString(mPosTrackingStatus.map_tracking_status).c_str());
+      << sl::toString(mPosTrackingStatus.spatial_memory_status).c_str());
 
   DEBUG_PT(
     "Sensor POSE %s- [%s -> %s]:\n%s}",
@@ -7260,8 +7258,7 @@ void ZedCamera::processPose()
       camera_pose.pose_data.getInfos().c_str());
   }
 
-  if (mPosTrackingStatus.visual_odometry_tracking_status !=
-      sl::VISUAL_ODOMETRY_TRACKING_STATUS::NOT_OK) {
+  if (mPosTrackingStatus.odometry_status == sl::ODOMETRY_STATUS::OK) {
     double roll, pitch, yaw;
     tf2::Matrix3x3(tf2::Quaternion(quat.ox, quat.oy, quat.oz, quat.ow))
     .getRPY(roll, pitch, yaw);
@@ -7303,7 +7300,7 @@ void ZedCamera::processPose()
     if (mInitOdomWithPose) {
       initOdom = true;
       RCLCPP_INFO(get_logger(), "*** Odometry initialization ***");
-    } else if (mPosTrackingStatus.map_tracking_status == sl::MAP_TRACKING_STATUS::LOOP_CLOSED) {
+    } else if (mPosTrackingStatus.spatial_memory_status == sl::SPATIAL_MEMORY_STATUS::LOOP_CLOSED) {
       mResetOdom = mResetOdomWhenPoseBackOK;
       if (mResetOdom) {
         RCLCPP_INFO_STREAM(get_logger(),
@@ -7367,9 +7364,8 @@ void ZedCamera::publishPoseStatus()
   if (statusSub > 0) {
     poseStatusMsgPtr msg =
       std::make_unique<zed_interfaces::msg::PosTrackStatus>();
-    msg->visual_odometry_tracking_status = static_cast<uint8_t>(mPosTrackingStatus.visual_odometry_tracking_status);
-    msg->map_tracking_status = static_cast<uint8_t>(mPosTrackingStatus.map_tracking_status);
-    msg->imu_fusion_status = static_cast<uint8_t>(mPosTrackingStatus.imu_fusion_status);
+    msg->odometry_status = static_cast<uint8_t>(mPosTrackingStatus.odometry_status);
+    msg->spatial_memory_status = static_cast<uint8_t>(mPosTrackingStatus.spatial_memory_status);
 
     mPubPoseStatus->publish(std::move(msg));
   }
@@ -9483,7 +9479,7 @@ void ZedCamera::callback_updateDiagnostic(
       }
 
       if (mFloorAlignment) {
-        if (mPosTrackingStatus.map_tracking_status == sl::MAP_TRACKING_STATUS::SEARCHING) {
+        if (mPosTrackingStatus.spatial_memory_status == sl::SPATIAL_MEMORY_STATUS::SEARCHING) {
           stat.add("Floor Detection", "NOT INITIALIZED");
         } else {
           stat.add("Floor Detection", "INITIALIZED");
@@ -9522,12 +9518,10 @@ void ZedCamera::callback_updateDiagnostic(
       if (mPosTrackingStarted) {
         stat.addf(
             "Visual Odometry tracking status", "%s",
-            sl::toString(mPosTrackingStatus.visual_odometry_tracking_status)
+            sl::toString(mPosTrackingStatus.odometry_status)
                 .c_str());
         stat.addf("Map tracking status", "%s",
-                  sl::toString(mPosTrackingStatus.map_tracking_status).c_str());
-        stat.addf("IMU fusion status", "%s",
-                  sl::toString(mPosTrackingStatus.imu_fusion_status).c_str());
+                  sl::toString(mPosTrackingStatus.spatial_memory_status).c_str());
 
         if (mPublishTF) {
           freq = 1. / mPubOdomTF_sec->getAvg();

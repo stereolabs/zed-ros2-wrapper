@@ -1,53 +1,33 @@
 LATEST CHANGES
 ==============
 
-2023-11-28
-----------
+v4.0.8
+------
+- The parameter `general.sdk_verbose` has been moved to `debug.sdk_verbose` and set to `0` as default.
+- Add new parameter `general.optional_opencv_calibration_file` to use custom OpenCV camera calibrations.
+- Add [new tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_robot_integration) to illustrate how to integrate one or more ZED cameras on a robot
 - Add 'simulation.sim_enabled' parameter to enable the simulation mode
 - Add 'simulation.sim_address' parameter to set the simulation server address
 - Add 'simulation.sim_port' parameter to set the simulation server port
-- Add `/clock` subscriber to check the presence of the required messager when `use_sim_time` is true
+- Add `/clock` subscriber to check the presence of the required message when `use_sim_time` is true
 - Force `grab_frame_rate` and `pub_frame_rate` to 60 Hz in simulation
 - Force `grab_resolution` to `HD1080` in simulation
-
-2023-11-27
-----------
 - Remove the `general.zed_id` parameter. Always use `general.serial_number` to distinguish between different cameras in a multi-camera configuration.
-
-2023-11-03
-----------
 - The multi-camera example has been updated to match the new TF configuration
-
-2023-10-30
-----------
 - The old launch files are now obsolete: 'ros2 launch zed_wrapper <camera_model>.launch.py' is replaced by 'ros2 
   launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>'
-- The reference link for positional tracking is no more 'base_link' but `<camera_name>_camera_link`. 
-  This will allow an easier ZED integration in existing robot configuration because the transfomr `base_link` -> `camera_link` 
-  is no more published by the ZED ROS2 Wrapper. Thanks @SteveMacenski for the advise
-
+- The reference link for positional tracking is no longer 'base_link' but `<camera_name>_camera_link`. 
+  This will allow an easier ZED integration in existing robot configuration because the transform `base_link` -> `camera_link` 
+  is no longer published by the ZED ROS2 Wrapper. Thanks to @SteveMacenski for the advice
   - Remove `parent` and `origin` parameters from `zed_macro.urdf.xacro`
   - Remove launch argument `cam_pose` from `zed_camera.launch.py`
-
-2023-09-07
-----------
 - Move parameter `publish_imu_tf` from `pos_tracking` to `sensors` to make it available also in "no depth" configurations of the node
-
-2023-09-04
-----------
 - Add new parameter `pos_tracking.pos_tracking_mode` to exploit the new ZED SDK `QUALITY` mode for improved odometry and localization
-
-2023-09-03
-----------
 - New Video/Depth processing throttling method by using the `grab_compute_capping_fps` ZED SDK parameter instead of a dedicated thread
 - Advanced parameters to handle Thread scheduling policy and priorities (sudo required):`thread_sched_policy`,`thread_grab_priority`,
   `thread_sensor_priority`,`thread_pointcloud_priority`
-
-2023-08-04
-----------
-- Add support for ZED SDK v4.0.6
 - Add new GNSS calibration parameters: `enable_reinitialization`, `enable_rolling_calibration`, `enable_translation_uncertainty_target`, `gnss_vio_reinit_threshold`, `target_translation_uncertainty`, `target_yaw_uncertainty`
-- Add new Plane Detection paramters: `pd_max_distance_threshold`, `pd_normal_similarity_threshold`
+- Add new Plane Detection parameters: `pd_max_distance_threshold`, `pd_normal_similarity_threshold`
 
 v4.0.5
 ----------

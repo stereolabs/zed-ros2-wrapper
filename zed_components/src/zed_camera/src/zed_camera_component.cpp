@@ -7075,84 +7075,100 @@ void ZedCamera::processOdometry()
 
   mPosTrackingStatus = mZed->getPositionalTrackingStatus();
 
-  if (!mGnssFusionEnabled) {
-    mZed->getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
-  } else {
-    mFusion.getPosition(
-      deltaOdom, sl::REFERENCE_FRAME::CAMERA /*,mCamUuid*/,
-      sl::CameraIdentifier(), sl::POSITION_TYPE::FUSION);
-  }  
-
-  DEBUG_PT(
-    "delta ODOM %s- [%s]:\n%s", mDebugGnss ? "(`sl::Fusion`) " : "",
-    sl::toString(mPosTrackingStatus.odometry_status)
-    .c_str(),
-    deltaOdom.pose_data.getInfos().c_str());
-
-  if (mDebugGnss) {
-    sl::Pose camera_delta_odom;
-    auto status =
-      mZed->getPosition(camera_delta_odom, sl::REFERENCE_FRAME::CAMERA);
-
-    DEBUG_PT(
-      "delta ODOM (`sl::Camera`) [%s]:\n%s",
-      sl::toString(status).c_str(),
-      camera_delta_odom.pose_data.getInfos().c_str());
-  }
-
-  if (mPosTrackingStatus.odometry_status == sl::ODOMETRY_STATUS::OK) {
-    sl::Translation translation = deltaOdom.getTranslation();
-    sl::Orientation quat = deltaOdom.getOrientation();
-
-    // Transform ZED delta odom pose in TF2 Transformation
-    tf2::Transform deltaOdomTf;
-    deltaOdomTf.setOrigin(
-      tf2::Vector3(translation(0), translation(1), translation(2)));
-    // w at the end in the constructor
-    deltaOdomTf.setRotation(
-      tf2::Quaternion(quat(0), quat(1), quat(2), quat(3)));
-
-    // delta odom from sensor to base frame
-    tf2::Transform deltaOdomTf_base =
-      mSensor2BaseTransf.inverse() * deltaOdomTf * mSensor2BaseTransf;
-
-    // Propagate Odom transform in time
-    mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
-
-    if (mTwoDMode) {
-      tf2::Vector3 tr_2d = mOdom2BaseTransf.getOrigin();
-      tr_2d.setZ(mFixedZValue);
-      mOdom2BaseTransf.setOrigin(tr_2d);
-
-      double roll, pitch, yaw;
-      tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
-
-      tf2::Quaternion quat_2d;
-      quat_2d.setRPY(0.0, 0.0, yaw);
-
-      mOdom2BaseTransf.setRotation(quat_2d);
+  if (mResetOdomFromSrv || (mResetOdomWhenLoopClosure &&
+                            mPosTrackingStatus.spatial_memory_status ==
+                                sl::SPATIAL_MEMORY_STATUS::LOOP_CLOSED)) {
+    if (mPosTrackingStatus.spatial_memory_status ==
+        sl::SPATIAL_MEMORY_STATUS::LOOP_CLOSED) {
+      RCLCPP_INFO_STREAM(get_logger(),
+                         "*** Odometry reset for LOOP CLOSURE event ***");
     }
 
+    // Propagate Odom transform in time
+    mOdom2BaseTransf.setIdentity();
+    mOdomPath.clear();
+
+    mResetOdomFromSrv = false;
+  } else {
+    if (!mGnssFusionEnabled) {
+      mZed->getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA);
+    } else {
+      mFusion.getPosition(deltaOdom, sl::REFERENCE_FRAME::CAMERA /*,mCamUuid*/,
+                          sl::CameraIdentifier(), sl::POSITION_TYPE::FUSION);
+    }
+
+    DEBUG_STREAM_PT(
+        "MAP -> Odometry Status: "
+        << sl::toString(mPosTrackingStatus.odometry_status).c_str());
+
+    DEBUG_PT("delta ODOM %s- [%s]:\n%s", mDebugGnss ? "(`sl::Fusion`) " : "",
+             sl::toString(mPosTrackingStatus.odometry_status).c_str(),
+             deltaOdom.pose_data.getInfos().c_str());
+
+    if (mDebugGnss) {
+      sl::Pose camera_delta_odom;
+      auto status =
+          mZed->getPosition(camera_delta_odom, sl::REFERENCE_FRAME::CAMERA);
+
+      DEBUG_PT("delta ODOM (`sl::Camera`) [%s]:\n%s",
+               sl::toString(status).c_str(),
+               camera_delta_odom.pose_data.getInfos().c_str());
+    }
+
+    if (mPosTrackingStatus.odometry_status == sl::ODOMETRY_STATUS::OK) {
+      sl::Translation translation = deltaOdom.getTranslation();
+      sl::Orientation quat = deltaOdom.getOrientation();
+
+      // Transform ZED delta odom pose in TF2 Transformation
+      tf2::Transform deltaOdomTf;
+      deltaOdomTf.setOrigin(
+          tf2::Vector3(translation(0), translation(1), translation(2)));
+      // w at the end in the constructor
+      deltaOdomTf.setRotation(
+          tf2::Quaternion(quat(0), quat(1), quat(2), quat(3)));
+
+      // delta odom from sensor to base frame
+      tf2::Transform deltaOdomTf_base =
+          mSensor2BaseTransf.inverse() * deltaOdomTf * mSensor2BaseTransf;
+
+      // Propagate Odom transform in time
+      mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
+
+      if (mTwoDMode) {
+        tf2::Vector3 tr_2d = mOdom2BaseTransf.getOrigin();
+        tr_2d.setZ(mFixedZValue);
+        mOdom2BaseTransf.setOrigin(tr_2d);
+
+        double roll, pitch, yaw;
+        tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+        tf2::Quaternion quat_2d;
+        quat_2d.setRPY(0.0, 0.0, yaw);
+
+        mOdom2BaseTransf.setRotation(quat_2d);
+      }
+      mPosTrackingReady = true;
+    } else if (mFloorAlignment) {
+      DEBUG_STREAM_THROTTLE_PT(
+          5000.0,
+          "Odometry will be published as soon as the floor as "
+          "been detected for the first time");
+    }
+  }
+
+  if (mDebugPosTracking) {
     double roll, pitch, yaw;
     tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
-    DEBUG_PT(
-      "+++ Odometry [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
-      mOdomFrameId.c_str(), mBaseFrameId.c_str(),
-      mOdom2BaseTransf.getOrigin().x(),
-      mOdom2BaseTransf.getOrigin().y(),
-      mOdom2BaseTransf.getOrigin().z(), roll * RAD2DEG,
-      pitch * RAD2DEG, yaw * RAD2DEG);
-
-    // Publish odometry message
-    publishOdom(mOdom2BaseTransf, deltaOdom, mFrameTimestamp);
-    mPosTrackingReady = true;
-  } else if (mFloorAlignment) {
-    DEBUG_STREAM_THROTTLE_PT(
-      5000.0,
-      "Odometry will be published as soon as the floor as "
-      "been detected for the first time");
+    DEBUG_PT("+++ Odometry [%s -> %s] - {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f}",
+             mOdomFrameId.c_str(), mBaseFrameId.c_str(),
+             mOdom2BaseTransf.getOrigin().x(), mOdom2BaseTransf.getOrigin().y(),
+             mOdom2BaseTransf.getOrigin().z(), roll * RAD2DEG, pitch * RAD2DEG,
+             yaw * RAD2DEG);
   }
+
+  // Publish odometry message
+  publishOdom(mOdom2BaseTransf, deltaOdom, mFrameTimestamp);
 }
 
 void ZedCamera::publishOdom(
@@ -7296,36 +7312,6 @@ void ZedCamera::processPose()
       mMap2BaseTransf.getOrigin().z(), roll * RAD2DEG, pitch * RAD2DEG,
       yaw * RAD2DEG);
 
-    if (mPosTrackingStatus.spatial_memory_status == sl::SPATIAL_MEMORY_STATUS::LOOP_CLOSED) {
-      DEBUG_PT("processPose -> LOOP CLOSURE DETECTED");
-      mResetOdom = mResetOdomWhenLoopClosure;
-
-      if (mResetOdom) {
-        RCLCPP_INFO_STREAM(
-          get_logger(),
-          "*** Odometry reset for LOOP CLOSURE event ***");
-
-        // Propagate Odom transform in time
-        mOdom2BaseTransf.setIdentity();
-        mOdomPath.clear();
-
-        if(mDebugPosTracking) {
-          tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
-
-          RCLCPP_INFO(
-            get_logger(),
-            " * Odometry TF [%s -> %s] - {%.3f,%.3f,%.3f} "
-            "{%.3f,%.3f,%.3f}",
-            mOdomFrameId.c_str(), mBaseFrameId.c_str(),
-            mOdom2BaseTransf.getOrigin().x(),
-            mOdom2BaseTransf.getOrigin().y(),
-            mOdom2BaseTransf.getOrigin().z(), roll * RAD2DEG,
-            pitch * RAD2DEG, yaw * RAD2DEG);
-        }
-
-        mResetOdom = false;
-      }
-      
       // Transformation from map to odometry frame
       mMap2OdomTransf = mMap2BaseTransf * mOdom2BaseTransf.inverse();
 
@@ -7342,7 +7328,6 @@ void ZedCamera::processPose()
       // Publish Pose message
       publishPose();
       mPosTrackingReady = true;
-    }
   }
 }
 
@@ -8989,7 +8974,7 @@ void ZedCamera::processPose()
     (void)req;
 
     RCLCPP_INFO(get_logger(), "** Reset Odometry service called **");
-    mResetOdom = true;
+    mResetOdomFromSrv = true;
     res->message = "Odometry reset OK";
     res->success = true;
   }

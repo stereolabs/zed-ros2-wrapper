@@ -675,7 +675,7 @@ class ZedCamera : public rclcpp::Node {
   sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE mAutoRoiStatus =
       sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::NOT_ENABLED;
 
-  bool mResetOdom = false;
+  bool mResetOdomFromSrv = false;
   bool mSpatialMappingRunning = false;
   bool mObjDetRunning = false;
   bool mBodyTrkRunning = false;

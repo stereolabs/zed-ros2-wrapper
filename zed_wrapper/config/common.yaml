@@ -63,7 +63,7 @@
 
         pos_tracking:
             pos_tracking_enabled: true # True to enable positional tracking from start
-            pos_tracking_mode: "GEN_1" # Matches the ZED SDK setting: 'GEN_1', 'GEN_2'
+            pos_tracking_mode: "GEN_2" # Matches the ZED SDK setting: 'GEN_1', 'GEN_2'
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [usually overwritten by launch file] publish `odom -> camera_link` TF
             publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF
@@ -74,9 +74,8 @@
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
             set_as_static: false # If 'true' the camera will be static and not move in the environment
             set_gravity_as_origin: true # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
-            floor_alignment: false # Enable to automatically calculate camera/floor offset
+            floor_alignment: true # Enable to automatically calculate camera/floor offset
             initial_base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial position of the `camera_link` frame in the map -> [X, Y, Z, R, P, Y]
-            init_odom_with_first_valid_pose: true # Enable to initialize the odometry with the first valid pose
             reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
             path_pub_rate: 2.0 # [DYNAMIC] - Camera trajectory publishing frequency
             path_max_count: -1 # use '-1' for unlimited path size
@@ -156,7 +155,7 @@
             debug_video_depth: false
             debug_camera_controls: false
             debug_point_cloud: false
-            debug_positional_tracking: true
+            debug_positional_tracking: false
             debug_gnss: false
             debug_sensors: false
             debug_mapping: false

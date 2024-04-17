@@ -2616,13 +2616,13 @@ bool ZedCamera::startCamera()
       break;
 
     case PubRes::HD1080:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      pub_w = sl::getResolution(sl::RESOLUTION::HD1080).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::HD1080).height;
       break;
 
     case PubRes::HD720:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      pub_w = sl::getResolution(sl::RESOLUTION::HD720).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::HD720).height;
       break;
 
     case PubRes::MEDIUM:
@@ -2631,8 +2631,8 @@ bool ZedCamera::startCamera()
       break;
 
     case PubRes::VGA:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      pub_w = sl::getResolution(sl::RESOLUTION::VGA).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::VGA).height;
       break;
 
     case PubRes::LOW:

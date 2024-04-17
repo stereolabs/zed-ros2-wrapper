@@ -3226,7 +3226,7 @@ void ZedCamera::initPublishers()
 
   mOdomTopic = mTopicRoot + "odom";
   mOdomPathTopic = mTopicRoot + "path_odom";
-  mMapPathTopic = mTopicRoot + "path_map";
+  mPosePathTopic = mTopicRoot + "path_map";
 
   // Set the Sensors topic names
   std::string temp_topic_root = "temperature";
@@ -3428,7 +3428,7 @@ void ZedCamera::initPublishers()
       get_logger(),
       "Advertised on topic: " << mPubOdom->get_topic_name());
     mPubPosePath =
-      create_publisher<nav_msgs::msg::Path>(mMapPathTopic, mQos, mPubOpt);
+        create_publisher<nav_msgs::msg::Path>(mPosePathTopic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(
       get_logger(), "Advertised on topic: "
         << mPubPosePath->get_topic_name());
@@ -4540,20 +4540,19 @@ void ZedCamera::startPathPubTimer(double pathTimerRate)
       std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
       std::bind(&ZedCamera::callback_pubPaths, this));
 
-    if (mOdomPath.size() == 0 && mMapPath.size() == 0) {
+    if (mOdomPath.size() == 0 && mPosePath.size() == 0) {
       if (mPathMaxCount != -1) {
         DEBUG_STREAM_PT("Path vectors reserved " << mPathMaxCount << " poses.");
         mOdomPath.reserve(mPathMaxCount);
-        mMapPath.reserve(mPathMaxCount);
+        mPosePath.reserve(mPathMaxCount);
 
-        DEBUG_STREAM_PT(
-          "Path vector sizes: " << mOdomPath.size() << " "
-                                << mMapPath.size());
+        DEBUG_STREAM_PT("Path vector sizes: " << mOdomPath.size() << " "
+                                              << mPosePath.size());
       }
     }
   } else {
     mOdomPath.clear();
-    mMapPath.clear();
+    mPosePath.clear();
     mPathTimer->cancel();
     RCLCPP_INFO_STREAM(
       get_logger(), "Path topics not published -> Pub. rate: "
@@ -5624,9 +5623,6 @@ void ZedCamera::threadFunc_zedGrab()
     }
     // <---- Interruption check
 
-    // Wait for operations on Positional Tracking
-    std::lock_guard<std::mutex> lock(mPosTrkMutex);
-
     // ----> Apply depth settings
     applyDepthSettings();
     // <---- Apply depth settings
@@ -5639,7 +5635,17 @@ void ZedCamera::threadFunc_zedGrab()
 
     // ----> Check for Positional Tracking requirement
     if (isPosTrackingRequired() && !mPosTrackingStarted) {
-      startPosTracking();
+      static int pt_err_count = 0;
+      if (!startPosTracking()) {
+        if (++pt_err_count >= 3) {
+          RCLCPP_FATAL(get_logger(),
+                       "It's not possible to enable the required Positional "
+                       "Tracking module.");
+          exit(EXIT_FAILURE);
+        }
+      } else {
+        pt_err_count = 0;
+      }
     }
 
     if (mGnssFusionEnabled && !mGnssFixValid) {
@@ -8876,7 +8882,7 @@ void ZedCamera::processPose()
     uint32_t utmPathSub = 0;
 
     try {
-      mapPathSub = count_subscribers(mMapPathTopic);
+      mapPathSub = count_subscribers(mPosePathTopic);
       odomPathSub = count_subscribers(mOdomPathTopic);
     } catch (...) {
       rcutils_reset_error();
@@ -8928,19 +8934,19 @@ void ZedCamera::processPose()
       if (mOdomPath.size() == mPathMaxCount) {
         DEBUG_STREAM_PT("Path vectors full: rotating ");
         std::rotate(mOdomPath.begin(), mOdomPath.begin() + 1, mOdomPath.end());
-        std::rotate(mMapPath.begin(), mMapPath.begin() + 1, mMapPath.end());
+        std::rotate(mPosePath.begin(), mPosePath.begin() + 1, mPosePath.end());
 
-        mMapPath[mPathMaxCount - 1] = mapPose;
+        mPosePath[mPathMaxCount - 1] = mapPose;
         mOdomPath[mPathMaxCount - 1] = odomPose;
       } else {
         // DEBUG_STREAM_PT( "Path vectors adding last available poses");
-        mMapPath.push_back(mapPose);
+        mPosePath.push_back(mapPose);
         mOdomPath.push_back(odomPose);
       }
     } else {
       // DEBUG_STREAM_PT( "No limit path vectors, adding last available
       // poses");
-      mMapPath.push_back(mapPose);
+      mPosePath.push_back(mapPose);
       mOdomPath.push_back(odomPose);
     }
 
@@ -8948,7 +8954,7 @@ void ZedCamera::processPose()
       pathMsgPtr mapPathMsg = std::make_unique<nav_msgs::msg::Path>();
       mapPathMsg->header.frame_id = mMapFrameId;
       mapPathMsg->header.stamp = mFrameTimestamp;
-      mapPathMsg->poses = mMapPath;
+      mapPathMsg->poses = mPosePath;
 
       DEBUG_STREAM_PT("Publishing MAP PATH message");
       mPubPosePath->publish(std::move(mapPathMsg));
@@ -8996,7 +9002,9 @@ void ZedCamera::processPose()
       return;
     }
 
-    std::lock_guard<std::mutex> lock(mPosTrkMutex);
+    mResetOdomFromSrv = true;
+    mOdomPath.clear();
+    mPosePath.clear();
 
     // Restart tracking
     startPosTracking();
@@ -9044,6 +9052,10 @@ void ZedCamera::processPose()
     mInitialBasePose[3] = req->orient[0];
     mInitialBasePose[4] = req->orient[1];
     mInitialBasePose[5] = req->orient[2];
+
+    mResetOdomFromSrv = true;
+    mOdomPath.clear();
+    mPosePath.clear();
 
     // Restart tracking
     startPosTracking();

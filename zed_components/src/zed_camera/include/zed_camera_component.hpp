@@ -247,7 +247,7 @@ class ZedCamera : public rclcpp::Node {
   std::string mObjectDetTopic;
   std::string mBodyTrkTopic;
   std::string mOdomPathTopic;
-  std::string mMapPathTopic;
+  std::string mPosePathTopic;
   std::string mClickedPtTopic;  // Clicked point
   std::string mRoiMaskTopic;
   // <---- Topics
@@ -644,7 +644,6 @@ class ZedCamera : public rclcpp::Node {
 
   // ----> Thread Sync
   std::mutex mRecMutex;
-  std::mutex mPosTrkMutex;
   std::mutex mDynParMutex;
   std::mutex mMappingMutex;
   std::mutex mObjDetMutex;
@@ -694,7 +693,7 @@ class ZedCamera : public rclcpp::Node {
   sl::Pose mLastZedPose;
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
-  std::vector<geometry_msgs::msg::PoseStamped> mMapPath;
+  std::vector<geometry_msgs::msg::PoseStamped> mPosePath;
   sl::GeoPose mLastGeoPose;
   sl::ECEF mLastEcefPose;
   sl::UTM mLastUtmPose;

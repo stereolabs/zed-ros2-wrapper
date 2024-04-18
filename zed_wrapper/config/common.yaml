@@ -63,7 +63,7 @@
 
         pos_tracking:
             pos_tracking_enabled: true # True to enable positional tracking from start
-            pos_tracking_mode: "GEN_2" # Matches the ZED SDK setting: 'GEN_1', 'GEN_2'
+            pos_tracking_mode: "GEN_1" # Matches the ZED SDK setting: 'GEN_1', 'GEN_2'
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [usually overwritten by launch file] publish `odom -> camera_link` TF
             publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF
@@ -71,12 +71,12 @@
             odometry_frame: "odom"
             area_memory_db_path: ""
             area_memory: true # Enable to detect loop closure
+            reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
             set_as_static: false # If 'true' the camera will be static and not move in the environment
             set_gravity_as_origin: true # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
-            floor_alignment: true # Enable to automatically calculate camera/floor offset
+            floor_alignment: false # Enable to automatically calculate camera/floor offset
             initial_base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial position of the `camera_link` frame in the map -> [X, Y, Z, R, P, Y]
-            reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
             path_pub_rate: 2.0 # [DYNAMIC] - Camera trajectory publishing frequency
             path_max_count: -1 # use '-1' for unlimited path size
             two_d_mode: false # Force navigation on a plane. If true the Z value will be fixed to 'fixed_z_value', roll and pitch to zero
@@ -91,12 +91,12 @@
             v_covariance_mul: 1.0 # Multiplier factor to be applied to vertical covariance of the received fix (Z axis)
             publish_utm_tf: true # Publish `utm` -> `map` TF
             broadcast_utm_transform_as_parent_frame: false # if 'true' publish `utm` -> `map` TF, otherwise `map` -> `utm`
-            enable_reinitialization: true # determines whether reinitialization should be performed between GNSS and VIO fusion when a significant disparity is detected between GNSS data and the current fusion data. It becomes particularly crucial during prolonged GNSS signal loss scenarios.
+            enable_reinitialization: false # determines whether reinitialization should be performed between GNSS and VIO fusion when a significant disparity is detected between GNSS data and the current fusion data. It becomes particularly crucial during prolonged GNSS signal loss scenarios.
             enable_rolling_calibration: true # If this parameter is set to true, the fusion algorithm will used a rough VIO / GNSS calibration at first and then refine it. This allow you to quickly get a fused position.
             enable_translation_uncertainty_target: false # When this parameter is enabled (set to true), the calibration process between GNSS and VIO accounts for the uncertainty in the determined translation, thereby facilitating the calibration termination. The maximum allowable uncertainty is controlled by the 'target_translation_uncertainty' parameter.
             gnss_vio_reinit_threshold: 5.0 # determines the threshold for GNSS/VIO reinitialization. If the fused position deviates beyond out of the region defined by the product of the GNSS covariance and the gnss_vio_reinit_threshold, a reinitialization will be triggered.
             target_translation_uncertainty: 10e-2 # defines the target translation uncertainty at which the calibration process between GNSS and VIO concludes. By default, the threshold is set at 10 centimeters.
-            target_yaw_uncertainty: 0.1 # defines the target yaw uncertainty at which the calibration process between GNSS and VIO concludes. The unit of this parameter is in radian. By default, the threshold is set at 0.1 radians.
+            target_yaw_uncertainty: 1e-2 # defines the target yaw uncertainty at which the calibration process between GNSS and VIO concludes. The unit of this parameter is in radian. By default, the threshold is set at 0.1 radians.
 
         mapping:
             mapping_enabled: false # True to enable mapping and fused point cloud pubblication

@@ -5713,42 +5713,36 @@ void ZedCamera::threadFunc_zedGrab()
       // ----> Grab errors?
       // Note: disconnection are automatically handled by the ZED SDK
       if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
-        if (mGrabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
-          RCLCPP_ERROR_STREAM(
-            get_logger(),
-            "Connection issue detected: "
-              << sl::toString(mGrabStatus).c_str());
+        if (mSvoMode && mGrabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
+          // ----> Check SVO status
+          if (mSvoLoop) {
+            mZed->setSVOPosition(0);
+            RCLCPP_WARN(get_logger(),
+                        "SVO reached the end and it has been restarted.");
+            rclcpp::sleep_for(std::chrono::microseconds(
+                static_cast<int>(mGrabPeriodMean_sec->getAvg() * 1e6)));
+            continue;
+          } else {
+            RCLCPP_WARN(get_logger(),
+                        "SVO reached the end. The node has been stopped.");
+            break;
+          }
+          // <---- Check SVO status
+        } else if (mGrabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
+          RCLCPP_ERROR_STREAM(get_logger(),
+                              "Connection issue detected: "
+                                  << sl::toString(mGrabStatus).c_str());
           rclcpp::sleep_for(1000ms);
           continue;
         } else {
           RCLCPP_ERROR_STREAM(
-            get_logger(),
-            "Critical camera error: " << sl::toString(mGrabStatus).c_str()
-                                      << ". Node stopped.");
+              get_logger(),
+              "Critical camera error: " << sl::toString(mGrabStatus).c_str()
+                                        << ". Node stopped.");
           break;
         }
       }
       // <---- Grab errors?
-
-      // ----> Check SVO status
-      if (mSvoMode && mGrabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
-        if (mSvoLoop) {
-          mZed->setSVOPosition(0);
-          RCLCPP_WARN(
-            get_logger(),
-            "SVO reached the end and has been restarted.");
-          rclcpp::sleep_for(
-            std::chrono::microseconds(
-              static_cast<int>(mGrabPeriodMean_sec->getAvg() * 1e6)));
-          continue;
-        } else {
-          RCLCPP_WARN(
-            get_logger(),
-            "SVO reached the end. The node has been stopped.");
-          break;
-        }
-      }
-      // <---- Check SVO status
 
       mFrameCount++;
 
@@ -7504,8 +7498,10 @@ void ZedCamera::processPose()
     publishGeoPoseStatus();
 
     if (mFusedPosTrackingStatus.gnss_fusion_status !=
-      sl::GNSS_FUSION_STATUS::OK)
-    {
+        sl::GNSS_FUSION_STATUS::OK) {
+      RCLCPP_INFO_STREAM(get_logger(),
+                         "GNSS fusion status: " << sl::toString(
+                             mFusedPosTrackingStatus.gnss_fusion_status));
       mGnssInitGood = false;
     }
     // <---- Update GeoPose status

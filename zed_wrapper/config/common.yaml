@@ -11,10 +11,11 @@
             sim_address: "127.0.0.1" # The connection address of the simulation server. See the documentation of the supported simulation plugins for more information.
             sim_port: 30000 # The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.
 
-        general:
-            svo_file: "" # usually overwritten by launch file
+        svo:
             svo_loop: false # Enable loop mode when using an SVO as input source
             svo_realtime: true # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
+
+        general:
             camera_timeout_sec: 5
             camera_max_reconnect: 5
             camera_flip: false

@@ -665,7 +665,7 @@ void ZedCamera::getGeneralParams()
 
   RCLCPP_INFO(get_logger(), "*** GENERAL parameters ***");
 
-  getParam("general.svo_file", std::string(), mSvoFilepath);
+  getParam("svo.svo_path", std::string(), mSvoFilepath);
   if (mSvoFilepath.compare("live") == 0) {
     mSvoFilepath = "";
   }
@@ -675,9 +675,9 @@ void ZedCamera::getGeneralParams()
     mSvoMode = false;
   } else {
     mSvoMode = true;
-    getParam("general.svo_loop", mSvoLoop, mSvoLoop);
+    getParam("svo.svo_loop", mSvoLoop, mSvoLoop);
     RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop ? "TRUE" : "FALSE");
-    getParam("general.svo_realtime", mSvoRealtime, mSvoRealtime);
+    getParam("svo.svo_realtime", mSvoRealtime, mSvoRealtime);
     RCLCPP_INFO(
       get_logger(), " * SVO Realtime: %s",
       mSvoRealtime ? "TRUE" : "FALSE");
@@ -1428,9 +1428,8 @@ void ZedCamera::getGnssFusionParams()
 
   RCLCPP_INFO(get_logger(), "*** GNSS FUSION parameters ***");
   if (sl_tools::isZED(mCamUserModel)) {
-    RCLCPP_WARN(
-      get_logger(),
-      "!!! GNSS FUSION parameters are not used with ZED!!!");
+    RCLCPP_WARN(get_logger(),
+                "!!! GNSS FUSION module cannot be enabled with ZED!!!");
     return;
   }
 

@@ -161,7 +161,7 @@ def launch_setup(context, *args, **kwargs):
                 'simulation.sim_port': sim_port,
                 'general.camera_name': camera_name_val,
                 'general.camera_model': camera_model_val,
-                'general.svo_file': svo_path,
+                'svo.svo_path': svo_path,
                 'general.serial_number': serial_number,
                 'pos_tracking.publish_tf': publish_tf,
                 'pos_tracking.publish_map_tf': publish_map_tf,
@@ -233,7 +233,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'svo_path',
                 default_value=TextSubstitution(text='live'),
-                description='Path to an input SVO file. Note: overrides the parameter `general.svo_file` in `common.yaml`.'),
+                description='Path to an input SVO file.'),
             DeclareLaunchArgument(
                 'enable_gnss',
                 default_value='false',

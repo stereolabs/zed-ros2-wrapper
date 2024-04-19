@@ -4,6 +4,11 @@ LATEST CHANGES
 2024-04-19
 ----------
 - GNSS Fusion temporarely disabled
+- Moved parameter 'general.svo_file' to 'svo.svo_path'
+- Moved parameter 'general.svo_loop' to 'svo.svo_loop'
+- Moved parameter 'general.svo_realtime' to 'svo.svo_realtime'
+- Remove obsolete launch files: 'zed.launch.pi','zed2.launch.pi', 'zed2i.launch.pi', 'zedm.launch.pi', 'zedx.launch.pi', 'zedxm.launch.pi'
+- Remove obsolete display launch file: 'display_zed.launch.py', 'display_zed2.launch.py', 'display_zed2i.launch.py', 'display_zedm.launch.py', 'display_zedx.launch.py', 'display_zedxm.launch.py',
 
 2024-04-11
 ----------

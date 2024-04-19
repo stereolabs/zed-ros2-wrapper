@@ -79,6 +79,8 @@ def launch_setup(context, *args, **kwargs):
     publish_imu_tf = LaunchConfiguration('publish_imu_tf')
     xacro_path = LaunchConfiguration('xacro_path')
 
+    custom_baseline = LaunchConfiguration('custom_baseline')
+
     ros_params_override_path = LaunchConfiguration('ros_params_override_path')
 
     enable_gnss = LaunchConfiguration('enable_gnss')
@@ -88,9 +90,13 @@ def launch_setup(context, *args, **kwargs):
     camera_model_val = camera_model.perform(context)
     enable_gnss_val = enable_gnss.perform(context)
     gnss_coords = parse_array_param(gnss_antenna_offset.perform(context))
+    custom_baseline_val = custom_baseline.perform(context)
 
     if (camera_name_val == ''):
         camera_name_val = 'zed'
+
+    if ((camera_name_val) == 'virtual' and (custom_baseline_val<=0.0)):
+        exit(-1)
 
     config_camera_path = os.path.join(
         get_package_share_directory('zed_wrapper'),
@@ -109,6 +115,9 @@ def launch_setup(context, *args, **kwargs):
     xacro_command.append(' ')
     xacro_command.append('camera_model:=')
     xacro_command.append(camera_model_val)
+    xacro_command.append(' ')
+    xacro_command.append('custom_baseline:=')
+    xacro_command.append(custom_baseline_val)
     xacro_command.append(' ')
     if(enable_gnss_val=='true'):
         xacro_command.append('enable_gnss:=true')
@@ -189,7 +198,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'camera_model',
                 description='[REQUIRED] The model of the camera. Using a wrong camera model can disable camera features.',
-                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm']),
+                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'virtual']),
             DeclareLaunchArgument(
                 'node_name',
                 default_value='zed_node',
@@ -261,6 +270,10 @@ def generate_launch_description():
                 'sim_port',
                 default_value='30000',
                 description='The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.'),
+            DeclareLaunchArgument(
+                'custom_baseline',
+                default_value='0.0',
+                description='Distance between the center of ZED X One cameras in a custom stereo rig.'),
             OpaqueFunction(function=launch_setup)
         ]
     )

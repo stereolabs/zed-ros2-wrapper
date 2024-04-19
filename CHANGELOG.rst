@@ -8,7 +8,8 @@ LATEST CHANGES
 - Moved parameter 'general.svo_loop' to 'svo.svo_loop'
 - Moved parameter 'general.svo_realtime' to 'svo.svo_realtime'
 - Remove obsolete launch files: 'zed.launch.pi','zed2.launch.pi', 'zed2i.launch.pi', 'zedm.launch.pi', 'zedx.launch.pi', 'zedxm.launch.pi'
-- Remove obsolete display launch file: 'display_zed.launch.py', 'display_zed2.launch.py', 'display_zed2i.launch.py', 'display_zedm.launch.py', 'display_zedx.launch.py', 'display_zedxm.launch.py',
+- Remove obsolete display launch file: 'display_zed.launch.py', 'display_zed2.launch.py', 'display_zed2i.launch.py', 'display_zedm.launch.py', 'display_zedx.launch.py', 'display_zedxm.launch.py'
+- Add support for custom virtual stereo cameras made with two calibrated ZED X One cameras 
 
 2024-04-11
 ----------

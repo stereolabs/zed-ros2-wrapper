@@ -749,7 +749,8 @@ void ZedCamera::getGeneralParams()
         "Camera model " << sl::toString(mCamUserModel).c_str()
                         << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
-    } else {
+    }
+  } else {
     RCLCPP_ERROR_STREAM(
       get_logger(),
       "Camera model not valid in parameter values: " << camera_model);

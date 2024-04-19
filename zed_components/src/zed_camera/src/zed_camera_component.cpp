@@ -1441,6 +1441,13 @@ void ZedCamera::getGnssFusionParams()
     get_logger(),
     " * GNSS fusion enabled: " << (mGnssFusionEnabled ? "TRUE" : "FALSE"));
 
+  if(ZED_SDK_MAJOR_VERSION==4 && ZED_SDK_MINOR_VERSION==1 && ZED_SDK_PATCH_VERSION==0) {
+    if(mGnssFusionEnabled) {
+      RCLCPP_FATAL(get_logger(), "GNSS Fusion is temporarely disabled with ZED SDK v4.1. This module will be enabled in a future release of the ZED SDK.");
+      exit(EXIT_FAILURE);
+    }
+  }
+
   if (mGnssFusionEnabled) {
     mGnssFrameId = mCameraName + "_gnss_link";
 

@@ -548,6 +548,9 @@ bool isZEDX(sl::MODEL camModel)
   if (camModel == sl::MODEL::ZED_XM) {
     return true;
   }
+  if (camModel == sl::MODEL::VIRTUAL_ZED_X) {
+    return true;
+  }
   return false;
 }
 

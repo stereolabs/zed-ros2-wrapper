@@ -731,7 +731,25 @@ void ZedCamera::getGeneralParams()
                         << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
-  } else {
+  } else if (camera_model == "virtual") {
+    mCamUserModel = sl::MODEL::VIRTUAL_ZED_X;
+    if (mSvoMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Playing an SVO for "
+          << sl::toString(mCamUserModel)
+          << " camera model.");
+    } else if (mSimMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Simulating a "
+          << sl::toString(mCamUserModel)
+          << " camera model.");
+    } else if (!IS_JETSON) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "Camera model " << sl::toString(mCamUserModel).c_str()
+                        << " is available only with NVIDIA Jetson devices.");
+      exit(EXIT_FAILURE);
+    } else {
     RCLCPP_ERROR_STREAM(
       get_logger(),
       "Camera model not valid in parameter values: " << camera_model);
@@ -3037,6 +3055,7 @@ void ZedCamera::fillCamInfo(
     case sl::MODEL::ZED2i:   // RATIONAL_POLYNOMIAL
     case sl::MODEL::ZED_X:   // RATIONAL_POLYNOMIAL
     case sl::MODEL::ZED_XM:  // RATIONAL_POLYNOMIAL
+    case sl::MODEL::VIRTUAL_ZED_X:  // RATIONAL_POLYNOMIAL
       leftCamInfoMsg->distortion_model =
         sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
       rightCamInfoMsg->distortion_model =
@@ -3883,6 +3902,13 @@ bool ZedCamera::startCamera()
     }
   } else if (mCamRealModel == sl::MODEL::ZED_XM) {
     if (mCamUserModel != sl::MODEL::ZED_XM) {
+      RCLCPP_WARN(
+        get_logger(),
+        "Camera model does not match user parameter. Please modify "
+        "the value of the parameter 'general.camera_model' to 'zedxm'");
+    }
+  } else if (mCamRealModel == sl::MODEL::VIRTUAL_ZED_X) {
+    if (mCamUserModel != sl::MODEL::VIRTUAL_ZED_X) {
       RCLCPP_WARN(
         get_logger(),
         "Camera model does not match user parameter. Please modify "

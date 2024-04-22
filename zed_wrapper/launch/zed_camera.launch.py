@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import sys
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -20,7 +21,8 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     OpaqueFunction,
-    SetEnvironmentVariable
+    SetEnvironmentVariable,
+    LogInfo
 )
 from launch.conditions import IfCondition
 from launch.substitutions import (
@@ -95,8 +97,10 @@ def launch_setup(context, *args, **kwargs):
     if (camera_name_val == ''):
         camera_name_val = 'zed'
 
-    if ((camera_name_val) == 'virtual' and (custom_baseline_val<=0.0)):
-        exit(-1)
+    if (camera_model_val == 'virtual' and float(custom_baseline_val) <= 0):
+        return [
+            LogInfo(msg="Please set a positive value for the 'custom_baseline' argument when using a 'virtual' Stereo Camera with two ZED X One devices."),
+        ]
 
     config_camera_path = os.path.join(
         get_package_share_directory('zed_wrapper'),
@@ -117,9 +121,9 @@ def launch_setup(context, *args, **kwargs):
     xacro_command.append(camera_model_val)
     xacro_command.append(' ')
     xacro_command.append('custom_baseline:=')
-    xacro_command.append(custom_baseline_val)
-    xacro_command.append(' ')
+    xacro_command.append(custom_baseline_val)   
     if(enable_gnss_val=='true'):
+        xacro_command.append(' ')
         xacro_command.append('enable_gnss:=true')
         xacro_command.append(' ')
         if(len(gnss_coords)==3):
@@ -132,8 +136,6 @@ def launch_setup(context, *args, **kwargs):
             xacro_command.append('gnss_z:=')
             xacro_command.append(gnss_coords[2])
             xacro_command.append(' ')
-
-    print(xacro_command)
 
     # Robot State Publisher node
     rsp_node = Node(
@@ -148,17 +150,7 @@ def launch_setup(context, *args, **kwargs):
         }]
     )
 
-    # ZED Wrapper node
-    zed_wrapper_node = Node(
-        package='zed_wrapper',
-        namespace=camera_name_val,
-        executable='zed_wrapper',
-        name=node_name,
-        output='screen',
-        # prefix=['xterm -e valgrind --tools=callgrind'],
-        # prefix=['xterm -e gdb -ex run --args'],
-        #prefix=['gdbserver localhost:3000'],
-        parameters=[
+    node_parameters = [
             # YAML files
             config_common_path,  # Common parameters
             config_camera_path,  # Camera related parameters
@@ -176,9 +168,23 @@ def launch_setup(context, *args, **kwargs):
                 'pos_tracking.publish_map_tf': publish_map_tf,
                 'sensors.publish_imu_tf': publish_imu_tf,
                 'gnss_fusion.gnss_fusion_enabled': enable_gnss
-            },
-            ros_params_override_path,
+            }
         ]
+    
+    if( ros_params_override_path.perform(context) != ''):
+        node_parameters.append(ros_params_override_path)
+
+    # ZED Wrapper node
+    zed_wrapper_node = Node(
+        package='zed_wrapper',
+        namespace=camera_name_val,
+        executable='zed_wrapper',
+        name=node_name,
+        output='screen',
+        # prefix=['xterm -e valgrind --tools=callgrind'],
+        # prefix=['xterm -e gdb -ex run --args'],
+        #prefix=['gdbserver localhost:3000'],
+        parameters=node_parameters
     )
 
     return [

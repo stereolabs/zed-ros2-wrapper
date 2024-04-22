@@ -9470,6 +9470,8 @@ void ZedCamera::processPose()
         stat.add("Input mode", "SIMULATION");
       } else if (mSvoMode) {
         stat.add("Input mode", "SVO");
+      } if (mStreamMode) {
+        stat.add("Input mode", "LOCAL STREAM");
       } else {
         stat.add("Input mode", "Live Camera");
       }

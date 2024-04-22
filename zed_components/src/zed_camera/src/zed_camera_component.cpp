@@ -743,6 +743,15 @@ void ZedCamera::getGeneralParams()
     }
   } else if (camera_model == "virtual") {
     mCamUserModel = sl::MODEL::VIRTUAL_ZED_X;
+
+    if (ZED_SDK_MAJOR_VERSION==4 && ZED_SDK_MINOR_VERSION==1 && ZED_SDK_PATCH_VERSION==0) {
+      RCLCPP_ERROR_STREAM(
+            get_logger(),
+            "Camera model '" << sl::toString(mCamUserModel).c_str()
+                            << "' is available only with ZED SDK 4.1.1 or newer");
+      exit(EXIT_FAILURE);
+    }
+
     if (mSvoMode) {
       RCLCPP_INFO_STREAM(
         get_logger(), " + Playing an SVO for "
@@ -1825,6 +1834,11 @@ void ZedCamera::getBodyTrkParams()
   getParam(
     "body_tracking.minimum_keypoints_threshold", mBodyTrkMinKp,
     mBodyTrkMinKp, " * Body Track. min. KP thresh.: ", true);
+}
+
+void ZedCamera::getStreamingServerParams() 
+{
+
 }
 
 void ZedCamera::getAdvancedParams()

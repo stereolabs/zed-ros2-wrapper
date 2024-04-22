@@ -51,6 +51,8 @@ class ZedCamera : public rclcpp::Node {
   void getMappingParams();
   void getOdParams();
   void getBodyTrkParams();
+  void getOutStreamingParams();
+  void getStreamingServerParams();
   void getAdvancedParams();
 
   void setTFCoordFrameNames();
@@ -396,12 +398,6 @@ class ZedCamera : public rclcpp::Node {
   double mPdMaxDistanceThreshold = 0.15;
   double mPdNormalSimilarityThreshold = 15.0;
 
-  // QoS parameters
-  // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
-  rclcpp::QoS mQos;
-  rclcpp::PublisherOptions mPubOpt;
-  rclcpp::SubscriptionOptions mSubOpt;
-
   std::string mThreadSchedPolicy;
   int mThreadPrioGrab;
   int mThreadPrioSens;
@@ -441,6 +437,13 @@ class ZedCamera : public rclcpp::Node {
   int mGmslAutoDigitalGainRangeMax = 256;
   int mGmslDenoising = 50;
   // <---- Dynamic params
+
+  // ----> QoS
+  // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
+  rclcpp::QoS mQos;
+  rclcpp::PublisherOptions mPubOpt;
+  rclcpp::SubscriptionOptions mSubOpt;
+  // <---- QoS
 
   // ----> Frame IDs
   std::string mRgbFrameId;
@@ -692,6 +695,9 @@ class ZedCamera : public rclcpp::Node {
   uint16_t mGnssService;
   std::atomic<bool> mClockAvailable;  // Indicates if the "/clock" topic is
   // published when `use_sim_time` is true
+
+  std::atomic<bool> mStreamingServerRequired = false;
+  std::atomic<bool> mStreamingServerRunning = false;
   // <---- Status Flags
 
   // ----> Positional Tracking

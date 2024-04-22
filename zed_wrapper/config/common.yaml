@@ -64,7 +64,7 @@
 
         pos_tracking:
             pos_tracking_enabled: true # True to enable positional tracking from start
-            pos_tracking_mode: "GEN_1" # Matches the ZED SDK setting: 'GEN_1', 'GEN_2'
+            pos_tracking_mode: "GEN_2" # Matches the ZED SDK setting: 'GEN_1', 'GEN_2'
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [usually overwritten by launch file] publish `odom -> camera_link` TF
             publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF
@@ -141,6 +141,16 @@
             prediction_timeout_s: 0.5 # During this time [sec], the skeleton will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
             confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of skeleton key points [0,99]
             minimum_keypoints_threshold: 5 # [DYNAMIC] - Minimum number of skeleton key points to be detected for a valid skeleton
+
+        stream_server:
+            stream_enabled: false # enable the streaming server when the camera is open
+            codec: 'H264' # different encoding types for image streaming: 'H264', 'H265'
+            port: 30000 # Port used for streaming. Port must be an even number. Any odd number will be rejected.
+            bitrate: 12500 # [1000 - 60000] Streaming bitrate (in Kbits/s) used for streaming. See https://www.stereolabs.com/docs/api/structsl_1_1StreamingParameters.html#a873ba9440e3e9786eb1476a3bfa536d0
+            gop_size: -1 # [max 256] The GOP size determines the maximum distance between IDR/I-frames. Very high GOP size will result in slightly more efficient compression, especially on static scenes. But latency will increase.
+            adaptative_bitrate: false # Bitrate will be adjusted depending the number of packet dropped during streaming. If activated, the bitrate can vary between [bitrate/4, bitrate].
+            chunk_size: 16084 # [1024 - 65000] Stream buffers are divided into X number of chunks where each chunk is chunk_size bytes long. You can lower chunk_size value if network generates a lot of packet lost: this will generates more chunk for a single image, but each chunk sent will be lighter to avoid inside-chunk corruption. Increasing this value can decrease latency.
+            target_framerate: 0 # Framerate for the streaming output. This framerate must be below or equal to the camera framerate. Allowed framerates are 15, 30, 60 or 100 if possible. Any other values will be discarded and camera FPS will be taken.
 
         advanced: # WARNING: do not modify unless you are confident of what you are doing
             # Reference documentation: https://man7.org/linux/man-pages/man7/sched.7.html

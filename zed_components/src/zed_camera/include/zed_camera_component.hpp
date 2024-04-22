@@ -273,6 +273,11 @@ class ZedCamera : public rclcpp::Node {
   std::string mSimAddr =
       "127.0.0.1";  // The local address of the machine running the simulator
   int mSimPort = 30000;  // The port to be used to connect to the simulator
+  
+  bool mStreamMode = false;     // Expecting simulation data?
+  std::string mStreamAddr = "";  // The local address of the streaming server
+  int mStreamPort = 30000;  // The port to be used to connect to a local streaming server
+
   sl::MODEL mCamUserModel = sl::MODEL::ZED;  // Default camera model
   sl::MODEL mCamRealModel;                   // Camera model requested to SDK
   unsigned int mCamFwVersion;                // Camera FW version

@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2024-04-21
+----------
+- Add Local Streaming input
+- Add 'stream.stream_address' and 'stream.stream_port' parameter to configure the local streaming input
+
 2024-04-19
 ----------
 - GNSS Fusion temporarely disabled

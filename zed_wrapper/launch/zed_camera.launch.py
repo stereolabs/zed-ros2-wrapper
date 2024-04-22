@@ -66,6 +66,9 @@ def launch_setup(context, *args, **kwargs):
     sim_address = LaunchConfiguration('sim_address')
     sim_port = LaunchConfiguration('sim_port')
 
+    stream_address = LaunchConfiguration('stream_address')
+    stream_port = LaunchConfiguration('stream_port')
+
     camera_name = LaunchConfiguration('camera_name')
     camera_model = LaunchConfiguration('camera_model')
 
@@ -160,6 +163,8 @@ def launch_setup(context, *args, **kwargs):
                 'simulation.sim_enabled': sim_mode,
                 'simulation.sim_address': sim_address,
                 'simulation.sim_port': sim_port,
+                'stream.stream_address': stream_address,
+                'stream.stream_port': stream_port,
                 'general.camera_name': camera_name_val,
                 'general.camera_model': camera_model_val,
                 'svo.svo_path': svo_path,
@@ -276,6 +281,14 @@ def generate_launch_description():
                 'sim_port',
                 default_value='30000',
                 description='The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.'),
+            DeclareLaunchArgument(
+                'stream_address',
+                default_value='',
+                description='The connection address of the input streaming server.'),
+            DeclareLaunchArgument(
+                'stream_port',
+                default_value='30000',
+                description='The connection port of the input streaming server.'),
             DeclareLaunchArgument(
                 'custom_baseline',
                 default_value='0.0',

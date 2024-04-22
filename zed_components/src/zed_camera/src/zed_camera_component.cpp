@@ -668,12 +668,12 @@ void ZedCamera::getGeneralParams()
   getParam("svo.svo_path", std::string(), mSvoFilepath);
   if (mSvoFilepath.compare("live") == 0) {
     mSvoFilepath = "";
-  }
-  RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << mSvoFilepath.c_str() << "'");
+  }  
 
   if (mSvoFilepath == "") {
     mSvoMode = false;
   } else {
+    RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << mSvoFilepath.c_str() << "'");
     mSvoMode = true;
     getParam("svo.svo_loop", mSvoLoop, mSvoLoop);
     RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop ? "TRUE" : "FALSE");
@@ -681,6 +681,16 @@ void ZedCamera::getGeneralParams()
     RCLCPP_INFO(
       get_logger(), " * SVO Realtime: %s",
       mSvoRealtime ? "TRUE" : "FALSE");
+  }
+
+  mStreamMode = false;
+  if(!mSvoMode) {
+    getParam("stream.stream_address", std::string(), mStreamAddr);
+    if (mStreamAddr != "") {
+      mStreamMode = true;
+      getParam("stream.stream_port", mStreamPort, mStreamPort);
+      RCLCPP_INFO_STREAM(get_logger(), " * Local stream input: " << mStreamAddr << ":" << mStreamPort);
+    }
   }
 
   std::string camera_model = "zed";
@@ -3706,6 +3716,10 @@ bool ZedCamera::startCamera()
 
     mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
     mInitParams.svo_real_time_mode = mSvoRealtime;
+  } else if (!mStreamAddr.empty()) {
+    RCLCPP_INFO(get_logger(), "*** LOCAL STREAMING OPENING ***");
+
+    mInitParams.input.setFromStream( mStreamAddr.c_str(), static_cast<unsigned short>(mStreamPort));
   } else {
     RCLCPP_INFO(get_logger(), "*** CAMERA OPENING ***");
 
@@ -3746,7 +3760,7 @@ bool ZedCamera::startCamera()
 
   mThreadStop = false;
 
-  if (!mSvoMode && !mSimMode) {
+  if (!mSvoMode && !mSimMode && !mStreamMode) {
     if (mCamSerialNumber > 0) {
       mInitParams.input.setFromSerialNumber(mCamSerialNumber);
     }
@@ -4388,14 +4402,14 @@ bool ZedCamera::startCamera()
   }
   // <---- Timestamp
 
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Timestamp - CURRENT: "
-      << mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT).getNanoseconds());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Timestamp - IMAGE: "
-      << mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE).getNanoseconds());
+  // RCLCPP_INFO_STREAM(
+  //   get_logger(),
+  //   "Timestamp - CURRENT: "
+  //     << mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT).getNanoseconds());
+  // RCLCPP_INFO_STREAM(
+  //   get_logger(),
+  //   "Timestamp - IMAGE: "
+  //     << mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE).getNanoseconds());
 
   // ----> Initialize Diagnostic statistics
   mElabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);

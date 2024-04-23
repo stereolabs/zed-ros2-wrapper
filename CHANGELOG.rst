@@ -1,6 +1,19 @@
 LATEST CHANGES
 ==============
 
+2024-04-23
+----------
+- Add Local Streaming output
+- Add parameter 'stream_server.stream_enabled': enable the streaming server when the camera is open
+- Add parameter 'stream_server.codec': different encoding types for image streaming
+- Add parameter 'stream_server.port': Port used for streaming
+- Add parameter 'stream_server.bitrate': Streaming bitrate (in Kbits/s) used for streaming
+- Add parameter 'stream_server.gop_size': The GOP size determines the maximum distance between IDR/I-frames
+- Add parameter 'stream_server.adaptative_bitrate': Bitrate will be adjusted depending the number of packet dropped during streaming
+- Add parameter 'stream_server.chunk_size': Stream buffers are divided into X number of chunks where each chunk is chunk_size bytes long
+- Add parameter 'stream_server.target_framerate': Framerate for the streaming output
+
+
 2024-04-21
 ----------
 - Add Local Streaming input

@@ -143,7 +143,7 @@
             minimum_keypoints_threshold: 5 # [DYNAMIC] - Minimum number of skeleton key points to be detected for a valid skeleton
 
         stream_server:
-            stream_enabled: false # enable the streaming server when the camera is open
+            stream_enabled: true # enable the streaming server when the camera is open
             codec: 'H264' # different encoding types for image streaming: 'H264', 'H265'
             port: 30000 # Port used for streaming. Port must be an even number. Any odd number will be rejected.
             bitrate: 12500 # [1000 - 60000] Streaming bitrate (in Kbits/s) used for streaming. See https://www.stereolabs.com/docs/api/structsl_1_1StreamingParameters.html#a873ba9440e3e9786eb1476a3bfa536d0
@@ -174,4 +174,5 @@
             debug_object_detection: false
             debug_body_tracking: false
             debug_roi: false
+            debug_streaming: true
             debug_advanced: false

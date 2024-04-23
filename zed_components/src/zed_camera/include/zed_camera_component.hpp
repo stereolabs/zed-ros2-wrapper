@@ -75,6 +75,8 @@ class ZedCamera : public rclcpp::Node {
   void stopBodyTracking();
   bool startSvoRecording(std::string& errMsg);
   void stopSvoRecording();
+  bool startStreamingServer();
+  void stopStreamingServer();
   // <---- Initialization functions
 
   // ----> Callbacks
@@ -268,6 +270,7 @@ class ZedCamera : public rclcpp::Node {
   bool mDebugBodyTrk = false;
   bool mDebugAdvanced = false;
   bool mDebugRoi = false;
+  bool mDebugStreaming = false;
 
   int mCamSerialNumber = 0;
   bool mSimMode = false;     // Expecting simulation data?
@@ -402,6 +405,15 @@ class ZedCamera : public rclcpp::Node {
   int mThreadPrioGrab;
   int mThreadPrioSens;
   int mThreadPrioPointCloud;
+
+  std::atomic<bool> mStreamingServerRequired = false;
+  sl::STREAMING_CODEC mStreamingServerCodec = sl::STREAMING_CODEC::H264;
+  int mStreamingServerPort = 30000;
+  int mStreamingServerBitrate = 12500;
+  int mStreamingServerGopSize = -1;
+  bool mStreamingServerAdaptiveBitrate = false;
+  int mStreamingServerChunckSize = 16084;
+  int mStreamingServerTargetFramerate = 0;
   // <---- Parameter variables
 
   // ----> Dynamic params
@@ -696,7 +708,6 @@ class ZedCamera : public rclcpp::Node {
   std::atomic<bool> mClockAvailable;  // Indicates if the "/clock" topic is
   // published when `use_sim_time` is true
 
-  std::atomic<bool> mStreamingServerRequired = false;
   std::atomic<bool> mStreamingServerRunning = false;
   // <---- Status Flags
 

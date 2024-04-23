@@ -18,7 +18,10 @@
 
 <robot xmlns:xacro="http://wiki.ros.org/xacro">
   <xacro:include filename="$(find zed_wrapper)/urdf/include/materials.urdf.xacro" />
-  <xacro:property name="M_PI"     value="3.1415926535897931" />
+  <xacro:property name="M_PI"       value="3.1415926535897931" />
+  <xacro:property name="cam_depth"  value="0.037298" />
+  <xacro:property name="cam_width"  value="0.17525" />
+  <xacro:property name="cam_height" value="0.03025" />
 
   <!--
     Parameters:
@@ -83,14 +86,14 @@
       <visual>
         <origin xyz="${screw_offset_x} 0 ${screw_offset_z}" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://zed_interfaces/meshes/${model}.stl" />
+          <box size="${cam_depth} ${cam_width} ${cam_height}"/>
         </geometry>
-        <material name="${model}_mat" />
+        <material name="white"/>
       </visual>
       <collision>
         <origin xyz="${screw_offset_x} 0 ${screw_offset_z}" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://zed_interfaces/meshes/${model}.stl" />
+          <box size="${cam_depth} ${cam_width} ${cam_height}"/>
         </geometry>
       </collision>
     </link>

@@ -1,13 +1,14 @@
-ARG IMAGE_NAME=nvcr.io/nvidia/cuda:11.7.1-devel-ubuntu22.04
+
+ARG IMAGE_NAME=nvcr.io/nvidia/cuda:12.4.1-devel-ubuntu22.04
 
 FROM ${IMAGE_NAME}
 
 ARG UBUNTU_RELEASE_YEAR=22
-ARG CUDA_MAJOR=11
-ARG CUDA_MINOR=7
+ARG CUDA_MAJOR=12
+ARG CUDA_MINOR=4
 ARG ZED_SDK_MAJOR=4
-ARG ZED_SDK_MINOR=0
-ARG ZED_SDK_PATCH=7
+ARG ZED_SDK_MINOR=1
+ARG ZED_SDK_PATCH=0
 
 ARG ROS2_DIST=humble       # ROS2 distribution
 
@@ -28,6 +29,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone &
   rm -rf /var/lib/apt/lists/*
 
 ############ Install ROS2 ############
+ENV ROS_DISTRO ${ROS2_DIST}
 
 # Set and Check Locale
 RUN apt-get update || true && \
@@ -74,7 +76,7 @@ RUN rosdep init && rosdep update
 RUN echo "CUDA Version $CUDA_VERSION" > /usr/local/cuda/version.txt
 
 # Setup the ZED SDK
-RUN apt-get update -y || true && \
+RUN apt-get update || true && \
   apt-get install --no-install-recommends dialog bash-completion lsb-release wget less udev sudo  build-essential cmake zstd python3 python3-pip libpng-dev libgomp1 -y && \
   python3 -m pip install --upgrade pip; python3 -m pip install numpy opencv-python-headless && \
   wget -q -O ZED_SDK_Linux_Ubuntu.run https://download.stereolabs.com/zedsdk/$ZED_SDK_MAJOR.$ZED_SDK_MINOR/cu$CUDA_MAJOR$CUDA_MINOR/ubuntu$UBUNTU_RELEASE_YEAR && \
@@ -82,17 +84,13 @@ RUN apt-get update -y || true && \
   ./ZED_SDK_Linux_Ubuntu.run -- silent skip_tools skip_cuda && \
   ln -sf /lib/x86_64-linux-gnu/libusb-1.0.so.0 /usr/lib/x86_64-linux-gnu/libusb-1.0.so && \
   rm ZED_SDK_Linux_Ubuntu.run && \
-  rm -rf /var/lib/apt/lists/*
+  rm -rf /var/lib/apt/lists/* && \
+  apt-get autoremove && apt-get clean
 
 # Install the ZED ROS2 Wrapper
-ENV ROS_DISTRO ${ROS2_DIST}
-
-# Copy the sources in the Docker image
 WORKDIR /root/ros2_ws/src
-COPY tmp_sources/ ./
-
-# RUN ls -lah /root/ros2_ws/src/
-WORKDIR /root/ros2_ws/
+RUN git clone --recursive https://github.com/stereolabs/zed-ros2-wrapper.git
+WORKDIR /root/ros2_ws
 
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
   apt-get update -y || true && \
@@ -101,8 +99,7 @@ RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
   --event-handlers console_direct+ --base-paths src \
   --cmake-args ' -DCMAKE_BUILD_TYPE=Release' \
   ' -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs' \
-  ' -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"' " && \
-  rm -rf /var/lib/apt/lists/*
+  ' -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"' "
 
 WORKDIR /root/ros2_ws
 

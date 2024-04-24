@@ -9799,6 +9799,21 @@ void ZedCamera::processPose()
     } else {
       stat.add("SVO Recording", "NOT ACTIVE");
     }
+
+    if(mStreamingServerRunning) {
+      stat.add("Streaming Server", "ACTIVE");
+
+      sl::StreamingParameters params;
+      params = mZed->getStreamingParameters();
+
+      stat.addf("Streaming port", "%d", static_cast<int>(params.port));
+      stat.addf("Streaming codec", "%s", (params.codec==sl::STREAMING_CODEC::H264?"H264":"H265"));
+      stat.addf("Streaming bitrate", "%d mbps", static_cast<int>(params.bitrate));
+      stat.addf("Streaming chunk size", "%d B", static_cast<int>(params.chunk_size));
+      stat.addf("Streaming GOP size", "%d", static_cast<int>(params.gop_size));
+    } else {
+      stat.add("Streaming Server", "NOT ACTIVE");
+    }
   }
 
   void ZedCamera::callback_gnssPubTimerTimeout()

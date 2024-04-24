@@ -10,6 +10,7 @@
 	<url type="repository">https://github.com/stereolabs/zed-ros2-wrapper</url>
 	<url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
 	<buildtool_depend>ament_cmake</buildtool_depend>
+	<build_depend>ament_cmake_auto</build_depend>
 	<build_depend>zed_components</build_depend>
 	<build_depend>rclcpp</build_depend>
 	<build_depend>rclcpp_components</build_depend>

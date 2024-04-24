@@ -113,6 +113,10 @@ class ZedCamera : public rclcpp::Node {
       const std::shared_ptr<rmw_request_id_t> request_header,
       const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
       std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+  void callback_enableStreaming(
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+      std::shared_ptr<std_srvs::srv::SetBool_Response> res);
   void callback_startSvoRec(
       const std::shared_ptr<rmw_request_id_t> request_header,
       const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
@@ -815,6 +819,7 @@ class ZedCamera : public rclcpp::Node {
   resetRoiSrvPtr mResetRoiSrv;
   toLLSrvPtr mToLlSrv;
   fromLLSrvPtr mFromLlSrv;
+  enableStreamingPtr mEnableStreamingSrv;
   // <---- Services
 
   // ----> Services names
@@ -824,14 +829,14 @@ class ZedCamera : public rclcpp::Node {
   const std::string mSrvEnableObjDetName = "enable_obj_det";
   const std::string mSrvEnableBodyTrkName = "enable_body_trk";
   const std::string mSrvEnableMappingName = "enable_mapping";
+  const std::string mSrvEnableStreamingName = "enable_streaming";
   const std::string mSrvStartSvoRecName = "start_svo_rec";
   const std::string mSrvStopSvoRecName = "stop_svo_rec";
   const std::string mSrvToggleSvoPauseName = "toggle_svo_pause";
   const std::string mSrvSetRoiName = "set_roi";
   const std::string mSrvResetRoiName = "reset_roi";
   const std::string mSrvToLlName = "toLL";  // Convert from `map` to `Lat Long`
-  const std::string mSrvFromLlName =
-      "fromLL";  // Convert from `Lat Long` to `map`
+  const std::string mSrvFromLlName = "fromLL";  // Convert from `Lat Long` to `map`
   // <---- Services names
 
   // ----> SVO v2

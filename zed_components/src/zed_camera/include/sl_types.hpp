@@ -165,9 +165,8 @@ typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetRoiSrvPtr;
 typedef rclcpp::Service<robot_localization::srv::ToLL>::SharedPtr toLLSrvPtr;
-typedef rclcpp::Service<robot_localization::srv::FromLL>::SharedPtr
-    fromLLSrvPtr;
-
+typedef rclcpp::Service<robot_localization::srv::FromLL>::SharedPtr fromLLSrvPtr;
+typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableStreamingPtr;
 /*!
  * @brief Video/Depth topic resolution
  */

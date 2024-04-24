@@ -255,36 +255,36 @@ void ZedCamera::initServices()
   std::string srv_prefix = "~/";
 
   if (!mDepthDisabled) {
-    // ResetOdometry
+    // Reset Odometry
     srv_name = srv_prefix + mSrvResetOdomName;
     mResetOdomSrv = create_service<std_srvs::srv::Trigger>(
       srv_name,
       std::bind(&ZedCamera::callback_resetOdometry, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mResetOdomSrv->get_service_name());
-
+    // Reset Pose
     srv_name = srv_prefix + mSrvResetPoseName;
     mResetPosTrkSrv = create_service<std_srvs::srv::Trigger>(
       srv_name,
       std::bind(&ZedCamera::callback_resetPosTracking, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mResetPosTrkSrv->get_service_name());
-
+    // Set Pose
     srv_name = srv_prefix + mSrvSetPoseName;
     mSetPoseSrv = create_service<zed_interfaces::srv::SetPose>(
       srv_name, std::bind(&ZedCamera::callback_setPose, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mSetPoseSrv->get_service_name());
-
+    // Enable Object Detection
     srv_name = srv_prefix + mSrvEnableObjDetName;
     mEnableObjDetSrv = create_service<std_srvs::srv::SetBool>(
       srv_name,
       std::bind(&ZedCamera::callback_enableObjDet, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mEnableObjDetSrv->get_service_name());
-
+    // Enable BodyTracking
     srv_name = srv_prefix + mSrvEnableBodyTrkName;
     mEnableBodyTrkSrv = create_service<std_srvs::srv::SetBool>(
       srv_name,
       std::bind(&ZedCamera::callback_enableBodyTrk, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mEnableBodyTrkSrv->get_service_name());
-
+    // Enable Mapping
     srv_name = srv_prefix + mSrvEnableMappingName;
     mEnableMappingSrv = create_service<std_srvs::srv::SetBool>(
       srv_name,
@@ -292,16 +292,22 @@ void ZedCamera::initServices()
     RCLCPP_INFO(get_logger(), " * '%s'", mEnableMappingSrv->get_service_name());
   }
 
+  // Enable Streaming
+  srv_name = srv_prefix + mSrvEnableStreamingName;
+  mEnableStreamingSrv = create_service<std_srvs::srv::SetBool>(
+    srv_name, std::bind(&ZedCamera::callback_enableStreaming, this, _1, _2, _3));
+  RCLCPP_INFO(get_logger(), " * '%s'", mEnableStreamingSrv->get_service_name());
+  // Start SVO Recording
   srv_name = srv_prefix + mSrvStartSvoRecName;
   mStartSvoRecSrv = create_service<zed_interfaces::srv::StartSvoRec>(
     srv_name, std::bind(&ZedCamera::callback_startSvoRec, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", mStartSvoRecSrv->get_service_name());
-
+  // Stop SVO Recording
   srv_name = srv_prefix + mSrvStopSvoRecName;
   mStopSvoRecSrv = create_service<std_srvs::srv::Trigger>(
     srv_name, std::bind(&ZedCamera::callback_stopSvoRec, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", mStopSvoRecSrv->get_service_name());
-
+  // Pause SVO
   if (mSvoMode && !mSvoRealtime) {
     srv_name = srv_prefix + mSrvToggleSvoPauseName;
     mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(
@@ -309,23 +315,24 @@ void ZedCamera::initServices()
       std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
   }
-
+  // Set ROI
   srv_name = srv_prefix + mSrvSetRoiName;
   mSetRoiSrv = create_service<zed_interfaces::srv::SetROI>(
     srv_name, std::bind(&ZedCamera::callback_setRoi, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", mSetRoiSrv->get_service_name());
-
+  // Reset ROI
   srv_name = srv_prefix + mSrvResetRoiName;
   mResetRoiSrv = create_service<std_srvs::srv::Trigger>(
     srv_name, std::bind(&ZedCamera::callback_resetRoi, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", mResetRoiSrv->get_service_name());
 
   if (mGnssFusionEnabled) {
+    // To Latitude/Longitude
     srv_name = srv_prefix + mSrvToLlName;
     mToLlSrv = create_service<robot_localization::srv::ToLL>(
       srv_name, std::bind(&ZedCamera::callback_toLL, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mToLlSrv->get_service_name());
-
+    // From Latitude/Longitude
     srv_name = srv_prefix + mSrvFromLlName;
     mFromLlSrv = create_service<robot_localization::srv::FromLL>(
       srv_name, std::bind(&ZedCamera::callback_fromLL, this, _1, _2, _3));
@@ -9218,8 +9225,8 @@ void ZedCamera::processPose()
       RCLCPP_INFO(get_logger(), "Starting Object Detection");
       // Start
       if (mObjDetEnabled && mObjDetRunning) {
-        RCLCPP_WARN(get_logger(), "Object Detection is just running");
-        res->message = "Object Detection is just running";
+        RCLCPP_WARN(get_logger(), "Object Detection is already running");
+        res->message = "Object Detection is already running";
         res->success = false;
         return;
       }
@@ -9232,7 +9239,7 @@ void ZedCamera::processPose()
         return;
       } else {
         res->message =
-          "Error occurred starting Object Detection. See log for more info";
+          "Error occurred starting Object Detection. Read the log for more info";
         res->success = false;
         return;
       }
@@ -9290,7 +9297,7 @@ void ZedCamera::processPose()
         return;
       } else {
         res->message =
-          "Error occurred starting Body Tracking. See log for more info";
+          "Error occurred starting Body Tracking. Read the log for more info";
         res->success = false;
         return;
       }
@@ -9327,8 +9334,8 @@ void ZedCamera::processPose()
       RCLCPP_INFO(get_logger(), "Starting Spatial Mapping");
       // Start
       if (mMappingEnabled && mSpatialMappingRunning) {
-        RCLCPP_WARN(get_logger(), "Spatial Mapping is just running");
-        res->message = "Spatial Mapping is just running";
+        RCLCPP_WARN(get_logger(), "Spatial Mapping is already running");
+        res->message = "Spatial Mapping is already running";
         res->success = false;
         return;
       }
@@ -9341,7 +9348,7 @@ void ZedCamera::processPose()
         return;
       } else {
         res->message =
-          "Error occurred starting Spatial Mapping. See log for more info";
+          "Error occurred starting Spatial Mapping. Read the log for more info";
         res->success = false;
         return;
       }
@@ -9358,6 +9365,50 @@ void ZedCamera::processPose()
       stop3dMapping();
 
       res->message = "Spatial Mapping stopped";
+      res->success = true;
+      return;
+    }
+  }
+
+  void ZedCamera::callback_enableStreaming(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+    std::shared_ptr<std_srvs::srv::SetBool_Response> res)
+  {
+    (void)request_header;
+
+    if (req->data) {      
+      
+      if (mStreamingServerRunning) {
+        RCLCPP_WARN(get_logger(), "A Streaming Server is already running");
+        res->message = "A Streaming Server is already running";
+        res->success = false;
+        return;
+      }
+      // Start
+      if (startStreamingServer()) {
+        res->message = "Streaming Server started";
+        res->success = true;
+        return;
+      } else {
+        res->message =
+          "Error occurred starting the Streaming Server. Read the log for more info";
+        res->success = false;
+        return;
+      }
+    } else {      
+      // Stop
+      if (!mStreamingServerRunning) {
+        RCLCPP_WARN(get_logger(), "There is no Streaming Server active to be stopped");
+        res->message = "There is no Streaming Server active to be stopped";
+        res->success = false;
+        return;
+      }
+
+      RCLCPP_INFO(get_logger(), "Stopping the Streaming Server");
+      stopStreamingServer();
+
+      res->message = "Streaming Server stopped";
       res->success = true;
       return;
     }
@@ -9384,8 +9435,8 @@ void ZedCamera::processPose()
     std::lock_guard<std::mutex> lock(mRecMutex);
 
     if (mRecording) {
-      RCLCPP_WARN(get_logger(), "SVO Recording is just enabled");
-      res->message = "SVO Recording is just enabled";
+      RCLCPP_WARN(get_logger(), "SVO Recording is already enabled");
+      res->message = "SVO Recording is already enabled";
       res->success = false;
       return;
     }

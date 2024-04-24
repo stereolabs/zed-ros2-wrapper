@@ -3127,25 +3127,25 @@ void ZedCamera::initPublishers()
   std::string rightTopicRoot = "right";
   std::string leftTopicRoot = "left";
   std::string stereoTopicRoot = "stereo";
-  std::string img_topic = "/image_rect_color";
+  // std::string img_topic = "/image_rect_color";
   std::string img_raw_topic = "/image_raw_color";
-  std::string img_gray_topic = "_gray/image_rect_gray";
-  std::string img_raw_gray_topic_ = "_gray/image_raw_gray";
+  // std::string img_gray_topic = "_gray/image_rect_gray";
+  // std::string img_raw_gray_topic_ = "_gray/image_raw_gray";
   std::string raw_suffix = "_raw";
-  std::string left_topic = mTopicRoot + leftTopicRoot + img_topic;
-  std::string left_raw_topic = mTopicRoot + leftTopicRoot + raw_suffix + img_raw_topic;
-  std::string right_topic = mTopicRoot + rightTopicRoot + img_topic;
-  std::string right_raw_topic = mTopicRoot + rightTopicRoot + raw_suffix + img_raw_topic;
-  std::string rgb_topic = mTopicRoot + rgbTopicRoot + img_topic;
+  // std::string left_topic = mTopicRoot + leftTopicRoot + img_topic;
+  // std::string left_raw_topic = mTopicRoot + leftTopicRoot + raw_suffix + img_raw_topic;
+  // std::string right_topic = mTopicRoot + rightTopicRoot + img_topic;
+  // std::string right_raw_topic = mTopicRoot + rightTopicRoot + raw_suffix + img_raw_topic;
+  // std::string rgb_topic = mTopicRoot + rgbTopicRoot + img_topic;
   std::string rgb_raw_topic = mTopicRoot + rgbTopicRoot + raw_suffix + img_raw_topic;
-  std::string stereo_topic = mTopicRoot + stereoTopicRoot + img_topic;
+  // std::string stereo_topic = mTopicRoot + stereoTopicRoot + img_topic;
   std::string stereo_raw_topic = mTopicRoot + stereoTopicRoot + raw_suffix + img_raw_topic;
-  std::string left_gray_topic = mTopicRoot + leftTopicRoot + img_gray_topic;
-  std::string left_raw_gray_topic = mTopicRoot + leftTopicRoot + raw_suffix + img_raw_gray_topic_;
-  std::string right_gray_topic = mTopicRoot + rightTopicRoot + img_gray_topic;
-  std::string right_raw_gray_topic = mTopicRoot + rightTopicRoot + raw_suffix + img_raw_gray_topic_;
-  std::string rgb_gray_topic = mTopicRoot + rgbTopicRoot + img_gray_topic;
-  std::string rgb_raw_gray_topic = mTopicRoot + rgbTopicRoot + raw_suffix + img_raw_gray_topic_;
+  // std::string left_gray_topic = mTopicRoot + leftTopicRoot + img_gray_topic;
+  // std::string left_raw_gray_topic = mTopicRoot + leftTopicRoot + raw_suffix + img_raw_gray_topic_;
+  // std::string right_gray_topic = mTopicRoot + rightTopicRoot + img_gray_topic;
+  // std::string right_raw_gray_topic = mTopicRoot + rightTopicRoot + raw_suffix + img_raw_gray_topic_;
+  // std::string rgb_gray_topic = mTopicRoot + rgbTopicRoot + img_gray_topic;
+  // std::string rgb_raw_gray_topic = mTopicRoot + rgbTopicRoot + raw_suffix + img_raw_gray_topic_;
 
   // Set the disparity topic name
   std::string disparity_topic = mTopicRoot + "disparity/disparity_image";
@@ -3207,54 +3207,54 @@ void ZedCamera::initPublishers()
   // <---- Topics names definition
 
   // ----> Camera publishers
-  mPubRgb =
-    image_transport::create_camera_publisher(this, rgb_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
-  mPubRgbGray =
-    image_transport::create_camera_publisher(this, rgb_gray_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgbGray.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgbGray.getInfoTopic());
+  // mPubRgb =
+  //   image_transport::create_camera_publisher(this, rgb_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getTopic());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgb.getInfoTopic());
+  // mPubRgbGray =
+  //   image_transport::create_camera_publisher(this, rgb_gray_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgbGray.getTopic());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRgbGray.getInfoTopic());
   mPubRawRgb =
     image_transport::create_camera_publisher(this, rgb_raw_topic, mVideoQos.get_rmw_qos_profile());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getTopic());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgb.getInfoTopic());
-  mPubRawRgbGray = image_transport::create_camera_publisher(
-    this, rgb_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgbGray.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgbGray.getInfoTopic());
-  mPubLeft =
-    image_transport::create_camera_publisher(this, left_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getInfoTopic());
-  mPubLeftGray = image_transport::create_camera_publisher(
-    this, left_gray_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeftGray.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeftGray.getInfoTopic());
-  mPubRawLeft =
-    image_transport::create_camera_publisher(this, left_raw_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getInfoTopic());
-  mPubRawLeftGray = image_transport::create_camera_publisher(
-    this, left_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeftGray.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeftGray.getInfoTopic());
-  mPubRight =
-    image_transport::create_camera_publisher(this, right_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getInfoTopic());
-  mPubRightGray = image_transport::create_camera_publisher(
-    this, right_gray_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRightGray.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRightGray.getInfoTopic());
-  mPubRawRight = image_transport::create_camera_publisher(
-    this, right_raw_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getInfoTopic());
-  mPubRawRightGray = image_transport::create_camera_publisher(
-    this, right_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRightGray.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRightGray.getInfoTopic());
+  // mPubRawRgbGray = image_transport::create_camera_publisher(
+  //   this, rgb_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgbGray.getTopic());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRgbGray.getInfoTopic());
+  // mPubLeft =
+  //   image_transport::create_camera_publisher(this, left_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getTopic());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeft.getInfoTopic());
+  // mPubLeftGray = image_transport::create_camera_publisher(
+  //   this, left_gray_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeftGray.getTopic());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubLeftGray.getInfoTopic());
+  // mPubRawLeft =
+  //   image_transport::create_camera_publisher(this, left_raw_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getTopic());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeft.getInfoTopic());
+  // mPubRawLeftGray = image_transport::create_camera_publisher(
+  //   this, left_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeftGray.getTopic());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawLeftGray.getInfoTopic());
+  // mPubRight =
+  //   image_transport::create_camera_publisher(this, right_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getTopic());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRight.getInfoTopic());
+  // mPubRightGray = image_transport::create_camera_publisher(
+  //   this, right_gray_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRightGray.getTopic());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRightGray.getInfoTopic());
+  // mPubRawRight = image_transport::create_camera_publisher(
+  //   this, right_raw_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getTopic());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRight.getInfoTopic());
+  // mPubRawRightGray = image_transport::create_camera_publisher(
+  //   this, right_raw_gray_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRightGray.getTopic());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawRightGray.getInfoTopic());
 
   if (!mDepthDisabled) {
     mPubDepth =
@@ -3266,12 +3266,12 @@ void ZedCamera::initPublishers()
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDepthInfo->get_topic_name());
   }
 
-  mPubStereo =
-    image_transport::create_publisher(this, stereo_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubStereo.getTopic());
-  mPubRawStereo =
-    image_transport::create_publisher(this, stereo_raw_topic, mVideoQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawStereo.getTopic());
+  // mPubStereo =
+  //   image_transport::create_publisher(this, stereo_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubStereo.getTopic());
+  // mPubRawStereo =
+  //   image_transport::create_publisher(this, stereo_raw_topic, mVideoQos.get_rmw_qos_profile());
+  // RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawStereo.getTopic());
   // <---- Camera publishers
 
   // ----> Depth publishers
@@ -6104,40 +6104,40 @@ void ZedCamera::threadFunc_pubSensorsData()
 
 bool ZedCamera::areVideoDepthSubscribed()
 {
-  mRgbSubnumber = 0;
+  // mRgbSubnumber = 0;
   mRgbRawSubnumber = 0;
-  mRgbGraySubnumber = 0;
-  mRgbGrayRawSubnumber = 0;
-  mLeftSubnumber = 0;
-  mLeftRawSubnumber = 0;
-  mLeftGraySubnumber = 0;
-  mLeftGrayRawSubnumber = 0;
-  mRightSubnumber = 0;
-  mRightRawSubnumber = 0;
-  mRightGraySubnumber = 0;
-  mRightGrayRawSubnumber = 0;
-  mStereoSubnumber = 0;
-  mStereoRawSubnumber = 0;
+  // mRgbGraySubnumber = 0;
+  // mRgbGrayRawSubnumber = 0;
+  // mLeftSubnumber = 0;
+  // mLeftRawSubnumber = 0;
+  // mLeftGraySubnumber = 0;
+  // mLeftGrayRawSubnumber = 0;
+  // mRightSubnumber = 0;
+  // mRightRawSubnumber = 0;
+  // mRightGraySubnumber = 0;
+  // mRightGrayRawSubnumber = 0;
+  // mStereoSubnumber = 0;
+  // mStereoRawSubnumber = 0;
   mDepthSubnumber = 0;
   mConfMapSubnumber = 0;
   mDisparitySubnumber = 0;
   mDepthInfoSubnumber = 0;
 
   try {
-    mRgbSubnumber = mPubRgb.getNumSubscribers();
+    // mRgbSubnumber = mPubRgb.getNumSubscribers();
     mRgbRawSubnumber = mPubRawRgb.getNumSubscribers();
-    mRgbGraySubnumber = mPubRgbGray.getNumSubscribers();
-    mRgbGrayRawSubnumber = mPubRawRgbGray.getNumSubscribers();
-    mLeftSubnumber = mPubLeft.getNumSubscribers();
-    mLeftRawSubnumber = mPubRawLeft.getNumSubscribers();
-    mLeftGraySubnumber = mPubLeftGray.getNumSubscribers();
-    mLeftGrayRawSubnumber = mPubRawLeftGray.getNumSubscribers();
-    mRightSubnumber = mPubRight.getNumSubscribers();
-    mRightRawSubnumber = mPubRawRight.getNumSubscribers();
-    mRightGraySubnumber = mPubRightGray.getNumSubscribers();
-    mRightGrayRawSubnumber = mPubRawRightGray.getNumSubscribers();
-    mStereoSubnumber = mPubStereo.getNumSubscribers();
-    mStereoRawSubnumber = mPubRawStereo.getNumSubscribers();
+    // mRgbGraySubnumber = mPubRgbGray.getNumSubscribers();
+    // mRgbGrayRawSubnumber = mPubRawRgbGray.getNumSubscribers();
+    // mLeftSubnumber = mPubLeft.getNumSubscribers();
+    // mLeftRawSubnumber = mPubRawLeft.getNumSubscribers();
+    // mLeftGraySubnumber = mPubLeftGray.getNumSubscribers();
+    // mLeftGrayRawSubnumber = mPubRawLeftGray.getNumSubscribers();
+    // mRightSubnumber = mPubRight.getNumSubscribers();
+    // mRightRawSubnumber = mPubRawRight.getNumSubscribers();
+    // mRightGraySubnumber = mPubRightGray.getNumSubscribers();
+    // mRightGrayRawSubnumber = mPubRawRightGray.getNumSubscribers();
+    // mStereoSubnumber = mPubStereo.getNumSubscribers();
+    // mStereoRawSubnumber = mPubRawStereo.getNumSubscribers();
 
     if (!mDepthDisabled) {
       mDepthSubnumber = mPubDepth.getNumSubscribers();
@@ -6151,20 +6151,20 @@ bool ZedCamera::areVideoDepthSubscribed()
     return 0;
   }
 
-  return (mRgbSubnumber +
+  return (//mRgbSubnumber +
          mRgbRawSubnumber +
-         mRgbGraySubnumber +
-         mRgbGrayRawSubnumber +
-         mLeftSubnumber +
-         mLeftRawSubnumber +
-         mLeftGraySubnumber +
-         mLeftGrayRawSubnumber +
-         mRightSubnumber +
-         mRightRawSubnumber +
-         mRightGraySubnumber +
-         mRightGrayRawSubnumber +
-         mStereoSubnumber +
-         mStereoRawSubnumber +
+        //  mRgbGraySubnumber +
+        //  mRgbGrayRawSubnumber +
+        //  mLeftSubnumber +
+        //  mLeftRawSubnumber +
+        //  mLeftGraySubnumber +
+        //  mLeftGrayRawSubnumber +
+        //  mRightSubnumber +
+        //  mRightRawSubnumber +
+        //  mRightGraySubnumber +
+        //  mRightGrayRawSubnumber +
+        //  mStereoSubnumber +
+        //  mStereoRawSubnumber +
          mDepthSubnumber +
          mConfMapSubnumber +
          mDisparitySubnumber +
@@ -6178,54 +6178,54 @@ void ZedCamera::retrieveVideoDepth()
 
   // ----> Retrieve all required data
   DEBUG_STREAM_VD("Retrieving Video Data");
-  if (mRgbSubnumber + mLeftSubnumber + mStereoSubnumber > 0) {
-    retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(mMatLeft, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatLeft.timestamp;
-    mRgbSubscribed = true;
-  }
-  if (mRgbRawSubnumber + mLeftRawSubnumber + mStereoRawSubnumber > 0) {
+  // if (mRgbSubnumber + mLeftSubnumber + mStereoSubnumber > 0) {
+  //   retrieved |= sl::ERROR_CODE::SUCCESS ==
+  //     mZed.retrieveImage(mMatLeft, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
+  //   mSdkGrabTS = mMatLeft.timestamp;
+  //   mRgbSubscribed = true;
+  // }
+  if (mRgbRawSubnumber /*+ mLeftRawSubnumber + mStereoRawSubnumber*/ > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed.retrieveImage(mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatLeftRaw.timestamp;
   }
-  if (mRightSubnumber + mStereoSubnumber > 0) {
-    retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(mMatRight, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatRight.timestamp;
-  }
-  if (mRightRawSubnumber + mStereoRawSubnumber > 0) {
-    retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(
-      mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatRightRaw.timestamp;
-  }
-  if (mRgbGraySubnumber + mLeftGraySubnumber > 0) {
-    retrieved |=
-      sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(mMatLeftGray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatLeftGray.timestamp;
-  }
-  if (mRgbGrayRawSubnumber + mLeftGrayRawSubnumber > 0) {
-    retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(
-      mMatLeftRawGray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
-      sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatLeftRawGray.timestamp;
-  }
-  if (mRightGraySubnumber > 0) {
-    retrieved |=
-      sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(mMatRightGray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatRightGray.timestamp;
-  }
-  if (mRightGrayRawSubnumber > 0) {
-    retrieved |=
-      sl::ERROR_CODE::SUCCESS ==
-      mZed.retrieveImage(
-      mMatRightRawGray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatRightRawGray.timestamp;
-  }
+  // if (mRightSubnumber + mStereoSubnumber > 0) {
+  //   retrieved |= sl::ERROR_CODE::SUCCESS ==
+  //     mZed.retrieveImage(mMatRight, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
+  //   mSdkGrabTS = mMatRight.timestamp;
+  // }
+  // if (mRightRawSubnumber + mStereoRawSubnumber > 0) {
+  //   retrieved |= sl::ERROR_CODE::SUCCESS ==
+  //     mZed.retrieveImage(
+  //     mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, mMatResol);
+  //   mSdkGrabTS = mMatRightRaw.timestamp;
+  // }
+  // if (mRgbGraySubnumber + mLeftGraySubnumber > 0) {
+  //   retrieved |=
+  //     sl::ERROR_CODE::SUCCESS ==
+  //     mZed.retrieveImage(mMatLeftGray, sl::VIEW::LEFT_GRAY, sl::MEM::CPU, mMatResol);
+  //   mSdkGrabTS = mMatLeftGray.timestamp;
+  // }
+  // if (mRgbGrayRawSubnumber + mLeftGrayRawSubnumber > 0) {
+  //   retrieved |= sl::ERROR_CODE::SUCCESS == mZed.retrieveImage(
+  //     mMatLeftRawGray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
+  //     sl::MEM::CPU, mMatResol);
+  //   mSdkGrabTS = mMatLeftRawGray.timestamp;
+  // }
+  // if (mRightGraySubnumber > 0) {
+  //   retrieved |=
+  //     sl::ERROR_CODE::SUCCESS ==
+  //     mZed.retrieveImage(mMatRightGray, sl::VIEW::RIGHT_GRAY, sl::MEM::CPU, mMatResol);
+  //   mSdkGrabTS = mMatRightGray.timestamp;
+  // }
+  // if (mRightGrayRawSubnumber > 0) {
+  //   retrieved |=
+  //     sl::ERROR_CODE::SUCCESS ==
+  //     mZed.retrieveImage(
+  //     mMatRightRawGray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY, sl::MEM::CPU, mMatResol);
+  //   mSdkGrabTS = mMatRightRawGray.timestamp;
+  // }
   DEBUG_STREAM_VD("Video Data retrieved");
   DEBUG_STREAM_VD("Retrieving Depth Data");
   if (mDepthSubnumber > 0 || mDepthInfoSubnumber > 0) {
@@ -6322,23 +6322,23 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   out_pub_ts = timeStamp;
 
   // ----> Publish the left=rgb image if someone has subscribed to
-  if (mLeftSubnumber > 0) {
-    DEBUG_STREAM_VD("mLeftSubnumber: " << mLeftSubnumber);
-    publishImageWithInfo(mMatLeft, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, out_pub_ts);
-  }
+  // if (mLeftSubnumber > 0) {
+  //   DEBUG_STREAM_VD("mLeftSubnumber: " << mLeftSubnumber);
+  //   publishImageWithInfo(mMatLeft, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, out_pub_ts);
+  // }
 
-  if (mRgbSubnumber > 0) {
-    DEBUG_STREAM_VD("mRgbSubnumber: " << mRgbSubnumber);
-    publishImageWithInfo(mMatLeft, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, out_pub_ts);
-  }
+  // if (mRgbSubnumber > 0) {
+  //   DEBUG_STREAM_VD("mRgbSubnumber: " << mRgbSubnumber);
+  //   publishImageWithInfo(mMatLeft, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, out_pub_ts);
+  // }
   // <---- Publish the left=rgb image if someone has subscribed to
 
   // ----> Publish the left_raw=rgb_raw image if someone has subscribed to
-  if (mLeftRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mLeftRawSubnumber: " << mLeftRawSubnumber);
-    publishImageWithInfo(
-      mMatLeftRaw, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, out_pub_ts);
-  }
+  // if (mLeftRawSubnumber > 0) {
+  //   DEBUG_STREAM_VD("mLeftRawSubnumber: " << mLeftRawSubnumber);
+  //   publishImageWithInfo(
+  //     mMatLeftRaw, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, out_pub_ts);
+  // }
   if (mRgbRawSubnumber > 0) {
     DEBUG_STREAM_VD("mRgbRawSubnumber: " << mRgbRawSubnumber);
     publishImageWithInfo(mMatLeftRaw, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId, out_pub_ts);
@@ -6346,80 +6346,80 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // <---- Publish the left_raw=rgb_raw image if someone has subscribed to
 
   // ----> Publish the left_gray=rgb_gray image if someone has subscribed to
-  if (mLeftGraySubnumber > 0) {
-    DEBUG_STREAM_VD("mLeftGraySubnumber: " << mLeftGraySubnumber);
-    publishImageWithInfo(
-      mMatLeftGray, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId, out_pub_ts);
-  }
-  if (mRgbGraySubnumber > 0) {
-    DEBUG_STREAM_VD("mRgbGraySubnumber: " << mRgbGraySubnumber);
-    publishImageWithInfo(mMatLeftGray, mPubRgbGray, mRgbCamInfoMsg, mDepthOptFrameId, out_pub_ts);
-  }
+  // if (mLeftGraySubnumber > 0) {
+  //   DEBUG_STREAM_VD("mLeftGraySubnumber: " << mLeftGraySubnumber);
+  //   publishImageWithInfo(
+  //     mMatLeftGray, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId, out_pub_ts);
+  // }
+  // if (mRgbGraySubnumber > 0) {
+  //   DEBUG_STREAM_VD("mRgbGraySubnumber: " << mRgbGraySubnumber);
+  //   publishImageWithInfo(mMatLeftGray, mPubRgbGray, mRgbCamInfoMsg, mDepthOptFrameId, out_pub_ts);
+  // }
   // <---- Publish the left_raw=rgb_raw image if someone has subscribed to
 
   // ----> Publish the left_raw_gray=rgb_raw_gray image if someone has
   // subscribed to
-  if (mLeftGrayRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mLeftGrayRawSubnumber: " << mLeftGrayRawSubnumber);
-    publishImageWithInfo(
-      mMatLeftRawGray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, out_pub_ts);
-  }
-  if (mRgbGrayRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mRgbGrayRawSubnumber: " << mRgbGrayRawSubnumber);
-    publishImageWithInfo(
-      mMatLeftRawGray, mPubRawRgbGray, mRgbCamInfoRawMsg, mDepthOptFrameId, out_pub_ts);
-  }
+  // if (mLeftGrayRawSubnumber > 0) {
+  //   DEBUG_STREAM_VD("mLeftGrayRawSubnumber: " << mLeftGrayRawSubnumber);
+  //   publishImageWithInfo(
+  //     mMatLeftRawGray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, out_pub_ts);
+  // }
+  // if (mRgbGrayRawSubnumber > 0) {
+  //   DEBUG_STREAM_VD("mRgbGrayRawSubnumber: " << mRgbGrayRawSubnumber);
+  //   publishImageWithInfo(
+  //     mMatLeftRawGray, mPubRawRgbGray, mRgbCamInfoRawMsg, mDepthOptFrameId, out_pub_ts);
+  // }
   // ----> Publish the left_raw_gray=rgb_raw_gray image if someone has
   // subscribed to
 
   // ----> Publish the right image if someone has subscribed to
-  if (mRightSubnumber > 0) {
-    DEBUG_STREAM_VD("mRightSubnumber: " << mRightSubnumber);
-    publishImageWithInfo(mMatRight, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, out_pub_ts);
-  }
+  // if (mRightSubnumber > 0) {
+  //   DEBUG_STREAM_VD("mRightSubnumber: " << mRightSubnumber);
+  //   publishImageWithInfo(mMatRight, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, out_pub_ts);
+  // }
   // <---- Publish the right image if someone has subscribed to
 
   // ----> Publish the right raw image if someone has subscribed to
-  if (mRightRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mRightRawSubnumber: " << mRightRawSubnumber);
-    publishImageWithInfo(
-      mMatRightRaw, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, out_pub_ts);
-  }
+  // if (mRightRawSubnumber > 0) {
+  //   DEBUG_STREAM_VD("mRightRawSubnumber: " << mRightRawSubnumber);
+  //   publishImageWithInfo(
+  //     mMatRightRaw, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, out_pub_ts);
+  // }
   // <---- Publish the right raw image if someone has subscribed to
 
   // ----> Publish the right gray image if someone has subscribed to
-  if (mRightGraySubnumber > 0) {
-    DEBUG_STREAM_VD("mRightGraySubnumber: " << mRightGraySubnumber);
-    publishImageWithInfo(
-      mMatRightGray, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, out_pub_ts);
-  }
+  // if (mRightGraySubnumber > 0) {
+  //   DEBUG_STREAM_VD("mRightGraySubnumber: " << mRightGraySubnumber);
+  //   publishImageWithInfo(
+  //     mMatRightGray, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, out_pub_ts);
+  // }
   // <---- Publish the right gray image if someone has subscribed to
 
   // ----> Publish the right raw gray image if someone has subscribed to
-  if (mRightGrayRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mRightGrayRawSubnumber: " << mRightGrayRawSubnumber);
-    publishImageWithInfo(
-      mMatRightRawGray, mPubRawRightGray, mRightCamInfoRawMsg, mRightCamOptFrameId, out_pub_ts);
-  }
+  // if (mRightGrayRawSubnumber > 0) {
+  //   DEBUG_STREAM_VD("mRightGrayRawSubnumber: " << mRightGrayRawSubnumber);
+  //   publishImageWithInfo(
+  //     mMatRightRawGray, mPubRawRightGray, mRightCamInfoRawMsg, mRightCamOptFrameId, out_pub_ts);
+  // }
   // <---- Publish the right raw gray image if someone has subscribed to
 
   // ----> Publish the side-by-side image if someone has subscribed to
-  if (mStereoSubnumber > 0) {
-    DEBUG_STREAM_VD("mStereoSubnumber: " << mStereoSubnumber);
-    auto combined = sl_tools::imagesToROSmsg(mMatLeft, mMatRight, mCameraFrameId, out_pub_ts);
-    DEBUG_STREAM_VD("Publishing SIDE-BY-SIDE message");
-    mPubStereo.publish(std::move(combined));
-  }
+  // if (mStereoSubnumber > 0) {
+  //   DEBUG_STREAM_VD("mStereoSubnumber: " << mStereoSubnumber);
+  //   auto combined = sl_tools::imagesToROSmsg(mMatLeft, mMatRight, mCameraFrameId, out_pub_ts);
+  //   DEBUG_STREAM_VD("Publishing SIDE-BY-SIDE message");
+  //   mPubStereo.publish(std::move(combined));
+  // }
   // <---- Publish the side-by-side image if someone has subscribed to
 
   // ----> Publish the side-by-side image if someone has subscribed to
-  if (mStereoRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mStereoRawSubnumber: " << mStereoRawSubnumber);
-    auto combined =
-      sl_tools::imagesToROSmsg(mMatLeftRaw, mMatRightRaw, mCameraFrameId, out_pub_ts);
-    DEBUG_STREAM_VD("Publishing SIDE-BY-SIDE RAW message");
-    mPubRawStereo.publish(std::move(combined));
-  }
+  // if (mStereoRawSubnumber > 0) {
+  //   DEBUG_STREAM_VD("mStereoRawSubnumber: " << mStereoRawSubnumber);
+  //   auto combined =
+  //     sl_tools::imagesToROSmsg(mMatLeftRaw, mMatRightRaw, mCameraFrameId, out_pub_ts);
+  //   DEBUG_STREAM_VD("Publishing SIDE-BY-SIDE RAW message");
+  //   mPubRawStereo.publish(std::move(combined));
+  // }
   // <---- Publish the side-by-side image if someone has subscribed to
 
   // ---->  Publish the depth image if someone has subscribed to

@@ -30,8 +30,8 @@ LATEST CHANGES
 - Moved parameter 'general.svo_file' to 'svo.svo_path'
 - Moved parameter 'general.svo_loop' to 'svo.svo_loop'
 - Moved parameter 'general.svo_realtime' to 'svo.svo_realtime'
-- Remove obsolete launch files: 'zed.launch.pi','zed2.launch.pi', 'zed2i.launch.pi', 'zedm.launch.pi', 'zedx.launch.pi', 'zedxm.launch.pi'
-- Remove obsolete display launch file: 'display_zed.launch.py', 'display_zed2.launch.py', 'display_zed2i.launch.py', 'display_zedm.launch.py', 'display_zedx.launch.py', 'display_zedxm.launch.py'
+- Removed obsolete launch files: 'zed.launch.pi','zed2.launch.pi', 'zed2i.launch.pi', 'zedm.launch.pi', 'zedx.launch.pi', 'zedxm.launch.pi'
+- Removed obsolete display launch file: 'display_zed.launch.py', 'display_zed2.launch.py', 'display_zed2i.launch.py', 'display_zedm.launch.py', 'display_zedx.launch.py', 'display_zedxm.launch.py'
 - Added support for custom virtual stereo cameras made with two calibrated ZED X One cameras 
 
 2024-04-11
@@ -54,7 +54,7 @@ LATEST CHANGES
 
 2024-03-04
 ----------
-- Move the parameter `general.region_of_interest` to `region_of_interest.manual_polygon`
+- Moved the parameter `general.region_of_interest` to `region_of_interest.manual_polygon`
 - Added automatic Region of Interest support
 - Added parameter `region_of_interest.automatic_roi`
 - Added parameter `region_of_interest.depth_far_threshold_meters`
@@ -67,7 +67,7 @@ LATEST CHANGES
 
 2024-03-01
 ----------
-- Remove QoS parameters to use ROS 2 QoS overwrite -> https://design.ros2.org/articles/qos_configurability.html
+- Removed QoS parameters to use ROS 2 QoS overwrite -> https://design.ros2.org/articles/qos_configurability.html
 
 2024-02-28
 ----------
@@ -88,16 +88,16 @@ v4.0.8
 - Added `/clock` subscriber to check the presence of the required message when `use_sim_time` is true
 - Force `grab_frame_rate` and `pub_frame_rate` to 60 Hz in simulation
 - Force `grab_resolution` to `HD1080` in simulation
-- Remove the `general.zed_id` parameter. Always use `general.serial_number` to distinguish between different cameras in a multi-camera configuration.
+- Removed the `general.zed_id` parameter. Always use `general.serial_number` to distinguish between different cameras in a multi-camera configuration.
 - The multi-camera example has been updated to match the new TF configuration
 - The old launch files are now obsolete: 'ros2 launch zed_wrapper <camera_model>.launch.py' is replaced by 'ros2 
   launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>'
 - The reference link for positional tracking is no longer 'base_link' but `<camera_name>_camera_link`. 
   This will allow an easier ZED integration in existing robot configuration because the transform `base_link` -> `camera_link` 
   is no longer published by the ZED ROS2 Wrapper. Thanks to @SteveMacenski for the advice
-  - Remove `parent` and `origin` parameters from `zed_macro.urdf.xacro`
-  - Remove launch argument `cam_pose` from `zed_camera.launch.py`
-- Move parameter `publish_imu_tf` from `pos_tracking` to `sensors` to make it available also in "no depth" configurations of the node
+  - Removed `parent` and `origin` parameters from `zed_macro.urdf.xacro`
+  - Removed launch argument `cam_pose` from `zed_camera.launch.py`
+- Moved parameter `publish_imu_tf` from `pos_tracking` to `sensors` to make it available also in "no depth" configurations of the node
 - Added new parameter `pos_tracking.pos_tracking_mode` to exploit the new ZED SDK `QUALITY` mode for improved odometry and localization
 - New Video/Depth processing throttling method by using the `grab_compute_capping_fps` ZED SDK parameter instead of a dedicated thread
 - Advanced parameters to handle Thread scheduling policy and priorities (sudo required):`thread_sched_policy`,`thread_grab_priority`,
@@ -120,7 +120,7 @@ v4.0.0
 ------
 - Added support for ZED-X and ZED-X Mini
 
-  - Move `general.grab_resolution` and `general.grab_frame_rate` to the yaml file specific for the relative camera model (i.e. `zed.yaml`, `zedm.yaml`, `zed2.yaml`, `zed2i.yaml`, `zedx.yaml`, `zedxm.yaml`)
+  - Moved `general.grab_resolution` and `general.grab_frame_rate` to the yaml file specific for the relative camera model (i.e. `zed.yaml`, `zedm.yaml`, `zed2.yaml`, `zed2i.yaml`, `zedx.yaml`, `zedxm.yaml`)
   - Added `zedx.launch.py` for ZED-X
   - Added `zedxm.launch.py` for ZED-X Mini
   - Improve `zed_macro.urdf.xacro` with specific configuration for the new camera models
@@ -175,7 +175,7 @@ v4.0.0
 
   - Added `object_detection.allow_reduced_precision_inference` to allow inference to run at a lower precision to improve runtime and memory usage
   - Added `object_detection.max_range` to defines a upper depth range for detections
-  - Remove `object_detection.body_format`
+  - Removed `object_detection.body_format`
 
 - Docker
 
@@ -213,20 +213,20 @@ v4.0.0
 
 - Others
 
-  - Remove `sensing_mode`, no more available in SDK v4.0
-  - Remove `extrinsic_in_camera_frame`, no more available in SDK v4.0
+  - Removed `sensing_mode`, no more available in SDK v4.0
+  - Removed `extrinsic_in_camera_frame`, no more available in SDK v4.0
   - Added `zed_id` and `serial_number` launch parameters to open the correct camera in multi-camera configurations.
   - Code lint and re-formatting according to [ROS2 code rules](https://docs.ros.org/en/humble/The-ROS2-Project/Contributing/Code-Style-Language-Versions.html).
   - Added support for automatic lint tools to all the packages.
-  - Remove node parameter `general.resolution`, replaced by `general.grab_resolution`.
+  - Removed node parameter `general.resolution`, replaced by `general.grab_resolution`.
   - Added node parameter `general.pub_resolution` used to reduce node computation and message bandwidth.
 
     - Available output resolutions: `HD2K`, `HD1080`, `HD720`, `MEDIUM`, `VGA`. `MEDIUM` is an optimized output resolution to maximize throughput and minimize processing costs.
   
-  - Remove node parameters `video.img_downsample_factor` and `depth.depth_downsample_factor`. Use the new parameter `general.pub_resolution` instead.
+  - Removed node parameters `video.img_downsample_factor` and `depth.depth_downsample_factor`. Use the new parameter `general.pub_resolution` instead.
   - Change `general.grab_resolution` and `general.pub_resolution` from integer to string.
   - Added new `LOW` value for `general.pub_resolution` (half the `MEDIUM` output resolution).
-  - Remove `depth.quality` parameter (replaced with `depth.depth_mode`)
+  - Removed `depth.quality` parameter (replaced with `depth.depth_mode`)
   - Added `depth.depth_mode` parameter: a string reflecting the ZED SDK `DEPTH_MODE` available value names
   - The parameter `depth.depth_stabilization` is now an integer in [0,100] reflecting ZED SDK behavior
   - Fix distortion model (see Issue [#128](https://github.com/stereolabs/zed-ros2-wrapper/issues/128))
@@ -236,13 +236,13 @@ v4.0.0
   - Added a check on timestamp to not publish already published point cloud messages in the point cloud thread
   - Improve thread synchronization when the frequency of the `grab` SDK function is minor of the expected camera frame rate setting because of a leaking of elaboration power.
   - Added diagnostic warning if the frequency of the camera grabbing thread is minor than the selected `general.grab_frame_rate` value.
-  - Remove annoying build log messages. Only warning regarding unsupported ROS2 distributions will be displayed when required.
+  - Removed annoying build log messages. Only warning regarding unsupported ROS2 distributions will be displayed when required.
   - Convert `shared_ptr` to `unique_ptr` for IPC support
   - Improve the `zed_camera.launch.py`
 
     - Added support for `OpaqueFunction` in order to automatically configure the launch file according to the value of the launch parameter `cam_model`.
     - Change parameters to set camera pose in launch files. From 6 separated parameters (`cam_pos_x`,`cam_pos_y`,`cam_pos_z`,`cam_roll`,`cam_pitch`,`cam_yaw`) to one single array (`cam_pose`).
-    - Remove the workaround for empty `svo_path` launch parameter values thanks to `TextSubstitution`.
+    - Removed the workaround for empty `svo_path` launch parameter values thanks to `TextSubstitution`.
     - Modify the "display" launch files in [zed-ros2-examples](https://github.com/stereolabs/zed-ros2-examples) to match the new configuration.
     - Added `publish_tf` and `publish_map_tf` launch parameters useful for multi-camera configuretion or external odometry fusion.
   

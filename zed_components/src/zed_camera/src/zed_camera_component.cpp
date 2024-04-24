@@ -466,13 +466,7 @@ void ZedCamera::initParameters()
     mBodyTrkEnabled = false;
   }
 
-  bool stream_server = false;
-  getParam("stream_server.stream_enabled", stream_server, stream_server);
-  mStreamingServerRequired = stream_server;
-  if (mStreamingServerRequired) {
-    RCLCPP_INFO(get_logger(), "*** Streaming Server ***");
-    RCLCPP_INFO(get_logger(), " * Streaming server: ENABLED");
-  }
+  getStreamingServerParams();
 
   getAdvancedParams();
 }
@@ -1866,6 +1860,14 @@ void ZedCamera::getStreamingServerParams()
   read_only_descriptor.read_only = true;
 
   RCLCPP_INFO(get_logger(), "*** Streaming Server parameters ***");
+
+  bool stream_server = false;
+  getParam("stream_server.stream_enabled", stream_server, stream_server);
+  mStreamingServerRequired = stream_server;
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Streaming Server enabled: "
+      << (mStreamingServerRequired ? "TRUE" : "FALSE"));
 
   std::string codec = "H264";
   getParam("stream_server.codec", codec, codec);
@@ -10810,8 +10812,6 @@ bool ZedCamera::startStreamingServer()
     mZed->disableStreaming();
     RCLCPP_WARN(get_logger(), "A streaming server was already running and has been stopped");
   }
-
-  getStreamingServerParams();
 
   sl::StreamingParameters params;
   params.adaptative_bitrate = mStreamingServerAdaptiveBitrate;

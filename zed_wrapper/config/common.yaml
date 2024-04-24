@@ -174,5 +174,5 @@
             debug_object_detection: false
             debug_body_tracking: false
             debug_roi: false
-            debug_streaming: true
+            debug_streaming: false
             debug_advanced: false

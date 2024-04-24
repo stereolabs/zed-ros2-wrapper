@@ -1,3 +1,4 @@
+/* *INDENT-OFF* */
 
 /*
     /!\ DO NOT MODIFY THIS FILE
@@ -63,7 +64,6 @@
 //
 // SPDX-FileCopyrightText: 2013-2022 Niels Lohmann <https://nlohmann.me>
 // SPDX-License-Identifier: MIT
-
 
 
 // This file contains all macro definitions affecting or depending on the ABI
@@ -24650,3 +24650,4 @@ inline void swap(nlohmann::NLOHMANN_BASIC_JSON_TPL& j1, nlohmann::NLOHMANN_BASIC
 
 #endif  // INCLUDE_NLOHMANN_JSON_HPP_
 
+/* *INDENT-ON* */

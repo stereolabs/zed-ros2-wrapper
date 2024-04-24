@@ -63,7 +63,8 @@
 #define TIMEZERO_ROS rclcpp::Time(0, 0, RCL_ROS_TIME)
 #define TIMEZERO_SYS rclcpp::Time(0, 0, RCL_SYSTEM_TIME)
 
-namespace stereolabs {
+namespace stereolabs
+{
 
 #ifdef _SL_JETSON_
 const bool IS_JETSON = true;
@@ -77,55 +78,55 @@ const float NOT_VALID_TEMP = -273.15f;
 
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> imagePub;
 typedef std::shared_ptr<rclcpp::Publisher<stereo_msgs::msg::DisparityImage>>
-    disparityPub;
+  disparityPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>>
-    pointcloudPub;
+  pointcloudPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Imu>> imuPub;
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::MagneticField>>
-    magPub;
+  magPub;
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::FluidPressure>>
-    pressPub;
+  pressPub;
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Temperature>>
-    tempPub;
+  tempPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>>
-    posePub;
+  posePub;
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PosTrackStatus>>
-    poseStatusPub;
+  poseStatusPub;
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::GnssFusionStatus>>
-    gnssFusionStatusPub;
+  gnssFusionStatusPub;
 typedef std::shared_ptr<
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>>
-    poseCovPub;
+  poseCovPub;
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::TransformStamped>>
-    transfPub;
+  transfPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odomPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::ObjectsStamped>>
-    objPub;
+  objPub;
 typedef std::shared_ptr<
     rclcpp::Publisher<zed_interfaces::msg::DepthInfoStamped>>
-    depthInfoPub;
+  depthInfoPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PlaneStamped>>
-    planePub;
+  planePub;
 typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>>
-    markerPub;
+  markerPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<geographic_msgs::msg::GeoPoseStamped>>
-    geoPosePub;
+  geoPosePub;
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::NavSatFix>>
-    gnssFixPub;
+  gnssFixPub;
 
 typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>>
-    clickedPtSub;
+  clickedPtSub;
 typedef std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>>
-    gnssFixSub;
+  gnssFixSub;
 typedef std::shared_ptr<rclcpp::Subscription<rosgraph_msgs::msg::Clock>>
-    clockSub;
+  clockSub;
 
 typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
@@ -140,7 +141,7 @@ typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
 typedef std::unique_ptr<zed_interfaces::msg::PosTrackStatus> poseStatusMsgPtr;
 typedef std::unique_ptr<zed_interfaces::msg::GnssFusionStatus> gnssFusionStatusMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped>
-    poseCovMsgPtr;
+  poseCovMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::TransformStamped> transfMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Odometry> odomMsgPtr;
 typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
@@ -170,7 +171,8 @@ typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableStreamingPtr;
 /*!
  * @brief Video/Depth topic resolution
  */
-typedef enum {
+typedef enum
+{
   NATIVE,  //!< Same camera grab resolution
   CUSTOM   //!< Custom Rescale Factor
 } PubRes;

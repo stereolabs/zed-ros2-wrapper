@@ -15,9 +15,11 @@
 #ifndef VISIBILITY_CONTROL_HPP_
 #define VISIBILITY_CONTROL_HPP_
 
+/* *INDENT-OFF* */
 #ifdef __cplusplus
 extern "C" {
 #endif
+/* *INDENT-ON* */
 
 // This logic was borrowed (then namespaced) from the examples on the gcc wiki:
 //     https://gcc.gnu.org/wiki/Visibility
@@ -50,8 +52,10 @@ extern "C" {
 #define ZED_COMPONENTS_PUBLIC_TYPE
 #endif
 
+/* *INDENT-OFF* */
 #ifdef __cplusplus
 }
 #endif
+/* *INDENT-ON* */
 
 #endif  // VISIBILITY_CONTROL_HPP_

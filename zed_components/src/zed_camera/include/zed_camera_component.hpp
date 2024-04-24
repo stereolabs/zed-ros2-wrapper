@@ -512,22 +512,22 @@ private:
   // <---- Messages
 
   // ----> Publishers
-  image_transport::CameraPublisher mPubRgb;
+  // image_transport::CameraPublisher mPubRgb;
   image_transport::CameraPublisher mPubRawRgb;
-  image_transport::CameraPublisher mPubLeft;
-  image_transport::CameraPublisher mPubRawLeft;
-  image_transport::CameraPublisher mPubRight;
-  image_transport::CameraPublisher mPubRawRight;
+  // image_transport::CameraPublisher mPubLeft;
+  // image_transport::CameraPublisher mPubRawLeft;
+  // image_transport::CameraPublisher mPubRight;
+  // image_transport::CameraPublisher mPubRawRight;
   image_transport::CameraPublisher mPubDepth;
-  image_transport::Publisher mPubStereo;
-  image_transport::Publisher mPubRawStereo;
+  // image_transport::Publisher mPubStereo;
+  // image_transport::Publisher mPubRawStereo;
 
-  image_transport::CameraPublisher mPubRgbGray;
-  image_transport::CameraPublisher mPubRawRgbGray;
-  image_transport::CameraPublisher mPubLeftGray;
-  image_transport::CameraPublisher mPubRawLeftGray;
-  image_transport::CameraPublisher mPubRightGray;
-  image_transport::CameraPublisher mPubRawRightGray;
+  // image_transport::CameraPublisher mPubRgbGray;
+  // image_transport::CameraPublisher mPubRawRgbGray;
+  // image_transport::CameraPublisher mPubLeftGray;
+  // image_transport::CameraPublisher mPubRawLeftGray;
+  // image_transport::CameraPublisher mPubRightGray;
+  // image_transport::CameraPublisher mPubRawRightGray;
 
   imagePub mPubConfMap;
   disparityPub mPubDisparity;
@@ -562,20 +562,20 @@ private:
 
   // <---- Publisher variables
   sl::Timestamp mSdkGrabTS = 0;
-  size_t mRgbSubnumber = 0;
+  // size_t mRgbSubnumber = 0;
   size_t mRgbRawSubnumber = 0;
-  size_t mRgbGraySubnumber = 0;
-  size_t mRgbGrayRawSubnumber = 0;
-  size_t mLeftSubnumber = 0;
-  size_t mLeftRawSubnumber = 0;
-  size_t mLeftGraySubnumber = 0;
-  size_t mLeftGrayRawSubnumber = 0;
-  size_t mRightSubnumber = 0;
-  size_t mRightRawSubnumber = 0;
-  size_t mRightGraySubnumber = 0;
-  size_t mRightGrayRawSubnumber = 0;
-  size_t mStereoSubnumber = 0;
-  size_t mStereoRawSubnumber = 0;
+  // size_t mRgbGraySubnumber = 0;
+  // size_t mRgbGrayRawSubnumber = 0;
+  // size_t mLeftSubnumber = 0;
+  // size_t mLeftRawSubnumber = 0;
+  // size_t mLeftGraySubnumber = 0;
+  // size_t mLeftGrayRawSubnumber = 0;
+  // size_t mRightSubnumber = 0;
+  // size_t mRightRawSubnumber = 0;
+  // size_t mRightGraySubnumber = 0;
+  // size_t mRightGrayRawSubnumber = 0;
+  // size_t mStereoSubnumber = 0;
+  // size_t mStereoRawSubnumber = 0;
   size_t mDepthSubnumber = 0;
   size_t mConfMapSubnumber = 0;
   size_t mDisparitySubnumber = 0;

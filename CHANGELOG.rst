@@ -84,7 +84,7 @@ v4.0.5
 - Fix bug with `general.pub_resolution` value, not allowing to select the correct data publish resolution
 - Added new launch parameter `ros_params_override_path` to provide the path to a custom YAML file to override the parameters of the ZED Node without modifying the original files in the `zed_wrapper/config` folder. Thank you David Lu @MetroRobots
 
-v4.1.0
+v4.0.0
 ------
 - Added support for ZED-X and ZED-X Mini
 

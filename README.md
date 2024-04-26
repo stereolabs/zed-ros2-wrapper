@@ -71,7 +71,7 @@ To start the ZED node, open a bash terminal and use the [CLI](https://index.ros.
 $ ros2 launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>
 ```
 
-Replace `<camera_model>` with the model of the camera that you are using: `'zed'`, `'zedm'`, `'zed2'`, `'zed2i'`, `'zedx'`, `'zedxm'`.
+Replace `<camera_model>` with the model of the camera that you are using: `'zed'`, `'zedm'`, `'zed2'`, `'zed2i'`, `'zedx'`, `'zedxm'`, `'virtual'`.
 
 The `zed_camera.launch.py` is a Python launch scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/). The parameters for the indicated camera model are loaded from the relative "YAML files".
 A Robot State Publisher node is started to publish the camera static links and joints loaded from the URDF model associated with the camera model.
@@ -202,26 +202,5 @@ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --paralle
 
 ## Known issues
 
-### [ROS2 Foxy] Image Transport and topic subscriptions
-
-There is an **IMPORTANT** issue in ROS2 Foxy with the function `CameraPublisher::getNumSubscribers` preventing the correct counting of the number of nodes subscribing one of the topics published by an `image_transport::CameraPublisher` object and hence stopping the correct publishing of the subscribed topics.
-
-The only known solution is to install the exact version [v3.0.0](https://github.com/ros-perception/image_common/releases/tag/3.0.0) of the `image_transport` package, published on 2021-05-26, that contains the fix for this issue.
-
-To install the working version from the sources:
-
-```bash
-cd <colcon_workspace>/src # Access the source folder of your colcon workspace
-git clone https://github.com/ros-perception/image_common.git --branch 3.0.0 --single-branch # clone the "v3.0.0" branch of the "image_common" repository
-cd <colcon_workspace> # Go back to the root of your colcon workspace
-colcon build --symlink-install # Compile everything and install
-```
-Close the console and re-open it to apply the modifications.
-
-### [ROS2 Foxy] Image Transport Plugins and compressed topics
-
-The `image_transport_plugins` package is not correctly working with ROS2 Foxy (see [here](https://github.com/stereolabs/zed-ros2-wrapper/issues/31), [here](https://github.com/ros-perception/image_common/issues/184), [here](https://github.com/stereolabs/zed-ros2-wrapper/issues/31), and [here](https://github.com/ros-perception/image_transport_plugins/pull/58)). We suggest you remove it to avoid many annoying warning messages until the ROS2 developers do not fix it or we find a workaround:
-
-```
-sudo apt remove ros-foxy-image-transport-plugins ros-foxy-compressed-depth-image-transport ros-foxy-compressed-image-transport
-```
+* GNSS fusion does not work with ZED SDK v4.1.0
+* Virtual ZED X does not work woth ZED SDK v4.1.0

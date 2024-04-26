@@ -1,10 +1,10 @@
-ARG IMAGE_NAME=dustynv/ros:humble-ros-base-l4t-r35.1.0
+ARG IMAGE_NAME=dustynv/ros:humble-ros-base-l4t-r35.4.1
 
 FROM ${IMAGE_NAME}
 
 ARG ZED_SDK_MAJOR=4
-ARG ZED_SDK_MINOR=0
-ARG ZED_SDK_PATCH=7
+ARG ZED_SDK_MINOR=1
+ARG ZED_SDK_PATCH=0
 ARG JETPACK_MAJOR=5
 ARG JETPACK_MINOR=0
 ARG L4T_MAJOR=35
@@ -18,13 +18,18 @@ ARG DIAGNOSTICS_VERSION=3.0.0
 ARG AMENT_LINT_VERSION=0.12.4
 ARG GEOGRAPHIC_INFO_VERSION=1.0.4
 ARG ROBOT_LOCALIZATION_VERSION=3.4.2
+
 ENV DEBIAN_FRONTEND noninteractive
+
+# Enable required NVIDIA drivers
+#ENV NVIDIA_DRIVER_CAPABILITIES \
+#  ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility
 
 # Disable apt-get warnings
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 42D5A192B819C5DA || true && \
   apt-get update || true && apt-get install -y --no-install-recommends apt-utils dialog && \
   rm -rf /var/lib/apt/lists/*
-  
+
 ENV TZ=Europe/Paris
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \ 
@@ -48,9 +53,9 @@ RUN echo "# R${L4T_MAJOR} (release), REVISION: ${L4T_MINOR}" > /etc/nv_tegra_rel
 # Install the ZED ROS2 Wrapper
 ENV ROS_DISTRO ${ROS2_DIST}
 
-# Install the ZED ROS2 Wrapper
+# Copy the sources in the Docker image
 WORKDIR /root/ros2_ws/src
-RUN git clone --recursive https://github.com/stereolabs/zed-ros2-wrapper.git
+COPY tmp_sources/ ./
 
 # Install missing dependencies
 WORKDIR /root/ros2_ws/src
@@ -75,7 +80,7 @@ RUN python3 -m pip install --upgrade cython
 
 # Build the dependencies and the ZED ROS2 Wrapper
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/install/setup.bash && \
-  colcon build --parallel-workers $(nproc) \
+  colcon build --parallel-workers $(nproc) --symlink-install \
   --event-handlers console_direct+ --base-paths src \
   --cmake-args ' -DCMAKE_BUILD_TYPE=Release' \
   ' -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs' \
@@ -84,7 +89,7 @@ RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/install/setup.bash && \
 
 WORKDIR /root/ros2_ws
 
-# Setup environment variables
+# Setup environment variables 
 COPY ros_entrypoint_jetson.sh /sbin/ros_entrypoint.sh
 RUN sudo chmod 755 /sbin/ros_entrypoint.sh
 

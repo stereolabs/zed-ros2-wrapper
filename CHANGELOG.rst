@@ -3,44 +3,45 @@ LATEST CHANGES
 
 2024-04-26 (ZED SDK v4.1)
 -------------------------
-- Added `enable_streaming` service to start/stop a streaming server
-- Added Streaming Server diagnostic
 - Updated the Docker files to the CUDA 12.4 (PC), L4T 35.4 (Jetson), SDK v4.1.0
 - Added Local Streaming output
-- Added parameter 'stream_server.stream_enabled': enable the streaming server when the camera is open
-- Added parameter 'stream_server.codec': different encoding types for image streaming
-- Added parameter 'stream_server.port': Port used for streaming
-- Added parameter 'stream_server.bitrate': Streaming bitrate (in Kbits/s) used for streaming
-- Added parameter 'stream_server.gop_size': The GOP size determines the maximum distance between IDR/I-frames
-- Added parameter 'stream_server.adaptative_bitrate': Bitrate will be adjusted depending the number of packet dropped during streaming
-- Added parameter 'stream_server.chunk_size': Stream buffers are divided into X number of chunks where each chunk is chunk_size bytes long
-- Added parameter 'stream_server.target_framerate': Framerate for the streaming output
+  - Added `enable_streaming` service to start/stop a streaming server
+  - Added Streaming Server diagnostic
+  - Added parameter 'stream_server.stream_enabled': enable the streaming server when the camera is open
+  - Added parameter 'stream_server.codec': different encoding types for image streaming
+  - Added parameter 'stream_server.port': Port used for streaming
+  - Added parameter 'stream_server.bitrate': Streaming bitrate (in Kbits/s) used for streaming
+  - Added parameter 'stream_server.gop_size': The GOP size determines the maximum distance between IDR/I-frames
+  - Added parameter 'stream_server.adaptative_bitrate': Bitrate will be adjusted depending on the number of packets dropped during streaming
+  - Added parameter 'stream_server.chunk_size': Stream buffers are divided into X number of chunks where each chunk is chunk_size bytes long
+  - Added parameter 'stream_server.target_framerate': Framerate for the streaming output
 - Added Local Streaming input
-- Added 'stream.stream_address' and 'stream.stream_port' parameter to configure the local streaming input
-- GNSS Fusion temporarely disabled
+  - Added 'stream.stream_address' and 'stream.stream_port' parameter to configure the local streaming input
+- GNSS Fusion temporarily disabled *(available with 4.1.1)*
 - Moved parameter 'general.svo_file' to 'svo.svo_path'
 - Moved parameter 'general.svo_loop' to 'svo.svo_loop'
 - Moved parameter 'general.svo_realtime' to 'svo.svo_realtime'
 - Removed obsolete launch files: 'zed.launch.pi','zed2.launch.pi', 'zed2i.launch.pi', 'zedm.launch.pi', 'zedx.launch.pi', 'zedxm.launch.pi'
 - Removed obsolete display launch file: 'display_zed.launch.py', 'display_zed2.launch.py', 'display_zed2i.launch.py', 'display_zedm.launch.py', 'display_zedx.launch.py', 'display_zedxm.launch.py'
-- Added support for custom virtual stereo cameras made with two calibrated ZED X One cameras 
-- Added parameter `pos_tracking.reset_odom_with_loop_closure` to automatically reset odometry when a lood closure is detected
+- Added support for custom virtual stereo cameras made with two calibrated ZED X One cameras *(available with 4.1.1)*
+- Added parameter `pos_tracking.reset_odom_with_loop_closure` to automatically reset odometry when a loop closure is detected
 - Added new positional tracking information to the `PosTrackStatus` message
-- Added new `GnssFusionStatus` message with GNSS Fusion status information
+- Added new `GnssFusionStatus` message with GNSS Fusion status information *(available with 4.1.1)*
 - Added new parameters `gnss_fusion.h_covariance_mul` and `gnss_fusion.v_covariance_mul` to control the effects of the GNSS covariance
-- Added ROI diagnostic
-- Added parameter `debug.debug_roi`
-- Publish ROI mask image on topic `~/roi_mask` using image transport
-- Moved the parameter `general.region_of_interest` to `region_of_interest.manual_polygon`
-- Added automatic Region of Interest support
-- Added parameter `region_of_interest.automatic_roi`
-- Added parameter `region_of_interest.depth_far_threshold_meters`
-- Added parameter `region_of_interest.image_height_ratio_cutoff`
-- Added parameter `region_of_interest.apply_to_depth`
-- Added parameter `region_of_interest.apply_to_positional_tracking`
-- Added parameter `region_of_interest.apply_to_object_detection`
-- Added parameter `region_of_interest.apply_to_body_tracking`
-- Added parameter `region_of_interest.apply_to_spatial_mapping`
+- Added support to Automatic ROI
+  - Added ROI diagnostic
+  - Added parameter `debug.debug_roi`
+  - Publish ROI mask image on the topic `~/roi_mask` using image transport
+  - Moved the parameter `general.region_of_interest` to `region_of_interest.manual_polygon`
+  - Added automatic Region of Interest support
+  - Added parameter `region_of_interest.automatic_roi`
+  - Added parameter `region_of_interest.depth_far_threshold_meters`
+  - Added parameter `region_of_interest.image_height_ratio_cutoff`
+  - Added parameter `region_of_interest.apply_to_depth`
+  - Added parameter `region_of_interest.apply_to_positional_tracking`
+  - Added parameter `region_of_interest.apply_to_object_detection`
+  - Added parameter `region_of_interest.apply_to_body_tracking`
+  - Added parameter `region_of_interest.apply_to_spatial_mapping`
 - Removed QoS parameters to use ROS 2 QoS overwrite -> https://design.ros2.org/articles/qos_configurability.html
 - Added support for new `NEURAL_PLUS` depth mode
 - Added new `<camera_name>_gnss_link` frame to URDF to set the position of the GNSS antenna with respect to the camera position

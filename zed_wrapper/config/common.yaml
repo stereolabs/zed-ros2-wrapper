@@ -61,7 +61,7 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE 
 
         pos_tracking:
-            pos_tracking_enabled: true # True to enable positional tracking from start
+            pos_tracking_enabled: false # True to enable positional tracking from start
             pos_tracking_mode: 'STANDARD' # Matches the ZED SDK setting: 'QUALITY', 'STANDARD'
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [usually overwritten by launch file] publish `odom -> camera_link` TF
@@ -115,7 +115,7 @@
             qos_durability: 2 # '1': TRANSIENT_LOCAL - '2': VOLATILE
 
         sensors:
-            publish_imu_tf: true # [usually overwritten by launch file] enable/disable the IMU TF broadcasting
+            publish_imu_tf: false # [usually overwritten by launch file] enable/disable the IMU TF broadcasting
             sensors_image_sync: false # Synchronize Sensors messages with latest published video/depth message
             sensors_pub_rate: 200. # frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
             qos_history: 1 # '1': KEEP_LAST - '2': KEEP_ALL

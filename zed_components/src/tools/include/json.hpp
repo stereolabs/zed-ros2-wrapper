@@ -22082,7 +22082,7 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
     /// @brief wrapper to access iterator member functions in range-based for
     /// @sa https://json.nlohmann.me/api/basic_json/items/
     /// @deprecated This function is deprecated since 3.1.0 and will be removed in
-    ///             version 4.0.0 of the library. Please use @ref items() instead;
+    ///             version 4.1.0 of the library. Please use @ref items() instead;
     ///             that is, replace `json::iterator_wrapper(j)` with `j.items()`.
     JSON_HEDLEY_DEPRECATED_FOR(3.1.0, items())
     static iteration_proxy<iterator> iterator_wrapper(reference ref) noexcept
@@ -22093,7 +22093,7 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
     /// @brief wrapper to access iterator member functions in range-based for
     /// @sa https://json.nlohmann.me/api/basic_json/items/
     /// @deprecated This function is deprecated since 3.1.0 and will be removed in
-    ///         version 4.0.0 of the library. Please use @ref items() instead;
+    ///         version 4.1.0 of the library. Please use @ref items() instead;
     ///         that is, replace `json::iterator_wrapper(j)` with `j.items()`.
     JSON_HEDLEY_DEPRECATED_FOR(3.1.0, items())
     static iteration_proxy<const_iterator> iterator_wrapper(const_reference ref) noexcept
@@ -23215,7 +23215,7 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
     /// @brief serialize to stream
     /// @sa https://json.nlohmann.me/api/basic_json/operator_ltlt/
     /// @deprecated This function is deprecated since 3.0.0 and will be removed in
-    ///             version 4.0.0 of the library. Please use
+    ///             version 4.1.0 of the library. Please use
     ///             operator<<(std::ostream&, const basic_json&) instead; that is,
     ///             replace calls like `j >> o;` with `o << j;`.
     JSON_HEDLEY_DEPRECATED_FOR(3.0.0, operator<<(std::ostream&, const basic_json&))
@@ -23334,7 +23334,7 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
     /// @brief generate SAX events
     /// @sa https://json.nlohmann.me/api/basic_json/sax_parse/
     /// @deprecated This function is deprecated since 3.8.0 and will be removed in
-    ///             version 4.0.0 of the library. Please use
+    ///             version 4.1.0 of the library. Please use
     ///             sax_parse(ptr, ptr + len) instead.
     template <typename SAX>
     JSON_HEDLEY_DEPRECATED_FOR(3.8.0, sax_parse(ptr, ptr + len, ...))
@@ -23355,7 +23355,7 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
     /// @brief deserialize from stream
     /// @sa https://json.nlohmann.me/api/basic_json/operator_gtgt/
     /// @deprecated This stream operator is deprecated since 3.0.0 and will be removed in
-    ///             version 4.0.0 of the library. Please use
+    ///             version 4.1.0 of the library. Please use
     ///             operator>>(std::istream&, basic_json&) instead; that is,
     ///             replace calls like `j << i;` with `i >> j;`.
     JSON_HEDLEY_DEPRECATED_FOR(3.0.0, operator>>(std::istream&, basic_json&))

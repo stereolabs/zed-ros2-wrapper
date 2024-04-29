@@ -95,7 +95,9 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mLastTs_pose(TIMEZERO_ROS),
   mLastTs_pc(TIMEZERO_ROS),
   mPrevTs_pc(TIMEZERO_ROS),
-  mLastClock(TIMEZERO_ROS)
+  mLastClock(TIMEZERO_ROS),
+  mStreamingServerRequired(false),
+  mStreamingServerRunning(false)
 {
   RCLCPP_INFO(get_logger(), "********************************");
   RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
@@ -127,10 +129,12 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   }
 
   // ----> Publishers/Sbscribers options
+  #ifndef FOUND_FOXY
   mPubOpt.qos_overriding_options =
     rclcpp::QosOverridingOptions::with_default_policies();
   mSubOpt.qos_overriding_options =
     rclcpp::QosOverridingOptions::with_default_policies();
+  #endif
   // <---- Publishers/Sbscribers options
 
   // Parameters initialization

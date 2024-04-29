@@ -417,7 +417,7 @@ private:
   int mThreadPrioSens;
   int mThreadPrioPointCloud;
 
-  std::atomic<bool> mStreamingServerRequired = false;
+  std::atomic<bool> mStreamingServerRequired;
   sl::STREAMING_CODEC mStreamingServerCodec = sl::STREAMING_CODEC::H264;
   int mStreamingServerPort = 30000;
   int mStreamingServerBitrate = 12500;
@@ -719,7 +719,7 @@ private:
   std::atomic<bool> mClockAvailable;  // Indicates if the "/clock" topic is
   // published when `use_sim_time` is true
 
-  std::atomic<bool> mStreamingServerRunning = false;
+  std::atomic<bool> mStreamingServerRunning;
   // <---- Status Flags
 
   // ----> Positional Tracking

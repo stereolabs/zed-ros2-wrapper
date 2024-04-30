@@ -9,6 +9,16 @@
 
 static inline cv::Mat preprocess_img(cv::Mat& img, int input_w, int input_h) {
     int w, h, x, y;
+    if (input_w <= 0 || input_h <= 0 || img.cols <= 0 || img.rows <= 0) {
+        std::cerr << "Invalid input dimensions\n";
+        //print all variables
+        std::cout << "input_w: " << input_w << std::endl;
+        std::cout << "input_h: " << input_h << std::endl;
+        std::cout << "img.cols: " << img.cols << std::endl;
+        std::cout << "img.rows: " << img.rows << std::endl;
+        
+        return img;
+    }
     float r_w = input_w / (img.cols * 1.0);
     float r_h = input_h / (img.rows * 1.0);
     if (r_h > r_w) {

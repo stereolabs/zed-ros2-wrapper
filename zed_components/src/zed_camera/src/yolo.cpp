@@ -319,6 +319,10 @@ std::vector<BBoxInfo> Yolo::run(sl::Mat left_sl, int orig_image_h, int orig_imag
 
     /////// Preparing inference
     cv::Mat left_cv_rgba = slMat2cvMat(left_sl);
+    if (left_cv_rgba.empty()) {
+        std::cerr << "Failed to convert the image\n";
+        return binfo;
+    }
     cv::cvtColor(left_cv_rgba, left_cv_rgb, cv::COLOR_BGRA2BGR);
     if (left_cv_rgb.empty()) return binfo;
     cv::Mat pr_img = preprocess_img(left_cv_rgb, input_width, input_height); // letterbox BGR to RGB

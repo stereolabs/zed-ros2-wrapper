@@ -1702,9 +1702,12 @@ void ZedCamera::getOdParams()
     " * MultiClassBox sport-related objects: "
       << (mObjDetSportEnable ? "TRUE" : "FALSE"));
 
+  std::string custom_model_engine;
+    getParam("object_detection.custom_model_engine", custom_model_engine, custom_model_engine);
+
 	// check if it's custom box model
 	if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS 
-				&& detector.init("/home/agri/agribot_humble/src/vineyard_detection/cnn_models/best.engine")) {
+				&& detector.init(custom_model_engine)) {
 			RCLCPP_WARN(
 				get_logger(), "CUSTOM DETECTOR INIT FAILED");
 	}
@@ -8036,7 +8039,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   sl::Objects objects;
 
     // check if the model is custom
-  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS) {
+  if (areVideoDepthSubscribed() && mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS) {
     
     auto detections = detector.run(mMatLeft, mCamHeight, mCamWidth, 0.3);
     // RCLCPP_INFO_STREAM(get_logger(), "Detected " << detections.size() << " custom objects");
@@ -8056,10 +8059,10 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
       objects_in.push_back(tmp);
     }
     // Send the custom detected boxes to the ZED
-    mZed.ingestCustomBoxObjects(objects_in, mObjDetInstID);
+    mZed->ingestCustomBoxObjects(objects_in, mObjDetInstID);
   }
 
-  sl::ERROR_CODE objDetRes = mZed.retrieveObjects(
+  sl::ERROR_CODE objDetRes = mZed->retrieveObjects(
     objects, objectTracker_parameters_rt,
     mObjDetInstID);
 

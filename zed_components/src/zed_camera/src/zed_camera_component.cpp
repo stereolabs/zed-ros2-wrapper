@@ -6018,7 +6018,9 @@ void ZedCamera::threadFunc_zedGrab()
 
     // ----> Retrieve Image/Depth data if someone has subscribed to
     // Retrieve data if there are subscriber to topics
-    if (areVideoDepthSubscribed()) {
+    // if (areVideoDepthSubscribed()) {
+    // without subscriptions custom object detection does not work
+    if (true) {
       DEBUG_STREAM_VD("Retrieving video/depth data");
       retrieveVideoDepth();
 
@@ -6894,7 +6896,9 @@ void ZedCamera::retrieveVideoDepth()
 
   // ----> Retrieve all required data
   DEBUG_STREAM_VD("Retrieving Video Data");
-  if (mRgbSubnumber + mLeftSubnumber + mStereoSubnumber > 0) {
+//   if (mRgbSubnumber + mLeftSubnumber + mStereoSubnumber > 0) {
+  if (true) {
+    //without subscriptions custom object detection doesn't work
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(mMatLeft, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
@@ -8039,7 +8043,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   sl::Objects objects;
 
     // check if the model is custom
-  if (areVideoDepthSubscribed() && mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS) {
+  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS) {
     
     auto detections = detector.run(mMatLeft, mCamHeight, mCamWidth, 0.3);
     // RCLCPP_INFO_STREAM(get_logger(), "Detected " << detections.size() << " custom objects");

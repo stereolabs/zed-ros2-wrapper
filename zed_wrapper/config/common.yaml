@@ -85,8 +85,8 @@
             transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->camera_link` transform being generated
 
         gnss_fusion:
-            gnss_fusion_enabled: false # fuse 'sensor_msg/NavSatFix' message information into pose data
-            gnss_fix_topic: "/fix" # Name of the GNSS topic of type NavSatFix to subscribe [Default: '/gps/fix']
+            gnss_fusion_enabled: true # fuse 'sensor_msg/NavSatFix' message information into pose data
+            gnss_fix_topic: '/adnav_node/nav_sat_fix' # Name of the GNSS topic of type NavSatFix to subscribe [Default: '/gps/fix']
             gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
             h_covariance_mul: 1.0 # Multiplier factor to be applied to horizontal covariance of the received fix (plane X/Y)
             v_covariance_mul: 1.0 # Multiplier factor to be applied to vertical covariance of the received fix (Z axis)

@@ -47,6 +47,8 @@
 
 #include "sl_tools.hpp"
 
+#include "yolo.hpp"
+
 using namespace std::chrono_literals;
 using namespace std::placeholders;
 
@@ -1595,10 +1597,8 @@ void ZedCamera::getOdParams()
   DEBUG_STREAM_OD(" 'object_detection.model': " << model_str.c_str());
 
   bool matched = false;
-  for (int idx =
-    static_cast<int>(sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST);
-    idx < static_cast<int>(sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS);
-    idx++)
+  for (int idx = static_cast<int>(sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST);
+    idx <= static_cast<int>(sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS); idx++)
   {
     sl::OBJECT_DETECTION_MODEL test_model =
       static_cast<sl::OBJECT_DETECTION_MODEL>(idx);
@@ -1701,6 +1701,13 @@ void ZedCamera::getOdParams()
     get_logger(),
     " * MultiClassBox sport-related objects: "
       << (mObjDetSportEnable ? "TRUE" : "FALSE"));
+
+	// check if it's custom box model
+	if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS 
+				&& detector.init("/home/agri/agribot_humble/src/vineyard_detection/cnn_models/best.engine")) {
+			RCLCPP_WARN(
+				get_logger(), "CUSTOM DETECTOR INIT FAILED");
+	}
 }
 
 void ZedCamera::getBodyTrkParams()
@@ -7964,6 +7971,15 @@ void ZedCamera::publishGnssPose()
   }
 }
 
+std::vector<sl::uint2> cvt(const BBox &bbox_in) {
+    std::vector<sl::uint2> bbox_out(4);
+    bbox_out[0] = sl::uint2(bbox_in.x1, bbox_in.y1);
+    bbox_out[1] = sl::uint2(bbox_in.x2, bbox_in.y1);
+    bbox_out[2] = sl::uint2(bbox_in.x2, bbox_in.y2);
+    bbox_out[3] = sl::uint2(bbox_in.x1, bbox_in.y2);
+    return bbox_out;
+}
+
 void ZedCamera::processDetectedObjects(rclcpp::Time t)
 {
   size_t objdet_sub_count = 0;
@@ -8015,11 +8031,37 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   }
   objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
   // <---- Process realtime dynamic parameters
+  
 
   sl::Objects objects;
 
-  sl::ERROR_CODE objDetRes = mZed->retrieveObjects(
-    objects, objectTracker_parameters_rt, mObjDetInstID);
+    // check if the model is custom
+  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS) {
+    
+    auto detections = detector.run(mMatLeft, mCamHeight, mCamWidth, 0.3);
+    // RCLCPP_INFO_STREAM(get_logger(), "Detected " << detections.size() << " custom objects");
+
+    // Preparing for ZED SDK ingesting
+    std::vector<sl::CustomBoxObjectData> objects_in;
+    for (auto &it : detections) {
+      sl::CustomBoxObjectData tmp;
+      // Fill the detections into the correct format
+      tmp.unique_object_id = sl::generate_unique_id();
+      tmp.probability = it.prob;
+      tmp.label = (int) it.label;
+      // RCLCPP_INFO_STREAM(get_logger(), "Detected " << it.label << " with probability " << it.prob);
+      tmp.bounding_box_2d = cvt(it.box);
+      tmp.is_grounded = ((int) it.label == 0); // Only the first class (person) is grounded, that is moving on the floor plane
+      // others are tracked in full 3D space                
+      objects_in.push_back(tmp);
+    }
+    // Send the custom detected boxes to the ZED
+    mZed.ingestCustomBoxObjects(objects_in, mObjDetInstID);
+  }
+
+  sl::ERROR_CODE objDetRes = mZed.retrieveObjects(
+    objects, objectTracker_parameters_rt,
+    mObjDetInstID);
 
   if (objDetRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(

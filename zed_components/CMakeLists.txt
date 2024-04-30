@@ -138,6 +138,7 @@ find_package(diagnostic_updater REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(shape_msgs REQUIRED)
 find_package(robot_localization REQUIRED)
+find_package(OpenCV REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -151,14 +152,29 @@ file(GLOB_RECURSE all_files ${CMAKE_SOURCE_DIR}/*)
 add_custom_target(all_${PROJECT_NAME}_files SOURCES ${all_files})
 
 ###############################################################################
-# LIBS
-
+# INCLUDES and LIBS
+include_directories(
+    ${OpenCV_INCLUDE_DIRS}
+    ${CUDA_INCLUDE_DIRS}
+    ${ZED_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
+)
 
 # create ament index resource which references the libraries in the binary dir
 set(node_plugins "")
 
 link_directories(${ZED_LIBRARY_DIR})
 link_directories(${CUDA_LIBRARY_DIRS})
+link_directories(${OpenCV_LIBRARY_DIRS})
+
+# cuda
+include_directories(/usr/local/cuda/include)
+link_directories(/usr/local/cuda/lib64)
+# tensorrt
+include_directories(/usr/include/x86_64-linux-gnu/)
+link_directories(/usr/lib/x86_64-linux-gnu/)
 
 set(ZED_LIBS
   ${ZED_LIBRARIES}
@@ -184,10 +200,14 @@ set(SL_TOOLS_SRC
 set(ZED_CAMERA_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/sl_types.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/yolo.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/cuda_utils.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/logging.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_component.hpp    
 )
 
 set(ZED_CAMERA_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/yolo.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_component.cpp
 )
 
@@ -210,8 +230,13 @@ target_include_directories(zed_camera_component PUBLIC
 target_compile_definitions(zed_camera_component
     PRIVATE "COMPOSITION_BUILDING_DLL"
 )
+
+SET(TRT_LIBS nvinfer nvonnxparser)
+
 target_link_libraries(zed_camera_component
+${TRT_LIBS}
     ${ZED_LIBS}
+    ${OpenCV_LIBRARIES}
 )
 ament_target_dependencies(zed_camera_component
     ${DEPENDENCIES}

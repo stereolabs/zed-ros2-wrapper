@@ -6018,6 +6018,7 @@ void ZedCamera::threadFunc_zedGrab()
 
     // ----> Retrieve Image/Depth data if someone has subscribed to
     // Retrieve data if there are subscriber to topics
+    areVideoDepthSubscribed();
     // if (areVideoDepthSubscribed()) {
     // without subscriptions custom object detection does not work
     if (true) {

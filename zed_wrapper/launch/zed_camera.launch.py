@@ -142,7 +142,11 @@ def launch_setup(context, *args, **kwargs):
                 'sensors.publish_imu_tf': publish_imu_tf
             },
             ros_params_override_path,
-        ]
+        ],
+        remappings=[("/back/zed_node_0/depth/depth_registered", "/back_camera/points"), 
+                    ("/back/zed_node_0/rgb_raw/image_raw_color", "/back_camera/image_raw"), 
+                    ("/front/zed_node_1/depth/depth_registered", "/front_camera/points"), 
+                    ("/front/zed_node_1/rgb_raw/image_raw_color", "/front_camera/image_raw")],
     )
 
     return [

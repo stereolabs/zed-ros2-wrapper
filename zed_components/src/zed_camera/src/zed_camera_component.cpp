@@ -7811,8 +7811,8 @@ void ZedCamera::processGeoPose()
 
     // conversion from Transform to message
     transformStamped.transform = mUtmAsParent ?
-      (tf2::toMsg(mMap2UtmTransf.inverse())) :
-      (tf2::toMsg(mMap2UtmTransf));
+      (tf2::toMsg(mMap2UtmTransf)) :
+      (tf2::toMsg(mMap2UtmTransf.inverse()));
 
     mTfBroadcaster->sendTransform(transformStamped);
   }

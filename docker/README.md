@@ -4,14 +4,25 @@ This folder contains a list of Dockerfile files to build Docker images ready to 
 
 * `Dockerfile.u22-cu124-humble-release`: desktop image for ROS2 Humble, running on Ubuntu 22.04, with CUDA 12.4. The ZED Wrapper is cloned from the master branch and compiled.
 * `Dockerfile.u22-cu124-humble-devel`: development desktop image for ROS2 Humble, running on Ubuntu 22.04, with CUDA 11.7. The ZED Wrapper is copied from the source file of the current branch and compiled. This is useful to create a Docker image of a branch to be tested before merging it in the master branch.
-* `Dockerfile.u22-cu124-humble-release`: Jetson image for ROS2 Humble, running on L4T35.4. The ZED Wrapper is cloned from the master branch and compiled.
-* `Dockerfile.u22-cu124-humble-devel`: Jetson image for ROS2 Humble, running on L4T35.4. This is useful to create a Docker image of a branch to be tested before merging it in the master branch.
+* `Dockerfile.l4t-humble-release`: Jetson image for ROS2 Humble, running on L4T35.4 by default. The ZED Wrapper is cloned from the master branch and compiled.
+* `Dockerfile.l4t-humble-devel`: Jetson image for ROS2 Humble, running on L4T35.4 by default. This is useful to create a Docker image of a branch to be tested before merging it in the master branch.
+
+### Cross compilation
+You can easily compile the image for jetson from your usual Desktop PC. For that you just need to run the following line before:
+```
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+```
 
 ## Build the Docker images
 
-Choose a name for the image and replace `<image_tag>` with it, e.g. `zed-ubuntu22.04-cuda12.4-ros2-humble`
-
-**Note:** You can find the Docker images pre-built for the latest version of the `master` branch in the Docker hub [stereolabs/zedbot](https://hub.docker.com/r/stereolabs/zedbot).
+### The easy way
+We provide a script to build your image with the right L4T / ZED SDK version:
+```
+./build_dockerfile_from_sdk_and_l4T_version.sh <l4T version> <ZED SDK version> <Optional: devel/release>
+./build_dockerfile_from_sdk_and_l4T_version.sh l4t-r35.4.1 zedsdk-4.1.2
+```
+That will produce the image `zed_ros2_image`.
+Some configuration will not work (for example, if a specific ZED SDK does not exist for a given L4T version, or if the given ros2 wrapper is not compatible with this version)
 
 ### Release image
 
@@ -30,7 +41,11 @@ docker build -t "<image_tag>" -f Dockerfile.l4t35_4-humble-release .
 
 ### Devel image
 
-The devel image internally includes the source code of the current branch, so you can modify it. For this reason we must first copy the source to a temporary folder reachable while building the Docker image. The folder can be removed when the Docker image is ready.
+The devel image internally includes the source code of the current branch. You can also modify the code. 
+First check out the release you need:
+```
+git checkout humble_v4.1.2
+```
 
 Create a temporary `tmp_sources` folder for the sources and copy the files:
 

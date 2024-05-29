@@ -2,10 +2,8 @@
 
 This folder contains a list of Dockerfile files to build Docker images ready to start the nodes of the *ZED ROS2 Wrapper*:
 
-* `Dockerfile.u22-cu124-humble-release`: desktop image for ROS2 Humble, running on Ubuntu 22.04, with CUDA 12.4. The ZED Wrapper is cloned from the master branch and compiled.
-* `Dockerfile.u22-cu124-humble-devel`: development desktop image for ROS2 Humble, running on Ubuntu 22.04, with CUDA 11.7. The ZED Wrapper is copied from the source file of the current branch and compiled. This is useful to create a Docker image of a branch to be tested before merging it in the master branch.
-* `Dockerfile.l4t-humble-release`: Jetson image for ROS2 Humble, running on L4T35.4 by default. The ZED Wrapper is cloned from the master branch and compiled.
-* `Dockerfile.l4t-humble-devel`: Jetson image for ROS2 Humble, running on L4T35.4 by default. This is useful to create a Docker image of a branch to be tested before merging it in the master branch.
+* `Dockerfile.desktop-humble`: development desktop image for ROS2 Humble, running on the specified Ubuntu and CUDA versions. The ZED Wrapper is copied from the source file of the current branch and compiled.
+* `Dockerfile.l4t-humble`: Jetson image for ROS2 Humble, running on the given L4T version (L4T35.4 by default).
 
 ### Cross compilation
 You can easily compile the image for jetson from your usual Desktop PC. For that you just need to run the following line before:
@@ -15,7 +13,6 @@ docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
 ## Build the Docker images
 
-### The easy way
 We provide a script to build your image with the right L4T / ZED SDK version.
 - Checkout the tag or commit of the ROS2 wrapper that you need.
 ```

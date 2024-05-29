@@ -2,62 +2,38 @@
 
 This folder contains a list of Dockerfile files to build Docker images ready to start the nodes of the *ZED ROS2 Wrapper*:
 
-* `Dockerfile.u22-cu124-humble-release`: desktop image for ROS2 Humble, running on Ubuntu 22.04, with CUDA 12.4. The ZED Wrapper is cloned from the master branch and compiled.
-* `Dockerfile.u22-cu124-humble-devel`: development desktop image for ROS2 Humble, running on Ubuntu 22.04, with CUDA 11.7. The ZED Wrapper is copied from the source file of the current branch and compiled. This is useful to create a Docker image of a branch to be tested before merging it in the master branch.
-* `Dockerfile.u22-cu124-humble-release`: Jetson image for ROS2 Humble, running on L4T35.4. The ZED Wrapper is cloned from the master branch and compiled.
-* `Dockerfile.u22-cu124-humble-devel`: Jetson image for ROS2 Humble, running on L4T35.4. This is useful to create a Docker image of a branch to be tested before merging it in the master branch.
+* `Dockerfile.desktop-humble`: development desktop image for ROS2 Humble, running on the specified Ubuntu and CUDA versions. The ZED Wrapper is copied from the source file of the current branch and compiled.
+* `Dockerfile.l4t-humble`: Jetson image for ROS2 Humble, running on the given L4T version (L4T35.4 by default).
+
+### Cross compilation
+You can easily compile the image for jetson from your usual Desktop PC. For that you just need to run the following line before:
+```
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+```
 
 ## Build the Docker images
 
-Choose a name for the image and replace `<image_tag>` with it, e.g. `zed-ubuntu22.04-cuda12.4-ros2-humble`
-
-**Note:** You can find the Docker images pre-built for the latest version of the `master` branch in the Docker hub [stereolabs/zedbot](https://hub.docker.com/r/stereolabs/zedbot).
-
-### Release image
-
-The Release image internally clones the master branch of this repository to build the ZED ROS2 Wrapper code.
-
-Build the image for desktop:
-```bash
-docker build -t "<image_tag>" -f Dockerfile.u22-cu124-humble-release .
+We provide a script to build your image with the right L4T / ZED SDK version.
+- Checkout the tag or commit of the ROS2 wrapper that you need.
 ```
-
-or build the image for Jetson:
-
-```bash
-docker build -t "<image_tag>" -f Dockerfile.l4t35_4-humble-release .
+git checkout 4.1.2
 ```
-
-### Devel image
-
-The devel image internally includes the source code of the current branch, so you can modify it. For this reason we must first copy the source to a temporary folder reachable while building the Docker image. The folder can be removed when the Docker image is ready.
-
-Create a temporary `tmp_sources` folder for the sources and copy the files:
-
-```bash
-mkdir -p ./tmp_sources
-cp -r ../zed* ./tmp_sources
+You can also modify the sources.
+- Build the image
 ```
-
-Build the image for desktop:
-
-```bash
-docker build -t "<image_tag>" -f Dockerfile.u22-cu124-humble-devel .
+./jetson_build_dockerfile_from_sdk_and_l4T_version.sh <l4T version> <ZED SDK version>
 ```
-
-or build the image for Jetson:
-
-```bash
-docker build -t "<image_tag>" -f Dockerfile.l4t35_4-humble-devel .
+or
 ```
-
-Remove the temporary sources to avoid future compiling issues:
-
-```bash
-rm -r ./tmp_sources
+./desktop_build_dockerfile_from_sdk_ubuntu_and_cuda_version.sh <Ubuntu version> <CUDA version> <ZED SDK version>
 ```
-
-**Note:** it is important that the name of the temporary folder is `tmp_sources` because it is used in the Dockerfile we provide.
+Examples:
+```
+./jetson_build_dockerfile_from_sdk_and_l4T_version.sh l4t-r35.4.1 zedsdk4.1.2
+./desktop_build_dockerfile_from_sdk_ubuntu_and_cuda_version.sh ubuntu22.04 cuda12.1.0 zedsdk4.1.2
+```
+That will produce the image `zed_ros2_l4t_image` or `zed_ros2_desktop_image`.
+Some configuration will not work (for example, if a specific ZED SDK does not exist for a given Ubuntu/CUDA/L4T version, or if the given ros2 wrapper is not compatible with this version)
 
 ## Run the Docker image
 

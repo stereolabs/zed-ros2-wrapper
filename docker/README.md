@@ -32,10 +32,10 @@ or
 ```
 Examples:
 ```
-./jetson_build_dockerfile_from_sdk_and_l4T_version.sh l4t-r35.4.1 zedsdk-4.1.2
+./jetson_build_dockerfile_from_sdk_and_l4T_version.sh l4t-r35.4.1 zedsdk4.1.2
 ./desktop_build_dockerfile_from_sdk_ubuntu_and_cuda_version.sh ubuntu22.04 cuda12.1.0 zedsdk4.1.2
 ```
-That will produce the image `zed_ros2_image`.
+That will produce the image `zed_ros2_l4t_image` or `zed_ros2_desktop_image`.
 Some configuration will not work (for example, if a specific ZED SDK does not exist for a given Ubuntu/CUDA/L4T version, or if the given ros2 wrapper is not compatible with this version)
 
 ## Run the Docker image

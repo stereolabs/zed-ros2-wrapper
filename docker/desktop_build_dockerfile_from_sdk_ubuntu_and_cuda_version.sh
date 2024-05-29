@@ -59,7 +59,7 @@ IFS='.' read -r major minor patch <<< "$zed_sdk_version_number"
 echo "ZED SDK $major.$minor.$patch detected."
 
 echo "Building dockerfile for $1 and ZED SDK $2"
-docker build -t zed_ros2_image \
+docker build -t zed_ros2_desktop_image \
 --build-arg ZED_SDK_MAJOR=$major \
 --build-arg ZED_SDK_MINOR=$minor \
 --build-arg ZED_SDK_PATCH=$patch \
@@ -68,4 +68,4 @@ docker build -t zed_ros2_image \
 --build-arg CUDA_MAJOR=$cuda_major \
 --build-arg CUDA_MINOR=$cuda_minor \
 --build-arg CUDA_PATCH=$cuda_patch \
--f ./Dockerfile.desktop-humble --progress=plain  --no-cache .
+-f ./Dockerfile.desktop-humble .

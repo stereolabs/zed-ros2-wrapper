@@ -41,11 +41,11 @@ IFS='.' read -r l4t_major l4t_minor l4t_patch <<< "$l4t_version_number"
 IFS='.' read -r major minor patch <<< "$zed_sdk_version_number"
 
 echo "Building dockerfile for $1 and ZED SDK $2"
-docker build -t zed_ros2_image \
+docker build -t zed_ros2_l4t_image \
 --build-arg ZED_SDK_MAJOR=$major \
 --build-arg ZED_SDK_MINOR=$minor \
 --build-arg ZED_SDK_PATCH=$patch \
 --build-arg L4T_VERSION=$1 \
 --build-arg L4T_MAJOR=$l4t_major \
 --build-arg L4T_MINOR=$l4t_minor \
--f ./Dockerfile.l4t-humble --progress=plain  --no-cache .
+-f ./Dockerfile.l4t-humble .

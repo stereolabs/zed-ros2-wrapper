@@ -148,7 +148,7 @@ def launch_setup(context, *args, **kwargs):
                     ("/back/zed_node_0/point_cloud/cloud_registered", "/back_camera/points"), 
                     ("/front/zed_node_1/depth/depth_registered", "/front_camera/depth"), 
                     ("/front/zed_node_1/rgb_raw/image_raw_color", "/front_camera/image_raw"),
-                    ("/front/zed_node_1/point_cloud/cloud_registered", "/back_camera/points"),] 
+                    ("/front/zed_node_1/point_cloud/cloud_registered", "/front_camera/points"),] 
     )
 
     return [

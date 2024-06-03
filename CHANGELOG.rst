@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2024-05-29
+----------
+- New Docker configuration files allow to easily create "ZED ROS2 Wrapper" images based on specific tag versions. [Read more](./docker/README.md)
+
 2024-04-26 (ZED SDK v4.1)
 -------------------------
 - Updated the Docker files to the CUDA 12.4 (PC), L4T 35.4 (Jetson), SDK v4.1.0

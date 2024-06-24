@@ -1,5 +1,8 @@
 LATEST CHANGES
 ==============
+2024-06-24
+----------
+- Changed default DDS Middleware to FastRTPS in Docker
 
 2024-05-29
 ----------

@@ -96,6 +96,9 @@ RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/install/setup.bash && \
 
 WORKDIR /root/ros2_ws
 
+# Set the default DDS middleware to FastRTPS for improved big data transmission
+ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
 # Setup environment variables 
 COPY ros_entrypoint_jetson.sh /sbin/ros_entrypoint.sh
 RUN sudo chmod 755 /sbin/ros_entrypoint.sh

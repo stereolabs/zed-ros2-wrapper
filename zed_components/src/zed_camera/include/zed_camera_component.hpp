@@ -24,6 +24,10 @@
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
 
+#include <atomic>
+
+#include "yolo.hpp"
+
 namespace stereolabs
 {
 
@@ -849,6 +853,7 @@ private:
   // ----> SVO v2
   std::unique_ptr<sl_tools::GNSSReplay> mGnssReplay;
   // <---- SVO v2
+  Yolo detector;
 };
 
 }  // namespace stereolabs

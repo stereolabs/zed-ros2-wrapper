@@ -88,6 +88,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(zed_components REQUIRED)
+find_package(OpenCV REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -101,11 +102,35 @@ file(GLOB_RECURSE all_files ${CMAKE_SOURCE_DIR}/*)
 add_custom_target(all_${PROJECT_NAME}_files SOURCES ${all_files})
 
 ###############################################################################
+
+# add zed_components includes
+include_directories(
+	${zed_components_INCLUDE_DIRS}
+)
 # INCLUDES and LIBS
 include_directories(
+  ${OpenCV_INCLUDE_DIRS}
   ${CUDA_INCLUDE_DIRS}
   ${ZED_INCLUDE_DIRS}
   ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+
+link_directories(${ZED_LIBRARY_DIR})
+link_directories(${CUDA_LIBRARY_DIRS})
+link_directories(${OpenCV_LIBRARY_DIRS})
+
+# cuda
+include_directories(/usr/local/cuda/include)
+link_directories(/usr/local/cuda/lib64)
+# tensorrt
+include_directories(/usr/include/x86_64-linux-gnu/)
+link_directories(/usr/lib/x86_64-linux-gnu/)
+
+
+set(ZED_LIBS
+  ${ZED_LIBRARIES}
+  ${CUDA_LIBRARIES}
 )
 
 ###############################################################################
@@ -114,17 +139,41 @@ set(ZED_WRAPPER_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_wrapper.cpp
 )
 
+
+
+
 ###############################################################################
 # Bin and Install
 
 add_executable(zed_wrapper
   ${ZED_WRAPPER_SRC}
 )
+
+# Find the libnvinfer library
+# find_library(NVINFER_LIB nvinfer HINTS /usr/local/cuda-12.3/targets/x86_64-linux/lib)
+# find_library(NVPARSER_LIB nvparsers HINTS /usr/local/cuda-12.3/targets/x86_64-linux/lib)
+# find_library(NVINFERPLUG_LIB nvinfer_plugin HINTS /usr/local/cuda-12.3/targets/x86_64-linux/lib)
+# find_library(NVONNX_LIB nvonnxparser HINTS /usr/local/cuda-12.3/targets/x86_64-linux/lib)
+
+SET(TRT_LIBS nvinfer nvonnxparser)
+
+target_link_libraries(zed_wrapper
+${TRT_LIBS}
+  ${ZED_LIBS}
+  ${OpenCV_LIBRARIES}
+  # ${NVINFER_LIB} 
+	# ${NVPARSER_LIB} 
+	# ${NVINFERPLUG_LIB}
+	# ${NVONNX_LIB}
+)
+
 ament_target_dependencies(zed_wrapper
   rclcpp
   rclcpp_components
   zed_components
+  # ${TM_DEP}
 )
+
 install(TARGETS zed_wrapper
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

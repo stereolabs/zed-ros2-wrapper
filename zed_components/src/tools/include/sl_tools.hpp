@@ -17,14 +17,14 @@
 
 #include <chrono>
 #include <memory>
-#include <string>
-#include <vector>
 #include <rclcpp/clock.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sl/Camera.hpp>
+#include <string>
+#include <vector>
 
+#include "gnss_replay.hpp"
 #include "sl_win_avg.hpp"
-
 namespace sl_tools
 {
 
@@ -79,7 +79,7 @@ bool isObjDetAvailable(sl::MODEL camModel);
  * \param t : rclcpp ros::Time to stamp the image
  */
 std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
-  sl::Mat & img, std::string frameId, rclcpp::Time t);
+  const sl::Mat & img, const std::string & frameId, const rclcpp::Time & t);
 
 /*! \brief sl::Mat to ros message conversion
  * \param left : the left image to convert and stitch
@@ -88,7 +88,8 @@ std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
  * \param t : rclcpp rclcpp::Time to stamp the image
  */
 std::unique_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
-  sl::Mat & left, sl::Mat & right, std::string frameId, rclcpp::Time t);
+  const sl::Mat & left, const sl::Mat & right, const std::string & frameId,
+  const rclcpp::Time & t);
 
 /*! \brief qos value to string
  * \param qos the value to convert
@@ -138,7 +139,7 @@ bool checkRoot();
 class StopWatch
 {
 public:
-  StopWatch(rclcpp::Clock::SharedPtr clock);
+  explicit StopWatch(rclcpp::Clock::SharedPtr clock);
   ~StopWatch() {}
 
   void tic();    //!< Set the reference time point to the current time

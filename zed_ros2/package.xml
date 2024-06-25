@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format2.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="2">
 	<name>zed_ros2</name>
-	<version>4.0.0</version>
+<version>4.1.0</version>
 	<description>Stereolabs zed-ros2-wrapper support meta package</description>
 	<maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
 	<license>Apache License 2.0</license>
@@ -10,6 +10,7 @@
 	<url type="repository">https://github.com/stereolabs/zed-ros2-wrapper</url>
 	<url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
 	<buildtool_depend>ament_cmake</buildtool_depend>
+	<build_depend>ament_cmake_auto</build_depend>
 	<exec_depend>zed_interfaces</exec_depend>
 	<exec_depend>zed_components</exec_depend>
 	<exec_depend>zed_wrapper</exec_depend>

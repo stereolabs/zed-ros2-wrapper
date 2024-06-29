@@ -57,6 +57,7 @@
 #include <zed_interfaces/msg/plane_stamped.hpp>
 #include <zed_interfaces/msg/pos_track_status.hpp>
 #include <zed_interfaces/srv/set_pose.hpp>
+#include <zed_interfaces/srv/save_area_database.hpp>
 #include <zed_interfaces/srv/set_roi.hpp>
 #include <zed_interfaces/srv/start_svo_rec.hpp>
 
@@ -157,6 +158,7 @@ typedef std::unique_ptr<visualization_msgs::msg::Marker> markerMsgPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetOdomSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetPosTrkSrvPtr;
 typedef rclcpp::Service<zed_interfaces::srv::SetPose>::SharedPtr setPoseSrvPtr;
+typedef rclcpp::Service<zed_interfaces::srv::SaveAreaDatabase>::SharedPtr saveAreaDatabaseSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableObjDetPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableBodyTrkPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;

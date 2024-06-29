@@ -103,6 +103,10 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
     std::shared_ptr<zed_interfaces::srv::SetPose_Response> res);
+  void callback_saveAreaDatabase(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<zed_interfaces::srv::SaveAreaDatabase_Request> req,
+    std::shared_ptr<zed_interfaces::srv::SaveAreaDatabase_Response> res);
   void callback_enableObjDet(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
@@ -816,6 +820,7 @@ private:
   resetOdomSrvPtr mResetOdomSrv;
   resetPosTrkSrvPtr mResetPosTrkSrv;
   setPoseSrvPtr mSetPoseSrv;
+  saveAreaDatabaseSrvPtr mSaveAreaDatabaseSrv;
   enableObjDetPtr mEnableObjDetSrv;
   enableBodyTrkPtr mEnableBodyTrkSrv;
   enableMappingPtr mEnableMappingSrv;
@@ -833,6 +838,7 @@ private:
   const std::string mSrvResetOdomName = "reset_odometry";
   const std::string mSrvResetPoseName = "reset_pos_tracking";
   const std::string mSrvSetPoseName = "set_pose";
+  const std::string mSrvSaveAreaDatabase = "save_area_database";
   const std::string mSrvEnableObjDetName = "enable_obj_det";
   const std::string mSrvEnableBodyTrkName = "enable_body_trk";
   const std::string mSrvEnableMappingName = "enable_mapping";

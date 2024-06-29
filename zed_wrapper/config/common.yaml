@@ -20,7 +20,7 @@
             camera_max_reconnect: 5
             camera_flip: false
             serial_number: 0 # usually overwritten by launch file
-            pub_resolution: "CUSTOM" # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
+            pub_resolution: "NATIVE" # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
             pub_frame_rate: 30.0 # frequency of publishing of visual images and depth images
             gpu_id: -1
@@ -34,7 +34,7 @@
             sharpness: 4 # [DYNAMIC]
             gamma: 8 # [DYNAMIC]
             auto_exposure_gain: true # [DYNAMIC]
-            exposure: 80 # [DYNAMIC]i
+            exposure: 80 # [DYNAMIC]
             gain: 80 # [DYNAMIC]
             auto_whitebalance: true # [DYNAMIC]
             whitebalance_temperature: 42 # [DYNAMIC] - [28,65] works only if `auto_whitebalance` is false
@@ -54,7 +54,7 @@
             apply_to_spatial_mapping: true # Apply ROI to spatial mapping processing
 
         depth:
-            depth_mode: "NEURAL" # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            depth_mode: "ULTRA" # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             depth_stabilization: 1 # Forces positional tracking to start if major than 0 - Range: [0,100]
             openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
             point_cloud_freq: 10.0 # [DYNAMIC] - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
@@ -70,7 +70,7 @@
             publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF
             map_frame: "map"
             odometry_frame: "odom"
-            area_memory_db_path: "/workspaces/temp_ws/database.area"
+            area_memory_db_path: ""
             area_memory: true # Enable to detect loop closure
             reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
@@ -100,7 +100,7 @@
             target_yaw_uncertainty: 1e-2 # defines the target yaw uncertainty at which the calibration process between GNSS and VIO concludes. The unit of this parameter is in radian. By default, the threshold is set at 0.1 radians.
 
         mapping:
-            mapping_enabled: true # True to enable mapping and fused point cloud pubblication
+            mapping_enabled: false # True to enable mapping and fused point cloud pubblication
             resolution: 0.05 # maps resolution in meters [min: 0.01f - max: 0.2f]
             max_mapping_range: 5.0 # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
             fused_pointcloud_freq: 1.0 # frequency of the publishing of the fused colored point cloud

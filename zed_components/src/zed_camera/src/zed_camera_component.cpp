@@ -276,6 +276,12 @@ void ZedCamera::initServices()
     mSetPoseSrv = create_service<zed_interfaces::srv::SetPose>(
       srv_name, std::bind(&ZedCamera::callback_setPose, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mSetPoseSrv->get_service_name());
+    // Save Area Database
+    srv_name = srv_prefix + mSrvSaveAreaDatabase;
+    mSaveAreaDatabaseSrv = create_service<zed_interfaces::srv::SaveAreaDatabase>(
+      srv_name,
+      std::bind(&ZedCamera::callback_saveAreaDatabase, this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mResetPosTrkSrv->get_service_name());
     // Enable Object Detection
     srv_name = srv_prefix + mSrvEnableObjDetName;
     mEnableObjDetSrv = create_service<std_srvs::srv::SetBool>(
@@ -9253,6 +9259,38 @@ void ZedCamera::callback_setPose(
 
   res->message = "Positional Tracking new pose OK";
   res->success = true;
+}
+
+void ZedCamera::callback_saveAreaDatabase(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<zed_interfaces::srv::SaveAreaDatabase_Request> req,
+  std::shared_ptr<zed_interfaces::srv::SaveAreaDatabase_Response> res)
+{
+  (void)request_header;  // Suppress unused variable warning
+
+  RCLCPP_INFO(get_logger(), "** Save Area Database service called **");
+
+  std::string& path = req->file_path;
+  sl::String zed_path(path.c_str());
+  RCLCPP_INFO(get_logger(), "Attempting to save Area Database to: %s", path.c_str());
+
+  sl::ERROR_CODE sdk_status = mZed->saveAreaMap(zed_path);
+
+  auto export_state = sl::AREA_EXPORTING_STATE::RUNNING;
+  while (export_state == sl::AREA_EXPORTING_STATE::RUNNING) {
+          export_state = mZed->getAreaExportState();
+          sl::sleep_ms(5);
+  }
+
+  if (sdk_status == sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_INFO(get_logger(), "Area Database successfully saved to %s", path.c_str());
+    res->message = "Area Database saved successfully";
+    res->success = true;
+  } else {
+    RCLCPP_ERROR(get_logger(), "Failed to save Area Database");
+    res->message = "Failed to save Area Database";
+    res->success = false;
+  }
 }
 
 void ZedCamera::callback_enableObjDet(

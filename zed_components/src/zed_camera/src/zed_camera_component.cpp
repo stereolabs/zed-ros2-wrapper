@@ -727,6 +727,11 @@ void ZedCamera::getGeneralParams()
         get_logger(), " + Playing an SVO for "
           << sl::toString(mCamUserModel)
           << " camera model.");
+    } else if (mStreamMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Playing a network stream from a "
+          << sl::toString(mCamUserModel)
+          << " camera model.");
     } else if (mSimMode) {
       RCLCPP_INFO_STREAM(
         get_logger(), " + Simulating a "
@@ -744,6 +749,11 @@ void ZedCamera::getGeneralParams()
     if (mSvoMode) {
       RCLCPP_INFO_STREAM(
         get_logger(), " + Playing an SVO for "
+          << sl::toString(mCamUserModel)
+          << " camera model.");
+    } else if (mStreamMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Playing a network stream from a "
           << sl::toString(mCamUserModel)
           << " camera model.");
     } else if (mSimMode) {
@@ -772,6 +782,11 @@ void ZedCamera::getGeneralParams()
     if (mSvoMode) {
       RCLCPP_INFO_STREAM(
         get_logger(), " + Playing an SVO for "
+          << sl::toString(mCamUserModel)
+          << " camera model.");
+    } else if (mStreamMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Playing a network stream from a "
           << sl::toString(mCamUserModel)
           << " camera model.");
     } else if (mSimMode) {

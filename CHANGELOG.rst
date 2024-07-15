@@ -1,5 +1,10 @@
 LATEST CHANGES
 ==============
+
+2024-07-15
+----------
+- Fixed a bug while playing a ZED X stream on a "not-Jetson" host device
+
 2024-06-24
 ----------
 - Changed default DDS Middleware to FastRTPS in Docker

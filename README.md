@@ -57,7 +57,7 @@ source ~/.bashrc
 
 > **Note:** If `rosdep` is missing you can install it with:
 > 
->   ```sudo apt-get install python3-rosdep python3-rosinstall-generator python3-vcstool python3-rosinstall build-essential```
+>   `sudo apt-get install python3-rosdep python3-rosinstall-generator python3-vcstool python3-rosinstall build-essential`
 
 > **Note:** When using the ZED ROS 2 Wrapper on an NVIDIA Jetson with JP6 GA, it is possible that you get the following error when building the package for the first time
 >
@@ -69,6 +69,7 @@ source ~/.bashrc
 > ```
 >
 > You can fix the problem by installing the missing `nvidia-cuda-dev` package:
+> 
 > `sudo apt install nvidia-cuda-dev`
 
 > **Note:** The option `--symlink-install` is very important, it allows to use symlinks instead of copying files to the ROS 2 folders during the installation, where possible. Each package in ROS 2 must be installed and all the files used by the nodes must be copied into the installation folders. Using symlinks allows you to modify them in your workspace, reflecting the modification during the next executions without needing to issue a new `colcon build` command. This is true only for all the files that don't need to be compiled (Python scripts, configurations, etc.).

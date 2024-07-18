@@ -4404,7 +4404,7 @@ bool ZedCamera::startCamera()
       // value_max
       // << "]");
 
-      if(!mStreamMode) {
+      if (!mStreamMode) {
         setting = sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION;
         err = mZed->getCameraSettings(setting, value);
         if (err != sl::ERROR_CODE::SUCCESS) {
@@ -4476,7 +4476,7 @@ bool ZedCamera::startCamera()
       // value_max
       // << "]");
 
-      if(!mStreamMode) {
+      if (!mStreamMode) {
         setting = sl::VIDEO_SETTINGS::DENOISING;
         err = mZed->getCameraSettings(setting, value);
         if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8558,15 +8558,15 @@ void ZedCamera::applyVideoSettings()
       //     sl::toString(err).c_str() );
       // }
 
-      if(!mStreamMode) {
+      if (!mStreamMode) {
         setting = sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION;
         err = mZed->getCameraSettings(setting, value);
         if (err == sl::ERROR_CODE::SUCCESS && value != mGmslExposureComp) {
           err = mZed->setCameraSettings(setting, mGmslExposureComp);
           DEBUG_STREAM_CTRL(
             "New setting for " << sl::toString(setting).c_str()
-                              << ": " << mGmslExposureComp
-                              << " [Old " << value << "]");
+                               << ": " << mGmslExposureComp
+                               << " [Old " << value << "]");
         }
 
         if (err != sl::ERROR_CODE::SUCCESS) {
@@ -8652,15 +8652,15 @@ void ZedCamera::applyVideoSettings()
       //     sl::toString(err).c_str() );
       // }
 
-      if(!mStreamMode) {
+      if (!mStreamMode) {
         setting = sl::VIDEO_SETTINGS::DENOISING;
         err = mZed->getCameraSettings(setting, value);
         if (err == sl::ERROR_CODE::SUCCESS && value != mGmslDenoising) {
           err = mZed->setCameraSettings(setting, mGmslDenoising);
           DEBUG_STREAM_CTRL(
             "New setting for " << sl::toString(setting).c_str()
-                              << ": " << mGmslDenoising
-                              << " [Old " << value << "]");
+                               << ": " << mGmslDenoising
+                               << " [Old " << value << "]");
         }
 
         if (err != sl::ERROR_CODE::SUCCESS) {

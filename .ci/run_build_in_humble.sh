@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 ZED_SDK_MAJOR=4
-ZED_SDK_MINOR=0
+ZED_SDK_MINOR=1
 
 # Retrieve CUDA version from environment variable CUDA_VERSION
 CUDA_MAJOR=`echo ${CUDA_VERSION} | cut -d. -f1`

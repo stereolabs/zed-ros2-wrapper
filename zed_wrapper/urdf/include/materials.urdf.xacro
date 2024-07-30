@@ -18,21 +18,24 @@
 
 <robot>
     <material name="zed_mat">
-        <color rgba="0.8 0.8 0.8 0.8"/>
+        <color rgba="0.8 0.8 0.8 1.0"/>
     </material>
     <material name="zedm_mat">
-        <color rgba="0 0 0 0.9"/>
+        <color rgba="0 0 0 1.0"/>
     </material>
     <material name="zed2_mat">
-        <color rgba="0.25 0.25 0.25 0.99"/>
+        <color rgba="0.25 0.25 0.25 1.0"/>
     </material>
     <material name="zed2i_mat">
-        <color rgba="0.25 0.25 0.25 0.99"/>
+        <color rgba="0.25 0.25 0.25 1.0"/>
     </material>
     <material name="zedx_mat">
-        <color rgba="0.25 0.25 0.25 0.99"/>
+        <color rgba="0.25 0.25 0.25 1.0"/>
     </material>
     <material name="zedxm_mat">
-        <color rgba="0.25 0.25 0.25 0.99"/>
+        <color rgba="0.25 0.25 0.25 1.0"/>
+    </material>
+    <material name="virtual_mat">
+        <color rgba="0.25 0.25 0.25 1.0"/>
     </material>
 </robot>

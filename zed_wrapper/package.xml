@@ -21,6 +21,14 @@
 	<exec_depend>rclcpp_components</exec_depend>
 	<exec_depend>rcutils</exec_depend>
 	<exec_depend>xacro</exec_depend>
+	<exec_depend>image_transport_plugins</exec_depend>
+	<exec_depend>compressed_image_transport</exec_depend>
+	<exec_depend>compressed_depth_image_transport</exec_depend>
+	<exec_depend>theora_image_transport</exec_depend>
+	<exec_depend>point_cloud_transport_plugins</exec_depend>
+	<exec_depend>draco_point_cloud_transport</exec_depend>
+	<exec_depend>zlib_point_cloud_transport</exec_depend>
+	<exec_depend>zstd_point_cloud_transport</exec_depend>
 	<test_depend>ament_lint_auto</test_depend>
 	<test_depend>ament_cmake_copyright</test_depend>
 	<test_depend>ament_cmake_cppcheck</test_depend>

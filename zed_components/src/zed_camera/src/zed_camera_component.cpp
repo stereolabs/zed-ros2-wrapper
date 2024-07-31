@@ -137,6 +137,19 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   #endif
   // <---- Publishers/Sbscribers options
 
+  // ----> Start a "one shot timer" to initialize the node and make `shared_from_this` available
+  std::chrono::milliseconds init_msec(static_cast<int>(50.0));
+  mInitTimer = create_wall_timer(
+    std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
+    std::bind(&ZedCamera::init, this));
+  // <---- Start a "one shot timer" to initialize the node and make `shared_from_this` available
+}
+
+void ZedCamera::init()
+{
+  // Stop the timer for "one shot" initialization
+  mInitTimer->cancel();
+
   // Parameters initialization
   initParameters();
 
@@ -3577,11 +3590,20 @@ void ZedCamera::initPublishers()
     RCLCPP_INFO_STREAM(
       get_logger(), "Advertised on topic: "
         << mPubDisparity->get_topic_name());
+#ifndef FOUND_FOXY
+    mPubCloud = point_cloud_transport::create_publisher(
+      this->shared_from_this(), 
+      pointcloud_topic, mQos.get_rmw_qos_profile(), mPubOpt);
+      RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Advertised on topic: " << mPubCloud.getTopic());
+#else
     mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>(
       pointcloud_topic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Advertised on topic: " << mPubCloud->get_topic_name());
+#endif    
     // <---- Depth publishers
 
     // ----> Pos Tracking
@@ -3657,6 +3679,15 @@ void ZedCamera::initPublishers()
 
     // ----> Mapping
     if (mMappingEnabled) {
+#ifndef FOUND_FOXY
+      mPubFusedCloud = point_cloud_transport::create_publisher(
+        this->shared_from_this(), mPointcloudFusedTopic, mQos.get_rmw_qos_profile());
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Advertised on topic "
+          << mPubFusedCloud.getTopic()
+          << " @ " << mFusedPcPubRate
+          << " Hz");
+#else
       mPubFusedCloud = create_publisher<sensor_msgs::msg::PointCloud2>(
         mPointcloudFusedTopic, mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
@@ -3664,6 +3695,7 @@ void ZedCamera::initPublishers()
           << mPubFusedCloud->get_topic_name()
           << " @ " << mFusedPcPubRate
           << " Hz");
+#endif
     }
 
     std::string marker_topic = "plane_marker";
@@ -4992,6 +5024,16 @@ bool ZedCamera::start3dMapping()
 
   if (err == sl::ERROR_CODE::SUCCESS) {
     if (mPubFusedCloud == nullptr) {
+#ifndef FOUND_FOXY
+      mPubFusedCloud = point_cloud_transport::create_publisher(
+        this->shared_from_this(), mPointcloudFusedTopic,
+        mQos.get_rmw_qos_profile());
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Advertised on topic "
+          << mPubFusedCloud.getTopic()
+          << " @ " << mFusedPcPubRate
+          << " Hz");
+#else
       mPubFusedCloud = create_publisher<sensor_msgs::msg::PointCloud2>(
         mPointcloudFusedTopic, mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
@@ -4999,6 +5041,7 @@ bool ZedCamera::start3dMapping()
           << mPubFusedCloud->get_topic_name()
           << " @ " << mFusedPcPubRate
           << " Hz");
+#endif
     }
 
     mSpatialMappingRunning = true;
@@ -5143,7 +5186,7 @@ void ZedCamera::stopObjDetect()
     mZed->disableObjectDetection();
 
     // ----> Send an empty message to indicate that no more objects are tracked
-    // (e.g clean Rviz2)
+    // (e.g clean RVIZ2)
     objDetMsgPtr objMsg =
       std::make_unique<zed_interfaces::msg::ObjectsStamped>();
 
@@ -5157,7 +5200,7 @@ void ZedCamera::stopObjDetect()
         << mPubObjDet->get_topic_name());
     mPubObjDet->publish(std::move(objMsg));
     // <---- Send an empty message to indicate that no more objects are tracked
-    // (e.g clean Rviz2)
+    // (e.g clean RVIZ2)
   }
 }
 
@@ -5249,7 +5292,7 @@ void ZedCamera::stopBodyTracking()
     mZed->disableBodyTracking();
 
     // ----> Send an empty message to indicate that no more objects are tracked
-    // (e.g clean Rviz2)
+    // (e.g clean RVIZ2)
     objDetMsgPtr objMsg =
       std::make_unique<zed_interfaces::msg::ObjectsStamped>();
 
@@ -5263,7 +5306,7 @@ void ZedCamera::stopBodyTracking()
         << mPubBodyTrk->get_topic_name());
     mPubBodyTrk->publish(std::move(objMsg));
     // <---- Send an empty message to indicate that no more objects are tracked
-    // (e.g clean Rviz2)
+    // (e.g clean RVIZ2)
   }
 }
 
@@ -6053,7 +6096,11 @@ void ZedCamera::threadFunc_zedGrab()
 
       size_t cloudSubnumber = 0;
       try {
+#ifndef FOUND_FOXY
+        cloudSubnumber = mPubCloud.getNumSubscribers();
+#else
         cloudSubnumber = count_subscribers(mPubCloud->get_topic_name());
+#endif
       } catch (...) {
         rcutils_reset_error();
         DEBUG_STREAM_PC(
@@ -8309,7 +8356,11 @@ bool ZedCamera::isDepthRequired()
     depthSub = mPubDepth.getNumSubscribers();
     confMapSub = count_subscribers(mPubConfMap->get_topic_name());
     dispSub = count_subscribers(mPubDisparity->get_topic_name());
+#ifndef FOUND_FOXY
+    pcSub = mPubCloud.getNumSubscribers();
+#else
     pcSub = count_subscribers(mPubCloud->get_topic_name());
+#endif
     depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
 
     tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub;
@@ -8866,7 +8917,11 @@ void ZedCamera::publishPointCloud()
 
   // Pointcloud publishing
   DEBUG_STREAM_PC("Publishing POINT CLOUD message");
+#ifndef FOUND_FOXY
+  mPubCloud.publish(std::move(pcMsg));
+#else
   mPubCloud->publish(std::move(pcMsg));
+#endif
 
   // Publish freq calculation
   double mean = mPcPeriodMean_sec->addValue(mPcFreqTimer.toc());
@@ -8991,7 +9046,11 @@ void ZedCamera::callback_pubFusedPc()
 
   uint32_t fusedCloudSubnumber = 0;
   try {
+#ifndef FOUND_FOXY
+    fusedCloudSubnumber = mPubFusedCloud.getNumSubscribers();
+#else
     fusedCloudSubnumber = count_subscribers(mPubFusedCloud->get_topic_name());
+#endif
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_MAP("pubFusedPc: Exception while counting subscribers");
@@ -9086,7 +9145,11 @@ void ZedCamera::callback_pubFusedPc()
 
   // Pointcloud publishing
   DEBUG_STREAM_MAP("Publishing FUSED POINT CLOUD message");
+#ifndef FOUND_FOXY
+  mPubFusedCloud.publish(std::move(pointcloudFusedMsg));
+#else
   mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
+#endif
 }
 
 void ZedCamera::callback_pubPaths()

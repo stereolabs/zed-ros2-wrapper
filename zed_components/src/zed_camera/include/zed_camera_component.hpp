@@ -37,6 +37,7 @@ public:
 
 protected:
   // ----> Initialization functions
+  void init();
   void initParameters();
   void initServices();
   void initThreads();
@@ -583,10 +584,16 @@ private:
 
   image_transport::CameraPublisher mPubRoiMask;
 
-  imagePub mPubConfMap;
-  disparityPub mPubDisparity;
+#ifndef FOUND_FOXY
+  point_cloud_transport::Publisher mPubCloud;
+  point_cloud_transport::Publisher mPubFusedCloud;
+#else
   pointcloudPub mPubCloud;
   pointcloudPub mPubFusedCloud;
+#endif
+
+  imagePub mPubConfMap;
+  disparityPub mPubDisparity;
   posePub mPubPose;
   poseStatusPub mPubPoseStatus;
   poseCovPub mPubPoseCov;
@@ -666,6 +673,7 @@ private:
   std::thread mPcThread;          // Point Cloud publish thread
   std::thread mSensThread;        // Sensors data publish thread
   bool mThreadStop = false;
+  rclcpp::TimerBase::SharedPtr mInitTimer;
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
   rclcpp::TimerBase::SharedPtr

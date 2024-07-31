@@ -1,7 +1,7 @@
 LATEST CHANGES
 ==============
 
-2024-07-30
+2024-07-31
 ----------
 - Add support for point cloud transport
 
@@ -11,7 +11,7 @@ LATEST CHANGES
 
 2024-06-24
 ----------
-- Changed default DDS Middleware to FastRTPS in Docker
+- Changed default DDS Middleware to FastDDS in Docker
 
 2024-05-29
 ----------

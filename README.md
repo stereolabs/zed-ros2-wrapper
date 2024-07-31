@@ -183,7 +183,7 @@ Roll, Pitch, and the relative velocities will be fixed to zero.
 Examples and tutorials are provided to better understand how to use the ZED wrapper and how to integrate it in the ROS 2 framework.
 See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples)
 
-### Rviz2 visualization examples
+### RVIZ2 visualization examples
 
  - Example launch files to start a preconfigured instance of Rviz displaying all the ZED Wrapper node information: [zed_display_rviz2](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
  - ROS 2 plugin for ZED2 to visualize the results of the Object Detection and Body Tracking modules (bounding boxes and skeletons): [rviz-plugin-zed-od](https://github.com/stereolabs/zed-ros2-examples/tree/master/rviz-plugin-zed-od)

@@ -3593,7 +3593,7 @@ void ZedCamera::initPublishers()
 #ifndef FOUND_FOXY
     mPubCloud = point_cloud_transport::create_publisher(
       this->shared_from_this(), 
-      pointcloud_topic, mQos, mPubOpt.get_rmw_qos_profile());
+      pointcloud_topic, mQos.get_rmw_qos_profile(), mPubOpt);
       RCLCPP_INFO_STREAM(
       get_logger(),
       "Advertised on topic: " << mPubCloud.getTopic());
@@ -5027,7 +5027,7 @@ bool ZedCamera::start3dMapping()
 #ifndef FOUND_FOXY
       mPubFusedCloud = point_cloud_transport::create_publisher(
         this->shared_from_this(), mPointcloudFusedTopic,
-        mMappingQos.get_rmw_qos_profile());
+        mQos.get_rmw_qos_profile());
       RCLCPP_INFO_STREAM(
         get_logger(), "Advertised on topic "
           << mPubFusedCloud.getTopic()
@@ -5186,7 +5186,7 @@ void ZedCamera::stopObjDetect()
     mZed->disableObjectDetection();
 
     // ----> Send an empty message to indicate that no more objects are tracked
-    // (e.g clean Rviz2)
+    // (e.g clean RVIZ2)
     objDetMsgPtr objMsg =
       std::make_unique<zed_interfaces::msg::ObjectsStamped>();
 
@@ -5200,7 +5200,7 @@ void ZedCamera::stopObjDetect()
         << mPubObjDet->get_topic_name());
     mPubObjDet->publish(std::move(objMsg));
     // <---- Send an empty message to indicate that no more objects are tracked
-    // (e.g clean Rviz2)
+    // (e.g clean RVIZ2)
   }
 }
 
@@ -5292,7 +5292,7 @@ void ZedCamera::stopBodyTracking()
     mZed->disableBodyTracking();
 
     // ----> Send an empty message to indicate that no more objects are tracked
-    // (e.g clean Rviz2)
+    // (e.g clean RVIZ2)
     objDetMsgPtr objMsg =
       std::make_unique<zed_interfaces::msg::ObjectsStamped>();
 
@@ -5306,7 +5306,7 @@ void ZedCamera::stopBodyTracking()
         << mPubBodyTrk->get_topic_name());
     mPubBodyTrk->publish(std::move(objMsg));
     // <---- Send an empty message to indicate that no more objects are tracked
-    // (e.g clean Rviz2)
+    // (e.g clean RVIZ2)
   }
 }
 

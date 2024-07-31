@@ -91,7 +91,6 @@ set(DEPENDENCIES
     rclcpp
     rclcpp_components
     image_transport
-    point_cloud_transport
     builtin_interfaces
     std_msgs
     tf2
@@ -110,7 +109,6 @@ set(DEPENDENCIES
     visualization_msgs
     shape_msgs
     robot_localization
-    ${TM_DEP}
 )
 
 find_package(ament_cmake_auto REQUIRED)
@@ -133,13 +131,17 @@ find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
 
 find_package(image_transport REQUIRED)
-find_package(point_cloud_transport REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(shape_msgs REQUIRED)
 find_package(robot_localization REQUIRED)
+
+if(NOT ${FOUND_ROS2_DISTRO} STREQUAL "foxy")
+  find_package(point_cloud_transport REQUIRED)
+  list(APPEND DEPENDENCIES point_cloud_transport)
+endif()
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

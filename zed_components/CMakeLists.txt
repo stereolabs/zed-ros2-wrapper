@@ -90,7 +90,7 @@ find_package(CUDA REQUIRED)
 set(DEPENDENCIES
     rclcpp
     rclcpp_components
-    image_transport    
+    image_transport
     builtin_interfaces
     std_msgs
     tf2
@@ -140,11 +140,9 @@ find_package(visualization_msgs REQUIRED)
 find_package(shape_msgs REQUIRED)
 find_package(robot_localization REQUIRED)
 
-if(NOT ${FOUND_ROS2_DISTRO} STREQUAL "foxy") 
-    find_package(point_cloud_transport REQUIRED)
-    list(APPEND DEPENDENCIES "point_cloud_transport")
-
-    message(${DEPENDENCIES})
+if(NOT ${FOUND_ROS2_DISTRO} STREQUAL "foxy")
+  find_package(point_cloud_transport REQUIRED)
+  list(APPEND DEPENDENCIES point_cloud_transport)
 endif()
 
 if(BUILD_TESTING)

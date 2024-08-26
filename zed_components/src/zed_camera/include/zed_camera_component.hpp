@@ -586,8 +586,13 @@ private:
 
   image_transport::CameraPublisher mPubRoiMask;
 
+#ifndef FOUND_FOXY
   point_cloud_transport::Publisher mPubCloud;
   point_cloud_transport::Publisher mPubFusedCloud;
+#else
+  pointcloudPub mPubCloud;
+  pointcloudPub mPubFusedCloud;
+#endif
 
   imagePub mPubConfMap;
   disparityPub mPubDisparity;

@@ -15,11 +15,15 @@
 #ifndef SL_TYPES_HPP_
 #define SL_TYPES_HPP_
 
+#include <string>
+#include <vector>
+
+#include <memory>
+
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
-
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
 #include <diagnostic_updater/diagnostic_updater.hpp>
 #include <geographic_msgs/msg/geo_pose_stamped.hpp>
@@ -30,8 +34,6 @@
 #include <image_transport/camera_publisher.hpp>
 #include <image_transport/image_transport.hpp>
 #include <image_transport/publisher.hpp>
-#include <point_cloud_transport/point_cloud_transport.hpp>
-#include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -49,8 +51,6 @@
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <stereo_msgs/msg/disparity_image.hpp>
-#include <string>
-#include <vector>
 #include <visualization_msgs/msg/marker.hpp>
 #include <zed_interfaces/msg/depth_info_stamped.hpp>
 #include <zed_interfaces/msg/gnss_fusion_status.hpp>
@@ -61,6 +61,10 @@
 #include <zed_interfaces/srv/set_pose.hpp>
 #include <zed_interfaces/srv/set_roi.hpp>
 #include <zed_interfaces/srv/start_svo_rec.hpp>
+
+#ifndef FOUND_FOXY
+  #include <point_cloud_transport/point_cloud_transport.hpp>
+#endif
 
 #define TIMEZERO_ROS rclcpp::Time(0, 0, RCL_ROS_TIME)
 #define TIMEZERO_SYS rclcpp::Time(0, 0, RCL_SYSTEM_TIME)

@@ -134,6 +134,7 @@ protected:
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_clickedPoint(
     const geometry_msgs::msg::PointStamped::SharedPtr msg);
+  void callback_det2dArray(const vision_msgs::msg::Detection2DArray::SharedPtr msg);
   void callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
   void callback_clock(const rosgraph_msgs::msg::Clock::SharedPtr msg);
   void callback_setRoi(
@@ -266,6 +267,7 @@ private:
   std::string mPosePathTopic;
   std::string mClickedPtTopic;  // Clicked point
   std::string mRoiMaskTopic;
+  std::string mDet2dArrayTopic;
   // <---- Topics
 
   // ----> Parameter variables
@@ -657,6 +659,7 @@ private:
   clickedPtSub mClickedPtSub;
   gnssFixSub mGnssFixSub;
   clockSub mClockSub;
+  det2dArraySub mDet2dArraySub;
   // <---- Subscribers
 
   // ----> Threads and Timers

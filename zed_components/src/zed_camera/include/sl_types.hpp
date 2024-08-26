@@ -26,6 +26,7 @@
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <vision_msgs/vision_msgs/msg/detection2_d_array.hpp>
 #include <image_transport/camera_publisher.hpp>
 #include <image_transport/image_transport.hpp>
 #include <image_transport/publisher.hpp>
@@ -125,6 +126,7 @@ typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::NavSatFix>>
 typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> clickedPtSub;
 typedef std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>> gnssFixSub;
 typedef std::shared_ptr<rclcpp::Subscription<rosgraph_msgs::msg::Clock>> clockSub;
+typedef std::shared_ptr<rclcpp::Subscription<vision_msgs::msg::Detection2DArray>> det2dArraySub;
 
 //typedef std::unique_ptr<point_cloud_transport::PointCloudTransport> ptTranspPtr;
 
@@ -138,6 +140,9 @@ typedef std::unique_ptr<sensor_msgs::msg::MagneticField> magMsgPtr;
 typedef std::unique_ptr<stereo_msgs::msg::DisparityImage> dispMsgPtr;
 
 typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
+
+typedef std::unique_ptr<vision_msgs::msg::Detection2DArray> bbox2dArrayMsgPtr;
+
 typedef std::unique_ptr<zed_interfaces::msg::PosTrackStatus> poseStatusMsgPtr;
 typedef std::unique_ptr<zed_interfaces::msg::GnssFusionStatus> gnssFusionStatusMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped>

@@ -20,7 +20,7 @@ This package lets you use the ZED stereo cameras with ROS 2. It provides access 
   - Detected objects (not available with ZED)
   - Persons skeleton (not available with ZED)
 
-[More information](https://www.stereolabs.com/docs/ros2/getting-started/)
+[More information](https://www.stereolabs.com/docs/ros2)
 
 ![](https://cdn.stereolabs.com/docs/ros/images/PointCloud_Depth_ROS.jpg)
 

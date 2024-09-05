@@ -73,7 +73,7 @@ RUN wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz 
   wget https://github.com/ros-geographic-info/geographic_info/archive/refs/tags/${GEOGRAPHIC_INFO_VERSION}.tar.gz -O - | tar -xvz && mv geographic_info-${GEOGRAPHIC_INFO_VERSION} geographic-info && \
   cp -r geographic-info/geographic_msgs/ . && \
   rm -rf geographic-info && \
-  git clone https://github.com/ros-drivers/nmea_msgs.git --branch ros2 && \  
+  git clone https://github.com/ros-drivers/nmea_msgs.git --branch ros2 && \
   git clone https://github.com/ros/angles.git --branch humble-devel
 
 # Check that all the dependencies are satisfied

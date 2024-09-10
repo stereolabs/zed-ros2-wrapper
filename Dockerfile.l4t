@@ -33,21 +33,33 @@ ENV ZED_SDK_URL="https://stereolabs.sfo2.cdn.digitaloceanspaces.com/zedsdk/${ZED
 # Install the ZED SDK
 RUN wget -q -O zed.run ${ZED_SDK_URL} && \
   chmod +x zed.run && \
- ./zed.run silent skip_tools && \
+ ./zed.run silent && \
   rm -rf /usr/local/zed/resources/* zed.run
 
 # Install extra dependencies. TODO remove these
-#RUN apt update && apt install -y libpq-dev usbutils
-#RUN pip3 install opencv-python-headless protobuf
+# RUN apt update && apt install -y libpq-dev usbutils
+# RUN pip3 install opencv-python-headless protobuf
+
+###################### WS ######################
+
+# Install Open3D system dependencies and pip
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    libegl1 \
+    libgl1 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir --upgrade open3d
 
 ########### COLCON BUILD ZED WRAPPER ###########
 
-WORKDIR /root/ros2_ws/
+WORKDIR /root/ros2_ws/src
 ADD . .
+WORKDIR /root/ros2_ws
 
 # Install ROS dependencies
 RUN apt update -y && rosdep update && \
-  rosdep install --from-paths . --ignore-src -r -y && \
+  rosdep install --from-paths src --ignore-src -r -y && \
   rm -rf /var/lib/apt/lists/*
 
 RUN /bin/sh -c ". /opt/ros/$ROS_DISTRO/setup.sh && \

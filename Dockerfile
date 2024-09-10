@@ -2,7 +2,7 @@ ARG IMAGE_NAME=nvcr.io/nvidia/cuda:12.1.0-devel-ubuntu22.04
 FROM ${IMAGE_NAME}
 
 ARG UBUNTU_MAJOR=22
-#ARG UBUNTU_MINOR=04
+# ARG UBUNTU_MINOR=04
 ARG CUDA_MAJOR=12
 ARG CUDA_MINOR=1
 # ARG CUDA_PATCH=0
@@ -27,7 +27,7 @@ RUN add-apt-repository universe && \
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
 # Install ROS 2 Development and Base packages
-RUN apt update && apt install -y ros-dev-tools ros-humble-ros-core ros-humble-robot-state-publisher ros-${ROS_DISTRO}-sensor-msgs-py
+RUN apt update && apt install -y ros-dev-tools ros-humble-ros-core
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && rosdep init && rosdep update
 
 ########### ZED ###########
@@ -44,10 +44,11 @@ RUN wget -q -O zed.run ${ZED_SDK_URL} && \
   rm -rf /usr/local/zed/resources/* zed.run
 
 # Install extra dependencies. TODO remove these
-#RUN apt update && apt install -y libpq-dev usbutils
-#RUN pip3 install opencv-python-headless protobuf
+# RUN apt update && apt install -y libpq-dev usbutils
+# RUN pip3 install opencv-python-headless protobuf
 
 ###################### WS ######################
+
 # Install Open3D system dependencies and pip
 RUN apt-get update && apt-get install --no-install-recommends -y \
     libegl1 \
@@ -57,16 +58,15 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 
 RUN pip install --no-cache-dir --upgrade open3d
 
-
 ########### COLCON BUILD ZED WRAPPER ###########
+
 WORKDIR /root/ros2_ws/src
 ADD . .
-
 WORKDIR /root/ros2_ws
 
-# # Install ROS dependencies
+# Install ROS dependencies
 RUN apt update -y && rosdep update && \
-  rosdep install --from-paths . --ignore-src -r -y && \
+  rosdep install --from-paths src --ignore-src -r -y && \
   rm -rf /var/lib/apt/lists/*
 
 RUN /bin/sh -c ". /opt/ros/$ROS_DISTRO/setup.sh && \
@@ -74,8 +74,6 @@ RUN /bin/sh -c ". /opt/ros/$ROS_DISTRO/setup.sh && \
   --cmake-args '-DCMAKE_BUILD_TYPE=Release' \
   '-DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs' \
   '-DCMAKE_CXX_FLAGS=\"-Wl,--allow-shlib-undefined\"'"
-
-
 
 # Set the default DDS middleware to FastRTPS for improved big data transmission
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp

@@ -266,7 +266,6 @@ private:
   std::string mPosePathTopic;
   std::string mClickedPtTopic;  // Clicked point
   std::string mRoiMaskTopic;
-  std::string mDet2dArrayTopic;
   // <---- Topics
 
   // ----> Parameter variables

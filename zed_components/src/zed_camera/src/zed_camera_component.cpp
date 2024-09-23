@@ -5173,23 +5173,6 @@ bool ZedCamera::startObjDetect()
       " * Advertised on topic " << mPubObjDet->get_topic_name());
   }
 
-  // ----> Custom Object Detection
-  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS) {
-    RCLCPP_INFO(get_logger(), "*** Create Custom OD inference array subscriber ***");
-
-    mDet2dArrayTopic = "detection_2d_array";
-    mDet2dArraySub.reset();
-    mDet2dArraySub = create_subscription<vision_msgs::msg::Detection2DArray>(
-      mDet2dArrayTopic, mQos,
-      std::bind(&ZedCamera::callback_det2dArray, this, _1), mSubOpt);
-
-    RCLCPP_INFO_STREAM(
-      get_logger(), " * Custom OD Detection Array topic:\t'"
-        << mDet2dArraySub->get_topic_name()
-        << "'");
-  }
-  // <---- Custom Object Detection
-
   mObjDetRunning = true;
   return true;
 }
@@ -10272,11 +10255,6 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
     }
     mGnssFixNew = true;
   }
-}
-
-void ZedCamera::callback_det2dArray(const vision_msgs::msg::Detection2DArray::SharedPtr msg)
-{
-
 }
 
 void ZedCamera::callback_clickedPoint(

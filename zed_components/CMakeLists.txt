@@ -96,8 +96,7 @@ set(DEPENDENCIES
     tf2
     tf2_ros
     tf2_geometry_msgs
-    geometry_msgs
-    vision_msgs
+    geometry_msgs    
     nav_msgs
     nmea_msgs
     geographic_msgs
@@ -125,7 +124,6 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(vision_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(nmea_msgs REQUIRED)
 find_package(geographic_msgs REQUIRED)

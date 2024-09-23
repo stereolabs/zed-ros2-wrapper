@@ -3603,7 +3603,7 @@ void ZedCamera::initPublishers()
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Advertised on topic: " << mPubCloud->get_topic_name());
-#endif    
+#endif
     // <---- Depth publishers
 
     // ----> Pos Tracking

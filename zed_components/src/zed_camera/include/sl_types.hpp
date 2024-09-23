@@ -142,6 +142,7 @@ typedef std::unique_ptr<sensor_msgs::msg::MagneticField> magMsgPtr;
 typedef std::unique_ptr<stereo_msgs::msg::DisparityImage> dispMsgPtr;
 
 typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
+
 typedef std::unique_ptr<zed_interfaces::msg::PosTrackStatus> poseStatusMsgPtr;
 typedef std::unique_ptr<zed_interfaces::msg::GnssFusionStatus> gnssFusionStatusMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped>

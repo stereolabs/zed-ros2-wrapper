@@ -1625,7 +1625,7 @@ void ZedCamera::getOdParams()
   bool matched = false;
   for (int idx =
     static_cast<int>(sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST);
-    idx < static_cast<int>(sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS);
+    idx < static_cast<int>(sl::OBJECT_DETECTION_MODEL::LAST);
     idx++)
   {
     sl::OBJECT_DETECTION_MODEL test_model =
@@ -3592,9 +3592,9 @@ void ZedCamera::initPublishers()
         << mPubDisparity->get_topic_name());
 #ifndef FOUND_FOXY
     mPubCloud = point_cloud_transport::create_publisher(
-      this->shared_from_this(), 
+      this->shared_from_this(),
       pointcloud_topic, mQos.get_rmw_qos_profile(), mPubOpt);
-      RCLCPP_INFO_STREAM(
+    RCLCPP_INFO_STREAM(
       get_logger(),
       "Advertised on topic: " << mPubCloud.getTopic());
 #else
@@ -3603,7 +3603,7 @@ void ZedCamera::initPublishers()
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Advertised on topic: " << mPubCloud->get_topic_name());
-#endif    
+#endif
     // <---- Depth publishers
 
     // ----> Pos Tracking
@@ -3681,7 +3681,7 @@ void ZedCamera::initPublishers()
     if (mMappingEnabled) {
 #ifndef FOUND_FOXY
       mPubFusedCloud = point_cloud_transport::create_publisher(
-        this->shared_from_this(), mPointcloudFusedTopic, mQos.get_rmw_qos_profile());
+        this->shared_from_this(), mPointcloudFusedTopic, mQos.get_rmw_qos_profile(), mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(), "Advertised on topic "
           << mPubFusedCloud.getTopic()
@@ -5027,7 +5027,7 @@ bool ZedCamera::start3dMapping()
 #ifndef FOUND_FOXY
       mPubFusedCloud = point_cloud_transport::create_publisher(
         this->shared_from_this(), mPointcloudFusedTopic,
-        mQos.get_rmw_qos_profile());
+        mQos.get_rmw_qos_profile(), mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(), "Advertised on topic "
           << mPubFusedCloud.getTopic()
@@ -5170,7 +5170,7 @@ bool ZedCamera::startObjDetect()
       mObjectDetTopic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(
       get_logger(),
-      "Advertised on topic " << mPubObjDet->get_topic_name());
+      " * Advertised on topic " << mPubObjDet->get_topic_name());
   }
 
   mObjDetRunning = true;

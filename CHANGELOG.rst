@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2024-09-23
+----------
+- Add support for FFMPEG image transport
+- Add new `ffmpeg.yaml` configuration file
+
 2024-07-31
 ----------
 - Add support for point cloud transport

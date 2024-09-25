@@ -6005,18 +6005,18 @@ void ZedCamera::threadFunc_zedGrab()
                 << sl::toString(mGrabStatus).c_str());
             rclcpp::sleep_for(1000ms);
             continue;
-          } else if (mGrabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED) {
+          } else if (mGrabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED || mGrabStatus == sl::ERROR_CODE::FAILURE) {
             RCLCPP_ERROR_STREAM(
               get_logger(),
               "Camera issue detected: "
-                << sl::toString(mGrabStatus).c_str());
+                << sl::toString(mGrabStatus).c_str() << ". Trying to recover the connection...");
             rclcpp::sleep_for(1000ms);
             continue;
           } else {
             RCLCPP_ERROR_STREAM(
               get_logger(),
               "Critical camera error: " << sl::toString(mGrabStatus).c_str()
-                                        << ". Node stopped.");
+                                        << ". NODE KILLED.");
             mZed.reset();
             exit(EXIT_FAILURE);
           }

@@ -3928,6 +3928,13 @@ bool ZedCamera::startCamera()
   mInitParams.async_grab_camera_recovery =
     true;    // Camera recovery is handled asynchronously to provide information
              // about this status
+
+  // NOTE: this is a temp fix to GMSL2 camera close issues
+  // TODO: check if this issue has been fixed in the SDK
+  if(sl_tools::isZEDX(mCamUserModel)) {
+    RCLCPP_INFO(get_logger(), "Disable async recovery for GMSL2 cameras");
+    mInitParams.async_grab_camera_recovery = false; 
+  }
   // <---- ZED configuration
 
   // ----> Try to connect to a camera, to a stream, or to load an SVO

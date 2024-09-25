@@ -3934,6 +3934,7 @@ bool ZedCamera::startCamera()
   sl_tools::StopWatch connectTimer(get_clock());
 
   mThreadStop = false;
+  mGrabStatus = sl::ERROR_CODE::LAST;
 
   if (!mSvoMode && !mSimMode && !mStreamMode) {
     if (mCamSerialNumber > 0) {
@@ -5977,6 +5978,13 @@ void ZedCamera::threadFunc_zedGrab()
               << sl::toString(mGrabStatus).c_str());
           rclcpp::sleep_for(1000ms);
           continue;
+        } else if (mGrabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED) {
+          RCLCPP_ERROR_STREAM(
+            get_logger(),
+            "Camera issue detected: "
+              << sl::toString(mGrabStatus).c_str());
+          rclcpp::sleep_for(1000ms);
+          continue;
         } else {
           RCLCPP_ERROR_STREAM(
             get_logger(),
@@ -6182,6 +6190,11 @@ void ZedCamera::threadFunc_zedGrab()
 
 rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
 {
+  if(mGrabStatus!=sl::ERROR_CODE::SUCCESS) {
+    DEBUG_SENS("Camera not ready");
+    return TIMEZERO_ROS;
+  }
+
   // ----> Subscribers count
   DEBUG_STREAM_SENS("Sensors callback: counting subscribers");
 
@@ -8933,8 +8946,14 @@ void ZedCamera::publishPointCloud()
 }
 
 void ZedCamera::callback_pubTemp()
-{
+{  
   DEBUG_STREAM_ONCE_SENS("Temperatures callback called");
+
+  if(mGrabStatus!=sl::ERROR_CODE::SUCCESS) {
+    DEBUG_SENS("Camera not ready");
+    return;
+  }
+
 
   if (sl_tools::isZED(mCamRealModel) || sl_tools::isZEDM(mCamRealModel)) {
     DEBUG_SENS(
@@ -9907,6 +9926,10 @@ void ZedCamera::callback_updateDiagnostic(
     } else {
       stat.add("TF IMU", "DISABLED");
     }
+  } else if(mGrabStatus==sl::ERROR_CODE::LAST){
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::OK,
+      "Camera initializing" );
   } else {
     stat.summaryf(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,

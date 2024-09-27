@@ -3932,9 +3932,9 @@ bool ZedCamera::startCamera()
 
   // NOTE: this is a temp fix to GMSL2 camera close issues
   // TODO: check if this issue has been fixed in the SDK
-  if(sl_tools::isZEDX(mCamUserModel)) {
+  if (sl_tools::isZEDX(mCamUserModel)) {
     RCLCPP_INFO(get_logger(), "Disable async recovery for GMSL2 cameras");
-    mInitParams.async_grab_camera_recovery = false; 
+    mInitParams.async_grab_camera_recovery = false;
   }
   // <---- ZED configuration
 
@@ -5211,7 +5211,7 @@ void ZedCamera::stopObjDetect()
       mPubObjDet->publish(std::move(objMsg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what() );
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
     // <---- Send an empty message to indicate that no more objects are tracked
@@ -5323,7 +5323,7 @@ void ZedCamera::stopBodyTracking()
       mPubBodyTrk->publish(std::move(objMsg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
     // <---- Send an empty message to indicate that no more objects are tracked
@@ -5738,13 +5738,13 @@ void ZedCamera::publishImuFrameAndTopic()
   cameraImuTransfMgs->transform.translation.y = sl_tr.y;
   cameraImuTransfMgs->transform.translation.z = sl_tr.z;
 
-  try{
+  try {
     mPubCamImuTransf->publish(std::move(cameraImuTransfMgs));
   } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
-    }
+    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+  } catch (...) {
+    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+  }
 
   // Publish IMU TF as static TF
   if (!mPublishImuTF) {
@@ -6005,7 +6005,9 @@ void ZedCamera::threadFunc_zedGrab()
                 << sl::toString(mGrabStatus).c_str());
             rclcpp::sleep_for(1000ms);
             continue;
-          } else if (mGrabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED || mGrabStatus == sl::ERROR_CODE::FAILURE) {
+          } else if (mGrabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED ||
+            mGrabStatus == sl::ERROR_CODE::FAILURE)
+          {
             RCLCPP_ERROR_STREAM(
               get_logger(),
               "Camera issue detected: "
@@ -6083,7 +6085,7 @@ void ZedCamera::threadFunc_zedGrab()
               RCLCPP_WARN_STREAM(
                 get_logger(),
                 "GNSS sensor and ZED Timestamps are not good. dT = " << dT_sec
-                                                                    << " sec");
+                                                                     << " sec");
             }
           }
         }
@@ -6211,10 +6213,10 @@ void ZedCamera::threadFunc_zedGrab()
 
       // Diagnostic statistics update
       double mean_elab_sec = mElabPeriodMean_sec->addValue(grabElabTimer.toc());
-    } catch(...) {
-          rcutils_reset_error();
-          DEBUG_STREAM_COMM("threadFunc_zedGrab: Generic exception.");
-          continue;
+    } catch (...) {
+      rcutils_reset_error();
+      DEBUG_STREAM_COMM("threadFunc_zedGrab: Generic exception.");
+      continue;
     }
   }
 
@@ -6223,7 +6225,7 @@ void ZedCamera::threadFunc_zedGrab()
 
 rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
 {
-  if(mGrabStatus!=sl::ERROR_CODE::SUCCESS) {
+  if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
     DEBUG_SENS("Camera not ready");
     rclcpp::sleep_for(1s);
     return TIMEZERO_ROS;
@@ -6422,9 +6424,9 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
         mPubImu->publish(std::move(imuMsg));
       } catch (std::system_error & e) {
         DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-      } catch(...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
-    }
+      } catch (...) {
+        DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      }
     } else {
       mImuPublishing = false;
     }
@@ -6438,15 +6440,15 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
       imuRawMsg->header.frame_id = mImuFrameId;
 
       imuRawMsg->angular_velocity.x =
-        sens_data.imu.angular_velocity[0] * DEG2RAD;
+        sens_data.imu.angular_velocity_uncalibrated[0] * DEG2RAD;
       imuRawMsg->angular_velocity.y =
-        sens_data.imu.angular_velocity[1] * DEG2RAD;
+        sens_data.imu.angular_velocity_uncalibrated[1] * DEG2RAD;
       imuRawMsg->angular_velocity.z =
-        sens_data.imu.angular_velocity[2] * DEG2RAD;
+        sens_data.imu.angular_velocity_uncalibrated[2] * DEG2RAD;
 
-      imuRawMsg->linear_acceleration.x = sens_data.imu.linear_acceleration[0];
-      imuRawMsg->linear_acceleration.y = sens_data.imu.linear_acceleration[1];
-      imuRawMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
+      imuRawMsg->linear_acceleration.x = sens_data.imu.linear_acceleration_uncalibrated[0];
+      imuRawMsg->linear_acceleration.y = sens_data.imu.linear_acceleration_uncalibrated[1];
+      imuRawMsg->linear_acceleration.z = sens_data.imu.linear_acceleration_uncalibrated[2];
 
       // ----> Covariances copy
       // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses
@@ -6486,9 +6488,9 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
         mPubImuRaw->publish(std::move(imuRawMsg));
       } catch (std::system_error & e) {
         DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-      } catch(...) {
+      } catch (...) {
         DEBUG_STREAM_COMM("Message publishing generic ecception: ");
-    }
+      }
     }
   }
 
@@ -6511,7 +6513,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
         mPubPressure->publish(std::move(pressMsg));
       } catch (std::system_error & e) {
         DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-      } catch(...) {
+      } catch (...) {
         DEBUG_STREAM_COMM("Message publishing generic ecception: ");
       }
     } else {
@@ -6548,7 +6550,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
         mPubImuMag->publish(std::move(magMsg));
       } catch (std::system_error & e) {
         DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-      } catch(...) {
+      } catch (...) {
         DEBUG_STREAM_COMM("Message publishing generic ecception: ");
       }
     } else {
@@ -6954,9 +6956,9 @@ void ZedCamera::threadFunc_pubSensorsData()
       mSensPubFreqTimer.tic();
       // <---- Check publishing frequency
     } catch (...) {
-        rcutils_reset_error();
-        DEBUG_STREAM_COMM("threadFunc_pubSensorsData: Generic exception.");
-        continue;
+      rcutils_reset_error();
+      DEBUG_STREAM_COMM("threadFunc_pubSensorsData: Generic exception.");
+      continue;
     }
   }
 
@@ -7307,7 +7309,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
       mPubStereo.publish(std::move(combined));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -7324,7 +7326,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
       mPubRawStereo.publish(std::move(combined));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -7344,7 +7346,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
         *sl_tools::imageToROSmsg(mMatConf, mDepthOptFrameId, out_pub_ts));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -7370,7 +7372,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
       mPubDepthInfo->publish(std::move(depthInfoMsg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -7409,7 +7411,7 @@ void ZedCamera::publishImageWithInfo(
     pubImg.publish(std::move(image), camInfoMsg);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-  } catch(...) {
+  } catch (...) {
     DEBUG_STREAM_COMM("Message publishing generic ecception: ");
   }
 }
@@ -7590,7 +7592,7 @@ void ZedCamera::publishOdom(
       mPubOdom->publish(std::move(odomMsg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -7726,7 +7728,7 @@ void ZedCamera::publishPoseStatus()
       mPubPoseStatus->publish(std::move(msg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -7754,7 +7756,7 @@ void ZedCamera::publishGnssPoseStatus()
       mPubGnssPoseStatus->publish(std::move(msg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -7784,7 +7786,7 @@ void ZedCamera::publishGeoPoseStatus()
       mPubGeoPoseStatus->publish(std::move(msg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -7836,7 +7838,7 @@ void ZedCamera::publishPose()
       mPubPose->publish(std::move(poseNoCov));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -7871,7 +7873,7 @@ void ZedCamera::publishPose()
         mPubPoseCov->publish(std::move(poseCov));
       } catch (std::system_error & e) {
         DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-      } catch(...) {
+      } catch (...) {
         DEBUG_STREAM_COMM("Message publishing generic ecception: ");
       }
     }
@@ -8088,7 +8090,7 @@ void ZedCamera::publishGnssPose()
       mPubGnssPose->publish(std::move(msg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -8117,7 +8119,7 @@ void ZedCamera::publishGnssPose()
       mPubGeoPose->publish(std::move(msg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -8160,7 +8162,7 @@ void ZedCamera::publishGnssPose()
       mPubFusedFix->publish(std::move(msg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -8191,7 +8193,7 @@ void ZedCamera::publishGnssPose()
       mPubOriginFix->publish(std::move(msg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -8342,7 +8344,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     mPubObjDet->publish(std::move(objMsg));
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-  } catch(...) {
+  } catch (...) {
     DEBUG_STREAM_COMM("Message publishing generic ecception: ");
   }
 
@@ -8505,7 +8507,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
     mPubBodyTrk->publish(std::move(bodyMsg));
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-  } catch(...) {
+  } catch (...) {
     DEBUG_STREAM_COMM("Message publishing generic ecception: ");
   }
 
@@ -8971,7 +8973,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
       mPubDepth.publish(std::move(depth_img), mDepthCamInfoMsg);
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
     return;
@@ -9010,7 +9012,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
     mPubDepth.publish(std::move(openniDepthMsg), mDepthCamInfoMsg);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-  } catch(...) {
+  } catch (...) {
     DEBUG_STREAM_COMM("Message publishing generic ecception: ");
   }
 }
@@ -9042,7 +9044,7 @@ void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
     mPubDisparity->publish(std::move(disparityMsg));
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-  } catch(...) {
+  } catch (...) {
     DEBUG_STREAM_COMM("Message publishing generic ecception: ");
   }
 }
@@ -9119,7 +9121,7 @@ void ZedCamera::publishPointCloud()
     mPubCloud.publish(std::move(pcMsg));
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-  } catch(...) {
+  } catch (...) {
     DEBUG_STREAM_COMM("Message publishing generic ecception: ");
   }
 #else
@@ -9127,7 +9129,7 @@ void ZedCamera::publishPointCloud()
     mPubCloud->publish(std::move(pcMsg));
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-  } catch(...) {
+  } catch (...) {
     DEBUG_STREAM_COMM("Message publishing generic ecception: ");
   }
 #endif
@@ -9142,10 +9144,10 @@ void ZedCamera::publishPointCloud()
 }
 
 void ZedCamera::callback_pubTemp()
-{  
+{
   DEBUG_STREAM_ONCE_SENS("Temperatures callback called");
 
-  if(mGrabStatus!=sl::ERROR_CODE::SUCCESS) {
+  if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
     DEBUG_SENS("Camera not ready");
     rclcpp::sleep_for(1s);
     return;
@@ -9226,7 +9228,7 @@ void ZedCamera::callback_pubTemp()
       mPubTempL->publish(std::move(leftTempMsg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -9246,7 +9248,7 @@ void ZedCamera::callback_pubTemp()
       mPubTempR->publish(std::move(rightTempMsg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -9265,7 +9267,7 @@ void ZedCamera::callback_pubTemp()
       mPubImuTemp->publish(std::move(imuTempMsg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -9384,7 +9386,7 @@ void ZedCamera::callback_pubFusedPc()
     mPubFusedCloud.publish(std::move(pointcloudFusedMsg));
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-  } catch(...) {
+  } catch (...) {
     DEBUG_STREAM_COMM("Message publishing generic ecception: ");
   }
 #else
@@ -9392,7 +9394,7 @@ void ZedCamera::callback_pubFusedPc()
     mPubFusedCloud->publish(std::move(pointcloudFusedMsg));
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-  } catch(...) {
+  } catch (...) {
     DEBUG_STREAM_COMM("Message publishing generic ecception: ");
   }
 #endif
@@ -9484,7 +9486,7 @@ void ZedCamera::callback_pubPaths()
       mPubPosePath->publish(std::move(mapPathMsg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -9500,7 +9502,7 @@ void ZedCamera::callback_pubPaths()
       mPubOdomPath->publish(std::move(odomPathMsg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
@@ -10165,10 +10167,10 @@ void ZedCamera::callback_updateDiagnostic(
     } else {
       stat.add("TF IMU", "DISABLED");
     }
-  } else if(mGrabStatus==sl::ERROR_CODE::LAST){
+  } else if (mGrabStatus == sl::ERROR_CODE::LAST) {
     stat.summary(
       diagnostic_msgs::msg::DiagnosticStatus::OK,
-      "Camera initializing" );
+      "Camera initializing");
   } else {
     stat.summaryf(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
@@ -10699,7 +10701,7 @@ void ZedCamera::callback_clickedPoint(
       mPubMarker->publish(std::move(pt_marker));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
     // ----> Publish a blue sphere in the clicked point
@@ -10771,7 +10773,7 @@ void ZedCamera::callback_clickedPoint(
       mPubMarker->publish(std::move(plane_marker));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
     // <---- Publish the plane as green mesh
@@ -10856,7 +10858,7 @@ void ZedCamera::callback_clickedPoint(
       mPubPlane->publish(std::move(planeMsg));
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch(...) {
+    } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
     // <---- Publish the plane as custom message

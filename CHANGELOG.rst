@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2024_09_27
+----------
+- Fix `~/imu/data_raw` message not containing RAW IMU data
+
 2024-09-23
 ----------
 - Add support for FFMPEG image transport

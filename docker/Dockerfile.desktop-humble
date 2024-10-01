@@ -5,7 +5,7 @@ ARG CUDA_MINOR=4
 ARG CUDA_PATCH=1
 ARG ZED_SDK_MAJOR=4
 ARG ZED_SDK_MINOR=1
-ARG ZED_SDK_PATCH=0
+ARG ZED_SDK_PATCH=4
 
 ARG IMAGE_NAME=nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-devel-ubuntu${UBUNTU_MAJOR}.${UBUNTU_MINOR}
 
@@ -18,7 +18,7 @@ ARG CUDA_MINOR=4
 ARG CUDA_PATCH=1
 ARG ZED_SDK_MAJOR=4
 ARG ZED_SDK_MINOR=1
-ARG ZED_SDK_PATCH=0
+ARG ZED_SDK_PATCH=4
 
 ARG ROS2_DIST=humble       # ROS2 distribution
 
@@ -128,9 +128,6 @@ RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
   rm -rf /var/lib/apt/lists/*
 
 WORKDIR /root/ros2_ws
-
-# Set the default DDS middleware to FastRTPS for improved big data transmission
-ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
 # Setup environment variables
 COPY ros_entrypoint.sh /sbin/ros_entrypoint.sh

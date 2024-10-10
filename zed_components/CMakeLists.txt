@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 project(zed_components)
 
 ################################################
@@ -96,7 +96,7 @@ set(DEPENDENCIES
     tf2
     tf2_ros
     tf2_geometry_msgs
-    geometry_msgs
+    geometry_msgs    
     nav_msgs
     nmea_msgs
     geographic_msgs

@@ -39,6 +39,13 @@ default_config_common = os.path.join(
     'common.yaml'
 )
 
+# FFMPEG Configuration to be loaded by ZED Node
+default_config_ffmpeg = os.path.join(
+    get_package_share_directory('zed_wrapper'),
+    'config',
+    'ffmpeg.yaml'
+)
+
 # URDF/xacro file to be loaded by the Robot State Publisher node
 default_xacro_path = os.path.join(
     get_package_share_directory('zed_wrapper'),
@@ -75,6 +82,7 @@ def launch_setup(context, *args, **kwargs):
     node_name = LaunchConfiguration('node_name')
 
     config_common_path = LaunchConfiguration('config_path')
+    config_ffmpeg = LaunchConfiguration('ffmpeg_config_path')
 
     serial_number = LaunchConfiguration('serial_number')
 
@@ -157,6 +165,7 @@ def launch_setup(context, *args, **kwargs):
             # YAML files
             config_common_path,  # Common parameters
             config_camera_path,  # Camera related parameters
+            config_ffmpeg, # FFMPEG parameters
             # Overriding
             {
                 'use_sim_time': use_sim_time,
@@ -186,8 +195,9 @@ def launch_setup(context, *args, **kwargs):
         executable='zed_wrapper',
         name=node_name,
         output='screen',
-        # prefix=['xterm -e valgrind --tools=callgrind'],
-        # prefix=['xterm -e gdb -ex run --args'],
+        #prefix=['valgrind'],
+        #prefix=['xterm -e valgrind --tools=callgrind'],
+        #prefix=['xterm -e gdb -ex run --args'],
         #prefix=['gdbserver localhost:3000'],
         parameters=node_parameters
     )
@@ -218,6 +228,10 @@ def generate_launch_description():
                 'config_path',
                 default_value=TextSubstitution(text=default_config_common),
                 description='Path to the YAML configuration file for the camera.'),
+            DeclareLaunchArgument(
+                'ffmpeg_config_path',
+                default_value=TextSubstitution(text=default_config_ffmpeg),
+                description='Path to the YAML configuration file for the FFMPEG parameters when using FFMPEG image transport plugin.'),                
             DeclareLaunchArgument(
                 'serial_number',
                 default_value='0',

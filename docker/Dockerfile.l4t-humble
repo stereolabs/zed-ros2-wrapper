@@ -5,7 +5,7 @@ FROM ${IMAGE_NAME}
 
 ARG ZED_SDK_MAJOR=4
 ARG ZED_SDK_MINOR=1
-ARG ZED_SDK_PATCH=0
+ARG ZED_SDK_PATCH=4
 ARG JETPACK_MAJOR=5
 ARG JETPACK_MINOR=0
 ARG L4T_MAJOR=35
@@ -97,9 +97,6 @@ RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/install/setup.bash && \
   ' --no-warn-unused-cli' "
 
 WORKDIR /root/ros2_ws
-
-# Set the default DDS middleware to FastRTPS for improved big data transmission
-ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
 # Setup environment variables 
 COPY ros_entrypoint_jetson.sh /sbin/ros_entrypoint.sh

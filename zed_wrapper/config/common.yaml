@@ -20,7 +20,7 @@
             camera_max_reconnect: 5
             camera_flip: false
             serial_number: 0 # usually overwritten by launch file
-            pub_resolution: "NATIVE" # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
+            pub_resolution: "CUSTOM" # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
             pub_frame_rate: 30.0 # frequency of publishing of visual images and depth images
             gpu_id: -1

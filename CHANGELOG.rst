@@ -1,25 +1,9 @@
 LATEST CHANGES
 ==============
 
-2024-07-31
-----------
-- Add support for point cloud transport
-
-2024-07-15
-----------
-- Fixed a bug while playing a ZED X stream on a "not-Jetson" host device
-
-2024-06-24
-----------
-- Changed default DDS Middleware to FastDDS in Docker
-
-2024-05-29
-----------
-- New Docker configuration files allow to easily create "ZED ROS2 Wrapper" images based on specific tag versions. [Read more](./docker/README.md)
-
-2024-04-26 (ZED SDK v4.1)
--------------------------
-- Updated the Docker files to the CUDA 12.4 (PC), L4T 35.4 (Jetson), SDK v4.1.0
+v4.1.x
+------
+- Updated the Docker files to the CUDA 12.4 (PC), L4T 35.4 (Jetson), SDK v4.1.4
 - Added Local Streaming output
   - Added `enable_streaming` service to start/stop a streaming server
   - Added Streaming Server diagnostic
@@ -61,6 +45,12 @@ LATEST CHANGES
 - Removed QoS parameters to use ROS 2 QoS overwrite -> https://design.ros2.org/articles/qos_configurability.html
 - Added support for new `NEURAL_PLUS` depth mode
 - Added new `<camera_name>_gnss_link` frame to URDF to set the position of the GNSS antenna with respect to the camera position
+- New Docker configuration files allow to easily create "ZED ROS2 Wrapper" images based on specific tag versions. [Read more](./docker/README.md)
+- Fixed a bug while playing a ZED X stream on a "not-Jetson" host device
+- Add support for point cloud transport [only Humble, no Foxy]
+- Add support for FFMPEG image transport
+- Add new `ffmpeg.yaml` configuration file
+- Fix `~/imu/data_raw` message not containing RAW IMU data
 
 v4.0.8
 ------

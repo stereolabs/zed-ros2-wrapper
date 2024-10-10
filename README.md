@@ -216,6 +216,66 @@ rm -r log
 colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --parallel-workers $(nproc)
 ```
 
+## Docker
+
+* `Dockerfile`: development desktop image for ROS2 Humble, running on the specified Ubuntu and CUDA versions. The ZED Wrapper is copied from the source file of the current branch and compiled.
+* `Dockerfile.l4t`: Jetson image for ROS2 Humble, running on the given L4T version (L4T36.2 by default).
+
+### Cross compilation
+To build the image for jetson from a Desktop PC (amd64), run the following line before:
+```
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+```
+
+## Build the Docker images
+
+- Build the desktop image
+```
+docker build -t zed-ros2-wrapper .
+```
+
+## Run the Docker image
+
+### NVIDIA runtime
+NVIDIA drivers must be accessible from the Docker image to run the ZED SDK code on the GPU. You'll need :
+
+- The `nvidia` container runtime installed, following [this guide](https://www.stereolabs.com/docs/docker/install-guide-linux/#nvidia-docker)
+- A specific docker runtime environment with `-gpus all` or `-e NVIDIA_DRIVER_CAPABILITIES=all`
+- Docker privileged mode with `--privileged`
+
+
+### Volumes
+A few volumes should also be shared with the host.
+- `/usr/local/zed/settings:/usr/local/zed/settings` if you plan to use the robot in an Internet-negated area, and you previously downloaded the camera calibration files by following [this guide](https://support.stereolabs.com/hc/en-us/articles/21614848880791-How-can-I-use-the-ZED-with-Docker-on-a-robot-with-no-internet-connection). 
+- `/usr/local/zed/resources:/usr/local/zed/resources` if you plan to use the AI module of the ZED SDK (Object Detection, Skeleton Tracking, NEURAL depth) we suggest binding mounting a folder to avoid downloading and optimizing the AI models each time the Docker image is restarted. The first time you use the AI model inside the Docker image, it will be downloaded and optimized in the local bound-mounted folder, and stored there for the next runs.
+- `/dev:/dev` to share the video devices
+- For GMSL cameras (ZED X) you'll also need
+  - `/tmp:/tmp`
+  - `/var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/`
+  - `/etc/systemd/system/zed_x_daemon.service:/etc/systemd/system/zed_x_daemon.service` 
+
+### Start the Docker container
+
+The following command starts an interactive session:
+
+```bash
+docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e NVIDIA_DRIVER_CAPABILITIES=all -e DISPLAY \
+  -v /dev:/dev -v /tmp/.X11-unix/:/tmp/.X11-unix \
+  -v ${HOME}/zed_docker_ai/:/usr/local/zed/resources/ \
+  <image_tag>
+```
+
+For GMSL cameras
+
+```bash
+docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e NVIDIA_DRIVER_CAPABILITIES=all -e DISPLAY \
+  -v /dev:/dev \
+  -v /tmp:/tmp \
+  -v /var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/ \
+  -v /etc/systemd/system/zed_x_daemon.service:/etc/systemd/system/zed_x_daemon.service \
+  -v ${HOME}/zed_docker_ai/:/usr/local/zed/resources/ \
+  <image_tag>
+```
 ## Known issues
 
 * GNSS fusion does not work with ZED SDK v4.1.0

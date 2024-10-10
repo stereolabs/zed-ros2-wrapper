@@ -1,0 +1,805 @@
+Panels:
+  - Class: rviz_common/Displays
+    Help Height: 113
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /RobotModel1/Description Topic1
+        - /Video1/Stereo1/Topic1
+        - /Depth1/Depth Map1/Topic1
+        - /Depth1/Loc. Point Cloud1
+        - /Position1/TF1/Frames1
+        - /Position1/Pose1/Topic1
+        - /Position1/Pose Path1/Topic1
+        - /Position1/Odom Path1/Topic1
+        - /Mapping1/Global 3D Map1/Topic1
+        - /Mapping1/Local Cost Map1/Topic1
+        - /Detection1
+        - /Detection1/Bodies1
+        - /Sensors1/IMU Temperature1/Topic1
+        - /Sensors1/Left Temperature1/Topic1
+        - /Sensors1/Right Temperature1/Topic1
+      Splitter Ratio: 0.6039325594902039
+    Tree Height: 393
+  - Class: rviz_common/Selection
+    Name: Selection
+  - Class: rviz_common/Tool Properties
+    Expanded:
+      - /2D Goal Pose1
+      - /Publish Point1
+    Name: Tool Properties
+    Splitter Ratio: 0.5886790156364441
+  - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz_default_plugins/Grid
+      Color: 160; 160; 164
+      Enabled: false
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
+      Value: false
+    - Alpha: 1
+      Class: rviz_default_plugins/RobotModel
+      Collision Enabled: false
+      Description File: ""
+      Description Source: Topic
+      Description Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /zed/robot_description
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed_baro_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed_camera_center:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        zed_left_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed_left_camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed_mag_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed_right_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed_right_camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed_temp_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed_temp_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Mass Properties:
+        Inertia: false
+        Mass: false
+      Name: RobotModel
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Class: rviz_common/Group
+      Displays:
+        - Class: rviz_default_plugins/Camera
+          Enabled: true
+          Far Plane Distance: 100
+          Image Rendering: background
+          Name: RGB Image
+          Overlay Alpha: 0.5
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/rgb/image_rect_color
+          Value: true
+          Visibility:
+            Depth:
+              Confidence: true
+              Depth Map: true
+              Loc. Point Cloud: true
+              Value: false
+            Detection:
+              Bodies: true
+              Objects: true
+              Value: true
+            Grid: false
+            Mapping:
+              Global 3D Map: true
+              Loc. Color Img: true
+              Loc. Elevation Img: true
+              Local Cost Map: true
+              Local GridMap: true
+              Planes: true
+              Value: true
+            Position:
+              Odom Path: true
+              Pose: true
+              Pose Path: true
+              TF: true
+              Value: false
+            RobotModel: false
+            Sensors:
+              Atm. Pressure: true
+              IMU Temperature: true
+              Left Temperature: true
+              Right Temperature: true
+              Value: false
+            Value: true
+            Video:
+              Stereo: true
+              Value: false
+          Zoom Factor: 1
+        - Class: rviz_default_plugins/Image
+          Enabled: false
+          Max Value: 1
+          Median window: 5
+          Min Value: 0
+          Name: Stereo
+          Normalize Range: true
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/stereo/image_rect_color
+          Value: false
+      Enabled: true
+      Name: Video
+    - Class: rviz_common/Group
+      Displays:
+        - Class: rviz_default_plugins/Image
+          Enabled: true
+          Max Value: 10
+          Median window: 5
+          Min Value: 0
+          Name: Depth Map
+          Normalize Range: false
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/depth/depth_registered
+          Value: true
+        - Class: rviz_default_plugins/Image
+          Enabled: false
+          Max Value: 100
+          Median window: 5
+          Min Value: 0
+          Name: Confidence
+          Normalize Range: false
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/confidence/confidence_map
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz_default_plugins/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: RGB8
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Max Intensity: 4096
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Loc. Point Cloud
+          Position Transformer: XYZ
+          Selectable: true
+          Size (Pixels): 1
+          Size (m): 0.009999999776482582
+          Style: Points
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/point_cloud/cloud_registered
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+      Enabled: true
+      Name: Depth
+    - Class: rviz_common/Group
+      Displays:
+        - Class: rviz_default_plugins/TF
+          Enabled: true
+          Frame Timeout: 10
+          Frames:
+            All Enabled: false
+            base_link:
+              Value: false
+            map:
+              Value: true
+            odom:
+              Value: true
+            zed_baro_link:
+              Value: true
+            zed_base_link:
+              Value: true
+            zed_camera_center:
+              Value: true
+            zed_imu_link:
+              Value: true
+            zed_left_camera_frame:
+              Value: false
+            zed_left_camera_optical_frame:
+              Value: false
+            zed_mag_link:
+              Value: true
+            zed_right_camera_frame:
+              Value: false
+            zed_right_camera_optical_frame:
+              Value: false
+            zed_temp_left_link:
+              Value: true
+            zed_temp_right_link:
+              Value: true
+          Marker Scale: 0.30000001192092896
+          Name: TF
+          Show Arrows: true
+          Show Axes: true
+          Show Names: true
+          Tree:
+            map:
+              odom:
+                base_link:
+                  zed_base_link:
+                    zed_camera_center:
+                      zed_baro_link:
+                        {}
+                      zed_left_camera_frame:
+                        zed_imu_link:
+                          {}
+                        zed_left_camera_optical_frame:
+                          {}
+                        zed_temp_left_link:
+                          {}
+                      zed_mag_link:
+                        {}
+                      zed_right_camera_frame:
+                        zed_right_camera_optical_frame:
+                          {}
+                        zed_temp_right_link:
+                          {}
+          Update Interval: 0.20000000298023224
+          Value: true
+        - Alpha: 0.75
+          Axes Length: 1
+          Axes Radius: 0.10000000149011612
+          Class: rviz_default_plugins/Pose
+          Color: 25; 255; 25
+          Enabled: true
+          Head Length: 0.05000000074505806
+          Head Radius: 0.029999999329447746
+          Name: Pose
+          Shaft Length: 0.10000000149011612
+          Shaft Radius: 0.009999999776482582
+          Shape: Arrow
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/pose
+          Value: true
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz_default_plugins/Path
+          Color: 25; 255; 25
+          Enabled: true
+          Head Diameter: 0.30000001192092896
+          Head Length: 0.20000000298023224
+          Length: 0.009999999776482582
+          Line Style: Lines
+          Line Width: 0.029999999329447746
+          Name: Pose Path
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 255; 85; 255
+          Pose Style: Axes
+          Radius: 0.004999999888241291
+          Shaft Diameter: 0.10000000149011612
+          Shaft Length: 0.10000000149011612
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/path_map
+          Value: true
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz_default_plugins/Path
+          Color: 255; 25; 25
+          Enabled: true
+          Head Diameter: 0.30000001192092896
+          Head Length: 0.20000000298023224
+          Length: 0.009999999776482582
+          Line Style: Lines
+          Line Width: 0.029999999329447746
+          Name: Odom Path
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 255; 85; 255
+          Pose Style: Axes
+          Radius: 0.004999999888241291
+          Shaft Diameter: 0.10000000149011612
+          Shaft Length: 0.10000000149011612
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/path_odom
+          Value: true
+      Enabled: true
+      Name: Position
+    - Class: rviz_common/Group
+      Displays:
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz_default_plugins/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: RGB8
+          Decay Time: 0
+          Enabled: false
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Max Intensity: 4096
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Global 3D Map
+          Position Transformer: XYZ
+          Selectable: false
+          Size (Pixels): 3
+          Size (m): 0.05000000074505806
+          Style: Boxes
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            Filter size: 1
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/mapping/fused_cloud
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: false
+        - Alpha: 0.75
+          Autocompute Intensity Bounds: true
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: rgb
+          Color Transformer: ColorLayer
+          Enabled: false
+          Height Layer: elevation
+          Height Transformer: Layer
+          History Length: 1
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Max Intensity: 0.75
+          Min Color: 0; 0; 0
+          Min Intensity: -0.5
+          Name: Local GridMap
+          Show Grid Lines: true
+          Topic:
+            Depth: 1
+            Durability Policy: System Default
+            Filter size: 1
+            History Policy: System Default
+            Reliability Policy: System Default
+            Value: /zed/zed_node/local_map/gridmap
+          Use Rainbow: false
+          Value: false
+        - Alpha: 1
+          Class: rviz_default_plugins/Map
+          Color Scheme: costmap
+          Draw Behind: false
+          Enabled: false
+          Name: Local Cost Map
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /local_costmap/costmap
+          Update Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /local_costmap/costmap_updates
+          Use Timestamp: false
+          Value: false
+        - Class: rviz_default_plugins/Image
+          Enabled: false
+          Max Value: 1
+          Median window: 5
+          Min Value: 0
+          Name: Loc. Elevation Img
+          Normalize Range: true
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/local_map/elev_img
+          Value: false
+        - Class: rviz_default_plugins/Image
+          Enabled: false
+          Max Value: 1
+          Median window: 5
+          Min Value: 0
+          Name: Loc. Color Img
+          Normalize Range: true
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/local_map/col_img
+          Value: false
+        - Class: rviz_default_plugins/Marker
+          Enabled: true
+          Name: Planes
+          Namespaces:
+            {}
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/plane_marker
+          Value: true
+      Enabled: true
+      Name: Mapping
+    - Class: rviz_common/Group
+      Displays:
+        - Class: rviz_plugin_zed_od/ZedOdDisplay
+          Enabled: true
+          Joint Radius: 0.07999999821186066
+          Label Scale: 3.5
+          Link Size: 0.05000000074505806
+          Name: Objects
+          Show Bounding Boxes: true
+          Show Labels: true
+          Show Skeletons: true
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/obj_det/objects
+          Transparency: 0
+          Value: true
+        - Class: rviz_plugin_zed_od/ZedOdDisplay
+          Enabled: true
+          Joint Radius: 0.20000000298023224
+          Label Scale: 3.5
+          Link Size: 0.10000000149011612
+          Name: Bodies
+          Show Bounding Boxes: false
+          Show Labels: true
+          Show Skeletons: true
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/body_trk/skeletons
+          Transparency: 0
+          Value: true
+      Enabled: true
+      Name: Detection
+    - Class: rviz_common/Group
+      Displays:
+        - Alpha: 0.30000001192092896
+          Autocompute Intensity Bounds: false
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: fluid_pressure
+          Class: rviz_default_plugins/FluidPressure
+          Color: 255; 255; 255
+          Color Transformer: Intensity
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Max Intensity: 1050
+          Min Color: 0; 0; 0
+          Min Intensity: 980
+          Name: Atm. Pressure
+          Position Transformer: XYZ
+          Selectable: false
+          Size (Pixels): 3
+          Size (m): 0.25
+          Style: Tiles
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/atm_press
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Alpha: 0.30000001192092896
+          Autocompute Intensity Bounds: false
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: temperature
+          Class: rviz_default_plugins/Temperature
+          Color: 255; 255; 255
+          Color Transformer: Intensity
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: true
+          Max Color: 255; 255; 255
+          Max Intensity: 100
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: IMU Temperature
+          Position Transformer: XYZ
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.25
+          Style: Tiles
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/temperature/imu
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Alpha: 0.30000001192092896
+          Autocompute Intensity Bounds: false
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: temperature
+          Class: rviz_default_plugins/Temperature
+          Color: 255; 255; 255
+          Color Transformer: Intensity
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: true
+          Max Color: 255; 255; 255
+          Max Intensity: 100
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Left Temperature
+          Position Transformer: XYZ
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.25
+          Style: Tiles
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/temperature/left
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+        - Alpha: 0.30000001192092896
+          Autocompute Intensity Bounds: false
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: temperature
+          Class: rviz_default_plugins/Temperature
+          Color: 255; 255; 255
+          Color Transformer: Intensity
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: true
+          Max Color: 255; 255; 255
+          Max Intensity: 100
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Right Temperature
+          Position Transformer: XYZ
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.25
+          Style: Tiles
+          Topic:
+            Depth: 1
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /zed/zed_node/temperature/right
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: true
+      Enabled: false
+      Name: Sensors
+  Enabled: true
+  Global Options:
+    Background Color: 100; 100; 100
+    Fixed Frame: map
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+      Hide Inactive Objects: true
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+    - Class: rviz_default_plugins/Measure
+      Line color: 128; 128; 0
+    - Class: rviz_default_plugins/SetInitialPose
+      Covariance x: 0.25
+      Covariance y: 0.25
+      Covariance yaw: 0.06853891909122467
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /initialpose
+    - Class: rviz_default_plugins/SetGoal
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /goal_pose
+    - Class: rviz_default_plugins/PublishPoint
+      Single click: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /clicked_point
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 11.199999809265137
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Focal Point:
+        X: 0.7221511006355286
+        Y: 2.1127283573150635
+        Z: 1.9363329410552979
+      Focal Shape Fixed Size: false
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.08539874851703644
+      Target Frame: base_link
+      Value: Orbit (rviz_default_plugins)
+      Yaw: 2.960405111312866
+    Saved: ~
+Window Geometry:
+  Confidence:
+    collapsed: false
+  Depth Map:
+    collapsed: false
+  Displays:
+    collapsed: false
+  Height: 1016
+  Hide Left Dock: false
+  Hide Right Dock: false
+  Loc. Color Img:
+    collapsed: false
+  Loc. Elevation Img:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd00000004000000000000018f0000039afc020000000efb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005d00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003f0000023a000000cc00fffffffb0000000a00560069006500770073010000027f0000015a000000a900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d006500720061000000020c000001270000000000000000fb0000000a0049006d00610067006502000002800000027e000001ec00000151fb0000000a0049006d0061006700650100000312000000cb0000000000000000fb0000001400460072006f006e00740020005600690065007701000003a5000000170000000000000000fb00000012004200610063006b0020005600690065007701000003c200000017000000000000000000000001000001e20000039afc020000000afb0000001e0045006c00650076006100740069006f006e00200049006d006100670065010000003f000001ca0000000000000000fb00000012004400650070007400680020004d00610070010000003f000001f00000002900fffffffb0000000c00530074006500720065006f0000000215000000a50000002900fffffffb000000140043006f006e0066006900640065006e006300650000000122000000720000002900fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fc0000003f000001e30000000000fffffffa000000000100000001fb0000000a0049006d0061006700650000000000ffffffff0000000000000000fb0000001200520047004200200049006d0061006700650100000235000001a40000002900fffffffb0000001c004c006f0063002e00200043006f006c006f007200200049006d0067000000003f000001ed0000002900fffffffb00000024004c006f0063002e00200045006c00650076006100740069006f006e00200049006d0067000000003f0000039a0000002900fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000780000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000004030000039a00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  RGB Image:
+    collapsed: false
+  Selection:
+    collapsed: false
+  Stereo:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Views:
+    collapsed: false
+  Width: 1920
+  X: 0
+  Y: 430

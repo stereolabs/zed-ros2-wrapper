@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+	<name>zed_display_rviz2</name>
+	<version>4.0.0</version>
+	<description>"zed_display_rviz2" is a ROS2 package to visualize in Rviz2 the information from the "zed_wrapper" node</description>
+	<maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
+	<license>Apache License 2.0</license>
+	<url type="website">https://www.stereolabs.com/</url>
+	<url type="repository">https://github.com/stereolabs/zed-ros2-wrapper</url>
+	<url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
+	<buildtool_depend>ament_cmake</buildtool_depend>
+	<exec_depend>rviz2</exec_depend>
+	<exec_depend>launch_ros</exec_depend>
+	<exec_depend>robot_state_publisher</exec_depend>
+	<exec_depend>zed_wrapper</exec_depend>
+	<exec_depend>zed_interfaces</exec_depend>
+	<exec_depend>zed_components</exec_depend>
+	<exec_depend>grid_map_rviz_plugin</exec_depend>
+	<test_depend>ament_lint_auto</test_depend>
+	<test_depend>ament_lint_common</test_depend>
+	<test_depend>ament_cmake_clang_format</test_depend>
+	<export>
+		<build_type>ament_cmake</build_type>
+	</export>
+</package>

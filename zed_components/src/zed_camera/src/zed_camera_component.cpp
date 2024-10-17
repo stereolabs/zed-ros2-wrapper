@@ -4884,6 +4884,13 @@ bool ZedCamera::startPosTracking()
   ptParams.set_gravity_as_origin = mSetGravityAsOrigin;
   ptParams.mode = mPosTrkMode;
 
+  if (mDebugPosTracking) {
+    DEBUG_PT(" * Positional Tracking parameters:");
+    sl::String json;
+    ptParams.encode(json);
+    DEBUG_PT(json.c_str());
+  }
+
   sl::ERROR_CODE err = mZed->enablePositionalTracking(ptParams);
 
   if (err != sl::ERROR_CODE::SUCCESS) {
@@ -6056,6 +6063,7 @@ void ZedCamera::threadFunc_zedGrab()
           mFrameTimestamp =
             sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
         }
+        DEBUG_STREAM_COMM("Grab timestamp: " << mFrameTimestamp.nanoseconds() << " nsec");
         // <---- Timestamp
 
         if (mStreamingServerRequired && !mStreamingServerRunning) {
@@ -7028,13 +7036,14 @@ void ZedCamera::retrieveVideoDepth()
   bool retrieved = false;
 
   // ----> Retrieve all required data
-  DEBUG_STREAM_VD("Retrieving Video Data");
+  DEBUG_VD("Retrieving Video Data");
   if (mRgbSubnumber + mLeftSubnumber + mStereoSubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(mMatLeft, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatLeft.timestamp;
     mRgbSubscribed = true;
+    DEBUG_VD("Left image retrieved");
   }
   if (mRgbRawSubnumber + mLeftRawSubnumber + mStereoRawSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
@@ -7042,12 +7051,14 @@ void ZedCamera::retrieveVideoDepth()
       mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatLeftRaw.timestamp;
+    DEBUG_VD("Left raw image retrieved");
   }
   if (mRightSubnumber + mStereoSubnumber > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(mMatRight, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatRight.timestamp;
+    DEBUG_VD("Right image retrieved");
   }
   if (mRightRawSubnumber + mStereoRawSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
@@ -7055,6 +7066,7 @@ void ZedCamera::retrieveVideoDepth()
       mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatRightRaw.timestamp;
+    DEBUG_VD("Right raw image retrieved");
   }
   if (mRgbGraySubnumber + mLeftGraySubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
@@ -7062,6 +7074,7 @@ void ZedCamera::retrieveVideoDepth()
       mMatLeftGray, sl::VIEW::LEFT_GRAY,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatLeftGray.timestamp;
+    DEBUG_VD("Left gray image retrieved");
   }
   if (mRgbGrayRawSubnumber + mLeftGrayRawSubnumber > 0) {
     retrieved |=
@@ -7070,6 +7083,7 @@ void ZedCamera::retrieveVideoDepth()
       mMatLeftRawGray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatLeftRawGray.timestamp;
+    DEBUG_VD("Left gray raw image retrieved");
   }
   if (mRightGraySubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
@@ -7077,6 +7091,7 @@ void ZedCamera::retrieveVideoDepth()
       mMatRightGray, sl::VIEW::RIGHT_GRAY,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatRightGray.timestamp;
+    DEBUG_VD("Right gray image retrieved");
   }
   if (mRightGrayRawSubnumber > 0) {
     retrieved |=
@@ -7085,6 +7100,7 @@ void ZedCamera::retrieveVideoDepth()
       mMatRightRawGray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatRightRawGray.timestamp;
+    DEBUG_VD("Right gray raw image retrieved");
   }
   if (retrieved) {
     DEBUG_STREAM_VD("Video Data retrieved");
@@ -7099,6 +7115,7 @@ void ZedCamera::retrieveVideoDepth()
       mMatDepth, sl::MEASURE::DEPTH,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatDepth.timestamp;
+    DEBUG_VD("Depth map retrieved");
   }
   if (mDisparitySubnumber > 0) {
     DEBUG_STREAM_VD("Retrieving Disparity");
@@ -7107,6 +7124,7 @@ void ZedCamera::retrieveVideoDepth()
       mMatDisp, sl::MEASURE::DISPARITY,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatDisp.timestamp;
+    DEBUG_VD("Disparity map retrieved");
   }
   if (mConfMapSubnumber > 0) {
     DEBUG_STREAM_VD("Retrieving Confidence");
@@ -7115,11 +7133,13 @@ void ZedCamera::retrieveVideoDepth()
       mMatConf, sl::MEASURE::CONFIDENCE,
       sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatConf.timestamp;
+    DEBUG_VD("Confidence map retrieved");
   }
   if (mDepthInfoSubnumber > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed->getCurrentMinMaxDepth(mMinDepth, mMaxDepth);
     mSdkGrabTS = mMatConf.timestamp;
+    DEBUG_VD("Depth info retrieved");
   }
   if (retrieved) {
     DEBUG_STREAM_VD("Depth Data retrieved");
@@ -7160,10 +7180,13 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   vdElabTimer.tic();
 
   // ----> Check if a grab has been done before publishing the same images
-  if (mSdkGrabTS.data_ns == mLastTs_grab.data_ns) {
+  if (mSdkGrabTS.getNanoseconds() == mLastTs_grab.getNanoseconds()) {
     out_pub_ts = TIMEZERO_ROS;
     // Data not updated by a grab calling in the grab thread
-    DEBUG_STREAM_VD("publishVideoDepth: ignoring not update data");
+    DEBUG_VD("publishVideoDepth: ignoring not update data");
+    DEBUG_STREAM_VD(
+      "Latest Ts: " << mLastTs_grab.getNanoseconds() << " - New Ts: " <<
+        mSdkGrabTS.getNanoseconds());
     return;
   }
 

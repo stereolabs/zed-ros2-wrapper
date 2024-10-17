@@ -114,8 +114,10 @@
             sensors_pub_rate: 200. # frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
 
         object_detection:
-            od_enabled: false # True to enable Object Detection
-            model: 'MULTI_CLASS_BOX_FAST' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE'
+            od_enabled: true # True to enable Object Detection
+            model: 'CUSTOM_YOLOLIKE_BOX_OBJECTS' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE', 'CUSTOM_YOLOLIKE_BOX_OBJECTS'
+            custom_onnx_file: '/home/walter/devel/yolo/yolov8n.onnx' # Only used if 'model' is 'CUSTOM_YOLOLIKE_BOX_OBJECTS'. Path to the YOLO-like ONNX file for custom object detection directly performed by the ZED SDK.
+            onnx_input_size: 640 # Resolution used with the YOLO-like ONNX file. For example, 512 means a input tensor "1x3x512x512"
             allow_reduced_precision_inference: true # Allow inference to run at a lower precision to improve runtime and memory usage
             max_range: 20.0 # [m] Defines a upper depth range for detections
             confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
@@ -166,7 +168,7 @@
             debug_video_depth: false
             debug_camera_controls: false
             debug_point_cloud: false
-            debug_positional_tracking: true
+            debug_positional_tracking: false
             debug_gnss: false
             debug_sensors: false
             debug_mapping: false

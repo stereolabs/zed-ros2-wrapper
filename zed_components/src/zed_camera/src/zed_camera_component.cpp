@@ -1653,6 +1653,13 @@ void ZedCamera::getOdParams()
     get_logger(), " * Object Det. model: "
       << sl::toString(mObjDetModel).c_str());
 
+  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
+    getParam("object_detection.custom_onnx_file", mYoloOnnxPath, mYoloOnnxPath, " * ONNX file: ");
+    getParam(
+      "object_detection.onnx_input_size", mYoloOnnxSize, mYoloOnnxSize,
+      " * ONNX input size: ");
+  }
+
   getParam(
     "object_detection.allow_reduced_precision_inference",
     mObjDetReducedPrecision, mObjDetReducedPrecision);
@@ -5169,6 +5176,12 @@ bool ZedCamera::startObjDetect()
   }
   if (mObjDetSportEnable) {
     mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
+  }
+
+  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
+    od_p.enable_segmentation = false;
+    od_p.custom_onnx_file = sl::String(mYoloOnnxPath.c_str());
+    od_p.custom_onnx_dynamic_input_shape = sl::Resolution(mYoloOnnxSize, mYoloOnnxSize);
   }
 
   sl::ERROR_CODE objDetError = mZed->enableObjectDetection(od_p);

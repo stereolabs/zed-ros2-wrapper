@@ -29,7 +29,7 @@ This package lets you use the ZED stereo cameras with ROS 2. It provides access 
 ### Prerequisites
 
 - [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/) or [Ubuntu 22.04 (Jammy Jellyfish)](https://releases.ubuntu.com/jammy/)
-- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v4.1 (for older versions support please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
+- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v4.2 (for older versions support please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - ROS 2 Foxy Fitxroy or ROS 2 Humble Hawksbill: 
   - [Foxy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html)
@@ -154,6 +154,47 @@ Supported simulation environments:
 The Object Detection can be enabled *automatically* when the node start by setting the parameter `object_detection/od_enabled` to `true` in the file `common.yaml`.
 The Object Detection can be enabled/disabled *manually* by calling the services `enable_obj_det`.
 
+### Custom Object Detection with YOLO-like ONNX model file
+
+Object Detection inference can be performed using a custom inference engine in YOLO-like ONNX format.
+
+You can generate your ONNX model by using Ultralytics tools.
+
+Install Ultralytics tools:
+
+```bash
+python -m pip install ultralytics
+```
+
+Export an ONNX file from a YOLO model (more info [here](https://docs.ultralytics.com/modes/export/)), for example:
+
+```bash
+yolo export model=yolov8n.pt format=onnx simplify=True dynamic=False imgsz=640
+```
+
+For a custom model model the weight file can be changed:
+
+```bash
+yolo export model=yolov8l_custom_model.pt format=onnx simplify=True dynamic=False imgsz=512
+```
+
+Please refer to the corresponding documentation for more details https://github.com/ultralytics/ultralytics
+
+Modify the `common.yaml` parameters to match your configuration:
+
+* set `object_detection.model` to `CUSTOM_ONNX`
+* set `object_detection.custom_onnx_file` to the full path of you ONNX file
+* set `object_detection.onnx_input_size` to the size of the YOLO input tensor, e.g. 512
+
+**Note:** the first time the custom model is used, the ZED SDK optimizes it for the GPU on which is running. Please wait for the optimization to complete. When using Docker, we recommend using a shared volume to store the optimized file on the host and perform the optimization only once.
+
+Console log while optimization is running:
+
+```
+[zed_wrapper-3] [INFO] [1729184874.634985183] [zed.zed_node]: *** Starting Object Detection ***
+[zed_wrapper-3] [2024-10-17 17:07:55 UTC][ZED][INFO] Please wait while the AI model is being optimized for your graphics card
+[zed_wrapper-3]  This operation will be run only once and may take a few minutes 
+```
 
 ### Body Tracking
 
@@ -218,5 +259,4 @@ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --paralle
 
 ## Known issues
 
-* GNSS fusion does not work with ZED SDK v4.1.0
-* Virtual ZED X does not work with ZED SDK v4.1.0 (enabled with SDK v4.1.1)
+Nothing

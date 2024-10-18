@@ -54,7 +54,7 @@
             apply_to_spatial_mapping: true # Apply ROI to spatial mapping processing
 
         depth:
-            depth_mode: "ULTRA" # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            depth_mode: "NEURAL_PLUS" # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             depth_stabilization: 1 # Forces positional tracking to start if major than 0 - Range: [0,100]
             openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
             point_cloud_freq: 10.0 # [DYNAMIC] - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
@@ -117,10 +117,11 @@
             od_enabled: true # True to enable Object Detection
             model: 'CUSTOM_YOLOLIKE_BOX_OBJECTS' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE', 'CUSTOM_YOLOLIKE_BOX_OBJECTS'
             custom_onnx_file: '/home/walter/devel/yolo/yolov8n.onnx' # Only used if 'model' is 'CUSTOM_YOLOLIKE_BOX_OBJECTS'. Path to the YOLO-like ONNX file for custom object detection directly performed by the ZED SDK.
-            onnx_input_size: 640 # Resolution used with the YOLO-like ONNX file. For example, 512 means a input tensor "1x3x512x512"
+            custom_onnx_input_size: 512 # Resolution used with the YOLO-like ONNX file. For example, 512 means a input tensor "1x3x512x512"
+            custom_label_yaml: '/home/walter/devel/yolo/coco.yaml' # Only used if 'model' is 'CUSTOM_YOLOLIKE_BOX_OBJECTS'. Path to the COCO-like YAML file storing the custom class labels.
             allow_reduced_precision_inference: true # Allow inference to run at a lower precision to improve runtime and memory usage
             max_range: 20.0 # [m] Defines a upper depth range for detections
-            confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
+            confidence_threshold: 75.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
             prediction_timeout: 0.5 # During this time [sec], the object will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
             filtering_mode: 1 # '0': NONE - '1': NMS3D - '2': NMS3D_PER_CLASS
             mc_people: true # [DYNAMIC] - Enable/disable the detection of persons for 'MULTI_CLASS_X' models

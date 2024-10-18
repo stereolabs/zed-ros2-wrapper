@@ -1654,10 +1654,15 @@ void ZedCamera::getOdParams()
       << sl::toString(mObjDetModel).c_str());
 
   if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
-    getParam("object_detection.custom_onnx_file", mYoloOnnxPath, mYoloOnnxPath, " * ONNX file: ");
     getParam(
-      "object_detection.onnx_input_size", mYoloOnnxSize, mYoloOnnxSize,
-      " * ONNX input size: ");
+      "object_detection.custom_onnx_file", mYoloOnnxPath, mYoloOnnxPath,
+      " * Custom ONNX file: ");
+    getParam(
+      "object_detection.custom_onnx_input_size", mYoloOnnxSize, mYoloOnnxSize,
+      " * Custom ONNX input size: ");
+    getParam(
+      "object_detection.custom_label_yaml", mCustomLabelsPath, mCustomLabelsPath,
+      " * Custom Label file: ");
   }
 
   getParam(
@@ -1690,53 +1695,55 @@ void ZedCamera::getOdParams()
     get_logger(), " * Object Filtering mode: "
       << filtering_mode << " - "
       << sl::toString(mObjFilterMode).c_str());
-  getParam(
-    "object_detection.mc_people", mObjDetPeopleEnable,
-    mObjDetPeopleEnable, "", true);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * MultiClassBox people: " << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
-  getParam(
-    "object_detection.mc_vehicle", mObjDetVehiclesEnable,
-    mObjDetVehiclesEnable, "", true);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * MultiClassBox vehicles: "
-      << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
-  getParam(
-    "object_detection.mc_bag", mObjDetBagsEnable, mObjDetBagsEnable, "",
-    true);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * MultiClassBox bags: " << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
-  getParam(
-    "object_detection.mc_animal", mObjDetAnimalsEnable,
-    mObjDetAnimalsEnable, "", true);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * MultiClassBox animals: "
-      << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
-  getParam(
-    "object_detection.mc_electronics", mObjDetElectronicsEnable,
-    mObjDetElectronicsEnable, "", true);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * MultiClassBox electronics: "
-      << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
-  getParam(
-    "object_detection.mc_fruit_vegetable", mObjDetFruitsEnable,
-    mObjDetFruitsEnable, "", true);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * MultiClassBox fruits and vegetables: "
-      << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
-  getParam(
-    "object_detection.mc_sport", mObjDetSportEnable, mObjDetSportEnable,
-    "", true);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * MultiClassBox sport-related objects: "
-      << (mObjDetSportEnable ? "TRUE" : "FALSE"));
+  if (mObjDetModel != sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
+    getParam(
+      "object_detection.mc_people", mObjDetPeopleEnable,
+      mObjDetPeopleEnable, "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox people: " << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
+    getParam(
+      "object_detection.mc_vehicle", mObjDetVehiclesEnable,
+      mObjDetVehiclesEnable, "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox vehicles: "
+        << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
+    getParam(
+      "object_detection.mc_bag", mObjDetBagsEnable, mObjDetBagsEnable, "",
+      true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox bags: " << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
+    getParam(
+      "object_detection.mc_animal", mObjDetAnimalsEnable,
+      mObjDetAnimalsEnable, "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox animals: "
+        << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
+    getParam(
+      "object_detection.mc_electronics", mObjDetElectronicsEnable,
+      mObjDetElectronicsEnable, "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox electronics: "
+        << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
+    getParam(
+      "object_detection.mc_fruit_vegetable", mObjDetFruitsEnable,
+      mObjDetFruitsEnable, "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox fruits and vegetables: "
+        << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
+    getParam(
+      "object_detection.mc_sport", mObjDetSportEnable, mObjDetSportEnable,
+      "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox sport-related objects: "
+        << (mObjDetSportEnable ? "TRUE" : "FALSE"));
+  }
 }
 
 void ZedCamera::getBodyTrkParams()
@@ -5182,6 +5189,21 @@ bool ZedCamera::startObjDetect()
     od_p.enable_segmentation = false;
     od_p.custom_onnx_file = sl::String(mYoloOnnxPath.c_str());
     od_p.custom_onnx_dynamic_input_shape = sl::Resolution(mYoloOnnxSize, mYoloOnnxSize);
+
+    if (!mCustomLabelsPath.empty()) {
+      mCustomLabelsGood = sl_tools::ReadCocoYaml(mCustomLabelsPath, mCustomLabels);
+
+      if (mCustomLabelsGood) {
+        std::stringstream ss;
+        ss << " * Custom labels: ";
+        for (auto label:mCustomLabels) {
+          ss << "'" << label.first << ":" << label.second << "' ";
+        }
+        RCLCPP_INFO(get_logger(), ss.str().c_str());
+      } else {
+        RCLCPP_WARN(get_logger(), "Custom open error. Using class ID instead of labels. ");
+      }
+    }
   }
 
   sl::ERROR_CODE objDetError = mZed->enableObjectDetection(od_p);
@@ -8304,8 +8326,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     return;
   }
 
-  // DEBUG_STREAM_OD( "Detected " << objects.object_list.size()
-  // << " objects");
+  DEBUG_STREAM_OD("Detected " << objects.object_list.size() << " objects");
 
   size_t objCount = objects.object_list.size();
 
@@ -8319,8 +8340,18 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   size_t idx = 0;
   for (auto data : objects.object_list) {
-    objMsg->objects[idx].label = sl::toString(data.label).c_str();
-    objMsg->objects[idx].sublabel = sl::toString(data.sublabel).c_str();
+    if (mObjDetModel != sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
+      objMsg->objects[idx].label = sl::toString(data.label).c_str();
+      objMsg->objects[idx].sublabel = sl::toString(data.sublabel).c_str();
+    } else {
+      objMsg->objects[idx].sublabel = "";
+      if (!mCustomLabelsGood) {
+        objMsg->objects[idx].label = std::string("Class ID: ") + std::to_string(data.raw_label);
+      } else {
+        objMsg->objects[idx].label = mCustomLabels[std::to_string(data.raw_label)];
+      }
+    }
+
     objMsg->objects[idx].label_id = data.id;
     objMsg->objects[idx].confidence = data.confidence;
 

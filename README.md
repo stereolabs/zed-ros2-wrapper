@@ -156,37 +156,44 @@ The Object Detection can be enabled/disabled *manually* by calling the services 
 
 ### Custom Object Detection with YOLO-like ONNX model file
 
-Object Detection inference can be performed using a custom inference engine in YOLO-like ONNX format.
+Object Detection inference can be performed using a **custom inference engine** in YOLO-like ONNX format.
 
-You can generate your ONNX model by using Ultralytics tools.
+You can generate your ONNX model by using Ultralytics YOLO tools.
 
-Install Ultralytics tools:
+Install Ultralytics YOLO tools:
 
 ```bash
 python -m pip install ultralytics
 ```
 
+if you already installed the `ultralytics` package, we recommend updating it to the latest version:
+
+```bash
+pip install -U ultralytics
+```
+
 Export an ONNX file from a YOLO model (more info [here](https://docs.ultralytics.com/modes/export/)), for example:
 
 ```bash
-yolo export model=yolov8n.pt format=onnx simplify=True dynamic=False imgsz=640
+yolo export model=yolo11n.pt format=onnx simplify=True dynamic=False imgsz=640
 ```
 
-For a custom model model the weight file can be changed:
+For a custom trained YOLO model the weight file can be changed, for example:
 
 ```bash
 yolo export model=yolov8l_custom_model.pt format=onnx simplify=True dynamic=False imgsz=512
 ```
 
-Please refer to the corresponding documentation for more details https://github.com/ultralytics/ultralytics
+Please refer to the [Ultralytics documentation](https://github.com/ultralytics/ultralytics) for details.
 
 Modify the `common.yaml` parameters to match your configuration:
 
-* set `object_detection.model` to `CUSTOM_ONNX`
-* set `object_detection.custom_onnx_file` to the full path of you ONNX file
-* set `object_detection.onnx_input_size` to the size of the YOLO input tensor, e.g. 512
+* set `object_detection.model` to `CUSTOM_YOLOLIKE_BOX_OBJECTS`
+* set `object_detection.custom_onnx_file` to the full path of your custom ONNX file
+* set `object_detection.onnx_input_size` to the size of the YOLO input tensor, e.g. 640
+* set `object_detection.custom_label_yaml` to the full path of your YAML file storing class labels in [COCO format](https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml)
 
-**Note:** the first time the custom model is used, the ZED SDK optimizes it for the GPU on which is running. Please wait for the optimization to complete. When using Docker, we recommend using a shared volume to store the optimized file on the host and perform the optimization only once.
+**Note:** the first time the custom model is used, the ZED SDK optimizes it to get the best performance from the GPU installed on the host. Please wait for the optimization to complete. When using Docker, we recommend using a shared volume to store the optimized file on the host and perform the optimization only once.
 
 Console log while optimization is running:
 

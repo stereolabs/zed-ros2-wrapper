@@ -132,6 +132,16 @@ std::string threadSched2Str(int thread_sched_policy);
  */
 bool checkRoot();
 
+/*!
+ * @brief read custom OD labels from a COCO-Like YAML file
+ * @param label_file label file full path
+ * @param out_labels the map containing the labels. The map idx corresponds to the class ID
+ * @return true if successfull
+ */
+bool ReadCocoYaml(
+  const std::string & label_file, std::unordered_map<std::string,
+  std::string> & out_labels);
+
 /**
  * @brief Stop Timer used to measure time intervals
  *

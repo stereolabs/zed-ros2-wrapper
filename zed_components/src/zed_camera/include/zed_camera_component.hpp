@@ -397,6 +397,8 @@ private:
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
   std::string mYoloOnnxPath;
   int mYoloOnnxSize;
+  std::string mCustomLabelsPath;
+  std::unordered_map<std::string, std::string> mCustomLabels;
 
   bool mBodyTrkEnabled = false;
   sl::BODY_TRACKING_MODEL mBodyTrkModel =
@@ -730,6 +732,8 @@ private:
   // published when `use_sim_time` is true
 
   std::atomic<bool> mStreamingServerRunning;
+
+  bool mCustomLabelsGood = false;
   // <---- Status Flags
 
   // ----> Positional Tracking

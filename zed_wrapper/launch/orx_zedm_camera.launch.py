@@ -23,6 +23,8 @@ from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, Command, TextSubstitution
 from launch_ros.actions import Node
 
+import yaml
+
 # ZED Configurations to be loaded by ZED Node
 default_config_common = os.path.join(get_package_share_directory("zed_wrapper"), "config", "common.yaml")
 
@@ -87,7 +89,19 @@ def launch_setup(context, *args, **kwargs):
     if camera_name_val == "":
         camera_name_val = "zed"
 
+    if camera_model_val == "virtual" and float(custom_baseline_val) <= 0:
+        return [
+            LogInfo(
+                msg="Please set a positive value for the 'custom_baseline' argument when using a 'virtual' Stereo Camera with two ZED X One devices."
+            ),
+        ]
+
     config_camera_path = os.path.join(get_package_share_directory("zed_wrapper"), "config", camera_model_val + ".yaml")
+
+    with open(ros_params_override_path.perform(context), "r") as file:
+        ros_params_override_config = yaml.safe_load(file)
+        datahub_name = ros_params_override_config["/**"]["ros__parameters"]["general"]["datahub_name"]
+        camera_name = ros_params_override_config["/**"]["ros__parameters"]["general"]["camera_name"]
 
     # Xacro command with options
     xacro_command = []
@@ -96,7 +110,7 @@ def launch_setup(context, *args, **kwargs):
     xacro_command.append(xacro_path.perform(context))
     xacro_command.append(" ")
     xacro_command.append("camera_name:=")
-    xacro_command.append(camera_name_val)
+    xacro_command.append(camera_name)
     xacro_command.append(" ")
     xacro_command.append("camera_model:=")
     xacro_command.append(camera_model_val)
@@ -122,46 +136,23 @@ def launch_setup(context, *args, **kwargs):
     rsp_node = Node(
         condition=IfCondition(publish_urdf),
         package="robot_state_publisher",
-        namespace=camera_name_val,
+        namespace=datahub_name,
         executable="robot_state_publisher",
         name="zed_state_publisher",
         output="screen",
         parameters=[{"robot_description": Command(xacro_command)}],
     )
 
-    node_parameters = [
-        # YAML files
-        config_common_path,  # Common parameters
-        config_camera_path,  # Camera related parameters
-        config_ffmpeg,  # FFMPEG parameters
-        # Overriding
-        {
-            "use_sim_time": use_sim_time,
-            "simulation.sim_enabled": sim_mode,
-            "simulation.sim_address": sim_address,
-            "simulation.sim_port": sim_port,
-            "stream.stream_address": stream_address,
-            "stream.stream_port": stream_port,
-            "general.camera_name": camera_name_val,
-            "general.camera_model": camera_model_val,
-            "svo.svo_path": svo_path,
-            "general.serial_number": serial_number,
-            "pos_tracking.publish_tf": publish_tf,
-            "pos_tracking.publish_map_tf": publish_map_tf,
-            "sensors.publish_imu_tf": publish_imu_tf,
-            "gnss_fusion.gnss_fusion_enabled": enable_gnss,
-        },
-    ]
-
-    if ros_params_override_path.perform(context) != "":
-        node_parameters.append(ros_params_override_path)
+    node_parameters = [ros_params_override_path.perform(context)]
+    # if ros_params_override_path.perform(context) != "":
+    #     node_parameters.append(ros_params_override_path)
 
     # ZED Wrapper node
     zed_wrapper_node = Node(
         package="zed_wrapper",
-        namespace=camera_name_val,
+        namespace=datahub_name,
         executable="zed_wrapper",
-        name=node_name,
+        name=camera_name,
         output="screen",
         # prefix=['valgrind'],
         # prefix=['xterm -e valgrind --tools=callgrind'],
@@ -186,7 +177,7 @@ def generate_launch_description():
                 "camera_model",
                 default_value=TextSubstitution(text="zedm"),
                 description="The model of the camera. Using a wrong camera model can disable camera features.",
-                choices=["zedm"],
+                choices=["zed", "zedm", "zed2", "zed2i", "zedx", "zedxm", "virtual"],
             ),
             DeclareLaunchArgument(
                 "node_name",
@@ -239,7 +230,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "ros_params_override_path",
-                default_value="",
+                default_value="/zed_mini_ros_config.yaml",
                 description="The path to an additional parameters file to override the defaults",
             ),
             DeclareLaunchArgument(

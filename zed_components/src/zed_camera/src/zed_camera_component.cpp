@@ -3928,7 +3928,7 @@ bool ZedCamera::startCamera()
   mInitParams.sdk_verbose = mVerbose;
   mInitParams.sdk_gpu_id = mGpuId;
   mInitParams.depth_stabilization = mDepthStabilization;
-  mInitParams.camera_image_flip = mCameraFlip;
+  mInitParams.camera_image_flip = (mCameraFlip?sl::FLIP_MODE::ON:sl::FLIP_MODE::OFF);
   mInitParams.depth_minimum_distance = mCamMinDepth;
   mInitParams.depth_maximum_distance = mCamMaxDepth;
 

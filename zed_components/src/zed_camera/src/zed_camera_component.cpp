@@ -1,4 +1,4 @@
-// Copyright 2022 Stereolabs
+// Copyright 2024 Stereolabs
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -108,7 +108,7 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(get_logger(), "********************************");
 
   const size_t SDK_MAJOR_REQ = 4;
-  const size_t SDK_MINOR_REQ = 1;
+  const size_t SDK_MINOR_REQ = 2;
 
   if (ZED_SDK_MAJOR_VERSION < SDK_MAJOR_REQ ||
     (ZED_SDK_MAJOR_VERSION == SDK_MAJOR_REQ &&
@@ -563,76 +563,65 @@ void ZedCamera::getDebugParams()
 
   getParam("debug.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
 
-  getParam("debug.debug_common", mDebugCommon, mDebugCommon);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Common: %s",
-    mDebugCommon ? "TRUE" : "FALSE");
+  getParam("debug.debug_common", _debugCommon, _debugCommon);
+  RCLCPP_INFO(get_logger(), " * Debug Common: %s",
+              _debugCommon ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_sim", mDebugSim, mDebugSim);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Simulation: %s",
-    mDebugSim ? "TRUE" : "FALSE");
+  getParam("debug.debug_sim", _debugSim, _debugSim);
+  RCLCPP_INFO(get_logger(), " * Debug Simulation: %s",
+              _debugSim ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_video_depth", mDebugVideoDepth, mDebugVideoDepth);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Video/Depth: %s",
-    mDebugVideoDepth ? "TRUE" : "FALSE");
+  getParam("debug.debug_video_depth", _debugVideoDepth, _debugVideoDepth);
+  RCLCPP_INFO(get_logger(), " * Debug Video/Depth: %s",
+              _debugVideoDepth ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_camera_controls", mDebugCamCtrl, mDebugCamCtrl);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Control settings: %s",
-    mDebugCamCtrl ? "TRUE" : "FALSE");
+  getParam("debug.debug_camera_controls", _debugCamCtrl, _debugCamCtrl);
+  RCLCPP_INFO(get_logger(), " * Debug Control settings: %s",
+              _debugCamCtrl ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_point_cloud", mDebugPointCloud, mDebugPointCloud);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Point Cloud: %s",
-    mDebugPointCloud ? "TRUE" : "FALSE");
+  getParam("debug.debug_point_cloud", _debugPointCloud, _debugPointCloud);
+  RCLCPP_INFO(get_logger(), " * Debug Point Cloud: %s",
+              _debugPointCloud ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_gnss", mDebugGnss, mDebugGnss);
-  RCLCPP_INFO(get_logger(), " * Debug GNSS: %s", mDebugGnss ? "TRUE" : "FALSE");
+  getParam("debug.debug_gnss", _debugGnss, _debugGnss);
+  RCLCPP_INFO(get_logger(), " * Debug GNSS: %s", _debugGnss ? "TRUE" : "FALSE");
 
-  getParam(
-    "debug.debug_positional_tracking", mDebugPosTracking,
-    mDebugPosTracking);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Positional Tracking: %s",
-    mDebugPosTracking ? "TRUE" : "FALSE");
+  getParam("debug.debug_positional_tracking", _debugPosTracking,
+           _debugPosTracking);
+  RCLCPP_INFO(get_logger(), " * Debug Positional Tracking: %s",
+              _debugPosTracking ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_sensors", mDebugSensors, mDebugSensors);
-  RCLCPP_INFO(
-    get_logger(), " * Debug sensors: %s",
-    mDebugSensors ? "TRUE" : "FALSE");
+  getParam("debug.debug_sensors", _debugSensors, _debugSensors);
+  RCLCPP_INFO(get_logger(), " * Debug sensors: %s",
+              _debugSensors ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_mapping", mDebugMapping, mDebugMapping);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Mapping: %s",
-    mDebugMapping ? "TRUE" : "FALSE");
+  getParam("debug.debug_mapping", _debugMapping, _debugMapping);
+  RCLCPP_INFO(get_logger(), " * Debug Mapping: %s",
+              _debugMapping ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_object_detection", mDebugObjectDet, mDebugObjectDet);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Object Detection: %s",
-    mDebugObjectDet ? "TRUE" : "FALSE");
+  getParam("debug.debug_object_detection", _debugObjectDet, _debugObjectDet);
+  RCLCPP_INFO(get_logger(), " * Debug Object Detection: %s",
+              _debugObjectDet ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_body_tracking", mDebugBodyTrk, mDebugBodyTrk);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Body Tracking: %s",
-    mDebugBodyTrk ? "TRUE" : "FALSE");
+  getParam("debug.debug_body_tracking", _debugBodyTrk, _debugBodyTrk);
+  RCLCPP_INFO(get_logger(), " * Debug Body Tracking: %s",
+              _debugBodyTrk ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_streaming", mDebugStreaming, mDebugStreaming);
-  RCLCPP_INFO(get_logger(), " * Debug Streaming: %s", mDebugStreaming ? "TRUE" : "FALSE");
+  getParam("debug.debug_streaming", _debugStreaming, _debugStreaming);
+  RCLCPP_INFO(get_logger(), " * Debug Streaming: %s",
+              _debugStreaming ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_roi", mDebugRoi, mDebugRoi);
-  RCLCPP_INFO(get_logger(), " * Debug ROI: %s", mDebugRoi ? "TRUE" : "FALSE");
+  getParam("debug.debug_roi", _debugRoi, _debugRoi);
+  RCLCPP_INFO(get_logger(), " * Debug ROI: %s", _debugRoi ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_advanced", mDebugAdvanced, mDebugAdvanced);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Advanced: %s",
-    mDebugAdvanced ? "TRUE" : "FALSE");
+  getParam("debug.debug_advanced", _debugAdvanced, _debugAdvanced);
+  RCLCPP_INFO(get_logger(), " * Debug Advanced: %s",
+              _debugAdvanced ? "TRUE" : "FALSE");
 
-  mDebugMode = mDebugCommon || mDebugSim || mDebugVideoDepth || mDebugCamCtrl ||
-    mDebugPointCloud || mDebugPosTracking || mDebugGnss ||
-    mDebugSensors || mDebugMapping || mDebugObjectDet ||
-    mDebugBodyTrk || mDebugAdvanced || mDebugRoi || mDebugStreaming;
+  mDebugMode = _debugCommon || _debugSim || _debugVideoDepth || _debugCamCtrl ||
+               _debugPointCloud || _debugPosTracking || _debugGnss ||
+               _debugSensors || _debugMapping || _debugObjectDet ||
+               _debugBodyTrk || _debugAdvanced || _debugRoi || _debugStreaming;
 
   if (mDebugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(
@@ -4269,7 +4258,7 @@ bool ZedCamera::startCamera()
   // <---- Set Region of Interest
 
   // ----> Check default camera settings
-  if (mDebugCamCtrl) {
+  if (_debugCamCtrl) {
     int value;
     sl::ERROR_CODE err;
     sl::VIDEO_SETTINGS setting;
@@ -4898,7 +4887,7 @@ bool ZedCamera::startPosTracking()
   ptParams.set_gravity_as_origin = mSetGravityAsOrigin;
   ptParams.mode = mPosTrkMode;
 
-  if (mDebugPosTracking) {
+  if (_debugPosTracking) {
     DEBUG_PT(" * Positional Tracking parameters:");
     sl::String json;
     ptParams.encode(json);
@@ -5828,7 +5817,7 @@ void ZedCamera::threadFunc_zedGrab()
 
   // ----> Advanced thread settings
   DEBUG_STREAM_ADV("Grab thread settings");
-  if (mDebugAdvanced) {
+  if (_debugAdvanced) {
     int policy;
     sched_param par;
     if (pthread_getschedparam(pthread_self(), &policy, &par)) {
@@ -5881,7 +5870,7 @@ void ZedCamera::threadFunc_zedGrab()
       get_logger(), " ! Failed to set thread params! - Policy not supported");
   }
 
-  if (mDebugAdvanced) {
+  if (_debugAdvanced) {
     int policy;
     sched_param par;
     if (pthread_getschedparam(pthread_self(), &policy, &par)) {
@@ -6737,7 +6726,7 @@ void ZedCamera::threadFunc_pointcloudElab()
 
   // ----> Advanced thread settings
   DEBUG_STREAM_ADV("Point Cloud thread settings");
-  if (mDebugAdvanced) {
+  if (_debugAdvanced) {
     int policy;
     sched_param par;
     if (pthread_getschedparam(pthread_self(), &policy, &par)) {
@@ -6790,7 +6779,7 @@ void ZedCamera::threadFunc_pointcloudElab()
       get_logger(), " ! Failed to set thread params! - Policy not supported");
   }
 
-  if (mDebugAdvanced) {
+  if (_debugAdvanced) {
     int policy;
     sched_param par;
     if (pthread_getschedparam(pthread_self(), &policy, &par)) {
@@ -6879,7 +6868,7 @@ void ZedCamera::threadFunc_pubSensorsData()
 
   // ----> Advanced thread settings
   DEBUG_STREAM_ADV("Sensors thread settings");
-  if (mDebugAdvanced) {
+  if (_debugAdvanced) {
     int policy;
     sched_param par;
     if (pthread_getschedparam(pthread_self(), &policy, &par)) {
@@ -6932,7 +6921,7 @@ void ZedCamera::threadFunc_pubSensorsData()
       get_logger(), " ! Failed to set thread params! - Policy not supported");
   }
 
-  if (mDebugAdvanced) {
+  if (_debugAdvanced) {
     int policy;
     sched_param par;
     if (pthread_getschedparam(pthread_self(), &policy, &par)) {
@@ -7524,12 +7513,11 @@ void ZedCamera::processOdometry()
       "MAP -> Odometry Status: "
         << sl::toString(mPosTrackingStatus.odometry_status).c_str());
 
-    DEBUG_PT(
-      "delta ODOM %s- [%s]:\n%s", mDebugGnss ? "(`sl::Fusion`) " : "",
-      sl::toString(mPosTrackingStatus.odometry_status).c_str(),
-      deltaOdom.pose_data.getInfos().c_str());
+    DEBUG_PT("delta ODOM %s- [%s]:\n%s", _debugGnss ? "(`sl::Fusion`) " : "",
+             sl::toString(mPosTrackingStatus.odometry_status).c_str(),
+             deltaOdom.pose_data.getInfos().c_str());
 
-    if (mDebugGnss) {
+    if (_debugGnss) {
       sl::Pose camera_delta_odom;
       auto status =
         mZed->getPosition(camera_delta_odom, sl::REFERENCE_FRAME::CAMERA);
@@ -7581,7 +7569,7 @@ void ZedCamera::processOdometry()
     }
   }
 
-  if (mDebugPosTracking) {
+  if (_debugPosTracking) {
     double roll, pitch, yaw;
     tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -7692,12 +7680,11 @@ void ZedCamera::processPose()
     "MAP -> Tracking Status: "
       << sl::toString(mPosTrackingStatus.spatial_memory_status).c_str());
 
-  DEBUG_PT(
-    "Sensor POSE %s- [%s -> %s]:\n%s}",
-    mDebugGnss ? "(`sl::Fusion`) " : "", mLeftCamFrameId.c_str(),
-    mMapFrameId.c_str(), mLastZedPose.pose_data.getInfos().c_str());
+  DEBUG_PT("Sensor POSE %s- [%s -> %s]:\n%s}",
+           _debugGnss ? "(`sl::Fusion`) " : "", mLeftCamFrameId.c_str(),
+           mMapFrameId.c_str(), mLastZedPose.pose_data.getInfos().c_str());
 
-  if (mDebugGnss) {
+  if (_debugGnss) {
     sl::Pose camera_pose;
     mZed->getPosition(camera_pose, sl::REFERENCE_FRAME::WORLD);
 

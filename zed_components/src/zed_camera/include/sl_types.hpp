@@ -71,6 +71,8 @@
 namespace stereolabs
 {
 
+const int QOS_QUEUE_SIZE = 100;
+
 #ifdef _SL_JETSON_
 const bool IS_JETSON = true;
 #else

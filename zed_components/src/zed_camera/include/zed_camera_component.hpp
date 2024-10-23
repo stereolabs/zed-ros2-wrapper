@@ -1,4 +1,4 @@
-// Copyright 2022 Stereolabs
+// Copyright 2024 Stereolabs
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -269,20 +269,20 @@ private:
   // <---- Topics
 
   // ----> Parameter variables
-  bool mDebugCommon = false;
-  bool mDebugSim = false;
-  bool mDebugVideoDepth = false;
-  bool mDebugCamCtrl = false;
-  bool mDebugPointCloud = false;
-  bool mDebugPosTracking = false;
-  bool mDebugGnss = false;
-  bool mDebugSensors = false;
-  bool mDebugMapping = false;
-  bool mDebugObjectDet = false;
-  bool mDebugBodyTrk = false;
-  bool mDebugAdvanced = false;
-  bool mDebugRoi = false;
-  bool mDebugStreaming = false;
+  bool _debugCommon = false;
+  bool _debugSim = false;
+  bool _debugVideoDepth = false;
+  bool _debugCamCtrl = false;
+  bool _debugPointCloud = false;
+  bool _debugPosTracking = false;
+  bool _debugGnss = false;
+  bool _debugSensors = false;
+  bool _debugMapping = false;
+  bool _debugObjectDet = false;
+  bool _debugBodyTrk = false;
+  bool _debugAdvanced = false;
+  bool _debugRoi = false;
+  bool _debugStreaming = false;
 
   int mCamSerialNumber = 0;
   bool mSimMode = false;     // Expecting simulation data?

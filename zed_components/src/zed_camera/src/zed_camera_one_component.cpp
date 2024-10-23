@@ -26,6 +26,7 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
 : Node("zed_node_one", options),
   _threadStop(false),
   _qos(QOS_QUEUE_SIZE),
+  _diagUpdater(this)
 {
   RCLCPP_INFO(get_logger(), "********************************");
   RCLCPP_INFO(get_logger(), "    ZED Camera One Component ");

@@ -865,6 +865,31 @@ private:
   // <---- SVO v2
 };
 
+// ----> Template Function definitions
+template<typename T>
+void ZedCamera::getParam(
+  std::string paramName, T defValue, T & outVal,
+  std::string log_info, bool dynamic)
+{
+  rcl_interfaces::msg::ParameterDescriptor descriptor;
+  descriptor.read_only = !dynamic;
+
+  declare_parameter(paramName, rclcpp::ParameterValue(defValue), descriptor);
+
+  if (!get_parameter(paramName, outVal)) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The parameter '"
+        << paramName
+        << "' is not available or is not valid, using the default value: "
+        << defValue);
+  }
+
+  if (!log_info.empty()) {
+    RCLCPP_INFO_STREAM(get_logger(), log_info << outVal);
+  }
+}
+
 }  // namespace stereolabs
 
 #endif  // ZED_CAMERA_COMPONENT_HPP_

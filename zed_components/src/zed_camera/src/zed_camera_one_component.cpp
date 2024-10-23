@@ -349,12 +349,10 @@ void ZedCameraOne::callback_updateDiagnostic(
   }
 }
 
-rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
+rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_paramChange(
   std::vector<rclcpp::Parameter> parameters)
 {
-  if (mDebugMode) {
-    DEBUG_STREAM_COMM("Parameter change callback");
-  }
+  DEBUG_STREAM_COMM("Parameter change callback");
 
   rcl_interfaces::msg::SetParametersResult result;
   result.successful = true;
@@ -368,10 +366,22 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
   for (const rclcpp::Parameter & param : parameters) {
     count++;
 
-    if (_debugMode) {
-      DEBUG_STREAM_COMM("Param #" << count << ": " << param.get_name());
-    }
+    DEBUG_STREAM_COMM("Param #" << count << ": " << param.get_name());
   }
+
+  if (result.successful) {
+    RCLCPP_INFO_STREAM(
+      get_logger(), "Correctly set " << count << "/"
+                                     << parameters.size()
+                                     << " parameters");
+  } else {
+    RCLCPP_INFO_STREAM(
+      get_logger(), "Correctly set " << count - 1 << "/"
+                                     << parameters.size()
+                                     << " parameters");
+  }
+
+  return result;
 }
 
 }  // namespace stereolabs

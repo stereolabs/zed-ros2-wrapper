@@ -19,6 +19,7 @@
 
 #include "sl_logging.hpp"
 
+using namespace std::placeholders;
 namespace stereolabs
 {
 ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
@@ -27,7 +28,7 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   _qos(QOS_QUEUE_SIZE),
 {
   RCLCPP_INFO(get_logger(), "********************************");
-  RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
+  RCLCPP_INFO(get_logger(), "    ZED Camera One Component ");
   RCLCPP_INFO(get_logger(), "********************************");
   RCLCPP_INFO(get_logger(), " * namespace: %s", get_namespace());
   RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
@@ -72,8 +73,9 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   // <---- Start a "one shot timer" to initialize the node and make `shared_from_this` available
 }
 
-ZedCameraOne::~ZedCameraOne(){
-    DEBUG_STREAM_COMM("Destroying node");
+ZedCameraOne::~ZedCameraOne()
+{
+  DEBUG_STREAM_COMM("Destroying node");
 
   // ----> Stop subscribers
   // <---- Stop subscribers
@@ -131,11 +133,11 @@ void ZedCameraOne::init()
   initParameters();
 
   // ----> Diagnostic initialization
-  mDiagUpdater.add(
+  _diagUpdater.add(
     "ZED Diagnostic", this,
-    &ZedCamera::callback_updateDiagnostic);
-  std::string hw_id = std::string("Stereolabs camera: ") + mCameraName;
-  mDiagUpdater.setHardwareID(hw_id);
+    &ZedCameraOne::callback_updateDiagnostic);
+  std::string hw_id = std::string("Stereolabs camera: ") + _cameraName;
+  _diagUpdater.setHardwareID(hw_id);
   // <---- Diagnostic initialization
 
   // Services initialization
@@ -151,6 +153,111 @@ void ZedCameraOne::init()
   _paramChangeCallbackHandle = add_on_set_parameters_callback(
     std::bind(&ZedCameraOne::callback_paramChange, this, _1));
 }
+
+void ZedCameraOne::initServices()
+{
+  RCLCPP_INFO(get_logger(), "*** SERVICES ***");
+
+  std::string srv_name;
+  std::string srv_prefix = "~/";
+}
+
+bool ZedCameraOne::startCamera()
+{
+  RCLCPP_INFO(get_logger(), "***** STARTING CAMERA *****");
+
+  // Create a ZED object
+  _zed = std::make_shared<sl::CameraOne>();
+
+  // ----> SDK version
+  RCLCPP_INFO(
+    get_logger(), "ZED SDK Version: %d.%d.%d - Build %s",
+    ZED_SDK_MAJOR_VERSION, ZED_SDK_MINOR_VERSION,
+    ZED_SDK_PATCH_VERSION, ZED_SDK_BUILD_ID);
+  // <---- SDK version
+
+  // ----> ZED configuration
+  if (!_svoFilepath.empty()) {
+    RCLCPP_INFO(get_logger(), "*** SVO OPENING ***");
+
+    _initParams.input.setFromSVOFile(_svoFilepath.c_str());
+    _initParams.svo_real_time_mode = _svoRealtime;
+
+    _svoMode = true;
+  } else if (!_streamAddr.empty()) {
+    RCLCPP_INFO(get_logger(), "*** LOCAL STREAMING OPENING ***");
+
+    _initParams.input.setFromStream(_streamAddr.c_str(), static_cast<unsigned short>(_streamPort));
+
+    _streamMode = true;
+  } else {
+    RCLCPP_INFO(get_logger(), "*** CAMERA OPENING ***");
+
+    _initParams.camera_fps = _camGrabFrameRate;
+    _initParams.camera_resolution = static_cast<sl::RESOLUTION>(_camResol);
+
+    if (_camSerialNumber > 0) {
+      _initParams.input.setFromSerialNumber(_camSerialNumber);
+    }
+  }
+
+  _initParams.async_grab_camera_recovery = true;    // Camera recovery is handled asynchronously to provide information about this status
+  _initParams.camera_image_flip = (_cameraFlip ? sl::FLIP_MODE::ON : sl::FLIP_MODE::OFF);
+  _initParams.coordinate_system = ROS_COORDINATE_SYSTEM;
+  _initParams.coordinate_units = ROS_MEAS_UNITS;
+  _initParams.enable_hdr = _enableHDR;
+  _initParams.open_timeout_sec = _openTimeout_sec;
+  if (!_opencvCalibFile.empty()) {
+    _initParams.optional_opencv_calibration_file = _opencvCalibFile.c_str();
+  }
+  _initParams.sdk_verbose = _sdkVerbose;
+  // <---- ZED configuration
+
+  // ----> Try to connect to a camera, to a stream, or to load an SVO
+  _grabStatus = sl::ERROR_CODE::LAST;
+
+  _connStatus = _zed->open(_initParams);
+
+  if (_connStatus != sl::ERROR_CODE::SUCCESS) {
+    if (_connStatus == sl::ERROR_CODE::INVALID_CALIBRATION_FILE) {
+      if (_opencvCalibFile.empty()) {
+        RCLCPP_ERROR_STREAM(
+          get_logger(), "Calibration file error: "
+            << sl::toVerbose(_connStatus));
+      } else {
+        RCLCPP_ERROR_STREAM(
+          get_logger(),
+          "If you are using a custom OpenCV calibration file, please check "
+          "the correctness of the path of the calibration file "
+          "in the parameter 'general.optional_opencv_calibration_file': '"
+            << _opencvCalibFile << "'.");
+        RCLCPP_ERROR(
+          get_logger(),
+          "If the file exists, it may contain invalid information.");
+      }
+      return false;
+    } else if (_svoMode) {
+      RCLCPP_WARN(
+        get_logger(), "Error opening SVO: %s",
+        sl::toString(_connStatus).c_str());
+      return false;
+    } else if (_streamMode) {
+      RCLCPP_WARN(
+        get_logger(), "Error opening Local Stream: %s",
+        sl::toString(_connStatus).c_str());
+      return false;
+    } else {
+      RCLCPP_WARN(
+        get_logger(), "Error opening camera: %s",
+        sl::toString(_connStatus).c_str());
+      RCLCPP_INFO(get_logger(), "Please verify the camera connection");
+    }
+  } else {
+    DEBUG_STREAM_COMM("Opening successfull");
+  }
+  // ----> Try to connect to a camera, to a stream, or to load an SVO
+}
+
 }  // namespace stereolabs
 
 #include "rclcpp_components/register_node_macro.hpp"

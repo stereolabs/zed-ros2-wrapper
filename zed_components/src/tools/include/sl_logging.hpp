@@ -31,11 +31,12 @@
   if (_debugSim) RCLCPP_DEBUG_ONCE(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_SIM(stream_arg) \
   if (_debugSim) RCLCPP_DEBUG_STREAM(get_logger(), stream_arg)
-#define DEBUG_STREAM_THROTTLE_SIM(duration, stream_arg)                \
-  if (_debugSim) {                                                     \
-    rclcpp::Clock steady_clock(RCL_STEADY_TIME);                       \
-    RCLCPP_DEBUG_STREAM_THROTTLE(get_logger(), steady_clock, duration, \
-                                 stream_arg);                          \
+#define DEBUG_STREAM_THROTTLE_SIM(duration, stream_arg) \
+  if (_debugSim) { \
+    rclcpp::Clock steady_clock(RCL_STEADY_TIME); \
+    RCLCPP_DEBUG_STREAM_THROTTLE( \
+      get_logger(), steady_clock, duration, \
+      stream_arg); \
   }
 
 // Advanced
@@ -45,11 +46,12 @@
   if (_debugAdvanced) RCLCPP_DEBUG_ONCE(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_ADV(stream_arg) \
   if (_debugAdvanced) RCLCPP_DEBUG_STREAM(get_logger(), stream_arg)
-#define DEBUG_STREAM_THROTTLE_ADV(duration, stream_arg)                \
-  if (_debugAdvanced) {                                                \
-    rclcpp::Clock steady_clock(RCL_STEADY_TIME);                       \
-    RCLCPP_DEBUG_STREAM_THROTTLE(get_logger(), steady_clock, duration, \
-                                 stream_arg);                          \
+#define DEBUG_STREAM_THROTTLE_ADV(duration, stream_arg) \
+  if (_debugAdvanced) { \
+    rclcpp::Clock steady_clock(RCL_STEADY_TIME); \
+    RCLCPP_DEBUG_STREAM_THROTTLE( \
+      get_logger(), steady_clock, duration, \
+      stream_arg); \
   }
 
 // Video Depth
@@ -75,11 +77,12 @@
   if (_debugPosTracking) RCLCPP_DEBUG_ONCE(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_PT(stream_arg) \
   if (_debugPosTracking) RCLCPP_DEBUG_STREAM(get_logger(), stream_arg)
-#define DEBUG_STREAM_THROTTLE_PT(duration, stream_arg)                 \
-  if (_debugPosTracking) {                                             \
-    rclcpp::Clock steady_clock(RCL_STEADY_TIME);                       \
-    RCLCPP_DEBUG_STREAM_THROTTLE(get_logger(), steady_clock, duration, \
-                                 stream_arg);                          \
+#define DEBUG_STREAM_THROTTLE_PT(duration, stream_arg) \
+  if (_debugPosTracking) { \
+    rclcpp::Clock steady_clock(RCL_STEADY_TIME); \
+    RCLCPP_DEBUG_STREAM_THROTTLE( \
+      get_logger(), steady_clock, duration, \
+      stream_arg); \
   }
 
 // GNSS integration
@@ -87,11 +90,12 @@
   if (_debugGnss) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_GNSS(stream_arg) \
   if (_debugGnss) RCLCPP_DEBUG_STREAM(get_logger(), stream_arg)
-#define DEBUG_STREAM_THROTTLE_GNSS(duration, stream_arg)               \
-  if (_debugGnss) {                                                    \
-    rclcpp::Clock steady_clock(RCL_STEADY_TIME);                       \
-    RCLCPP_DEBUG_STREAM_THROTTLE(get_logger(), steady_clock, duration, \
-                                 stream_arg);                          \
+#define DEBUG_STREAM_THROTTLE_GNSS(duration, stream_arg) \
+  if (_debugGnss) { \
+    rclcpp::Clock steady_clock(RCL_STEADY_TIME); \
+    RCLCPP_DEBUG_STREAM_THROTTLE( \
+      get_logger(), steady_clock, duration, \
+      stream_arg); \
   }
 
 // Sensors
@@ -129,11 +133,12 @@
   if (_debugRoi) RCLCPP_DEBUG_ONCE(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_ROI(stream_arg) \
   if (_debugRoi) RCLCPP_DEBUG_STREAM(get_logger(), stream_arg)
-#define DEBUG_STREAM_THROTTLE_ROI(duration, stream_arg)                \
-  if (_debugRoi) {                                                     \
-    rclcpp::Clock steady_clock(RCL_STEADY_TIME);                       \
-    RCLCPP_DEBUG_STREAM_THROTTLE(get_logger(), steady_clock, duration, \
-                                 stream_arg);                          \
+#define DEBUG_STREAM_THROTTLE_ROI(duration, stream_arg) \
+  if (_debugRoi) { \
+    rclcpp::Clock steady_clock(RCL_STEADY_TIME); \
+    RCLCPP_DEBUG_STREAM_THROTTLE( \
+      get_logger(), steady_clock, duration, \
+      stream_arg); \
   }
 
 // Streaming
@@ -143,11 +148,12 @@
   if (_debugStreaming) RCLCPP_DEBUG_ONCE(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_STR(stream_arg) \
   if (_debugStreaming) RCLCPP_DEBUG_STREAM(get_logger(), stream_arg)
-#define DEBUG_STREAM_THROTTLE_STR(duration, stream_arg)                \
-  if (_debugStreaming) {                                               \
-    rclcpp::Clock steady_clock(RCL_STEADY_TIME);                       \
-    RCLCPP_DEBUG_STREAM_THROTTLE(get_logger(), steady_clock, duration, \
-                                 stream_arg);                          \
+#define DEBUG_STREAM_THROTTLE_STR(duration, stream_arg) \
+  if (_debugStreaming) { \
+    rclcpp::Clock steady_clock(RCL_STEADY_TIME); \
+    RCLCPP_DEBUG_STREAM_THROTTLE( \
+      get_logger(), steady_clock, duration, \
+      stream_arg); \
   }
 // <---- DEBUG MACROS
 

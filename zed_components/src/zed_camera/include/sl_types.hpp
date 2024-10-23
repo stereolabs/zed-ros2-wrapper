@@ -71,7 +71,16 @@
 namespace stereolabs
 {
 
-const int QOS_QUEUE_SIZE = 100;
+// ----> Global constants
+const double DEG2RAD = 0.017453293;
+const double RAD2DEG = 57.295777937;
+
+const sl::COORDINATE_SYSTEM ROS_COORDINATE_SYSTEM =
+  sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
+const sl::UNIT ROS_MEAS_UNITS = sl::UNIT::METER;
+
+const int QOS_QUEUE_SIZE = 10;
+// <---- Global constants
 
 #ifdef _SL_JETSON_
 const bool IS_JETSON = true;

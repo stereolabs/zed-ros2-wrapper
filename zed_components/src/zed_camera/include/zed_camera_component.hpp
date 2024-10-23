@@ -291,7 +291,7 @@ private:
     "127.0.0.1";    // The local address of the machine running the simulator
   int mSimPort = 30000;  // The port to be used to connect to the simulator
 
-  bool mStreamMode = false;     // Expecting simulation data?
+  bool mStreamMode = false;     // Expecting local streaming data?
   std::string mStreamAddr = "";  // The local address of the streaming server
   int mStreamPort = 30000;  // The port to be used to connect to a local streaming server
 

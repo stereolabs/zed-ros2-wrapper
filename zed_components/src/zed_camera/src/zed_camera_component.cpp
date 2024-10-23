@@ -56,17 +56,6 @@ using namespace std::placeholders;
 namespace stereolabs
 {
 
-// ----> Global constants
-const double DEG2RAD = 0.017453293;
-const double RAD2DEG = 57.295777937;
-
-const sl::COORDINATE_SYSTEM ROS_COORDINATE_SYSTEM =
-  sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
-const sl::UNIT ROS_MEAS_UNITS = sl::UNIT::METER;
-
-const int QOS_QUEUE_SIZE = 10;
-// <---- Global constants
-
 ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
 : Node("zed_node", options),
   mThreadStop(false),
@@ -564,64 +553,77 @@ void ZedCamera::getDebugParams()
   getParam("debug.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
 
   getParam("debug.debug_common", _debugCommon, _debugCommon);
-  RCLCPP_INFO(get_logger(), " * Debug Common: %s",
-              _debugCommon ? "TRUE" : "FALSE");
+  RCLCPP_INFO(
+    get_logger(), " * Debug Common: %s",
+    _debugCommon ? "TRUE" : "FALSE");
 
   getParam("debug.debug_sim", _debugSim, _debugSim);
-  RCLCPP_INFO(get_logger(), " * Debug Simulation: %s",
-              _debugSim ? "TRUE" : "FALSE");
+  RCLCPP_INFO(
+    get_logger(), " * Debug Simulation: %s",
+    _debugSim ? "TRUE" : "FALSE");
 
   getParam("debug.debug_video_depth", _debugVideoDepth, _debugVideoDepth);
-  RCLCPP_INFO(get_logger(), " * Debug Video/Depth: %s",
-              _debugVideoDepth ? "TRUE" : "FALSE");
+  RCLCPP_INFO(
+    get_logger(), " * Debug Video/Depth: %s",
+    _debugVideoDepth ? "TRUE" : "FALSE");
 
   getParam("debug.debug_camera_controls", _debugCamCtrl, _debugCamCtrl);
-  RCLCPP_INFO(get_logger(), " * Debug Control settings: %s",
-              _debugCamCtrl ? "TRUE" : "FALSE");
+  RCLCPP_INFO(
+    get_logger(), " * Debug Control settings: %s",
+    _debugCamCtrl ? "TRUE" : "FALSE");
 
   getParam("debug.debug_point_cloud", _debugPointCloud, _debugPointCloud);
-  RCLCPP_INFO(get_logger(), " * Debug Point Cloud: %s",
-              _debugPointCloud ? "TRUE" : "FALSE");
+  RCLCPP_INFO(
+    get_logger(), " * Debug Point Cloud: %s",
+    _debugPointCloud ? "TRUE" : "FALSE");
 
   getParam("debug.debug_gnss", _debugGnss, _debugGnss);
   RCLCPP_INFO(get_logger(), " * Debug GNSS: %s", _debugGnss ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_positional_tracking", _debugPosTracking,
-           _debugPosTracking);
-  RCLCPP_INFO(get_logger(), " * Debug Positional Tracking: %s",
-              _debugPosTracking ? "TRUE" : "FALSE");
+  getParam(
+    "debug.debug_positional_tracking", _debugPosTracking,
+    _debugPosTracking);
+  RCLCPP_INFO(
+    get_logger(), " * Debug Positional Tracking: %s",
+    _debugPosTracking ? "TRUE" : "FALSE");
 
   getParam("debug.debug_sensors", _debugSensors, _debugSensors);
-  RCLCPP_INFO(get_logger(), " * Debug sensors: %s",
-              _debugSensors ? "TRUE" : "FALSE");
+  RCLCPP_INFO(
+    get_logger(), " * Debug sensors: %s",
+    _debugSensors ? "TRUE" : "FALSE");
 
   getParam("debug.debug_mapping", _debugMapping, _debugMapping);
-  RCLCPP_INFO(get_logger(), " * Debug Mapping: %s",
-              _debugMapping ? "TRUE" : "FALSE");
+  RCLCPP_INFO(
+    get_logger(), " * Debug Mapping: %s",
+    _debugMapping ? "TRUE" : "FALSE");
 
   getParam("debug.debug_object_detection", _debugObjectDet, _debugObjectDet);
-  RCLCPP_INFO(get_logger(), " * Debug Object Detection: %s",
-              _debugObjectDet ? "TRUE" : "FALSE");
+  RCLCPP_INFO(
+    get_logger(), " * Debug Object Detection: %s",
+    _debugObjectDet ? "TRUE" : "FALSE");
 
   getParam("debug.debug_body_tracking", _debugBodyTrk, _debugBodyTrk);
-  RCLCPP_INFO(get_logger(), " * Debug Body Tracking: %s",
-              _debugBodyTrk ? "TRUE" : "FALSE");
+  RCLCPP_INFO(
+    get_logger(), " * Debug Body Tracking: %s",
+    _debugBodyTrk ? "TRUE" : "FALSE");
 
   getParam("debug.debug_streaming", _debugStreaming, _debugStreaming);
-  RCLCPP_INFO(get_logger(), " * Debug Streaming: %s",
-              _debugStreaming ? "TRUE" : "FALSE");
+  RCLCPP_INFO(
+    get_logger(), " * Debug Streaming: %s",
+    _debugStreaming ? "TRUE" : "FALSE");
 
   getParam("debug.debug_roi", _debugRoi, _debugRoi);
   RCLCPP_INFO(get_logger(), " * Debug ROI: %s", _debugRoi ? "TRUE" : "FALSE");
 
   getParam("debug.debug_advanced", _debugAdvanced, _debugAdvanced);
-  RCLCPP_INFO(get_logger(), " * Debug Advanced: %s",
-              _debugAdvanced ? "TRUE" : "FALSE");
+  RCLCPP_INFO(
+    get_logger(), " * Debug Advanced: %s",
+    _debugAdvanced ? "TRUE" : "FALSE");
 
   mDebugMode = _debugCommon || _debugSim || _debugVideoDepth || _debugCamCtrl ||
-               _debugPointCloud || _debugPosTracking || _debugGnss ||
-               _debugSensors || _debugMapping || _debugObjectDet ||
-               _debugBodyTrk || _debugAdvanced || _debugRoi || _debugStreaming;
+    _debugPointCloud || _debugPosTracking || _debugGnss ||
+    _debugSensors || _debugMapping || _debugObjectDet ||
+    _debugBodyTrk || _debugAdvanced || _debugRoi || _debugStreaming;
 
   if (mDebugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(
@@ -3946,12 +3948,6 @@ bool ZedCamera::startCamera()
 
   mThreadStop = false;
   mGrabStatus = sl::ERROR_CODE::LAST;
-
-  if (!mSvoMode && !mSimMode && !mStreamMode) {
-    if (mCamSerialNumber > 0) {
-      mInitParams.input.setFromSerialNumber(mCamSerialNumber);
-    }
-  }
 
   while (1) {
     rclcpp::sleep_for(500ms);
@@ -7513,9 +7509,10 @@ void ZedCamera::processOdometry()
       "MAP -> Odometry Status: "
         << sl::toString(mPosTrackingStatus.odometry_status).c_str());
 
-    DEBUG_PT("delta ODOM %s- [%s]:\n%s", _debugGnss ? "(`sl::Fusion`) " : "",
-             sl::toString(mPosTrackingStatus.odometry_status).c_str(),
-             deltaOdom.pose_data.getInfos().c_str());
+    DEBUG_PT(
+      "delta ODOM %s- [%s]:\n%s", _debugGnss ? "(`sl::Fusion`) " : "",
+      sl::toString(mPosTrackingStatus.odometry_status).c_str(),
+      deltaOdom.pose_data.getInfos().c_str());
 
     if (_debugGnss) {
       sl::Pose camera_delta_odom;
@@ -7680,9 +7677,10 @@ void ZedCamera::processPose()
     "MAP -> Tracking Status: "
       << sl::toString(mPosTrackingStatus.spatial_memory_status).c_str());
 
-  DEBUG_PT("Sensor POSE %s- [%s -> %s]:\n%s}",
-           _debugGnss ? "(`sl::Fusion`) " : "", mLeftCamFrameId.c_str(),
-           mMapFrameId.c_str(), mLastZedPose.pose_data.getInfos().c_str());
+  DEBUG_PT(
+    "Sensor POSE %s- [%s -> %s]:\n%s}",
+    _debugGnss ? "(`sl::Fusion`) " : "", mLeftCamFrameId.c_str(),
+    mMapFrameId.c_str(), mLastZedPose.pose_data.getInfos().c_str());
 
   if (_debugGnss) {
     sl::Pose camera_pose;

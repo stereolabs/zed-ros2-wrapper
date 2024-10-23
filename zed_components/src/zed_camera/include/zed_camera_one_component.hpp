@@ -45,6 +45,13 @@ protected:
   bool startCamera();
   // <---- Initialization functions
 
+  // ----> Utility functions
+  template<typename T>
+  void getParam(
+    std::string paramName, T defValue, T & outVal,
+    std::string log_info = std::string(), bool dynamic = false);
+  // <---- Utility functions
+
   // ----> Callbacks
   rcl_interfaces::msg::SetParametersResult callback_paramChange(
     std::vector<rclcpp::Parameter> parameters);
@@ -72,6 +79,8 @@ private:
   bool _debugCommon = false;
   bool _debugVideoDepth = false;
   bool _debugSensors = false;
+  bool _debugCamCtrl = false;
+  bool _debugStreaming = false;
   // <---- Debug variables
 
   // ----> QoS
@@ -111,6 +120,7 @@ private:
   // <---- Diagnostic
 
   // ----> Running status
+  bool _debugMode = false;  // Debug mode active?
   bool _svoMode = false;        // Input from SVO?
   bool _streamMode = false;     // Expecting local streaming data?
   sl::ERROR_CODE _connStatus = sl::ERROR_CODE::LAST; // Connection status
@@ -118,6 +128,31 @@ private:
   // <---- Running status
 
 };
+
+// ----> Template Function definitions
+template<typename T>
+void ZedCameraOne::getParam(
+  std::string paramName, T defValue, T & outVal,
+  std::string log_info, bool dynamic)
+{
+  rcl_interfaces::msg::ParameterDescriptor descriptor;
+  descriptor.read_only = !dynamic;
+
+  declare_parameter(paramName, rclcpp::ParameterValue(defValue), descriptor);
+
+  if (!get_parameter(paramName, outVal)) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The parameter '"
+        << paramName
+        << "' is not available or is not valid, using the default value: "
+        << defValue);
+  }
+
+  if (!log_info.empty()) {
+    RCLCPP_INFO_STREAM(get_logger(), log_info << outVal);
+  }
+}
 
 }  // namespace stereolabs
 

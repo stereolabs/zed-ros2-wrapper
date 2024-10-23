@@ -26,6 +26,7 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
 : Node("zed_node_one", options),
   _threadStop(false),
   _qos(QOS_QUEUE_SIZE),
+  _diagUpdater(this)
 {
   RCLCPP_INFO(get_logger(), "********************************");
   RCLCPP_INFO(get_logger(), "    ZED Camera One Component ");
@@ -56,21 +57,23 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
     exit(EXIT_FAILURE);
   }
 
-  // ----> Publishers/Sbscribers options
-  #ifndef FOUND_FOXY
+// ----> Publishers/Sbscribers options
+#ifndef FOUND_FOXY
   _pubOpt.qos_overriding_options =
     rclcpp::QosOverridingOptions::with_default_policies();
   _subOpt.qos_overriding_options =
     rclcpp::QosOverridingOptions::with_default_policies();
-  #endif
+#endif
   // <---- Publishers/Sbscribers options
 
-  // ----> Start a "one shot timer" to initialize the node and make `shared_from_this` available
+  // ----> Start a "one shot timer" to initialize the node and make
+  // `shared_from_this` available
   std::chrono::milliseconds init_msec(static_cast<int>(50.0));
   _initTimer = create_wall_timer(
     std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
     std::bind(&ZedCameraOne::init, this));
-  // <---- Start a "one shot timer" to initialize the node and make `shared_from_this` available
+  // <---- Start a "one shot timer" to initialize the node and make
+  // `shared_from_this` available
 }
 
 ZedCameraOne::~ZedCameraOne()
@@ -124,13 +127,75 @@ ZedCameraOne::~ZedCameraOne()
   // <---- Verify that all the threads are not active
 }
 
+void ZedCameraOne::initParameters()
+{
+  // DEBUG parameters
+  getDebugParams();
+}
+
+void ZedCameraOne::getDebugParams()
+{
+  rclcpp::Parameter paramVal;
+
+  RCLCPP_INFO(get_logger(), "*** DEBUG parameters ***");
+
+  getParam("debug.sdk_verbose", _sdkVerbose, _sdkVerbose, " * SDK Verbose: ");
+
+  getParam("debug.debug_common", _debugCommon, _debugCommon);
+  RCLCPP_INFO(
+    get_logger(), " * Debug Common: %s",
+    _debugCommon ? "TRUE" : "FALSE");
+
+  getParam("debug.debug_video_depth", _debugVideoDepth, _debugVideoDepth);
+  RCLCPP_INFO(
+    get_logger(), " * Debug Video/Depth: %s",
+    _debugVideoDepth ? "TRUE" : "FALSE");
+
+  getParam("debug.debug_camera_controls", _debugCamCtrl, _debugCamCtrl);
+  RCLCPP_INFO(
+    get_logger(), " * Debug Control settings: %s",
+    _debugCamCtrl ? "TRUE" : "FALSE");
+
+  getParam("debug.debug_sensors", _debugSensors, _debugSensors);
+  RCLCPP_INFO(
+    get_logger(), " * Debug sensors: %s",
+    _debugSensors ? "TRUE" : "FALSE");
+
+  getParam("debug.debug_streaming", _debugStreaming, _debugStreaming);
+  RCLCPP_INFO(
+    get_logger(), " * Debug Streaming: %s",
+    _debugStreaming ? "TRUE" : "FALSE");
+
+  _debugMode = _debugCommon || _debugVideoDepth || _debugCamCtrl ||
+    _debugSensors || _debugStreaming;
+
+  if (_debugMode) {
+    rcutils_ret_t res = rcutils_logging_set_logger_level(
+      get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
+
+    if (res != RCUTILS_RET_OK) {
+      RCLCPP_INFO(get_logger(), "Error setting DEBUG level for logger");
+    } else {
+      RCLCPP_INFO(get_logger(), " + Debug Mode enabled +");
+    }
+  } else {
+    rcutils_ret_t res = rcutils_logging_set_logger_level(
+      get_logger().get_name(), RCUTILS_LOG_SEVERITY_INFO);
+
+    if (res != RCUTILS_RET_OK) {
+      RCLCPP_INFO(get_logger(), "Error setting INFO level for logger");
+    }
+  }
+
+  DEBUG_STREAM_COMM(
+    "[ROS2] Using RMW_IMPLEMENTATION "
+      << rmw_get_implementation_identifier());
+}
+
 void ZedCameraOne::init()
 {
   // Stop the timer for "one shot" initialization
   _initTimer->cancel();
-
-  // Parameters initialization
-  initParameters();
 
   // ----> Diagnostic initialization
   _diagUpdater.add(
@@ -139,6 +204,9 @@ void ZedCameraOne::init()
   std::string hw_id = std::string("Stereolabs camera: ") + _cameraName;
   _diagUpdater.setHardwareID(hw_id);
   // <---- Diagnostic initialization
+
+  // Parameters initialization
+  initParameters();
 
   // Services initialization
   initServices();
@@ -187,7 +255,9 @@ bool ZedCameraOne::startCamera()
   } else if (!_streamAddr.empty()) {
     RCLCPP_INFO(get_logger(), "*** LOCAL STREAMING OPENING ***");
 
-    _initParams.input.setFromStream(_streamAddr.c_str(), static_cast<unsigned short>(_streamPort));
+    _initParams.input.setFromStream(
+      _streamAddr.c_str(),
+      static_cast<unsigned short>(_streamPort));
 
     _streamMode = true;
   } else {
@@ -201,8 +271,11 @@ bool ZedCameraOne::startCamera()
     }
   }
 
-  _initParams.async_grab_camera_recovery = true;    // Camera recovery is handled asynchronously to provide information about this status
-  _initParams.camera_image_flip = (_cameraFlip ? sl::FLIP_MODE::ON : sl::FLIP_MODE::OFF);
+  _initParams.async_grab_camera_recovery =
+    true;    // Camera recovery is handled asynchronously to provide
+             // information about this status
+  _initParams.camera_image_flip =
+    (_cameraFlip ? sl::FLIP_MODE::ON : sl::FLIP_MODE::OFF);
   _initParams.coordinate_system = ROS_COORDINATE_SYSTEM;
   _initParams.coordinate_units = ROS_MEAS_UNITS;
   _initParams.enable_hdr = _enableHDR;
@@ -256,6 +329,49 @@ bool ZedCameraOne::startCamera()
     DEBUG_STREAM_COMM("Opening successfull");
   }
   // ----> Try to connect to a camera, to a stream, or to load an SVO
+
+  return true;
+}
+
+void ZedCameraOne::callback_updateDiagnostic(
+  diagnostic_updater::DiagnosticStatusWrapper & stat)
+{
+  DEBUG_COMM("*** Update Diagnostic ***");
+
+  if (_connStatus == sl::ERROR_CODE::LAST) {
+    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Initializing...");
+    return;
+  } else if (_connStatus != sl::ERROR_CODE::SUCCESS) {
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+      sl::toString(_connStatus).c_str());
+    return;
+  }
+}
+
+rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
+  std::vector<rclcpp::Parameter> parameters)
+{
+  if (mDebugMode) {
+    DEBUG_STREAM_COMM("Parameter change callback");
+  }
+
+  rcl_interfaces::msg::SetParametersResult result;
+  result.successful = true;
+
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    "Modifying " << parameters.size() << " parameters");
+
+  int count = 0;
+
+  for (const rclcpp::Parameter & param : parameters) {
+    count++;
+
+    if (_debugMode) {
+      DEBUG_STREAM_COMM("Param #" << count << ": " << param.get_name());
+    }
+  }
 }
 
 }  // namespace stereolabs

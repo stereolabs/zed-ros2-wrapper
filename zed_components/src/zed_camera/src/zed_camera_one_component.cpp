@@ -16,10 +16,13 @@
 
 #include <rclcpp/time.hpp>
 #include <rclcpp/utilities.hpp>
+#include <sensor_msgs/distortion_models.hpp>
+#include <sensor_msgs/image_encodings.hpp>
 
 #include "sl_logging.hpp"
 
 using namespace std::placeholders;
+using namespace std::chrono_literals;
 namespace stereolabs
 {
 ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
@@ -213,6 +216,7 @@ void ZedCameraOne::init()
 
   // ----> Start camera
   if (!startCamera()) {
+    _zed.reset();
     exit(EXIT_FAILURE);
   }
   // <---- Start camera
@@ -324,13 +328,230 @@ bool ZedCameraOne::startCamera()
         get_logger(), "Error opening camera: %s",
         sl::toString(_connStatus).c_str());
       RCLCPP_INFO(get_logger(), "Please verify the camera connection");
+      return false;
     }
   } else {
     DEBUG_STREAM_COMM("Opening successfull");
   }
   // ----> Try to connect to a camera, to a stream, or to load an SVO
 
+  // ----> Camera information
+  sl::CameraOneInformation camInfo = _zed->getCameraInformation();
+
+  float realFps = camInfo.camera_configuration.fps;
+  if (realFps != static_cast<float>(_camGrabFrameRate)) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "!!! `general.grab_frame_rate` value is not valid: '"
+        << _camGrabFrameRate
+        << "'. Automatically replaced with '" << realFps
+        << "'. Please fix the parameter !!!");
+    _camGrabFrameRate = realFps;
+  }
+
+  // CUdevice devid;
+  cuCtxGetDevice(&_gpuId);
+  RCLCPP_INFO_STREAM(get_logger(), "ZED SDK running on GPU #" << _gpuId);
+
+  // Camera model
+  _camRealModel = camInfo.camera_model;
+
+  if (_camRealModel != _camUserModel) {
+    RCLCPP_WARN( get_logger(), "Camera model does not match user parameter.");
+
+    if(_camRealModel==sl::MODEL::ZED_XONE_GS)
+    {
+      RCLCPP_WARN( get_logger(), "Please set the parameter 'general.camera_model' to 'zedxonegs'");
+    } else if(_camRealModel==sl::MODEL::ZED_XONE_UHD)
+    {
+      RCLCPP_WARN( get_logger(), "Please set the parameter 'general.camera_model' to 'zedxone4k'");
+    }
+  }
+
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Camera Model  -> "
+      << sl::toString(_camRealModel).c_str());
+  _camSerialNumber = camInfo.serial_number;
+  RCLCPP_INFO_STREAM(get_logger(), " * Serial Number -> " << _camSerialNumber);
+
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Focal Lenght -> "
+      << camInfo.camera_configuration.calibration_parameters.focal_length_metric
+      << " mm");
+
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Input\t -> "
+      << sl::toString(camInfo.input_type).c_str());
+  if (_svoMode) {
+    RCLCPP_INFO(
+      get_logger(), " * SVO resolution\t-> %ldx%ld",
+      camInfo.camera_configuration.resolution.width,
+      camInfo.camera_configuration.resolution.height);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * SVO framerate\t-> "
+        << (camInfo.camera_configuration.fps));
+  }
+
+  // Firmwares
+  if (!_svoMode) {
+    _camFwVersion = camInfo.camera_configuration.firmware_version;
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Camera FW Version  -> " << _camFwVersion);
+      _sensFwVersion = camInfo.sensors_configuration.firmware_version;
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " * Sensors FW Version -> " << _sensFwVersion);
+  }
+
+  // Camera/IMU transform  
+  _slCamImuTransf = camInfo.sensors_configuration.camera_imu_transform;
+  DEBUG_SENS("Camera-IMU Transform:\n%s", _slCamImuTransf.getInfos().c_str());
+  
+
+  _camWidth = camInfo.camera_configuration.resolution.width;
+  _camHeight = camInfo.camera_configuration.resolution.height;
+
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Camera grab frame size -> "
+      << _camWidth << "x" << _camHeight);
+
+  int pub_w, pub_h;
+  pub_w = static_cast<int>(std::round(_camWidth / _customDownscaleFactor));
+  pub_h = static_cast<int>(std::round(_camHeight /_customDownscaleFactor));
+
+  if (pub_w > _camWidth || pub_h > _camHeight) {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "The publishing resolution ("
+        << pub_w << "x" << pub_h
+        << ") cannot be higher than the grabbing resolution ("
+        << _camWidth << "x" << _camHeight
+        << "). Using grab resolution for output messages.");
+    pub_w = _camWidth;
+    pub_h = _camHeight;
+  }
+
+  _matResol = sl::Resolution(pub_w, pub_h);
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Publishing frame size  -> "
+      << _matResol.width << "x"
+      << _matResol.height);
+  // <---- Camera information
+
+  // ----> Camera Info messages
+  _camInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+  _camInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+
+  initTFCoordFrameNames();
+
+  // Rectified image
+  fillCamInfo( _camInfoMsg, _camImgFrameId, false);
+  // Raw image
+  fillCamInfo( _camInfoRawMsg, _camImgFrameId, true);
+  // <---- Camera Info messages
+
+  // Initialize publishers
+  initPublishers();
+
+  // Initialialized timestamp to avoid wrong initial data
+  // ----> Timestamp
+  if (_svoMode) {
+    _frameTimestamp =
+      sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+  } else {
+    _frameTimestamp =
+      sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+  }
+  // <---- Timestamp
+
+  // TODO Initialize diagnostic statistics
+
+  // Init and start threads
+  initThreadsAndTimers();
+
   return true;
+}
+
+void ZedCameraOne::initThreadsAndTimers() 
+{
+  // ----> Start CMOS Temperatures thread
+  startTempPubTimer();
+  // <---- Start CMOS Temperatures thread
+}
+
+void ZedCameraOne::startTempPubTimer()
+{
+  if (_tempPubTimer != nullptr) {
+    _tempPubTimer->cancel();
+  }
+
+  std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0));
+  _tempPubTimer = create_wall_timer(
+    std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
+    std::bind(&ZedCameraOne::callback_pubTemp, this));
+}
+
+void ZedCameraOne::callback_pubTemp()
+{
+  DEBUG_STREAM_ONCE_SENS("Temperatures callback called");
+
+  if (_grabStatus != sl::ERROR_CODE::SUCCESS) {
+    DEBUG_SENS("Camera not ready");
+    rclcpp::sleep_for(1s);
+    return;
+  }
+
+  // ----> Always update temperature values for diagnostic
+  sl::SensorsData sens_data;
+  sl::ERROR_CODE err = _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    DEBUG_STREAM_SENS(
+      "[callback_pubTemp] sl::getSensorsData error: "
+        << sl::toString(err).c_str());
+    return;
+  }
+
+  sens_data.temperature.get(
+    sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, _tempImu);
+  // <---- Always update temperature values for diagnostic
+
+  // ----> Subscribers count
+  size_t tempSubNumber;
+
+  try {
+    tempSubNumber = count_subscribers(_pubTemp->get_topic_name());
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_SENS(
+      "callback_pubTemp: Exception while counting subscribers");
+    return;
+  }
+  // <---- Subscribers count
+
+  // ----> Publish temperature
+  if (tempSubNumber > 0) {
+    tempMsgPtr imuTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+
+    imuTempMsg->header.stamp = get_clock()->now();
+
+    imuTempMsg->header.frame_id = _imuFrameId;
+    imuTempMsg->temperature = static_cast<double>(_tempImu);
+    imuTempMsg->variance = 0.0;
+
+    DEBUG_SENS("Publishing IMU TEMP message");
+    try {
+      _pubTemp->publish(std::move(imuTempMsg));
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    }
+  }
+  // <---- Publish temperature
 }
 
 void ZedCameraOne::callback_updateDiagnostic(
@@ -382,6 +603,157 @@ rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_paramChange(
   }
 
   return result;
+}
+
+void ZedCameraOne::initTFCoordFrameNames()
+{
+  // ----> Coordinate frames
+  _cameraLinkFrameId = _cameraName + "_camera_link";
+  _cameraCenterFrameId = _cameraName + "_camera_center";
+  _camImgFrameId = _cameraName + "_camera_optical_frame";
+  _camOptFrameId = _cameraName + "_camera_optical_frame";
+  _imuFrameId = _cameraName + "_imu_link";
+
+  // Print TF frames
+  RCLCPP_INFO_STREAM(get_logger(), "*** TF FRAMES ***");
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera link\t-> " << _cameraLinkFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera center\t-> " << _cameraCenterFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Image\t\t-> " << _camImgFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Optical\t-> " << _camOptFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t-> " << _imuFrameId);
+  // <---- Coordinate frames
+}
+
+void ZedCameraOne::fillCamInfo(
+    const std::shared_ptr<sensor_msgs::msg::CameraInfo> & camInfoMsg,
+    const std::string & frameId,
+    bool rawParam)
+{
+  sl::CameraParameters zedParam;
+
+  if (rawParam) {
+    zedParam = _zed->getCameraInformation(_matResol).camera_configuration.calibration_parameters_raw;
+  } else {
+    zedParam = _zed->getCameraInformation(_matResol).camera_configuration.calibration_parameters;
+  }
+
+  // https://docs.ros2.org/latest/api/sensor_msgs/msg/CameraInfo.html
+
+  // ----> Distortion models
+  // ZED SDK params order: [ k1, k2, p1, p2, k3, k4, k5, k6, s1, s2, s3, s4]
+  // Radial (k1, k2, k3, k4, k5, k6), Tangential (p1,p2) and Prism (s1, s2, s3,
+  // s4) distortion. Prism not currently used.
+
+  // ROS2 order (OpenCV) -> k1,k2,p1,p2,k3,k4,k5,k6,s1,s2,s3,s4
+  switch (_camRealModel) {
+    case sl::MODEL::ZED_XONE_GS: // RATIONAL_POLYNOMIAL
+
+      camInfoMsg->distortion_model =
+        sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
+
+      camInfoMsg->d.resize(8);
+      camInfoMsg->d[0] = zedParam.disto[0];    // k1
+      camInfoMsg->d[1] = zedParam.disto[1];    // k2
+      camInfoMsg->d[2] = zedParam.disto[2];    // p1
+      camInfoMsg->d[3] = zedParam.disto[3];    // p2
+      camInfoMsg->d[4] = zedParam.disto[4];    // k3
+      camInfoMsg->d[5] = zedParam.disto[5];    // k4
+      camInfoMsg->d[6] = zedParam.disto[6];    // k5
+      camInfoMsg->d[7] = zedParam.disto[7];    // k6
+      break;
+
+    case sl::MODEL::ZED_XONE_UHD: // RATIONAL_POLYNOMIAL
+
+      camInfoMsg->distortion_model =
+        sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
+
+      camInfoMsg->d.resize(8);
+      camInfoMsg->d[0] = zedParam.disto[0];    // k1
+      camInfoMsg->d[1] = zedParam.disto[1];    // k2
+      camInfoMsg->d[2] = zedParam.disto[2];    // p1
+      camInfoMsg->d[3] = zedParam.disto[3];    // p2
+      camInfoMsg->d[4] = zedParam.disto[4];    // k3
+      camInfoMsg->d[5] = zedParam.disto[5];    // k4
+      camInfoMsg->d[6] = zedParam.disto[6];    // k5
+      camInfoMsg->d[7] = zedParam.disto[7];    // k6
+      break;
+  }
+
+  // Intrinsic
+  camInfoMsg->k.fill(0.0);
+  camInfoMsg->k[0] = static_cast<double>(zedParam.fx);
+  camInfoMsg->k[2] = static_cast<double>(zedParam.cx);
+  camInfoMsg->k[4] = static_cast<double>(zedParam.fy);
+  camInfoMsg->k[5] = static_cast<double>(zedParam.cy);
+  camInfoMsg->k[8] = 1.0;
+
+  // Rectification
+  camInfoMsg->r.fill(0.0);
+  for (size_t i = 0; i < 3; i++) {
+    // identity
+    camInfoMsg->r[i + i * 3] = 1.0;
+  }
+
+  // Projection/camera matrix
+  camInfoMsg->p.fill(0.0);
+  camInfoMsg->p[0] = static_cast<double>(zedParam.fx);
+  camInfoMsg->p[2] = static_cast<double>(zedParam.cx);
+  camInfoMsg->p[5] = static_cast<double>(zedParam.fy);
+  camInfoMsg->p[6] = static_cast<double>(zedParam.cy);
+  camInfoMsg->p[10] = 1.0;
+  
+  // Image size
+  camInfoMsg->width = static_cast<uint32_t>(_matResol.width);
+  camInfoMsg->height = static_cast<uint32_t>(_matResol.height);
+  camInfoMsg->header.frame_id = frameId;
+}
+
+void ZedCameraOne::initPublishers() 
+{
+  RCLCPP_INFO(get_logger(), "*** PUBLISHED TOPICS ***");
+
+  // ----> Images
+  RCLCPP_INFO(get_logger(), " +++ IMAGE TOPICS +++");
+  std::string rect_prefix = "rect/";
+  std::string raw_prefix = "raw/";
+  std::string color_prefix = "rgb/";
+  std::string gray_prefix = "gray/";
+  std::string image_topic = "image";
+
+
+  _imgTopic = _topicRoot + color_prefix + rect_prefix + image_topic;
+  _pubColorImg = image_transport::create_camera_publisher(
+    this, _imgTopic, _qos.get_rmw_qos_profile());
+  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubColorImg.getTopic());
+  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubColorImg.getInfoTopic());
+
+  _imgRawTopic = _topicRoot + color_prefix + raw_prefix + image_topic;
+  _pubColorRawImg = image_transport::create_camera_publisher(
+    this, _imgRawTopic, _qos.get_rmw_qos_profile());
+  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubColorRawImg.getTopic());
+  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubColorRawImg.getInfoTopic());
+
+  _imgGrayTopic = _topicRoot + gray_prefix + rect_prefix + image_topic;
+  _pubGrayImg = image_transport::create_camera_publisher(
+    this, _imgGrayTopic, _qos.get_rmw_qos_profile());
+  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubGrayImg.getTopic());
+  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubGrayImg.getInfoTopic());
+
+  _imgRawGrayTopic = _topicRoot + gray_prefix + raw_prefix + image_topic;
+  _pubGrayRawImg = image_transport::create_camera_publisher(
+    this, _imgRawGrayTopic, _qos.get_rmw_qos_profile());
+  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubGrayRawImg.getTopic());
+  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubGrayRawImg.getInfoTopic());
+  // <---- Images
+
+  // ----> Temperature
+  RCLCPP_INFO(get_logger(), " +++ SENSOR TOPICS +++");
+  _tempTopic = _topicRoot + "temperature";
+  _pubTemp = create_publisher<sensor_msgs::msg::Temperature>(_tempTopic, _qos, _pubOpt);
+  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubTemp->get_topic_name());
+  // <---- Temperature
+
+  // TODO initialize IMU publishers
 }
 
 }  // namespace stereolabs

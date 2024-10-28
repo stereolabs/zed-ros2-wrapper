@@ -38,11 +38,14 @@ protected:
   void init();
   void initParameters();
   void initServices();
-  void initThreads();
+  void initThreadsAndTimers();
+  void initTFCoordFrameNames();
+  void initPublishers();
 
   void getDebugParams();
 
   bool startCamera();
+  void startTempPubTimer();
   // <---- Initialization functions
 
   // ----> Utility functions
@@ -50,6 +53,10 @@ protected:
   void getParam(
     std::string paramName, T defValue, T & outVal,
     std::string log_info = std::string(), bool dynamic = false);
+  void fillCamInfo(
+    const std::shared_ptr<sensor_msgs::msg::CameraInfo> & camInfoMsg,
+    const std::string & frameId,
+    bool rawParam = false);
   // <---- Utility functions
 
   // ----> Callbacks
@@ -57,6 +64,7 @@ protected:
     std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(
     diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void callback_pubTemp();
   // <---- Callbacks
 
 private:
@@ -90,9 +98,30 @@ private:
   rclcpp::SubscriptionOptions _subOpt;
   // <---- QoS
 
+  // ----> Topics
+  std::string _topicRoot = "~/";
+  std::string _imgTopic;
+  std::string _imgRawTopic;
+  std::string _imgGrayTopic;
+  std::string _imgRawGrayTopic;
+
+  std::string _tempTopic;
+  // <---- Topics
+
+  // ----> Publishers
+  image_transport::CameraPublisher _pubColorImg;
+  image_transport::CameraPublisher _pubColorRawImg;
+  image_transport::CameraPublisher _pubGrayImg;
+  image_transport::CameraPublisher _pubGrayRawImg;
+
+  imuPub _pubImu;
+  imuPub _pubImuRaw;
+  tempPub _pubTemp;
+  // <---- Publishers
+
   // ----> Parameters
   std::string _cameraName = "zed_one";  // Name of the camera
-  int _camGrabFrameRate = 0; // Grab frame rate
+  int _camGrabFrameRate = 30; // Grab frame rate
   sl::RESOLUTION _camResol = sl::RESOLUTION::HD1080; // Default resolution: RESOLUTION_HD1080
   PubRes _pubResolution = PubRes::NATIVE; // Use native grab resolution by default
   double _customDownscaleFactor = 1.0;  // Used to rescale data with user factor
@@ -101,8 +130,11 @@ private:
   float _openTimeout_sec = 5; // Camera open timeout
   std::string _opencvCalibFile; // Custom OpenCV calibration file
   int _sdkVerbose = 0; // SDK verbose level
+  int _gpuId = -1; // GPU ID
 
   int _camSerialNumber = 0; // Camera serial number
+
+  sl::MODEL _camUserModel = sl::MODEL::ZED_XONE_GS;  // Default camera model
 
   std::string _svoFilepath = ""; // SVO input
   bool _svoRealtime = true; // SVO playback with real time
@@ -125,7 +157,40 @@ private:
   bool _streamMode = false;     // Expecting local streaming data?
   sl::ERROR_CODE _connStatus = sl::ERROR_CODE::LAST; // Connection status
   sl::ERROR_CODE _grabStatus = sl::ERROR_CODE::LAST; // Grab status
+  float _tempImu = NOT_VALID_TEMP;
   // <---- Running status
+
+  // ----> Timestamps
+  rclcpp::Time _frameTimestamp;
+  // <---- Timestamps
+
+  // Camera IMU transform
+  sl::Transform _slCamImuTransf;
+
+  // ----> Camera info
+  sl::MODEL _camRealModel;                   // Camera model requested to SDK
+  unsigned int _camFwVersion;                // Camera FW version
+  unsigned int _sensFwVersion;               // Sensors FW version
+  // <---- Camera info
+
+  // ----> Stereolabs Mat Info
+  int _camWidth;   // Camera frame width
+  int _camHeight;  // Camera frame height
+  sl::Resolution _matResol;
+  // <---- Stereolabs Mat Info
+
+  // ----> Camera infos
+  camInfoMsgPtr _camInfoMsg;
+  camInfoMsgPtr _camInfoRawMsg;
+  // <---- Camera infos
+
+  // ----> Frame IDs
+  std::string _cameraLinkFrameId;
+  std::string _cameraCenterFrameId;
+  std::string _camImgFrameId;
+  std::string _camOptFrameId;
+  std::string _imuFrameId;
+  // <---- Frame IDs
 
 };
 

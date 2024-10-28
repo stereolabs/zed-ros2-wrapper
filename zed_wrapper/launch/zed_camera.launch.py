@@ -30,7 +30,11 @@ from launch.substitutions import (
     Command,
     TextSubstitution
 )
-from launch_ros.actions import Node
+from launch_ros.actions import (
+    Node,
+    ComposableNodeContainer
+)
+from launch_ros.descriptions import ComposableNode
 
 # ZED Configurations to be loaded by ZED Node
 default_config_common = os.path.join(
@@ -188,23 +192,62 @@ def launch_setup(context, *args, **kwargs):
     if( ros_params_override_path.perform(context) != ''):
         node_parameters.append(ros_params_override_path)
 
-    # ZED Wrapper node
-    zed_wrapper_node = Node(
-        package='zed_wrapper',
-        namespace=camera_name_val,
-        executable='zed_wrapper',
-        name=node_name,
-        output='screen',
-        #prefix=['valgrind'],
-        #prefix=['xterm -e valgrind --tools=callgrind'],
-        #prefix=['xterm -e gdb -ex run --args'],
-        #prefix=['gdbserver localhost:3000'],
-        parameters=node_parameters
+
+    # # ZED Wrapper node
+    # zed_wrapper_node = Node(
+    #     package='zed_wrapper',
+    #     namespace=camera_name_val,
+    #     executable='zed_wrapper',
+    #     name=node_name,
+    #     output='screen',
+    #     #prefix=['valgrind'],
+    #     #prefix=['xterm -e valgrind --tools=callgrind'],
+    #     #prefix=['xterm -e gdb -ex run --args'],
+    #     #prefix=['gdbserver localhost:3000'],
+    #     parameters=node_parameters
+    # )
+
+    # ZED Wrapper component
+    if( camera_model_val=='zed' or
+        camera_model_val=='zedm' or
+        camera_model_val=='zed2' or
+        camera_model_val=='zed2i' or
+        camera_model_val=='zedx' or
+        camera_model_val=='zedxm' or
+        camera_model_val=='virtual'):
+        zed_wrapper_component = ComposableNode(
+            package='zed_components',
+            namespace=camera_name_val,
+            plugin='stereolabs::ZedCamera',
+            name=node_name,
+            parameters=node_parameters,
+            extra_arguments=[{'use_intra_process_comms': True}]
+        )
+    else: # 'zedxonegx' or 'zedxone4k')
+        zed_wrapper_component = ComposableNode(
+            package='zed_components',
+            namespace=camera_name_val,
+            plugin='stereolabs::ZedCameraOne',
+            name=node_name,
+            parameters=node_parameters,
+            extra_arguments=[{'use_intra_process_comms': True}]
+        )
+
+    # ROS 2 Component Container
+    zed_container = ComposableNodeContainer(
+            name='zed_container',
+            namespace=camera_name_val,
+            package='rclcpp_components',
+            executable='component_container_isolated',
+            composable_node_descriptions=[
+                zed_wrapper_component
+            ],
+            output='screen',
     )
 
     return [
         rsp_node,
-        zed_wrapper_node
+        zed_container
     ]
 
 
@@ -219,7 +262,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'camera_model',
                 description='[REQUIRED] The model of the camera. Using a wrong camera model can disable camera features.',
-                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'virtual']),
+                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'virtual', 'zedxonegs', 'zedxone4k']),
             DeclareLaunchArgument(
                 'node_name',
                 default_value='zed_node',

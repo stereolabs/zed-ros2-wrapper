@@ -22,7 +22,7 @@
             serial_number: 0 # usually overwritten by launch file
             pub_resolution: "CUSTOM" # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
-            pub_frame_rate: 30.0 # frequency of publishing of visual images and depth images
+            pub_frame_rate: 15.0 # frequency of publishing of visual images and depth images
             gpu_id: -1
             optional_opencv_calibration_file: "" # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
 
@@ -39,7 +39,12 @@
             auto_whitebalance: true # [DYNAMIC]
             whitebalance_temperature: 42 # [DYNAMIC] - [28,65] works only if `auto_whitebalance` is false
 
-        region_of_interest:
+        sensors:
+            publish_imu_tf: true # [usually overwritten by launch file] enable/disable the IMU TF broadcasting
+            sensors_image_sync: false # Synchronize Sensors messages with latest published video/depth message
+            sensors_pub_rate: 200. # frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
+
+        region_of_interest: # Only stereo cameras
             automatic_roi: false # Enable the automatic ROI generation to automatically detect part of the robot in the FoV and remove them from the processing. Note: if enabled the value of `manual_polygon` is ignored
             depth_far_threshold_meters: 2.5 # Filtering how far object in the ROI should be considered, this is useful for a vehicle for instance
             image_height_ratio_cutoff: 0.5 # By default consider only the lower half of the image, can be useful to filter out the sky
@@ -53,16 +58,16 @@
             apply_to_body_tracking: true # Apply ROI to body tracking processing
             apply_to_spatial_mapping: true # Apply ROI to spatial mapping processing
 
-        depth:
-            depth_mode: "NEURAL_PLUS" # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+        depth: # Only stereo cameras
+            depth_mode: "NEURAL" # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             depth_stabilization: 1 # Forces positional tracking to start if major than 0 - Range: [0,100]
             openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
-            point_cloud_freq: 10.0 # [DYNAMIC] - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
+            point_cloud_freq: 5.0 # [DYNAMIC] - frequency of the pointcloud publishing (equal or less to `grab_frame_rate` value)
             depth_confidence: 50 # [DYNAMIC]
             depth_texture_conf: 100 # [DYNAMIC]
             remove_saturated_areas: true # [DYNAMIC]
 
-        pos_tracking:
+        pos_tracking: # Only stereo cameras
             pos_tracking_enabled: true # True to enable positional tracking from start
             pos_tracking_mode: "GEN_2" # Matches the ZED SDK setting: 'GEN_1', 'GEN_2'
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
@@ -84,7 +89,7 @@
             fixed_z_value: 0.00 # Value to be used for Z coordinate if `two_d_mode` is true
             transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->camera_link` transform being generated
 
-        gnss_fusion:
+        gnss_fusion: # Only stereo cameras
             gnss_fusion_enabled: false # fuse 'sensor_msg/NavSatFix' message information into pose data
             gnss_fix_topic: "/fix" # Name of the GNSS topic of type NavSatFix to subscribe [Default: '/gps/fix']
             gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
@@ -99,7 +104,7 @@
             target_translation_uncertainty: 10e-2 # defines the target translation uncertainty at which the calibration process between GNSS and VIO concludes. By default, the threshold is set at 10 centimeters.
             target_yaw_uncertainty: 1e-2 # defines the target yaw uncertainty at which the calibration process between GNSS and VIO concludes. The unit of this parameter is in radian. By default, the threshold is set at 0.1 radians.
 
-        mapping:
+        mapping: # Only stereo cameras
             mapping_enabled: false # True to enable mapping and fused point cloud pubblication
             resolution: 0.05 # maps resolution in meters [min: 0.01f - max: 0.2f]
             max_mapping_range: 5.0 # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
@@ -108,12 +113,7 @@
             pd_max_distance_threshold: 0.15 # Plane detection: controls the spread of plane by checking the position difference.
             pd_normal_similarity_threshold: 15.0 # Plane detection: controls the spread of plane by checking the angle difference.
 
-        sensors:
-            publish_imu_tf: true # [usually overwritten by launch file] enable/disable the IMU TF broadcasting
-            sensors_image_sync: false # Synchronize Sensors messages with latest published video/depth message
-            sensors_pub_rate: 200. # frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
-
-        object_detection:
+        object_detection: # Only stereo cameras
             od_enabled: false # True to enable Object Detection
             model: 'MULTI_CLASS_BOX_FAST' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE', 'CUSTOM_YOLOLIKE_BOX_OBJECTS'
             custom_onnx_file: '' # Only used if 'model' is 'CUSTOM_YOLOLIKE_BOX_OBJECTS'. Path to the YOLO-like ONNX file for custom object detection directly performed by the ZED SDK.
@@ -132,7 +132,7 @@
             mc_fruit_vegetable: true # [DYNAMIC] - Enable/disable the detection of fruits and vegetables for 'MULTI_CLASS_X' models
             mc_sport: true # [DYNAMIC] - Enable/disable the detection of sport-related objects for 'MULTI_CLASS_X' models
 
-        body_tracking:
+        body_tracking: # Only stereo cameras
             bt_enabled: false # True to enable Body Tracking
             model: "HUMAN_BODY_MEDIUM" # 'HUMAN_BODY_FAST', 'HUMAN_BODY_MEDIUM', 'HUMAN_BODY_ACCURATE'
             body_format: "BODY_38" # 'BODY_18','BODY_34','BODY_38','BODY_70'

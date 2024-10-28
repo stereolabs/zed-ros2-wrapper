@@ -87,12 +87,12 @@ To start the ZED node, open a bash terminal and use the [CLI](https://index.ros.
 $ ros2 launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>
 ```
 
-Replace `<camera_model>` with the model of the camera that you are using: `'zed'`, `'zedm'`, `'zed2'`, `'zed2i'`, `'zedx'`, `'zedxm'`, `'virtual'`.
+Replace `<camera_model>` with the model of the camera that you are using: `'zed'`, `'zedm'`, `'zed2'`, `'zed2i'`, `'zedx'`, `'zedxm'`, `'virtual'`,`'zedxonegs'`,`'zedxone4k'`.
 
 The `zed_camera.launch.py` is Python launch scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/). The parameters for the indicated camera model are loaded from the relative "YAML files".
 A Robot State Publisher node is started to publish the camera static links and joints loaded from the URDF model associated with the camera model.
 
-> :pushpin: **Note:** You can set your own configurations by modifying the parameters in the files **common.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, and **zedxm.yaml** available in the folder `zed_wrapper/config`.
+> :pushpin: **Note:** You can set your own configurations by modifying the parameters in the files **common.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, **zedxm.yaml**, **zedxonegs.yaml**, and **zedxone4k.yaml**  available in the folder `zed_wrapper/config`.
 
 You can get the list of all the available launch parameters by using the `-s` launch option:
 
@@ -109,7 +109,7 @@ To start a pre-configured Rviz environment and visualize the data of all ZED cam
 
 You can also quickly check that your depth data is correctly retrieved in rviz with `rviz2 -d ./zed_wrapper/config/rviz2/<your camera model>.rviz`. Be aware that rviz subscribes to numerous ROS topics, which can potentially impact the performance of your application compared to when it runs without rviz.
 
-### Simulation mode
+### Simulation mode [not available for monocular cameras]
 
 Launch a standalone ZED ROS 2 node with simulated ZED data as input by using the following command:
 
@@ -149,12 +149,12 @@ Supported simulation environments:
 [SVO recording](https://www.stereolabs.com/docs/video/recording/) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.
 [More information](https://www.stereolabs.com/docs/ros2/zed_node/#services)
 
-### Object Detection
+### Object Detection [not available for monocular cameras]
 
 The Object Detection can be enabled *automatically* when the node start by setting the parameter `object_detection/od_enabled` to `true` in the file `common.yaml`.
 The Object Detection can be enabled/disabled *manually* by calling the services `enable_obj_det`.
 
-### Custom Object Detection with YOLO-like ONNX model file
+### Custom Object Detection with YOLO-like ONNX model file [not available for monocular cameras]
 
 Object Detection inference can be performed using a **custom inference engine** in YOLO-like ONNX format.
 
@@ -203,18 +203,18 @@ Console log while optimization is running:
 [zed_wrapper-3]  This operation will be run only once and may take a few minutes 
 ```
 
-### Body Tracking
+### Body Tracking [not available for monocular cameras]
 
 The Body Tracking can be enabled *automatically* when the node starts by setting the parameter `body_tracking/bt_enabled` to `true` in the file `common.yaml`.
 
 *The Object Detection module is not available on the very first generation of ZED cameras.*
 
-### Spatial Mapping
+### Spatial Mapping [not available for monocular cameras]
 
 The Spatial Mapping can be enabled automatically when the node starts setting the parameter `mapping/mapping_enabled` to `true` in the file `common.yaml`.
 The Spatial Mapping can be enabled/disabled manually by calling the services `enable_mapping`.
 
-### GNSS fusion
+### GNSS fusion [not available for monocular cameras]
 
 The ZED ROS 2 Wrapper can subscribe to a `NavSatFix` topic and fuse GNSS data information
 with Positional Tracking information to obtain a precise robot localization referred to Earth coordinates.
@@ -222,7 +222,7 @@ To enable GNSS fusion set the parameter `gnss_fusion.gnss_fusion_enabled` to `tr
 It is important that you set the correct `gnss_frame` parameter when launching the node, e.g. `gnss_frame:='gnss_link'`.
 The services `toLL` and `fromLL` can be used to convert Latitude/Longitude coordinates to robot `map` coordinates.
 
-### 2D mode
+### 2D mode [not available for monocular cameras]
 
 For robots moving on a planar surface, it is possible to activate the "2D mode" (parameter `pos_tracking/two_d_mode` in `common.yaml`). 
 The value of the coordinate Z for odometry and pose will have a fixed value (parameter `pos_tracking/fixed_z_value` in `common.yaml`). 

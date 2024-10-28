@@ -38,4 +38,10 @@
     <material name="virtual_mat">
         <color rgba="0.25 0.25 0.25 1.0"/>
     </material>
+    <material name="zedxonegs_mat">
+        <color rgba="0.25 0.25 0.25 1.0"/>
+    </material>
+    <material name="zedxone4k_mat">
+        <color rgba="0.25 0.25 0.25 1.0"/>
+    </material>
 </robot>

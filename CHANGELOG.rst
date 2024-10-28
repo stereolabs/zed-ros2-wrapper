@@ -1,6 +1,12 @@
 LATEST CHANGES
 ==============
 
+2024-10-28
+----------
+- Added the new `stereolabs::ZedCameraOne` component to handle ZED X One cameras
+- Removed the ZED Wrapper executable node.
+  * Modified the launch file to create an isolated composable container that loads the `stereolabs:ZedCamera` or the `stereolabs:ZedCameraOne` component
+
 2024-10-18
 ----------
 - Added support for custom ONNX detection engine (SDK v4.2 required)

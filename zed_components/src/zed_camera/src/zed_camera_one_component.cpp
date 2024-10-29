@@ -1249,6 +1249,7 @@ void ZedCameraOne::threadFunc_pubSensorsData()
   }
   // <---- Advanced thread settings
 
+  // ----> Infinite sensor loop
   while (1) {
     try {
       if (!rclcpp::ok()) {
@@ -1258,22 +1259,22 @@ void ZedCameraOne::threadFunc_pubSensorsData()
       }
       if (_threadStop) {
         DEBUG_STREAM_SENS(
-          "threadFunc_pubSensorsData (2): Sensors thread stopped");
+          "[threadFunc_pubSensorsData] (2): Sensors thread stopped");
         break;
       }
 
       // std::lock_guard<std::mutex> lock(mCloseZedMutex);
       if (!_zed->isOpened()) {
-        DEBUG_STREAM_SENS("threadFunc_pubSensorsData: the camera is not open");
+        DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] the camera is not open");
         continue;
       }
 
       // RCLCPP_INFO_STREAM(get_logger(),
-      // "threadFunc_pubSensorsData: Publishing Camera-IMU transform ");
+      // "[threadFunc_pubSensorsData] Publishing Camera-IMU transform ");
       // publishImuFrameAndTopic();
       rclcpp::Time sens_ts = publishSensorsData();
 
-      // RCLCPP_INFO_STREAM(get_logger(), "threadFunc_pubSensorsData - sens_ts
+      // RCLCPP_INFO_STREAM(get_logger(), "[threadFunc_pubSensorsData] - sens_ts
       // type:"
       // << sens_ts.get_clock_type());
 
@@ -1300,10 +1301,11 @@ void ZedCameraOne::threadFunc_pubSensorsData()
       // <---- Check publishing frequency
     } catch (...) {
       rcutils_reset_error();
-      DEBUG_STREAM_COMM("threadFunc_pubSensorsData: Generic exception.");
+      DEBUG_STREAM_COMM("[threadFunc_pubSensorsData] Generic exception.");
       continue;
     }
   }
+  // <---- Infinite sensor loop
 
   DEBUG_STREAM_SENS("Sensors thread finished");
 
@@ -1368,8 +1370,6 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
   }
 
   // ----> Subscribers count
-  DEBUG_STREAM_SENS("Sensors callback: counting subscribers");
-
   size_t imu_SubNumber = 0;
   size_t imu_RawSubNumber = 0;
 
@@ -1380,15 +1380,17 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
     if (imu_SubNumber + imu_RawSubNumber == 0) {
       _imuPublishing = false;
     }
+
+    DEBUG_STREAM_SENS("[publishSensorsData] subscribers: " << imu_SubNumber+imu_RawSubNumber);
   } catch (...) {
     rcutils_reset_error();
-    DEBUG_STREAM_SENS("pubSensorsData: Exception while counting subscribers");
+    DEBUG_STREAM_SENS("[publishSensorsData] Exception while counting subscribers");
     return TIMEZERO_ROS;
   }
   // <---- Subscribers count
 
   // ----> Grab data and setup timestamps
-  DEBUG_STREAM_ONCE_SENS("Sensors callback: Grab data and setup timestamps");
+  DEBUG_STREAM_SENS("[publishSensorsData] Grab data and setup timestamps");
   rclcpp::Time ts_imu;
 
   rclcpp::Time now = get_clock()->now();
@@ -1400,7 +1402,7 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
       _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
-        get_logger(), "sl::getSensorsData error: "
+        get_logger(), "[publishSensorsData] sl::getSensorsData error: "
           << sl::toString(err).c_str());
       return TIMEZERO_ROS;
     }
@@ -1409,7 +1411,7 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
       _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
-        get_logger(), "sl::getSensorsData error: "
+        get_logger(), "[publishSensorsData] sl::getSensorsData error: "
           << sl::toString(err).c_str());
       return TIMEZERO_ROS;
     }
@@ -1423,7 +1425,7 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
   double dT = ts_imu.seconds() - _lastTs_imu.seconds();
 
   if (!new_imu_data) {
-    DEBUG_STREAM_SENS("No new sensors data");
+    DEBUG_STREAM_SENS("[publishSensorsData] No new sensors data");
     return TIMEZERO_ROS;
   }
   // <---- Check for duplicated data
@@ -1446,6 +1448,7 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
   publishImuFrameAndTopic();
 
   if (imu_SubNumber > 0) {
+    DEBUG_STREAM_SENS("[publishSensorsData] IMU subscribers: " << static_cast<int>(imu_SubNumber));
     _imuPublishing = true;
 
     imuMsgPtr imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
@@ -1506,7 +1509,7 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
     }
     // <---- Covariances copy
 
-    DEBUG_STREAM_SENS("Publishing IMU message");
+    DEBUG_STREAM_SENS("[publishSensorsData] Publishing IMU message");
     try {
       _pubImu->publish(std::move(imuMsg));
     } catch (std::system_error & e) {
@@ -1517,6 +1520,7 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
   }
 
   if (imu_RawSubNumber > 0) {
+    DEBUG_STREAM_SENS("[publishSensorsData] IMU subscribers: " << static_cast<int>(imu_RawSubNumber));
     _imuPublishing = true;
 
     imuMsgPtr imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
@@ -1568,7 +1572,7 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
     }
     // <---- Covariances copy
 
-    DEBUG_STREAM_SENS("Publishing IMU RAW message");
+    DEBUG_STREAM_SENS("[publishSensorsData] Publishing IMU RAW message");
     try {
       _pubImuRaw->publish(std::move(imuRawMsg));
     } catch (std::system_error & e) {

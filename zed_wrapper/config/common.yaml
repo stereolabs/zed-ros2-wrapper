@@ -171,7 +171,7 @@
             debug_point_cloud: false
             debug_positional_tracking: false
             debug_gnss: false
-            debug_sensors: false
+            debug_sensors: true
             debug_mapping: false
             debug_terrain_mapping: false
             debug_object_detection: false

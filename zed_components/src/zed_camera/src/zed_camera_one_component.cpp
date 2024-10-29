@@ -18,6 +18,7 @@
 #include <rclcpp/utilities.hpp>
 #include <sensor_msgs/distortion_models.hpp>
 #include <sensor_msgs/image_encodings.hpp>
+#include <diagnostic_msgs/msg/diagnostic_status.hpp>
 
 #include "sl_logging.hpp"
 
@@ -26,13 +27,19 @@ using namespace std::chrono_literals;
 namespace stereolabs
 {
 ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
-: Node("zed_node_one", options),
-  _threadStop(false),
-  _qos(QOS_QUEUE_SIZE),
-  _diagUpdater(this)
+: Node("zed_node_one", options)
+  , _threadStop(false)
+  , _qos(QOS_QUEUE_SIZE)
+  , _diagUpdater(this)
+  , _grabFreqTimer(get_clock())
+  , _imuFreqTimer(get_clock())
+  , _imuTfFreqTimer(get_clock())
+  , _sensPubFreqTimer(get_clock())
+  , _frameTimestamp(_frameTimestamp)
+  , _lastTs_imu(_frameTimestamp)
 {
   RCLCPP_INFO(get_logger(), "********************************");
-  RCLCPP_INFO(get_logger(), "    ZED Camera One Component ");
+  RCLCPP_INFO(get_logger(), "    ZED Camera One Component    ");
   RCLCPP_INFO(get_logger(), "********************************");
   RCLCPP_INFO(get_logger(), " * namespace: %s", get_namespace());
   RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
@@ -117,16 +124,6 @@ ZedCameraOne::~ZedCameraOne()
   }
   DEBUG_STREAM_SENS("... sensors thread stopped");
 
-  DEBUG_STREAM_VD("Waiting for RGB thread...");
-  try {
-    if (_videoThread.joinable()) {
-      _videoThread.join();
-    }
-  } catch (std::system_error & e) {
-    DEBUG_STREAM_VD("RGB thread joining exception: " << e.what());
-  }
-  DEBUG_STREAM_VD("... RGB thread stopped");
-
   // <---- Verify that all the threads are not active
 }
 
@@ -134,6 +131,170 @@ void ZedCameraOne::initParameters()
 {
   // DEBUG parameters
   getDebugParams();
+
+  // SENSORS parameters
+  getSensorsParams();
+
+  // STREAMING SERVER parameters
+  getStreamingServerParams();
+
+  // ADVANCED parameters
+  getAdvancedParams();
+}
+
+void ZedCameraOne::getSensorsParams()
+{
+  rclcpp::Parameter paramVal;
+
+  rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
+  read_only_descriptor.read_only = true;
+
+  RCLCPP_INFO(get_logger(), "*** SENSORS parameters ***");
+
+  getParam("sensors.publish_imu_tf", _publishImuTF, _publishImuTF);
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Broadcast IMU TF: "
+      << (_publishImuTF ? "TRUE" : "FALSE"));
+
+  getParam("sensors.sensors_pub_rate", _sensPubRate, _sensPubRate);
+  if (_sensPubRate < _camGrabFrameRate) {
+    _sensPubRate = _camGrabFrameRate;
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Sensors publishing rate: " << _sensPubRate << " Hz");
+}
+
+void ZedCameraOne::getStreamingServerParams()
+{
+  rclcpp::Parameter paramVal;
+
+  rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
+  read_only_descriptor.read_only = true;
+
+  RCLCPP_INFO(get_logger(), "*** Streaming Server parameters ***");
+
+  bool stream_server = false;
+  getParam("stream_server.stream_enabled", stream_server, stream_server);
+  _streamingServerRequired = stream_server;
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Streaming Server enabled: "
+      << (_streamingServerRequired ? "TRUE" : "FALSE"));
+
+  std::string codec = "H264";
+  getParam("stream_server.codec", codec, codec);
+  if (codec == "H264") {
+    _streamingServerCodec = sl::STREAMING_CODEC::H264;
+    RCLCPP_INFO(get_logger(), " * Stream codec: H264");
+  } else if (codec == "H265") {
+    _streamingServerCodec = sl::STREAMING_CODEC::H265;
+    RCLCPP_INFO(get_logger(), " * Stream codec: H265");
+  } else {
+    _streamingServerCodec = sl::STREAMING_CODEC::H264;
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Invalid value for the parameter 'stream_server.codec': " << codec <<
+        ". Using the default value.");
+    RCLCPP_INFO(get_logger(), " * Stream codec: H264");
+  }
+
+  getParam("stream_server.port", _streamingServerPort, _streamingServerPort, " * Stream port:");
+
+  getParam("stream_server.bitrate", _streamingServerBitrate, _streamingServerBitrate);
+  if (_streamingServerBitrate < 1000) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Invalid value for the parameter 'stream_server.bitrate': " << codec <<
+        ". The minimum allowed value is 1000");
+    _streamingServerBitrate = 1000;
+  }
+  if (_streamingServerBitrate > 60000) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Invalid value for the parameter 'stream_server.bitrate': " << codec <<
+        ". The maximum allowed value is 60000");
+    _streamingServerBitrate = 60000;
+  }
+  RCLCPP_INFO_STREAM(get_logger(), " * Stream bitrate: " << _streamingServerBitrate);
+
+  getParam("stream_server.gop_size", _streamingServerGopSize, _streamingServerGopSize);
+  if (_streamingServerGopSize < -1) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Invalid value for the parameter 'stream_server.gop_size': " << codec <<
+        ". The minimum allowed value is -1");
+    _streamingServerGopSize = -1;
+  }
+  if (_streamingServerGopSize > 256) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Invalid value for the parameter 'stream_server.gop_size': " << codec <<
+        ". The maximum allowed value is 256");
+    _streamingServerGopSize = 256;
+  }
+  RCLCPP_INFO_STREAM(get_logger(), " * Stream GOP size: " << _streamingServerGopSize);
+
+  getParam("stream_server.chunk_size", _streamingServerChunckSize, _streamingServerChunckSize);
+  if (_streamingServerChunckSize < 1024) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Invalid value for the parameter 'stream_server.chunk_size': " << codec <<
+        ". The minimum allowed value is 1024");
+    _streamingServerChunckSize = 1024;
+  }
+  if (_streamingServerChunckSize > 65000) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Invalid value for the parameter 'stream_server.chunk_size': " << codec <<
+        ". The maximum allowed value is 65000");
+    _streamingServerChunckSize = 65000;
+  }
+  RCLCPP_INFO_STREAM(get_logger(), " * Stream Chunk size: " << _streamingServerChunckSize);
+
+  getParam(
+    "stream_server.adaptative_bitrate", _streamingServerAdaptiveBitrate,
+    _streamingServerAdaptiveBitrate);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Adaptive bitrate: " << (_streamingServerAdaptiveBitrate ? "TRUE" : "FALSE"));
+
+  getParam(
+    "stream_server.target_framerate", _streamingServerTargetFramerate,
+    _streamingServerTargetFramerate, " * Target frame rate:");
+}
+
+void ZedCameraOne::getAdvancedParams()
+{
+  rclcpp::Parameter paramVal;
+
+  rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
+  read_only_descriptor.read_only = true;
+
+  RCLCPP_INFO(get_logger(), "*** Advanced parameters ***");
+
+  getParam(
+    "advanced.thread_sched_policy", _threadSchedPolicy,
+    _threadSchedPolicy, " * Thread sched. policy: ");
+
+  if (_threadSchedPolicy == "SCHED_FIFO" || _threadSchedPolicy == "SCHED_RR") {
+    if (!sl_tools::checkRoot()) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "'sudo' permissions required to set "
+          << _threadSchedPolicy
+          << " thread scheduling policy. Using Linux "
+          "default [SCHED_OTHER]");
+      _threadSchedPolicy = "SCHED_OTHER";
+    } else {
+      getParam(
+        "advanced.thread_grab_priority", _threadPrioGrab,
+        _threadPrioGrab, " * Grab thread priority: ");
+      getParam(
+        "advanced.thread_sensor_priority", _threadPrioSens,
+        _threadPrioSens, " * Sensors thread priority: ");
+    }
+  }
 }
 
 void ZedCameraOne::getDebugParams()
@@ -169,8 +330,14 @@ void ZedCameraOne::getDebugParams()
     get_logger(), " * Debug Streaming: %s",
     _debugStreaming ? "TRUE" : "FALSE");
 
+  getParam("debug.debug_advanced", _debugAdvanced, _debugAdvanced);
+  RCLCPP_INFO(
+    get_logger(), " * Debug Advanced: %s",
+    _debugAdvanced ? "TRUE" : "FALSE");
+
+  // Set debug mode
   _debugMode = _debugCommon || _debugVideoDepth || _debugCamCtrl ||
-    _debugSensors || _debugStreaming;
+    _debugSensors || _debugStreaming || _debugAdvanced;
 
   if (_debugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(
@@ -202,7 +369,7 @@ void ZedCameraOne::init()
 
   // ----> Diagnostic initialization
   _diagUpdater.add(
-    "ZED Diagnostic", this,
+    "ZED X One Diagnostic", this,
     &ZedCameraOne::callback_updateDiagnostic);
   std::string hw_id = std::string("Stereolabs camera: ") + _cameraName;
   _diagUpdater.setHardwareID(hw_id);
@@ -247,6 +414,13 @@ bool ZedCameraOne::startCamera()
     ZED_SDK_MAJOR_VERSION, ZED_SDK_MINOR_VERSION,
     ZED_SDK_PATCH_VERSION, ZED_SDK_BUILD_ID);
   // <---- SDK version
+
+  // ----> TF2 Transform
+  _tfBuffer = std::make_unique<tf2_ros::Buffer>(get_clock());
+  // Start TF Listener thread
+  _tfListener = std::make_unique<tf2_ros::TransformListener>(*_tfBuffer);
+  _tfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+  // <---- TF2 Transform
 
   // ----> ZED configuration
   if (!_svoFilepath.empty()) {
@@ -357,14 +531,12 @@ bool ZedCameraOne::startCamera()
   _camRealModel = camInfo.camera_model;
 
   if (_camRealModel != _camUserModel) {
-    RCLCPP_WARN( get_logger(), "Camera model does not match user parameter.");
+    RCLCPP_WARN(get_logger(), "Camera model does not match user parameter.");
 
-    if(_camRealModel==sl::MODEL::ZED_XONE_GS)
-    {
-      RCLCPP_WARN( get_logger(), "Please set the parameter 'general.camera_model' to 'zedxonegs'");
-    } else if(_camRealModel==sl::MODEL::ZED_XONE_UHD)
-    {
-      RCLCPP_WARN( get_logger(), "Please set the parameter 'general.camera_model' to 'zedxone4k'");
+    if (_camRealModel == sl::MODEL::ZED_XONE_GS) {
+      RCLCPP_WARN(get_logger(), "Please set the parameter 'general.camera_model' to 'zedxonegs'");
+    } else if (_camRealModel == sl::MODEL::ZED_XONE_UHD) {
+      RCLCPP_WARN(get_logger(), "Please set the parameter 'general.camera_model' to 'zedxone4k'");
     }
   }
 
@@ -402,16 +574,15 @@ bool ZedCameraOne::startCamera()
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Camera FW Version  -> " << _camFwVersion);
-      _sensFwVersion = camInfo.sensors_configuration.firmware_version;
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        " * Sensors FW Version -> " << _sensFwVersion);
+    _sensFwVersion = camInfo.sensors_configuration.firmware_version;
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Sensors FW Version -> " << _sensFwVersion);
   }
 
-  // Camera/IMU transform  
+  // Camera/IMU transform
   _slCamImuTransf = camInfo.sensors_configuration.camera_imu_transform;
   DEBUG_SENS("Camera-IMU Transform:\n%s", _slCamImuTransf.getInfos().c_str());
-  
 
   _camWidth = camInfo.camera_configuration.resolution.width;
   _camHeight = camInfo.camera_configuration.resolution.height;
@@ -422,7 +593,7 @@ bool ZedCameraOne::startCamera()
 
   int pub_w, pub_h;
   pub_w = static_cast<int>(std::round(_camWidth / _customDownscaleFactor));
-  pub_h = static_cast<int>(std::round(_camHeight /_customDownscaleFactor));
+  pub_h = static_cast<int>(std::round(_camHeight / _customDownscaleFactor));
 
   if (pub_w > _camWidth || pub_h > _camHeight) {
     RCLCPP_WARN_STREAM(
@@ -449,9 +620,9 @@ bool ZedCameraOne::startCamera()
   initTFCoordFrameNames();
 
   // Rectified image
-  fillCamInfo( _camInfoMsg, _camImgFrameId, false);
+  fillCamInfo(_camInfoMsg, _camImgFrameId, false);
   // Raw image
-  fillCamInfo( _camInfoRawMsg, _camImgFrameId, true);
+  fillCamInfo(_camInfoRawMsg, _camImgFrameId, true);
   // <---- Camera Info messages
 
   // Initialize publishers
@@ -468,7 +639,14 @@ bool ZedCameraOne::startCamera()
   }
   // <---- Timestamp
 
-  // TODO Initialize diagnostic statistics
+  // ----> Initialize Diagnostic statistics
+  _elabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(_camGrabFrameRate);
+  _grabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(_camGrabFrameRate);
+  _videoPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(_camGrabFrameRate);
+  _videoElabMean_sec = std::make_unique<sl_tools::WinAvg>(_camGrabFrameRate);
+  _imuPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(_sensPubRate);
+  _pubImuTF_sec = std::make_unique<sl_tools::WinAvg>(_sensPubRate);
+  // <---- Initialize Diagnostic statistics
 
   // Init and start threads
   initThreadsAndTimers();
@@ -476,11 +654,17 @@ bool ZedCameraOne::startCamera()
   return true;
 }
 
-void ZedCameraOne::initThreadsAndTimers() 
+void ZedCameraOne::initThreadsAndTimers()
 {
   // ----> Start CMOS Temperatures thread
   startTempPubTimer();
   // <---- Start CMOS Temperatures thread
+
+  // Start sensor thread
+  _sensThread = std::thread(&ZedCameraOne::threadFunc_pubSensorsData, this);
+
+  // Start grab thread
+  _grabThread = std::thread(&ZedCameraOne::threadFunc_zedGrab, this);
 }
 
 void ZedCameraOne::startTempPubTimer()
@@ -625,14 +809,15 @@ void ZedCameraOne::initTFCoordFrameNames()
 }
 
 void ZedCameraOne::fillCamInfo(
-    const std::shared_ptr<sensor_msgs::msg::CameraInfo> & camInfoMsg,
-    const std::string & frameId,
-    bool rawParam)
+  const std::shared_ptr<sensor_msgs::msg::CameraInfo> & camInfoMsg,
+  const std::string & frameId,
+  bool rawParam)
 {
   sl::CameraParameters zedParam;
 
   if (rawParam) {
-    zedParam = _zed->getCameraInformation(_matResol).camera_configuration.calibration_parameters_raw;
+    zedParam =
+      _zed->getCameraInformation(_matResol).camera_configuration.calibration_parameters_raw;
   } else {
     zedParam = _zed->getCameraInformation(_matResol).camera_configuration.calibration_parameters;
   }
@@ -701,14 +886,14 @@ void ZedCameraOne::fillCamInfo(
   camInfoMsg->p[5] = static_cast<double>(zedParam.fy);
   camInfoMsg->p[6] = static_cast<double>(zedParam.cy);
   camInfoMsg->p[10] = 1.0;
-  
+
   // Image size
   camInfoMsg->width = static_cast<uint32_t>(_matResol.width);
   camInfoMsg->height = static_cast<uint32_t>(_matResol.height);
   camInfoMsg->header.frame_id = frameId;
 }
 
-void ZedCameraOne::initPublishers() 
+void ZedCameraOne::initPublishers()
 {
   RCLCPP_INFO(get_logger(), "*** PUBLISHED TOPICS ***");
 
@@ -724,36 +909,740 @@ void ZedCameraOne::initPublishers()
   _imgTopic = _topicRoot + color_prefix + rect_prefix + image_topic;
   _pubColorImg = image_transport::create_camera_publisher(
     this, _imgTopic, _qos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubColorImg.getTopic());
-  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubColorImg.getInfoTopic());
+  RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << _pubColorImg.getTopic());
+  RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << _pubColorImg.getInfoTopic());
 
   _imgRawTopic = _topicRoot + color_prefix + raw_prefix + image_topic;
   _pubColorRawImg = image_transport::create_camera_publisher(
     this, _imgRawTopic, _qos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubColorRawImg.getTopic());
-  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubColorRawImg.getInfoTopic());
+  RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << _pubColorRawImg.getTopic());
+  RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << _pubColorRawImg.getInfoTopic());
 
   _imgGrayTopic = _topicRoot + gray_prefix + rect_prefix + image_topic;
   _pubGrayImg = image_transport::create_camera_publisher(
     this, _imgGrayTopic, _qos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubGrayImg.getTopic());
-  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubGrayImg.getInfoTopic());
+  RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << _pubGrayImg.getTopic());
+  RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << _pubGrayImg.getInfoTopic());
 
   _imgRawGrayTopic = _topicRoot + gray_prefix + raw_prefix + image_topic;
   _pubGrayRawImg = image_transport::create_camera_publisher(
     this, _imgRawGrayTopic, _qos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubGrayRawImg.getTopic());
-  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubGrayRawImg.getInfoTopic());
+  RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << _pubGrayRawImg.getTopic());
+  RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << _pubGrayRawImg.getInfoTopic());
   // <---- Images
 
-  // ----> Temperature
+  // ----> Sensors
   RCLCPP_INFO(get_logger(), " +++ SENSOR TOPICS +++");
   _tempTopic = _topicRoot + "temperature";
   _pubTemp = create_publisher<sensor_msgs::msg::Temperature>(_tempTopic, _qos, _pubOpt);
-  RCLCPP_INFO_STREAM(get_logger()," * Advertised on topic: " << _pubTemp->get_topic_name());
-  // <---- Temperature
+  RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << _pubTemp->get_topic_name());
 
-  // TODO initialize IMU publishers
+  std::string imuTopicRoot = "imu";
+  std::string imu_topic_name = "data";
+  std::string imu_topic_raw_name = "data_raw";
+  std::string imu_topic = _topicRoot + imuTopicRoot + "/" + imu_topic_name;
+  std::string imu_topic_raw = _topicRoot + imuTopicRoot + "/" + imu_topic_raw_name;
+  _pubImu = create_publisher<sensor_msgs::msg::Imu>(imu_topic, _qos, _pubOpt);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    "Advertised on topic: " << _pubImu->get_topic_name());
+  _pubImuRaw =
+    create_publisher<sensor_msgs::msg::Imu>(imu_topic_raw, _qos, _pubOpt);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    "Advertised on topic: " << _pubImuRaw->get_topic_name());
+  // <---- Sensors
+
+  // ----> Camera/imu transform message
+  std::string cam_imu_tr_topic = _topicRoot + "left_cam_imu_transform";
+  _pubCamImuTransf = create_publisher<geometry_msgs::msg::TransformStamped>(
+    cam_imu_tr_topic, _qos, _pubOpt);
+
+  RCLCPP_INFO_STREAM(
+    get_logger(), "Advertised on topic: "
+      << _pubCamImuTransf->get_topic_name());
+
+  sl::Orientation sl_rot = _slCamImuTransf.getOrientation();
+  sl::Translation sl_tr = _slCamImuTransf.getTranslation();
+  RCLCPP_INFO(
+    get_logger(), "Camera-IMU Translation: \n %g %g %g", sl_tr.x,
+    sl_tr.y, sl_tr.z);
+  RCLCPP_INFO(
+    get_logger(), "Camera-IMU Rotation:\n%s",
+    sl_rot.getRotationMatrix().getInfos().c_str());
+  // <---- Camera/imu transform message
+}
+
+void ZedCameraOne::threadFunc_zedGrab()
+{
+  DEBUG_STREAM_COMM("Grab thread started");
+
+  // ----> Advanced thread settings
+  DEBUG_STREAM_ADV("Grab thread settings");
+  if (_debugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), " ! Failed to get thread policy! - "
+          << std::strerror(errno));
+    } else {
+      DEBUG_STREAM_ADV(
+        " * Default GRAB thread (#"
+          << pthread_self() << ") settings - Policy: "
+          << sl_tools::threadSched2Str(policy).c_str()
+          << " - Priority: " << par.sched_priority);
+    }
+  }
+
+  if (_threadSchedPolicy == "SCHED_OTHER") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), " ! Failed to set thread params! - "
+          << std::strerror(errno));
+    }
+  } else if (_threadSchedPolicy == "SCHED_BATCH") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_BATCH, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), " ! Failed to set thread params! - "
+          << std::strerror(errno));
+    }
+  } else if (_threadSchedPolicy == "SCHED_FIFO") {
+    sched_param par;
+    par.sched_priority = _threadPrioGrab;
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), " ! Failed to set thread params! - "
+          << std::strerror(errno));
+    }
+  } else if (_threadSchedPolicy == "SCHED_RR") {
+    sched_param par;
+    par.sched_priority = _threadPrioGrab;
+    if (pthread_setschedparam(pthread_self(), SCHED_RR, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), " ! Failed to set thread params! - "
+          << std::strerror(errno));
+    }
+  } else {
+    RCLCPP_WARN_STREAM(
+      get_logger(), " ! Failed to set thread params! - Policy not supported");
+  }
+
+  if (_debugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), " ! Failed to get thread policy! - "
+          << std::strerror(errno));
+    } else {
+      DEBUG_STREAM_ADV(
+        " * New GRAB thread (#"
+          << pthread_self() << ") settings - Policy: "
+          << sl_tools::threadSched2Str(policy).c_str()
+          << " - Priority: " << par.sched_priority);
+    }
+  }
+  // <---- Advanced thread settings
+
+  // ----> Init status variables
+  _frameCount = 0;
+  _threadStop = false;
+  // <---- Init status variables
+
+  // ----> Infinite grab thread
+  while (1) {
+    try {
+      sl_tools::StopWatch grabElabTimer(get_clock());
+
+      // ----> Interruption check
+      if (!rclcpp::ok()) {
+        DEBUG_STREAM_COMM("Ctrl+C received: stopping grab thread");
+        _threadStop = true;
+        break;
+      }
+
+      if (_threadStop) {
+        DEBUG_STREAM_COMM("Grab thread stopped");
+        break;
+      }
+      // <---- Interruption check
+
+      // ----> Apply video dynamic parameters
+      if (_svoMode) {
+        applyVideoSettings();
+      }
+      // <---- Apply video dynamic parameters
+
+      // ----> Grab freq calculation
+      double elapsed_sec = _grabFreqTimer.toc();
+      _grabPeriodMean_sec->addValue(elapsed_sec);
+      _grabFreqTimer.tic();
+      // <---- Grab freq calculation
+
+      if (!_svoPause) {
+        // Start processing timer for diagnostic
+        grabElabTimer.tic();
+
+        // ZED grab
+        _grabStatus = _zed->grab();
+
+        // ----> Grab errors?
+        // Note: disconnection are automatically handled by the ZED SDK
+        if (_grabStatus != sl::ERROR_CODE::SUCCESS) {
+          if (_svoMode && _grabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
+            // ----> Check SVO status
+            if (_svoLoop) {
+              _zed->setSVOPosition(0);
+              RCLCPP_WARN(
+                get_logger(),
+                "SVO reached the end and it has been restarted.");
+              rclcpp::sleep_for(
+                std::chrono::microseconds(
+                  static_cast<int>(_grabPeriodMean_sec->getAvg() * 1e6)));
+              continue;
+            } else {
+              RCLCPP_WARN(
+                get_logger(),
+                "SVO reached the end. The node has been stopped.");
+              break;
+            }
+            // <---- Check SVO status
+          } else if (_grabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
+            RCLCPP_ERROR_STREAM(
+              get_logger(),
+              "Connection issue detected: "
+                << sl::toString(_grabStatus).c_str());
+            rclcpp::sleep_for(1000ms);
+            continue;
+          } else if (_grabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED ||
+            _grabStatus == sl::ERROR_CODE::FAILURE)
+          {
+            RCLCPP_ERROR_STREAM(
+              get_logger(),
+              "Camera issue detected: "
+                << sl::toString(_grabStatus).c_str() << ". " << sl::toVerbose(
+                _grabStatus).c_str() << ". Trying to recover the connection...");
+            rclcpp::sleep_for(1000ms);
+            continue;
+          } else {
+            RCLCPP_ERROR_STREAM(
+              get_logger(),
+              "Critical camera error: " << sl::toString(
+                _grabStatus).c_str() << ". " << sl::toVerbose(
+                _grabStatus).c_str() << ". NODE KILLED.");
+            _zed.reset();
+            exit(EXIT_FAILURE);
+          }
+        }
+        // <---- Grab errors?
+
+        // Update frame count
+        _frameCount++;
+
+        // ----> Timestamp
+        if (_svoMode) {
+          _frameTimestamp = sl_tools::slTime2Ros(
+            _zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+        } else {
+          _frameTimestamp =
+            sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+        }
+        DEBUG_STREAM_COMM("Grab timestamp: " << _frameTimestamp.nanoseconds() << " nsec");
+        // <---- Timestamp
+
+        if (_streamingServerRequired && !_streamingServerRunning) {
+          DEBUG_STR("Streaming server required, but not running");
+          startStreamingServer();
+        }
+      }
+
+      // Diagnostic statistics update
+      double mean_elab_sec = _elabPeriodMean_sec->addValue(grabElabTimer.toc());
+    } catch (...) {
+      rcutils_reset_error();
+      DEBUG_STREAM_COMM("threadFunc_zedGrab: Generic exception.");
+      continue;
+    }
+  }
+  // <---- Infinite grab thread
+  DEBUG_STREAM_COMM("Grab thread finished");
+}
+
+void ZedCameraOne::threadFunc_pubSensorsData()
+{
+  DEBUG_STREAM_SENS("Sensors thread started");
+
+  // ----> Advanced thread settings
+  DEBUG_STREAM_ADV("Sensors thread settings");
+  if (_debugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), " ! Failed to get thread policy! - "
+          << std::strerror(errno));
+    } else {
+      DEBUG_STREAM_ADV(
+        " * Default Sensors thread (#"
+          << pthread_self() << ") settings - Policy: "
+          << sl_tools::threadSched2Str(policy).c_str()
+          << " - Priority: " << par.sched_priority);
+    }
+  }
+
+  if (_threadSchedPolicy == "SCHED_OTHER") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), " ! Failed to set thread params! - "
+          << std::strerror(errno));
+    }
+  } else if (_threadSchedPolicy == "SCHED_BATCH") {
+    sched_param par;
+    par.sched_priority = 0;
+    if (pthread_setschedparam(pthread_self(), SCHED_BATCH, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), " ! Failed to set thread params! - "
+          << std::strerror(errno));
+    }
+  } else if (_threadSchedPolicy == "SCHED_FIFO") {
+    sched_param par;
+    par.sched_priority = _threadPrioSens;
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), " ! Failed to set thread params! - "
+          << std::strerror(errno));
+    }
+  } else if (_threadSchedPolicy == "SCHED_RR") {
+    sched_param par;
+    par.sched_priority = _threadPrioSens;
+    if (pthread_setschedparam(pthread_self(), SCHED_RR, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), " ! Failed to set thread params! - "
+          << std::strerror(errno));
+    }
+  } else {
+    RCLCPP_WARN_STREAM(
+      get_logger(), " ! Failed to set thread params! - Policy not supported");
+  }
+
+  if (_debugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), " ! Failed to get thread policy! - "
+          << std::strerror(errno));
+    } else {
+      DEBUG_STREAM_ADV(
+        " * New Sensors thread (#"
+          << pthread_self() << ") settings - Policy: "
+          << sl_tools::threadSched2Str(policy).c_str()
+          << " - Priority: " << par.sched_priority);
+    }
+  }
+  // <---- Advanced thread settings
+
+  while (1) {
+    try {
+      if (!rclcpp::ok()) {
+        DEBUG_STREAM_SENS("Ctrl+C received: stopping sensors thread");
+        _threadStop = true;
+        break;
+      }
+      if (_threadStop) {
+        DEBUG_STREAM_SENS(
+          "threadFunc_pubSensorsData (2): Sensors thread stopped");
+        break;
+      }
+
+      // std::lock_guard<std::mutex> lock(mCloseZedMutex);
+      if (!_zed->isOpened()) {
+        DEBUG_STREAM_SENS("threadFunc_pubSensorsData: the camera is not open");
+        continue;
+      }
+
+      // RCLCPP_INFO_STREAM(get_logger(),
+      // "threadFunc_pubSensorsData: Publishing Camera-IMU transform ");
+      // publishImuFrameAndTopic();
+      rclcpp::Time sens_ts = publishSensorsData();
+
+      // RCLCPP_INFO_STREAM(get_logger(), "threadFunc_pubSensorsData - sens_ts
+      // type:"
+      // << sens_ts.get_clock_type());
+
+      // Publish TF at the same frequency of IMU data, so they are always
+      // synchronized
+      /*if (sens_ts != TIMEZERO_ROS)
+      {
+        RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_pubSensorsData");
+        publishTFs(sens_ts);
+      }*/
+
+      // ----> Check publishing frequency
+      double sens_period_usec = 1e6 / _sensPubRate;
+
+      double elapsed_usec = _sensPubFreqTimer.toc() * 1e6;
+
+      if (elapsed_usec < sens_period_usec) {
+        rclcpp::sleep_for(
+          std::chrono::microseconds(
+            static_cast<int>(sens_period_usec - elapsed_usec)));
+      }
+
+      _sensPubFreqTimer.tic();
+      // <---- Check publishing frequency
+    } catch (...) {
+      rcutils_reset_error();
+      DEBUG_STREAM_COMM("threadFunc_pubSensorsData: Generic exception.");
+      continue;
+    }
+  }
+
+  DEBUG_STREAM_SENS("Sensors thread finished");
+
+}
+
+void ZedCameraOne::applyVideoSettings()
+{
+
+}
+
+bool ZedCameraOne::startStreamingServer()
+{
+  DEBUG_STR("Starting streaming server");
+
+  if (_zed->isStreamingEnabled()) {
+    _zed->disableStreaming();
+    RCLCPP_WARN(get_logger(), "A streaming server was already running and has been stopped");
+  }
+
+  sl::StreamingParameters params;
+  params.adaptative_bitrate = _streamingServerAdaptiveBitrate;
+  params.bitrate = _streamingServerBitrate;
+  params.chunk_size = _streamingServerChunckSize;
+  params.codec = _streamingServerCodec;
+  params.gop_size = _streamingServerGopSize;
+  params.port = _streamingServerPort;
+  params.target_framerate = _streamingServerTargetFramerate;
+
+  sl::ERROR_CODE res;
+  res = _zed->enableStreaming(params);
+  if (res != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_ERROR_STREAM(
+      get_logger(), "Error starting the Streaming server: " << sl::toString(
+        res) << " - " << sl::toVerbose(res));
+    _streamingServerRunning = false;
+  } else {
+    _streamingServerRunning = true;
+    RCLCPP_INFO(get_logger(), "Streaming server started");
+  }
+  return _streamingServerRunning;
+}
+
+void ZedCameraOne::stopStreamingServer()
+{
+  if (_zed->isStreamingEnabled()) {
+    _zed->disableStreaming();
+    RCLCPP_INFO(get_logger(), "Streaming server stopped");
+  } else {
+    RCLCPP_WARN(get_logger(), "A streaming server was not enabled.");
+  }
+
+  _streamingServerRunning = false;
+  _streamingServerRequired = false;
+}
+
+rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
+{
+  if (_grabStatus != sl::ERROR_CODE::SUCCESS) {
+    DEBUG_SENS("Camera not ready");
+    rclcpp::sleep_for(1s);
+    return TIMEZERO_ROS;
+  }
+
+  // ----> Subscribers count
+  DEBUG_STREAM_SENS("Sensors callback: counting subscribers");
+
+  size_t imu_SubNumber = 0;
+  size_t imu_RawSubNumber = 0;
+
+  try {
+    imu_SubNumber = count_subscribers(_pubImu->get_topic_name());
+    imu_RawSubNumber = count_subscribers(_pubImuRaw->get_topic_name());
+
+    if (imu_SubNumber + imu_RawSubNumber == 0) {
+      _imuPublishing = false;
+    }
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_SENS("pubSensorsData: Exception while counting subscribers");
+    return TIMEZERO_ROS;
+  }
+  // <---- Subscribers count
+
+  // ----> Grab data and setup timestamps
+  DEBUG_STREAM_ONCE_SENS("Sensors callback: Grab data and setup timestamps");
+  rclcpp::Time ts_imu;
+
+  rclcpp::Time now = get_clock()->now();
+
+  sl::SensorsData sens_data;
+
+  if (_svoMode) {
+    sl::ERROR_CODE err =
+      _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "sl::getSensorsData error: "
+          << sl::toString(err).c_str());
+      return TIMEZERO_ROS;
+    }
+  } else {
+    sl::ERROR_CODE err =
+      _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "sl::getSensorsData error: "
+          << sl::toString(err).c_str());
+      return TIMEZERO_ROS;
+    }
+  }
+
+  ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
+  // <---- Grab data and setup timestamps
+
+  // ----> Check for duplicated data
+  bool new_imu_data = (ts_imu != _lastTs_imu);
+  double dT = ts_imu.seconds() - _lastTs_imu.seconds();
+
+  if (!new_imu_data) {
+    DEBUG_STREAM_SENS("No new sensors data");
+    return TIMEZERO_ROS;
+  }
+  // <---- Check for duplicated data
+
+  _lastTs_imu = ts_imu;
+
+  DEBUG_STREAM_SENS(
+    "SENSOR LAST PERIOD: " << dT << " sec @" << 1. / dT
+                           << " Hz");
+
+  // ----> Sensors freq for diagnostic
+  double mean = _imuPeriodMean_sec->addValue(_imuFreqTimer.toc());
+  _imuFreqTimer.tic();
+
+  DEBUG_STREAM_SENS("IMU MEAN freq: " << 1. / mean);
+  // <---- Sensors freq for diagnostic
+
+  // ----> Sensors data publishing
+
+  publishImuFrameAndTopic();
+
+  if (imu_SubNumber > 0) {
+    _imuPublishing = true;
+
+    imuMsgPtr imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
+
+    imuMsg->header.stamp = ts_imu;
+    imuMsg->header.frame_id = _imuFrameId;
+
+    imuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
+    imuMsg->orientation.y = sens_data.imu.pose.getOrientation()[1];
+    imuMsg->orientation.z = sens_data.imu.pose.getOrientation()[2];
+    imuMsg->orientation.w = sens_data.imu.pose.getOrientation()[3];
+
+    imuMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
+    imuMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
+    imuMsg->angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
+
+    imuMsg->linear_acceleration.x = sens_data.imu.linear_acceleration[0];
+    imuMsg->linear_acceleration.y = sens_data.imu.linear_acceleration[1];
+    imuMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
+
+    // ----> Covariances copy
+    // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses
+    // float
+    for (int i = 0; i < 3; ++i) {
+      int r = 0;
+
+      if (i == 0) {
+        r = 0;
+      } else if (i == 1) {
+        r = 1;
+      } else {
+        r = 2;
+      }
+
+      imuMsg->orientation_covariance[i * 3 + 0] =
+        sens_data.imu.pose_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
+      imuMsg->orientation_covariance[i * 3 + 1] =
+        sens_data.imu.pose_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
+      imuMsg->orientation_covariance[i * 3 + 2] =
+        sens_data.imu.pose_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
+
+      imuMsg->linear_acceleration_covariance[i * 3 + 0] =
+        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
+      imuMsg->linear_acceleration_covariance[i * 3 + 1] =
+        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
+      imuMsg->linear_acceleration_covariance[i * 3 + 2] =
+        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
+
+      imuMsg->angular_velocity_covariance[i * 3 + 0] =
+        sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD *
+        DEG2RAD;
+      imuMsg->angular_velocity_covariance[i * 3 + 1] =
+        sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD *
+        DEG2RAD;
+      imuMsg->angular_velocity_covariance[i * 3 + 2] =
+        sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD *
+        DEG2RAD;
+    }
+    // <---- Covariances copy
+
+    DEBUG_STREAM_SENS("Publishing IMU message");
+    try {
+      _pubImu->publish(std::move(imuMsg));
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    }
+  }
+
+  if (imu_RawSubNumber > 0) {
+    _imuPublishing = true;
+
+    imuMsgPtr imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
+
+    imuRawMsg->header.stamp = ts_imu;
+    imuRawMsg->header.frame_id = _imuFrameId;
+
+    imuRawMsg->angular_velocity.x =
+      sens_data.imu.angular_velocity_uncalibrated[0] * DEG2RAD;
+    imuRawMsg->angular_velocity.y =
+      sens_data.imu.angular_velocity_uncalibrated[1] * DEG2RAD;
+    imuRawMsg->angular_velocity.z =
+      sens_data.imu.angular_velocity_uncalibrated[2] * DEG2RAD;
+
+    imuRawMsg->linear_acceleration.x = sens_data.imu.linear_acceleration_uncalibrated[0];
+    imuRawMsg->linear_acceleration.y = sens_data.imu.linear_acceleration_uncalibrated[1];
+    imuRawMsg->linear_acceleration.z = sens_data.imu.linear_acceleration_uncalibrated[2];
+
+    // ----> Covariances copy
+    // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses
+    // float
+    for (int i = 0; i < 3; ++i) {
+      int r = 0;
+
+      if (i == 0) {
+        r = 0;
+      } else if (i == 1) {
+        r = 1;
+      } else {
+        r = 2;
+      }
+
+      imuRawMsg->linear_acceleration_covariance[i * 3 + 0] =
+        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
+      imuRawMsg->linear_acceleration_covariance[i * 3 + 1] =
+        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
+      imuRawMsg->linear_acceleration_covariance[i * 3 + 2] =
+        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
+
+      imuRawMsg->angular_velocity_covariance[i * 3 + 0] =
+        sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD *
+        DEG2RAD;
+      imuRawMsg->angular_velocity_covariance[i * 3 + 1] =
+        sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD *
+        DEG2RAD;
+      imuRawMsg->angular_velocity_covariance[i * 3 + 2] =
+        sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD *
+        DEG2RAD;
+    }
+    // <---- Covariances copy
+
+    DEBUG_STREAM_SENS("Publishing IMU RAW message");
+    try {
+      _pubImuRaw->publish(std::move(imuRawMsg));
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    }
+  }
+  // <---- Sensors data publishing
+
+  return ts_imu;
+}
+
+void ZedCameraOne::publishImuFrameAndTopic()
+{
+  sl::Orientation sl_rot = _slCamImuTransf.getOrientation();
+  sl::Translation sl_tr = _slCamImuTransf.getTranslation();
+
+  transfMsgPtr cameraImuTransfMgs =
+    std::make_unique<geometry_msgs::msg::TransformStamped>();
+
+  cameraImuTransfMgs->header.stamp = get_clock()->now();
+
+  cameraImuTransfMgs->header.frame_id = _camImgFrameId;
+  cameraImuTransfMgs->child_frame_id = _imuFrameId;
+
+  cameraImuTransfMgs->transform.rotation.x = sl_rot.ox;
+  cameraImuTransfMgs->transform.rotation.y = sl_rot.oy;
+  cameraImuTransfMgs->transform.rotation.z = sl_rot.oz;
+  cameraImuTransfMgs->transform.rotation.w = sl_rot.ow;
+
+  cameraImuTransfMgs->transform.translation.x = sl_tr.x;
+  cameraImuTransfMgs->transform.translation.y = sl_tr.y;
+  cameraImuTransfMgs->transform.translation.z = sl_tr.z;
+
+  try {
+    _pubCamImuTransf->publish(std::move(cameraImuTransfMgs));
+  } catch (std::system_error & e) {
+    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+  } catch (...) {
+    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+  }
+
+  // Publish IMU TF as static TF
+  if (!_publishImuTF) {
+    return;
+  }
+
+  // ----> Publish TF
+  // RCLCPP_INFO(get_logger(), "Broadcasting Camera-IMU TF ");
+
+  geometry_msgs::msg::TransformStamped transformStamped;
+
+  transformStamped.header.stamp = get_clock()->now();
+
+  transformStamped.header.frame_id = _camImgFrameId;
+  transformStamped.child_frame_id = _imuFrameId;
+
+  transformStamped.transform.rotation.x = sl_rot.ox;
+  transformStamped.transform.rotation.y = sl_rot.oy;
+  transformStamped.transform.rotation.z = sl_rot.oz;
+  transformStamped.transform.rotation.w = sl_rot.ow;
+
+  transformStamped.transform.translation.x = sl_tr.x;
+  transformStamped.transform.translation.y = sl_tr.y;
+  transformStamped.transform.translation.z = sl_tr.z;
+
+  _tfBroadcaster->sendTransform(transformStamped);
+  // <---- Publish TF
+
+  // IMU TF publishing diagnostic
+  double elapsed_sec = _imuTfFreqTimer.toc();
+  _pubImuTF_sec->addValue(elapsed_sec);
+  _imuTfFreqTimer.tic();
 }
 
 }  // namespace stereolabs

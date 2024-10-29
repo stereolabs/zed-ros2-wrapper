@@ -42,10 +42,18 @@ protected:
   void initTFCoordFrameNames();
   void initPublishers();
 
+  void getSensorsParams();
   void getDebugParams();
+  void getStreamingServerParams();
+  void getAdvancedParams();
 
   bool startCamera();
   void startTempPubTimer();
+  bool startStreamingServer();
+  void stopStreamingServer();
+
+  rclcpp::Time publishSensorsData(rclcpp::Time t = TIMEZERO_ROS);
+  void publishImuFrameAndTopic();
   // <---- Initialization functions
 
   // ----> Utility functions
@@ -53,19 +61,27 @@ protected:
   void getParam(
     std::string paramName, T defValue, T & outVal,
     std::string log_info = std::string(), bool dynamic = false);
+
   void fillCamInfo(
     const std::shared_ptr<sensor_msgs::msg::CameraInfo> & camInfoMsg,
     const std::string & frameId,
     bool rawParam = false);
+
+  void applyVideoSettings();
   // <---- Utility functions
 
-  // ----> Callbacks
+  // ----> Callbacks functions
   rcl_interfaces::msg::SetParametersResult callback_paramChange(
     std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(
     diagnostic_updater::DiagnosticStatusWrapper & stat);
   void callback_pubTemp();
-  // <---- Callbacks
+  // <---- Callbacks functions
+
+  // ----> Thread functions
+  void threadFunc_zedGrab();
+  void threadFunc_pubSensorsData();
+  // <---- Threads functions
 
 private:
   // ----> ZED SDK
@@ -75,7 +91,6 @@ private:
 
   // ----> Threads and Timers
   std::thread _grabThread;        // Main grab thread
-  std::thread _videoThread;       // RGB data publish thread
   std::thread _sensThread;        // Sensors data publish thread
 
   std::atomic<bool> _threadStop;
@@ -89,6 +104,7 @@ private:
   bool _debugSensors = false;
   bool _debugCamCtrl = false;
   bool _debugStreaming = false;
+  bool _debugAdvanced = false;
   // <---- Debug variables
 
   // ----> QoS
@@ -117,6 +133,8 @@ private:
   imuPub _pubImu;
   imuPub _pubImuRaw;
   tempPub _pubTemp;
+
+  transfPub _pubCamImuTransf;
   // <---- Publishers
 
   // ----> Parameters
@@ -138,34 +156,54 @@ private:
 
   std::string _svoFilepath = ""; // SVO input
   bool _svoRealtime = true; // SVO playback with real time
+  bool _svoLoop = false; // SVO loop playback
 
   std::string _streamAddr = ""; // Address for local streaming input
   int _streamPort = 10000;
+
+  std::string _threadSchedPolicy;
+  int _threadPrioGrab;
+  int _threadPrioSens;
+
+  std::atomic<bool> _streamingServerRequired;
+  sl::STREAMING_CODEC _streamingServerCodec = sl::STREAMING_CODEC::H264;
+  int _streamingServerPort = 30000;
+  int _streamingServerBitrate = 12500;
+  int _streamingServerGopSize = -1;
+  bool _streamingServerAdaptiveBitrate = false;
+  int _streamingServerChunckSize = 16084;
+  int _streamingServerTargetFramerate = 0;
+
+  bool _publishImuTF = false;
+  double _sensPubRate = 200.;
   // <---- Parameters
 
   // ----> Dynamic params
   OnSetParametersCallbackHandle::SharedPtr _paramChangeCallbackHandle;
   // <---- Dynamic params
 
-  // ----> Diagnostic
-  diagnostic_updater::Updater _diagUpdater;
-  // <---- Diagnostic
-
   // ----> Running status
   bool _debugMode = false;  // Debug mode active?
   bool _svoMode = false;        // Input from SVO?
   bool _streamMode = false;     // Expecting local streaming data?
-  sl::ERROR_CODE _connStatus = sl::ERROR_CODE::LAST; // Connection status
-  sl::ERROR_CODE _grabStatus = sl::ERROR_CODE::LAST; // Grab status
-  float _tempImu = NOT_VALID_TEMP;
+  bool _svoPause = false;       // SVO pause status
   // <---- Running status
 
   // ----> Timestamps
   rclcpp::Time _frameTimestamp;
+  rclcpp::Time _lastTs_imu;
   // <---- Timestamps
+
+
+
+  // ----> TF handling
+  std::unique_ptr<tf2_ros::Buffer> _tfBuffer;
+  std::unique_ptr<tf2_ros::TransformListener> _tfListener;
+  std::unique_ptr<tf2_ros::TransformBroadcaster> _tfBroadcaster;
 
   // Camera IMU transform
   sl::Transform _slCamImuTransf;
+  // <---- TF handling
 
   // ----> Camera info
   sl::MODEL _camRealModel;                   // Camera model requested to SDK
@@ -192,6 +230,30 @@ private:
   std::string _imuFrameId;
   // <---- Frame IDs
 
+  // ----> Diagnostic variables
+  diagnostic_updater::Updater _diagUpdater;  // Diagnostic Updater
+
+  sl::ERROR_CODE _connStatus = sl::ERROR_CODE::LAST; // Connection status
+  sl::ERROR_CODE _grabStatus = sl::ERROR_CODE::LAST; // Grab status
+  float _tempImu = NOT_VALID_TEMP;
+  uint64_t _frameCount = 0;
+  std::unique_ptr<sl_tools::WinAvg> _elabPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> _grabPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> _videoPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> _videoElabMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> _imuPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> _pubImuTF_sec;
+  bool _imuPublishing = false;
+  bool _videoPublishing = false;
+
+  sl_tools::StopWatch _grabFreqTimer;
+  sl_tools::StopWatch _imuFreqTimer;
+  sl_tools::StopWatch _imuTfFreqTimer;
+  sl_tools::StopWatch _sensPubFreqTimer;
+  int _sysOverloadCount = 0;
+
+  std::atomic<bool> _streamingServerRunning;
+  // <---- Diagnostic variables
 };
 
 // ----> Template Function definitions

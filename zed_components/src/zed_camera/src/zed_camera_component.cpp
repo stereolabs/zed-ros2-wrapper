@@ -230,16 +230,6 @@ ZedCamera::~ZedCamera()
   }
   DEBUG_STREAM_SENS("... sensors thread stopped");
 
-  DEBUG_STREAM_VD("Waiting for RGB/Depth thread...");
-  try {
-    if (mVideoDepthThread.joinable()) {
-      mVideoDepthThread.join();
-    }
-  } catch (std::system_error & e) {
-    DEBUG_STREAM_VD("RGB/Depth thread joining exception: " << e.what());
-  }
-  DEBUG_STREAM_VD("... RGB/Depth thread stopped");
-
   DEBUG_STREAM_PC("Waiting for Point Cloud thread...");
   try {
     if (mPcThread.joinable()) {

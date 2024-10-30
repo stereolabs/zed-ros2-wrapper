@@ -44,6 +44,7 @@ protected:
 
   void getSensorsParams();
   void getDebugParams();
+  void getGeneralParams();
   void getStreamingServerParams();
   void getAdvancedParams();
 
@@ -145,8 +146,9 @@ private:
   double _customDownscaleFactor = 1.0;  // Used to rescale data with user factor
   bool _cameraFlip = false; // Camera flipped?
   bool _enableHDR = false; // Enable HDR if supported?
-  float _openTimeout_sec = 5; // Camera open timeout
+  int _openTimeout_sec = 5; // Camera open timeout
   std::string _opencvCalibFile; // Custom OpenCV calibration file
+  bool _cameraSelfCalib = true; // Camera self calibration
   int _sdkVerbose = 0; // SDK verbose level
   int _gpuId = -1; // GPU ID
 
@@ -187,14 +189,15 @@ private:
   bool _svoMode = false;        // Input from SVO?
   bool _streamMode = false;     // Expecting local streaming data?
   bool _svoPause = false;       // SVO pause status
+
+  bool _recording = false;
+  sl::RecordingStatus _recStatus = sl::RecordingStatus();
   // <---- Running status
 
   // ----> Timestamps
   rclcpp::Time _frameTimestamp;
   rclcpp::Time _lastTs_imu;
   // <---- Timestamps
-
-
 
   // ----> TF handling
   std::unique_ptr<tf2_ros::Buffer> _tfBuffer;

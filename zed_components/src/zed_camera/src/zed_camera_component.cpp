@@ -7006,7 +7006,7 @@ bool ZedCamera::areVideoDepthSubscribed()
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_VD("publishImages: Exception while counting subscribers");
-    return 0;
+    return false;
   }
 
   return (mRgbSubnumber + mRgbRawSubnumber + mRgbGraySubnumber +

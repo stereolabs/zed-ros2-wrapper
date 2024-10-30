@@ -69,6 +69,8 @@ protected:
     bool rawParam = false);
 
   void applyVideoSettings();
+  bool areVideoDepthSubscribed();
+  void retrieveVideo();
   // <---- Utility functions
 
   // ----> Callbacks functions
@@ -98,6 +100,10 @@ private:
   rclcpp::TimerBase::SharedPtr _initTimer;
   rclcpp::TimerBase::SharedPtr _tempPubTimer;    // Timer to retrieve and publish camera temperature
   // <---- Threads and Timers
+
+  // ----> Thread Sync
+  std::mutex _recMutex;
+  // <---- Thread Sync
 
   // ----> Debug variables
   bool _debugCommon = false;
@@ -137,6 +143,17 @@ private:
 
   transfPub _pubCamImuTransf;
   // <---- Publishers
+
+  // ----> Image publisher variables
+  sl::Timestamp _sdkGrabTS = 0;
+  size_t _colorSubNumber = 0;
+  size_t _colorRawSubNumber = 0;
+  size_t _graySubNumber = 0;
+  size_t _grayRawSubNumber = 0;
+
+  sl::Mat _matColor, _matColorRaw;
+  sl::Mat _matGray, _matGrayRaw;
+  // <---- Image publisher variables
 
   // ----> Parameters
   std::string _cameraName = "zed_one";  // Name of the camera
@@ -248,6 +265,7 @@ private:
   std::unique_ptr<sl_tools::WinAvg> _pubImuTF_sec;
   bool _imuPublishing = false;
   bool _videoPublishing = false;
+  bool _imageSubscribed = false;
 
   sl_tools::StopWatch _grabFreqTimer;
   sl_tools::StopWatch _imuFreqTimer;

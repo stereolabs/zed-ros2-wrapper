@@ -1453,6 +1453,37 @@ void ZedCameraOne::threadFunc_zedGrab()
         }
       }
 
+      // ----> Check recording status
+      _recMutex.lock();
+      if (_recording) {
+        _recStatus = _zed->getRecordingStatus();
+
+        if (!_recStatus.status) {
+          rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+          RCLCPP_ERROR_THROTTLE(
+            get_logger(), steady_clock, 1000.0,
+            "Error saving frame to SVO");
+        }
+      }
+      _recMutex.unlock();
+      // <---- Check recording status
+
+      // ----> Retrieve Image/Depth data if someone has subscribed to
+      // Retrieve data if there are subscriber to topics
+      _imageSubscribed = areVideoDepthSubscribed();
+      if (_imageSubscribed) {
+        DEBUG_STREAM_VD("Retrieving video data");
+        retrieveVideo();
+
+        rclcpp::Time pub_ts;
+        publishVideo(pub_ts);
+
+        _videoPublishing = true;
+      } else {
+        _videoPublishing = false;
+      }
+      // <---- Retrieve Image/Depth data if someone has subscribed to
+
       // Diagnostic statistics update
       double mean_elab_sec = _elabPeriodMean_sec->addValue(grabElabTimer.toc());
     } catch (...) {
@@ -1932,6 +1963,69 @@ void ZedCameraOne::publishImuFrameAndTopic()
   double elapsed_sec = _imuTfFreqTimer.toc();
   _pubImuTF_sec->addValue(elapsed_sec);
   _imuTfFreqTimer.tic();
+}
+
+bool ZedCameraOne::areVideoDepthSubscribed()
+{
+  _colorSubNumber = 0;
+  _colorRawSubNumber = 0;
+  _graySubNumber = 0;
+  _grayRawSubNumber = 0;
+
+  try {
+    _colorSubNumber = _pubColorImg.getNumSubscribers();
+    _colorRawSubNumber = _pubColorRawImg.getNumSubscribers();
+    _graySubNumber = _pubGrayImg.getNumSubscribers();
+    _grayRawSubNumber = _pubGrayRawImg.getNumSubscribers();
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_VD("publishImages: Exception while counting subscribers");
+    return false;
+  }
+
+  return (_colorSubNumber + _colorRawSubNumber + _graySubNumber +
+         _grayRawSubNumber) > 0;
+}
+
+void ZedCameraOne::retrieveVideo()
+{
+  bool retrieved = false;
+
+  // ----> Retrieve all required data
+  DEBUG_VD("Retrieving Video Data");
+  if (_colorSubNumber > 0) {
+    retrieved |=
+      (sl::ERROR_CODE::SUCCESS ==
+      _zed->retrieveImage(_matColor, sl::VIEW::LEFT, sl::MEM::CPU, _matResol));
+    _sdkGrabTS = _matColor.timestamp;
+    DEBUG_VD("Color image retrieved");
+  }
+  if (_colorRawSubNumber > 0) {
+    retrieved |= (sl::ERROR_CODE::SUCCESS ==
+      _zed->retrieveImage(
+        _matColorRaw, sl::VIEW::LEFT_UNRECTIFIED,
+        sl::MEM::CPU, _matResol));
+    _sdkGrabTS = _matColorRaw.timestamp;
+    DEBUG_VD("Color raw image retrieved");
+  }
+  if (_graySubNumber > 0) {
+    retrieved |=
+      (sl::ERROR_CODE::SUCCESS ==
+      _zed->retrieveImage(_matGray, sl::VIEW::LEFT_GRAY sl::MEM::CPU, _matResol));
+    _sdkGrabTS = _matGray.timestamp;
+    DEBUG_VD("Gray image retrieved");
+  }
+  if (_grayRawSubNumber > 0) {
+    retrieved |=
+      (sl::ERROR_CODE::SUCCESS ==
+      _zed->retrieveImage(_matGrayRaw, sl::VIEW::RIGHT_UNRECTIFIED, sl::MEM::CPU, _matResol));
+    _sdkGrabTS = _matGrayRaw.timestamp;
+    DEBUG_VD("Gray raw image retrieved");
+  }
+  if (retrieved) {
+    DEBUG_STREAM_VD("Video Data retrieved");
+  }
+  // <---- Retrieve all required data
 }
 
 }  // namespace stereolabs

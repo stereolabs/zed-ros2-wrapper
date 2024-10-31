@@ -22,6 +22,8 @@
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
 
+#define ENABLE_GRAY_IMAGE 0
+
 namespace stereolabs
 {
 
@@ -131,8 +133,10 @@ private:
   std::string _topicRoot = "~/";
   std::string _imgTopic;
   std::string _imgRawTopic;
+#if ENABLE_GRAY_IMAGE
   std::string _imgGrayTopic;
   std::string _imgRawGrayTopic;
+#endif
 
   std::string _tempTopic;
   // <---- Topics
@@ -140,8 +144,10 @@ private:
   // ----> Publishers
   image_transport::CameraPublisher _pubColorImg;
   image_transport::CameraPublisher _pubColorRawImg;
+#if ENABLE_GRAY_IMAGE
   image_transport::CameraPublisher _pubGrayImg;
   image_transport::CameraPublisher _pubGrayRawImg;
+#endif
 
   imuPub _pubImu;
   imuPub _pubImuRaw;
@@ -155,11 +161,15 @@ private:
   sl::Timestamp _sdkGrabTS = 0;
   size_t _colorSubCount = 0;
   size_t _colorRawSubCount = 0;
+#if ENABLE_GRAY_IMAGE
   size_t _graySubCount = 0;
   size_t _grayRawSubCount = 0;
+#endif
 
   sl::Mat _matColor, _matColorRaw;
+#if ENABLE_GRAY_IMAGE
   sl::Mat _matGray, _matGrayRaw;
+#endif
   // <---- Image publisher variables
 
   // ----> Parameters

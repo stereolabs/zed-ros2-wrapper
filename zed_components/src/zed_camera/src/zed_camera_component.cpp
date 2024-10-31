@@ -6127,13 +6127,13 @@ void ZedCamera::threadFunc_zedGrab()
       if (!mDepthDisabled) {
         // ----> Retrieve the point cloud if someone has subscribed to
 
-        size_t cloudSubnumber = 0;
+        size_t cloudSubCount = 0;
         try {
   #ifndef FOUND_FOXY
-          cloudSubnumber = mPubCloud.getNumSubscribers();
-  #else
-          cloudSubnumber = count_subscribers(mPubCloud->get_topic_name());
-  #endif
+          cloudSubCount = mPubCloud.getNumSubscribers();
+#else
+          cloudSubCount = count_subscribers(mPubCloud->get_topic_name());
+#endif
         } catch (...) {
           rcutils_reset_error();
           DEBUG_STREAM_PC(
@@ -6142,7 +6142,7 @@ void ZedCamera::threadFunc_zedGrab()
           continue;
         }
 
-        if (cloudSubnumber > 0) {
+        if (cloudSubCount > 0) {
           // Run the point cloud conversion asynchronously to avoid slowing down
           // all the program
           // Retrieve raw pointCloud data if latest Pointcloud is ready
@@ -6229,21 +6229,21 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   // ----> Subscribers count
   DEBUG_STREAM_SENS("Sensors callback: counting subscribers");
 
-  size_t imu_SubNumber = 0;
-  size_t imu_RawSubNumber = 0;
-  size_t imu_TempSubNumber = 0;
-  size_t imu_MagSubNumber = 0;
-  size_t pressSubNumber = 0;
+  size_t imu_SubCount = 0;
+  size_t imu_RawSubCount = 0;
+  size_t imu_TempSubCount = 0;
+  size_t imu_MagSubCount = 0;
+  size_t pressSubCount = 0;
 
   try {
-    imu_SubNumber = count_subscribers(mPubImu->get_topic_name());
-    imu_RawSubNumber = count_subscribers(mPubImuRaw->get_topic_name());
-    imu_MagSubNumber = 0;
-    pressSubNumber = 0;
+    imu_SubCount = count_subscribers(mPubImu->get_topic_name());
+    imu_RawSubCount = count_subscribers(mPubImuRaw->get_topic_name());
+    imu_MagSubCount = 0;
+    pressSubCount = 0;
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-      imu_MagSubNumber = count_subscribers(mPubImuMag->get_topic_name());
-      pressSubNumber = count_subscribers(mPubPressure->get_topic_name());
+      imu_MagSubCount = count_subscribers(mPubImuMag->get_topic_name());
+      pressSubCount = count_subscribers(mPubPressure->get_topic_name());
     }
   } catch (...) {
     rcutils_reset_error();
@@ -6353,7 +6353,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   if (new_imu_data) {
     publishImuFrameAndTopic();
 
-    if (imu_SubNumber > 0) {
+    if (imu_SubCount > 0) {
       mImuPublishing = true;
 
       imuMsgPtr imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
@@ -6426,7 +6426,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
       mImuPublishing = false;
     }
 
-    if (imu_RawSubNumber > 0) {
+    if (imu_RawSubCount > 0) {
       mImuPublishing = true;
 
       imuMsgPtr imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
@@ -6490,7 +6490,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   }
 
   if (sens_data.barometer.is_available && new_baro_data) {
-    if (pressSubNumber > 0) {
+    if (pressSubCount > 0) {
       mBaroPublishing = true;
 
       pressMsgPtr pressMsg =
@@ -6517,7 +6517,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   }
 
   if (sens_data.magnetometer.is_available && new_mag_data) {
-    if (imu_MagSubNumber > 0) {
+    if (imu_MagSubCount > 0) {
       mMagPublishing = true;
 
       magMsgPtr magMsg = std::make_unique<sensor_msgs::msg::MagneticField>();
@@ -6962,46 +6962,46 @@ void ZedCamera::threadFunc_pubSensorsData()
 
 bool ZedCamera::areVideoDepthSubscribed()
 {
-  mRgbSubnumber = 0;
-  mRgbRawSubnumber = 0;
-  mRgbGraySubnumber = 0;
-  mRgbGrayRawSubnumber = 0;
-  mLeftSubnumber = 0;
-  mLeftRawSubnumber = 0;
-  mLeftGraySubnumber = 0;
-  mLeftGrayRawSubnumber = 0;
-  mRightSubnumber = 0;
-  mRightRawSubnumber = 0;
-  mRightGraySubnumber = 0;
-  mRightGrayRawSubnumber = 0;
-  mStereoSubnumber = 0;
-  mStereoRawSubnumber = 0;
-  mDepthSubnumber = 0;
-  mConfMapSubnumber = 0;
-  mDisparitySubnumber = 0;
-  mDepthInfoSubnumber = 0;
+  mRgbSubCount = 0;
+  mRgbRawSubCount = 0;
+  mRgbGraySubCount = 0;
+  mRgbGrayRawSubCount = 0;
+  mLeftSubCount = 0;
+  mLeftRawSubCount = 0;
+  mLeftGraySubCount = 0;
+  mLeftGrayRawSubCount = 0;
+  mRightSubCount = 0;
+  mRightRawSubCount = 0;
+  mRightGraySubCount = 0;
+  mRightGrayRawSubCount = 0;
+  mStereoSubCount = 0;
+  mStereoRawSubCount = 0;
+  mDepthSubCount = 0;
+  mConfMapSubCount = 0;
+  mDisparitySubCount = 0;
+  mDepthInfoSubCount = 0;
 
   try {
-    mRgbSubnumber = mPubRgb.getNumSubscribers();
-    mRgbRawSubnumber = mPubRawRgb.getNumSubscribers();
-    mRgbGraySubnumber = mPubRgbGray.getNumSubscribers();
-    mRgbGrayRawSubnumber = mPubRawRgbGray.getNumSubscribers();
-    mLeftSubnumber = mPubLeft.getNumSubscribers();
-    mLeftRawSubnumber = mPubRawLeft.getNumSubscribers();
-    mLeftGraySubnumber = mPubLeftGray.getNumSubscribers();
-    mLeftGrayRawSubnumber = mPubRawLeftGray.getNumSubscribers();
-    mRightSubnumber = mPubRight.getNumSubscribers();
-    mRightRawSubnumber = mPubRawRight.getNumSubscribers();
-    mRightGraySubnumber = mPubRightGray.getNumSubscribers();
-    mRightGrayRawSubnumber = mPubRawRightGray.getNumSubscribers();
-    mStereoSubnumber = mPubStereo.getNumSubscribers();
-    mStereoRawSubnumber = mPubRawStereo.getNumSubscribers();
+    mRgbSubCount = mPubRgb.getNumSubscribers();
+    mRgbRawSubCount = mPubRawRgb.getNumSubscribers();
+    mRgbGraySubCount = mPubRgbGray.getNumSubscribers();
+    mRgbGrayRawSubCount = mPubRawRgbGray.getNumSubscribers();
+    mLeftSubCount = mPubLeft.getNumSubscribers();
+    mLeftRawSubCount = mPubRawLeft.getNumSubscribers();
+    mLeftGraySubCount = mPubLeftGray.getNumSubscribers();
+    mLeftGrayRawSubCount = mPubRawLeftGray.getNumSubscribers();
+    mRightSubCount = mPubRight.getNumSubscribers();
+    mRightRawSubCount = mPubRawRight.getNumSubscribers();
+    mRightGraySubCount = mPubRightGray.getNumSubscribers();
+    mRightGrayRawSubCount = mPubRawRightGray.getNumSubscribers();
+    mStereoSubCount = mPubStereo.getNumSubscribers();
+    mStereoRawSubCount = mPubRawStereo.getNumSubscribers();
 
     if (!mDepthDisabled) {
-      mDepthSubnumber = mPubDepth.getNumSubscribers();
-      mDepthInfoSubnumber = count_subscribers(mPubDepthInfo->get_topic_name());
-      mConfMapSubnumber = count_subscribers(mPubConfMap->get_topic_name());
-      mDisparitySubnumber = count_subscribers(mPubDisparity->get_topic_name());
+      mDepthSubCount = mPubDepth.getNumSubscribers();
+      mDepthInfoSubCount = count_subscribers(mPubDepthInfo->get_topic_name());
+      mConfMapSubCount = count_subscribers(mPubConfMap->get_topic_name());
+      mDisparitySubCount = count_subscribers(mPubDisparity->get_topic_name());
     }
   } catch (...) {
     rcutils_reset_error();
@@ -7009,12 +7009,12 @@ bool ZedCamera::areVideoDepthSubscribed()
     return false;
   }
 
-  return (mRgbSubnumber + mRgbRawSubnumber + mRgbGraySubnumber +
-         mRgbGrayRawSubnumber + mLeftSubnumber + mLeftRawSubnumber +
-         mLeftGraySubnumber + mLeftGrayRawSubnumber + mRightSubnumber +
-         mRightRawSubnumber + mRightGraySubnumber + mRightGrayRawSubnumber +
-         mStereoSubnumber + mStereoRawSubnumber + mDepthSubnumber +
-         mConfMapSubnumber + mDisparitySubnumber + mDepthInfoSubnumber) > 0;
+  return (mRgbSubCount + mRgbRawSubCount + mRgbGraySubCount +
+         mRgbGrayRawSubCount + mLeftSubCount + mLeftRawSubCount +
+         mLeftGraySubCount + mLeftGrayRawSubCount + mRightSubCount +
+         mRightRawSubCount + mRightGraySubCount + mRightGrayRawSubCount +
+         mStereoSubCount + mStereoRawSubCount + mDepthSubCount +
+         mConfMapSubCount + mDisparitySubCount + mDepthInfoSubCount) > 0;
 }
 
 void ZedCamera::retrieveVideoDepth()
@@ -7024,7 +7024,7 @@ void ZedCamera::retrieveVideoDepth()
 
   // ----> Retrieve all required data
   DEBUG_VD("Retrieving Video Data");
-  if (mRgbSubnumber + mLeftSubnumber + mStereoSubnumber > 0) {
+  if (mRgbSubCount + mLeftSubCount + mStereoSubCount > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(mMatLeft, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
@@ -7032,7 +7032,7 @@ void ZedCamera::retrieveVideoDepth()
     mRgbSubscribed = true;
     DEBUG_VD("Left image retrieved");
   }
-  if (mRgbRawSubnumber + mLeftRawSubnumber + mStereoRawSubnumber > 0) {
+  if (mRgbRawSubCount + mLeftRawSubCount + mStereoRawSubCount > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED,
@@ -7040,14 +7040,14 @@ void ZedCamera::retrieveVideoDepth()
     mSdkGrabTS = mMatLeftRaw.timestamp;
     DEBUG_VD("Left raw image retrieved");
   }
-  if (mRightSubnumber + mStereoSubnumber > 0) {
+  if (mRightSubCount + mStereoSubCount > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(mMatRight, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
     mSdkGrabTS = mMatRight.timestamp;
     DEBUG_VD("Right image retrieved");
   }
-  if (mRightRawSubnumber + mStereoRawSubnumber > 0) {
+  if (mRightRawSubCount + mStereoRawSubCount > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED,
@@ -7055,7 +7055,7 @@ void ZedCamera::retrieveVideoDepth()
     mSdkGrabTS = mMatRightRaw.timestamp;
     DEBUG_VD("Right raw image retrieved");
   }
-  if (mRgbGraySubnumber + mLeftGraySubnumber > 0) {
+  if (mRgbGraySubCount + mLeftGraySubCount > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatLeftGray, sl::VIEW::LEFT_GRAY,
@@ -7063,7 +7063,7 @@ void ZedCamera::retrieveVideoDepth()
     mSdkGrabTS = mMatLeftGray.timestamp;
     DEBUG_VD("Left gray image retrieved");
   }
-  if (mRgbGrayRawSubnumber + mLeftGrayRawSubnumber > 0) {
+  if (mRgbGrayRawSubCount + mLeftGrayRawSubCount > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
@@ -7072,7 +7072,7 @@ void ZedCamera::retrieveVideoDepth()
     mSdkGrabTS = mMatLeftRawGray.timestamp;
     DEBUG_VD("Left gray raw image retrieved");
   }
-  if (mRightGraySubnumber > 0) {
+  if (mRightGraySubCount > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatRightGray, sl::VIEW::RIGHT_GRAY,
@@ -7080,7 +7080,7 @@ void ZedCamera::retrieveVideoDepth()
     mSdkGrabTS = mMatRightGray.timestamp;
     DEBUG_VD("Right gray image retrieved");
   }
-  if (mRightGrayRawSubnumber > 0) {
+  if (mRightGrayRawSubCount > 0) {
     retrieved |=
       sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
@@ -7095,7 +7095,7 @@ void ZedCamera::retrieveVideoDepth()
 
   retrieved = false;
   DEBUG_STREAM_VD("Retrieving Depth Data");
-  if (mDepthSubnumber > 0 || mDepthInfoSubnumber > 0) {
+  if (mDepthSubCount > 0 || mDepthInfoSubCount > 0) {
     DEBUG_STREAM_VD("Retrieving Depth");
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveMeasure(
@@ -7104,7 +7104,7 @@ void ZedCamera::retrieveVideoDepth()
     mSdkGrabTS = mMatDepth.timestamp;
     DEBUG_VD("Depth map retrieved");
   }
-  if (mDisparitySubnumber > 0) {
+  if (mDisparitySubCount > 0) {
     DEBUG_STREAM_VD("Retrieving Disparity");
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveMeasure(
@@ -7113,7 +7113,7 @@ void ZedCamera::retrieveVideoDepth()
     mSdkGrabTS = mMatDisp.timestamp;
     DEBUG_VD("Disparity map retrieved");
   }
-  if (mConfMapSubnumber > 0) {
+  if (mConfMapSubCount > 0) {
     DEBUG_STREAM_VD("Retrieving Confidence");
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveMeasure(
@@ -7122,7 +7122,7 @@ void ZedCamera::retrieveVideoDepth()
     mSdkGrabTS = mMatConf.timestamp;
     DEBUG_VD("Confidence map retrieved");
   }
-  if (mDepthInfoSubnumber > 0) {
+  if (mDepthInfoSubCount > 0) {
     retrieved |= sl::ERROR_CODE::SUCCESS ==
       mZed->getCurrentMinMaxDepth(mMinDepth, mMaxDepth);
     mSdkGrabTS = mMatConf.timestamp;
@@ -7143,7 +7143,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   sl::Timestamp ts_rgb = 0;
   sl::Timestamp ts_depth = 0;
 
-  if (mRgbSubscribed && (mDepthSubnumber > 0 || mDepthInfoSubnumber > 0)) {
+  if (mRgbSubscribed && (mDepthSubCount > 0 || mDepthInfoSubCount > 0)) {
     ts_rgb = mMatLeft.timestamp;
     ts_depth = mMatDepth.timestamp;
 
@@ -7210,15 +7210,15 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   out_pub_ts = timeStamp;
 
   // ----> Publish the left=rgb image if someone has subscribed to
-  if (mLeftSubnumber > 0) {
-    DEBUG_STREAM_VD("mLeftSubnumber: " << mLeftSubnumber);
+  if (mLeftSubCount > 0) {
+    DEBUG_STREAM_VD("mLeftSubCount: " << mLeftSubCount);
     publishImageWithInfo(
       mMatLeft, mPubLeft, mLeftCamInfoMsg,
       mLeftCamOptFrameId, out_pub_ts);
   }
 
-  if (mRgbSubnumber > 0) {
-    DEBUG_STREAM_VD("mRgbSubnumber: " << mRgbSubnumber);
+  if (mRgbSubCount > 0) {
+    DEBUG_STREAM_VD("mRgbSubCount: " << mRgbSubCount);
     publishImageWithInfo(
       mMatLeft, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId,
       out_pub_ts);
@@ -7226,14 +7226,14 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // <---- Publish the left=rgb image if someone has subscribed to
 
   // ----> Publish the left_raw=rgb_raw image if someone has subscribed to
-  if (mLeftRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mLeftRawSubnumber: " << mLeftRawSubnumber);
+  if (mLeftRawSubCount > 0) {
+    DEBUG_STREAM_VD("mLeftRawSubCount: " << mLeftRawSubCount);
     publishImageWithInfo(
       mMatLeftRaw, mPubRawLeft, mLeftCamInfoRawMsg,
       mLeftCamOptFrameId, out_pub_ts);
   }
-  if (mRgbRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mRgbRawSubnumber: " << mRgbRawSubnumber);
+  if (mRgbRawSubCount > 0) {
+    DEBUG_STREAM_VD("mRgbRawSubCount: " << mRgbRawSubCount);
     publishImageWithInfo(
       mMatLeftRaw, mPubRawRgb, mRgbCamInfoRawMsg,
       mDepthOptFrameId, out_pub_ts);
@@ -7241,14 +7241,14 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // <---- Publish the left_raw=rgb_raw image if someone has subscribed to
 
   // ----> Publish the left_gray=rgb_gray image if someone has subscribed to
-  if (mLeftGraySubnumber > 0) {
-    DEBUG_STREAM_VD("mLeftGraySubnumber: " << mLeftGraySubnumber);
+  if (mLeftGraySubCount > 0) {
+    DEBUG_STREAM_VD("mLeftGraySubCount: " << mLeftGraySubCount);
     publishImageWithInfo(
       mMatLeftGray, mPubLeftGray, mLeftCamInfoMsg,
       mLeftCamOptFrameId, out_pub_ts);
   }
-  if (mRgbGraySubnumber > 0) {
-    DEBUG_STREAM_VD("mRgbGraySubnumber: " << mRgbGraySubnumber);
+  if (mRgbGraySubCount > 0) {
+    DEBUG_STREAM_VD("mRgbGraySubCount: " << mRgbGraySubCount);
     publishImageWithInfo(
       mMatLeftGray, mPubRgbGray, mRgbCamInfoMsg,
       mDepthOptFrameId, out_pub_ts);
@@ -7257,14 +7257,14 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // ----> Publish the left_raw_gray=rgb_raw_gray image if someone has
   // subscribed to
-  if (mLeftGrayRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mLeftGrayRawSubnumber: " << mLeftGrayRawSubnumber);
+  if (mLeftGrayRawSubCount > 0) {
+    DEBUG_STREAM_VD("mLeftGrayRawSubCount: " << mLeftGrayRawSubCount);
     publishImageWithInfo(
       mMatLeftRawGray, mPubRawLeftGray, mLeftCamInfoRawMsg,
       mLeftCamOptFrameId, out_pub_ts);
   }
-  if (mRgbGrayRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mRgbGrayRawSubnumber: " << mRgbGrayRawSubnumber);
+  if (mRgbGrayRawSubCount > 0) {
+    DEBUG_STREAM_VD("mRgbGrayRawSubCount: " << mRgbGrayRawSubCount);
     publishImageWithInfo(
       mMatLeftRawGray, mPubRawRgbGray, mRgbCamInfoRawMsg,
       mDepthOptFrameId, out_pub_ts);
@@ -7273,8 +7273,8 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // subscribed to
 
   // ----> Publish the right image if someone has subscribed to
-  if (mRightSubnumber > 0) {
-    DEBUG_STREAM_VD("mRightSubnumber: " << mRightSubnumber);
+  if (mRightSubCount > 0) {
+    DEBUG_STREAM_VD("mRightSubCount: " << mRightSubCount);
     publishImageWithInfo(
       mMatRight, mPubRight, mRightCamInfoMsg,
       mRightCamOptFrameId, out_pub_ts);
@@ -7282,8 +7282,8 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // <---- Publish the right image if someone has subscribed to
 
   // ----> Publish the right raw image if someone has subscribed to
-  if (mRightRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mRightRawSubnumber: " << mRightRawSubnumber);
+  if (mRightRawSubCount > 0) {
+    DEBUG_STREAM_VD("mRightRawSubCount: " << mRightRawSubCount);
     publishImageWithInfo(
       mMatRightRaw, mPubRawRight, mRightCamInfoRawMsg,
       mRightCamOptFrameId, out_pub_ts);
@@ -7291,8 +7291,8 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // <---- Publish the right raw image if someone has subscribed to
 
   // ----> Publish the right gray image if someone has subscribed to
-  if (mRightGraySubnumber > 0) {
-    DEBUG_STREAM_VD("mRightGraySubnumber: " << mRightGraySubnumber);
+  if (mRightGraySubCount > 0) {
+    DEBUG_STREAM_VD("mRightGraySubCount: " << mRightGraySubCount);
     publishImageWithInfo(
       mMatRightGray, mPubRightGray, mRightCamInfoMsg,
       mRightCamOptFrameId, out_pub_ts);
@@ -7300,8 +7300,8 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // <---- Publish the right gray image if someone has subscribed to
 
   // ----> Publish the right raw gray image if someone has subscribed to
-  if (mRightGrayRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mRightGrayRawSubnumber: " << mRightGrayRawSubnumber);
+  if (mRightGrayRawSubCount > 0) {
+    DEBUG_STREAM_VD("mRightGrayRawSubCount: " << mRightGrayRawSubCount);
     publishImageWithInfo(
       mMatRightRawGray, mPubRawRightGray,
       mRightCamInfoRawMsg, mRightCamOptFrameId, out_pub_ts);
@@ -7309,8 +7309,8 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // <---- Publish the right raw gray image if someone has subscribed to
 
   // ----> Publish the side-by-side image if someone has subscribed to
-  if (mStereoSubnumber > 0) {
-    DEBUG_STREAM_VD("mStereoSubnumber: " << mStereoSubnumber);
+  if (mStereoSubCount > 0) {
+    DEBUG_STREAM_VD("mStereoSubCount: " << mStereoSubCount);
     auto combined = sl_tools::imagesToROSmsg(
       mMatLeft, mMatRight,
       mCameraFrameId, out_pub_ts);
@@ -7326,8 +7326,8 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // <---- Publish the side-by-side image if someone has subscribed to
 
   // ----> Publish the side-by-side image if someone has subscribed to
-  if (mStereoRawSubnumber > 0) {
-    DEBUG_STREAM_VD("mStereoRawSubnumber: " << mStereoRawSubnumber);
+  if (mStereoRawSubCount > 0) {
+    DEBUG_STREAM_VD("mStereoRawSubCount: " << mStereoRawSubCount);
     auto combined = sl_tools::imagesToROSmsg(
       mMatLeftRaw, mMatRightRaw,
       mCameraFrameId, out_pub_ts);
@@ -7343,13 +7343,13 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // <---- Publish the side-by-side image if someone has subscribed to
 
   // ---->  Publish the depth image if someone has subscribed to
-  if (mDepthSubnumber > 0) {
+  if (mDepthSubCount > 0) {
     publishDepthMapWithInfo(mMatDepth, out_pub_ts);
   }
   // <----  Publish the depth image if someone has subscribed to
 
   // ---->  Publish the confidence image and map if someone has subscribed to
-  if (mConfMapSubnumber > 0) {
+  if (mConfMapSubCount > 0) {
     DEBUG_STREAM_VD("Publishing CONF MAP message");
     try {
       mPubConfMap->publish(
@@ -7363,13 +7363,13 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // <----  Publish the confidence image and map if someone has subscribed to
 
   // ----> Publish the disparity image if someone has subscribed to
-  if (mDisparitySubnumber > 0) {
+  if (mDisparitySubCount > 0) {
     publishDisparity(mMatDisp, out_pub_ts);
   }
   // <---- Publish the disparity image if someone has subscribed to
 
   // ----> Publish the depth info if someone has subscribed to
-  if (mDepthInfoSubnumber > 0) {
+  if (mDepthInfoSubCount > 0) {
     depthInfoMsgPtr depthInfoMsg =
       std::make_unique<zed_interfaces::msg::DepthInfoStamped>();
     depthInfoMsg->header.stamp = timeStamp;
@@ -9209,20 +9209,20 @@ void ZedCamera::callback_pubTemp()
   // <---- Always update temperature values for diagnostic
 
   // ----> Subscribers count
-  size_t tempLeftSubNumber = 0;
-  size_t tempRightSubNumber = 0;
-  size_t tempImuSubNumber = 0;
+  size_t tempLeftSubCount = 0;
+  size_t tempRightSubCount = 0;
+  size_t tempImuSubCount = 0;
 
   try {
-    tempLeftSubNumber = 0;
-    tempRightSubNumber = 0;
-    tempImuSubNumber = 0;
+    tempLeftSubCount = 0;
+    tempRightSubCount = 0;
+    tempImuSubCount = 0;
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-      tempLeftSubNumber = count_subscribers(mPubTempL->get_topic_name());
-      tempRightSubNumber = count_subscribers(mPubTempR->get_topic_name());
+      tempLeftSubCount = count_subscribers(mPubTempL->get_topic_name());
+      tempRightSubCount = count_subscribers(mPubTempR->get_topic_name());
     }
-    tempImuSubNumber = count_subscribers(mPubImuTemp->get_topic_name());
+    tempImuSubCount = count_subscribers(mPubImuTemp->get_topic_name());
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_SENS(
@@ -9233,7 +9233,7 @@ void ZedCamera::callback_pubTemp()
 
   rclcpp::Time now = get_clock()->now();
 
-  if (tempLeftSubNumber > 0) {
+  if (tempLeftSubCount > 0) {
     tempMsgPtr leftTempMsg =
       std::make_unique<sensor_msgs::msg::Temperature>();
 
@@ -9252,7 +9252,7 @@ void ZedCamera::callback_pubTemp()
     }
   }
 
-  if (tempRightSubNumber > 0) {
+  if (tempRightSubCount > 0) {
     tempMsgPtr rightTempMsg =
       std::make_unique<sensor_msgs::msg::Temperature>();
 
@@ -9272,7 +9272,7 @@ void ZedCamera::callback_pubTemp()
     }
   }
 
-  if (tempImuSubNumber > 0) {
+  if (tempImuSubCount > 0) {
     tempMsgPtr imuTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
 
     imuTempMsg->header.stamp = now;
@@ -9299,12 +9299,12 @@ void ZedCamera::callback_pubFusedPc()
   pointcloudMsgPtr pointcloudFusedMsg =
     std::make_unique<sensor_msgs::msg::PointCloud2>();
 
-  uint32_t fusedCloudSubnumber = 0;
+  uint32_t fusedCloudSubCount = 0;
   try {
 #ifndef FOUND_FOXY
-    fusedCloudSubnumber = mPubFusedCloud.getNumSubscribers();
+    fusedCloudSubCount = mPubFusedCloud.getNumSubscribers();
 #else
-    fusedCloudSubnumber = count_subscribers(mPubFusedCloud->get_topic_name());
+    fusedCloudSubCount = count_subscribers(mPubFusedCloud->get_topic_name());
 #endif
   } catch (...) {
     rcutils_reset_error();
@@ -9312,7 +9312,7 @@ void ZedCamera::callback_pubFusedPc()
     return;
   }
 
-  if (fusedCloudSubnumber == 0) {
+  if (fusedCloudSubCount == 0) {
     return;
   }
 
@@ -10544,11 +10544,11 @@ void ZedCamera::callback_clickedPoint(
   const geometry_msgs::msg::PointStamped::SharedPtr msg)
 {
   // ----> Check for result subscribers
-  size_t markerSubNumber = 0;
-  size_t planeSubNumber = 0;
+  size_t markerSubCount = 0;
+  size_t planeSubCount = 0;
   try {
-    markerSubNumber = count_subscribers(mPubMarker->get_topic_name());
-    planeSubNumber = count_subscribers(mPubPlane->get_topic_name());
+    markerSubCount = count_subscribers(mPubMarker->get_topic_name());
+    planeSubCount = count_subscribers(mPubPlane->get_topic_name());
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_MAP(
@@ -10557,7 +10557,7 @@ void ZedCamera::callback_clickedPoint(
     return;
   }
 
-  if ((markerSubNumber + planeSubNumber) == 0) {
+  if ((markerSubCount + planeSubCount) == 0) {
     return;
   }
   // <---- Check for result subscribers
@@ -10668,7 +10668,7 @@ void ZedCamera::callback_clickedPoint(
     X, Y, Z, center.x, center.y, center.z, dims[0], dims[1]);
   // <---- Extract plane from clicked point
 
-  if (markerSubNumber > 0) {
+  if (markerSubCount > 0) {
     // ----> Publish a blue sphere in the clicked point
     markerMsgPtr pt_marker =
       std::make_unique<visualization_msgs::msg::Marker>();
@@ -10798,7 +10798,7 @@ void ZedCamera::callback_clickedPoint(
     // <---- Publish the plane as green mesh
   }
 
-  if (planeSubNumber > 0) {
+  if (planeSubCount > 0) {
     // ----> Publish the plane as custom message
 
     planeMsgPtr planeMsg =

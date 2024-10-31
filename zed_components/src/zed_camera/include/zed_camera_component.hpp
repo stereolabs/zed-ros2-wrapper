@@ -628,24 +628,24 @@ private:
 
   // <---- Publisher variables
   sl::Timestamp mSdkGrabTS = 0;
-  size_t mRgbSubnumber = 0;
-  size_t mRgbRawSubnumber = 0;
-  size_t mRgbGraySubnumber = 0;
-  size_t mRgbGrayRawSubnumber = 0;
-  size_t mLeftSubnumber = 0;
-  size_t mLeftRawSubnumber = 0;
-  size_t mLeftGraySubnumber = 0;
-  size_t mLeftGrayRawSubnumber = 0;
-  size_t mRightSubnumber = 0;
-  size_t mRightRawSubnumber = 0;
-  size_t mRightGraySubnumber = 0;
-  size_t mRightGrayRawSubnumber = 0;
-  size_t mStereoSubnumber = 0;
-  size_t mStereoRawSubnumber = 0;
-  size_t mDepthSubnumber = 0;
-  size_t mConfMapSubnumber = 0;
-  size_t mDisparitySubnumber = 0;
-  size_t mDepthInfoSubnumber = 0;
+  size_t mRgbSubCount = 0;
+  size_t mRgbRawSubCount = 0;
+  size_t mRgbGraySubCount = 0;
+  size_t mRgbGrayRawSubCount = 0;
+  size_t mLeftSubCount = 0;
+  size_t mLeftRawSubCount = 0;
+  size_t mLeftGraySubCount = 0;
+  size_t mLeftGrayRawSubCount = 0;
+  size_t mRightSubCount = 0;
+  size_t mRightRawSubCount = 0;
+  size_t mRightGraySubCount = 0;
+  size_t mRightGrayRawSubCount = 0;
+  size_t mStereoSubCount = 0;
+  size_t mStereoRawSubCount = 0;
+  size_t mDepthSubCount = 0;
+  size_t mConfMapSubCount = 0;
+  size_t mDisparitySubCount = 0;
+  size_t mDepthInfoSubCount = 0;
 
   sl::Mat mMatLeft, mMatLeftRaw;
   sl::Mat mMatRight, mMatRightRaw;

@@ -52,9 +52,6 @@ protected:
   void startTempPubTimer();
   bool startStreamingServer();
   void stopStreamingServer();
-
-  rclcpp::Time publishSensorsData(rclcpp::Time t = TIMEZERO_ROS);
-  void publishImuFrameAndTopic();
   // <---- Initialization functions
 
   // ----> Utility functions
@@ -68,9 +65,18 @@ protected:
     const std::string & frameId,
     bool rawParam = false);
 
-  void applyVideoSettings();
-  bool areVideoDepthSubscribed();
-  void retrieveVideo();
+  void applyImageSettings();
+  bool areImageTopicsSubscribed();
+  void retrieveImages();
+  void publishImages();
+  void publishImageWithInfo(
+    const sl::Mat & img,
+    const image_transport::CameraPublisher & pubImg,
+    const camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
+    const rclcpp::Time & t);
+
+  rclcpp::Time publishSensorsData(rclcpp::Time t = TIMEZERO_ROS);
+  void publishImuFrameAndTopic();
   // <---- Utility functions
 
   // ----> Callbacks functions
@@ -145,11 +151,12 @@ private:
   // <---- Publishers
 
   // ----> Image publisher variables
+  sl::Timestamp _lastTs_grab = 0;  // Used to calculate stable publish frequency
   sl::Timestamp _sdkGrabTS = 0;
-  size_t _colorSubNumber = 0;
-  size_t _colorRawSubNumber = 0;
-  size_t _graySubNumber = 0;
-  size_t _grayRawSubNumber = 0;
+  size_t _colorSubCount = 0;
+  size_t _colorRawSubCount = 0;
+  size_t _graySubCount = 0;
+  size_t _grayRawSubCount = 0;
 
   sl::Mat _matColor, _matColorRaw;
   sl::Mat _matGray, _matGrayRaw;
@@ -259,8 +266,8 @@ private:
   uint64_t _frameCount = 0;
   std::unique_ptr<sl_tools::WinAvg> _elabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> _grabPeriodMean_sec;
-  std::unique_ptr<sl_tools::WinAvg> _videoPeriodMean_sec;
-  std::unique_ptr<sl_tools::WinAvg> _videoElabMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> _imagePeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> _imageElabMean_sec;
   std::unique_ptr<sl_tools::WinAvg> _imuPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> _pubImuTF_sec;
   bool _imuPublishing = false;
@@ -270,6 +277,7 @@ private:
   sl_tools::StopWatch _grabFreqTimer;
   sl_tools::StopWatch _imuFreqTimer;
   sl_tools::StopWatch _imuTfFreqTimer;
+  sl_tools::StopWatch _imgPubFreqTimer;
   sl_tools::StopWatch _sensPubFreqTimer;
   int _sysOverloadCount = 0;
 

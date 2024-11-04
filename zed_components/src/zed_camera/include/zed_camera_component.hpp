@@ -54,7 +54,6 @@ protected:
   void getMappingParams();
   void getOdParams();
   void getBodyTrkParams();
-  void getOutStreamingParams();
   void getStreamingServerParams();
   void getAdvancedParams();
 

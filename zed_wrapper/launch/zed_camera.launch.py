@@ -192,21 +192,6 @@ def launch_setup(context, *args, **kwargs):
     if( ros_params_override_path.perform(context) != ''):
         node_parameters.append(ros_params_override_path)
 
-
-    # # ZED Wrapper node
-    # zed_wrapper_node = Node(
-    #     package='zed_wrapper',
-    #     namespace=camera_name_val,
-    #     executable='zed_wrapper',
-    #     name=node_name,
-    #     output='screen',
-    #     #prefix=['valgrind'],
-    #     #prefix=['xterm -e valgrind --tools=callgrind'],
-    #     #prefix=['xterm -e gdb -ex run --args'],
-    #     #prefix=['gdbserver localhost:3000'],
-    #     parameters=node_parameters
-    # )
-
     # ZED Wrapper component
     if( camera_model_val=='zed' or
         camera_model_val=='zedm' or

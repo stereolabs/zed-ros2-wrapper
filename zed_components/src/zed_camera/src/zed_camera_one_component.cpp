@@ -26,19 +26,27 @@ using namespace std::placeholders;
 using namespace std::chrono_literals;
 namespace stereolabs
 {
-ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
-: Node("zed_node_one", options),
-  _threadStop(false),
-  _qos(QOS_QUEUE_SIZE),
-  _diagUpdater(this),
-  _grabFreqTimer(get_clock()),
-  _imuFreqTimer(get_clock()),
-  _imuTfFreqTimer(get_clock()),
-  _imgPubFreqTimer(get_clock()),
-  _sensPubFreqTimer(get_clock()),
-  _frameTimestamp(_frameTimestamp),
-  _lastTs_imu(_frameTimestamp)
-{
+ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions& options)
+    : Node("zed_node_one", options),
+      _threadStop(false),
+      _qos(QOS_QUEUE_SIZE),
+      _diagUpdater(this),
+      _grabFreqTimer(get_clock()),
+      _imuFreqTimer(get_clock()),
+      _imuTfFreqTimer(get_clock()),
+      _imgPubFreqTimer(get_clock()),
+      _frameTimestamp(_frameTimestamp),
+      _lastTs_imu(_frameTimestamp),
+      _colorSubCount(0),
+      _colorRawSubCount(0),
+#if ENABLE_GRAY_IMAGE
+      _graySubCount(0),
+      _grayRawSubCount(0),
+#endif
+      _imuSubCount(0),
+      _imuRawSubCount(0),
+      _streamingServerRequired(false),
+      _streamingServerRunning(false) {
   RCLCPP_INFO(get_logger(), "********************************");
   RCLCPP_INFO(get_logger(), "    ZED Camera One Component    ");
   RCLCPP_INFO(get_logger(), "********************************");
@@ -77,22 +85,18 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
 #endif
   // <---- Publishers/Subscribers options
 
-  // ----> Start a "one shot timer" to initialize the node and make
-  // `shared_from_this` available
+  // ----> Start a "one shot timer" to initialize the node
+  // This is required to make `shared_from_this` available
   std::chrono::milliseconds init_msec(static_cast<int>(50.0));
   _initTimer = create_wall_timer(
     std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
     std::bind(&ZedCameraOne::init, this));
-  // <---- Start a "one shot timer" to initialize the node and make
-  // `shared_from_this` available
+  // <---- Start a "one shot timer" to initialize the node
 }
 
 ZedCameraOne::~ZedCameraOne()
 {
   DEBUG_STREAM_COMM("Destroying node");
-
-  // ----> Stop subscribers
-  // <---- Stop subscribers
 
   DEBUG_STREAM_SENS("Stopping temperatures timer");
   if (_tempPubTimer) {
@@ -115,17 +119,22 @@ ZedCameraOne::~ZedCameraOne()
   }
   DEBUG_STREAM_COMM("... grab thread stopped");
 
-  DEBUG_STREAM_SENS("Waiting for sensors thread...");
+  DEBUG_STREAM_COMM("Waiting for sensors thread...");
   try {
     if (_sensThread.joinable()) {
       _sensThread.join();
     }
   } catch (std::system_error & e) {
-    DEBUG_STREAM_SENS("Sensors thread joining exception: " << e.what());
+    DEBUG_STREAM_COMM("Sensors thread joining exception: " << e.what());
   }
-  DEBUG_STREAM_SENS("... sensors thread stopped");
-
+  DEBUG_STREAM_COMM("... sensors thread stopped");
   // <---- Verify that all the threads are not active
+
+  // ----> Close the ZED camera
+  DEBUG_STREAM_COMM("Closing ZED camera...");
+  _zed->close();
+  DEBUG_STREAM_COMM("... ZED camera closed");
+  // <---- Close the ZED camera
 }
 
 void ZedCameraOne::initParameters()
@@ -565,6 +574,35 @@ void ZedCameraOne::initServices()
 
   std::string srv_name;
   std::string srv_prefix = "~/";
+
+  // Enable Streaming
+  srv_name = srv_prefix + _srvEnableStreamingName;
+  _srvEnableStreaming = create_service<std_srvs::srv::SetBool>(
+      srv_name,
+      std::bind(&ZedCameraOne::callback_enableStreaming, this, _1, _2, _3));
+  RCLCPP_INFO(get_logger(), " * '%s'", _srvEnableStreaming->get_service_name());
+
+  // Start SVO Recording
+  srv_name = srv_prefix + _srvStartSvoRecName;
+  _srvStartSvoRec = create_service<zed_interfaces::srv::StartSvoRec>(
+      srv_name,
+      std::bind(&ZedCameraOne::callback_startSvoRec, this, _1, _2, _3));
+  RCLCPP_INFO(get_logger(), " * '%s'", _srvStartSvoRec->get_service_name());
+  // Stop SVO Recording
+  srv_name = srv_prefix + _srvStopSvoRecName;
+  _srvStopSvoRec = create_service<std_srvs::srv::Trigger>(
+      srv_name,
+      std::bind(&ZedCameraOne::callback_stopSvoRec, this, _1, _2, _3));
+  RCLCPP_INFO(get_logger(), " * '%s'", _srvStopSvoRec->get_service_name());
+
+  // Pause SVO Playback
+  if (_svoMode && !_svoRealtime) {
+    srv_name = srv_prefix + _srvToggleSvoPauseName;
+    _srvPauseSvo = create_service<std_srvs::srv::Trigger>(
+        srv_name,
+        std::bind(&ZedCameraOne::callback_pauseSvoInput, this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", _srvPauseSvo->get_service_name());
+  }
 }
 
 bool ZedCameraOne::startCamera()
@@ -810,8 +848,9 @@ bool ZedCameraOne::startCamera()
   _grabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(_camGrabFrameRate);
   _imagePeriodMean_sec = std::make_unique<sl_tools::WinAvg>(_camGrabFrameRate);
   _imageElabMean_sec = std::make_unique<sl_tools::WinAvg>(_camGrabFrameRate);
-  _imuPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(_sensPubRate);
+  _imuPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(20);
   _pubImuTF_sec = std::make_unique<sl_tools::WinAvg>(_sensPubRate);
+  _pubImu_sec = std::make_unique<sl_tools::WinAvg>(_sensPubRate);
   // <---- Initialize Diagnostic statistics
 
   // Init and start threads
@@ -987,7 +1026,7 @@ void ZedCameraOne::callback_updateDiagnostic(
   }
 
   if (_imuPublishing) {
-    double freq = 1. / _imuPeriodMean_sec->getAvg();
+    double freq = 1. / _pubImu_sec->getAvg();
     stat.addf("IMU", "Mean Frequency: %.1f Hz", freq);
   } else {
     stat.add("IMU Sensor", "Topics not subscribed");
@@ -1594,11 +1633,29 @@ void ZedCameraOne::threadFunc_pubSensorsData()
       // std::lock_guard<std::mutex> lock(mCloseZedMutex);
       if (!_zed->isOpened()) {
         DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] the camera is not open");
-        rclcpp::sleep_for(std::chrono::milliseconds(100));// Avoid busy-waiting
+        rclcpp::sleep_for(
+            std::chrono::milliseconds(200));  // Avoid busy-waiting
         continue;
       }
 
-      rclcpp::Time sens_ts = publishSensorsData();
+      _imuPublishing = areSensorsTopicsSubscribed();
+
+      if (!_imuPublishing && !_publishImuTF) {
+        rclcpp::sleep_for(
+            std::chrono::milliseconds(200));  // Avoid busy-waiting
+        continue;
+      }
+
+      if (!publishSensorsData()) {
+        auto sleep_msec =
+            static_cast<int>(_sensRateComp * (1000. / _sensPubRate));
+        sleep_msec = std::max(1, sleep_msec);
+        DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] Thread sleep: "
+                          << sleep_msec << " msec");
+        rclcpp::sleep_for(
+            std::chrono::milliseconds(sleep_msec));  // Avoid busy-waiting
+        continue;
+      };
 
     } catch (...) {
       rcutils_reset_error();
@@ -1608,23 +1665,20 @@ void ZedCameraOne::threadFunc_pubSensorsData()
 
     // ----> Check publishing frequency
     double sens_period_usec = 1e6 / _sensPubRate;
-    DEBUG_STREAM_SENS(
-      "[threadFunc_pubSensorsData] sens_period_usec: " << sens_period_usec << " usec");
+    double avg_freq = 1. / _imuPeriodMean_sec->getAvg();
 
-    double elapsed_usec = _sensPubFreqTimer.toc() * 1e6;
+    double err = std::fabs(_sensPubRate - avg_freq);
 
-    DEBUG_STREAM_SENS(
-      "[threadFunc_pubSensorsData] elapsed_usec: " << elapsed_usec << " - Freq: " << 1e6 / elapsed_usec <<
-        " Hz");
-
-    if (elapsed_usec < sens_period_usec) {
-      int sleep_usec = static_cast<int>(sens_period_usec - elapsed_usec);
-      DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] Sleep period: " << sleep_usec << " usec");
-      rclcpp::sleep_for(
-        std::chrono::microseconds(sleep_usec));
+    if (avg_freq < _sensPubRate) {
+      _sensRateComp -= 0.001 * err;
+    } else if (avg_freq > _sensPubRate) {
+      _sensRateComp += 0.001 * err;
     }
 
-    _sensPubFreqTimer.tic();
+    _sensRateComp = std::max(0.05, _sensRateComp);
+    _sensRateComp = std::min(2.0, _sensRateComp);
+    DEBUG_STREAM_SENS(
+        "[threadFunc_pubSensorsData] _sensRateComp: " << _sensRateComp);
     // <---- Check publishing frequency
   }
   // <---- Infinite sensor loop
@@ -1680,33 +1734,11 @@ void ZedCameraOne::stopStreamingServer()
   _streamingServerRequired = false;
 }
 
-rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
-{
+bool ZedCameraOne::publishSensorsData() {
   if (_grabStatus != sl::ERROR_CODE::SUCCESS) {
     DEBUG_SENS("Camera not ready");
-    return TIMEZERO_ROS;
+    return false;
   }
-
-  // ----> Subscribers count
-  size_t imu_SubCount = 0;
-  size_t imu_RawSubCount = 0;
-
-  try {
-    imu_SubCount = count_subscribers(_pubImu->get_topic_name());
-    imu_RawSubCount = count_subscribers(_pubImuRaw->get_topic_name());
-
-    if (imu_SubCount + imu_RawSubCount == 0) {
-      _imuPublishing = false;
-    }
-
-    DEBUG_STREAM_SENS(
-      "[publishSensorsData] subscribers: " << imu_SubCount + imu_RawSubCount);
-  } catch (...) {
-    rcutils_reset_error();
-    DEBUG_STREAM_SENS("[publishSensorsData] Exception while counting subscribers");
-    return TIMEZERO_ROS;
-  }
-  // <---- Subscribers count
 
   // ----> Grab data and setup timestamps
   DEBUG_STREAM_SENS("[publishSensorsData] Grab data and setup timestamps");
@@ -1723,7 +1755,7 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
       RCLCPP_WARN_STREAM(
         get_logger(), "[publishSensorsData] sl::getSensorsData error: "
           << sl::toString(err).c_str());
-      return TIMEZERO_ROS;
+      return false;
     }
   } else {
     sl::ERROR_CODE err =
@@ -1732,7 +1764,7 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
       RCLCPP_WARN_STREAM(
         get_logger(), "[publishSensorsData] sl::getSensorsData error: "
           << sl::toString(err).c_str());
-      return TIMEZERO_ROS;
+      return false;
     }
   }
 
@@ -1750,7 +1782,7 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
 
   if (!new_imu_data) {
     DEBUG_STREAM_SENS("[publishSensorsData] No new sensors data");
-    return TIMEZERO_ROS;
+    return false;
   }
   // <---- Check for not updated data
 
@@ -1759,21 +1791,19 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
                            << " Hz");
 
   // ----> Sensors freq for diagnostic
-  double mean = _imuPeriodMean_sec->addValue(_imuFreqTimer.toc());
+  auto elapsed = _imuFreqTimer.toc();
   _imuFreqTimer.tic();
-
+  double mean = _imuPeriodMean_sec->addValue(elapsed);
+  _pubImu_sec->addValue(mean);
   DEBUG_STREAM_SENS("IMU MEAN freq: " << 1. / mean);
   // <---- Sensors freq for diagnostic
 
   // ----> Sensors data publishing
-
   publishImuFrameAndTopic();
 
-  if (imu_SubCount > 0) {
-    DEBUG_STREAM_SENS(
-      "[publishSensorsData] IMU subscribers: "
-        << static_cast<int>(imu_SubCount));
-    _imuPublishing = true;
+  if (_imuSubCount > 0) {
+    DEBUG_STREAM_SENS("[publishSensorsData] IMU subscribers: "
+                      << static_cast<int>(_imuSubCount));
 
     imuMsgPtr imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
@@ -1843,11 +1873,9 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
     }
   }
 
-  if (imu_RawSubCount > 0) {
-    DEBUG_STREAM_SENS(
-      "[publishSensorsData] IMU subscribers: "
-        << static_cast<int>(imu_RawSubCount));
-    _imuPublishing = true;
+  if (_imuRawSubCount > 0) {
+    DEBUG_STREAM_SENS("[publishSensorsData] IMU subscribers: "
+                      << static_cast<int>(_imuRawSubCount));
 
     imuMsgPtr imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
@@ -1909,7 +1937,7 @@ rclcpp::Time ZedCameraOne::publishSensorsData(rclcpp::Time t /*= TIMEZERO_ROS*/)
   }
   // <---- Sensors data publishing
 
-  return ts_imu;
+  return true;
 }
 
 void ZedCameraOne::publishImuFrameAndTopic()
@@ -1995,6 +2023,25 @@ bool ZedCameraOne::areImageTopicsSubscribed()
   ) > 0;
 }
 
+bool ZedCameraOne::areSensorsTopicsSubscribed() {
+  try {
+    _imuSubCount = _pubImu->get_subscription_count();
+    _imuRawSubCount = _pubImuRaw->get_subscription_count();
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_SENS(
+        "areSensorsTopicsSubscribed: Exception while counting subscribers");
+    return false;
+  }
+
+  DEBUG_STREAM_SENS(
+      "[areSensorsTopicsSubscribed] IMU subscribers: " << _imuSubCount);
+  DEBUG_STREAM_SENS(
+      "[areSensorsTopicsSubscribed] IMU RAW subscribers: " << _imuRawSubCount);
+
+  return (_imuSubCount + _imuRawSubCount) > 0;
+}
+
 void ZedCameraOne::retrieveImages()
 {
   bool retrieved = false;
@@ -2058,27 +2105,27 @@ void ZedCameraOne::publishImages()
   vdElabTimer.tic();
 
   // ----> Check if a grab has been done before publishing the same images
-  // if (_sdkGrabTS.getNanoseconds() == _lastTs_grab.getNanoseconds()) {
-  //   // Data not updated by a grab calling in the grab thread
-  //   DEBUG_VD("publishImages: ignoring not update data");
-  //   DEBUG_STREAM_VD("Latest Ts: " << _lastTs_grab.getNanoseconds()
-  //                                 << " - New Ts: "
-  //                                 << _sdkGrabTS.getNanoseconds());
-  //   return;
-  // }
+  if (_sdkGrabTS.getNanoseconds() == _lastTs_grab.getNanoseconds()) {
+    // Data not updated by a grab calling in the grab thread
+    DEBUG_VD("publishImages: ignoring not update data");
+    DEBUG_STREAM_VD("Latest Ts: " << _lastTs_grab.getNanoseconds()
+                                  << " - New Ts: "
+                                  << _sdkGrabTS.getNanoseconds());
+    return;
+  }
 
-  // if (_lastTs_grab.data_ns != 0) {
-  //   double period_sec =
-  //       static_cast<double>(_sdkGrabTS.data_ns - _lastTs_grab.data_ns) / 1e9;
-  //   DEBUG_STREAM_VD("IMAGE PUB LAST PERIOD: " << period_sec << " sec @"
-  //                                             << 1. / period_sec << " Hz");
+  if (_lastTs_grab.data_ns != 0) {
+    double period_sec =
+        static_cast<double>(_sdkGrabTS.data_ns - _lastTs_grab.data_ns) / 1e9;
+    DEBUG_STREAM_VD("IMAGE PUB LAST PERIOD: " << period_sec << " sec @"
+                                              << 1. / period_sec << " Hz");
 
-  //   _imagePeriodMean_sec->addValue(period_sec);
-  //   DEBUG_STREAM_VD("IMAGE PUB MEAN PERIOD: "
-  //                   << _imagePeriodMean_sec->getAvg() << " sec @"
-  //                   << 1. / _imagePeriodMean_sec->getAvg() << " Hz");
-  // }
-  // _lastTs_grab = _sdkGrabTS;
+    _imagePeriodMean_sec->addValue(period_sec);
+    DEBUG_STREAM_VD("IMAGE PUB MEAN PERIOD: "
+                    << _imagePeriodMean_sec->getAvg() << " sec @"
+                    << 1. / _imagePeriodMean_sec->getAvg() << " Hz");
+  }
+  _lastTs_grab = _sdkGrabTS;
   // <---- Check if a grab has been done before publishing the same images
 
   // ----> Timestamp
@@ -2162,6 +2209,226 @@ void ZedCameraOne::publishImageWithInfo(
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
   } catch (...) {
     DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+  }
+}
+
+void ZedCameraOne::callback_enableStreaming(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+    std::shared_ptr<std_srvs::srv::SetBool_Response> res) {
+  (void)request_header;
+
+  if (req->data) {
+    if (_streamingServerRunning) {
+      RCLCPP_WARN(get_logger(), "A Streaming Server is already running");
+      res->message = "A Streaming Server is already running";
+      res->success = false;
+      return;
+    }
+    // Start
+    if (startStreamingServer()) {
+      res->message = "Streaming Server started";
+      res->success = true;
+      return;
+    } else {
+      res->message =
+          "Error occurred starting the Streaming Server. Read the log for more "
+          "info";
+      res->success = false;
+      return;
+    }
+  } else {
+    // Stop
+    if (!_streamingServerRunning) {
+      RCLCPP_WARN(get_logger(),
+                  "There is no Streaming Server active to be stopped");
+      res->message = "There is no Streaming Server active to be stopped";
+      res->success = false;
+      return;
+    }
+
+    RCLCPP_INFO(get_logger(), "Stopping the Streaming Server");
+    stopStreamingServer();
+
+    res->message = "Streaming Server stopped";
+    res->success = true;
+    return;
+  }
+}
+
+void ZedCameraOne::callback_startSvoRec(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
+    std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res) {
+  (void)request_header;
+
+  RCLCPP_INFO(get_logger(), "** Start SVO Recording service called **");
+
+  if (_svoMode) {
+    RCLCPP_WARN(get_logger(),
+                "Cannot start SVO recording while playing SVO as input");
+    res->message = "Cannot start SVO recording while playing SVO as input";
+    res->success = false;
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(_recMutex);
+
+  if (_recording) {
+    RCLCPP_WARN(get_logger(), "SVO Recording is already enabled");
+    res->message = "SVO Recording is already enabled";
+    res->success = false;
+    return;
+  }
+
+  _svoRecBitrate = req->bitrate;
+  if ((_svoRecBitrate != 0) &&
+      ((_svoRecBitrate < 1000) || (_svoRecBitrate > 60000))) {
+    RCLCPP_WARN(get_logger(),
+                "'bitrate' value not valid. Please use a value "
+                "in range [1000,60000], or 0 for default");
+    res->message =
+        "'bitrate' value not valid. Please use a value in range "
+        "[1000,60000], or 0 for default";
+    res->success = false;
+    return;
+  }
+  _svoRecCompr = static_cast<sl::SVO_COMPRESSION_MODE>(req->compression_mode);
+  if (_svoRecCompr >= sl::SVO_COMPRESSION_MODE::LAST) {
+    RCLCPP_WARN(get_logger(),
+                "'compression_mode' mode not valid. Please use a value in "
+                "range [0,2]");
+    res->message =
+        "'compression_mode' mode not valid. Please use a value in range "
+        "[0,2]";
+    res->success = false;
+    return;
+  }
+  _svoRecFramerate = req->target_framerate;
+  _svoRecTranscode = req->input_transcode;
+  _svoRecFilename = req->svo_filename;
+
+  if (_svoRecFilename.empty()) {
+    _svoRecFilename = "zed.svo";
+  }
+
+  std::string err;
+
+  if (!startSvoRecording(err)) {
+    res->message = "Error starting SVO recording: " + err;
+    res->success = false;
+    return;
+  }
+
+  RCLCPP_INFO(get_logger(), "SVO Recording started: ");
+  RCLCPP_INFO_STREAM(get_logger(), " * Bitrate: " << _svoRecBitrate);
+  RCLCPP_INFO_STREAM(get_logger(), " * Compression: " << _svoRecCompr);
+  RCLCPP_INFO_STREAM(get_logger(), " * Framerate: " << _svoRecFramerate);
+  RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Input Transcode: " << (_svoRecTranscode ? "TRUE" : "FALSE"));
+  RCLCPP_INFO_STREAM(get_logger(), " * Filename: " << (_svoRecFilename.empty()
+                                                           ? "zed.svo"
+                                                           : _svoRecFilename));
+
+  res->message = "SVO Recording started";
+  res->success = true;
+}
+
+void ZedCameraOne::callback_stopSvoRec(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+    std::shared_ptr<std_srvs::srv::Trigger_Response> res) {
+  (void)request_header;
+  (void)req;
+
+  RCLCPP_INFO(get_logger(), "** Stop SVO Recording service called **");
+
+  std::lock_guard<std::mutex> lock(_recMutex);
+
+  if (!_recording) {
+    RCLCPP_WARN(get_logger(), "SVO Recording is NOT enabled");
+    res->message = "SVO Recording is NOT enabled";
+    res->success = false;
+    return;
+  }
+
+  stopSvoRecording();
+
+  RCLCPP_WARN(get_logger(), "SVO Recording stopped");
+  res->message = "SVO Recording stopped";
+  res->success = true;
+}
+
+void ZedCameraOne::callback_pauseSvoInput(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+    std::shared_ptr<std_srvs::srv::Trigger_Response> res) {
+  (void)request_header;
+
+  RCLCPP_INFO(get_logger(), "** Pause SVO Input service called **");
+
+  std::lock_guard<std::mutex> lock(_recMutex);
+
+  if (!_svoMode) {
+    RCLCPP_WARN(get_logger(), "The node is not using an SVO as input");
+    res->message = "The node is not using an SVO as inpu";
+    res->success = false;
+    return;
+  }
+
+  if (_svoRealtime) {
+    RCLCPP_WARN(get_logger(),
+                "SVO input can be paused only if SVO is not in RealTime mode");
+    res->message =
+        "SVO input can be paused only if SVO is not in RealTime mode";
+    res->success = false;
+    _svoPause = false;
+    return;
+  }
+
+  if (!_svoPause) {
+    RCLCPP_WARN(get_logger(), "SVO is paused");
+    res->message = "SVO is paused";
+    _svoPause = true;
+  } else {
+    RCLCPP_WARN(get_logger(), "SVO is playing");
+    res->message = "SVO is playing";
+    _svoPause = false;
+  }
+  res->success = true;
+}
+
+bool ZedCameraOne::startSvoRecording(std::string & errMsg)
+{
+  sl::RecordingParameters params;
+
+  params.bitrate = _svoRecBitrate;
+  params.compression_mode = _svoRecCompr;
+  params.target_framerate = _svoRecFramerate;
+  params.transcode_streaming_input = _svoRecTranscode;
+  params.video_filename = _svoRecFilename.c_str();
+
+  sl::ERROR_CODE err = _zed->enableRecording(params);
+  errMsg = sl::toString(err);
+
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_ERROR_STREAM(
+      get_logger(),
+      "Error starting SVO recording: " << errMsg);
+    return false;
+  }
+
+  _recording = true;
+
+  return true;
+}
+
+void ZedCameraOne::stopSvoRecording()
+{
+  if (_recording) {
+    _recording = false;
+    _zed->disableRecording();
   }
 }
 

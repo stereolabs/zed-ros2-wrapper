@@ -54,6 +54,8 @@ protected:
   void startTempPubTimer();
   bool startStreamingServer();
   void stopStreamingServer();
+  bool startSvoRecording(std::string & errMsg);
+  void stopSvoRecording();
   // <---- Initialization functions
 
   // ----> Utility functions
@@ -69,6 +71,7 @@ protected:
 
   void applyImageSettings();
   bool areImageTopicsSubscribed();
+  bool areSensorsTopicsSubscribed();
   void retrieveImages();
   void publishImages();
   void publishImageWithInfo(
@@ -76,8 +79,7 @@ protected:
     const image_transport::CameraPublisher & pubImg,
     const camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
     const rclcpp::Time & t);
-
-  rclcpp::Time publishSensorsData(rclcpp::Time t = TIMEZERO_ROS);
+  bool publishSensorsData();
   void publishImuFrameAndTopic();
   // <---- Utility functions
 
@@ -87,6 +89,23 @@ protected:
   void callback_updateDiagnostic(
     diagnostic_updater::DiagnosticStatusWrapper & stat);
   void callback_pubTemp();
+
+  void callback_enableStreaming(
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+      std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+  void callback_startSvoRec(
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
+      std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
+  void callback_stopSvoRec(
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+      std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_pauseSvoInput(
+      const std::shared_ptr<rmw_request_id_t> request_header,
+      const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+      std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   // <---- Callbacks functions
 
   // ----> Thread functions
@@ -156,21 +175,25 @@ private:
   transfPub _pubCamImuTransf;
   // <---- Publishers
 
-  // ----> Image publisher variables
+  // ----> Publisher variables
   sl::Timestamp _lastTs_grab = 0;  // Used to calculate stable publish frequency
   sl::Timestamp _sdkGrabTS = 0;
-  size_t _colorSubCount = 0;
-  size_t _colorRawSubCount = 0;
+  std::atomic<size_t> _colorSubCount;
+  std::atomic<size_t> _colorRawSubCount;
 #if ENABLE_GRAY_IMAGE
-  size_t _graySubCount = 0;
-  size_t _grayRawSubCount = 0;
+  std::atomic<size_t> _graySubCount = 0;
+  std::atomic<size_t> _grayRawSubCount = 0;
 #endif
+
+  std::atomic<size_t> _imuSubCount;
+  std::atomic<size_t> _imuRawSubCount;
+  double _sensRateComp = 1.0;
 
   sl::Mat _matColor, _matColorRaw;
 #if ENABLE_GRAY_IMAGE
   sl::Mat _matGray, _matGrayRaw;
 #endif
-  // <---- Image publisher variables
+  // <---- Publisher variables
 
   // ----> Parameters
   std::string _cameraName = "zed_one";  // Name of the camera
@@ -280,6 +303,7 @@ private:
   std::unique_ptr<sl_tools::WinAvg> _imageElabMean_sec;
   std::unique_ptr<sl_tools::WinAvg> _imuPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> _pubImuTF_sec;
+  std::unique_ptr<sl_tools::WinAvg> _pubImu_sec;
   bool _imuPublishing = false;
   bool _videoPublishing = false;
   bool _imageSubscribed = false;
@@ -288,11 +312,32 @@ private:
   sl_tools::StopWatch _imuFreqTimer;
   sl_tools::StopWatch _imuTfFreqTimer;
   sl_tools::StopWatch _imgPubFreqTimer;
-  sl_tools::StopWatch _sensPubFreqTimer;
   int _sysOverloadCount = 0;
 
   std::atomic<bool> _streamingServerRunning;
   // <---- Diagnostic variables
+
+  // ----> SVO Recording parameters
+  unsigned int _svoRecBitrate = 0;
+  sl::SVO_COMPRESSION_MODE _svoRecCompr = sl::SVO_COMPRESSION_MODE::H264;
+  unsigned int _svoRecFramerate = 0;
+  bool _svoRecTranscode = false;
+  std::string _svoRecFilename;
+  // <---- SVO Recording parameters
+
+  // ----> Services
+  enableStreamingPtr _srvEnableStreaming;
+  startSvoRecSrvPtr _srvStartSvoRec;
+  stopSvoRecSrvPtr _srvStopSvoRec;
+  pauseSvoSrvPtr _srvPauseSvo;
+  // <---- Services
+
+  // ----> Services names
+  const std::string _srvEnableStreamingName = "enable_streaming";
+  const std::string _srvStartSvoRecName = "start_svo_rec";
+  const std::string _srvStopSvoRecName = "stop_svo_rec";
+  const std::string _srvToggleSvoPauseName = "toggle_svo_pause";
+  // <---- Services names
 };
 
 // ----> Template Function definitions

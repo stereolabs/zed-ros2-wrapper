@@ -12,13 +12,13 @@
             sim_port: 30000 # The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.
 
         svo:
-            svo_loop: false # Enable loop mode when using an SVO as input source
-            svo_realtime: true # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
+            svo_loop: true # Enable loop mode when using an SVO as input source
+            svo_realtime: false # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
 
         general:
             camera_timeout_sec: 5
             camera_max_reconnect: 5
-            camera_flip: false
+            camera_flip: true
             serial_number: 0 # usually overwritten by launch file
             pub_resolution: "CUSTOM" # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
@@ -166,7 +166,7 @@
             sdk_verbose: 1 # Set the verbose level of the ZED SDK
             debug_common: false
             debug_sim: false
-            debug_video_depth: false
+            debug_video_depth: true
             debug_camera_controls: false
             debug_point_cloud: false
             debug_positional_tracking: false

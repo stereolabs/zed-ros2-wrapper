@@ -23,6 +23,7 @@
 #include "visibility_control.hpp"
 
 #define ENABLE_GRAY_IMAGE 0
+#define ENABLE_SVO 0
 
 namespace stereolabs
 {
@@ -54,8 +55,10 @@ protected:
   void startTempPubTimer();
   bool startStreamingServer();
   void stopStreamingServer();
+#if ENABLE_SVO
   bool startSvoRecording(std::string & errMsg);
   void stopSvoRecording();
+#endif
   // <---- Initialization functions
 
   // ----> Utility functions
@@ -94,6 +97,7 @@ protected:
       const std::shared_ptr<rmw_request_id_t> request_header,
       const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
       std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+#if ENABLE_SVO
   void callback_startSvoRec(
       const std::shared_ptr<rmw_request_id_t> request_header,
       const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
@@ -106,6 +110,7 @@ protected:
       const std::shared_ptr<rmw_request_id_t> request_header,
       const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
       std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+#endif
   // <---- Callbacks functions
 
   // ----> Thread functions
@@ -214,8 +219,10 @@ private:
   sl::MODEL _camUserModel = sl::MODEL::ZED_XONE_GS;  // Default camera model
 
   std::string _svoFilepath = ""; // SVO input
+#if ENABLE_SVO  
   bool _svoRealtime = true; // SVO playback with real time
   bool _svoLoop = false; // SVO loop playback
+#endif
 
   std::string _streamAddr = ""; // Address for local streaming input
   int _streamPort = 10000;
@@ -243,9 +250,9 @@ private:
 
   // ----> Running status
   bool _debugMode = false;  // Debug mode active?
-  bool _svoMode = false;        // Input from SVO?
-  bool _streamMode = false;     // Expecting local streaming data?
+  bool _svoMode = false;        // Input from SVO?  
   bool _svoPause = false;       // SVO pause status
+  bool _streamMode = false;     // Expecting local streaming data?
 
   bool _recording = false;
   sl::RecordingStatus _recStatus = sl::RecordingStatus();
@@ -318,25 +325,31 @@ private:
   // <---- Diagnostic variables
 
   // ----> SVO Recording parameters
+#if ENABLE_SVO
   unsigned int _svoRecBitrate = 0;
   sl::SVO_COMPRESSION_MODE _svoRecCompr = sl::SVO_COMPRESSION_MODE::H264;
   unsigned int _svoRecFramerate = 0;
   bool _svoRecTranscode = false;
   std::string _svoRecFilename;
+#endif
   // <---- SVO Recording parameters
 
   // ----> Services
   enableStreamingPtr _srvEnableStreaming;
+#if ENABLE_SVO
   startSvoRecSrvPtr _srvStartSvoRec;
   stopSvoRecSrvPtr _srvStopSvoRec;
   pauseSvoSrvPtr _srvPauseSvo;
+#endif
   // <---- Services
 
   // ----> Services names
   const std::string _srvEnableStreamingName = "enable_streaming";
+#if ENABLE_SVO
   const std::string _srvStartSvoRecName = "start_svo_rec";
   const std::string _srvStopSvoRecName = "stop_svo_rec";
   const std::string _srvToggleSvoPauseName = "toggle_svo_pause";
+#endif
   // <---- Services names
 };
 

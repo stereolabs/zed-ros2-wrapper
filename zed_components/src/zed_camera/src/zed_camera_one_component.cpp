@@ -194,10 +194,17 @@ void ZedCameraOne::getGeneralParams()
   if (!_svoMode) {
     getParam("stream.stream_address", std::string(), _streamAddr);
     if (_streamAddr != "") {
+#if ENABLE_STREAM_INPUT
       _streamMode = true;
       getParam("stream.stream_port", _streamPort, _streamPort);
       RCLCPP_INFO_STREAM(
         get_logger(), " * Local stream input: " << _streamAddr << ":" << _streamPort);
+#else
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "Local stream input is not enabled in this version. This feature will be available later");
+      exit(EXIT_FAILURE);
+#endif
     }
   }
 

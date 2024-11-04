@@ -24,6 +24,7 @@
 
 #define ENABLE_GRAY_IMAGE 0
 #define ENABLE_SVO 0
+#define ENABLE_STREAM_INPUT 0
 
 namespace stereolabs
 {

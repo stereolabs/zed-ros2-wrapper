@@ -67,7 +67,7 @@ protected:
   template<typename T>
   void getParam(
     std::string paramName, T defValue, T & outVal,
-    std::string log_info = std::string(), bool dynamic = false);
+    std::string log_info = std::string(), bool dynamic = false, T min = T(), T max = T());
 
   void fillCamInfo(
     const std::shared_ptr<sensor_msgs::msg::CameraInfo> & camInfoMsg,
@@ -96,22 +96,22 @@ protected:
   void callback_pubTemp();
 
   void callback_enableStreaming(
-      const std::shared_ptr<rmw_request_id_t> request_header,
-      const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
-      std::shared_ptr<std_srvs::srv::SetBool_Response> res);
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+    std::shared_ptr<std_srvs::srv::SetBool_Response> res);
 #if ENABLE_SVO
   void callback_startSvoRec(
-      const std::shared_ptr<rmw_request_id_t> request_header,
-      const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
-      std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
+    std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
   void callback_stopSvoRec(
-      const std::shared_ptr<rmw_request_id_t> request_header,
-      const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-      std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_pauseSvoInput(
-      const std::shared_ptr<rmw_request_id_t> request_header,
-      const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-      std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
 #endif
   // <---- Callbacks functions
 
@@ -221,7 +221,7 @@ private:
   sl::MODEL _camUserModel = sl::MODEL::ZED_XONE_GS;  // Default camera model
 
   std::string _svoFilepath = ""; // SVO input
-#if ENABLE_SVO  
+#if ENABLE_SVO
   bool _svoRealtime = true; // SVO playback with real time
   bool _svoLoop = false; // SVO loop playback
 #endif
@@ -249,42 +249,32 @@ private:
   // ----> Dynamic params
   OnSetParametersCallbackHandle::SharedPtr _paramChangeCallbackHandle;
 
-  bool _autoExposure;               // Enable Automatic Exposure
-  int _exposureRange_min;           // Minimum value for Automatic Exposure
-  int _exposureRange_max;           // Maximum value for Automatic Exposure
-  int _manualExposure_usec = 2000;  // Manual Exposure time
+  int _camSaturation = 4;
+  int _camSharpness = 4;
+  int _camGamma = 8;
+  bool _camAutoExpGain = true;
+  bool _camAutoWB = true;
+  int _camWBTemp = 42;
 
-  bool _autoAnalogGain;               // Enable Automatic Analog Gain
-  float _analogFrameGainRange_min;    // Minimum value for Automatic Analog Gain
-  float _analogFrameGainRange_max;    // Maximum value for Automatic Analog Gain
-  float _manualAnalogGain_db;         // Manual Analog Gain
-
-  bool _autoDigitalGain;              // Enable Automatic Digital Gain
-  int _digitalFrameGainRange_min;     // Minimum value for Automatic Digital Gain
-  int _digitalFrameGainRange_max;     // Maximum value for Automatic Digital Gain
-  int _manualDigitalGainValue;        // Manual Digital Gain [1,256]
-
-  bool _autoWB;   // Enable Automatic White Balance
-  int _manualWB;  // Manual White Balance [2800,12000]
-
-  float _colorSaturation;          // * Color Saturation [0.0,2.0]
-  float _denoising;                 // * Image Denoising [0.0,1.0]
-  float _exposureCompensation;     // * Exposure Compensation [-2.0,2.0]
-  float _sharpening;                // * Image Sharpening [0.0,1.0]
-
-  int _aecAgcRoi_x;   // * AEC-AGC ROI top left x coordinate
-  int _aecAgcRoi_y;   // * AEC-AGC ROI top left y coordinate
-  int _aecAgcRoi_w;   // * AEC-AGC ROI width
-  int _aecAgcRoi_h;   // * AEC-AGC ROI height
-
-  float _toneMapping_R_gamma;     // [1.5,3.5]
-  float _toneMapping_G_gamma;     // [1.5,3.5]
-  float _toneMapping_B_gamma;     // [1.5,3.5]
+  bool _camAutoExp = true;
+  int _camExpTime = 16666;
+  int _camAutoExpTimeRangeMin = 28;
+  int _camAutoExpTimeRangeMax = 30000;
+  int _camExposureComp = 50;
+  bool _camAutoAnalogGain = true;
+  int _camAnalogGain = 8000;
+  int _camAnalogGainRangeMin = 1000;
+  int _camAnalogGainRangeMax = 16000;
+  bool _camAutoDigitalGain = true;
+  int _camDigitalGain = 128;
+  int _camAutoDigitalGainRangeMin = 1;
+  int _camAutoDigitalGainRangeMax = 256;
+  int _camDenoising = 50;
   // <---- Dynamic params
 
   // ----> Running status
   bool _debugMode = false;  // Debug mode active?
-  bool _svoMode = false;        // Input from SVO?  
+  bool _svoMode = false;        // Input from SVO?
   bool _svoPause = false;       // SVO pause status
   bool _streamMode = false;     // Expecting local streaming data?
 
@@ -394,10 +384,35 @@ private:
 template<typename T>
 void ZedCameraOne::getParam(
   std::string paramName, T defValue, T & outVal,
-  std::string log_info, bool dynamic)
+  std::string log_info, bool dynamic, T minVal, T maxVal)
 {
   rcl_interfaces::msg::ParameterDescriptor descriptor;
-  descriptor.read_only = !dynamic;
+  descriptor.read_only = !dynamic; 
+
+  std::stringstream ss;
+  if constexpr (std::is_same<T, bool>::value) {
+    ss << "Default value: " << (defValue? "TRUE" : "FALSE");
+  } else {
+    ss << "Default value: " << defValue;
+  }
+  descriptor.description = ss.str();
+
+  if constexpr (std::is_same<T, double>::value) {
+    descriptor.additional_constraints = "Range: [" + std::to_string(minVal) + ", " + std::to_string(
+      maxVal) + "]";
+    rcl_interfaces::msg::FloatingPointRange range;
+    range.from_value = minVal;
+    range.to_value = maxVal;
+    descriptor.floating_point_range.push_back(range);
+  } else if constexpr (std::is_same<T, int>::value) {
+    descriptor.additional_constraints = "Range: [" + std::to_string(minVal) + ", " + std::to_string(
+      maxVal) + "]";
+    rcl_interfaces::msg::IntegerRange range;
+    range.from_value = minVal;
+    range.to_value = maxVal;
+    descriptor.integer_range.push_back(range);
+  }
+
 
   declare_parameter(paramName, rclcpp::ParameterValue(defValue), descriptor);
 
@@ -411,7 +426,11 @@ void ZedCameraOne::getParam(
   }
 
   if (!log_info.empty()) {
-    RCLCPP_INFO_STREAM(get_logger(), log_info << outVal);
+    if constexpr (std::is_same<T, bool>::value) {
+      RCLCPP_INFO_STREAM(get_logger(), log_info << (outVal? "TRUE" : "FALSE"));
+    } else {
+      RCLCPP_INFO_STREAM(get_logger(), log_info << outVal);
+    }
   }
 }
 

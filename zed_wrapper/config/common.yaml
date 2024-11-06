@@ -37,7 +37,7 @@
             exposure: 80 # [DYNAMIC]
             gain: 80 # [DYNAMIC]
             auto_whitebalance: true # [DYNAMIC]
-            whitebalance_temperature: 42 # [DYNAMIC] - [28,65] works only if `auto_whitebalance` is false
+            whitebalance_temperature: 42 # [DYNAMIC] - [28,65] x100 - works only if `auto_whitebalance` is false
 
         sensors:
             publish_imu_tf: true # [usually overwritten by launch file] enable/disable the IMU TF broadcasting

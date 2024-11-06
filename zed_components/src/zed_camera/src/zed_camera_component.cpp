@@ -1995,9 +1995,7 @@ void ZedCamera::getAdvancedParams()
 rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
   std::vector<rclcpp::Parameter> parameters)
 {
-  if (mDebugMode) {
-    DEBUG_STREAM_COMM("Parameter change callback");
-  }
+  DEBUG_STREAM_COMM("Parameter change callback");
 
   rcl_interfaces::msg::SetParametersResult result;
   result.successful = true;
@@ -2011,9 +2009,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_paramChange(
   for (const rclcpp::Parameter & param : parameters) {
     count++;
 
-    if (mDebugMode) {
-      DEBUG_STREAM_COMM("Param #" << count << ": " << param.get_name());
-    }
+    DEBUG_STREAM_COMM("Param #" << count << ": " << param.get_name());
 
     if (sl_tools::isZEDX(mCamRealModel)) {
       if (param.get_name() == "video.exposure_time") {

@@ -26,29 +26,29 @@ using namespace std::placeholders;
 using namespace std::chrono_literals;
 namespace stereolabs
 {
-ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions& options)
-    : Node("zed_node_one", options),
-      _threadStop(false),
-      _qos(QOS_QUEUE_SIZE),
-      _diagUpdater(this),
-      _grabFreqTimer(get_clock()),
-      _imuFreqTimer(get_clock()),
-      _imuTfFreqTimer(get_clock()),
-      _imgPubFreqTimer(get_clock()),
-      _frameTimestamp(_frameTimestamp),
-      _lastTs_imu(_frameTimestamp),
-      _colorSubCount(0),
-      _colorRawSubCount(0),
+ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
+: Node("zed_node_one", options),
+  _threadStop(false),
+  _qos(QOS_QUEUE_SIZE),
+  _diagUpdater(this),
+  _grabFreqTimer(get_clock()),
+  _imuFreqTimer(get_clock()),
+  _imuTfFreqTimer(get_clock()),
+  _imgPubFreqTimer(get_clock()),
+  _frameTimestamp(_frameTimestamp),
+  _lastTs_imu(_frameTimestamp),
+  _colorSubCount(0),
+  _colorRawSubCount(0),
 #if ENABLE_GRAY_IMAGE
-      _graySubCount(0),
-      _grayRawSubCount(0),
+  _graySubCount(0),
+  _grayRawSubCount(0),
 #endif
-      _imuSubCount(0),
-      _imuRawSubCount(0),
-      _streamingServerRequired(false),
-      _streamingServerRunning(false),
-      _triggerAutoExpGain(false),
-      _triggerAutoWB(false)
+  _imuSubCount(0),
+  _imuRawSubCount(0),
+  _streamingServerRequired(false),
+  _streamingServerRunning(false),
+  _triggerAutoExpGain(false),
+  _triggerAutoWB(false)
 {
   RCLCPP_INFO(get_logger(), "********************************");
   RCLCPP_INFO(get_logger(), "    ZED Camera One Component    ");
@@ -187,12 +187,8 @@ void ZedCameraOne::getGeneralParams()
   } else {
     RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << _svoFilepath.c_str() << "'");
     _svoMode = true;
-    getParam("svo.svo_loop", _svoLoop, _svoLoop);
-    RCLCPP_INFO(get_logger(), " * SVO Loop: %s", _svoLoop ? "TRUE" : "FALSE");
-    getParam("svo.svo_realtime", _svoRealtime, _svoRealtime);
-    RCLCPP_INFO(
-      get_logger(), " * SVO Realtime: %s",
-      _svoRealtime ? "TRUE" : "FALSE");
+    getParam("svo.svo_loop", _svoLoop, _svoLoop, " * SVO Loop: ");
+    getParam("svo.svo_realtime", _svoRealtime, _svoRealtime, );
   }
 #endif
 
@@ -268,14 +264,11 @@ void ZedCameraOne::getGeneralParams()
     " * Camera SN: ");
   getParam(
     "general.camera_timeout_sec", _openTimeout_sec, _openTimeout_sec,
-    " * Camera timeout [sec]: ");
+    " * Camera timeout [sec]: ", false, 1, 60);
   getParam(
     "general.grab_frame_rate", _camGrabFrameRate, _camGrabFrameRate,
-    " * Camera framerate: ");
-  getParam("general.gpu_id", _gpuId, _gpuId, " * GPU ID: ");
-
-  // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
-
+    " * Camera framerate: ", false, 15, 120);
+  getParam("general.gpu_id", _gpuId, _gpuId, " * GPU ID: ", false, -1, 256);
 
   std::string resol = "AUTO";
   getParam("general.grab_resolution", resol, resol);
@@ -322,7 +315,7 @@ void ZedCameraOne::getGeneralParams()
   if (_pubResolution == PubRes::CUSTOM) {
     getParam(
       "general.pub_downscale_factor", _customDownscaleFactor,
-      _customDownscaleFactor, " * Publishing downscale factor: ");
+      _customDownscaleFactor, " * Publishing downscale factor: ", false, 0.1, 1.0);
   } else {
     _customDownscaleFactor = 1.0;
   }
@@ -331,14 +324,8 @@ void ZedCameraOne::getGeneralParams()
     "general.optional_opencv_calibration_file", _opencvCalibFile,
     _opencvCalibFile, " * OpenCV custom calibration: ");
 
-  getParam("general.self_calib", _cameraSelfCalib, _cameraSelfCalib);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Camera self calibration: " << (_cameraSelfCalib ? "TRUE" : "FALSE"));
-  getParam("general.camera_flip", _cameraFlip, _cameraFlip);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Camera flip: " << (_cameraFlip ? "TRUE" : "FALSE"));
+  getParam("general.self_calib", _cameraSelfCalib, _cameraSelfCalib, " * Camera self calibration: ");
+  getParam("general.camera_flip", _cameraFlip, _cameraFlip, " * Camera flip: ");
 }
 
 void ZedCameraOne::getSensorsParams()
@@ -350,18 +337,10 @@ void ZedCameraOne::getSensorsParams()
 
   RCLCPP_INFO(get_logger(), "*** SENSORS parameters ***");
 
-  getParam("sensors.publish_imu_tf", _publishImuTF, _publishImuTF);
-  RCLCPP_INFO_STREAM(
-    get_logger(), " * Broadcast IMU TF: "
-      << (_publishImuTF ? "TRUE" : "FALSE"));
-
-  getParam("sensors.sensors_pub_rate", _sensPubRate, _sensPubRate);
-  if (_sensPubRate < _camGrabFrameRate) {
-    _sensPubRate = _camGrabFrameRate;
-  }
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Sensors publishing rate: " << _sensPubRate << " Hz");
+  getParam("sensors.publish_imu_tf", _publishImuTF, _publishImuTF, " * Publish IMU TF: ");
+  getParam(
+    "sensors.sensors_pub_rate", _sensPubRate, _sensPubRate,
+    " * Sensors publishing rate [Hz]: ", true, 1.0, 400.0);
 }
 
 void ZedCameraOne::getStreamingServerParams()
@@ -374,12 +353,8 @@ void ZedCameraOne::getStreamingServerParams()
   RCLCPP_INFO(get_logger(), "*** Streaming Server parameters ***");
 
   bool stream_server = false;
-  getParam("stream_server.stream_enabled", stream_server, stream_server);
+  getParam("stream_server.stream_enabled", stream_server, stream_server, " * Stream enabled: ");
   _streamingServerRequired = stream_server;
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Streaming Server enabled: "
-      << (_streamingServerRequired ? "TRUE" : "FALSE"));
 
   std::string codec = "H264";
   getParam("stream_server.codec", codec, codec);
@@ -398,66 +373,21 @@ void ZedCameraOne::getStreamingServerParams()
     RCLCPP_INFO(get_logger(), " * Stream codec: H264");
   }
 
-  getParam("stream_server.port", _streamingServerPort, _streamingServerPort, " * Stream port:");
-
-  getParam("stream_server.bitrate", _streamingServerBitrate, _streamingServerBitrate);
-  if (_streamingServerBitrate < 1000) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Invalid value for the parameter 'stream_server.bitrate': " << codec <<
-        ". The minimum allowed value is 1000");
-    _streamingServerBitrate = 1000;
-  }
-  if (_streamingServerBitrate > 60000) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Invalid value for the parameter 'stream_server.bitrate': " << codec <<
-        ". The maximum allowed value is 60000");
-    _streamingServerBitrate = 60000;
-  }
-  RCLCPP_INFO_STREAM(get_logger(), " * Stream bitrate: " << _streamingServerBitrate);
-
-  getParam("stream_server.gop_size", _streamingServerGopSize, _streamingServerGopSize);
-  if (_streamingServerGopSize < -1) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Invalid value for the parameter 'stream_server.gop_size': " << codec <<
-        ". The minimum allowed value is -1");
-    _streamingServerGopSize = -1;
-  }
-  if (_streamingServerGopSize > 256) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Invalid value for the parameter 'stream_server.gop_size': " << codec <<
-        ". The maximum allowed value is 256");
-    _streamingServerGopSize = 256;
-  }
-  RCLCPP_INFO_STREAM(get_logger(), " * Stream GOP size: " << _streamingServerGopSize);
-
-  getParam("stream_server.chunk_size", _streamingServerChunckSize, _streamingServerChunckSize);
-  if (_streamingServerChunckSize < 1024) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Invalid value for the parameter 'stream_server.chunk_size': " << codec <<
-        ". The minimum allowed value is 1024");
-    _streamingServerChunckSize = 1024;
-  }
-  if (_streamingServerChunckSize > 65000) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Invalid value for the parameter 'stream_server.chunk_size': " << codec <<
-        ". The maximum allowed value is 65000");
-    _streamingServerChunckSize = 65000;
-  }
-  RCLCPP_INFO_STREAM(get_logger(), " * Stream Chunk size: " << _streamingServerChunckSize);
-
+  getParam(
+    "stream_server.port", _streamingServerPort, _streamingServerPort, " * Stream port:",
+    false, 1024, 65535);
+  getParam(
+    "stream_server.bitrate", _streamingServerBitrate, _streamingServerBitrate,
+    " * Stream bitrate:", false, 1000, 60000);
+  getParam(
+    "stream_server.gop_size", _streamingServerGopSize, _streamingServerGopSize,
+    " * Stream GOP size:", false, -1, 256);
+  getParam(
+    "stream_server.chunk_size", _streamingServerChunckSize, _streamingServerChunckSize,
+    " * Stream Chunk size:", false, 1024, 65000);
   getParam(
     "stream_server.adaptative_bitrate", _streamingServerAdaptiveBitrate,
-    _streamingServerAdaptiveBitrate);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Adaptive bitrate: " << (_streamingServerAdaptiveBitrate ? "TRUE" : "FALSE"));
-
+    _streamingServerAdaptiveBitrate, " * Adaptative bitrate:");
   getParam(
     "stream_server.target_framerate", _streamingServerTargetFramerate,
     _streamingServerTargetFramerate, " * Target frame rate:");
@@ -502,37 +432,14 @@ void ZedCameraOne::getDebugParams()
 
   RCLCPP_INFO(get_logger(), "*** DEBUG parameters ***");
 
-  getParam("debug.sdk_verbose", _sdkVerbose, _sdkVerbose, " * SDK Verbose: ");
+  getParam("debug.sdk_verbose", _sdkVerbose, _sdkVerbose, " * SDK Verbose: ", false, 0, 1000);
 
-  getParam("debug.debug_common", _debugCommon, _debugCommon);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Common: %s",
-    _debugCommon ? "TRUE" : "FALSE");
-
-  getParam("debug.debug_video_depth", _debugVideoDepth, _debugVideoDepth);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Image/Depth: %s",
-    _debugVideoDepth ? "TRUE" : "FALSE");
-
-  getParam("debug.debug_camera_controls", _debugCamCtrl, _debugCamCtrl);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Control settings: %s",
-    _debugCamCtrl ? "TRUE" : "FALSE");
-
-  getParam("debug.debug_sensors", _debugSensors, _debugSensors);
-  RCLCPP_INFO(
-    get_logger(), " * Debug sensors: %s",
-    _debugSensors ? "TRUE" : "FALSE");
-
-  getParam("debug.debug_streaming", _debugStreaming, _debugStreaming);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Streaming: %s",
-    _debugStreaming ? "TRUE" : "FALSE");
-
-  getParam("debug.debug_advanced", _debugAdvanced, _debugAdvanced);
-  RCLCPP_INFO(
-    get_logger(), " * Debug Advanced: %s",
-    _debugAdvanced ? "TRUE" : "FALSE");
+  getParam("debug.debug_common", _debugCommon, _debugCommon, " * Debug Common: ");
+  getParam("debug.debug_video_depth", _debugVideoDepth, _debugVideoDepth, " * Debug Image/Depth: ");
+  getParam("debug.debug_camera_controls", _debugCamCtrl, _debugCamCtrl, " * Debug Camera Controls: ");
+  getParam("debug.debug_sensors", _debugSensors, _debugSensors, " * Debug Sensors: ");
+  getParam("debug.debug_streaming", _debugStreaming, _debugStreaming, " * Debug Streaming: ");
+  getParam("debug.debug_advanced", _debugAdvanced, _debugAdvanced, " * Debug Advanced: ");
 
   // Set debug mode
   _debugMode = _debugCommon || _debugVideoDepth || _debugCamCtrl ||
@@ -561,77 +468,22 @@ void ZedCameraOne::getDebugParams()
       << rmw_get_implementation_identifier());
 }
 
-void ZedCameraOne::getVideoParams() {
+void ZedCameraOne::getVideoParams()
+{
   rclcpp::Parameter paramVal;
 
   RCLCPP_INFO(get_logger(), "*** CAMERA CONTROL parameters ***");
 
-  rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
-  read_only_descriptor.read_only = true;
-
-  getParam("video.saturation", _dynCamSaturation, _dynCamSaturation,
-           " * [DYN] Saturation: ", true);
-  getParam("video.sharpness", _dynCamSharpness, _dynCamSharpness,
-           " * [DYN] Sharpness: ", true);
-  getParam("video.gamma", _dynCamGamma, _dynCamGamma, " * [DYN] Gamma: ", true);
-  getParam("video.auto_exposure_gain", _dynCamAutoExpGain, _dynCamAutoExpGain,
-           "", true);
-  RCLCPP_INFO(get_logger(), " * [DYN] Auto Exposure/Gain: %s",
-              _dynCamAutoExpGain ? "TRUE" : "FALSE");
-  if (_dynCamAutoExpGain) {
-    _triggerAutoExpGain = true;
-  }
-  getParam("video.exposure", _dynCamExposure, _dynCamExposure,
-           " * [DYN] Exposure: ", true);
-  getParam("video.gain", _dynCamGain, _dynCamGain, " * [DYN] Gain: ", true);
-  getParam("video.auto_whitebalance", _dynCamAutoWB, _dynCamAutoWB, "", true);
-  RCLCPP_INFO(get_logger(), " * [DYN] Auto White Balance: %s",
-              _dynCamAutoWB ? "TRUE" : "FALSE");
-  if (_dynCamAutoWB) {
+  getParam( "video.saturation", _camSaturation, _camSaturation, " * [DYN] Saturation: ", true, 0, 8);
+  getParam( "video.sharpness", _camSharpness, _camSharpness, " * S[DYN] harpness: ", true, 0, 8);
+  getParam( "video.gamma", _camGamma, _camGamma, " * [DYN] Gamma: ", true, 1, 9);
+  getParam("video.auto_whitebalance", _camAutoWB, _camAutoWB, " * [DYN] Auto White Balance: ", true);
+  if (_camAutoWB) {
     _triggerAutoWB = true;
   }
-  int wb = 42;
-  getParam("video.whitebalance_temperature", wb, wb,
-           " * [DYN] White Balance Temperature: ", true);
-  _dynCamWBTemp = wb * 100;
+  getParam("video.whitebalance_temperature", _camWBTemp, _camWBTemp, " * [DYN] White Balance Temp (x100): ", true, 28, 65);
 
-  getParam("video.exposure_time", _dynGmslExpTime, _dynGmslExpTime,
-           " * [DYN] ZED X Exposure time: ", true);
-  getParam("video.auto_exposure_time_range_min", _dynGmslAutoExpTimeRangeMin,
-           _dynGmslAutoExpTimeRangeMin,
-           " * [DYN] ZED X Auto Exp. time range min: ", true);
-  getParam("video.auto_exposure_time_range_max", _dynGmslAutoExpTimeRangeMax,
-           _dynGmslAutoExpTimeRangeMax,
-           " * [DYN] ZED X Auto Exp. time range max: ", true);
-  if (_dynGmslAutoExpTimeRangeMax > _camGrabFrameRate * 1000 ||
-      _dynGmslAutoExpTimeRangeMax > 30000) {
-    _dynGmslAutoExpTimeRangeMax = std::max(_camGrabFrameRate * 1000, 30000);
-    RCLCPP_WARN_STREAM(
-        get_logger(),
-        "The values of 'video.auto_exposure_time_range_max' is clamped to "
-        "max(30000,'general.grab_frame_rate'x1000): "
-            << _dynGmslAutoExpTimeRangeMax);
-  }
-  getParam("video.exposure_compensation", _dynGmslExposureComp,
-           _dynGmslExposureComp, " * [DYN] ZED X Exposure comp.: ", true);
-  getParam("video.analog_gain", _dynGmslAnalogGain, _dynGmslAnalogGain,
-           " * [DYN] ZED X Analog Gain: ", true);
-  getParam("video.auto_analog_gain_range_min", _dynGmslAnalogGainRangeMin,
-           _dynGmslAnalogGainRangeMin,
-           " * [DYN] ZED X Auto Analog Gain range min: ", true);
-  getParam("video.auto_analog_gain_range_max", _dynGmslAnalogGainRangeMax,
-           _dynGmslAnalogGainRangeMax,
-           " * [DYN] ZED X Auto Analog Gain range max: ", true);
-  getParam("video.digital_gain", _dynGmslDigitalGain, _dynGmslDigitalGain,
-           " * [DYN] ZED X Digital Gain: ", true);
-  getParam("video.auto_digital_gain_range_min", _dynGmslAutoDigitalGainRangeMin,
-           _dynGmslAutoDigitalGainRangeMin,
-           " * [DYN] ZED X Auto Digital Gain range min: ", true);
-  getParam("video.auto_digital_gain_range_max", _dynGmslAutoDigitalGainRangeMax,
-           _dynGmslAutoDigitalGainRangeMax,
-           " * [DYN] ZED X Auto Digital Gain range max: ", true);
-  getParam("video.denoising", _dynGmslDenoising, _dynGmslDenoising,
-           " * [DYN] ZED X Auto Digital Gain range max: ", true);
+
 }
 
 void ZedCameraOne::init()
@@ -675,30 +527,30 @@ void ZedCameraOne::initServices()
   // Enable Streaming
   srv_name = srv_prefix + _srvEnableStreamingName;
   _srvEnableStreaming = create_service<std_srvs::srv::SetBool>(
-      srv_name,
-      std::bind(&ZedCameraOne::callback_enableStreaming, this, _1, _2, _3));
+    srv_name,
+    std::bind(&ZedCameraOne::callback_enableStreaming, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", _srvEnableStreaming->get_service_name());
 
 #if ENABLE_SVO
   // Start SVO Recording
   srv_name = srv_prefix + _srvStartSvoRecName;
   _srvStartSvoRec = create_service<zed_interfaces::srv::StartSvoRec>(
-      srv_name,
-      std::bind(&ZedCameraOne::callback_startSvoRec, this, _1, _2, _3));
+    srv_name,
+    std::bind(&ZedCameraOne::callback_startSvoRec, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", _srvStartSvoRec->get_service_name());
   // Stop SVO Recording
   srv_name = srv_prefix + _srvStopSvoRecName;
   _srvStopSvoRec = create_service<std_srvs::srv::Trigger>(
-      srv_name,
-      std::bind(&ZedCameraOne::callback_stopSvoRec, this, _1, _2, _3));
+    srv_name,
+    std::bind(&ZedCameraOne::callback_stopSvoRec, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", _srvStopSvoRec->get_service_name());
 
   // Pause SVO Playback
   if (_svoMode && !_svoRealtime) {
     srv_name = srv_prefix + _srvToggleSvoPauseName;
     _srvPauseSvo = create_service<std_srvs::srv::Trigger>(
-        srv_name,
-        std::bind(&ZedCameraOne::callback_pauseSvoInput, this, _1, _2, _3));
+      srv_name,
+      std::bind(&ZedCameraOne::callback_pauseSvoInput, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", _srvPauseSvo->get_service_name());
   }
 #endif
@@ -734,7 +586,7 @@ bool ZedCameraOne::startCamera()
     _initParams.svo_real_time_mode = _svoRealtime;
 
     _svoMode = true;
-  } else 
+  } else
 #endif
   if (!_streamAddr.empty()) {
     RCLCPP_INFO(get_logger(), "*** LOCAL STREAMING OPENING ***");
@@ -1090,7 +942,7 @@ void ZedCameraOne::callback_updateDiagnostic(
     if (_svoMode) {
       stat.add("Input mode", "SVO");
       stat.addf("SVO file", "%s", _svoFilepath.c_str());
-    } else 
+    } else
 #endif
     if (_streamMode) {
       stat.add("Input mode", "LOCAL STREAM");
@@ -1174,8 +1026,8 @@ void ZedCameraOne::callback_updateDiagnostic(
       stat.addf(
         "SVO compression ratio", "%.1f%%",
         _recStatus.average_compression_ratio);
-      stat.addf("SVO Frame Encoded", "%d",_recStatus.number_frames_encoded);
-      stat.addf("SVO Frame Ingested", "%d",_recStatus.number_frames_ingested);
+      stat.addf("SVO Frame Encoded", "%d", _recStatus.number_frames_encoded);
+      stat.addf("SVO Frame Ingested", "%d", _recStatus.number_frames_ingested);
     }
   } else {
     stat.add("SVO Recording", "NOT ACTIVE");
@@ -1213,485 +1065,12 @@ rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_paramChange(
   int count = 0;
   int count_ok = 0;
 
-  for (const rclcpp::Parameter & param : parameters) {
+  for (const auto & param : parameters) {
     count++;
 
     DEBUG_STREAM_COMM("Param #" << count << ": " << param.get_name());
 
-    if (param.get_name() == "camera.dynamic.auto_exposure") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
 
-      _autoExposure = param.as_bool();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _autoExposure);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.exposure_range_min") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _exposureRange_min = param.as_int();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _exposureRange_min);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.exposure_range_max") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _exposureRange_max = param.as_int();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _exposureRange_max);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.manual_exposure_usec") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _manualExposure_usec = param.as_int();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _manualExposure_usec);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.auto_analog_gain") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _autoAnalogGain = param.as_bool();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _autoAnalogGain);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.analog_frame_gain_range_min") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _analogFrameGainRange_min = param.as_double();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _analogFrameGainRange_min);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.analog_frame_gain_range_max") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _analogFrameGainRange_max = param.as_double();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _analogFrameGainRange_max);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.manual_analog_gain_db") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _manualAnalogGain_db = param.as_double();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _manualAnalogGain_db);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.auto_digital_gain") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _autoDigitalGain = param.as_bool();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _autoDigitalGain);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.digital_frame_gain_range_min") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _digitalFrameGainRange_min = param.as_int();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _digitalFrameGainRange_min);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.digital_frame_gain_range_max") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _digitalFrameGainRange_max = param.as_int();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _digitalFrameGainRange_max);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.manual_digital_gain_value") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _manualDigitalGainValue = param.as_int();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _manualDigitalGainValue);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.auto_wb") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _autoWB = param.as_bool();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _autoWB);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.manual_wb") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _manualWB = param.as_int();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _manualWB);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.color_saturation") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _colorSaturation = param.as_double();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _colorSaturation);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.denoising") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _denoising = param.as_double();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _denoising);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.exposure_compensation") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _exposureCompensation = param.as_double();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _exposureCompensation);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.sharpening") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _sharpening = param.as_double();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _sharpening);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.tone_mapping_r_gamma") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _toneMapping_R_gamma = param.as_double();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _toneMapping_R_gamma);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.tone_mapping_g_gamma") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _toneMapping_G_gamma = param.as_double();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _toneMapping_G_gamma);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.tone_mapping_b_gamma") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _toneMapping_B_gamma = param.as_double();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _toneMapping_B_gamma);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.aec_agc_roi_x") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _aecAgcRoi_x = param.as_int();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _aecAgcRoi_x);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.aec_agc_roi_y") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _aecAgcRoi_y = param.as_int();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _aecAgcRoi_y);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.aec_agc_roi_w") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _aecAgcRoi_w = param.as_int();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _aecAgcRoi_w);
-      count_ok++;
-    }
-
-    if (param.get_name() == "camera.dynamic.aec_agc_roi_h") {
-      rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful |= false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      _aecAgcRoi_h = param.as_int();
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name() <<
-          "' correctly set to " <<
-          _aecAgcRoi_h);
-      count_ok++;
-    }
   }
 
   if (result.successful) {
@@ -1699,7 +1078,6 @@ rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_paramChange(
       "Correctly set " << count_ok << "/" <<
         parameters.size() <<
         " parameters");
-    _setDynParams = true;
   }
 
   return result;
@@ -1977,6 +1355,9 @@ void ZedCameraOne::threadFunc_zedGrab()
   // ----> Infinite grab thread
   while (1) {
     try {
+      RCLCPP_INFO_STREAM_ONCE(get_logger(), "*** " << _cameraName << " started ***");
+
+      // Start grab timer for diagnostic
       sl_tools::StopWatch grabElabTimer(get_clock());
 
       // ----> Interruption check
@@ -2032,8 +1413,8 @@ void ZedCameraOne::threadFunc_zedGrab()
                 "SVO reached the end. The node has been stopped.");
               break;
             }
-            // <---- Check SVO status            
-          } else 
+            // <---- Check SVO status
+          } else
 #endif
           if (_grabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
             RCLCPP_ERROR_STREAM(
@@ -2124,7 +1505,7 @@ void ZedCameraOne::threadFunc_zedGrab()
     }
   }
   // <---- Infinite grab thread
-  
+
   _diagUpdater.broadcast(diagnostic_msgs::msg::DiagnosticStatus::STALE, "Grab thread stopped");
   _diagUpdater.force_update();
 
@@ -2229,7 +1610,7 @@ void ZedCameraOne::threadFunc_pubSensorsData()
       if (!_zed->isOpened()) {
         DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] the camera is not open");
         rclcpp::sleep_for(
-            std::chrono::milliseconds(200));  // Avoid busy-waiting
+          std::chrono::milliseconds(200));    // Avoid busy-waiting
         continue;
       }
 
@@ -2237,20 +1618,21 @@ void ZedCameraOne::threadFunc_pubSensorsData()
 
       if (!_imuPublishing && !_publishImuTF) {
         rclcpp::sleep_for(
-            std::chrono::milliseconds(200));  // Avoid busy-waiting
+          std::chrono::milliseconds(200));    // Avoid busy-waiting
         continue;
       }
 
       if (!publishSensorsData()) {
         auto sleep_msec =
-            static_cast<int>(_sensRateComp * (1000. / _sensPubRate));
+          static_cast<int>(_sensRateComp * (1000. / _sensPubRate));
         sleep_msec = std::max(1, sleep_msec);
-        DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] Thread sleep: "
-                          << sleep_msec << " msec");
+        DEBUG_STREAM_SENS(
+          "[threadFunc_pubSensorsData] Thread sleep: "
+            << sleep_msec << " msec");
         rclcpp::sleep_for(
-            std::chrono::milliseconds(sleep_msec));  // Avoid busy-waiting
+          std::chrono::milliseconds(sleep_msec));    // Avoid busy-waiting
         continue;
-      };
+      }
 
     } catch (...) {
       rcutils_reset_error();
@@ -2273,7 +1655,7 @@ void ZedCameraOne::threadFunc_pubSensorsData()
     _sensRateComp = std::max(0.05, _sensRateComp);
     _sensRateComp = std::min(2.0, _sensRateComp);
     DEBUG_STREAM_SENS(
-        "[threadFunc_pubSensorsData] _sensRateComp: " << _sensRateComp);
+      "[threadFunc_pubSensorsData] _sensRateComp: " << _sensRateComp);
     // <---- Check publishing frequency
   }
   // <---- Infinite sensor loop
@@ -2282,25 +1664,9 @@ void ZedCameraOne::threadFunc_pubSensorsData()
 
 }
 
-void ZedCameraOne::applyImageSettings() 
+void ZedCameraOne::applyImageSettings()
 {
-  auto setCameraSetting = [this](sl::VIDEO_SETTINGS setting, int value) {
-    int current_value;
-    _zed->getCameraSettings(setting, current_value);
-    if (current_value != value) {
-      _zed->setCameraSettings(setting, value);
-    }
-  };
 
-  setCameraSetting(sl::VIDEO_SETTINGS::BRIGHTNESS, _dynCamBrightness);
-  setCameraSetting(sl::VIDEO_SETTINGS::CONTRAST, _dynCamContrast);
-  setCameraSetting(sl::VIDEO_SETTINGS::HUE, _dynCamHue);
-  setCameraSetting(sl::VIDEO_SETTINGS::SATURATION, _dynCamSaturation);
-  setCameraSetting(sl::VIDEO_SETTINGS::SHARPNESS, _dynCamSharpness);
-  setCameraSetting(sl::VIDEO_SETTINGS::GAMMA, _dynCamGamma);
-  setCameraSetting(sl::VIDEO_SETTINGS::EXPOSURE, _dynCamExposure);
-  setCameraSetting(sl::VIDEO_SETTINGS::GAIN, _dynCamGain);
-  setCameraSetting(sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, _dynCamWBTemp);
 }
 
 bool ZedCameraOne::startStreamingServer()
@@ -2348,7 +1714,8 @@ void ZedCameraOne::stopStreamingServer()
   _streamingServerRequired = false;
 }
 
-bool ZedCameraOne::publishSensorsData() {
+bool ZedCameraOne::publishSensorsData()
+{
   if (_grabStatus != sl::ERROR_CODE::SUCCESS) {
     DEBUG_SENS("Camera not ready");
     return false;
@@ -2361,7 +1728,7 @@ bool ZedCameraOne::publishSensorsData() {
   rclcpp::Time now = get_clock()->now();
 
   sl::SensorsData sens_data;
- 
+
   sl::ERROR_CODE err =
     _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
@@ -2405,8 +1772,9 @@ bool ZedCameraOne::publishSensorsData() {
   publishImuFrameAndTopic();
 
   if (_imuSubCount > 0) {
-    DEBUG_STREAM_SENS("[publishSensorsData] IMU subscribers: "
-                      << static_cast<int>(_imuSubCount));
+    DEBUG_STREAM_SENS(
+      "[publishSensorsData] IMU subscribers: "
+        << static_cast<int>(_imuSubCount));
 
     imuMsgPtr imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
@@ -2477,8 +1845,9 @@ bool ZedCameraOne::publishSensorsData() {
   }
 
   if (_imuRawSubCount > 0) {
-    DEBUG_STREAM_SENS("[publishSensorsData] IMU subscribers: "
-                      << static_cast<int>(_imuRawSubCount));
+    DEBUG_STREAM_SENS(
+      "[publishSensorsData] IMU subscribers: "
+        << static_cast<int>(_imuRawSubCount));
 
     imuMsgPtr imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
@@ -2626,21 +1995,22 @@ bool ZedCameraOne::areImageTopicsSubscribed()
   ) > 0;
 }
 
-bool ZedCameraOne::areSensorsTopicsSubscribed() {
+bool ZedCameraOne::areSensorsTopicsSubscribed()
+{
   try {
     _imuSubCount = _pubImu->get_subscription_count();
     _imuRawSubCount = _pubImuRaw->get_subscription_count();
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_SENS(
-        "areSensorsTopicsSubscribed: Exception while counting subscribers");
+      "areSensorsTopicsSubscribed: Exception while counting subscribers");
     return false;
   }
 
   DEBUG_STREAM_SENS(
-      "[areSensorsTopicsSubscribed] IMU subscribers: " << _imuSubCount);
+    "[areSensorsTopicsSubscribed] IMU subscribers: " << _imuSubCount);
   DEBUG_STREAM_SENS(
-      "[areSensorsTopicsSubscribed] IMU RAW subscribers: " << _imuRawSubCount);
+    "[areSensorsTopicsSubscribed] IMU RAW subscribers: " << _imuRawSubCount);
 
   return (_imuSubCount + _imuRawSubCount) > 0;
 }
@@ -2711,22 +2081,25 @@ void ZedCameraOne::publishImages()
   if (_sdkGrabTS.getNanoseconds() == _lastTs_grab.getNanoseconds()) {
     // Data not updated by a grab calling in the grab thread
     DEBUG_VD("publishImages: ignoring not update data");
-    DEBUG_STREAM_VD("Latest Ts: " << _lastTs_grab.getNanoseconds()
-                                  << " - New Ts: "
-                                  << _sdkGrabTS.getNanoseconds());
+    DEBUG_STREAM_VD(
+      "Latest Ts: " << _lastTs_grab.getNanoseconds()
+                    << " - New Ts: "
+                    << _sdkGrabTS.getNanoseconds());
     return;
   }
 
   if (_lastTs_grab.data_ns != 0) {
     double period_sec =
-        static_cast<double>(_sdkGrabTS.data_ns - _lastTs_grab.data_ns) / 1e9;
-    DEBUG_STREAM_VD("IMAGE PUB LAST PERIOD: " << period_sec << " sec @"
-                                              << 1. / period_sec << " Hz");
+      static_cast<double>(_sdkGrabTS.data_ns - _lastTs_grab.data_ns) / 1e9;
+    DEBUG_STREAM_VD(
+      "IMAGE PUB LAST PERIOD: " << period_sec << " sec @"
+                                << 1. / period_sec << " Hz");
 
     _imagePeriodMean_sec->addValue(period_sec);
-    DEBUG_STREAM_VD("IMAGE PUB MEAN PERIOD: "
-                    << _imagePeriodMean_sec->getAvg() << " sec @"
-                    << 1. / _imagePeriodMean_sec->getAvg() << " Hz");
+    DEBUG_STREAM_VD(
+      "IMAGE PUB MEAN PERIOD: "
+        << _imagePeriodMean_sec->getAvg() << " sec @"
+        << 1. / _imagePeriodMean_sec->getAvg() << " Hz");
   }
   _lastTs_grab = _sdkGrabTS;
   // <---- Check if a grab has been done before publishing the same images
@@ -2816,9 +2189,10 @@ void ZedCameraOne::publishImageWithInfo(
 }
 
 void ZedCameraOne::callback_enableStreaming(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
-    std::shared_ptr<std_srvs::srv::SetBool_Response> res) {
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+  std::shared_ptr<std_srvs::srv::SetBool_Response> res)
+{
   (void)request_header;
 
   if (req->data) {
@@ -2835,16 +2209,17 @@ void ZedCameraOne::callback_enableStreaming(
       return;
     } else {
       res->message =
-          "Error occurred starting the Streaming Server. Read the log for more "
-          "info";
+        "Error occurred starting the Streaming Server. Read the log for more "
+        "info";
       res->success = false;
       return;
     }
   } else {
     // Stop
     if (!_streamingServerRunning) {
-      RCLCPP_WARN(get_logger(),
-                  "There is no Streaming Server active to be stopped");
+      RCLCPP_WARN(
+        get_logger(),
+        "There is no Streaming Server active to be stopped");
       res->message = "There is no Streaming Server active to be stopped";
       res->success = false;
       return;
@@ -2861,16 +2236,18 @@ void ZedCameraOne::callback_enableStreaming(
 
 #if ENABLE_SVO
 void ZedCameraOne::callback_startSvoRec(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
-    std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res) {
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
+  std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res)
+{
   (void)request_header;
 
   RCLCPP_INFO(get_logger(), "** Start SVO Recording service called **");
 
   if (_svoMode) {
-    RCLCPP_WARN(get_logger(),
-                "Cannot start SVO recording while playing SVO as input");
+    RCLCPP_WARN(
+      get_logger(),
+      "Cannot start SVO recording while playing SVO as input");
     res->message = "Cannot start SVO recording while playing SVO as input";
     res->success = false;
     return;
@@ -2887,24 +2264,27 @@ void ZedCameraOne::callback_startSvoRec(
 
   _svoRecBitrate = req->bitrate;
   if ((_svoRecBitrate != 0) &&
-      ((_svoRecBitrate < 1000) || (_svoRecBitrate > 60000))) {
-    RCLCPP_WARN(get_logger(),
-                "'bitrate' value not valid. Please use a value "
-                "in range [1000,60000], or 0 for default");
+    ((_svoRecBitrate < 1000) || (_svoRecBitrate > 60000)))
+  {
+    RCLCPP_WARN(
+      get_logger(),
+      "'bitrate' value not valid. Please use a value "
+      "in range [1000,60000], or 0 for default");
     res->message =
-        "'bitrate' value not valid. Please use a value in range "
-        "[1000,60000], or 0 for default";
+      "'bitrate' value not valid. Please use a value in range "
+      "[1000,60000], or 0 for default";
     res->success = false;
     return;
   }
   _svoRecCompr = static_cast<sl::SVO_COMPRESSION_MODE>(req->compression_mode);
   if (_svoRecCompr >= sl::SVO_COMPRESSION_MODE::LAST) {
-    RCLCPP_WARN(get_logger(),
-                "'compression_mode' mode not valid. Please use a value in "
-                "range [0,2]");
+    RCLCPP_WARN(
+      get_logger(),
+      "'compression_mode' mode not valid. Please use a value in "
+      "range [0,2]");
     res->message =
-        "'compression_mode' mode not valid. Please use a value in range "
-        "[0,2]";
+      "'compression_mode' mode not valid. Please use a value in range "
+      "[0,2]";
     res->success = false;
     return;
   }
@@ -2929,20 +2309,22 @@ void ZedCameraOne::callback_startSvoRec(
   RCLCPP_INFO_STREAM(get_logger(), " * Compression: " << _svoRecCompr);
   RCLCPP_INFO_STREAM(get_logger(), " * Framerate: " << _svoRecFramerate);
   RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Input Transcode: " << (_svoRecTranscode ? "TRUE" : "FALSE"));
-  RCLCPP_INFO_STREAM(get_logger(), " * Filename: " << (_svoRecFilename.empty()
-                                                           ? "zed.svo"
-                                                           : _svoRecFilename));
+    get_logger(),
+    " * Input Transcode: " << (_svoRecTranscode ? "TRUE" : "FALSE"));
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Filename: " << (_svoRecFilename.empty() ?
+    "zed.svo" :
+    _svoRecFilename));
 
   res->message = "SVO Recording started";
   res->success = true;
 }
 
 void ZedCameraOne::callback_stopSvoRec(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-    std::shared_ptr<std_srvs::srv::Trigger_Response> res) {
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+  std::shared_ptr<std_srvs::srv::Trigger_Response> res)
+{
   (void)request_header;
   (void)req;
 
@@ -2965,9 +2347,10 @@ void ZedCameraOne::callback_stopSvoRec(
 }
 
 void ZedCameraOne::callback_pauseSvoInput(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
-    std::shared_ptr<std_srvs::srv::Trigger_Response> res) {
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+  std::shared_ptr<std_srvs::srv::Trigger_Response> res)
+{
   (void)request_header;
 
   RCLCPP_INFO(get_logger(), "** Pause SVO Input service called **");
@@ -2982,10 +2365,11 @@ void ZedCameraOne::callback_pauseSvoInput(
   }
 
   if (_svoRealtime) {
-    RCLCPP_WARN(get_logger(),
-                "SVO input can be paused only if SVO is not in RealTime mode");
+    RCLCPP_WARN(
+      get_logger(),
+      "SVO input can be paused only if SVO is not in RealTime mode");
     res->message =
-        "SVO input can be paused only if SVO is not in RealTime mode";
+      "SVO input can be paused only if SVO is not in RealTime mode";
     res->success = false;
     _svoPause = false;
     return;

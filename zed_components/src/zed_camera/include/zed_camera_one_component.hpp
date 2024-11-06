@@ -74,7 +74,7 @@ protected:
     const std::string & frameId,
     bool rawParam = false);
 
-  void applyImageSettings();
+  void applyVideoSettings();
   bool areImageTopicsSubscribed();
   bool areSensorsTopicsSubscribed();
   void retrieveImages();
@@ -252,11 +252,10 @@ private:
   int _camSaturation = 4;
   int _camSharpness = 4;
   int _camGamma = 8;
-  bool _camAutoExpGain = true;
   bool _camAutoWB = true;
   int _camWBTemp = 42;
 
-  bool _camAutoExp = true;
+  bool _camAutoExposure = true;
   int _camExpTime = 16666;
   int _camAutoExpTimeRangeMin = 28;
   int _camAutoExpTimeRangeMax = 30000;
@@ -278,8 +277,7 @@ private:
   bool _svoPause = false;       // SVO pause status
   bool _streamMode = false;     // Expecting local streaming data?
 
-  std::atomic<bool> _triggerAutoExpGain;  // Triggered on start
-  std::atomic<bool> _triggerAutoWB;       // Triggered on start
+  std::atomic<bool> _triggerUpdateDynParams;  // Trigger auto exposure/gain
 
   bool _recording = false;
   sl::RecordingStatus _recStatus = sl::RecordingStatus();
@@ -387,11 +385,11 @@ void ZedCameraOne::getParam(
   std::string log_info, bool dynamic, T minVal, T maxVal)
 {
   rcl_interfaces::msg::ParameterDescriptor descriptor;
-  descriptor.read_only = !dynamic; 
+  descriptor.read_only = !dynamic;
 
   std::stringstream ss;
   if constexpr (std::is_same<T, bool>::value) {
-    ss << "Default value: " << (defValue? "TRUE" : "FALSE");
+    ss << "Default value: " << (defValue ? "TRUE" : "FALSE");
   } else {
     ss << "Default value: " << defValue;
   }
@@ -427,7 +425,7 @@ void ZedCameraOne::getParam(
 
   if (!log_info.empty()) {
     if constexpr (std::is_same<T, bool>::value) {
-      RCLCPP_INFO_STREAM(get_logger(), log_info << (outVal? "TRUE" : "FALSE"));
+      RCLCPP_INFO_STREAM(get_logger(), log_info << (outVal ? "TRUE" : "FALSE"));
     } else {
       RCLCPP_INFO_STREAM(get_logger(), log_info << outVal);
     }

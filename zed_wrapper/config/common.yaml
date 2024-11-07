@@ -164,9 +164,9 @@
 
         debug:
             sdk_verbose: 1 # Set the verbose level of the ZED SDK
-            debug_common: false
+            debug_common: true
             debug_sim: false
-            debug_video_depth: true
+            debug_video_depth: false
             debug_camera_controls: false
             debug_point_cloud: false
             debug_positional_tracking: false

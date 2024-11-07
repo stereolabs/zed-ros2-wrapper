@@ -1196,11 +1196,31 @@ rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_paramChange(
         _camAutoExpTimeRangeMin = param.as_int();
         _camDynParMapChanged[param_name] = true;
         count_ok++;
+
+        if(_camAutoExpTimeRangeMin!=_camAutoExpTimeRangeMax) {
+            // Force disable auto exposure
+          _camAutoExposure = false;
+          _camDynParMapChanged["video.auto_exposure"] = true;
+        } else {
+          // Force enable auto exposure
+          _camAutoExposure = true;
+          _camDynParMapChanged["video.auto_exposure"] = true;
+        }
       } else if (param_name ==
                  "video.auto_exposure_time_range_max") {  // Auto Exp Time Max
         _camAutoExpTimeRangeMax = param.as_int();
         _camDynParMapChanged[param_name] = true;
         count_ok++;
+
+         if(_camAutoExpTimeRangeMin!=_camAutoExpTimeRangeMax) {
+            // Force disable auto exposure
+          _camAutoExposure = false;
+          _camDynParMapChanged["video.auto_exposure"] = true;
+        } else {
+          // Force enable auto exposure
+          _camAutoExposure = true;
+          _camDynParMapChanged["video.auto_exposure"] = true;
+        }
       } else if (param_name ==
                  "video.exposure_compensation") {  // Exposure Compensation
         _camExposureComp = param.as_int();
@@ -1876,12 +1896,17 @@ void ZedCameraOne::applDynamicSettings()
   };
   // <---- Set video settings lambda function
 
+  // Saturation
   setVideoSetting(
     sl::VIDEO_SETTINGS::SATURATION, _camSaturation, "video.saturation");
+  // Sharpness
   setVideoSetting(
     sl::VIDEO_SETTINGS::SHARPNESS, _camSharpness, "video.sharpness");
+  // Gamma
   setVideoSetting(
     sl::VIDEO_SETTINGS::GAMMA, _camGamma, "video.gamma");
+
+  // White Balance
   setVideoSetting(
     sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, _camAutoWB,
     "video.auto_whitebalance");
@@ -1901,6 +1926,7 @@ void ZedCameraOne::applDynamicSettings()
     }
   }
 
+  // Exposure
   if (_camDynParMapChanged["video.auto_exposure"]) {    
     if (_camAutoExposure) {
       // Set auto exposure time range to default
@@ -1985,6 +2011,9 @@ void ZedCameraOne::applDynamicSettings()
     _camDynParMapChanged["video.auto_exposure"] = false;
   }
 
+  TODO HANDLE MIN AND MAX EXPOSURE TIME
+
+  // Exposure compensation
   setVideoSetting(
     sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION, _camExposureComp,
     "video.exposure_compensation");

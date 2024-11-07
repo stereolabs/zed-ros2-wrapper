@@ -269,6 +269,8 @@ private:
   int _camAutoDigitalGainRangeMin = 1;
   int _camAutoDigitalGainRangeMax = 256;
   int _camDenoising = 50;
+  std::mutex _dynParamMutex;
+  std::unordered_map<std::string, bool> _camDynParMapChanged;
   // <---- Dynamic params
 
   // ----> Running status

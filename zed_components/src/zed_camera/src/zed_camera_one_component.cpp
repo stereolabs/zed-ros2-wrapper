@@ -1199,12 +1199,12 @@ rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_paramChange(
 
         if(_camAutoExpTimeRangeMin!=_camAutoExpTimeRangeMax) {
             // Force disable auto exposure
-          _camAutoExposure = false;
+          _camAutoExposure = true;
           _camDynParMapChanged["video.auto_exposure"] = true;
         } else {
           // Force enable auto exposure
-          _camAutoExposure = true;
-          _camDynParMapChanged["video.auto_exposure"] = true;
+          _camAutoExposure = false;
+          _camDynParMapChanged["video.auto_exposure"] = false;
         }
       } else if (param_name ==
                  "video.auto_exposure_time_range_max") {  // Auto Exp Time Max
@@ -1214,12 +1214,12 @@ rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_paramChange(
 
          if(_camAutoExpTimeRangeMin!=_camAutoExpTimeRangeMax) {
             // Force disable auto exposure
-          _camAutoExposure = false;
+          _camAutoExposure = true;
           _camDynParMapChanged["video.auto_exposure"] = true;
         } else {
           // Force enable auto exposure
-          _camAutoExposure = true;
-          _camDynParMapChanged["video.auto_exposure"] = true;
+          _camAutoExposure = false;
+          _camDynParMapChanged["video.auto_exposure"] = false;
         }
       } else if (param_name ==
                  "video.exposure_compensation") {  // Exposure Compensation
@@ -2011,7 +2011,37 @@ void ZedCameraOne::applDynamicSettings()
     _camDynParMapChanged["video.auto_exposure"] = false;
   }
 
-  TODO HANDLE MIN AND MAX EXPOSURE TIME
+  // Exposure range
+  if(_camDynParMapChanged["video.auto_exposure_time_range_min"] ||
+     _camDynParMapChanged["video.auto_exposure_time_range_max"]) {
+      sl::ERROR_CODE ret_code = _zed->setCameraSettings(
+        sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE,
+        _camAutoExpTimeRangeMin, _camAutoExpTimeRangeMax);
+      if (ret_code != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_WARN_STREAM(
+          get_logger(), "Error setting exposure time range: " << sl::toString(
+            ret_code));
+      }
+      DEBUG_STREAM_COMM("video.auto_exposure_time_range: ["
+                      << _camAutoExpTimeRangeMin << "," << _camAutoExpTimeRangeMax
+                      << "] usec");   
+
+    _camDynParMapChanged["video.auto_exposure_time_range_min"] = false;
+    _camDynParMapChanged["video.auto_exposure_time_range_max"] = false;
+
+    bool auto_exposure = (_camAutoExpTimeRangeMin!=_camAutoExpTimeRangeMax);
+    // Update parameter server
+    auto res = this->set_parameter(
+        rclcpp::Parameter("video.auto_exposure", auto_exposure));
+    if (!res.successful) {
+      RCLCPP_WARN_STREAM(get_logger(), "Error setting video.auto_exposure: "
+                                          << res.reason);
+    } else {
+      DEBUG_STREAM_COMM("Updated video.auto_exposure value to "
+                      << auto_exposure);
+    }
+
+  }
 
   // Exposure compensation
   setVideoSetting(

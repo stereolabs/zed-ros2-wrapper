@@ -74,7 +74,7 @@ protected:
     const std::string & frameId,
     bool rawParam = false);
 
-  void applDynamicSettings();
+  void applyDynamicSettings();
   bool areImageTopicsSubscribed();
   bool areSensorsTopicsSubscribed();
   void retrieveImages();

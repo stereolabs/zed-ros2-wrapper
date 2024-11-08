@@ -1198,11 +1198,11 @@ rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_paramChange(
         count_ok++;
 
         if(_camAutoExpTimeRangeMin!=_camAutoExpTimeRangeMax) {
-            // Force disable auto exposure
+          // Force enable auto exposure
           _camAutoExposure = true;
           _camDynParMapChanged["video.auto_exposure"] = true;
         } else {
-          // Force enable auto exposure
+          // Force disable auto exposure
           _camAutoExposure = false;
           _camDynParMapChanged["video.auto_exposure"] = false;
         }
@@ -1212,12 +1212,12 @@ rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_paramChange(
         _camDynParMapChanged[param_name] = true;
         count_ok++;
 
-         if(_camAutoExpTimeRangeMin!=_camAutoExpTimeRangeMax) {
-            // Force disable auto exposure
+        if (_camAutoExpTimeRangeMin != _camAutoExpTimeRangeMax) {
+          // Force enable auto exposure
           _camAutoExposure = true;
           _camDynParMapChanged["video.auto_exposure"] = true;
         } else {
-          // Force enable auto exposure
+          // Force disable auto exposure
           _camAutoExposure = false;
           _camDynParMapChanged["video.auto_exposure"] = false;
         }
@@ -1234,16 +1234,46 @@ rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_paramChange(
         _camAnalogGain = param.as_int();
         _camDynParMapChanged[param_name] = true;
         count_ok++;
+
+        // Force disable auto analog gain
+        _camAutoAnalogGain = false;
+        _camDynParMapChanged["video.auto_analog_gain"] = true;
+
+        // Force analog gain range min and max values
+        _camAnalogGainRangeMin = _camAnalogGain;
+        _camDynParMapChanged["video.analog_gain_range_min"] = true;
+        _camAutoExpTimeRangeMax = _camAnalogGain;
+        _camDynParMapChanged["video.analog_gain_range_max"] = true;
       } else if (param_name ==
                  "video.analog_gain_range_min") {  // Analog Gain Min
         _camAnalogGainRangeMin = param.as_int();
         _camDynParMapChanged[param_name] = true;
         count_ok++;
+
+        if (_camAnalogGainRangeMin != _camAutoExpTimeRangeMax) {
+          // Force enable auto analog gain
+          _camAutoAnalogGain = true;
+          _camDynParMapChanged["video.auto_analog_gain"] = true;
+        } else {
+          // Force disable auto analog gain
+          _camAutoAnalogGain = false;
+          _camDynParMapChanged["video.auto_analog_gain"] = false;
+        }
       } else if (param_name ==
                  "video.analog_gain_range_max") {  // Analog Gain Max
         _camAnalogGainRangeMax = param.as_int();
         _camDynParMapChanged[param_name] = true;
         count_ok++;
+
+        if (_camAnalogGainRangeMin != _camAutoExpTimeRangeMax) {
+          // Force enable auto analog gain
+          _camAutoAnalogGain = true;
+          _camDynParMapChanged["video.auto_analog_gain"] = true;
+        } else {
+          // Force disable auto analog gain
+          _camAutoAnalogGain = false;
+          _camDynParMapChanged["video.auto_analog_gain"] = false;
+        }
       } else if (param_name ==
                  "video.auto_digital_gain") {  // Auto Digital Gain
         _camAutoDigitalGain = param.as_bool();
@@ -1584,7 +1614,7 @@ void ZedCameraOne::threadFunc_zedGrab()
 
       // ----> Apply video dynamic parameters
       if (!_svoMode && _triggerUpdateDynParams) {
-        applDynamicSettings();
+        applyDynamicSettings();
       }
       // <---- Apply video dynamic parameters
 
@@ -1875,8 +1905,7 @@ void ZedCameraOne::threadFunc_pubSensorsData()
 
 }
 
-void ZedCameraOne::applDynamicSettings() 
-{
+void ZedCameraOne::applyDynamicSettings() {
   DEBUG_STREAM_COMM("*** Applying dynamic settings ***");
 
   // ----> Set video settings lambda function
@@ -1927,7 +1956,7 @@ void ZedCameraOne::applDynamicSettings()
   }
 
   // Exposure
-  if (_camDynParMapChanged["video.auto_exposure"]) {    
+  if (_camDynParMapChanged["video.auto_exposure"]) {
     if (_camAutoExposure) {
       // Set auto exposure time range to default
       if(_camAutoExpTimeRangeMin==_camAutoExpTimeRangeMax) {
@@ -2040,7 +2069,6 @@ void ZedCameraOne::applDynamicSettings()
       DEBUG_STREAM_COMM("Updated video.auto_exposure value to "
                       << auto_exposure);
     }
-
   }
 
   // Exposure compensation
@@ -2048,34 +2076,121 @@ void ZedCameraOne::applDynamicSettings()
     sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION, _camExposureComp,
     "video.exposure_compensation");
 
+  // Analog Gain
   if (_camDynParMapChanged["video.auto_analog_gain"]) {
     if (_camAutoAnalogGain) {
+      // Set auto analog gain time range to default
+      if(_camAnalogGainRangeMin==_camAnalogGainRangeMax) {
+        _camAnalogGainRangeMin = 1000;
+        _camAnalogGainRangeMax = 16000;
+      }
+
+      // Apply the new settings
       sl::ERROR_CODE ret_code = _zed->setCameraSettings(
-        sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE,
-        _camAnalogGainRangeMin,
-        _camAnalogGainRangeMax);
+        sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE, _camAnalogGainRangeMin, _camAnalogGainRangeMax);
       if (ret_code != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_WARN_STREAM(
-          get_logger(),
-          "Error setting analog gain range: " << sl::toString(ret_code));
+          get_logger(), "Error setting analog gain time range: "
+            << sl::toString(ret_code));
       }
       DEBUG_STREAM_COMM("video.auto_analog_gain enabled: ["
-                      << _camAnalogGainRangeMin << "," << _camAnalogGainRangeMax
-                      << "]");
+                      << _camAnalogGainRangeMin << ","
+                      << _camAnalogGainRangeMax << "] usec");
+
+      // Update parameter server
+      auto res = this->set_parameters({
+        rclcpp::Parameter("video.auto_analog_gain_range_min", _camAnalogGainRangeMin),
+        rclcpp::Parameter("video.auto_analog_gain_range_max", _camAnalogGainRangeMax)});
+      TODO CHECK RES SIZE BEFORE ACCESSING
+      if (!res[0].successful) {
+        RCLCPP_WARN_STREAM(get_logger(), "Error setting video.auto_analog_gain_range_min: "
+                                             << res[1].reason);
+      } else {
+        DEBUG_STREAM_COMM("Updated video.auto_analog_gain_range_min value to "
+                        << _camAnalogGainRangeMin);
+      }
+      if (!res[1].successful) {
+        RCLCPP_WARN_STREAM(get_logger(), "Error setting video.auto_analog_gain_range_max: "
+                                             << res[2].reason);
+      } else {
+        DEBUG_STREAM_COMM("Updated video.auto_analog_gain_range_max value to "
+                        << _camAnalogGainRangeMax);
+      }
     } else {
-      setVideoSetting(sl::VIDEO_SETTINGS::ANALOG_GAIN, _camAnalogGain, "video.analog_gain");
-      sl::ERROR_CODE ret_code = _zed->setCameraSettings(
+      setVideoSetting(
+        sl::VIDEO_SETTINGS::ANALOG_GAIN, _camAnalogGain,
+        "video.analog_gain");
+      sl::ERROR_CODE ret_code =
+        _zed->setCameraSettings(
         sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE,
         _camAnalogGain, _camAnalogGain);
       if (ret_code != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_WARN_STREAM(
-          get_logger(),
-          "Error setting analog gain range: " << sl::toString(ret_code));
+          get_logger(), "Error setting analog gain range: "
+            << sl::toString(ret_code));
       }
       DEBUG_STREAM_COMM("video.auto_analog_gain disabled: ["
                       << _camAnalogGain << "," << _camAnalogGain << "]");
+      
+      // Update parameter server
+      auto res = this->set_parameters({
+        rclcpp::Parameter("video.auto_analog_gain", _camAutoAnalogGain),
+        rclcpp::Parameter("video.auto_analog_gain_range_min", _camAnalogGainRangeMin),
+        rclcpp::Parameter("video.auto_analog_gain_range_max", _camAnalogGainRangeMax)});
+      if (!res[0].successful) {
+        RCLCPP_WARN_STREAM(get_logger(), "Error setting video.auto_analog_gain: "
+                                             << res[0].reason);
+      } else {
+        DEBUG_STREAM_COMM("Updated video.auto_analog_gain value to "
+                        << _camAutoAnalogGain);
+      }
+      if (!res[1].successful) {
+        RCLCPP_WARN_STREAM(get_logger(), "Error setting video.auto_analog_gain_range_min: "
+                                             << res[1].reason);
+      } else {
+        DEBUG_STREAM_COMM("Updated video.auto_analog_gain_range_min value to "
+                        << _camAnalogGainRangeMin);
+      }
+      if (!res[2].successful) {
+        RCLCPP_WARN_STREAM(get_logger(), "Error setting video.auto_analog_gain_range_max: "
+                                             << res[2].reason);
+      } else {
+        DEBUG_STREAM_COMM("Updated video.auto_analog_gain_range_max value to "
+                        << _camAnalogGainRangeMax);
+      }
     }
     _camDynParMapChanged["video.auto_analog_gain"] = false;
+  }
+
+  // Analog Gain range
+  if(_camDynParMapChanged["video.auto_analog_gain_range_min"] ||
+     _camDynParMapChanged["video.auto_analog_gain_range_max"]) {
+      sl::ERROR_CODE ret_code = _zed->setCameraSettings(
+        sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE,
+        _camAnalogGainRangeMin, _camAnalogGainRangeMax);
+      if (ret_code != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_WARN_STREAM(
+          get_logger(), "Error setting analog gain range: " << sl::toString(
+            ret_code));
+      }
+      DEBUG_STREAM_COMM("video.auto_analog_gain_range: ["
+                      << _camAnalogGainRangeMin << "," << _camAnalogGainRangeMax
+                      << "] ");   
+
+    _camDynParMapChanged["video.auto_analog_gain_range_min"] = false;
+    _camDynParMapChanged["video.auto_analog_gain_range_max"] = false;
+
+    bool auto_analog_gain = (_camAnalogGainRangeMin!=_camAnalogGainRangeMax);
+    // Update parameter server
+    auto res = this->set_parameter(
+        rclcpp::Parameter("video.auto_analog_gain", auto_analog_gain));
+    if (!res.successful) {
+      RCLCPP_WARN_STREAM(get_logger(), "Error setting video.auto_analog_gain: "
+                                          << res.reason);
+    } else {
+      DEBUG_STREAM_COMM("Updated video.auto_analog_gain value to "
+                      << auto_analog_gain);
+    }
   }
 
   if (_camDynParMapChanged["video.auto_digital_gain"]) {

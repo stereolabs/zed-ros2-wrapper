@@ -262,8 +262,8 @@ private:
   int _camExposureComp = 50;
   bool _camAutoAnalogGain = true;
   int _camAnalogGain = 8000;
-  int _camAnalogGainRangeMin = 1000;
-  int _camAnalogGainRangeMax = 16000;
+  int _camAutoAnalogGainRangeMin = 1000;
+  int _camAutoAnalogGainRangeMax = 16000;
   bool _camAutoDigitalGain = true;
   int _camDigitalGain = 128;
   int _camAutoDigitalGainRangeMin = 1;

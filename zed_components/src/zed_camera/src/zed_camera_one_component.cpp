@@ -1206,6 +1206,12 @@ rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_setParameters(
         if (updateBoolParam(param_name, param.as_bool(), _camAutoExposure)) {
           count_ok++;
         }
+      } else if (param_name ==
+        "video.exposure_compensation")             // Exposure Compensation
+      {
+        if (updateIntParam(param_name, param.as_int(), _camExposureComp)) {
+          count_ok++;
+        }
       } else if (param_name == "video.exposure_time") {  // Exposure Time
         if (updateIntParam(param_name, param.as_int(), _camExpTime)) {
           count_ok++;
@@ -1296,11 +1302,52 @@ rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_setParameters(
               _camAnalogGain);
           }
         }
-      } else if (param_name ==
-        "video.exposure_compensation")             // Exposure Compensation
-      {
-        if (updateIntParam(param_name, param.as_int(), _camExposureComp)) {
+      } else if (param_name == "video.auto_digital_gain") {  // Auto Digital Gain
+        if (updateBoolParam(param_name, param.as_bool(), _camAutoDigitalGain)) {
           count_ok++;
+        }
+      } else if (param_name == "video.digital_gain") {  // Digital Gain
+        if (updateIntParam(param_name, param.as_int(), _camDigitalGain)) {
+          count_ok++;
+
+          // Force disable auto digital gain
+          updateBoolParam("video.auto_digital_gain", false, _camAutoDigitalGain);
+
+          // Force digital gain range min and max values
+          updateIntParam(
+            "video.auto_digital_gain_range_min", _camDigitalGain,
+            _camAutoDigitalGainRangeMin);
+          updateIntParam(
+            "video.auto_digital_gain_range_max", _camDigitalGain,
+            _camAutoDigitalGainRangeMax);
+        }
+      } else if (param_name == "video.auto_digital_gain_range_min") {  // Auto Digital Gain Min
+        if (updateIntParam(param_name, param.as_int(), _camAutoDigitalGainRangeMin)) {
+          count_ok++;
+
+          // Force digital gain
+          if (_camAutoDigitalGainRangeMin != _camAutoDigitalGainRangeMax) {
+            updateBoolParam("video.auto_digital_gain", true, _camAutoDigitalGain);
+          } else {
+            updateBoolParam("video.auto_digital_gain", false, _camAutoDigitalGain);
+            updateIntParam(
+              "video.digital_gain", _camAutoDigitalGainRangeMin,
+              _camDigitalGain);
+          }
+        }
+      } else if (param_name == "video.auto_digital_gain_range_max") {  // Auto Digital Gain Max
+        if (updateIntParam(param_name, param.as_int(), _camAutoDigitalGainRangeMax)) {
+          count_ok++;
+
+          // Force digital gain
+          if (_camAutoDigitalGainRangeMin != _camAutoDigitalGainRangeMax) {
+            updateBoolParam("video.auto_digital_gain", true, _camAutoDigitalGain);
+          } else {
+            updateBoolParam("video.auto_digital_gain", false, _camAutoDigitalGain);
+            updateIntParam(
+              "video.digital_gain", _camAutoDigitalGainRangeMax,
+              _camDigitalGain);
+          }
         }
       } else {
         result.successful = false;
@@ -2099,15 +2146,52 @@ void ZedCameraOne::applyDynamicSettings()
   }
   // <---- Analog Gain
 
-  setVideoSettingRange(
-    sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE, _camAutoDigitalGainRangeMin,
-    _camAutoDigitalGainRangeMax,
-    "video.auto_digital_gain_range_min", "video.auto_digital_gain_range_max");
-  if (!_camAutoDigitalGain) {
-    setVideoSetting(sl::VIDEO_SETTINGS::DIGITAL_GAIN, _camDigitalGain, "video.digital_gain");
-  }
+  // ----> Digital Gain
+  if (_camAutoDigitalGain) {
+    if (_camDynParMapChanged["video.auto_digital_gain"]) {
+      // Force new
+      set_parameters(
+        {
+          rclcpp::Parameter("video.auto_digital_gain_range_min", 1),
+          rclcpp::Parameter("video.auto_digital_gain_range_max", 256)
+        });
+      DEBUG_STREAM_COMM("Forced digital gain range to [" << 1 << "," << 256 << "]");
+    }
+    DEBUG_STREAM_COMM("Set video.auto_digital_gain to " << (_camAutoDigitalGain ? "true" : "false"));
+  } else {
+    setVideoSetting(
+      sl::VIDEO_SETTINGS::DIGITAL_GAIN, _camDigitalGain, "video.digital_gain");
+    // Force new
+    set_parameters(
+      {
+        rclcpp::Parameter("video.auto_digital_gain", false),
+        rclcpp::Parameter("video.auto_digital_gain_range_min", _camDigitalGain),
+        rclcpp::Parameter("video.auto_digital_gain_range_max", _camDigitalGain)
+      });
+    DEBUG_STREAM_COMM("Forced video.auto_digital_gain to false and digital gain range to [" << _camDigitalGain << "," << _camDigitalGain << "]");
+  }  
   _camDynParMapChanged["video.auto_digital_gain"] = false;
   _camDynParMapChanged["video.digital_gain"] = false;
+
+  if (setVideoSettingRange(
+      sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE,
+      _camAutoDigitalGainRangeMin, _camAutoDigitalGainRangeMax,
+      "video.auto_digital_gain_range_min",
+      "video.auto_digital_gain_range_max")) {
+    if (_camAutoDigitalGainRangeMin == _camAutoDigitalGainRangeMax) {
+      // Force new
+      set_parameters(
+        {
+          rclcpp::Parameter("video.auto_digital_gain", false),
+          rclcpp::Parameter("video.digital_gain", _camAutoDigitalGainRangeMin)
+        });
+      DEBUG_STREAM_COMM("Forced video.auto_digital_gain to false and video.digital_gain to " << _camAutoDigitalGainRangeMin );
+    } else {
+      set_parameter(rclcpp::Parameter("video.auto_digital_gain", true));
+      DEBUG_STREAM_COMM("Forced video.auto_digital_gain to true");
+    }
+  }
+  // <---- Digital Gain
 
   // Exposure compensation
   setVideoSetting(

@@ -10,7 +10,7 @@ WORKDIR=$(pwd)
 echo "${ttk} Check artifact presence"
 ls -lah ../ros2_ws/install
 
-#ls -lah /builds/sl/ros2_ws/install/zed_interfaces/share/zed_interfaces/
+#ls -lah /builds/sl/ros2_ws/install/zed_msgs/share/zed_msgs/
 #ls -lah /builds/sl/ros2_ws/install/zed_components/share/zed_components/
 #ls -lah /builds/sl/ros2_ws/install/zed_wrapper/share/zed_wrapper/
 #ls -lah /builds/sl/ros2_ws/install/zed_ros2/share/zed_ros2/

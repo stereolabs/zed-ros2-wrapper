@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2024-11-12
+----------
+- Changed the name of the package `zed_interfaces` to `zed_msgs` to match the ROS2 naming convention
+
 2024-10-18
 ----------
 - Added support for custom ONNX detection engine (SDK v4.2 required)

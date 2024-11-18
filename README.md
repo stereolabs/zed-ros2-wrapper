@@ -92,7 +92,7 @@ Replace `<camera_model>` with the model of the camera that you are using: `'zed'
 The `zed_camera.launch.py` is Python launch scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/). The parameters for the indicated camera model are loaded from the relative "YAML files".
 A Robot State Publisher node is started to publish the camera static links and joints loaded from the URDF model associated with the camera model.
 
-> :pushpin: **Note:** You can set your own configurations by modifying the parameters in the files **common.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, **zedxm.yaml**, **zedxonegs.yaml**, and **zedxone4k.yaml**  available in the folder `zed_wrapper/config`.
+> :pushpin: **Note:** You can set your own configurations by modifying the parameters in the files **common_stereo.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, **zedxm.yaml**, **zedxonegs.yaml**, and **zedxone4k.yaml**  available in the folder `zed_wrapper/config`.
 
 You can get the list of all the available launch parameters by using the `-s` launch option:
 
@@ -151,7 +151,7 @@ Supported simulation environments:
 
 ### Object Detection [not available for monocular cameras]
 
-The Object Detection can be enabled *automatically* when the node start by setting the parameter `object_detection/od_enabled` to `true` in the file `common.yaml`.
+The Object Detection can be enabled *automatically* when the node start by setting the parameter `object_detection/od_enabled` to `true` in the file `common_stereo.yaml`.
 The Object Detection can be enabled/disabled *manually* by calling the services `enable_obj_det`.
 
 ### Custom Object Detection with YOLO-like ONNX model file [not available for monocular cameras]
@@ -186,7 +186,7 @@ yolo export model=yolov8l_custom_model.pt format=onnx simplify=True dynamic=Fals
 
 Please refer to the [Ultralytics documentation](https://github.com/ultralytics/ultralytics) for details.
 
-Modify the `common.yaml` parameters to match your configuration:
+Modify the `common_stereo.yaml` parameters to match your configuration:
 
 * set `object_detection.model` to `CUSTOM_YOLOLIKE_BOX_OBJECTS`
 * set `object_detection.custom_onnx_file` to the full path of your custom ONNX file
@@ -205,13 +205,13 @@ Console log while optimization is running:
 
 ### Body Tracking [not available for monocular cameras]
 
-The Body Tracking can be enabled *automatically* when the node starts by setting the parameter `body_tracking/bt_enabled` to `true` in the file `common.yaml`.
+The Body Tracking can be enabled *automatically* when the node starts by setting the parameter `body_tracking/bt_enabled` to `true` in the file `common_stereo.yaml`.
 
 *The Object Detection module is not available on the very first generation of ZED cameras.*
 
 ### Spatial Mapping [not available for monocular cameras]
 
-The Spatial Mapping can be enabled automatically when the node starts setting the parameter `mapping/mapping_enabled` to `true` in the file `common.yaml`.
+The Spatial Mapping can be enabled automatically when the node starts setting the parameter `mapping/mapping_enabled` to `true` in the file `common_stereo.yaml`.
 The Spatial Mapping can be enabled/disabled manually by calling the services `enable_mapping`.
 
 ### GNSS fusion [not available for monocular cameras]
@@ -224,8 +224,8 @@ The services `toLL` and `fromLL` can be used to convert Latitude/Longitude coord
 
 ### 2D mode [not available for monocular cameras]
 
-For robots moving on a planar surface, it is possible to activate the "2D mode" (parameter `pos_tracking/two_d_mode` in `common.yaml`). 
-The value of the coordinate Z for odometry and pose will have a fixed value (parameter `pos_tracking/fixed_z_value` in `common.yaml`). 
+For robots moving on a planar surface, it is possible to activate the "2D mode" (parameter `pos_tracking/two_d_mode` in `common_stereo.yaml`). 
+The value of the coordinate Z for odometry and pose will have a fixed value (parameter `pos_tracking/fixed_z_value` in `common_stereo.yaml`). 
 Roll, Pitch, and the relative velocities will be fixed to zero.
 
 ## Examples and Tutorials

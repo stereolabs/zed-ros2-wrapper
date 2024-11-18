@@ -260,7 +260,7 @@ void ZedCameraOne::getGeneralParams()
   getParam("general.camera_name", _cameraName, _cameraName, " * Camera name: ");
   getParam(
     "general.serial_number", _camSerialNumber, _camSerialNumber,
-    " * Camera SN: ");
+    " * Camera SN: "); 
   getParam(
     "general.camera_timeout_sec", _openTimeout_sec, _openTimeout_sec,
     " * Camera timeout [sec]: ", false, 1, 60);
@@ -322,11 +322,6 @@ void ZedCameraOne::getGeneralParams()
   getParam(
     "general.optional_opencv_calibration_file", _opencvCalibFile,
     _opencvCalibFile, " * OpenCV custom calibration: ");
-
-  getParam(
-    "general.self_calib", _cameraSelfCalib, _cameraSelfCalib,
-    " * Camera self calibration: ");
-  getParam("general.camera_flip", _cameraFlip, _cameraFlip, " * Camera flip: ");
 }
 
 void ZedCameraOne::getSensorsParams()

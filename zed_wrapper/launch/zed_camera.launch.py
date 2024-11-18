@@ -40,9 +40,9 @@ from launch_ros.descriptions import ComposableNode
 default_config_common = os.path.join(
     get_package_share_directory('zed_wrapper'),
     'config',
-    'common.yaml'
+    'common'
 )
-
+    
 # FFMPEG Configuration to be loaded by ZED Node
 default_config_ffmpeg = os.path.join(
     get_package_share_directory('zed_wrapper'),
@@ -116,6 +116,21 @@ def launch_setup(context, *args, **kwargs):
         return [
             LogInfo(msg="Please set a positive value for the 'custom_baseline' argument when using a 'virtual' Stereo Camera with two ZED X One devices."),
         ]
+    
+    config_common_path_val = config_common_path.perform(context)
+    if (config_common_path_val == ''):
+        if (camera_model_val == 'zed' or 
+            camera_model_val == 'zedm' or 
+            camera_model_val == 'zed2' or 
+            camera_model_val == 'zed2i' or 
+            camera_model_val == 'zedx' or 
+            camera_model_val == 'zedxm' or
+            camera_model_val == 'virtual'):
+            config_common_path_val = default_config_common + '_stereo.yaml'
+        else:
+            config_common_path_val = default_config_common + '_mono.yaml'
+
+    print('Using common configuration file: ' + config_common_path_val)
 
     config_camera_path = os.path.join(
         get_package_share_directory('zed_wrapper'),
@@ -167,7 +182,7 @@ def launch_setup(context, *args, **kwargs):
 
     node_parameters = [
             # YAML files
-            config_common_path,  # Common parameters
+            config_common_path_val,  # Common parameters
             config_camera_path,  # Camera related parameters
             config_ffmpeg, # FFMPEG parameters
             # Overriding
@@ -254,8 +269,8 @@ def generate_launch_description():
                 description='The name of the zed_wrapper node. All the topic will have the same prefix: `/<camera_name>/<node_name>/`'),
             DeclareLaunchArgument(
                 'config_path',
-                default_value=TextSubstitution(text=default_config_common),
-                description='Path to the YAML configuration file for the camera.'),
+                default_value='',
+                description='Path to the YAML configuration file for the camera. common_stereo.yaml is used by default for stereo cameras, common_mono.yaml for mono cameras.'),
             DeclareLaunchArgument(
                 'ffmpeg_config_path',
                 default_value=TextSubstitution(text=default_config_ffmpeg),
@@ -299,7 +314,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'enable_gnss',
                 default_value='false',
-                description='Enable GNSS fusion to fix positional tracking pose with GNSS data from messages of type `sensor_msgs::msg::NavSatFix`. The fix topic can be customized in `common.yaml`.',
+                description='Enable GNSS fusion to fix positional tracking pose with GNSS data from messages of type `sensor_msgs::msg::NavSatFix`. The fix topic can be customized in `common_stereo.yaml`.',
                 choices=['true', 'false']),
             DeclareLaunchArgument(
                 'gnss_antenna_offset',

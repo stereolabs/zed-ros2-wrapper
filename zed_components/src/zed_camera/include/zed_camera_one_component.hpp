@@ -67,7 +67,8 @@ protected:
   template<typename T>
   void getParam(
     std::string paramName, T defValue, T & outVal,
-    std::string log_info = std::string(), bool dynamic = false, T min = T(), T max = T());
+    std::string log_info = std::string(), bool dynamic = false, 
+    T min = std::numeric_limits<T>::min(), T max = std::numeric_limits<T>::max());
 
   void fillCamInfo(
     const std::shared_ptr<sensor_msgs::msg::CameraInfo> & camInfoMsg,
@@ -212,7 +213,6 @@ private:
   bool _enableHDR = false; // Enable HDR if supported?
   int _openTimeout_sec = 5; // Camera open timeout
   std::string _opencvCalibFile; // Custom OpenCV calibration file
-  bool _cameraSelfCalib = true; // Camera self calibration
   int _sdkVerbose = 0; // SDK verbose level
   int _gpuId = -1; // GPU ID
 

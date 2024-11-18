@@ -1,5 +1,5 @@
-# config/common_yaml
-# Common parameters to Stereolabs ZED and ZED mini cameras
+# config/common_stereo.yaml
+# Common parameters to Stereolabs ZED Stereo cameras
 
 ---
 /**:

@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2024-11-18
+----------
+- Renamed `common.yaml` to `common_stereo.yaml`
+- Added `common_mono.yaml` for monocular cameras
+
 2024-10-28
 ----------
 - Added the new `stereolabs::ZedCameraOne` component to handle ZED X One cameras

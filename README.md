@@ -12,17 +12,17 @@
 
 This package lets you use the ZED stereo cameras with ROS 2. It provides access to the following data:
 
-  - Left and right rectified/unrectified images
-  - Depth data
-  - Colored 3D point cloud
-  - Position and Mapping (with GNSS data fusion)
-  - Sensors data (not available with ZED)
-  - Detected objects (not available with ZED)
-  - Persons skeleton (not available with ZED)
+- Left and right rectified/unrectified images
+- Depth data
+- Colored 3D point cloud
+- Position and Mapping (with GNSS data fusion)
+- Sensors data (not available with ZED)
+- Detected objects (not available with ZED)
+- Persons skeleton (not available with ZED)
 
 [More information](https://www.stereolabs.com/docs/ros2)
 
-![](https://cdn.stereolabs.com/docs/ros/images/PointCloud_Depth_ROS.jpg)
+![Point cloud](https://cdn.stereolabs.com/docs/ros/images/PointCloud_Depth_ROS.jpg)
 
 ## Installation
 
@@ -32,14 +32,14 @@ This package lets you use the ZED stereo cameras with ROS 2. It provides access 
 - [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v4.2 (for older versions support please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - ROS 2 Foxy Fitxroy or ROS 2 Humble Hawksbill: 
-  - [Foxy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html)
+  - [Foxy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html) -> Close to EOL
   - [Humble on Ubuntu 22.04](https://docs.ros.org/en/humble/Installation/Linux-Install-Debians.html)
 
 ### Build the package
 
-The **zed_ros2_wrapper** is a [colcon](http://design.ros2.org/articles/build_tool.html) package. 
+The **zed_ros2_wrapper** is a [colcon](http://design.ros2.org/articles/build_tool.html) package.
 
-> :pushpin: **Note:** If you haven’t set up your colcon workspace yet, please follow this short [tutorial](https://index.ros.org/doc/ros2/Tutorials/Colcon-Tutorial/). 
+> :pushpin: **Note:** If you haven’t set up your colcon workspace yet, please follow this short [tutorial](https://index.ros.org/doc/ros2/Tutorials/Colcon-Tutorial/).
 
 To install the **zed_ros2_wrapper**, open a bash terminal, clone the package from Github, and build it:
 
@@ -70,11 +70,9 @@ source ~/.bashrc
 > ```
 >
 > You can fix the problem by installing the missing `nvidia-cuda-dev` package:
-> 
+>
 > `sudo apt install nvidia-cuda-dev`
-
 > :pushpin: **Note:** The option `--symlink-install` is very important, it allows to use symlinks instead of copying files to the ROS 2 folders during the installation, where possible. Each package in ROS 2 must be installed and all the files used by the nodes must be copied into the installation folders. Using symlinks allows you to modify them in your workspace, reflecting the modification during the next executions without needing to issue a new `colcon build` command. This is true only for all the files that don't need to be compiled (Python scripts, configurations, etc.).
-
 > :pushpin: **Note:** If you are using a different console interface like zsh, you have to change the `source` command as follows: `echo source $(pwd)/install/local_setup.zsh >> ~/.zshrc` and `source ~/.zshrc`.
 
 ## Starting the ZED node
@@ -84,7 +82,7 @@ source ~/.bashrc
 To start the ZED node, open a bash terminal and use the [CLI](https://index.ros.org/doc/ros2/Tutorials/Introspection-with-command-line-tools/) command `ros2 launch`:
 
 ```bash
-$ ros2 launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>
+ros2 launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>
 ```
 
 Replace `<camera_model>` with the model of the camera that you are using: `'zed'`, `'zedm'`, `'zed2'`, `'zed2i'`, `'zedx'`, `'zedxm'`, `'virtual'`,`'zedxonegs'`,`'zedxone4k'`.
@@ -92,13 +90,13 @@ Replace `<camera_model>` with the model of the camera that you are using: `'zed'
 The `zed_camera.launch.py` is Python launch scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/). The parameters for the indicated camera model are loaded from the relative "YAML files".
 A Robot State Publisher node is started to publish the camera static links and joints loaded from the URDF model associated with the camera model.
 
-> :pushpin: **Note:** You can set your own configurations by modifying the parameters in the files **common_stereo.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, **zedxm.yaml**, **zedxonegs.yaml**, and **zedxone4k.yaml**  available in the folder `zed_wrapper/config`.
+> :pushpin: **Note:** You can set your own configurations by modifying the parameters in the files **common_stereo.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, **zedxm.yaml**, **common_mono.yaml**, **zedxonegs.yaml**, and **zedxone4k.yaml**  available in the folder `zed_wrapper/config`.
 
 You can get the list of all the available launch parameters by using the `-s` launch option:
 
 ```bash
-$ ros2 launch zed_wrapper zed_camera.launch.py -s
-$ ros2 launch zed_display_rviz2 display_zed_cam.launch.py -s
+ros2 launch zed_wrapper zed_camera.launch.py -s
+ros2 launch zed_display_rviz2 display_zed_cam.launch.py -s
 ```
 
 For full descriptions of each parameter, follow the complete guide [here](https://www.stereolabs.com/docs/ros2/zed_node#configuration-parameters).
@@ -109,7 +107,7 @@ To start a pre-configured Rviz environment and visualize the data of all ZED cam
 
 You can also quickly check that your depth data is correctly retrieved in rviz with `rviz2 -d ./zed_wrapper/config/rviz2/<your camera model>.rviz`. Be aware that rviz subscribes to numerous ROS topics, which can potentially impact the performance of your application compared to when it runs without rviz.
 
-### Simulation mode [not available for monocular cameras]
+### Simulation mode [not available with monocular cameras]
 
 Launch a standalone ZED ROS 2 node with simulated ZED data as input by using the following command:
 
@@ -117,12 +115,13 @@ Launch a standalone ZED ROS 2 node with simulated ZED data as input by using the
 ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zedx sim_mode:=true
 ```
 
-Launch options: 
-* [Mandatory] `camera_model`: indicates the model of the simulated camera. It's required that this parameter matches the model of the simulated camera. In most case it will be a ZED X, since the first versions of the simulation plugins that we released are simulating this type of device.
-* [Mandatory] `sim_mode`: start the ZED node in simulation mode if `true`.
-* [Optional] `use_sim_time`: force the node to wait for valid messages on the topic `/clock`, and so use the simulation clock as the time reference.
-* [Optional] `sim_address`: set the address of the simulation server. The default is `127.0.0.1` and it's valid if the node runs on the same machine as the simulator.
-* [Optional] `sim_port`: set the port of the simulation server. It must match the value of the field `Streaming Port` of the properties of the `ZED camera streamer` Action Graph node. A different `Streaming Port` value for each camera is required in multi-camera simulations.
+Launch options:
+
+- [Mandatory] `camera_model`: indicates the model of the simulated camera. It's required that this parameter matches the model of the simulated camera. In most case it will be a ZED X, since the first versions of the simulation plugins that we released are simulating this type of device.
+- [Mandatory] `sim_mode`: start the ZED node in simulation mode if `true`.
+- [Optional] `use_sim_time`: force the node to wait for valid messages on the topic `/clock`, and so use the simulation clock as the time reference.
+- [Optional] `sim_address`: set the address of the simulation server. The default is `127.0.0.1` and it's valid if the node runs on the same machine as the simulator.
+- [Optional] `sim_port`: set the port of the simulation server. It must match the value of the field `Streaming Port` of the properties of the `ZED camera streamer` Action Graph node. A different `Streaming Port` value for each camera is required in multi-camera simulations.
 
 You can also start a preconfigured instance of `rviz2` to visualize all the information available in the simulation by using the command:
 
@@ -134,13 +133,13 @@ the `display_zed_cam.launch.py` launch file includes the `zed_camera.launch.py` 
 
 Here's an example of `rviz2` running with the simulated information obtained by placing the ZED camera on a shelf of a simulated warehouse:
 
-![](./images/sim_rviz.jpg)
+![Sim RVIZ2](./images/sim_rviz.jpg)
 
-![](./images/zed_shelves.jpg)
+![Shelves](./images/zed_shelves.jpg)
 
 Supported simulation environments:
 
-* [NVIDIA Omniverse Isaac Sim](https://www.stereolabs.com/docs/isaac-sim/)
+- [NVIDIA Omniverse Isaac Sim](https://www.stereolabs.com/docs/isaac-sim/)
 
 ## More features
 
@@ -188,16 +187,16 @@ Please refer to the [Ultralytics documentation](https://github.com/ultralytics/u
 
 Modify the `common_stereo.yaml` parameters to match your configuration:
 
-* set `object_detection.model` to `CUSTOM_YOLOLIKE_BOX_OBJECTS`
-* set `object_detection.custom_onnx_file` to the full path of your custom ONNX file
-* set `object_detection.onnx_input_size` to the size of the YOLO input tensor, e.g. 640
-* set `object_detection.custom_label_yaml` to the full path of your YAML file storing class labels in [COCO format](https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml)
+- set `object_detection.model` to `CUSTOM_YOLOLIKE_BOX_OBJECTS`
+- set `object_detection.custom_onnx_file` to the full path of your custom ONNX file
+- set `object_detection.onnx_input_size` to the size of the YOLO input tensor, e.g. 640
+- set `object_detection.custom_label_yaml` to the full path of your YAML file storing class labels in [COCO format](https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml)
 
-**Note:** the first time the custom model is used, the ZED SDK optimizes it to get the best performance from the GPU installed on the host. Please wait for the optimization to complete. When using Docker, we recommend using a shared volume to store the optimized file on the host and perform the optimization only once.
+> :pushpin: **Note:** the first time the custom model is used, the ZED SDK optimizes it to get the best performance from the GPU installed on the host. Please wait for the optimization to complete. When using Docker, we recommend using a shared volume to store the optimized file on the host and perform the optimization only once.
 
 Console log while optimization is running:
 
-```
+```bash
 [zed_wrapper-3] [INFO] [1729184874.634985183] [zed.zed_node]: *** Starting Object Detection ***
 [zed_wrapper-3] [2024-10-17 17:07:55 UTC][ZED][INFO] Please wait while the AI model is being optimized for your graphics card
 [zed_wrapper-3]  This operation will be run only once and may take a few minutes 
@@ -235,15 +234,15 @@ See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-
 
 ### RVIZ2 visualization examples
 
- - Example launch files to start a preconfigured instance of Rviz displaying all the ZED Wrapper node information: [zed_display_rviz2](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
- - ROS 2 plugin for ZED2 to visualize the results of the Object Detection and Body Tracking modules (bounding boxes and skeletons): [rviz-plugin-zed-od](https://github.com/stereolabs/zed-ros2-examples/tree/master/rviz-plugin-zed-od)
+- Example launch files to start a preconfigured instance of Rviz displaying all the ZED Wrapper node information: [zed_display_rviz2](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
+- ROS 2 plugin for ZED2 to visualize the results of the Object Detection and Body Tracking modules (bounding boxes and skeletons): [rviz-plugin-zed-od](https://github.com/stereolabs/zed-ros2-examples/tree/master/rviz-plugin-zed-od)
 
 ### Tutorials
 
- - [Images subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_video_tutorial)
- - [Depth subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_depth_tutorial)
- - [Pose/Odometry subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_pose_tutorial)
- - [ROS 2 Composition + BGRA2BGR conversion tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_rgb_convert)
+- [Images subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_video_tutorial)
+- [Depth subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_depth_tutorial)
+- [Pose/Odometry subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_pose_tutorial)
+- [ROS 2 Composition + BGRA2BGR conversion tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_rgb_convert)
 
 ## Update the local repository
 
@@ -266,4 +265,4 @@ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --paralle
 
 ## Known issues
 
-Nothing
+- ZED X Mono node does not support **SVO** and **Streaming** input with ZED SDK v4.2.2. They will be enabled with future versions.

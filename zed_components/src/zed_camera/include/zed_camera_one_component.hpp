@@ -67,7 +67,7 @@ protected:
   template<typename T>
   void getParam(
     std::string paramName, T defValue, T & outVal,
-    std::string log_info = std::string(), bool dynamic = false, 
+    std::string log_info = std::string(), bool dynamic = false,
     T min = std::numeric_limits<T>::min(), T max = std::numeric_limits<T>::max());
 
   void fillCamInfo(

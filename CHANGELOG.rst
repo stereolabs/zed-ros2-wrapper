@@ -5,12 +5,13 @@ LATEST CHANGES
 ----------
 - Renamed `common.yaml` to `common_stereo.yaml`
 - Added `common_mono.yaml` for monocular cameras
+- Added `video.enable_hdr` to `zedxone4k.yaml` for monocular 4K cameras
 
 2024-10-28
 ----------
 - Added the new `stereolabs::ZedCameraOne` component to handle ZED X One cameras
 - Removed the ZED Wrapper executable node.
-  * Modified the launch file to create an isolated composable container that loads the `stereolabs:ZedCamera` or the `stereolabs:ZedCameraOne` component
+  * Modified the launch file to create an isolated composable container that loads the `stereolabs:ZedCamera` or the `stereolabs:ZedCameraOne` component according to the camera model  
 
 2024-10-18
 ----------

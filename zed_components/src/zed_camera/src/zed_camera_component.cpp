@@ -1151,9 +1151,10 @@ void ZedCamera::getDepthParams()
   }
 
   if (!matched) {
-    RCLCPP_WARN(get_logger(),
-                "The parameter 'depth.depth_mode' contains a not valid string. "
-                "Please check it in 'common_stereo.yaml'.");
+    RCLCPP_WARN(
+      get_logger(),
+      "The parameter 'depth.depth_mode' contains a not valid string. "
+      "Please check it in 'common_stereo.yaml'.");
     RCLCPP_WARN(get_logger(), "Using default DEPTH_MODE.");
     mDepthMode = sl::DEPTH_MODE::PERFORMANCE;
   }

@@ -22,7 +22,7 @@ This package lets you use the ZED stereo cameras with ROS 2. It provides access 
 
 [More information](https://www.stereolabs.com/docs/ros2)
 
-![Point cloud](https://cdn.stereolabs.com/docs/ros/images/PointCloud_Depth_ROS.jpg)
+![Point_cloud](./images/PointCloud_Depth_ROS.jpg)
 
 ## Installation
 

@@ -277,7 +277,7 @@ void ZedCameraOne::getGeneralParams()
     _camResol = sl::RESOLUTION::HD1200;
   } else if (resol == "QHDPLUS") {
     _camResol = sl::RESOLUTION::QHDPLUS;
-  }else if (resol == "HD1080") {
+  } else if (resol == "HD1080") {
     _camResol = sl::RESOLUTION::HD1080;
   } else if (resol == "SVGA") {
     _camResol = sl::RESOLUTION::SVGA;

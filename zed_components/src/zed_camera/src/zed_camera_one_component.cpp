@@ -2034,6 +2034,7 @@ void ZedCameraOne::applyDynamicSettings()
         }
         return false;
       }
+      return true;
     };
   // <---- Set video settings range lambda function
 

@@ -19,15 +19,17 @@ LATEST CHANGES
 ----------
 - Added the new `stereolabs::ZedCameraOne` component to handle ZED X One cameras
 - Removed the ZED Wrapper executable node.
-  * Modified the launch file to create an isolated composable container that loads the `stereolabs:ZedCamera` or the `stereolabs:ZedCameraOne` component according to the camera model  
+
+  - Modified the launch file to create an isolated composable container that loads the `stereolabs:ZedCamera` or the `stereolabs:ZedCameraOne` component according to the camera model  
 
 2024-10-18
 ----------
 - Added support for custom ONNX detection engine (SDK v4.2 required)
-  * Added value `CUSTOM_YOLOLIKE_BOX_OBJECTS` to the `object_detection.model` parameter
-  * Added parameter `object_detection.custom_onnx_file` to set the full path of custom ONNX file
-  * Added parameter `object_detection.onnx_input_size` to set the size of the YOLO input tensor
-  * Added parameter `object_detection.custom_label_yaml` to set the full path to custom YAML file storing class labels in [COCO format](https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml)
+
+  - Added value `CUSTOM_YOLOLIKE_BOX_OBJECTS` to the `object_detection.model` parameter
+  - Added parameter `object_detection.custom_onnx_file` to set the full path of custom ONNX file
+  - Added parameter `object_detection.onnx_input_size` to set the size of the YOLO input tensor
+  - Added parameter `object_detection.custom_label_yaml` to set the full path to custom YAML file storing class labels in [COCO format](https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml)
 
 v4.1.x
 ------

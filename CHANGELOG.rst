@@ -1,11 +1,19 @@
 LATEST CHANGES
 ==============
 
+2024-11-19
+----------
+- Added new `sl::ZedCameraOne` component to handle ZED X One cameras
+
 2024-11-18
 ----------
 - Renamed `common.yaml` to `common_stereo.yaml`
 - Added `common_mono.yaml` for monocular cameras
 - Added `video.enable_hdr` to `zedxone4k.yaml` for monocular 4K cameras
+
+2024-11-12
+----------
+- Changed the name of the package `zed_interfaces` to `zed_msgs` to match the ROS2 naming convention
 
 2024-10-28
 ----------

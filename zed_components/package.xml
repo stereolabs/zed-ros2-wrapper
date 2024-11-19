@@ -11,7 +11,7 @@
 	<url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
 	<buildtool_depend>ament_cmake</buildtool_depend>
 	<build_depend>ament_cmake_auto</build_depend>
-	<build_depend>zed_interfaces</build_depend>
+<build_depend>zed_msgs</build_depend>
 	<build_depend>rclcpp</build_depend>
 	<build_depend>rclcpp_components</build_depend>
 	<build_depend>rcutils</build_depend>
@@ -34,7 +34,7 @@
 	<build_depend>visualization_msgs</build_depend>
 	<build_depend>robot_localization</build_depend>
 	<exec_depend>launch_ros</exec_depend>
-	<exec_depend>zed_interfaces</exec_depend>
+<exec_depend>zed_msgs</exec_depend>
 	<exec_depend>rclcpp</exec_depend>
 	<exec_depend>rclcpp_components</exec_depend>
 	<exec_depend>rcutils</exec_depend>

@@ -266,7 +266,7 @@ void ZedCamera::initServices()
     RCLCPP_INFO(get_logger(), " * '%s'", mResetPosTrkSrv->get_service_name());
     // Set Pose
     srv_name = srv_prefix + mSrvSetPoseName;
-    mSetPoseSrv = create_service<zed_interfaces::srv::SetPose>(
+    mSetPoseSrv = create_service<zed_msgs::srv::SetPose>(
       srv_name, std::bind(&ZedCamera::callback_setPose, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mSetPoseSrv->get_service_name());
     // Enable Object Detection
@@ -296,7 +296,7 @@ void ZedCamera::initServices()
   RCLCPP_INFO(get_logger(), " * '%s'", mEnableStreamingSrv->get_service_name());
   // Start SVO Recording
   srv_name = srv_prefix + mSrvStartSvoRecName;
-  mStartSvoRecSrv = create_service<zed_interfaces::srv::StartSvoRec>(
+  mStartSvoRecSrv = create_service<zed_msgs::srv::StartSvoRec>(
     srv_name, std::bind(&ZedCamera::callback_startSvoRec, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", mStartSvoRecSrv->get_service_name());
   // Stop SVO Recording
@@ -314,7 +314,7 @@ void ZedCamera::initServices()
   }
   // Set ROI
   srv_name = srv_prefix + mSrvSetRoiName;
-  mSetRoiSrv = create_service<zed_interfaces::srv::SetROI>(
+  mSetRoiSrv = create_service<zed_msgs::srv::SetROI>(
     srv_name, std::bind(&ZedCamera::callback_setRoi, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", mSetRoiSrv->get_service_name());
   // Reset ROI
@@ -3519,7 +3519,7 @@ void ZedCamera::initPublishers()
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Advertised on topic: " << mPubDepth.getInfoTopic());
-    mPubDepthInfo = create_publisher<zed_interfaces::msg::DepthInfoStamped>(
+    mPubDepthInfo = create_publisher<zed_msgs::msg::DepthInfoStamped>(
       depth_info_topic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(
       get_logger(), "Advertised on topic: "
@@ -3582,7 +3582,7 @@ void ZedCamera::initPublishers()
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Advertised on topic: " << mPubPose->get_topic_name());
-    mPubPoseStatus = create_publisher<zed_interfaces::msg::PosTrackStatus>(
+    mPubPoseStatus = create_publisher<zed_msgs::msg::PosTrackStatus>(
       mPoseStatusTopic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(
       get_logger(), "Advertised on topic: "
@@ -3614,8 +3614,7 @@ void ZedCamera::initPublishers()
       RCLCPP_INFO_STREAM(
         get_logger(), "Advertised on topic (GNSS): "
           << mPubGnssPose->get_topic_name());
-      mPubGnssPoseStatus =
-        create_publisher<zed_interfaces::msg::GnssFusionStatus>(
+      mPubGnssPoseStatus = create_publisher<zed_msgs::msg::GnssFusionStatus>(
         mGnssPoseStatusTopic, mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(),
@@ -3625,8 +3624,7 @@ void ZedCamera::initPublishers()
       RCLCPP_INFO_STREAM(
         get_logger(), "Advertised on topic (GNSS): "
           << mPubGeoPose->get_topic_name());
-      mPubGeoPoseStatus =
-        create_publisher<zed_interfaces::msg::GnssFusionStatus>(
+      mPubGeoPoseStatus = create_publisher<zed_msgs::msg::GnssFusionStatus>(
         mGeoPoseStatusTopic, mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(),
@@ -3676,8 +3674,9 @@ void ZedCamera::initPublishers()
       get_logger(),
       "Advertised on topic: " << mPubMarker->get_topic_name());
     // Detected planes publisher
-    mPubPlane = create_publisher<zed_interfaces::msg::PlaneStamped>(
-      plane_topic, mQos, mPubOpt);
+    mPubPlane = create_publisher<zed_msgs::msg::PlaneStamped>(
+      plane_topic, mQos,
+      mPubOpt);
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Advertised on topic: " << mPubPlane->get_topic_name());
@@ -3882,7 +3881,7 @@ bool ZedCamera::startCamera()
   mInitParams.sdk_verbose = mVerbose;
   mInitParams.sdk_gpu_id = mGpuId;
   mInitParams.depth_stabilization = mDepthStabilization;
-  mInitParams.camera_image_flip = (mCameraFlip?sl::FLIP_MODE::ON:sl::FLIP_MODE::OFF);
+  mInitParams.camera_image_flip = (mCameraFlip ? sl::FLIP_MODE::ON : sl::FLIP_MODE::OFF);
   mInitParams.depth_minimum_distance = mCamMinDepth;
   mInitParams.depth_maximum_distance = mCamMaxDepth;
 
@@ -5165,7 +5164,7 @@ bool ZedCamera::startObjDetect()
   }
 
   if (!mPubObjDet) {
-    mPubObjDet = create_publisher<zed_interfaces::msg::ObjectsStamped>(
+    mPubObjDet = create_publisher<zed_msgs::msg::ObjectsStamped>(
       mObjectDetTopic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -5186,8 +5185,7 @@ void ZedCamera::stopObjDetect()
 
     // ----> Send an empty message to indicate that no more objects are tracked
     // (e.g clean RVIZ2)
-    objDetMsgPtr objMsg =
-      std::make_unique<zed_interfaces::msg::ObjectsStamped>();
+    objDetMsgPtr objMsg = std::make_unique<zed_msgs::msg::ObjectsStamped>();
 
     objMsg->header.stamp = mFrameTimestamp;
     objMsg->header.frame_id = mLeftCamFrameId;
@@ -5275,7 +5273,7 @@ bool ZedCamera::startBodyTracking()
   DEBUG_BT("Body Tracking enabled");
 
   if (!mPubBodyTrk) {
-    mPubBodyTrk = create_publisher<zed_interfaces::msg::ObjectsStamped>(
+    mPubBodyTrk = create_publisher<zed_msgs::msg::ObjectsStamped>(
       mBodyTrkTopic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -5298,8 +5296,7 @@ void ZedCamera::stopBodyTracking()
 
     // ----> Send an empty message to indicate that no more objects are tracked
     // (e.g clean RVIZ2)
-    objDetMsgPtr objMsg =
-      std::make_unique<zed_interfaces::msg::ObjectsStamped>();
+    objDetMsgPtr objMsg = std::make_unique<zed_msgs::msg::ObjectsStamped>();
 
     objMsg->header.stamp = mFrameTimestamp;
     objMsg->header.frame_id = mLeftCamFrameId;
@@ -7367,7 +7364,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // ----> Publish the depth info if someone has subscribed to
   if (mDepthInfoSubCount > 0) {
     depthInfoMsgPtr depthInfoMsg =
-      std::make_unique<zed_interfaces::msg::DepthInfoStamped>();
+      std::make_unique<zed_msgs::msg::DepthInfoStamped>();
     depthInfoMsg->header.stamp = timeStamp;
     depthInfoMsg->header.frame_id = mDepthOptFrameId;
     depthInfoMsg->min_depth = mMinDepth;
@@ -7725,8 +7722,7 @@ void ZedCamera::publishPoseStatus()
   }
 
   if (statusSub > 0) {
-    poseStatusMsgPtr msg =
-      std::make_unique<zed_interfaces::msg::PosTrackStatus>();
+    poseStatusMsgPtr msg = std::make_unique<zed_msgs::msg::PosTrackStatus>();
     msg->odometry_status = static_cast<uint8_t>(mPosTrackingStatus.odometry_status);
     msg->spatial_memory_status = static_cast<uint8_t>(mPosTrackingStatus.spatial_memory_status);
 
@@ -7754,7 +7750,8 @@ void ZedCamera::publishGnssPoseStatus()
   }
 
   if (statusSub > 0) {
-    gnssFusionStatusMsgPtr msg = std::make_unique<zed_interfaces::msg::GnssFusionStatus>();
+    gnssFusionStatusMsgPtr msg =
+      std::make_unique<zed_msgs::msg::GnssFusionStatus>();
 
     msg->gnss_fusion_status = static_cast<uint8_t>(mFusedPosTrackingStatus.gnss_fusion_status);
 
@@ -7783,7 +7780,7 @@ void ZedCamera::publishGeoPoseStatus()
 
   if (statusSub > 0) {
     gnssFusionStatusMsgPtr msg =
-      std::make_unique<zed_interfaces::msg::GnssFusionStatus>();
+      std::make_unique<zed_msgs::msg::GnssFusionStatus>();
 
     msg->gnss_fusion_status =
       static_cast<uint8_t>(mFusedPosTrackingStatus.gnss_fusion_status);
@@ -8278,8 +8275,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   size_t objCount = objects.object_list.size();
 
-  objDetMsgPtr objMsg =
-    std::make_unique<zed_interfaces::msg::ObjectsStamped>();
+  objDetMsgPtr objMsg = std::make_unique<zed_msgs::msg::ObjectsStamped>();
 
   objMsg->header.stamp = t;
   objMsg->header.frame_id = mLeftCamFrameId;
@@ -8420,8 +8416,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
 
   DEBUG_STREAM_BT("Detected " << bodyCount << " bodies");
 
-  objDetMsgPtr bodyMsg =
-    std::make_unique<zed_interfaces::msg::ObjectsStamped>();
+  objDetMsgPtr bodyMsg = std::make_unique<zed_msgs::msg::ObjectsStamped>();
 
   bodyMsg->header.stamp = t;
   bodyMsg->header.frame_id = mLeftCamFrameId;
@@ -9567,8 +9562,8 @@ void ZedCamera::callback_resetPosTracking(
 
 void ZedCamera::callback_setPose(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
-  std::shared_ptr<zed_interfaces::srv::SetPose_Response> res)
+  const std::shared_ptr<zed_msgs::srv::SetPose_Request> req,
+  std::shared_ptr<zed_msgs::srv::SetPose_Response> res)
 {
   (void)request_header;
 
@@ -9829,8 +9824,8 @@ void ZedCamera::callback_enableStreaming(
 
 void ZedCamera::callback_startSvoRec(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
-  std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res)
+  const std::shared_ptr<zed_msgs::srv::StartSvoRec_Request> req,
+  std::shared_ptr<zed_msgs::srv::StartSvoRec_Response> res)
 {
   (void)request_header;
 
@@ -10796,8 +10791,7 @@ void ZedCamera::callback_clickedPoint(
   if (planeSubCount > 0) {
     // ----> Publish the plane as custom message
 
-    planeMsgPtr planeMsg =
-      std::make_unique<zed_interfaces::msg::PlaneStamped>();
+    planeMsgPtr planeMsg = std::make_unique<zed_msgs::msg::PlaneStamped>();
     planeMsg->header.stamp = ts;
     planeMsg->header.frame_id = mLeftCamFrameId;
 
@@ -10881,8 +10875,8 @@ void ZedCamera::callback_clickedPoint(
 
 void ZedCamera::callback_setRoi(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  const std::shared_ptr<zed_interfaces::srv::SetROI_Request> req,
-  std::shared_ptr<zed_interfaces::srv::SetROI_Response> res)
+  const std::shared_ptr<zed_msgs::srv::SetROI_Request> req,
+  std::shared_ptr<zed_msgs::srv::SetROI_Response> res)
 {
   (void)request_header;
 

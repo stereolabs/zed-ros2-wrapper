@@ -101,8 +101,8 @@ protected:
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_setPose(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<zed_interfaces::srv::SetPose_Request> req,
-    std::shared_ptr<zed_interfaces::srv::SetPose_Response> res);
+    const std::shared_ptr<zed_msgs::srv::SetPose_Request> req,
+    std::shared_ptr<zed_msgs::srv::SetPose_Response> res);
   void callback_enableObjDet(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
@@ -121,8 +121,8 @@ protected:
     std::shared_ptr<std_srvs::srv::SetBool_Response> res);
   void callback_startSvoRec(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
-    std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
+    const std::shared_ptr<zed_msgs::srv::StartSvoRec_Request> req,
+    std::shared_ptr<zed_msgs::srv::StartSvoRec_Response> res);
   void callback_stopSvoRec(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
@@ -137,8 +137,8 @@ protected:
   void callback_clock(const rosgraph_msgs::msg::Clock::SharedPtr msg);
   void callback_setRoi(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<zed_interfaces::srv::SetROI_Request> req,
-    std::shared_ptr<zed_interfaces::srv::SetROI_Response> res);
+    const std::shared_ptr<zed_msgs::srv::SetROI_Request> req,
+    std::shared_ptr<zed_msgs::srv::SetROI_Response> res);
   void callback_resetRoi(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,

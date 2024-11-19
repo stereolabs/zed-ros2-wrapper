@@ -1,10 +1,6 @@
 LATEST CHANGES
 ==============
 
-2024-11-19
-----------
-- Added new `sl::ZedCameraOne` component to handle ZED X One cameras
-
 2024-11-18
 ----------
 - Renamed `common.yaml` to `common_stereo.yaml`

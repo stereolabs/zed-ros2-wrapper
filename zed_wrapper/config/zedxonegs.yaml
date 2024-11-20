@@ -1,5 +1,5 @@
 # config/zedxonegs.yaml
-# Parameters for Stereolabs ZED X One 4K camera
+# Parameters for Stereolabs ZED X One GS camera
 ---
 /**:
     ros__parameters:

@@ -234,11 +234,18 @@ def launch_setup(context, *args, **kwargs):
         )
 
     # ROS 2 Component Container
+    distro = os.environ['ROS_DISTRO']
+    if distro == 'foxy':
+        # Foxy does not support the isolated mode
+        container_exec='component_container'
+    else:
+        container_exec='component_container_isolated'
+    
     zed_container = ComposableNodeContainer(
             name='zed_container',
             namespace=camera_name_val,
             package='rclcpp_components',
-            executable='component_container_isolated',
+            executable=container_exec,
             composable_node_descriptions=[
                 zed_wrapper_component
             ],

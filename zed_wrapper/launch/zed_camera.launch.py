@@ -223,7 +223,7 @@ def launch_setup(context, *args, **kwargs):
             parameters=node_parameters,
             extra_arguments=[{'use_intra_process_comms': True}]
         )
-    else: # 'zedxonegx' or 'zedxone4k')
+    else: # 'zedxonegs' or 'zedxone4k')
         zed_wrapper_component = ComposableNode(
             package='zed_components',
             namespace=camera_name_val,

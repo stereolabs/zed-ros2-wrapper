@@ -10,15 +10,16 @@
 
 <hr>
 
-This package lets you use the ZED stereo cameras with ROS 2. It provides access to the following data:
+This package enables the use of ZED cameras with ROS 2, providing access to a variety of data types, including:
 
-- Left and right rectified/unrectified images
+- Color and grayscale images, both rectified and unrectified
 - Depth data
-- Colored 3D point cloud
-- Position and Mapping (with GNSS data fusion)
-- Sensors data (not available with ZED)
-- Detected objects (not available with ZED)
-- Persons skeleton (not available with ZED)
+- Colored 3D point clouds
+- Position and mapping, with optional GNSS data fusion
+- Sensor data
+- Detected objects
+- Human skeleton data
+- And more...
 
 [More information](https://www.stereolabs.com/docs/ros2)
 
@@ -31,7 +32,7 @@ This package lets you use the ZED stereo cameras with ROS 2. It provides access 
 - [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/) or [Ubuntu 22.04 (Jammy Jellyfish)](https://releases.ubuntu.com/jammy/)
 - [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v4.2 (for older versions support please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
-- ROS 2 Foxy Fitxroy or ROS 2 Humble Hawksbill: 
+- ROS 2 Foxy Fitzroy or ROS 2 Humble Hawksbill: 
   - [Foxy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html) -> Close to EOL
   - [Humble on Ubuntu 22.04](https://docs.ros.org/en/humble/Installation/Linux-Install-Debians.html)
 
@@ -108,7 +109,9 @@ To start a pre-configured Rviz environment and visualize the data of all ZED cam
 
 You can also quickly check that your depth data is correctly retrieved in rviz with `rviz2 -d ./zed_wrapper/config/rviz2/<your camera model>.rviz`. Be aware that rviz subscribes to numerous ROS topics, which can potentially impact the performance of your application compared to when it runs without rviz.
 
-### Simulation mode [not available with monocular cameras]
+### Simulation mode
+
+> :pushpin: **Note:** This feature is incompatible with the ZED X One and the older first-generation ZED cameras.
 
 Launch a standalone ZED ROS 2 node with simulated ZED data as input by using the following command:
 
@@ -149,12 +152,16 @@ Supported simulation environments:
 [SVO recording](https://www.stereolabs.com/docs/video/recording/) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.
 [More information](https://www.stereolabs.com/docs/ros2/zed_node/#services)
 
-### Object Detection [not available for monocular cameras]
+### Object Detection
 
-The Object Detection can be enabled *automatically* when the node start by setting the parameter `object_detection/od_enabled` to `true` in the file `common_stereo.yaml`.
+> :pushpin: **Note:** This feature is incompatible with the ZED X One and the older first-generation ZED cameras.
+
+Object Detection can be enabled *automatically* when the node starts by setting the parameter `object_detection/od_enabled` to `true` in the file `common_stereo.yaml`.
 The Object Detection can be enabled/disabled *manually* by calling the services `enable_obj_det`.
 
-### Custom Object Detection with YOLO-like ONNX model file [not available for monocular cameras]
+### Custom Object Detection with YOLO-like ONNX model file
+
+> :pushpin: **Note:** This feature is incompatible with the ZED X One and the older first-generation ZED cameras.
 
 Object Detection inference can be performed using a **custom inference engine** in YOLO-like ONNX format.
 
@@ -178,7 +185,7 @@ Export an ONNX file from a YOLO model (more info [here](https://docs.ultralytics
 yolo export model=yolo11n.pt format=onnx simplify=True dynamic=False imgsz=640
 ```
 
-For a custom trained YOLO model the weight file can be changed, for example:
+For a custom-trained YOLO model, the weight file can be changed, for example:
 
 ```bash
 yolo export model=yolov8l_custom_model.pt format=onnx simplify=True dynamic=False imgsz=512
@@ -193,7 +200,7 @@ Modify the `common_stereo.yaml` parameters to match your configuration:
 - set `object_detection.onnx_input_size` to the size of the YOLO input tensor, e.g. 640
 - set `object_detection.custom_label_yaml` to the full path of your YAML file storing class labels in [COCO format](https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml)
 
-> :pushpin: **Note:** the first time the custom model is used, the ZED SDK optimizes it to get the best performance from the GPU installed on the host. Please wait for the optimization to complete. When using Docker, we recommend using a shared volume to store the optimized file on the host and perform the optimization only once.
+> :pushpin: **Note:** The first time the custom model is used, the ZED SDK optimizes it to get the best performance from the GPU installed on the host. Please wait for the optimization to complete. When using Docker, we recommend using a shared volume to store the optimized file on the host and perform the optimization only once.
 
 Console log while optimization is running:
 
@@ -203,34 +210,40 @@ Console log while optimization is running:
 [zed_wrapper-3]  This operation will be run only once and may take a few minutes 
 ```
 
-### Body Tracking [not available for monocular cameras]
+### Body Tracking
+
+> :pushpin: **Note:** This feature is incompatible with the ZED X One and the older first-generation ZED cameras.
 
 The Body Tracking can be enabled *automatically* when the node starts by setting the parameter `body_tracking/bt_enabled` to `true` in the file `common_stereo.yaml`.
 
-*The Object Detection module is not available on the very first generation of ZED cameras.*
+### Spatial Mapping
 
-### Spatial Mapping [not available for monocular cameras]
+> :pushpin: **Note:** This feature is incompatible with the ZED X One camera.
 
 The Spatial Mapping can be enabled automatically when the node starts setting the parameter `mapping/mapping_enabled` to `true` in the file `common_stereo.yaml`.
-The Spatial Mapping can be enabled/disabled manually by calling the services `enable_mapping`.
+The Spatial Mapping can be enabled/disabled manually by calling the service `enable_mapping`.
 
-### GNSS fusion [not available for monocular cameras]
+### GNSS fusion
+
+> :pushpin: **Note:** This feature is incompatible with the ZED X One camera.
 
 The ZED ROS 2 Wrapper can subscribe to a `NavSatFix` topic and fuse GNSS data information
 with Positional Tracking information to obtain a precise robot localization referred to Earth coordinates.
 To enable GNSS fusion set the parameter `gnss_fusion.gnss_fusion_enabled` to `true`.
-It is important that you set the correct `gnss_frame` parameter when launching the node, e.g. `gnss_frame:='gnss_link'`.
+You must set the correct `gnss_frame` parameter when launching the node, e.g. `gnss_frame:='gnss_link'`.
 The services `toLL` and `fromLL` can be used to convert Latitude/Longitude coordinates to robot `map` coordinates.
 
-### 2D mode [not available for monocular cameras]
+### 2D mode
 
-For robots moving on a planar surface, it is possible to activate the "2D mode" (parameter `pos_tracking/two_d_mode` in `common_stereo.yaml`). 
+> :pushpin: **Note:** This feature is incompatible with the ZED X One camera.
+
+For robots moving on a planar surface, activating the "2D mode" (parameter `pos_tracking/two_d_mode` in `common_stereo.yaml`) is possible. 
 The value of the coordinate Z for odometry and pose will have a fixed value (parameter `pos_tracking/fixed_z_value` in `common_stereo.yaml`). 
 Roll, Pitch, and the relative velocities will be fixed to zero.
 
 ## Examples and Tutorials
 
-Examples and tutorials are provided to better understand how to use the ZED wrapper and how to integrate it in the ROS 2 framework.
+Examples and tutorials are provided to better understand how to use the ZED wrapper and how to integrate it into the ROS 2 framework.
 See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples)
 
 ### RVIZ2 visualization examples
@@ -240,10 +253,22 @@ See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-
 
 ### Tutorials
 
-- [Images subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_video_tutorial)
-- [Depth subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_depth_tutorial)
-- [Pose/Odometry subscription tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_pose_tutorial)
-- [ROS 2 Composition + BGRA2BGR conversion tutorial](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_rgb_convert)
+A series of tutorials are provided to better understand how to use the ZED nodes in the ROS2 environment :
+
+- [Video subscribing](./zed_video_tutorial): `zed_video_tutorial` - in this tutorial, you will learn how to write a simple node that subscribes to messages of type `sensor_msgs/Image` to retrieve the Left and Right rectified images published by the ZED node.
+- [Depth subscribing](./zed_depth_tutorial): `zed_depth_tutorial` - in this tutorial, you will learn how to write a simple node that subscribes to messages of type `sensor_msgs/Image` to retrieve the depth images published by the ZED node and to get the measured distance at the center of the image.
+- [Pose/Odometry subscribing](./zed_pose_tutorial): `zed_pose_tutorial` - in this tutorial, you will learn how to write a simple node that subscribes to messages of type `geometry_msgs/PoseStamped` and `nav_msgs/Odometry` to retrieve the position and the odometry of the camera while moving in the world.
+- [ROS2 Composition + BGRA2BGR conversion](./zed_rgb_convert): `zed_rgb_convert` - in this tutorial, you will learn how to use the concept of "ROS2 Composition" and "Intra Process Communication" to write a ROS2 component that gets a 4 channel BGRA image as input and re-publishes it as 3 channels BGR image.
+- [ROS2 Multi-Camera](./zed_multi_camera): `zed_multi_camera` - in this tutorial, you will learn how to use the provided launch file to start a multi-camera robot configuration.
+- [Robot integration](./zed_robot_integration): `zed_robot_integration` - in this tutorial, you will learn how to add one or more ZED cameras to a robot configuration.
+
+### Examples
+
+How to use the ZED ROS 2 nodes alongside other ROS 2 packages or advanced features.
+
+- [zed_aruco_localization](./zed_aruco_localization): use localized ArUco tag as a reference for localization.
+- [zed_depth_to_laserscan](./zed_depth_to_laserscan): convert ZED Depth maps into virtual Laser Scans using
+- [zed_custom_od_example](./zed_custom_od_example): use a custom ONNX YOLO detector engine
 
 ## Update the local repository
 
@@ -266,4 +291,4 @@ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --paralle
 
 ## Known issues
 
-- ZED X Mono node does not support **SVO** and **Streaming** input with ZED SDK v4.2.2. They will be enabled with future versions.
+- ZED X One component does not support **SVO** and **Streaming** input with ZED SDK v4.2.2. They will be enabled with future versions.

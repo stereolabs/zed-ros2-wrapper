@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2024-11-27
+----------
+- Fixed 4K resolution support for ZED X One 4K cameras
+- Changed C++ version to 17 to follow ROS 2 Humble standard
+
 2024-11-18
 ----------
 - Renamed `common.yaml` to `common_stereo.yaml`

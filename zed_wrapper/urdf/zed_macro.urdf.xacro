@@ -37,7 +37,7 @@
       <xacro:property name="mono" value="false" />
     </xacro:if>
     <xacro:if value="${model == 'zedm'}">
-      <xacro:property name="baseline" value="0.06" />
+      <xacro:property name="baseline" value="0.063" />
       <xacro:property name="height" value="0.0265" />
       <xacro:property name="bottom_slope" value="0.0" /> 
       <xacro:property name="screw_offset_x" value="0.0" />

@@ -187,7 +187,8 @@ def launch_setup(context, *args, **kwargs):
     zed_right_compressed_topic = PathJoinSubstitution([datahub_name, camera_name, "right", "image_rect_color", "h264"])
 
     encoder_node_left = ComposableNode(
-        name="encoder_zed_rgb_left",
+        name=f"encoder_{camera_name}_rgb_left",
+        namespace=datahub_name,
         package="isaac_ros_h264_encoder",
         plugin="nvidia::isaac_ros::h264_encoder::EncoderNode",
         parameters=[
@@ -203,7 +204,8 @@ def launch_setup(context, *args, **kwargs):
     )
 
     encoder_node_right = ComposableNode(
-        name="encoder_zed_rgb_right",
+        name=f"encoder_{camera_name}_rgb_right",
+        namespace=datahub_name,
         package="isaac_ros_h264_encoder",
         plugin="nvidia::isaac_ros::h264_encoder::EncoderNode",
         parameters=[
@@ -219,8 +221,8 @@ def launch_setup(context, *args, **kwargs):
     )
 
     container = ComposableNodeContainer(
-        namespace="",
-        name="nitros_container",
+        namespace=datahub_name,
+        name=f"nitros_container_{camera_name}",
         package="rclcpp_components",
         executable="component_container_mt",
         composable_node_descriptions=[rsp_node, zed_wrapper_node, encoder_node_left, encoder_node_right],

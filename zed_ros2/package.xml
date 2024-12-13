@@ -1,27 +1,27 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format2.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="2">
-	<name>zed_ros2</name>
-<version>4.2.1</version>
-	<description>Stereolabs zed-ros2-wrapper support meta package</description>
-	<maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
-	<license>Apache License 2.0</license>
-	<url type="website">http://stereolabs.com/</url>
-	<url type="repository">https://github.com/stereolabs/zed-ros2-wrapper</url>
-	<url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
-	<buildtool_depend>ament_cmake</buildtool_depend>
-	<build_depend>ament_cmake_auto</build_depend>
-<exec_depend>zed_msgs</exec_depend>
-	<exec_depend>zed_components</exec_depend>
-	<exec_depend>zed_wrapper</exec_depend>
-	<test_depend>ament_lint_auto</test_depend>
-	<test_depend>ament_cmake_copyright</test_depend>
-	<test_depend>ament_cmake_cppcheck</test_depend>
-	<test_depend>ament_cmake_lint_cmake</test_depend>
-	<test_depend>ament_cmake_pep257</test_depend>
-	<test_depend>ament_cmake_uncrustify</test_depend>
-	<test_depend>ament_cmake_xmllint</test_depend>
-	<export>
-		<build_type>ament_cmake</build_type>
-	</export>
+    <name>zed_ros2</name>
+    <version>4.2.1</version>
+    <description>Stereolabs zed-ros2-wrapper support meta package</description>
+    <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
+    <license>Apache License 2.0</license>
+    <url type="website">http://stereolabs.com/</url>
+    <url type="repository">https://github.com/stereolabs/zed-ros2-wrapper</url>
+    <url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
+    <buildtool_depend>ament_cmake</buildtool_depend>
+    <build_depend>ament_cmake_auto</build_depend>
+    <exec_depend>zed_msgs</exec_depend>
+    <exec_depend>zed_components</exec_depend>
+    <exec_depend>zed_wrapper</exec_depend>
+    <test_depend>ament_lint_auto</test_depend>
+    <test_depend>ament_cmake_copyright</test_depend>
+    <test_depend>ament_cmake_cppcheck</test_depend>
+    <test_depend>ament_cmake_lint_cmake</test_depend>
+    <test_depend>ament_cmake_pep257</test_depend>
+    <test_depend>ament_cmake_uncrustify</test_depend>
+    <test_depend>ament_cmake_xmllint</test_depend>
+    <export>
+        <build_type>ament_cmake</build_type>
+    </export>
 </package>

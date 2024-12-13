@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2024-12-13
+----------
+- Revoved the `zed-ros2-interfaces` sub-module. The `zed_msgs` package is now included in ROS 2 Humble binaries and can be installed with `sudo apt install ros-humble-zed-msgs`.
+
 2024-11-27
 ----------
 - Fixed 4K resolution support for ZED X One 4K cameras

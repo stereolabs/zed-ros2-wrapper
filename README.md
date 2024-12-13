@@ -47,7 +47,7 @@ To install the **zed_ros2_wrapper**, open a bash terminal, clone the package fro
 ```bash
 mkdir -p ~/ros2_ws/src/ # create your workspace if it does not exist
 cd ~/ros2_ws/src/ #use your current ros2 workspace folder
-git clone  --recursive https://github.com/stereolabs/zed-ros2-wrapper.git
+git clone https://github.com/stereolabs/zed-ros2-wrapper.git
 cd ..
 sudo apt update
 rosdep update
@@ -279,7 +279,7 @@ To update the repository to the latest release, use the following command that w
 
 ```bash
 git checkout master # if you are not on the main branch  
-git pull --recurse-submodules # update recursively all the submodules
+git pull 
 ```
 
 Clean the cache of your colcon workspace before compiling with the `colcon build` command to be sure that everything will work as expected:

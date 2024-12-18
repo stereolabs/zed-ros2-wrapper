@@ -181,10 +181,11 @@ def launch_setup(context, *args, **kwargs):
     else:
         raise ValueError(f"Invalid resolution_ID {resolution_ID}")
 
-    zed_left_raw_topic = PathJoinSubstitution([datahub_name, camera_name, "left", "image_rect_color"])
-    zed_left_compressed_topic = PathJoinSubstitution([datahub_name, camera_name, "left", "image_rect_color", "h264"])
-    zed_right_raw_topic = PathJoinSubstitution([datahub_name, camera_name, "right", "image_rect_color"])
-    zed_right_compressed_topic = PathJoinSubstitution([datahub_name, camera_name, "right", "image_rect_color", "h264"])
+    # datahub name comes from namespace
+    zed_left_raw_topic = PathJoinSubstitution([camera_name, "left", "image_rect_color"])
+    zed_left_compressed_topic = PathJoinSubstitution([camera_name, "left", "image_rect_color", "h264"])
+    zed_right_raw_topic = PathJoinSubstitution([camera_name, "right", "image_rect_color"])
+    zed_right_compressed_topic = PathJoinSubstitution([camera_name, "right", "image_rect_color", "h264"])
 
     encoder_node_left = ComposableNode(
         name=f"encoder_{camera_name}_rgb_left",

@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-01-02
+----------
+- Enhanced sensor thread rate due to an automatically adjusting sleep time
+
 2024-12-13
 ----------
 - Revoved the `zed-ros2-interfaces` sub-module. The `zed_msgs` package is now included in ROS 2 Humble binaries and can be installed with `sudo apt install ros-humble-zed-msgs`.

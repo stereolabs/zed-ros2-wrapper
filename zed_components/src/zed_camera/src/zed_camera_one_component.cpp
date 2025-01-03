@@ -315,13 +315,19 @@ void ZedCameraOne::getGeneralParams()
     get_logger(),
     " * Publishing resolution: " << out_resol.c_str());
 
-  if (_pubResolution == PubRes::CUSTOM) {
-    getParam(
-      "general.pub_downscale_factor", _customDownscaleFactor,
-      _customDownscaleFactor, " * Publishing downscale factor: ", false, 0.1, 1.0);
-  } else {
+if (_pubResolution == PubRes::CUSTOM) {
+    // Retrieve the custom downscale factor from parameters.
+    // NOTE: The downscale factor must be >1.0 to enable resolution downscaling
+    // due to how pub_w, pub_h is calculated. The previous range (0.1–1.0) was invalid,
+    // as values <=1.0 do not reduce resolution and may cause unexpected behavior.
+    // Updated valid range: [1.0, 4.0 - other max value].
+    getParam("general.pub_downscale_factor", _customDownscaleFactor,
+             _customDownscaleFactor, " * Publishing downscale factor: ", false, 1.0, 4.0);
+} else {
+    // Use native resolution (no scaling) for non-CUSTOM modes.
     _customDownscaleFactor = 1.0;
-  }
+}
+
 
   getParam(
     "general.optional_opencv_calibration_file", _opencvCalibFile,

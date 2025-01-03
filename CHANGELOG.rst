@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-01-03
+----------
+- Fixed wrong range check for the `general.pub_downscale_factor` parameter
+
 2025-01-02
 ----------
 - Enhanced sensor thread rate due to an automatically adjusting sleep time

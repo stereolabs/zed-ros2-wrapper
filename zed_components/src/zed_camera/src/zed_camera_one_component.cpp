@@ -318,7 +318,7 @@ void ZedCameraOne::getGeneralParams()
   if (_pubResolution == PubRes::CUSTOM) {
     getParam(
       "general.pub_downscale_factor", _customDownscaleFactor,
-      _customDownscaleFactor, " * Publishing downscale factor: ", false, 0.1, 1.0);
+      _customDownscaleFactor, " * Publishing downscale factor: ", false, 1.0, 5.0);
   } else {
     _customDownscaleFactor = 1.0;
   }

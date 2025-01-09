@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2025-01-09
+----------
+- Enabled grayscale output for ZED X One cameras (SDK v4.2.3 required)
+- Enabled streaming input for ZED X One cameras (SDK v4.2.3 required)
+
 2025-01-03
 ----------
 - Fixed wrong range check for the `general.pub_downscale_factor` parameter
@@ -11,7 +16,7 @@ LATEST CHANGES
 
 2024-12-13
 ----------
-- Revoved the `zed-ros2-interfaces` sub-module. The `zed_msgs` package is now included in ROS 2 Humble binaries and can be installed with `sudo apt install ros-humble-zed-msgs`.
+- Removed the `zed-ros2-interfaces` sub-module. The `zed_msgs` package is now included in ROS 2 Humble binaries and can be installed with `sudo apt install ros-humble-zed-msgs`.
 
 2024-11-27
 ----------

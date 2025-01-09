@@ -185,7 +185,7 @@ protected:
   void publishTFs(rclcpp::Time t);
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
-  rclcpp::Time publishSensorsData(rclcpp::Time t = TIMEZERO_ROS);
+  bool publishSensorsData(rclcpp::Time force_ts = TIMEZERO_ROS);
   // <---- Publishing functions
 
   // ----> Utility functions
@@ -681,6 +681,7 @@ private:
   rclcpp::TimerBase::SharedPtr
     mTempPubTimer;    // Timer to retrieve and publish CMOS temperatures
   rclcpp::TimerBase::SharedPtr mGnssPubCheckTimer;
+  double mSensRateComp = 1.0;
   // <---- Threads and Timers
 
   // ----> Thread Sync

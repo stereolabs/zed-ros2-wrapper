@@ -4574,9 +4574,9 @@ bool ZedCamera::startCamera()
   mBodyTrkPeriodMean_sec =
     std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
   mBodyTrkElabMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
-  mImuPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
-  mBaroPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
-  mMagPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
+  mImuPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(20);
+  mBaroPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(20);
+  mMagPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(20);
   mPubFusedCloudPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mPcPubRate);
   mPubOdomTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
   mPubPoseTF_sec = std::make_unique<sl_tools::WinAvg>(mSensPubRate);
@@ -6106,7 +6106,7 @@ void ZedCamera::threadFunc_zedGrab()
         if (!sl_tools::isZED(mCamRealModel) && mVdPublishing &&
           pub_ts != TIMEZERO_ROS)
         {
-          if (mSensCameraSync || mSvoMode || mSimMode) {
+          if (mSensCameraSync) {
             publishSensorsData(pub_ts);
           }
         }
@@ -6211,16 +6211,16 @@ void ZedCamera::threadFunc_zedGrab()
   DEBUG_STREAM_COMM("Grab thread finished");
 }
 
-rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
+bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 {
   if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
     DEBUG_SENS("Camera not ready");
     rclcpp::sleep_for(1s);
-    return TIMEZERO_ROS;
+    return false;
   }
 
   // ----> Subscribers count
-  DEBUG_STREAM_SENS("Sensors callback: counting subscribers");
+  //DEBUG_STREAM_SENS("Sensors callback: counting subscribers");
 
   size_t imu_SubCount = 0;
   size_t imu_RawSubCount = 0;
@@ -6241,7 +6241,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_SENS("pubSensorsData: Exception while counting subscribers");
-    return TIMEZERO_ROS;
+    return false;
   }
   // <---- Subscribers count
 
@@ -6262,7 +6262,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
       RCLCPP_WARN_STREAM(
         get_logger(), "sl::getSensorsData error: "
           << sl::toString(err).c_str());
-      return TIMEZERO_ROS;
+      return false;
     }
   } else {
     sl::ERROR_CODE err =
@@ -6271,14 +6271,14 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
       RCLCPP_WARN_STREAM(
         get_logger(), "sl::getSensorsData error: "
           << sl::toString(err).c_str());
-      return TIMEZERO_ROS;
+      return false;
     }
   }
 
   if (mSensCameraSync) {
-    ts_imu = t;
-    ts_baro = t;
-    ts_mag = t;
+    ts_imu = force_ts;
+    ts_baro = force_ts;
+    ts_mag = force_ts;
   } else if (mSimMode) {
     if (mUseSimTime) {
       ts_imu = get_clock()->now();
@@ -6304,8 +6304,8 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   mLastTs_mag = ts_mag;
 
   if (!new_imu_data && !new_baro_data && !new_mag_data) {
-    DEBUG_STREAM_SENS("No new sensors data");
-    return TIMEZERO_ROS;
+    //DEBUG_STREAM_SENS("No new sensors data");
+    return false;
   }
 
   if (mSimMode) {
@@ -6547,7 +6547,7 @@ rclcpp::Time ZedCamera::publishSensorsData(rclcpp::Time t)
   }
   // <---- Sensors data publishing
 
-  return ts_imu;
+  return true;
 }
 
 void ZedCamera::publishTFs(rclcpp::Time t)
@@ -6913,35 +6913,36 @@ void ZedCamera::threadFunc_pubSensorsData()
         continue;
       }
 
-      // RCLCPP_INFO_STREAM(get_logger(),
-      // "threadFunc_pubSensorsData: Publishing Camera-IMU transform ");
-      // publishImuFrameAndTopic();
-      rclcpp::Time sens_ts = publishSensorsData();
-
-      // RCLCPP_INFO_STREAM(get_logger(), "threadFunc_pubSensorsData - sens_ts
-      // type:"
-      // << sens_ts.get_clock_type());
-
-      // Publish TF at the same frequency of IMU data, so they are always
-      // synchronized
-      /*if (sens_ts != TIMEZERO_ROS)
-      {
-        RCLCPP_INFO(get_logger(), "Publishing TF -> threadFunc_pubSensorsData");
-        publishTFs(sens_ts);
-      }*/
+      if (!publishSensorsData()) {
+        auto sleep_usec =
+          static_cast<int>(mSensRateComp * (1000000. / mSensPubRate));
+        sleep_usec = std::max(100, sleep_usec);
+        DEBUG_STREAM_SENS(
+          "[threadFunc_pubSensorsData] Thread sleep: "
+            << sleep_usec << " µsec");
+        rclcpp::sleep_for(
+          std::chrono::microseconds(sleep_usec)); // Avoid busy-waiting
+        continue;
+      }
 
       // ----> Check publishing frequency
       double sens_period_usec = 1e6 / mSensPubRate;
+      double avg_freq = 1. / mImuPeriodMean_sec->getAvg();
 
-      double elapsed_usec = mSensPubFreqTimer.toc() * 1e6;
+      double err = std::fabs(mSensPubRate - avg_freq);
 
-      if (elapsed_usec < sens_period_usec) {
-        rclcpp::sleep_for(
-          std::chrono::microseconds(
-            static_cast<int>(sens_period_usec - elapsed_usec)));
+      const double COMP_P_GAIN = 0.0005;
+
+      if (avg_freq < mSensPubRate) {
+        mSensRateComp -= COMP_P_GAIN * err;
+      } else if (avg_freq > mSensPubRate) {
+        mSensRateComp += COMP_P_GAIN * err;
       }
 
-      mSensPubFreqTimer.tic();
+      mSensRateComp = std::max(0.001, mSensRateComp);
+      mSensRateComp = std::min(3.0, mSensRateComp);
+      DEBUG_STREAM_SENS(
+        "[threadFunc_pubSensorsData] mSensRateComp: " << mSensRateComp);
       // <---- Check publishing frequency
     } catch (...) {
       rcutils_reset_error();

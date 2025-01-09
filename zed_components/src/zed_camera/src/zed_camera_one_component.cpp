@@ -273,14 +273,16 @@ void ZedCameraOne::getGeneralParams()
   getParam("general.grab_resolution", resol, resol);
   if (resol == "AUTO") {
     _camResol = sl::RESOLUTION::AUTO;
-  } else if (resol == "HD4K") {
+  } else if (resol == "HD4K" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
     _camResol = sl::RESOLUTION::HD4K;
-  } else if (resol == "QHDPLUS") {
+  } else if (resol == "QHDPLUS" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
     _camResol = sl::RESOLUTION::QHDPLUS;
   } else if (resol == "HD1200") {
     _camResol = sl::RESOLUTION::HD1200;
   } else if (resol == "HD1080") {
     _camResol = sl::RESOLUTION::HD1080;
+  } else if (resol == "SVGA") {
+    _camResol = sl::RESOLUTION::SVGA;
   } else {
     RCLCPP_WARN(
       get_logger(),
@@ -316,7 +318,7 @@ void ZedCameraOne::getGeneralParams()
   if (_pubResolution == PubRes::CUSTOM) {
     getParam(
       "general.pub_downscale_factor", _customDownscaleFactor,
-      _customDownscaleFactor, " * Publishing downscale factor: ", false, 0.1, 1.0);
+      _customDownscaleFactor, " * Publishing downscale factor: ", false, 1.0, 5.0);
   } else {
     _customDownscaleFactor = 1.0;
   }

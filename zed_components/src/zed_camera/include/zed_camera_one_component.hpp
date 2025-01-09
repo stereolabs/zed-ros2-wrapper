@@ -22,9 +22,9 @@
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
 
-#define ENABLE_GRAY_IMAGE 0
+#define ENABLE_GRAY_IMAGE 1
+#define ENABLE_STREAM_INPUT 1
 #define ENABLE_SVO 0
-#define ENABLE_STREAM_INPUT 0
 
 namespace stereolabs
 {

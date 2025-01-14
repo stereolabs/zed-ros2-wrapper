@@ -91,6 +91,6 @@ docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e NVIDIA_DRI
   -v /var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/ \
   -v /etc/systemd/system/zed_x_daemon.service:/etc/systemd/system/zed_x_daemon.service \
   -v /usr/local/zed/resources/:/usr/local/zed/resources/ \
-  -v /usr/local/zed/settings/:/usr/local/zed/settings/ \\
+  -v /usr/local/zed/settings/:/usr/local/zed/settings/ \
   <image_tag>
 ```

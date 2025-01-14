@@ -2636,7 +2636,7 @@ void ZedCameraOne::retrieveImages()
       _zed->retrieveImage(
         _matGrayRaw, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
         sl::MEM::CPU, _matResol));
-    _sdkGrabTS = _matGray.timestamp;
+    _sdkGrabTS = _matGrayRaw.timestamp;
     DEBUG_STREAM_VD(
       "Gray raw image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
         " nsec");
@@ -2722,7 +2722,7 @@ void ZedCameraOne::publishImages()
 
   // ----> Publish the GRAY RAW image if someone has subscribed to
   if (_grayRawSubCount > 0) {
-    DEBUG_STREAM_VD("_grayRawSubCount: " << _graySubCount);
+    DEBUG_STREAM_VD("_grayRawSubCount: " << _grayRawSubCount);
     publishImageWithInfo(
       _matGrayRaw, _pubGrayRawImg, _camInfoRawMsg,
       _camImgFrameId, timeStamp);

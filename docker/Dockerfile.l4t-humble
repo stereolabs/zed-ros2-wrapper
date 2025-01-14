@@ -1,24 +1,26 @@
-ARG L4T_VERSION=l4t-r35.4.1
+ARG L4T_VERSION=l4t-r36.3.0
 ARG IMAGE_NAME=dustynv/ros:humble-ros-base-${L4T_VERSION}
 
 FROM ${IMAGE_NAME}
 
 ARG ZED_SDK_MAJOR=4
-ARG ZED_SDK_MINOR=1
-ARG ZED_SDK_PATCH=4
-ARG JETPACK_MAJOR=5
-ARG JETPACK_MINOR=0
-ARG L4T_MAJOR=35
-ARG L4T_MINOR=1
+ARG ZED_SDK_MINOR=2
+ARG ZED_SDK_PATCH=3
+ARG L4T_MAJOR=36
+ARG L4T_MINOR=3
 
-ARG ROS2_DIST=humble       # ROS2 distribution
+# ROS2 distribution
+ARG ROS2_DIST=humble
 
 # ZED ROS2 Wrapper dependencies version
-ARG XACRO_VERSION=2.0.8
-ARG DIAGNOSTICS_VERSION=3.0.0
-ARG AMENT_LINT_VERSION=0.12.4
+ARG XACRO_VERSION=2.0.12
+ARG DIAGNOSTICS_VERSION=4.3.1
+ARG AMENT_LINT_VERSION=0.19.0
+ARG ROBOT_LOCALIZATION_VERSION=3.9.1
+ARG ZED_MSGS_VERSION=4.2.2
+ARG NMEA_MSGS_VERSION=2.1.0
+ARG ANGLES_VERSION=1.16.0
 ARG GEOGRAPHIC_INFO_VERSION=1.0.4
-ARG ROBOT_LOCALIZATION_VERSION=3.4.2
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -64,17 +66,19 @@ ENV ROS_DISTRO ${ROS2_DIST}
 WORKDIR /root/ros2_ws/src
 COPY tmp_sources/ ./
 
-# Install missing dependencies
+# Install missing dependencies from the sources
 WORKDIR /root/ros2_ws/src
 RUN wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz -O - | tar -xvz && mv xacro-${XACRO_VERSION} xacro && \
-  wget https://github.com/ros/diagnostics/archive/refs/tags/${DIAGNOSTICS_VERSION}.tar.gz -O - | tar -xvz && mv diagnostics-${DIAGNOSTICS_VERSION} diagnostics && \
-  wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}.tar.gz -O - | tar -xvz && mv ament_lint-${AMENT_LINT_VERSION} ament-lint && \
-  wget https://github.com/cra-ros-pkg/robot_localization/archive/refs/tags/${ROBOT_LOCALIZATION_VERSION}.tar.gz -O - | tar -xvz && mv robot_localization-${ROBOT_LOCALIZATION_VERSION} robot-localization && \
-  wget https://github.com/ros-geographic-info/geographic_info/archive/refs/tags/${GEOGRAPHIC_INFO_VERSION}.tar.gz -O - | tar -xvz && mv geographic_info-${GEOGRAPHIC_INFO_VERSION} geographic-info && \
-  cp -r geographic-info/geographic_msgs/ . && \
-  rm -rf geographic-info && \
-  git clone https://github.com/ros-drivers/nmea_msgs.git --branch ros2 && \  
-  git clone https://github.com/ros/angles.git --branch humble-devel
+    wget https://github.com/ros/diagnostics/archive/refs/tags/${DIAGNOSTICS_VERSION}.tar.gz -O - | tar -xvz && mv diagnostics-${DIAGNOSTICS_VERSION} diagnostics && \
+    wget https://github.com/ament/ament_lint/archive/refs/tags/${AMENT_LINT_VERSION}.tar.gz -O - | tar -xvz && mv ament_lint-${AMENT_LINT_VERSION} ament-lint && \
+    wget https://github.com/cra-ros-pkg/robot_localization/archive/refs/tags/${ROBOT_LOCALIZATION_VERSION}.tar.gz -O - | tar -xvz && mv robot_localization-${ROBOT_LOCALIZATION_VERSION} robot-localization && \
+    wget https://github.com/stereolabs/zed-ros2-interfaces/archive/refs/tags/${ZED_MSGS_VERSION}.tar.gz -O - | tar -xvz && mv zed-ros2-interfaces-${ZED_MSGS_VERSION} zed-ros2-interfaces && \
+    wget https://github.com/ros-drivers/nmea_msgs/archive/refs/tags/${NMEA_MSGS_VERSION}.tar.gz -O - | tar -xvz && mv nmea_msgs-${NMEA_MSGS_VERSION} nmea_msgs && \
+    wget https://github.com/ros/angles/archive/refs/tags/${ANGLES_VERSION}.tar.gz -O - | tar -xvz && mv angles-${ANGLES_VERSION} angles && \
+    wget https://github.com/ros-geographic-info/geographic_info/archive/refs/tags/${GEOGRAPHIC_INFO_VERSION}.tar.gz -O - | tar -xvz && mv geographic_info-${GEOGRAPHIC_INFO_VERSION} geographic-info && \
+    cp -r geographic-info/geographic_msgs/ . && \
+    rm -rf geographic-info
+    
 
 # Check that all the dependencies are satisfied
 WORKDIR /root/ros2_ws

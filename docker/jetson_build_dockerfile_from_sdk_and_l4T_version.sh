@@ -2,8 +2,8 @@
 cd $(dirname $0)
 
 if [ "$#" -lt 2 ]; then
-    echo "Give L4T version then ZED SDK version has parameters, like this:"
-    echo "./jetson_build_dockerfile_from_sdk_and_l4T_version.sh l4t-r35.4.1 zedsdk4.1.2"
+    echo "Please enter valid L4T version and ZED SDK version has parameters. For example:"
+    echo "./jetson_build_dockerfile_from_sdk_and_l4T_version.sh l4t-r36.3.0 zedsdk-4.2.3"
     exit 1
 fi
 
@@ -19,14 +19,14 @@ L4T_version=$1
 l4t_version_number="${L4T_version#l4t-r}"
 
 # Verify the ZED SDK format (digits.digits.digits)
-if ! [[ $2 =~ ^zedsdk[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+if ! [[ $2 =~ ^zedsdk-[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "Invalid ZED SDK version format."
     exit 1
 fi
 
 ZED_SDK_version=$2
 # Remove the prefix 'zedsdk-'
-zed_sdk_version_number="${ZED_SDK_version#zedsdk}"
+zed_sdk_version_number="${ZED_SDK_version#zedsdk-}"
 
 # copy the wrapper content
 rm -r ./tmp_sources

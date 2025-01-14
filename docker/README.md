@@ -75,8 +75,10 @@ The following command starts an interactive session:
 
 ```bash
 docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e NVIDIA_DRIVER_CAPABILITIES=all -e DISPLAY \
-  -v /dev:/dev -v /tmp/.X11-unix/:/tmp/.X11-unix \
-  -v ${HOME}/zed_docker_ai/:/usr/local/zed/resources/ \
+  -v /tmp/.X11-unix/:/tmp/.X11-unix \
+  -v /dev:/dev \
+  -v /usr/local/zed/resources/:/usr/local/zed/resources/ \
+  -v /usr/local/zed/settings/:/usr/local/zed/settings/ \
   <image_tag>
 ```
 
@@ -88,6 +90,7 @@ docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e NVIDIA_DRI
   -v /tmp:/tmp \
   -v /var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/ \
   -v /etc/systemd/system/zed_x_daemon.service:/etc/systemd/system/zed_x_daemon.service \
-  -v ${HOME}/zed_docker_ai/:/usr/local/zed/resources/ \
+  -v /usr/local/zed/resources/:/usr/local/zed/resources/ \
+  -v /usr/local/zed/settings/:/usr/local/zed/settings/ \\
   <image_tag>
 ```

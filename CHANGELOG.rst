@@ -1,5 +1,8 @@
 LATEST CHANGES
 ==============
+2025-01-14
+----------
+- Fixed a bug for raw gray image publisher on Zed One Component: raw gray images were not published when the rectified image topic was subscribed. Thx @Alex-Beh 
 
 2025-01-09
 ----------

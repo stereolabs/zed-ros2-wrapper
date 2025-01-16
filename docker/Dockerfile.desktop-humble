@@ -1,11 +1,11 @@
 ARG UBUNTU_MAJOR=22
 ARG UBUNTU_MINOR=04
 ARG CUDA_MAJOR=12
-ARG CUDA_MINOR=4
-ARG CUDA_PATCH=1
+ARG CUDA_MINOR=6
+ARG CUDA_PATCH=3
 ARG ZED_SDK_MAJOR=4
-ARG ZED_SDK_MINOR=1
-ARG ZED_SDK_PATCH=4
+ARG ZED_SDK_MINOR=2
+ARG ZED_SDK_PATCH=3
 
 ARG IMAGE_NAME=nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-devel-ubuntu${UBUNTU_MAJOR}.${UBUNTU_MINOR}
 
@@ -14,11 +14,11 @@ FROM ${IMAGE_NAME}
 ARG UBUNTU_MAJOR=22
 ARG UBUNTU_MINOR=04
 ARG CUDA_MAJOR=12
-ARG CUDA_MINOR=4
-ARG CUDA_PATCH=1
+ARG CUDA_MINOR=6
+ARG CUDA_PATCH=3
 ARG ZED_SDK_MAJOR=4
-ARG ZED_SDK_MINOR=1
-ARG ZED_SDK_PATCH=4
+ARG ZED_SDK_MINOR=2
+ARG ZED_SDK_PATCH=3
 
 ARG ROS2_DIST=humble       # ROS2 distribution
 
@@ -74,11 +74,11 @@ RUN apt-get update || true && \
 RUN apt-get update || true && \
   apt-get install --no-install-recommends -y \
   ros-${ROS2_DIST}-ros-base \
-  ros-${ROS2_DIST}-ament-cmake-clang-format \
-  ros-${ROS2_DIST}-image-transport \
-  ros-${ROS2_DIST}-image-transport-plugins \
-  ros-${ROS2_DIST}-diagnostic-updater \
-  ros-${ROS2_DIST}-xacro \
+  #ros-${ROS2_DIST}-ament-cmake-clang-format \
+  #ros-${ROS2_DIST}-image-transport \
+  #ros-${ROS2_DIST}-image-transport-plugins \
+  #ros-${ROS2_DIST}-diagnostic-updater \
+  #ros-${ROS2_DIST}-xacro \
   python3-flake8-docstrings \
   python3-pip \
   python3-pytest-cov \

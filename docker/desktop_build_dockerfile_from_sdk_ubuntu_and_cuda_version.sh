@@ -3,7 +3,7 @@ cd $(dirname $0)
 
 if [ "$#" -lt 3 ]; then
     echo "Give Ubuntu version then CUDA version then ZED SDK version has parameters, like this:"
-    echo "./desktop_build_dockerfile_from_sdk_ubuntu_and_cuda_version.sh ubuntu22.04 cuda12.1.0 zedsdk4.1.2"
+    echo "./desktop_build_dockerfile_from_sdk_ubuntu_and_cuda_version.sh ubuntu22.04 cuda12.6.3 zedsdk4.2.3"
     exit 1
 fi
 
@@ -55,14 +55,14 @@ echo "Ubuntu $ubuntu_major.$ubuntu_minor detected."
 ###########
 
 # Split the string and assign to variables
-IFS='.' read -r major minor patch <<< "$zed_sdk_version_number"
+IFS='.' read -r sdk_major sdk_minor sdk_patch <<< "$zed_sdk_version_number"
 echo "ZED SDK $major.$minor.$patch detected."
 
-echo "Building dockerfile for $1 and ZED SDK $2"
-docker build -t zed_ros2_desktop_image \
---build-arg ZED_SDK_MAJOR=$major \
---build-arg ZED_SDK_MINOR=$minor \
---build-arg ZED_SDK_PATCH=$patch \
+echo "Building dockerfile for $1, CUDA $2 and ZED SDK $3"
+docker build -t zed_ros2_desktop_u${ubuntu_major}.${ubuntu_minor}_sdk_${sdk_major}.${sdk_minor}.${sdk_patch}_cuda_${cuda_major}.${cuda_minor}.${cuda_patch} \
+--build-arg ZED_SDK_MAJOR=$sdk_major \
+--build-arg ZED_SDK_MINOR=$sdk_minor \
+--build-arg ZED_SDK_PATCH=$sdk_patch \
 --build-arg UBUNTU_MAJOR=$ubuntu_major \
 --build-arg UBUNTU_MINOR=$ubuntu_minor \
 --build-arg CUDA_MAJOR=$cuda_major \

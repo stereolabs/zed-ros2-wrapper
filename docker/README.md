@@ -71,26 +71,38 @@ A few volumes should also be shared with the host.
 
 ### Start the Docker container
 
-The following command starts an interactive session:
+Examples of commands to start an interactive section
+
+#### USB3 cameras
 
 ```bash
-docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e NVIDIA_DRIVER_CAPABILITIES=all -e DISPLAY \
+docker run --runtime nvidia -it --privileged --network=host --ipc=host --pid=host \
+  -e NVIDIA_DRIVER_CAPABILITIES=all -e DISPLAY=$DISPLAY \
   -v /tmp/.X11-unix/:/tmp/.X11-unix \
   -v /dev:/dev \
   -v /usr/local/zed/resources/:/usr/local/zed/resources/ \
   -v /usr/local/zed/settings/:/usr/local/zed/settings/ \
-  <image_tag>
+  <docker_image_tag>
 ```
 
-For GMSL cameras
+#### GMSL cameras
+
+Allows the container to access EGL display resources (required only once):
 
 ```bash
-docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e NVIDIA_DRIVER_CAPABILITIES=all -e DISPLAY \
-  -v /dev:/dev \
+sudo xhost +si:localuser:root
+```
+
+start the container:
+
+```bash
+docker run --runtime nvidia -it --privileged --network=host --ipc=host --pid=host \
+  -e NVIDIA_DRIVER_CAPABILITIES=all -e DISPLAY=$DISPLAY \
   -v /tmp:/tmp \
+  -v /dev:/dev \
   -v /var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/ \
   -v /etc/systemd/system/zed_x_daemon.service:/etc/systemd/system/zed_x_daemon.service \
   -v /usr/local/zed/resources/:/usr/local/zed/resources/ \
   -v /usr/local/zed/settings/:/usr/local/zed/settings/ \
-  <image_tag>
+  <docker_image_tag>
 ```

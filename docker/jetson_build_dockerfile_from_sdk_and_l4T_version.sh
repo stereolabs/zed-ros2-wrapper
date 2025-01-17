@@ -49,3 +49,6 @@ docker build -t zed_ros2_l4t_${l4t_major}.${l4t_minor}.${l4t_patch}_sdk_${sdk_ma
 --build-arg L4T_MAJOR=$l4t_major \
 --build-arg L4T_MINOR=$l4t_minor \
 -f ./Dockerfile.l4t-humble .
+
+# Remove the temporary folder
+rm -r ./tmp_sources

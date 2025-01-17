@@ -69,3 +69,6 @@ docker build -t zed_ros2_desktop_u${ubuntu_major}.${ubuntu_minor}_sdk_${sdk_majo
 --build-arg CUDA_MINOR=$cuda_minor \
 --build-arg CUDA_PATCH=$cuda_patch \
 -f ./Dockerfile.desktop-humble .
+
+# Remove the temporary folder
+rm -r ./tmp_sources

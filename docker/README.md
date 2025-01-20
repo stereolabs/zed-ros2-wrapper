@@ -20,7 +20,7 @@ We provide a script to build your image with the right L4T / ZED SDK version.
 * Checkout the tag or commit of the ROS2 wrapper that you need.
 
 ```bash
-git checkout 4.1.2
+git checkout master
 ```
 
 You can also modify the sources.
@@ -40,8 +40,8 @@ or
 Examples:
 
 ```bash
-./jetson_build_dockerfile_from_sdk_and_l4T_version.sh l4t-r35.4.1 zedsdk4.1.2
-./desktop_build_dockerfile_from_sdk_ubuntu_and_cuda_version.sh ubuntu22.04 cuda12.1.0 zedsdk4.1.2
+./jetson_build_dockerfile_from_sdk_and_l4T_version.sh l4t-r36.3.0 zedsdk-4.2.3
+./desktop_build_dockerfile_from_sdk_ubuntu_and_cuda_version.sh ubuntu-22.04 cuda-12.6.3 zedsdk-4.2.3
 ```
 
 That will produce the image `zed_ros2_l4t_image` or `zed_ros2_desktop_image`.

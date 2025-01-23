@@ -5,9 +5,19 @@ This folder contains a list of Dockerfile files to build Docker images ready to 
 * `Dockerfile.desktop-humble`: development desktop image for ROS2 Humble, running on the specified Ubuntu and CUDA versions. The ZED Wrapper is copied from the source file of the current branch and compiled.
 * `Dockerfile.l4t-humble`: Jetson image for ROS2 Humble, running on the given L4T version (L4T35.4 by default).
 
+> :pushpin: **NOTE:** in the entrypoint files we set the value of the `ROS_DOMAIN_ID` environment
+> variable to `0` that is the default value in ROS 2.
+>
+> If your setup requires a different value you can change it in the `ros_entrypoint_jetson.sh` and
+> `ros_entrypoint.sh` file before building your image to set it automatically when starting your Docker image,
+> or you can use the CLI command `export ROS_DOMAIN_ID=<new_value>` when each interactive session is started.
+>
+> You can get more details concerning the `ROS_DOMAIN_ID` usage on the [official ROS 2 documentation](https://docs.ros.org/en/humble/Concepts/Intermediate/About-Domain-ID.html#the-ros-domain-id).
+
 ## Cross compilation
 
-You can easily compile the image for Jetson from your usual Desktop PC. For that you just need to run the following line before:
+You can easily compile the image for Jetson from your usual Desktop PC.
+For that you just need to run the following line before launching the build command:
 
 ```bash
 docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
@@ -20,18 +30,22 @@ We provide a script to build your image with the right L4T / ZED SDK version.
 * Checkout the tag or commit of the ROS2 wrapper that you need.
 
 ```bash
-git checkout master
+git checkout <build_branch>
 ```
 
-You can also modify the sources.
+e.g. to build the master branch:
 
-* Build the image
+```bash
+git checkout <master>
+```
+
+* Build the image for **Jetson**:
 
 ```bash
 ./jetson_build_dockerfile_from_sdk_and_l4T_version.sh <l4T version> <ZED SDK version>
 ```
 
-or
+* Build the image for **Desktop**:
 
 ```bash
 ./desktop_build_dockerfile_from_sdk_ubuntu_and_cuda_version.sh <Ubuntu version> <CUDA version> <ZED SDK version>
@@ -40,12 +54,16 @@ or
 Examples:
 
 ```bash
+# Jetson with JP6.0 and ZED SDK v4.2.3
 ./jetson_build_dockerfile_from_sdk_and_l4T_version.sh l4t-r36.3.0 zedsdk-4.2.3
+```
+
+```bash
+# Desktop on Ubuntu 22.04m CUDA 12.6.3 and ZED SDK v4.2.3
 ./desktop_build_dockerfile_from_sdk_ubuntu_and_cuda_version.sh ubuntu-22.04 cuda-12.6.3 zedsdk-4.2.3
 ```
 
-That will produce the image `zed_ros2_l4t_image` or `zed_ros2_desktop_image`.
-Some configuration will not work (for example, if a specific ZED SDK does not exist for a given Ubuntu/CUDA/L4T version, or if the given ros2 wrapper is not compatible with this version)
+:warning: Some configurations will not work. For example, if a specific ZED SDK does not exist for a given Ubuntu/CUDA/L4T version, or if the given ROS 2 wrapper is not compatible with the selected Ubuntu version.
 
 ## Run the Docker image
 
@@ -63,15 +81,19 @@ A few volumes should also be shared with the host.
 
 * `/usr/local/zed/settings:/usr/local/zed/settings` if you plan to use the robot in an Internet-negated area, and you previously downloaded the camera calibration files by following [this guide](https://support.stereolabs.com/hc/en-us/articles/21614848880791-How-can-I-use-the-ZED-with-Docker-on-a-robot-with-no-internet-connection). 
 * `/usr/local/zed/resources:/usr/local/zed/resources` if you plan to use the AI module of the ZED SDK (Object Detection, Skeleton Tracking, NEURAL depth) we suggest binding mounting a folder to avoid downloading and optimizing the AI models each time the Docker image is restarted. The first time you use the AI model inside the Docker image, it will be downloaded and optimized in the local bound-mounted folder, and stored there for the next runs.
+  * If you plan to use different SDK versions in different Docker images it's preferred to use a different
+    volume on the host for each of them: `~/home/<specific_folder_name>/:/usr/local/zed/resources`
 * `/dev:/dev` to share the video devices
-* For GMSL cameras (ZED X) you'll also need
+* For GMSL2 cameras (ZED X, ZED X One) you'll also need
   * `/tmp:/tmp`
   * `/var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/`
-  * `/etc/systemd/system/zed_x_daemon.service:/etc/systemd/system/zed_x_daemon.service` 
+  * `/etc/systemd/system/zed_x_daemon.service:/etc/systemd/system/zed_x_daemon.service`
+* For using ROS 2 with shared memory:
+  * `/dev/shm:/dev/shm`
 
 ### Start the Docker container
 
-Examples of commands to start an interactive section
+Examples of commands to start an interactive session
 
 #### USB3 cameras
 

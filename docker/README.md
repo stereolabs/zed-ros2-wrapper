@@ -29,27 +29,27 @@ We provide a script to build your image with the right L4T / ZED SDK version.
 
 * Checkout the tag or commit of the ROS2 wrapper that you need.
 
-```bash
-git checkout <build_branch>
-```
+ ```bash
+ git checkout <build_branch>
+ ```
 
-e.g. to build the master branch:
+  e.g. to build the master branch:
 
-```bash
-git checkout <master>
-```
+ ```bash
+ git checkout master
+ ```
 
 * Build the image for **Jetson**:
 
-```bash
-./jetson_build_dockerfile_from_sdk_and_l4T_version.sh <l4T version> <ZED SDK version>
-```
+ ```bash
+ ./jetson_build_dockerfile_from_sdk_and_l4T_version.sh <l4T version> <ZED SDK version>
+ ```
 
 * Build the image for **Desktop**:
 
-```bash
-./desktop_build_dockerfile_from_sdk_ubuntu_and_cuda_version.sh <Ubuntu version> <CUDA version> <ZED SDK version>
-```
+ ```bash
+ ./desktop_build_dockerfile_from_sdk_ubuntu_and_cuda_version.sh <Ubuntu version> <CUDA version> <ZED SDK version>
+ ```
 
 Examples:
 
@@ -63,7 +63,7 @@ Examples:
 ./desktop_build_dockerfile_from_sdk_ubuntu_and_cuda_version.sh ubuntu-22.04 cuda-12.6.3 zedsdk-4.2.3
 ```
 
-:warning: Some configurations will not work. For example, if a specific ZED SDK does not exist for a given Ubuntu/CUDA/L4T version, or if the given ROS 2 wrapper is not compatible with the selected Ubuntu version.
+> :warning: Some configurations will not work. For example, if a specific ZED SDK does not exist for a given Ubuntu/CUDA/L4T version, or if the given ROS 2 wrapper is not compatible with the selected Ubuntu version.
 
 ## Run the Docker image
 
@@ -75,25 +75,46 @@ NVIDIA drivers must be accessible from the Docker image to run the ZED SDK code 
 * A specific docker runtime environment with `-gpus all` or `-e NVIDIA_DRIVER_CAPABILITIES=all`
 * Docker privileged mode with `--privileged`
 
+### Network
+
+Setup the network configuration to enable the communication between the Docker image, other Docker images, and the host:
+
+* `--network=host`: Remove network isolation between the container and the Docker host
+* `--ipc=host`: Use the host system's Inter-Process Communication namespace
+* `--pid=host`: Use the host system's namespace for process ID
+
+### Display context to use CUDA based applications
+
+Use the same host `DISPLAY` environment variable in every Docker image to enable CUDA-based applications with `-e DISPLAY=$DISPLAY`.
+
+> :pushpin: **NOTE**: the shared volume `/tmp/.X11-unix/:/tmp/.X11-unix` is also required.
+
 ### Volumes
 
 A few volumes should also be shared with the host.
 
+* `/tmp/.X11-unix/:/tmp/.X11-unix` is required to enable X11 server communication for CUDA-based applications
 * `/usr/local/zed/settings:/usr/local/zed/settings` if you plan to use the robot in an Internet-negated area, and you previously downloaded the camera calibration files by following [this guide](https://support.stereolabs.com/hc/en-us/articles/21614848880791-How-can-I-use-the-ZED-with-Docker-on-a-robot-with-no-internet-connection). 
 * `/usr/local/zed/resources:/usr/local/zed/resources` if you plan to use the AI module of the ZED SDK (Object Detection, Skeleton Tracking, NEURAL depth) we suggest binding mounting a folder to avoid downloading and optimizing the AI models each time the Docker image is restarted. The first time you use the AI model inside the Docker image, it will be downloaded and optimized in the local bound-mounted folder, and stored there for the next runs.
   * If you plan to use different SDK versions in different Docker images it's preferred to use a different
-    volume on the host for each of them: `~/home/<specific_folder_name>/:/usr/local/zed/resources`
+    volume on the host for each of them: `/<specific_folder_name>/:/usr/local/zed/resources`
 * `/dev:/dev` to share the video devices
 * For GMSL2 cameras (ZED X, ZED X One) you'll also need
   * `/tmp:/tmp`
   * `/var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/`
   * `/etc/systemd/system/zed_x_daemon.service:/etc/systemd/system/zed_x_daemon.service`
-* For using ROS 2 with shared memory:
-  * `/dev/shm:/dev/shm`
+* `/dev:/dev`: to share the video and other required devices
+  * `/dev/shm:/dev/shm`: to use ROS 2 with shared memory
 
 ### Start the Docker container
 
-Examples of commands to start an interactive session
+First of all, allow the container to access EGL display resources (required only once):
+
+```bash
+sudo xhost +si:localuser:root
+```
+
+then you can start an interactive session:
 
 #### USB3 cameras
 
@@ -102,20 +123,13 @@ docker run --runtime nvidia -it --privileged --network=host --ipc=host --pid=hos
   -e NVIDIA_DRIVER_CAPABILITIES=all -e DISPLAY=$DISPLAY \
   -v /tmp/.X11-unix/:/tmp/.X11-unix \
   -v /dev:/dev \
+  -v /dev/shm:/dev/shm \
   -v /usr/local/zed/resources/:/usr/local/zed/resources/ \
   -v /usr/local/zed/settings/:/usr/local/zed/settings/ \
   <docker_image_tag>
 ```
 
 #### GMSL cameras
-
-Allows the container to access EGL display resources (required only once):
-
-```bash
-sudo xhost +si:localuser:root
-```
-
-start the container:
 
 ```bash
 docker run --runtime nvidia -it --privileged --network=host --ipc=host --pid=host \

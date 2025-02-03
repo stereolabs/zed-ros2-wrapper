@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2025-02-03
+----------
+- Add Detected Objectes TF broadcasting
+- Add parameter `object_detection.publish_tf` to enable/disable Detected Objects TF broadcasting
+
 2025-01-17
 ----------
 - Set the Positional Tracking Mode to `GEN_1` as default as workaround for the random crash issue caused by `GEN_2` mode.

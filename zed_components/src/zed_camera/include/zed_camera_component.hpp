@@ -201,6 +201,7 @@ protected:
   void processSvoGnssData();
 
   void processDetectedObjects(rclcpp::Time t);
+  void publishObjectTFs(const sl::Objects & objects);
   void processBodies(rclcpp::Time t);
 
   void processRtRoi(rclcpp::Time t);
@@ -339,6 +340,7 @@ private:
   bool mPublishTF = false;
   bool mPublishMapTF = false;
   bool mPublishImuTF = false;
+  bool mPublishDetectedObjectsTF = false;
   bool mPoseSmoothing = false;
   bool mAreaMemory = true;
   std::string mAreaMemoryDbPath = "";

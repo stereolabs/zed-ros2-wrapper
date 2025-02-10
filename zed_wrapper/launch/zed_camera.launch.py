@@ -32,7 +32,8 @@ from launch.substitutions import (
 )
 from launch_ros.actions import (
     Node,
-    ComposableNodeContainer
+    ComposableNodeContainer,
+    LoadComposableNodes
 )
 from launch_ros.descriptions import ComposableNode
 
@@ -67,7 +68,9 @@ def parse_array_param(param):
 
 
 def launch_setup(context, *args, **kwargs):
-    wrapper_dir = get_package_share_directory('zed_wrapper')
+    return_array = []
+
+    wrapper_dir = get_package_share_directory('zed_wrapper')    
 
     # Launch configuration variables
     svo_path = LaunchConfiguration('svo_path')
@@ -80,6 +83,8 @@ def launch_setup(context, *args, **kwargs):
     stream_address = LaunchConfiguration('stream_address')
     stream_port = LaunchConfiguration('stream_port')
 
+    container_name = LaunchConfiguration('container_name')
+    namespace = LaunchConfiguration('namespace')
     camera_name = LaunchConfiguration('camera_name')
     camera_model = LaunchConfiguration('camera_model')
 
@@ -103,8 +108,11 @@ def launch_setup(context, *args, **kwargs):
     enable_gnss = LaunchConfiguration('enable_gnss')
     gnss_antenna_offset = LaunchConfiguration('gnss_antenna_offset')
 
+    container_name_val = container_name.perform(context)
+    namespace_val = namespace.perform(context)
     camera_name_val = camera_name.perform(context)
     camera_model_val = camera_model.perform(context)
+    node_name_val = node_name.perform(context)
     enable_gnss_val = enable_gnss.perform(context)
     gnss_coords = parse_array_param(gnss_antenna_offset.perform(context))
     custom_baseline_val = custom_baseline.perform(context)
@@ -116,6 +124,11 @@ def launch_setup(context, *args, **kwargs):
         return [
             LogInfo(msg="Please set a positive value for the 'custom_baseline' argument when using a 'virtual' Stereo Camera with two ZED X One devices."),
         ]
+    
+    if(namespace_val == ''):
+        namespace_val = camera_name_val
+    else:
+        node_name_val = camera_name_val
     
     config_common_path_val = config_common_path.perform(context)
     if (config_common_path_val == ''):
@@ -168,18 +181,41 @@ def launch_setup(context, *args, **kwargs):
             xacro_command.append(' ')
 
     # Robot State Publisher node
+    rsp_name = camera_name_val + '_state_publisher'
     rsp_node = Node(
         condition=IfCondition(publish_urdf),
         package='robot_state_publisher',
-        namespace=camera_name_val,
+        namespace=namespace_val,
         executable='robot_state_publisher',
-        name='zed_state_publisher',
+        name=rsp_name,
         output='screen',
         parameters=[{
             'robot_description': Command(xacro_command)
         }]
     )
+    return_array.append(rsp_node)
 
+    # ROS 2 Component Container
+    if(container_name_val == ''):
+        container_name_val='zed_container'
+        distro = os.environ['ROS_DISTRO']
+        if distro == 'foxy':
+            # Foxy does not support the isolated mode
+            container_exec='component_container'
+        else:
+            container_exec='component_container_isolated'
+        
+        zed_container = ComposableNodeContainer(
+                name=container_name_val,
+                namespace=namespace_val,
+                package='rclcpp_components',
+                executable=container_exec,
+                arguments=['--ros-args', '--log-level', 'info'],
+                output='screen',
+        )
+        return_array.append(zed_container)
+
+    # ZED Node parameters
     node_parameters = [
             # YAML files
             config_common_path_val,  # Common parameters
@@ -217,46 +253,33 @@ def launch_setup(context, *args, **kwargs):
         camera_model_val=='virtual'):
         zed_wrapper_component = ComposableNode(
             package='zed_components',
-            namespace=camera_name_val,
+            namespace=namespace_val,
             plugin='stereolabs::ZedCamera',
-            name=node_name,
+            name=node_name_val,
             parameters=node_parameters,
             extra_arguments=[{'use_intra_process_comms': True}]
         )
     else: # 'zedxonegs' or 'zedxone4k')
         zed_wrapper_component = ComposableNode(
             package='zed_components',
-            namespace=camera_name_val,
+            namespace=namespace_val,
             plugin='stereolabs::ZedCameraOne',
-            name=node_name,
+            name=node_name_val,
             parameters=node_parameters,
             extra_arguments=[{'use_intra_process_comms': True}]
         )
-
-    # ROS 2 Component Container
-    distro = os.environ['ROS_DISTRO']
-    if distro == 'foxy':
-        # Foxy does not support the isolated mode
-        container_exec='component_container'
-    else:
-        container_exec='component_container_isolated'
     
-    zed_container = ComposableNodeContainer(
-            name='zed_container',
-            namespace=camera_name_val,
-            package='rclcpp_components',
-            executable=container_exec,
-            composable_node_descriptions=[
-                zed_wrapper_component
-            ],
-            output='screen',
+    full_container_name = '/' + namespace_val + '/' + container_name_val
+    info = '* Loading ZED node: ' + node_name_val + ' in container: ' + full_container_name
+    return_array.append(LogInfo(msg=TextSubstitution(text=info)))
+    
+    load_composable_node = LoadComposableNodes(
+        target_container=full_container_name,
+        composable_node_descriptions=[zed_wrapper_component]
     )
+    return_array.append(load_composable_node)
 
-    return [
-        rsp_node,
-        zed_container
-    ]
-
+    return return_array
 
 def generate_launch_description():
     return LaunchDescription(
@@ -271,9 +294,17 @@ def generate_launch_description():
                 description='[REQUIRED] The model of the camera. Using a wrong camera model can disable camera features.',
                 choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'virtual', 'zedxonegs', 'zedxone4k']),
             DeclareLaunchArgument(
+                'container_name',
+                default_value='',
+                description='The name of the container to be used to load the ZED component. If empty (default) a new container will be created.'),
+            DeclareLaunchArgument(
+                'namespace',
+                default_value='',
+                description='The namespace of the node. If empty (default) the camera name is used.'),
+            DeclareLaunchArgument(
                 'node_name',
                 default_value='zed_node',
-                description='The name of the zed_wrapper node. All the topic will have the same prefix: `/<camera_name>/<node_name>/`'),
+                description='The name of the zed_wrapper node. All the topic will have the same prefix: `/<camera_name>/<node_name>/`. If a namespace is specified, the node name is replaced by the camera name.'),
             DeclareLaunchArgument(
                 'config_path',
                 default_value='',

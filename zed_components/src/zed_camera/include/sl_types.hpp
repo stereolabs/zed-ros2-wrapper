@@ -183,15 +183,21 @@ typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetRoiSrvPtr;
 typedef rclcpp::Service<robot_localization::srv::ToLL>::SharedPtr toLLSrvPtr;
 typedef rclcpp::Service<robot_localization::srv::FromLL>::SharedPtr fromLLSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableStreamingPtr;
+
 /*!
  * @brief Video/Depth topic resolution
  */
 typedef enum
 {
   NATIVE,  //!< Same camera grab resolution
-  CUSTOM   //!< Custom Rescale Factor
+  CUSTOM,   //!< Custom Rescale Factor
+  OPTIMIZED //!< Optimized for performance
 } PubRes;
+
+const int NEURAL_W = (896 / 2);
+const int NEURAL_H = (512 / 2);
 // <---- Typedefs to simplify declarations
+
 }  // namespace stereolabs
 
 #endif  // SL_TYPES_HPP_

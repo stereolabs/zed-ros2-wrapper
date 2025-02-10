@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-02-10
+----------
+- Add new `OPTIMIZED` mode for `general.pub_resolution`
+
 2025-02-07
 ----------
 - Added new parameter `general.async_image_retrieval` to enable/disable the asynchronous image retrieval.

@@ -867,6 +867,8 @@ void ZedCamera::getGeneralParams()
     mPubResolution = PubRes::NATIVE;
   } else if (out_resol == "CUSTOM") {
     mPubResolution = PubRes::CUSTOM;
+  } else if (out_resol == "OPTIMIZED") {
+    mPubResolution = PubRes::OPTIMIZED;
   } else {
     RCLCPP_WARN(
       get_logger(),
@@ -880,7 +882,7 @@ void ZedCamera::getGeneralParams()
     get_logger(),
     " * Publishing resolution: " << out_resol.c_str());
 
-  if (mPubResolution == PubRes::CUSTOM) {
+  if (mPubResolution == PubRes::CUSTOM || mPubResolution == PubRes::OPTIMIZED) {
     getParam(
       "general.pub_downscale_factor", mCustomDownscaleFactor,
       mCustomDownscaleFactor, " * Publishing downscale factor: ");
@@ -3098,7 +3100,7 @@ void ZedCamera::setTFCoordFrameNames()
   RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t-> " << mOdomFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t\t-> " << mBaseFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t\t-> " << mCameraFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t-> " << mCameraFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t\t-> " << mLeftCamFrameId);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -3901,13 +3903,6 @@ bool ZedCamera::startCamera()
   mInitParams.async_grab_camera_recovery =
     true;    // Camera recovery is handled asynchronously to provide information
              // about this status
-
-  // NOTE: this is a temp fix to GMSL2 camera close issues
-  // TODO: check if this issue has been fixed in the SDK
-  if (sl_tools::isZEDX(mCamUserModel)) {
-    RCLCPP_INFO(get_logger(), "Disable async recovery for GMSL2 cameras");
-    mInitParams.async_grab_camera_recovery = false;
-  }
   // <---- ZED configuration
 
   // ----> Try to connect to a camera, to a stream, or to load an SVO
@@ -4139,25 +4134,28 @@ bool ZedCamera::startCamera()
       << mCamWidth << "x" << mCamHeight);
 
   int pub_w, pub_h;
-  pub_w = static_cast<int>(std::round(mCamWidth / mCustomDownscaleFactor));
-  pub_h = static_cast<int>(std::round(mCamHeight / mCustomDownscaleFactor));
-
-  if (pub_w > mCamWidth || pub_h > mCamHeight) {
-    RCLCPP_WARN_STREAM(
-      get_logger(), "The publishing resolution ("
-        << pub_w << "x" << pub_h
-        << ") cannot be higher than the grabbing resolution ("
-        << mCamWidth << "x" << mCamHeight
-        << "). Using grab resolution for output messages.");
-    pub_w = mCamWidth;
-    pub_h = mCamHeight;
+  if (mPubResolution == PubRes::OPTIMIZED) {
+#if (ZED_SDK_MAJOR_VERSION < 5)
+    pub_w = NEURAL_W / mCustomDownscaleFactor;
+    pub_h = NEURAL_H / mCustomDownscaleFactor;
+#else
+    sl::Resolution real_res =
+      mZed->getRetrieveMeasureResolution(
+      sl::Resolution(
+        -1 * mCustomDownscaleFactor,
+        -1 * mCustomDownscaleFactor));
+    pub_w = real_res.width;
+    pub_h = real_res.height;
+#endif
+  } else {
+    pub_w = static_cast<int>(std::round(mCamWidth / mCustomDownscaleFactor));
+    pub_h = static_cast<int>(std::round(mCamHeight / mCustomDownscaleFactor));
   }
-
   mMatResol = sl::Resolution(pub_w, pub_h);
+
   RCLCPP_INFO_STREAM(
     get_logger(), " * Publishing frame size  -> "
-      << mMatResol.width << "x"
-      << mMatResol.height);
+      << mMatResol.width << "x" << mMatResol.height);
   // <---- Camera information
 
   // ----> Set Region of Interest
@@ -6156,6 +6154,8 @@ void ZedCamera::threadFunc_zedGrab()
             mPcDataReadyCondVar.notify_one();
             mPcDataReady = true;
             mPcPublishing = true;
+
+            DEBUG_STREAM_PC("Extracted point cloud: " << mMatCloud.getInfos().c_str() );
           }
         } else {
           mPcPublishing = false;
@@ -7100,8 +7100,9 @@ void ZedCamera::retrieveVideoDepth()
       mZed->retrieveMeasure(
       mMatDepth, sl::MEASURE::DEPTH,
       sl::MEM::CPU, mMatResol);
+
     mSdkGrabTS = mMatDepth.timestamp;
-    DEBUG_VD("Depth map retrieved");
+    DEBUG_STREAM_VD("Depth map retrieved: " << mMatDepth.getInfos().c_str());
   }
   if (mDisparitySubCount > 0) {
     DEBUG_STREAM_VD("Retrieving Disparity");

@@ -863,6 +863,8 @@ void ZedCamera::getGeneralParams()
     mPubResolution = PubRes::NATIVE;
   } else if (out_resol == "CUSTOM") {
     mPubResolution = PubRes::CUSTOM;
+  } else if (out_resol == "OPTIMIZED") {
+    mPubResolution = PubRes::OPTIMIZED;
   } else {
     RCLCPP_WARN(
       get_logger(),
@@ -876,13 +878,13 @@ void ZedCamera::getGeneralParams()
     get_logger(),
     " * Publishing resolution: " << out_resol.c_str());
 
-  if (mPubResolution == PubRes::CUSTOM) {
+  if (mPubResolution == PubRes::CUSTOM || mPubResolution == PubRes::OPTIMIZED) {
     getParam(
       "general.pub_downscale_factor", mCustomDownscaleFactor,
       mCustomDownscaleFactor, " * Publishing downscale factor: ");
   } else {
     mCustomDownscaleFactor = 1.0;
-  }
+  } 
 
   getParam(
     "general.optional_opencv_calibration_file", mOpencvCalibFile,
@@ -4134,21 +4136,19 @@ bool ZedCamera::startCamera()
       << mCamWidth << "x" << mCamHeight);
 
   int pub_w, pub_h;
-  pub_w = static_cast<int>(std::round(mCamWidth / mCustomDownscaleFactor));
-  pub_h = static_cast<int>(std::round(mCamHeight / mCustomDownscaleFactor));
-
-  if (pub_w > mCamWidth || pub_h > mCamHeight) {
-    RCLCPP_WARN_STREAM(
-      get_logger(), "The publishing resolution ("
-        << pub_w << "x" << pub_h
-        << ") cannot be higher than the grabbing resolution ("
-        << mCamWidth << "x" << mCamHeight
-        << "). Using grab resolution for output messages.");
-    pub_w = mCamWidth;
-    pub_h = mCamHeight;
+  if (mPubResolution == PubRes::OPTIMIZED) {
+       if (ZED_SDK_MAJOR_VERSION < 5) {
+        pub_w = NEURAL_W /mCustomDownscaleFactor;
+        pub_h = NEURAL_H /mCustomDownscaleFactor;
+    } else {
+      pub_w = pub_h = (-1 * mCustomDownscaleFactor);
+    }
+  } else {  
+    pub_w = static_cast<int>(std::round(mCamWidth / mCustomDownscaleFactor));
+    pub_h = static_cast<int>(std::round(mCamHeight / mCustomDownscaleFactor));    
   }
-
   mMatResol = sl::Resolution(pub_w, pub_h);
+
   RCLCPP_INFO_STREAM(
     get_logger(), " * Publishing frame size  -> "
       << mMatResol.width << "x"

@@ -194,8 +194,8 @@ typedef enum
   OPTIMIZED //!< Optimized for performance
 } PubRes;
 
-const int NEURAL_W  = 896;
-const int NEURAL_H  = 512;
+const int NEURAL_W = (896 / 2);
+const int NEURAL_H = (512 / 2);
 // <---- Typedefs to simplify declarations
 
 }  // namespace stereolabs

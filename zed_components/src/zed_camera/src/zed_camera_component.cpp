@@ -884,7 +884,7 @@ void ZedCamera::getGeneralParams()
       mCustomDownscaleFactor, " * Publishing downscale factor: ");
   } else {
     mCustomDownscaleFactor = 1.0;
-  } 
+  }
 
   getParam(
     "general.optional_opencv_calibration_file", mOpencvCalibFile,
@@ -3096,7 +3096,7 @@ void ZedCamera::setTFCoordFrameNames()
   RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t-> " << mOdomFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t\t-> " << mBaseFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t\t-> " << mCameraFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t-> " << mCameraFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t\t-> " << mLeftCamFrameId);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -3898,13 +3898,6 @@ bool ZedCamera::startCamera()
   mInitParams.async_grab_camera_recovery =
     true;    // Camera recovery is handled asynchronously to provide information
              // about this status
-
-  // NOTE: this is a temp fix to GMSL2 camera close issues
-  // TODO: check if this issue has been fixed in the SDK
-  if (sl_tools::isZEDX(mCamUserModel)) {
-    RCLCPP_INFO(get_logger(), "Disable async recovery for GMSL2 cameras");
-    mInitParams.async_grab_camera_recovery = false;
-  }
   // <---- ZED configuration
 
   // ----> Try to connect to a camera, to a stream, or to load an SVO
@@ -4137,22 +4130,27 @@ bool ZedCamera::startCamera()
 
   int pub_w, pub_h;
   if (mPubResolution == PubRes::OPTIMIZED) {
-       if (ZED_SDK_MAJOR_VERSION < 5) {
-        pub_w = NEURAL_W /mCustomDownscaleFactor;
-        pub_h = NEURAL_H /mCustomDownscaleFactor;
+    if (ZED_SDK_MAJOR_VERSION < 5) {
+      pub_w = NEURAL_W / mCustomDownscaleFactor;
+      pub_h = NEURAL_H / mCustomDownscaleFactor;
     } else {
-      pub_w = pub_h = (-1 * mCustomDownscaleFactor);
+      sl::Resolution real_res =
+        mZed->getRetrieveMeasureResolution(
+        sl::Resolution(
+          -1 * mCustomDownscaleFactor,
+          -1 * mCustomDownscaleFactor));
+      pub_w = real_res.width;
+      pub_h = real_res.height;
     }
-  } else {  
+  } else {
     pub_w = static_cast<int>(std::round(mCamWidth / mCustomDownscaleFactor));
-    pub_h = static_cast<int>(std::round(mCamHeight / mCustomDownscaleFactor));    
+    pub_h = static_cast<int>(std::round(mCamHeight / mCustomDownscaleFactor));
   }
   mMatResol = sl::Resolution(pub_w, pub_h);
 
   RCLCPP_INFO_STREAM(
     get_logger(), " * Publishing frame size  -> "
-      << mMatResol.width << "x"
-      << mMatResol.height);
+      << mMatResol.width << "x" << mMatResol.height);
   // <---- Camera information
 
   // ----> Set Region of Interest
@@ -6151,6 +6149,8 @@ void ZedCamera::threadFunc_zedGrab()
             mPcDataReadyCondVar.notify_one();
             mPcDataReady = true;
             mPcPublishing = true;
+
+            DEBUG_STREAM_PC("Extracted point cloud: " << mMatCloud.getInfos().c_str() );
           }
         } else {
           mPcPublishing = false;
@@ -7095,8 +7095,9 @@ void ZedCamera::retrieveVideoDepth()
       mZed->retrieveMeasure(
       mMatDepth, sl::MEASURE::DEPTH,
       sl::MEM::CPU, mMatResol);
+
     mSdkGrabTS = mMatDepth.timestamp;
-    DEBUG_VD("Depth map retrieved");
+    DEBUG_STREAM_VD("Depth map retrieved: " << mMatDepth.getInfos().c_str());
   }
   if (mDisparitySubCount > 0) {
     DEBUG_STREAM_VD("Retrieving Disparity");

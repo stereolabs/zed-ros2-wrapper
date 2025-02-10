@@ -803,7 +803,10 @@ void ZedCamera::getGeneralParams()
       " * Camera framerate: ");
   }
   getParam("general.gpu_id", mGpuId, mGpuId, " * GPU ID: ");
-  getParam("general.async_image_retrieval", mAsyncImageRetrieval, mAsyncImageRetrieval, " * Asynchronous image retrieval: ");
+  getParam("general.async_image_retrieval", mAsyncImageRetrieval, mAsyncImageRetrieval);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Asynchronous image retrieval: " << (mAsyncImageRetrieval ? "TRUE" : "FALSE"));
 
   // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
 

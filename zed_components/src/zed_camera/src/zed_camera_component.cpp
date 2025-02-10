@@ -1702,6 +1702,14 @@ void ZedCamera::getOdParams()
       " * MultiClassBox sport-related objects: "
         << (mObjDetSportEnable ? "TRUE" : "FALSE"));
   }
+  getParam(
+    "object_detection.publish_object_tf", mPublishDetectedObjectsTF,
+    mPublishDetectedObjectsTF, "", false);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Publish OD TFs: "
+      << (mPublishDetectedObjectsTF ? "TRUE" : "FALSE"));
+
 }
 
 void ZedCamera::getBodyTrkParams()
@@ -8360,11 +8368,61 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     DEBUG_STREAM_COMM("Message publishing generic ecception: ");
   }
 
+  // Publish TFs
+  if (mPublishTF && mPublishDetectedObjectsTF) {
+    publishObjectTFs(objects);
+  }
+
   // ----> Diagnostic information update
   mObjDetElabMean_sec->addValue(odElabTimer.toc());
   mObjDetPeriodMean_sec->addValue(mOdFreqTimer.toc());
   mOdFreqTimer.tic();
   // <---- Diagnostic information update
+}
+
+void ZedCamera::publishObjectTFs(const sl::Objects & objects)
+{
+  // Timestamp
+  rclcpp::Time ts = sl_tools::slTime2Ros(objects.timestamp);
+
+  // Publish a TF for each object
+  for (auto data : objects.object_list) {
+    // ----> TF label
+    std::string tf_label;
+    if (mObjDetModel != sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
+      tf_label = sl::toString(data.label).c_str();
+      //tf_label += "_";
+      //tf_label += sl::toString(data.sublabel).c_str();
+    } else {
+      if (!mCustomLabelsGood) {
+        tf_label = "object_";
+        tf_label += std::to_string(data.raw_label);
+      } else {
+        tf_label = mCustomLabels[std::to_string(data.raw_label)];
+      }
+    }
+    tf_label += "_";
+    tf_label += std::to_string(data.id);
+    // <---- TF label
+
+    geometry_msgs::msg::TransformStamped transformStamped;
+    transformStamped.header.stamp = ts + rclcpp::Duration(0, mTfOffset * 1e9);
+
+    transformStamped.header.frame_id = mLeftCamFrameId;
+    transformStamped.child_frame_id = tf_label;
+
+    // conversion from Tranform to message
+    transformStamped.transform.translation.x = data.position.tx;
+    transformStamped.transform.translation.y = data.position.ty;
+    transformStamped.transform.translation.z = data.position.tz;
+    transformStamped.transform.rotation.x = 0.0;
+    transformStamped.transform.rotation.y = 0.0;
+    transformStamped.transform.rotation.z = 0.0;
+    transformStamped.transform.rotation.w = 1.0;
+
+    // Publish transformation
+    mTfBroadcaster->sendTransform(transformStamped);
+  }
 }
 
 void ZedCamera::processBodies(rclcpp::Time t)

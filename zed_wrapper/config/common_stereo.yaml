@@ -133,6 +133,7 @@
             mc_electronics: true # [DYNAMIC] - Enable/disable the detection of electronic devices for 'MULTI_CLASS_X' models
             mc_fruit_vegetable: true # [DYNAMIC] - Enable/disable the detection of fruits and vegetables for 'MULTI_CLASS_X' models
             mc_sport: true # [DYNAMIC] - Enable/disable the detection of sport-related objects for 'MULTI_CLASS_X' models
+            publish_object_tf: true # enable/disable the detected object TF broadcasting
 
         body_tracking: # Only stereo cameras
             bt_enabled: false # True to enable Body Tracking

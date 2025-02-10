@@ -4130,18 +4130,18 @@ bool ZedCamera::startCamera()
 
   int pub_w, pub_h;
   if (mPubResolution == PubRes::OPTIMIZED) {
-    if (ZED_SDK_MAJOR_VERSION < 5) {
-      pub_w = NEURAL_W / mCustomDownscaleFactor;
-      pub_h = NEURAL_H / mCustomDownscaleFactor;
-    } else {
-      sl::Resolution real_res =
-        mZed->getRetrieveMeasureResolution(
-        sl::Resolution(
-          -1 * mCustomDownscaleFactor,
-          -1 * mCustomDownscaleFactor));
-      pub_w = real_res.width;
-      pub_h = real_res.height;
-    }
+#if (ZED_SDK_MAJOR_VERSION < 5)
+    pub_w = NEURAL_W / mCustomDownscaleFactor;
+    pub_h = NEURAL_H / mCustomDownscaleFactor;
+#else
+    sl::Resolution real_res =
+      mZed->getRetrieveMeasureResolution(
+      sl::Resolution(
+        -1 * mCustomDownscaleFactor,
+        -1 * mCustomDownscaleFactor));
+    pub_w = real_res.width;
+    pub_h = real_res.height;
+#endif
   } else {
     pub_w = static_cast<int>(std::round(mCamWidth / mCustomDownscaleFactor));
     pub_h = static_cast<int>(std::round(mCamHeight / mCustomDownscaleFactor));

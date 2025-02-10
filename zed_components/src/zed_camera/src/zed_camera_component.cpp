@@ -803,6 +803,10 @@ void ZedCamera::getGeneralParams()
       " * Camera framerate: ");
   }
   getParam("general.gpu_id", mGpuId, mGpuId, " * GPU ID: ");
+  getParam("general.async_image_retrieval", mAsyncImageRetrieval, mAsyncImageRetrieval);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Asynchronous image retrieval: " << (mAsyncImageRetrieval ? "TRUE" : "FALSE"));
 
   // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
 
@@ -3871,6 +3875,7 @@ bool ZedCamera::startCamera()
     mInitParams.camera_fps = mCamGrabFrameRate;
     mInitParams.grab_compute_capping_fps = static_cast<float>(mPubFrameRate);
     mInitParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
+    mInitParams.async_image_retrieval = mAsyncImageRetrieval;
 
     if (mCamSerialNumber > 0) {
       mInitParams.input.setFromSerialNumber(mCamSerialNumber);

@@ -5,6 +5,10 @@ LATEST CHANGES
 ----------
 - Add new `OPTIMIZED` mode for `general.pub_resolution`
 
+2025-02-07
+----------
+- Added new parameter `general.async_image_retrieval` to enable/disable the asynchronous image retrieval.
+
 2025-01-17
 ----------
 - Set the Positional Tracking Mode to `GEN_1` as default as workaround for the random crash issue caused by `GEN_2` mode.

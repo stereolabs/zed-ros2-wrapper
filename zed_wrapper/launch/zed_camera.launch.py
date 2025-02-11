@@ -210,7 +210,7 @@ def launch_setup(context, *args, **kwargs):
                 namespace=namespace_val,
                 package='rclcpp_components',
                 executable=container_exec,
-                arguments=['--ros-args', '--log-level', 'info'],
+                arguments=['--ros-args', '--log-level', 'info', '--use_multi_threaded_executor'],
                 output='screen',
         )
         return_array.append(zed_container)

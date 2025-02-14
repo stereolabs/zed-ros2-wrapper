@@ -1238,6 +1238,7 @@ void ZedCamera::getDepthParams()
         "setting instead.",
         out_resol.c_str());
       out_resol = "COMPACT -> check param value!";
+      mPcDownscaleFactor = 2.0;
       mPcResolution = PcRes::COMPACT;
     }
     RCLCPP_INFO_STREAM(

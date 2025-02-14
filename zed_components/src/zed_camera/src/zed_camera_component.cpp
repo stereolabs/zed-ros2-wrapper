@@ -4095,7 +4095,7 @@ bool ZedCamera::startCamera()
       << sl::toString(mZed->getCameraInformation().input_type).c_str());
   if (mSvoMode) {
     RCLCPP_INFO(
-      get_logger(), " * SVO resolution\t-> %ldx%ld",
+      get_logger(), " * SVO resolution\t-> %dx%d",
       mZed->getCameraInformation().camera_configuration.resolution.width,
       mZed->getCameraInformation().camera_configuration.resolution.height);
     RCLCPP_INFO_STREAM(

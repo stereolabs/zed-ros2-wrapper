@@ -1,6 +1,12 @@
 LATEST CHANGES
 ==============
 
+2025-02-14
+----------
+- Add new parameter 'depth.point_cloud_res' to set a specific point cloud publishing resolution
+  - 'COMPACT': Standard resolution. Optimizes processing and bandwidth
+  - 'REDUCED': Half 'COMPACT' resolution. Low processing and low bandwidth requirements
+
 2025-02-10
 ----------
 - Add new `OPTIMIZED` mode for `general.pub_resolution`

@@ -3,6 +3,7 @@ LATEST CHANGES
 
 2025-02-17
 ----------
+- Add uptime and frame drop rate information to node diagnostics
 - Add image validity check support [SDK 5 required]
 
   - Add new parameter 'general.enable_image_validity_check'

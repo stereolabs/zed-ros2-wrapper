@@ -7,67 +7,29 @@ LATEST CHANGES
   - 'COMPACT': Standard resolution. Optimizes processing and bandwidth
   - 'REDUCED': Half 'COMPACT' resolution. Low processing and low bandwidth requirements
 
-2025-02-10
-----------
+v4.2.x
+------
 - Add new `OPTIMIZED` mode for `general.pub_resolution`
-
-2025-02-07
-----------
-- Added new parameter `general.async_image_retrieval` to enable/disable the asynchronous image retrieval.
-
-2025-01-17
-----------
-- Set the Positional Tracking Mode to `GEN_1` as default as workaround for the random crash issue caused by `GEN_2` mode.
-
-2025-01-14
-----------
+- Add new parameter `general.async_image_retrieval` to enable/disable the asynchronous image retrieval to be used with SVO recording.
+- Set the Positional Tracking Mode to `GEN_1` as default as wa orkaround for the random crash issue caused by `GEN_2` mode.
 - Fixed a bug for raw gray image publisher on Zed One Component: raw gray images were not published when the rectified image topic was subscribed. Thx @Alex-Beh 
-
-2025-01-09
-----------
 - Enabled grayscale output for ZED X One cameras (SDK v4.2.3 required)
 - Enabled streaming input for ZED X One cameras (SDK v4.2.3 required)
-
-2025-01-03
-----------
 - Fixed wrong range check for the `general.pub_downscale_factor` parameter
-
-2025-01-02
-----------
 - Enhanced sensor thread rate due to an automatically adjusting sleep time
-
-2024-12-13
-----------
 - Removed the `zed-ros2-interfaces` sub-module. The `zed_msgs` package is now included in ROS 2 Humble binaries and can be installed with `sudo apt install ros-humble-zed-msgs`.
-
-2024-11-27
-----------
 - Fixed 4K resolution support for ZED X One 4K cameras
 - Changed C++ version to 17 to follow ROS 2 Humble standard
-
-2024-11-18
-----------
 - Renamed `common.yaml` to `common_stereo.yaml`
 - Added `common_mono.yaml` for monocular cameras
 - Added `video.enable_hdr` to `zedxone4k.yaml` for monocular 4K cameras
-
-2024-11-12
-----------
 - Changed the name of the package `zed_interfaces` to `zed_msgs` to match the ROS2 naming convention
-
-2024-10-28
-----------
 - Added the new `stereolabs::ZedCameraOne` component to handle ZED X One cameras
 - Removed the ZED Wrapper executable node.
-
   - Modified the launch file to create an isolated composable container that loads the `stereolabs:ZedCamera` or the `stereolabs:ZedCameraOne` component according to the camera model  
-
-2024-10-18
-----------
 - Added support for custom ONNX detection engine (SDK v4.2 required)
-
   - Added value `CUSTOM_YOLOLIKE_BOX_OBJECTS` to the `object_detection.model` parameter
-  - Added parameter `object_detection.custom_onnx_file` to set the full path of custom ONNX file
+  - Added parameter `object_detection.custom_onnx_file` to set the full path of the custom ONNX file
   - Added parameter `object_detection.onnx_input_size` to set the size of the YOLO input tensor
   - Added parameter `object_detection.custom_label_yaml` to set the full path to custom YAML file storing class labels in [COCO format](https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml)
 

@@ -87,7 +87,8 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mPrevTs_pc(TIMEZERO_ROS),
   mLastClock(TIMEZERO_ROS),
   mStreamingServerRequired(false),
-  mStreamingServerRunning(false)
+  mStreamingServerRunning(false),
+  mUptimer(get_clock())
 {
   RCLCPP_INFO(get_logger(), "********************************");
   RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
@@ -888,7 +889,7 @@ void ZedCamera::getGeneralParams()
     get_logger(),
     " * Publishing resolution: " << out_resol.c_str());
 
-  if (mPubResolution == PubRes::CUSTOM ) {
+  if (mPubResolution == PubRes::CUSTOM) {
     getParam(
       "general.pub_downscale_factor", mCustomDownscaleFactor,
       mCustomDownscaleFactor, " * Publishing downscale factor: ");
@@ -1251,7 +1252,7 @@ void ZedCamera::getDepthParams()
     }
     RCLCPP_INFO_STREAM(
       get_logger(),
-      " * Point cloud resolution: " << out_resol.c_str());    
+      " * Point cloud resolution: " << out_resol.c_str());
 
     getParam(
       "depth.depth_confidence", mDepthConf, mDepthConf,
@@ -3992,6 +3993,7 @@ bool ZedCamera::startCamera()
 
     if (mConnStatus == sl::ERROR_CODE::SUCCESS) {
       DEBUG_STREAM_COMM("Opening successfull");
+      mUptimer.tic(); // Sets the beginning of the camera connection time
       break;
     }
 
@@ -4169,7 +4171,7 @@ bool ZedCamera::startCamera()
       << sl::toString(mZed->getCameraInformation().input_type).c_str());
   if (mSvoMode) {
     RCLCPP_INFO(
-      get_logger(), " * SVO resolution\t-> %dx%d",
+      get_logger(), " * SVO resolution\t-> %ldx%ld",
       mZed->getCameraInformation().camera_configuration.resolution.width,
       mZed->getCameraInformation().camera_configuration.resolution.height);
     RCLCPP_INFO_STREAM(
@@ -4217,20 +4219,20 @@ bool ZedCamera::startCamera()
   // <---- Camera information
 
   // ----> Point Cloud resolution
-  int pc_w=0,pc_h=0;
-  switch(mPcResolution) {
+  int pc_w = 0, pc_h = 0;
+  switch (mPcResolution) {
     case PcRes::FULL: // Same as image and depth map
       pc_w = pub_w;
-      pc_h = pub_h; 
-      break;    
-    case PcRes::REDUCED: 
-      pc_w = NEURAL_W/4;
-      pc_h = NEURAL_H/4;
+      pc_h = pub_h;
       break;
-    case PcRes::COMPACT: 
+    case PcRes::REDUCED:
+      pc_w = NEURAL_W / 4;
+      pc_h = NEURAL_H / 4;
+      break;
+    case PcRes::COMPACT:
     default:
-      pc_w = NEURAL_W/2;
-      pc_h = NEURAL_H/2;
+      pc_w = NEURAL_W / 2;
+      pc_h = NEURAL_H / 2;
       break;
   }
   mPcResol = sl::Resolution(pc_w, pc_h);
@@ -4872,9 +4874,6 @@ bool ZedCamera::startPosTracking()
       mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
       mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
 
-    // elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-    //   std::chrono::high_resolution_clock::now() - start)
-    //   .count();
     elapsed = stopWatch.toc();
 
     rclcpp::sleep_for(1ms);
@@ -10091,6 +10090,8 @@ void ZedCamera::callback_updateDiagnostic(
     return;
   }
 
+  stat.addf("Uptime", "%s", sl_tools::seconds2str(mUptimer.toc()).c_str());
+
   if (mGrabStatus == sl::ERROR_CODE::SUCCESS || mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
     double freq = 1. / mGrabPeriodMean_sec->getAvg();
     double freq_perc = 100. * freq / mPubFrameRate;
@@ -10102,6 +10103,7 @@ void ZedCamera::callback_updateDiagnostic(
     stat.addf(
       "Capture", "Tot. Processing Time: %.6f sec (Max. %.3f sec)",
       frame_proc_sec, frame_grab_period);
+
 
     if (frame_proc_sec > frame_grab_period) {
       mSysOverloadCount++;
@@ -10118,6 +10120,15 @@ void ZedCamera::callback_updateDiagnostic(
         diagnostic_msgs::msg::DiagnosticStatus::OK,
         "Camera grabbing");
     }
+
+    // ----> Frame drop count
+    auto dropped = mZed->getFrameDroppedCount();
+    uint64_t total = dropped + mFrameCount;
+    auto perc_drop = 100. * static_cast<double>(dropped) / total;
+    stat.addf(
+      "Frame Drop rate", "%u/%lu (%g%%)",
+      dropped, total, perc_drop);
+    // <---- Frame drop count
 
     if (mSimMode) {
       stat.add("Input mode", "SIMULATION");

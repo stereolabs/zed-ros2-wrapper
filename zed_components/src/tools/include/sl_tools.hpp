@@ -133,6 +133,13 @@ std::string threadSched2Str(int thread_sched_policy);
 bool checkRoot();
 
 /*!
+ * @brief Convert seconds to string in format DD:HH:MM:SS
+ * @param sec seconds
+ * @return string
+ */
+std::string seconds2str(double sec);
+
+/*!
  * @brief read custom OD labels from a COCO-Like YAML file
  * @param label_file label file full path
  * @param out_labels the map containing the labels. The map idx corresponds to the class ID

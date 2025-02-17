@@ -609,6 +609,21 @@ bool isObjDetAvailable(sl::MODEL camModel)
   return false;
 }
 
+std::string seconds2str(double sec)
+{
+  int days = sec / 86400;
+  sec -= days * 86400;
+  int hours = sec / 3600;
+  sec -= hours * 3600;
+  int minutes = sec / 60;
+  sec -= minutes * 60;
+
+  std::stringstream ss;
+  ss << days << " days, " << hours << " hours, " << minutes << " min, " << sec << " sec";
+
+  return ss.str();
+}
+
 StopWatch::StopWatch(rclcpp::Clock::SharedPtr clock)
 : mStartTime(0, 0, RCL_ROS_TIME),
   mClockPtr(clock)

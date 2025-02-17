@@ -808,11 +808,11 @@ void ZedCamera::getGeneralParams()
     get_logger(),
     " * Asynchronous image retrieval: " << (mAsyncImageRetrieval ? "TRUE" : "FALSE"));
 
-#if(ZED_SDK_MAJOR_VERSION>=5)
+#if (ZED_SDK_MAJOR_VERSION >= 5)
   getParam("general.enable_image_validity_check", mImageValidityCheck, mImageValidityCheck);
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Image Validity Check: " << (mImageValidityCheck==1 ? "ENABLED" : "DISABLED"));
+    " * Image Validity Check: " << (mImageValidityCheck == 1 ? "ENABLED" : "DISABLED"));
 #endif
 
 
@@ -3426,7 +3426,7 @@ void ZedCamera::initPublishers()
   std::string temp_topic_left = mTopicRoot + temp_topic_root + "/left";
   std::string temp_topic_right = mTopicRoot + temp_topic_root + "/right";
 
-#if(ZED_SDK_MAJOR_VERSION>=5)
+#if (ZED_SDK_MAJOR_VERSION >= 5)
   // Set the Health Status topic names
   std::string health_topic_root = mTopicRoot + "health_status/";
   std::string health_low_quality_topic = health_topic_root + "low_image_quality";
@@ -3436,22 +3436,22 @@ void ZedCamera::initPublishers()
 #endif
   // <---- Topics names definition
 
-#if(ZED_SDK_MAJOR_VERSION>=5)
+#if (ZED_SDK_MAJOR_VERSION >= 5)
   // ----> Health Status publishers
   mPubHealthImage = create_publisher<std_msgs::msg::Bool>(
     health_low_quality_topic,
     mQos, mPubOpt);
   RCLCPP_INFO_STREAM(
-  get_logger(),
-  "Advertised on topic: " << mPubHealthImage->get_topic_name());
+    get_logger(),
+    "Advertised on topic: " << mPubHealthImage->get_topic_name());
   mPubHealthLight = create_publisher<std_msgs::msg::Bool>(
     health_low_lighting_topic,
     mQos, mPubOpt);
   RCLCPP_INFO_STREAM(
     get_logger(),
     "Advertised on topic: " << mPubHealthLight->get_topic_name());
-    mPubHealthDepth = create_publisher<std_msgs::msg::Bool>(
-      health_low_depth_topic,
+  mPubHealthDepth = create_publisher<std_msgs::msg::Bool>(
+    health_low_depth_topic,
     mQos, mPubOpt);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -3922,7 +3922,7 @@ bool ZedCamera::startCamera()
     mInitParams.grab_compute_capping_fps = static_cast<float>(mPubFrameRate);
     mInitParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
     mInitParams.async_image_retrieval = mAsyncImageRetrieval;
-#if (ZED_SDK_MAJOR_VERSION>=5)
+#if (ZED_SDK_MAJOR_VERSION >= 5)
     mInitParams.enable_image_validity_check = mImageValidityCheck;
 #else
     mInitParams.enable_image_validity_check = 0;
@@ -6055,14 +6055,15 @@ void ZedCamera::threadFunc_zedGrab()
                 << sl::toString(mGrabStatus).c_str() << ". Trying to recover the connection...");
             rclcpp::sleep_for(1000ms);
             continue;
-          } 
-#if (ZED_SDK_MAJOR_VERSION>=5)
-          else if(mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
+          }
+#if (ZED_SDK_MAJOR_VERSION >= 5)
+          else if (mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
             RCLCPP_WARN_STREAM(
               get_logger(),
               "Corrupted frame detected: "
                 << sl::toString(mGrabStatus).c_str());
-            static const int frame_grab_period = static_cast<int>(std::round(1000. / mCamGrabFrameRate));
+            static const int frame_grab_period =
+              static_cast<int>(std::round(1000. / mCamGrabFrameRate));
           }
 #endif
           else {
@@ -6142,7 +6143,7 @@ void ZedCamera::threadFunc_zedGrab()
           }
         }
 
-#if(ZED_SDK_MAJOR_VERSION>=5)
+#if (ZED_SDK_MAJOR_VERSION >= 5)
         publishHealthStatus();
 #endif
 
@@ -10249,7 +10250,7 @@ void ZedCamera::callback_updateDiagnostic(
       stat.add("TF IMU", "DISABLED");
     }
 
-    if(mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
+    if (mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
       stat.summary(
         diagnostic_msgs::msg::DiagnosticStatus::WARN,
         "Performance Degraded - Corrupted frame received");
@@ -11307,55 +11308,56 @@ void ZedCamera::stopStreamingServer()
   mStreamingServerRequired = false;
 }
 
-#if(ZED_SDK_MAJOR_VERSION>=5)
-  void ZedCamera::publishHealthStatus() {
-    if(mImageValidityCheck>0) {
-      size_t img_sub=0;
-      size_t light_sub=0;
-      size_t depth_sub=0;
-      size_t sensor_sub=0;
-      try {
-        img_sub = mPubHealthImage->get_subscription_count();
-        light_sub = mPubHealthLight->get_subscription_count();
-        depth_sub = mPubHealthDepth->get_subscription_count();
-        sensor_sub = mPubHealthSensor->get_subscription_count();
-      } catch (...) {
-        rcutils_reset_error();
-        DEBUG_STREAM_VD("publishHealthStatus: Exception while counting subscribers");
-        return;
-      }
+#if (ZED_SDK_MAJOR_VERSION >= 5)
+void ZedCamera::publishHealthStatus()
+{
+  if (mImageValidityCheck > 0) {
+    size_t img_sub = 0;
+    size_t light_sub = 0;
+    size_t depth_sub = 0;
+    size_t sensor_sub = 0;
+    try {
+      img_sub = mPubHealthImage->get_subscription_count();
+      light_sub = mPubHealthLight->get_subscription_count();
+      depth_sub = mPubHealthDepth->get_subscription_count();
+      sensor_sub = mPubHealthSensor->get_subscription_count();
+    } catch (...) {
+      rcutils_reset_error();
+      DEBUG_STREAM_VD("publishHealthStatus: Exception while counting subscribers");
+      return;
+    }
 
-      if(img_sub+light_sub+depth_sub+sensor_sub==0) {
-        return;
-      }
-      
-      sl::HealthStatus status = mZed->getHealthStatus();
-      
-      if(img_sub>0) {
-        auto msg = std::make_unique<std_msgs::msg::Bool>();
-        msg->data = status.low_image_quality;
-        mPubHealthImage->publish(std::move(msg));
-      }
+    if (img_sub + light_sub + depth_sub + sensor_sub == 0) {
+      return;
+    }
 
-      if(light_sub>0) {
-        auto msg = std::make_unique<std_msgs::msg::Bool>();
-        msg->data = status.low_lighting;
-        mPubHealthLight->publish(std::move(msg));
-      }
+    sl::HealthStatus status = mZed->getHealthStatus();
 
-      if(depth_sub>0) {
-        auto msg = std::make_unique<std_msgs::msg::Bool>();
-        msg->data = status.low_depth_reliability;
-        mPubHealthDepth->publish(std::move(msg));
-      }
+    if (img_sub > 0) {
+      auto msg = std::make_unique<std_msgs::msg::Bool>();
+      msg->data = status.low_image_quality;
+      mPubHealthImage->publish(std::move(msg));
+    }
 
-      if(sensor_sub>0) {
-        auto msg = std::make_unique<std_msgs::msg::Bool>();
-        msg->data = status.low_motion_sensors_reliability;
-        mPubHealthSensor->publish(std::move(msg));
-      }
+    if (light_sub > 0) {
+      auto msg = std::make_unique<std_msgs::msg::Bool>();
+      msg->data = status.low_lighting;
+      mPubHealthLight->publish(std::move(msg));
+    }
+
+    if (depth_sub > 0) {
+      auto msg = std::make_unique<std_msgs::msg::Bool>();
+      msg->data = status.low_depth_reliability;
+      mPubHealthDepth->publish(std::move(msg));
+    }
+
+    if (sensor_sub > 0) {
+      auto msg = std::make_unique<std_msgs::msg::Bool>();
+      msg->data = status.low_motion_sensors_reliability;
+      mPubHealthSensor->publish(std::move(msg));
     }
   }
+}
 #endif
 }  // namespace stereolabs
 

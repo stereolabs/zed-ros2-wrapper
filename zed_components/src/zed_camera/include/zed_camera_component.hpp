@@ -186,7 +186,7 @@ protected:
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
   bool publishSensorsData(rclcpp::Time force_ts = TIMEZERO_ROS);
-#if(ZED_SDK_MAJOR_VERSION>=5)
+#if (ZED_SDK_MAJOR_VERSION >= 5)
   void publishHealthStatus();
 #endif
   // <---- Publishing functions

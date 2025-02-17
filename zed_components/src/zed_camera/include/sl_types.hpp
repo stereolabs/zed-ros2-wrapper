@@ -193,12 +193,41 @@ typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableStreamingPtr;
 typedef enum
 {
   NATIVE,  //!< Same camera grab resolution
-  CUSTOM,   //!< Custom Rescale Factor
-  OPTIMIZED //!< Optimized for performance
+  CUSTOM   //!< Custom Rescale Factor
 } PubRes;
 
-const int NEURAL_W = (896 / 2);
-const int NEURAL_H = (512 / 2);
+std::string toString( const PubRes & res ){
+  switch( res ){
+    case NATIVE:
+      return "NATIVE";
+    case CUSTOM:
+      return "CUSTOM";
+    default:
+      return "";
+  }
+}
+
+typedef enum
+{
+  FULL,    //!< Full resolution. Not recommended because slow processing and high bandwidth requirements
+  COMPACT,  //!< Standard resolution. Optimizes processing and bandwidth
+  REDUCED   //!< Half resolution. Low processing and bandwidth requirements
+} PcRes;
+std::string toString( const PcRes & res ){
+  switch( res ){
+    case FULL:
+      return "FULL";
+    case COMPACT:
+      return "COMPACT";
+    case REDUCED:
+      return "REDUCED";
+    default:
+      return "";
+  }
+}
+
+const int NEURAL_W = 896;
+const int NEURAL_H = 512;
 // <---- Typedefs to simplify declarations
 
 }  // namespace stereolabs

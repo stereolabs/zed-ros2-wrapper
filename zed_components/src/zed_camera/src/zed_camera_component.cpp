@@ -869,28 +869,26 @@ void ZedCamera::getGeneralParams()
     }
   }
 
-  std::string out_resol = "MEDIUM";
+  std::string out_resol = "NATIVE";
   getParam("general.pub_resolution", out_resol, out_resol);
-  if (out_resol == "NATIVE") {
+  if (out_resol == toString(PubRes::NATIVE)) {
     mPubResolution = PubRes::NATIVE;
-  } else if (out_resol == "CUSTOM") {
+  } else if (out_resol == toString(PubRes::CUSTOM)) {
     mPubResolution = PubRes::CUSTOM;
-  } else if (out_resol == "OPTIMIZED") {
-    mPubResolution = PubRes::OPTIMIZED;
   } else {
     RCLCPP_WARN(
       get_logger(),
       "Not valid 'general.pub_resolution' value: '%s'. Using default "
       "setting instead.",
       out_resol.c_str());
-    out_resol = "NATIVE";
+    out_resol = "NATIVE -> check param value!";
     mPubResolution = PubRes::NATIVE;
   }
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Publishing resolution: " << out_resol.c_str());
 
-  if (mPubResolution == PubRes::CUSTOM || mPubResolution == PubRes::OPTIMIZED) {
+  if (mPubResolution == PubRes::CUSTOM ) {
     getParam(
       "general.pub_downscale_factor", mCustomDownscaleFactor,
       mCustomDownscaleFactor, " * Publishing downscale factor: ");
@@ -1229,6 +1227,31 @@ void ZedCamera::getDepthParams()
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * [DYN] Point cloud rate [Hz]: " << mPcPubRate);
+
+    std::string out_resol = "COMPACT";
+    getParam("depth.point_cloud_res", out_resol, out_resol);
+    if (out_resol == toString(PcRes::FULL)) {
+      mPcResolution = PcRes::FULL;
+      mPcDownscaleFactor = 1.0;
+    } else if (out_resol == toString(PcRes::COMPACT)) {
+      mPcResolution = PcRes::COMPACT;
+      mPcDownscaleFactor = 2.0;
+    } else if (out_resol == toString(PcRes::REDUCED)) {
+      mPcResolution = PcRes::REDUCED;
+      mPcDownscaleFactor = 4.0;
+    } else {
+      RCLCPP_WARN(
+        get_logger(),
+        "Not valid 'depth.point_cloud_res' value: '%s'. Using default "
+        "setting instead.",
+        out_resol.c_str());
+      out_resol = "COMPACT -> check param value!";
+      mPcDownscaleFactor = 2.0;
+      mPcResolution = PcRes::COMPACT;
+    }
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Point cloud resolution: " << out_resol.c_str());    
 
     getParam(
       "depth.depth_confidence", mDepthConf, mDepthConf,
@@ -1905,7 +1928,7 @@ void ZedCamera::getStreamingServerParams()
     RCLCPP_INFO(get_logger(), " * Stream codec: H264");
   }
 
-  getParam("stream_server.port", mStreamingServerPort, mStreamingServerPort, " * Stream port:");
+  getParam("stream_server.port", mStreamingServerPort, mStreamingServerPort, " * Stream port: ");
 
   getParam("stream_server.bitrate", mStreamingServerBitrate, mStreamingServerBitrate);
   if (mStreamingServerBitrate < 1000) {
@@ -4146,7 +4169,7 @@ bool ZedCamera::startCamera()
       << sl::toString(mZed->getCameraInformation().input_type).c_str());
   if (mSvoMode) {
     RCLCPP_INFO(
-      get_logger(), " * SVO resolution\t-> %ldx%ld",
+      get_logger(), " * SVO resolution\t-> %dx%d",
       mZed->getCameraInformation().camera_configuration.resolution.width,
       mZed->getCameraInformation().camera_configuration.resolution.height);
     RCLCPP_INFO_STREAM(
@@ -4181,33 +4204,42 @@ bool ZedCamera::startCamera()
   mCamHeight = camInfo.camera_configuration.resolution.height;
 
   RCLCPP_INFO_STREAM(
-    get_logger(), " * Camera grab frame size -> "
+    get_logger(), " * Camera grab size -> "
       << mCamWidth << "x" << mCamHeight);
 
-  int pub_w, pub_h;
-  if (mPubResolution == PubRes::OPTIMIZED) {
-#if (ZED_SDK_MAJOR_VERSION < 5)
-    pub_w = NEURAL_W / mCustomDownscaleFactor;
-    pub_h = NEURAL_H / mCustomDownscaleFactor;
-#else
-    sl::Resolution real_res =
-      mZed->getRetrieveMeasureResolution(
-      sl::Resolution(
-        -1 * mCustomDownscaleFactor,
-        -1 * mCustomDownscaleFactor));
-    pub_w = real_res.width;
-    pub_h = real_res.height;
-#endif
-  } else {
-    pub_w = static_cast<int>(std::round(mCamWidth / mCustomDownscaleFactor));
-    pub_h = static_cast<int>(std::round(mCamHeight / mCustomDownscaleFactor));
-  }
+  int pub_w = static_cast<int>(std::round(mCamWidth / mCustomDownscaleFactor));
+  int pub_h = static_cast<int>(std::round(mCamHeight / mCustomDownscaleFactor));
   mMatResol = sl::Resolution(pub_w, pub_h);
 
   RCLCPP_INFO_STREAM(
-    get_logger(), " * Publishing frame size  -> "
+    get_logger(), " * Color/Depth publishing size -> "
       << mMatResol.width << "x" << mMatResol.height);
   // <---- Camera information
+
+  // ----> Point Cloud resolution
+  int pc_w=0,pc_h=0;
+  switch(mPcResolution) {
+    case PcRes::FULL: // Same as image and depth map
+      pc_w = pub_w;
+      pc_h = pub_h; 
+      break;    
+    case PcRes::REDUCED: 
+      pc_w = NEURAL_W/4;
+      pc_h = NEURAL_H/4;
+      break;
+    case PcRes::COMPACT: 
+    default:
+      pc_w = NEURAL_W/2;
+      pc_h = NEURAL_H/2;
+      break;
+  }
+  mPcResol = sl::Resolution(pc_w, pc_h);
+
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Point Cloud publishing size -> "
+      << mPcResol.width << "x" << mPcResol.height);
+  // <---- Point Cloud resolution1
+
 
   // ----> Set Region of Interest
   if (!mDepthDisabled) {
@@ -6214,7 +6246,7 @@ void ZedCamera::threadFunc_zedGrab()
             DEBUG_STREAM_PC("Retrieving point cloud");
             mZed->retrieveMeasure(
               mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU,
-              mMatResol);
+              mPcResol);
 
             // Signal Pointcloud thread that a new pointcloud is ready
             mPcDataReadyCondVar.notify_one();

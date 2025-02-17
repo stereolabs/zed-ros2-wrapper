@@ -10092,8 +10092,6 @@ void ZedCamera::callback_updateDiagnostic(
 
   stat.addf("Uptime", "%s", sl_tools::seconds2str(mUptimer.toc()).c_str());
 
-  stat.addf("Uptime", "%s", sl_tools::seconds2str(mUptimer.toc()).c_str());
-
   if (mGrabStatus == sl::ERROR_CODE::SUCCESS || mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
     double freq = 1. / mGrabPeriodMean_sec->getAvg();
     double freq_perc = 100. * freq / mPubFrameRate;

@@ -1,6 +1,17 @@
 LATEST CHANGES
 ==============
 
+2025-02-17
+----------
+- Add image validity check support [SDK 5 required]
+
+  - Add new parameter 'general.enable_image_validity_check'
+  - Add new topic 'health_status/low_image_quality' to publish image quality status
+  - Add new topic 'health_status/low_lighting' to publish low light condition status
+  - Add new topic 'health_status/low_depth_reliability' to publish low depth quality status
+  - Add new topic 'health_status/low_motion_sensors_reliability' to publish low quality of inertial sensors status
+  - Set the Node Disgnostic to WARNING if any of the above conditions are detected
+
 2025-02-14
 ----------
 - Add new parameter 'depth.point_cloud_res' to set a specific point cloud publishing resolution

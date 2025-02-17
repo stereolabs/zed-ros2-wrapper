@@ -307,25 +307,26 @@ private:
   int mVerbose = 1;
   int mGpuId = -1;
   std::string mOpencvCalibFile;
-  sl::RESOLUTION mCamResol =
-    sl::RESOLUTION::HD1080;    // Default resolution: RESOLUTION_HD1080
-  PubRes mPubResolution =
-    PubRes::NATIVE;                     // Use native grab resolution by default
+  sl::RESOLUTION mCamResol = sl::RESOLUTION::HD1080;    // Default resolution: RESOLUTION_HD1080  
+  PubRes mPubResolution = PubRes::NATIVE;                     // Use native grab resolution by default
   double mCustomDownscaleFactor = 1.0;  // Used to rescale data with user factor
-  sl::DEPTH_MODE mDepthMode =
-    sl::DEPTH_MODE::ULTRA;      // Default depth mode: ULTRA
-  bool mDepthDisabled = false;  // Indicates if depth calculation is not
-                                // required (DEPTH_MODE::NONE)
+  bool mOpenniDepthMode =
+    false;    // 16 bit UC data in mm else 32F in m,
+              // for more info -> http://www.ros.org/reps/rep-0118.html
+  double mCamMinDepth = 0.1;
+  double mCamMaxDepth = 10.0;
+  sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::NEURAL;
+  PcRes mPcResolution = PcRes::COMPACT;
+  double mPcDownscaleFactor = 1.0;      // Used to rescale point cloud data
+  bool mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE)
   int mDepthStabilization = 1;
+
   int mCamTimeoutSec = 5;
   int mMaxReconnectTemp = 5;
   bool mCameraSelfCalib = true;
   bool mCameraFlip = false;
-  bool mOpenniDepthMode =
-    false;    // 16 bit UC data in mm else 32F in m,
-              // for more info -> http://www.ros.org/reps/rep-0118.html
-  double mCamMinDepth = 0.2;
-  double mCamMaxDepth = 10.0;
+  
+
   bool mSensCameraSync = false;
   double mSensPubRate = 400.;
 
@@ -514,6 +515,7 @@ private:
   int mCamWidth;   // Camera frame width
   int mCamHeight;  // Camera frame height
   sl::Resolution mMatResol;
+  sl::Resolution mPcResol;
   // <---- Stereolabs Mat Info
 
   // Camera IMU transform

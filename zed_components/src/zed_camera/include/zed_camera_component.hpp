@@ -186,6 +186,9 @@ protected:
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
   bool publishSensorsData(rclcpp::Time force_ts = TIMEZERO_ROS);
+#if (ZED_SDK_MAJOR_VERSION >= 5)
+  void publishHealthStatus();
+#endif
   // <---- Publishing functions
 
   // ----> Utility functions
@@ -301,6 +304,7 @@ private:
   std::string mCameraName = "zed";           // Default camera name
   int mCamGrabFrameRate = 15;
   bool mAsyncImageRetrieval = false;
+  int mImageValidityCheck = 1;
   std::string mSvoFilepath = "";
   bool mSvoLoop = false;
   bool mSvoRealtime = false;
@@ -626,6 +630,11 @@ private:
   gnssFusionStatusPub mPubGeoPoseStatus;
   gnssFixPub mPubFusedFix;
   gnssFixPub mPubOriginFix;
+
+  healthPub mPubHealthImage;
+  healthPub mPubHealthLight;
+  healthPub mPubHealthDepth;
+  healthPub mPubHealthSensor;
   // <---- Publishers
 
   // <---- Publisher variables

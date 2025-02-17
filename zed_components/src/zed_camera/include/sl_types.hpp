@@ -193,8 +193,9 @@ typedef enum
   CUSTOM   //!< Custom Rescale Factor
 } PubRes;
 
-std::string toString( const PubRes & res ){
-  switch( res ){
+std::string toString(const PubRes & res)
+{
+  switch (res) {
     case NATIVE:
       return "NATIVE";
     case CUSTOM:
@@ -210,8 +211,9 @@ typedef enum
   COMPACT,  //!< Standard resolution. Optimizes processing and bandwidth
   REDUCED   //!< Half resolution. Low processing and bandwidth requirements
 } PcRes;
-std::string toString( const PcRes & res ){
-  switch( res ){
+std::string toString(const PcRes & res)
+{
+  switch (res) {
     case FULL:
       return "FULL";
     case COMPACT:

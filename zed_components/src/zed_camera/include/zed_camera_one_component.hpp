@@ -326,6 +326,8 @@ private:
   // ----> Diagnostic variables
   diagnostic_updater::Updater _diagUpdater;  // Diagnostic Updater
 
+  sl_tools::StopWatch _uptimer;
+
   sl::ERROR_CODE _connStatus = sl::ERROR_CODE::LAST; // Connection status
   sl::ERROR_CODE _grabStatus = sl::ERROR_CODE::LAST; // Grab status
   float _tempImu = NOT_VALID_TEMP;

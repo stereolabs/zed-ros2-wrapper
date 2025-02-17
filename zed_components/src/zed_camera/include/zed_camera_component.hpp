@@ -307,7 +307,7 @@ private:
   int mVerbose = 1;
   int mGpuId = -1;
   std::string mOpencvCalibFile;
-  sl::RESOLUTION mCamResol = sl::RESOLUTION::HD1080;    // Default resolution: RESOLUTION_HD1080  
+  sl::RESOLUTION mCamResol = sl::RESOLUTION::HD1080;    // Default resolution: RESOLUTION_HD1080
   PubRes mPubResolution = PubRes::NATIVE;                     // Use native grab resolution by default
   double mCustomDownscaleFactor = 1.0;  // Used to rescale data with user factor
   bool mOpenniDepthMode =
@@ -325,7 +325,7 @@ private:
   int mMaxReconnectTemp = 5;
   bool mCameraSelfCalib = true;
   bool mCameraFlip = false;
-  
+
 
   bool mSensCameraSync = false;
   double mSensPubRate = 400.;
@@ -758,6 +758,7 @@ private:
   // <---- Positional Tracking
 
   // ----> Diagnostic
+  sl_tools::StopWatch mUptimer;
   float mTempImu = NOT_VALID_TEMP;
   float mTempLeft = NOT_VALID_TEMP;
   float mTempRight = NOT_VALID_TEMP;

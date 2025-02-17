@@ -4,6 +4,7 @@ LATEST CHANGES
 2025-02-17
 ----------
 - Add image validity check support [SDK 5 required]
+
   - Add new parameter 'general.enable_image_validity_check'
   - Add new topic 'health_status/low_image_quality' to publish image quality status
   - Add new topic 'health_status/low_lighting' to publish low light condition status

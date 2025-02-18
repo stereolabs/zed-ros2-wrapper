@@ -90,7 +90,7 @@ def launch_setup(context, *args, **kwargs):
 
     node_name = LaunchConfiguration('node_name')
 
-    config_common_path = LaunchConfiguration('config_path')
+    ros_params_override_path = LaunchConfiguration('ros_params_override_path')
     config_ffmpeg = LaunchConfiguration('ffmpeg_config_path')
 
     serial_number = LaunchConfiguration('serial_number')
@@ -103,7 +103,7 @@ def launch_setup(context, *args, **kwargs):
 
     custom_baseline = LaunchConfiguration('custom_baseline')
 
-    ros_params_override_path = LaunchConfiguration('ros_params_override_path')
+    
 
     enable_gnss = LaunchConfiguration('enable_gnss')
     gnss_antenna_offset = LaunchConfiguration('gnss_antenna_offset')
@@ -130,26 +130,40 @@ def launch_setup(context, *args, **kwargs):
     else:
         node_name_val = camera_name_val
     
-    config_common_path_val = config_common_path.perform(context)
-    if (config_common_path_val == ''):
-        if (camera_model_val == 'zed' or 
-            camera_model_val == 'zedm' or 
-            camera_model_val == 'zed2' or 
-            camera_model_val == 'zed2i' or 
-            camera_model_val == 'zedx' or 
-            camera_model_val == 'zedxm' or
-            camera_model_val == 'virtual'):
-            config_common_path_val = default_config_common + '_stereo.yaml'
-        else:
-            config_common_path_val = default_config_common + '_mono.yaml'
+    # Common configuration file
+    if (camera_model_val == 'zed' or 
+        camera_model_val == 'zedm' or 
+        camera_model_val == 'zed2' or 
+        camera_model_val == 'zed2i' or 
+        camera_model_val == 'zedx' or 
+        camera_model_val == 'zedxm' or
+        camera_model_val == 'virtual'):
+        config_common_path_val = default_config_common + '_stereo.yaml'
+    else:
+        config_common_path_val = default_config_common + '_mono.yaml'
 
-    print('Using common configuration file: ' + config_common_path_val)
+    info = 'Using common configuration file: ' + config_common_path_val
+    return_array.append(LogInfo(msg=TextSubstitution(text=info)))
 
+    # Camera configuration file
     config_camera_path = os.path.join(
         get_package_share_directory('zed_wrapper'),
         'config',
         camera_model_val + '.yaml'
     )
+
+    info = 'Using camera configuration file: ' + config_camera_path
+    return_array.append(LogInfo(msg=TextSubstitution(text=info)))
+
+    # FFMPEG configuration file
+    info = 'Using FFMPEG configuration file: ' + config_ffmpeg.perform(context)
+    return_array.append(LogInfo(msg=TextSubstitution(text=info)))
+
+    # ROS parameters override file
+    ros_params_override_path_val = ros_params_override_path.perform(context)
+    if(ros_params_override_path_val != ''):        
+        info = 'Using ROS parameters override file: ' + ros_params_override_path_val
+        return_array.append(LogInfo(msg=TextSubstitution(text=info)))
 
     # Xacro command with options
     xacro_command = []
@@ -239,8 +253,7 @@ def launch_setup(context, *args, **kwargs):
                 'gnss_fusion.gnss_fusion_enabled': enable_gnss
             }
         ]
-    
-    if( ros_params_override_path.perform(context) != ''):
+    if( ros_params_override_path_val != ''):
         node_parameters.append(ros_params_override_path)
 
     # ZED Wrapper component
@@ -270,7 +283,7 @@ def launch_setup(context, *args, **kwargs):
         )
     
     full_container_name = '/' + namespace_val + '/' + container_name_val
-    info = '* Loading ZED node: ' + node_name_val + ' in container: ' + full_container_name
+    info = 'Loading ZED node `' + node_name_val + '` in container `' + full_container_name + '`'
     return_array.append(LogInfo(msg=TextSubstitution(text=info)))
     
     load_composable_node = LoadComposableNodes(
@@ -305,13 +318,13 @@ def generate_launch_description():
                 default_value='zed_node',
                 description='The name of the zed_wrapper node. All the topic will have the same prefix: `/<camera_name>/<node_name>/`. If a namespace is specified, the node name is replaced by the camera name.'),
             DeclareLaunchArgument(
-                'config_path',
+                'ros_params_override_path',
                 default_value='',
-                description='Path to the YAML configuration file for the camera. common_stereo.yaml is used by default for stereo cameras, common_mono.yaml for mono cameras.'),
+                description='The path to an additional parameters file to override the default values.'),
             DeclareLaunchArgument(
                 'ffmpeg_config_path',
                 default_value=TextSubstitution(text=default_config_ffmpeg),
-                description='Path to the YAML configuration file for the FFMPEG parameters when using FFMPEG image transport plugin.'),                
+                description='Path to the YAML configuration file for the FFMPEG parameters when using FFMPEG image transport plugin.'),
             DeclareLaunchArgument(
                 'serial_number',
                 default_value='0',
@@ -339,11 +352,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'xacro_path',
                 default_value=TextSubstitution(text=default_xacro_path),
-                description='Path to the camera URDF file as a xacro file.'),
-            DeclareLaunchArgument(
-                'ros_params_override_path',
-                default_value='',
-                description='The path to an additional parameters file to override the defaults'),
+                description='Path to the camera URDF file as a xacro file.'),            
             DeclareLaunchArgument(
                 'svo_path',
                 default_value=TextSubstitution(text='live'),

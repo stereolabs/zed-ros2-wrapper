@@ -234,8 +234,14 @@ def launch_setup(context, *args, **kwargs):
             # YAML files
             config_common_path_val,  # Common parameters
             config_camera_path,  # Camera related parameters
-            config_ffmpeg, # FFMPEG parameters
-            # Overriding
+            config_ffmpeg # FFMPEG parameters
+    ]
+
+    if( ros_params_override_path_val != ''):
+        node_parameters.append(ros_params_override_path)
+
+    node_parameters.append( 
+            # Launch arguments must override the YAML files values
             {
                 'use_sim_time': use_sim_time,
                 'simulation.sim_enabled': sim_mode,
@@ -252,9 +258,8 @@ def launch_setup(context, *args, **kwargs):
                 'sensors.publish_imu_tf': publish_imu_tf,
                 'gnss_fusion.gnss_fusion_enabled': enable_gnss
             }
-        ]
-    if( ros_params_override_path_val != ''):
-        node_parameters.append(ros_params_override_path)
+    )
+
 
     # ZED Wrapper component
     if( camera_model_val=='zed' or

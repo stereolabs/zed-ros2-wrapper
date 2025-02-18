@@ -6243,10 +6243,14 @@ void ZedCamera::threadFunc_zedGrab()
           std::unique_lock<std::mutex> pc_lock(mPcMutex, std::defer_lock);
 
           if (pc_lock.try_lock()) {
-            DEBUG_STREAM_PC("Retrieving point cloud");
+            DEBUG_STREAM_PC(
+              "Retrieving point cloud size: " << mPcResol.width << "x" << mPcResol.height);
             mZed->retrieveMeasure(
               mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU,
               mPcResol);
+            DEBUG_STREAM_PC(
+              "Retrieved point cloud size: " << mMatCloud.getWidth() << "x" <<
+                mMatCloud.getHeight());
 
             // Signal Pointcloud thread that a new pointcloud is ready
             mPcDataReadyCondVar.notify_one();
@@ -9173,8 +9177,8 @@ void ZedCamera::publishPointCloud()
   // Initialize Point Cloud message
   // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
 
-  int width = mMatResol.width;
-  int height = mMatResol.height;
+  int width = mPcResol.width;
+  int height = mPcResol.height;
 
   int ptsCount = width * height;
 

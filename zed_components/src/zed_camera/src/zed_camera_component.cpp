@@ -882,7 +882,7 @@ void ZedCamera::getGeneralParams()
       "Not valid 'general.pub_resolution' value: '%s'. Using default "
       "setting instead.",
       out_resol.c_str());
-    out_resol = "NATIVE -> check param value!";
+    out_resol = "NATIVE -> Fix the value in YAML!";
     mPubResolution = PubRes::NATIVE;
   }
   RCLCPP_INFO_STREAM(
@@ -1231,23 +1231,21 @@ void ZedCamera::getDepthParams()
 
     std::string out_resol = "COMPACT";
     getParam("depth.point_cloud_res", out_resol, out_resol);
-    if (out_resol == toString(PcRes::FULL)) {
+    if (out_resol == toString(PcRes::PUB)) {
+      mPcResolution = PcRes::PUB;
+    } else if (out_resol == toString(PcRes::FULL)) {
       mPcResolution = PcRes::FULL;
-      mPcDownscaleFactor = 1.0;
     } else if (out_resol == toString(PcRes::COMPACT)) {
       mPcResolution = PcRes::COMPACT;
-      mPcDownscaleFactor = 2.0;
     } else if (out_resol == toString(PcRes::REDUCED)) {
       mPcResolution = PcRes::REDUCED;
-      mPcDownscaleFactor = 4.0;
     } else {
       RCLCPP_WARN(
         get_logger(),
         "Not valid 'depth.point_cloud_res' value: '%s'. Using default "
         "setting instead.",
         out_resol.c_str());
-      out_resol = "COMPACT -> check param value!";
-      mPcDownscaleFactor = 2.0;
+      out_resol = "COMPACT -> Fix the value in YAML!";
       mPcResolution = PcRes::COMPACT;
     }
     RCLCPP_INFO_STREAM(
@@ -4221,18 +4219,21 @@ bool ZedCamera::startCamera()
   // ----> Point Cloud resolution
   int pc_w = 0, pc_h = 0;
   switch (mPcResolution) {
-    case PcRes::FULL: // Same as image and depth map
+    case PcRes::PUB: // Same as image and depth map
       pc_w = pub_w;
       pc_h = pub_h;
+      break;
+    case PcRes::FULL:
+      pc_w = NEURAL_W;
+      pc_h = NEURAL_H;
+      break;
+    case PcRes::COMPACT:
+      pc_w = NEURAL_W / 2;
+      pc_h = NEURAL_H / 2;
       break;
     case PcRes::REDUCED:
       pc_w = NEURAL_W / 4;
       pc_h = NEURAL_H / 4;
-      break;
-    case PcRes::COMPACT:
-    default:
-      pc_w = NEURAL_W / 2;
-      pc_h = NEURAL_H / 2;
       break;
   }
   mPcResol = sl::Resolution(pc_w, pc_h);

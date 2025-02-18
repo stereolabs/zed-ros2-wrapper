@@ -210,6 +210,7 @@ std::string toString(const PubRes & res)
 
 typedef enum
 {
+  PUB,     //!< Same resolution as Color and Depth Map. [Old behavior for compatibility]
   FULL,    //!< Full resolution. Not recommended because slow processing and high bandwidth requirements
   COMPACT,  //!< Standard resolution. Optimizes processing and bandwidth
   REDUCED   //!< Half resolution. Low processing and bandwidth requirements
@@ -217,6 +218,8 @@ typedef enum
 std::string toString(const PcRes & res)
 {
   switch (res) {
+    case PUB:
+      return "PUB";
     case FULL:
       return "FULL";
     case COMPACT:

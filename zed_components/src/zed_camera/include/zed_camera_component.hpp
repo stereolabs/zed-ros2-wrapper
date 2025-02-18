@@ -321,7 +321,6 @@ private:
   double mCamMaxDepth = 10.0;
   sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::NEURAL;
   PcRes mPcResolution = PcRes::COMPACT;
-  double mPcDownscaleFactor = 1.0;      // Used to rescale point cloud data
   bool mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE)
   int mDepthStabilization = 1;
 

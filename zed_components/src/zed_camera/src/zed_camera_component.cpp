@@ -33,14 +33,10 @@
 
 #include "sl_logging.hpp"
 
-#ifdef FOUND_HUMBLE
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-#elif defined FOUND_IRON
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-#elif defined FOUND_FOXY
+#ifdef FOUND_FOXY
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #else
-#error Unsupported ROS2 distro
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #endif
 
 #include <sl/Camera.hpp>

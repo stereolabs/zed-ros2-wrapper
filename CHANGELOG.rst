@@ -1,6 +1,13 @@
 LATEST CHANGES
 ==============
 
+2025-02-24
+----------
+- Add `general.camera_id` parameter to set the camera ID for the ZedCamera. 
+- Add `general.camera_id` parameter to set the camera ID for the ZedCameraOne.
+- Add `camera_id` argument to the `zed_camera.launch.py` launch file. Useful for GMSL2 multi-camera configurations where camera ID is estabilished by the GMSL2 wire.
+
+
 2025-02-17
 ----------
 - Add uptime and frame drop rate information to node diagnostics

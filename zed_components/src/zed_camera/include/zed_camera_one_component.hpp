@@ -217,6 +217,7 @@ private:
   int _gpuId = -1; // GPU ID
 
   int _camSerialNumber = 0; // Camera serial number
+  int _camId = -1; // Camera ID
 
   sl::MODEL _camUserModel = sl::MODEL::ZED_XONE_GS;  // Default camera model
 

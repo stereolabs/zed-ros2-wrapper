@@ -263,6 +263,9 @@ void ZedCameraOne::getGeneralParams()
     "general.serial_number", _camSerialNumber, _camSerialNumber,
     " * Camera SN: ");
   getParam(
+    "general.camera_id", _camId, _camId,
+    " * Camera ID: ");
+  getParam(
     "general.camera_timeout_sec", _openTimeout_sec, _openTimeout_sec,
     " * Camera timeout [sec]: ", false, 1, 60);
   getParam(
@@ -679,7 +682,9 @@ bool ZedCameraOne::startCamera()
     _initParams.camera_resolution = static_cast<sl::RESOLUTION>(_camResol);
 
     if (_camSerialNumber > 0) {
-      _initParams.input.setFromSerialNumber(_camSerialNumber);
+      _initParams.input.setFromSerialNumber(_camSerialNumber,sl::BUS_TYPE::GMSL);
+    } else if (_camId >= 0) {
+      _initParams.input.setFromCameraID(_camId,sl::BUS_TYPE::GMSL,sl::CAMERA_TYPE::MONO);
     }
   }
 

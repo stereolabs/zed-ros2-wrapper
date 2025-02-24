@@ -94,6 +94,7 @@ def launch_setup(context, *args, **kwargs):
     config_ffmpeg = LaunchConfiguration('ffmpeg_config_path')
 
     serial_number = LaunchConfiguration('serial_number')
+    camera_id = LaunchConfiguration('camera_id')
 
     publish_urdf = LaunchConfiguration('publish_urdf')
     publish_tf = LaunchConfiguration('publish_tf')
@@ -102,8 +103,6 @@ def launch_setup(context, *args, **kwargs):
     xacro_path = LaunchConfiguration('xacro_path')
 
     custom_baseline = LaunchConfiguration('custom_baseline')
-
-    
 
     enable_gnss = LaunchConfiguration('enable_gnss')
     gnss_antenna_offset = LaunchConfiguration('gnss_antenna_offset')
@@ -253,6 +252,7 @@ def launch_setup(context, *args, **kwargs):
                 'general.camera_model': camera_model_val,
                 'svo.svo_path': svo_path,
                 'general.serial_number': serial_number,
+                'general.camera_id': camera_id,
                 'pos_tracking.publish_tf': publish_tf,
                 'pos_tracking.publish_map_tf': publish_map_tf,
                 'sensors.publish_imu_tf': publish_imu_tf,
@@ -333,7 +333,11 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'serial_number',
                 default_value='0',
-                description='The serial number of the camera to be opened. It is mandatory to use this parameter in multi-camera rigs to distinguish between different cameras.'),
+                description='The serial number of the camera to be opened. It is mandatory to use this parameter or camera ID in multi-camera rigs to distinguish between different cameras. Use `ZED_Explorer -a` to retrieve the serial number of all the connected cameras.'),
+            DeclareLaunchArgument(
+                'camera_id',
+                default_value='-1',
+                description='The ID of the camera to be opened. It is mandatory to use this parameter or serial number in multi-camera rigs to distinguish between different cameras.  Use `ZED_Explorer -a` to retrieve the ID of all the connected cameras.'),
             DeclareLaunchArgument(
                 'publish_urdf',
                 default_value='true',

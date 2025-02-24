@@ -287,6 +287,7 @@ private:
   bool _debugStreaming = false;
 
   int mCamSerialNumber = 0;
+  int mCamId = -1;
   bool mSimMode = false;     // Expecting simulation data?
   bool mUseSimTime = false;  // Use sim time?
   std::string mSimAddr =

@@ -788,6 +788,9 @@ void ZedCamera::getGeneralParams()
     "general.serial_number", mCamSerialNumber, mCamSerialNumber,
     " * Camera SN: ");
   getParam(
+    "general.camera_id", mCamId, mCamId,
+    " * Camera ID: ");
+  getParam(
     "general.camera_timeout_sec", mCamTimeoutSec, mCamTimeoutSec,
     " * Camera timeout [sec]: ");
   getParam(
@@ -3952,6 +3955,8 @@ bool ZedCamera::startCamera()
 
     if (mCamSerialNumber > 0) {
       mInitParams.input.setFromSerialNumber(mCamSerialNumber);
+    } else if(mCamId >= 0) {
+      mInitParams.input.setFromCameraID(mCamId);
     }
   }
 

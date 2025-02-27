@@ -682,9 +682,9 @@ bool ZedCameraOne::startCamera()
     _initParams.camera_resolution = static_cast<sl::RESOLUTION>(_camResol);
 
     if (_camSerialNumber > 0) {
-      _initParams.input.setFromSerialNumber(_camSerialNumber,sl::BUS_TYPE::GMSL);
+      _initParams.input.setFromSerialNumber(_camSerialNumber, sl::BUS_TYPE::GMSL);
     } else if (_camId >= 0) {
-      _initParams.input.setFromCameraID(_camId,sl::BUS_TYPE::GMSL,sl::CAMERA_TYPE::MONO);
+      _initParams.input.setFromCameraID(_camId, sl::BUS_TYPE::GMSL, sl::CAMERA_TYPE::MONO);
     }
   }
 
@@ -1082,7 +1082,7 @@ void ZedCameraOne::callback_updateDiagnostic(
   } else {
     stat.summaryf(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
-      "Camera error: %s", sl::toString(_grabStatus).c_str());
+      "%s", sl::toString(_grabStatus).c_str());
   }
 
   if (_imuPublishing) {

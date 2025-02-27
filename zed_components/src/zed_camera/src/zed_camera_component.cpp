@@ -146,10 +146,13 @@ void ZedCamera::init()
 
   // ----> Diagnostic initialization
   mDiagUpdater.add(
-    "ZED Diagnostic", this,
+    mCameraName, this,
     &ZedCamera::callback_updateDiagnostic);
-  std::string hw_id = std::string("Stereolabs camera: ") + mCameraName;
+  std::string hw_id = std::string("Stereolabs ");
+  hw_id += sl::toString(mCamUserModel).c_str();
+  hw_id += " - '" + mCameraName + "'";
   mDiagUpdater.setHardwareID(hw_id);
+  //mDiagUpdater.force_update();
   // <---- Diagnostic initialization
 
   // Services initialization
@@ -1167,12 +1170,14 @@ void ZedCamera::getDepthParams()
   }
 
   if (!matched) {
-    RCLCPP_WARN(
-      get_logger(),
-      "The parameter 'depth.depth_mode' contains a not valid string. "
-      "Please check it in 'common_stereo.yaml'.");
-    RCLCPP_WARN(get_logger(), "Using default DEPTH_MODE.");
     mDepthMode = sl::DEPTH_MODE::PERFORMANCE;
+    if (depth_mode_str != "NEURAL_LIGHT") {
+      RCLCPP_WARN(
+        get_logger(),
+        "The parameter 'depth.depth_mode' contains a not valid string. "
+        "Please check it in 'common_stereo.yaml'.");
+      RCLCPP_WARN_STREAM(get_logger(), "Using default value: " << sl::toString(mDepthMode).c_str());
+    }
   }
 
   if (mDepthMode == sl::DEPTH_MODE::NONE) {
@@ -3955,7 +3960,7 @@ bool ZedCamera::startCamera()
 
     if (mCamSerialNumber > 0) {
       mInitParams.input.setFromSerialNumber(mCamSerialNumber);
-    } else if(mCamId >= 0) {
+    } else if (mCamId >= 0) {
       mInitParams.input.setFromCameraID(mCamId);
     }
   }
@@ -4053,6 +4058,8 @@ bool ZedCamera::startCamera()
       RCLCPP_ERROR(get_logger(), "Camera detection timeout");
       return false;
     }
+
+    mDiagUpdater.force_update();
 
     rclcpp::sleep_for(std::chrono::seconds(mCamTimeoutSec));
   }
@@ -4160,6 +4167,14 @@ bool ZedCamera::startCamera()
       << sl::toString(mCamRealModel).c_str());
   mCamSerialNumber = camInfo.serial_number;
   RCLCPP_INFO_STREAM(get_logger(), " * Serial Number -> " << mCamSerialNumber);
+
+  // ----> Update HW ID
+  std::string hw_id = std::string("Stereolabs ");
+  hw_id += sl::toString(mCamRealModel).c_str();
+  hw_id += " - '" + mCameraName + "'" + " - S/N: " + std::to_string(mCamSerialNumber);
+  mDiagUpdater.setHardwareID(hw_id);
+  mDiagUpdater.force_update();
+  // <---- Update HW ID
 
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -6145,7 +6160,7 @@ void ZedCamera::threadFunc_zedGrab()
           mFrameTimestamp =
             sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
         }
-        DEBUG_STREAM_COMM("Grab timestamp: " << mFrameTimestamp.nanoseconds() << " nsec");
+        //DEBUG_STREAM_COMM("Grab timestamp: " << mFrameTimestamp.nanoseconds() << " nsec");
         // <---- Timestamp
 
         if (mStreamingServerRequired && !mStreamingServerRunning) {
@@ -8688,10 +8703,10 @@ void ZedCamera::applyDepthSettings()
       mDepthTextConf;      // Update depth texture confidence if changed
     mRunParams.remove_saturated_areas = mRemoveSatAreas;
 
-    DEBUG_STREAM_COMM("Depth extraction enabled");
+    DEBUG_STREAM_COMM_ONCE("Depth extraction enabled");
     mRunParams.enable_depth = true;
   } else {
-    DEBUG_STREAM_COMM("Depth extraction disabled");
+    DEBUG_STREAM_COMM_ONCE("Depth extraction disabled");
     mRunParams.enable_depth = false;
   }
 }
@@ -10114,7 +10129,6 @@ void ZedCamera::callback_updateDiagnostic(
       "Capture", "Tot. Processing Time: %.6f sec (Max. %.3f sec)",
       frame_proc_sec, frame_grab_period);
 
-
     if (frame_proc_sec > frame_grab_period) {
       mSysOverloadCount++;
     }
@@ -10315,7 +10329,7 @@ void ZedCamera::callback_updateDiagnostic(
   } else {
     stat.summaryf(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
-      "Camera error: %s", sl::toString(mGrabStatus).c_str());
+      "%s", sl::toString(mGrabStatus).c_str());
   }
 
   if (mImuPublishing) {

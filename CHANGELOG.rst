@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-02-27
+----------
+- Improve Node Diagnostics information
+
 2025-02-24
 ----------
 - Add `general.camera_id` parameter to set the camera ID for the ZedCamera. 

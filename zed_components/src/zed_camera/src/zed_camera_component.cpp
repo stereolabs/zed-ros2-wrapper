@@ -673,6 +673,7 @@ void ZedCamera::getGeneralParams()
     RCLCPP_INFO(
       get_logger(), " * SVO Realtime: %s",
       mSvoRealtime ? "TRUE" : "FALSE");
+    getParam("svo.play_from_frame", mSvoFrameStart, mSvoFrameStart, " * SVO start frame: ");
   }
 
   mStreamMode = false;
@@ -1503,6 +1504,14 @@ void ZedCamera::getPosTrackingParams()
       "pos_tracking.fixed_z_value", mFixedZValue, mFixedZValue,
       " * Fixed Z value: ");
   }
+  getParam(
+    "pos_tracking.reset_pose_with_svo_loop",
+    mResetPoseWithSvoLoop, mResetPoseWithSvoLoop);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Reset pose with SVO loop: "
+      << (mResetPoseWithSvoLoop ? "TRUE" : "FALSE"));
+
 }
 
 void ZedCamera::getGnssFusionParams()
@@ -4065,6 +4074,24 @@ bool ZedCamera::startCamera()
   }
   // ----> Try to connect to a camera, to a stream, or to load an SVO
 
+  // ----> Set SVO first frame if required
+  if (mSvoMode && mSvoFrameStart != 0) {
+    int svo_frames = mZed->getSVONumberOfFrames();
+
+    if (mSvoFrameStart > svo_frames) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "The SVO contains " << svo_frames << " frames. The requested starting frame ("
+                            << mSvoFrameStart << ") is invalid.");
+      return false;
+    }
+
+    mZed->setSVOPosition(mSvoFrameStart);
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "SVO playing from frame #" << mSvoFrameStart);
+  }
+
 
   // ----> If SVO and GNSS enabled check that it's a valid SV0 Gen.2
   if (mSvoMode && mGnssFusionEnabled) {
@@ -6076,13 +6103,25 @@ void ZedCamera::threadFunc_zedGrab()
           if (mSvoMode && mGrabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
             // ----> Check SVO status
             if (mSvoLoop) {
-              mZed->setSVOPosition(0);
-              RCLCPP_WARN(
+              mZed->setSVOPosition(mSvoFrameStart);
+              RCLCPP_WARN_STREAM(
                 get_logger(),
-                "SVO reached the end and it has been restarted.");
+                "SVO reached the end and it has been restarted from frame #" << mSvoFrameStart);
               rclcpp::sleep_for(
                 std::chrono::microseconds(
                   static_cast<int>(mGrabPeriodMean_sec->getAvg() * 1e6)));
+              if (mResetPoseWithSvoLoop) {
+                RCLCPP_WARN(
+                  get_logger(),
+                  " * Camera pose reset to initial conditions.");
+
+                mResetOdomFromSrv = true;
+                mOdomPath.clear();
+                mPosePath.clear();
+
+                // Restart tracking
+                startPosTracking();
+              }
               continue;
             } else {
               RCLCPP_WARN(

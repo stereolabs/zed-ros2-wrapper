@@ -309,6 +309,7 @@ private:
   std::string mSvoFilepath = "";
   bool mSvoLoop = false;
   bool mSvoRealtime = false;
+  int mSvoFrameStart = 0;
   int mVerbose = 1;
   int mGpuId = -1;
   std::string mOpencvCalibFile;
@@ -356,6 +357,7 @@ private:
   double mFixedZValue = 0.0;
   std::vector<double> mInitialBasePose = std::vector<double>(6, 0.0);
   bool mResetOdomWhenLoopClosure = true;
+  bool mResetPoseWithSvoLoop = true;
   double mPathPubRate = 2.0;
   double mTfOffset = 0.05;
   double mPosTrackDepthMinRange = 0.0;

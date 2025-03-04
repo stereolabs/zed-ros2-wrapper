@@ -14,7 +14,7 @@
         svo:
             svo_loop: true # Enable loop mode when using an SVO as input source
             svo_realtime: true # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
-            play_from_frame: 300 # Start playing the SVO from a specific frame
+            play_from_frame: 0 # Start playing the SVO from a specific frame
 
         general:
             camera_timeout_sec: 5

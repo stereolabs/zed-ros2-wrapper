@@ -104,6 +104,7 @@ set(DEPENDENCIES
     stereo_msgs
     zed_msgs
     std_srvs
+    cob_srvs
     diagnostic_msgs
     diagnostic_updater
     visualization_msgs
@@ -132,6 +133,7 @@ find_package(stereo_msgs REQUIRED)
 
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(cob_srvs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(visualization_msgs REQUIRED)

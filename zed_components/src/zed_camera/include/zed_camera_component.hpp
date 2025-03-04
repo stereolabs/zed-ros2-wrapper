@@ -131,6 +131,10 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_setSvoFrame(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<cob_srvs::srv::SetInt_Request> req,
+    std::shared_ptr<cob_srvs::srv::SetInt_Response> res);
   void callback_clickedPoint(
     const geometry_msgs::msg::PointStamped::SharedPtr msg);
   void callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
@@ -309,6 +313,7 @@ private:
   std::string mSvoFilepath = "";
   bool mSvoLoop = false;
   bool mSvoRealtime = false;
+  int mSvoFrameStart = 0;
   int mVerbose = 1;
   int mGpuId = -1;
   std::string mOpencvCalibFile;
@@ -356,6 +361,7 @@ private:
   double mFixedZValue = 0.0;
   std::vector<double> mInitialBasePose = std::vector<double>(6, 0.0);
   bool mResetOdomWhenLoopClosure = true;
+  bool mResetPoseWithSvoLoop = true;
   double mPathPubRate = 2.0;
   double mTfOffset = 0.05;
   double mPosTrackDepthMinRange = 0.0;
@@ -848,11 +854,13 @@ private:
   startSvoRecSrvPtr mStartSvoRecSrv;
   stopSvoRecSrvPtr mStopSvoRecSrv;
   pauseSvoSrvPtr mPauseSvoSrv;
+  setSvoFramePtr mSetSvoFrameSrv;
   setRoiSrvPtr mSetRoiSrv;
   resetRoiSrvPtr mResetRoiSrv;
   toLLSrvPtr mToLlSrv;
   fromLLSrvPtr mFromLlSrv;
   enableStreamingPtr mEnableStreamingSrv;
+
   // <---- Services
 
   // ----> Services names
@@ -866,6 +874,7 @@ private:
   const std::string mSrvStartSvoRecName = "start_svo_rec";
   const std::string mSrvStopSvoRecName = "stop_svo_rec";
   const std::string mSrvToggleSvoPauseName = "toggle_svo_pause";
+  const std::string mSrvSetSvoFrameName = "set_svo_frame";
   const std::string mSrvSetRoiName = "set_roi";
   const std::string mSrvResetRoiName = "reset_roi";
   const std::string mSrvToLlName = "toLL";  // Convert from `map` to `Lat Long`

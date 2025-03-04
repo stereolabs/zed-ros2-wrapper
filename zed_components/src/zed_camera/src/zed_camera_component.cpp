@@ -309,12 +309,19 @@ void ZedCamera::initServices()
     srv_name, std::bind(&ZedCamera::callback_stopSvoRec, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", mStopSvoRecSrv->get_service_name());
   // Pause SVO
-  if (mSvoMode && !mSvoRealtime) {
-    srv_name = srv_prefix + mSrvToggleSvoPauseName;
-    mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(
+  if (mSvoMode) {
+    if (!mSvoRealtime) {
+      srv_name = srv_prefix + mSrvToggleSvoPauseName;
+      mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(
+        srv_name,
+        std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
+      RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+    }
+    srv_name = srv_prefix + mSrvSetSvoFrameName;
+    mSetSvoFrameSrv = create_service<cob_srvs::srv::SetInt>(
       srv_name,
-      std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+      std::bind(&ZedCamera::callback_setSvoFrame, this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mSetSvoFrameSrv->get_service_name());
   }
   // Set ROI
   srv_name = srv_prefix + mSrvSetRoiName;
@@ -10114,7 +10121,7 @@ void ZedCamera::callback_pauseSvoInput(
 
   if (!mSvoMode) {
     RCLCPP_WARN(get_logger(), "The node is not using an SVO as input");
-    res->message = "The node is not using an SVO as inpu";
+    res->message = "The node is not using an SVO as input";
     res->success = false;
     return;
   }
@@ -10139,6 +10146,60 @@ void ZedCamera::callback_pauseSvoInput(
     res->message = "SVO is playing";
     mSvoPause = false;
   }
+  res->success = true;
+}
+
+void ZedCamera::callback_setSvoFrame(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<cob_srvs::srv::SetInt_Request> req,
+  std::shared_ptr<cob_srvs::srv::SetInt_Response> res)
+{
+  (void)request_header;
+
+  RCLCPP_INFO(get_logger(), "** Set SVO Frame service called **");
+
+  std::lock_guard<std::mutex> lock(mRecMutex);
+
+  if (!mSvoMode) {
+    RCLCPP_WARN(get_logger(), "The node is not using an SVO as input");
+    res->message = "The node is not using an SVO as input";
+    res->success = false;
+    return;
+  }
+
+  int frame = req->data;
+  int svo_frames = mZed->getSVONumberOfFrames();
+  if (frame > svo_frames) {
+    std::stringstream ss;
+    ss << "Frame number is out of range. SVO has " << svo_frames << " frames";
+    RCLCPP_WARN(get_logger(), ss.str().c_str());
+    res->message = ss.str();
+    res->success = false;
+    return;
+  }
+
+  mZed->setSVOPosition(frame);
+  RCLCPP_INFO_STREAM(get_logger(), "SVO frame set to " << frame);
+  res->message = "SVO frame set to " + std::to_string(frame);
+
+  // ----> Set camera pose to identity
+  RCLCPP_WARN(get_logger(), " * Camera pose reset to identity.");
+  mInitialBasePose[0] = 0.0;
+  mInitialBasePose[1] = 0.0;
+  mInitialBasePose[2] = 0.0;
+
+  mInitialBasePose[3] = 0.0;
+  mInitialBasePose[4] = 0.0;
+  mInitialBasePose[5] = 0.0;
+
+  mResetOdomFromSrv = true;
+  mOdomPath.clear();
+  mPosePath.clear();
+
+  // Restart tracking
+  startPosTracking();
+  // <---- Set camera pose to identity
+
   res->success = true;
 }
 

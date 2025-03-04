@@ -5,6 +5,7 @@ LATEST CHANGES
 ----------
 - Add `pos_tracking.reset_pose_with_svo_loop` parameter to reset the camera pose the `initial_base_pose` when the SVO loop is enabled and the SVO playback reaches the end of the file.
 - Add `svo.play_from_frame` parameter to set the starting frame when playing an SVO file.
+- Add `set_svo_frame` service to set the current frame when playing an SVO file.
 
 2025-02-27
 ----------

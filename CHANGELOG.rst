@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-03-07
+----------
+- Remove unused open timeout for ZED X One cameras
+
 2025-02-27
 ----------
 - Improve Node Diagnostics information

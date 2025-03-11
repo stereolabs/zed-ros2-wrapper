@@ -11,6 +11,7 @@
     <url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
     <buildtool_depend>ament_cmake</buildtool_depend>
     <build_depend>ament_cmake_auto</build_depend>
+    
     <build_depend>zed_msgs</build_depend>
     <build_depend>rclcpp</build_depend>
     <build_depend>rclcpp_components</build_depend>
@@ -29,6 +30,7 @@
     <build_depend>image_transport</build_depend>
     <build_depend>point_cloud_transport</build_depend>
     <build_depend>std_srvs</build_depend>
+    <build_depend>cob_srvs</build_depend>
     <build_depend>diagnostic_msgs</build_depend>
     <build_depend>diagnostic_updater</build_depend>
     <build_depend>visualization_msgs</build_depend>

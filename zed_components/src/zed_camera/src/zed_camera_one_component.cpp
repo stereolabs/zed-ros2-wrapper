@@ -266,9 +266,6 @@ void ZedCameraOne::getGeneralParams()
     "general.camera_id", _camId, _camId,
     " * Camera ID: ");
   getParam(
-    "general.camera_timeout_sec", _openTimeout_sec, _openTimeout_sec,
-    " * Camera timeout [sec]: ", false, 1, 60);
-  getParam(
     "general.grab_frame_rate", _camGrabFrameRate, _camGrabFrameRate,
     " * Camera framerate: ", false, 15, 120);
   getParam("general.gpu_id", _gpuId, _gpuId, " * GPU ID: ", false, -1, 256);
@@ -696,7 +693,6 @@ bool ZedCameraOne::startCamera()
   _initParams.coordinate_system = ROS_COORDINATE_SYSTEM;
   _initParams.coordinate_units = ROS_MEAS_UNITS;
   _initParams.enable_hdr = _enableHDR;
-  _initParams.open_timeout_sec = _openTimeout_sec;
   if (!_opencvCalibFile.empty()) {
     _initParams.optional_opencv_calibration_file = _opencvCalibFile.c_str();
   }
@@ -1082,7 +1078,7 @@ void ZedCameraOne::callback_updateDiagnostic(
   } else {
     stat.summaryf(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
-      "Camera error: %s", sl::toString(_grabStatus).c_str());
+      "%s", sl::toString(_grabStatus).c_str());
   }
 
   if (_imuPublishing) {

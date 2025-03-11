@@ -211,7 +211,6 @@ private:
   double _customDownscaleFactor = 1.0;  // Used to rescale data with user factor
   bool _cameraFlip = false; // Camera flipped?
   bool _enableHDR = false; // Enable HDR if supported?
-  int _openTimeout_sec = 5; // Camera open timeout
   std::string _opencvCalibFile; // Custom OpenCV calibration file
   int _sdkVerbose = 0; // SDK verbose level
   int _gpuId = -1; // GPU ID

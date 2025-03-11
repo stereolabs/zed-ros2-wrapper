@@ -13,7 +13,8 @@
 
         svo:
             svo_loop: true # Enable loop mode when using an SVO as input source
-            svo_realtime: false # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
+            svo_realtime: true # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
+            play_from_frame: 0 # Start playing the SVO from a specific frame
 
         general:
             camera_timeout_sec: 5
@@ -63,11 +64,11 @@
 
         depth: # Only stereo cameras
             depth_mode: 'NEURAL_LIGHT' # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
-            depth_stabilization: 1 # Forces positional tracking to start if major than 0 - Range: [0,100]
+            depth_stabilization: 30 # Forces positional tracking to start if major than 0 - Range: [0,100]
             openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
             point_cloud_freq: 30.0 # [DYNAMIC] - frequency of the pointcloud publishing (equal or less to `pub_frame_rate` value)
             point_cloud_res: 'COMPACT' # The resolution used for point cloud publishing - 'COMPACT'-Standard resolution. Optimizes processing and bandwidth, 'REDUCED'-Half resolution. Low processing and bandwidth requirements
-            depth_confidence: 50 # [DYNAMIC]
+            depth_confidence: 95 # [DYNAMIC]
             depth_texture_conf: 100 # [DYNAMIC]
             remove_saturated_areas: true # [DYNAMIC]
 
@@ -92,6 +93,7 @@
             two_d_mode: false # Force navigation on a plane. If true the Z value will be fixed to 'fixed_z_value', roll and pitch to zero
             fixed_z_value: 0.00 # Value to be used for Z coordinate if `two_d_mode` is true
             transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->camera_link` transform being generated
+            reset_pose_with_svo_loop: true # Reset the camera pose the `initial_base_pose` when the SVO loop is enabled and the SVO playback reaches the end of the file.
 
         gnss_fusion: # Only stereo cameras
             gnss_fusion_enabled: false # fuse 'sensor_msg/NavSatFix' message information into pose data

@@ -142,10 +142,13 @@ void ZedCamera::init()
 
   // ----> Diagnostic initialization
   mDiagUpdater.add(
-    "ZED Diagnostic", this,
+    mCameraName, this,
     &ZedCamera::callback_updateDiagnostic);
-  std::string hw_id = std::string("Stereolabs camera: ") + mCameraName;
+  std::string hw_id = std::string("Stereolabs ");
+  hw_id += sl::toString(mCamUserModel).c_str();
+  hw_id += " - '" + mCameraName + "'";
   mDiagUpdater.setHardwareID(hw_id);
+  //mDiagUpdater.force_update();
   // <---- Diagnostic initialization
 
   // Services initialization
@@ -302,12 +305,19 @@ void ZedCamera::initServices()
     srv_name, std::bind(&ZedCamera::callback_stopSvoRec, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", mStopSvoRecSrv->get_service_name());
   // Pause SVO
-  if (mSvoMode && !mSvoRealtime) {
-    srv_name = srv_prefix + mSrvToggleSvoPauseName;
-    mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(
+  if (mSvoMode) {
+    if (!mSvoRealtime) {
+      srv_name = srv_prefix + mSrvToggleSvoPauseName;
+      mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(
+        srv_name,
+        std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
+      RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+    }
+    srv_name = srv_prefix + mSrvSetSvoFrameName;
+    mSetSvoFrameSrv = create_service<cob_srvs::srv::SetInt>(
       srv_name,
-      std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+      std::bind(&ZedCamera::callback_setSvoFrame, this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mSetSvoFrameSrv->get_service_name());
   }
   // Set ROI
   srv_name = srv_prefix + mSrvSetRoiName;
@@ -666,6 +676,7 @@ void ZedCamera::getGeneralParams()
     RCLCPP_INFO(
       get_logger(), " * SVO Realtime: %s",
       mSvoRealtime ? "TRUE" : "FALSE");
+    getParam("svo.play_from_frame", mSvoFrameStart, mSvoFrameStart, " * SVO start frame: ");
   }
 
   mStreamMode = false;
@@ -1163,12 +1174,14 @@ void ZedCamera::getDepthParams()
   }
 
   if (!matched) {
-    RCLCPP_WARN(
-      get_logger(),
-      "The parameter 'depth.depth_mode' contains a not valid string. "
-      "Please check it in 'common_stereo.yaml'.");
-    RCLCPP_WARN(get_logger(), "Using default DEPTH_MODE.");
     mDepthMode = sl::DEPTH_MODE::PERFORMANCE;
+    if (depth_mode_str != "NEURAL_LIGHT") {
+      RCLCPP_WARN(
+        get_logger(),
+        "The parameter 'depth.depth_mode' contains a not valid string. "
+        "Please check it in 'common_stereo.yaml'.");
+      RCLCPP_WARN_STREAM(get_logger(), "Using default value: " << sl::toString(mDepthMode).c_str());
+    }
   }
 
   if (mDepthMode == sl::DEPTH_MODE::NONE) {
@@ -1494,6 +1507,14 @@ void ZedCamera::getPosTrackingParams()
       "pos_tracking.fixed_z_value", mFixedZValue, mFixedZValue,
       " * Fixed Z value: ");
   }
+  getParam(
+    "pos_tracking.reset_pose_with_svo_loop",
+    mResetPoseWithSvoLoop, mResetPoseWithSvoLoop);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Reset pose with SVO loop: "
+      << (mResetPoseWithSvoLoop ? "TRUE" : "FALSE"));
+
 }
 
 void ZedCamera::getGnssFusionParams()
@@ -3951,7 +3972,7 @@ bool ZedCamera::startCamera()
 
     if (mCamSerialNumber > 0) {
       mInitParams.input.setFromSerialNumber(mCamSerialNumber);
-    } else if(mCamId >= 0) {
+    } else if (mCamId >= 0) {
       mInitParams.input.setFromCameraID(mCamId);
     }
   }
@@ -4050,9 +4071,29 @@ bool ZedCamera::startCamera()
       return false;
     }
 
+    mDiagUpdater.force_update();
+
     rclcpp::sleep_for(std::chrono::seconds(mCamTimeoutSec));
   }
   // ----> Try to connect to a camera, to a stream, or to load an SVO
+
+  // ----> Set SVO first frame if required
+  if (mSvoMode && mSvoFrameStart != 0) {
+    int svo_frames = mZed->getSVONumberOfFrames();
+
+    if (mSvoFrameStart > svo_frames) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "The SVO contains " << svo_frames << " frames. The requested starting frame ("
+                            << mSvoFrameStart << ") is invalid.");
+      return false;
+    }
+
+    mZed->setSVOPosition(mSvoFrameStart);
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "SVO playing from frame #" << mSvoFrameStart);
+  }
 
 
   // ----> If SVO and GNSS enabled check that it's a valid SV0 Gen.2
@@ -4156,6 +4197,14 @@ bool ZedCamera::startCamera()
       << sl::toString(mCamRealModel).c_str());
   mCamSerialNumber = camInfo.serial_number;
   RCLCPP_INFO_STREAM(get_logger(), " * Serial Number -> " << mCamSerialNumber);
+
+  // ----> Update HW ID
+  std::string hw_id = std::string("Stereolabs ");
+  hw_id += sl::toString(mCamRealModel).c_str();
+  hw_id += " - '" + mCameraName + "'" + " - S/N: " + std::to_string(mCamSerialNumber);
+  mDiagUpdater.setHardwareID(hw_id);
+  mDiagUpdater.force_update();
+  // <---- Update HW ID
 
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -6057,13 +6106,25 @@ void ZedCamera::threadFunc_zedGrab()
           if (mSvoMode && mGrabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
             // ----> Check SVO status
             if (mSvoLoop) {
-              mZed->setSVOPosition(0);
-              RCLCPP_WARN(
+              mZed->setSVOPosition(mSvoFrameStart);
+              RCLCPP_WARN_STREAM(
                 get_logger(),
-                "SVO reached the end and it has been restarted.");
+                "SVO reached the end and it has been restarted from frame #" << mSvoFrameStart);
               rclcpp::sleep_for(
                 std::chrono::microseconds(
                   static_cast<int>(mGrabPeriodMean_sec->getAvg() * 1e6)));
+              if (mResetPoseWithSvoLoop) {
+                RCLCPP_WARN(
+                  get_logger(),
+                  " * Camera pose reset to initial conditions.");
+
+                mResetOdomFromSrv = true;
+                mOdomPath.clear();
+                mPosePath.clear();
+
+                // Restart tracking
+                startPosTracking();
+              }
               continue;
             } else {
               RCLCPP_WARN(
@@ -6141,7 +6202,7 @@ void ZedCamera::threadFunc_zedGrab()
           mFrameTimestamp =
             sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
         }
-        DEBUG_STREAM_COMM("Grab timestamp: " << mFrameTimestamp.nanoseconds() << " nsec");
+        //DEBUG_STREAM_COMM("Grab timestamp: " << mFrameTimestamp.nanoseconds() << " nsec");
         // <---- Timestamp
 
         if (mStreamingServerRequired && !mStreamingServerRunning) {
@@ -8684,10 +8745,10 @@ void ZedCamera::applyDepthSettings()
       mDepthTextConf;      // Update depth texture confidence if changed
     mRunParams.remove_saturated_areas = mRemoveSatAreas;
 
-    DEBUG_STREAM_COMM("Depth extraction enabled");
+    DEBUG_STREAM_COMM_ONCE("Depth extraction enabled");
     mRunParams.enable_depth = true;
   } else {
-    DEBUG_STREAM_COMM("Depth extraction disabled");
+    DEBUG_STREAM_COMM_ONCE("Depth extraction disabled");
     mRunParams.enable_depth = false;
   }
 }
@@ -10056,7 +10117,7 @@ void ZedCamera::callback_pauseSvoInput(
 
   if (!mSvoMode) {
     RCLCPP_WARN(get_logger(), "The node is not using an SVO as input");
-    res->message = "The node is not using an SVO as inpu";
+    res->message = "The node is not using an SVO as input";
     res->success = false;
     return;
   }
@@ -10081,6 +10142,60 @@ void ZedCamera::callback_pauseSvoInput(
     res->message = "SVO is playing";
     mSvoPause = false;
   }
+  res->success = true;
+}
+
+void ZedCamera::callback_setSvoFrame(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<cob_srvs::srv::SetInt_Request> req,
+  std::shared_ptr<cob_srvs::srv::SetInt_Response> res)
+{
+  (void)request_header;
+
+  RCLCPP_INFO(get_logger(), "** Set SVO Frame service called **");
+
+  std::lock_guard<std::mutex> lock(mRecMutex);
+
+  if (!mSvoMode) {
+    RCLCPP_WARN(get_logger(), "The node is not using an SVO as input");
+    res->message = "The node is not using an SVO as input";
+    res->success = false;
+    return;
+  }
+
+  int frame = req->data;
+  int svo_frames = mZed->getSVONumberOfFrames();
+  if (frame > svo_frames) {
+    std::stringstream ss;
+    ss << "Frame number is out of range. SVO has " << svo_frames << " frames";
+    RCLCPP_WARN(get_logger(), ss.str().c_str());
+    res->message = ss.str();
+    res->success = false;
+    return;
+  }
+
+  mZed->setSVOPosition(frame);
+  RCLCPP_INFO_STREAM(get_logger(), "SVO frame set to " << frame);
+  res->message = "SVO frame set to " + std::to_string(frame);
+
+  // ----> Set camera pose to identity
+  RCLCPP_WARN(get_logger(), " * Camera pose reset to identity.");
+  mInitialBasePose[0] = 0.0;
+  mInitialBasePose[1] = 0.0;
+  mInitialBasePose[2] = 0.0;
+
+  mInitialBasePose[3] = 0.0;
+  mInitialBasePose[4] = 0.0;
+  mInitialBasePose[5] = 0.0;
+
+  mResetOdomFromSrv = true;
+  mOdomPath.clear();
+  mPosePath.clear();
+
+  // Restart tracking
+  startPosTracking();
+  // <---- Set camera pose to identity
+
   res->success = true;
 }
 
@@ -10109,7 +10224,6 @@ void ZedCamera::callback_updateDiagnostic(
     stat.addf(
       "Capture", "Tot. Processing Time: %.6f sec (Max. %.3f sec)",
       frame_proc_sec, frame_grab_period);
-
 
     if (frame_proc_sec > frame_grab_period) {
       mSysOverloadCount++;
@@ -10311,7 +10425,7 @@ void ZedCamera::callback_updateDiagnostic(
   } else {
     stat.summaryf(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
-      "Camera error: %s", sl::toString(mGrabStatus).c_str());
+      "%s", sl::toString(mGrabStatus).c_str());
   }
 
   if (mImuPublishing) {

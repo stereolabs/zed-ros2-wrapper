@@ -4702,6 +4702,11 @@ bool ZedCamera::startCamera()
   if (mSvoMode) {
     if (mUseSvoTimestamp) {
       mFrameTimestamp = sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+
+      DEBUG_COMM("**********************************************************");
+      DEBUG_STREAM_COMM("SVO Timestamp\t\t" << mFrameTimestamp.nanoseconds() << " nsec");
+      DEBUG_STREAM_COMM("Current Timestamp\t" << sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT)).nanoseconds() << " nsec");
+      DEBUG_COMM("**********************************************************");
     } else {
       mFrameTimestamp =
         sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT));

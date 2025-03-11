@@ -800,7 +800,7 @@ bool ZedCameraOne::startCamera()
 #if ENABLE_SVO
   if (_svoMode) {
     RCLCPP_INFO(
-      get_logger(), " * SVO resolution\t-> %ldx%ld",
+      get_logger(), " * SVO resolution\t-> %dx%d",
       camInfo.camera_configuration.resolution.width,
       camInfo.camera_configuration.resolution.height);
     RCLCPP_INFO_STREAM(

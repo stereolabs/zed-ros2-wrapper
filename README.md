@@ -65,7 +65,7 @@ source ~/.bashrc
 
 > :pushpin: **Note:** When using the ZED ROS 2 Wrapper on an NVIDIA Jetson with JP6, it is possible that you get the following error when building the package for the first time
 >
-> ```
+> ```bash
 > CMake Error at /usr/share/cmake-3.22/Modules/FindCUDA.cmake:859 (message):
 >   Specify CUDA_TOOLKIT_ROOT_DIR
 > Call Stack (most recent call first):
@@ -78,7 +78,7 @@ source ~/.bashrc
 > `sudo apt install nvidia-jetpack nvidia-jetpack-dev`
 >
 > :pushpin: **Note:** The option `--symlink-install` is very important, it allows to use symlinks instead of copying files to the ROS 2 folders during the installation, where possible. Each package in ROS 2 must be installed and all the files used by the nodes must be copied into the installation folders. Using symlinks allows you to modify them in your workspace, reflecting the modification during the next executions without needing to issue a new `colcon build` command. This is true only for all the files that don't need to be compiled (Python scripts, configurations, etc.).
-
+>
 > :pushpin: **Note:** If you are using a different console interface like zsh, you have to change the `source` command as follows: `echo source $(pwd)/install/local_setup.zsh >> ~/.zshrc` and `source ~/.zshrc`.
 
 ## Starting the ZED node

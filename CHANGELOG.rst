@@ -1,5 +1,10 @@
 LATEST CHANGES
 ==============
+
+2025-03-10
+----------
+- Add parameter `svo.use_svo_timestamps` to use the SVO timestamps when publishing data (both stereo and mono components)
+
 2025-03-07
 ----------
 - Remove unused open timeout for ZED X One cameras

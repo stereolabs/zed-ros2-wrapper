@@ -15,6 +15,10 @@
 #ifndef ZED_CAMERA_ONE_COMPONENT_HPP_
 #define ZED_CAMERA_ONE_COMPONENT_HPP_
 
+#define ENABLE_GRAY_IMAGE 1
+#define ENABLE_STREAM_INPUT 1
+#define ENABLE_SVO 0
+
 #include <atomic>
 #include <sl/CameraOne.hpp>
 
@@ -22,9 +26,6 @@
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
 
-#define ENABLE_GRAY_IMAGE 1
-#define ENABLE_STREAM_INPUT 1
-#define ENABLE_SVO 0
 
 namespace stereolabs
 {
@@ -103,8 +104,8 @@ protected:
 #if ENABLE_SVO
   void callback_startSvoRec(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
-    std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res);
+    const std::shared_ptr<zed_msgs::srv::StartSvoRec_Request> req,
+    std::shared_ptr<zed_msgs::srv::StartSvoRec_Response> res);
   void callback_stopSvoRec(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
@@ -276,6 +277,7 @@ private:
   bool _debugMode = false;  // Debug mode active?
   bool _svoMode = false;        // Input from SVO?
   bool _svoPause = false;       // SVO pause status
+  bool _useSvoTimestamp = false; // Use SVO timestamp
   bool _streamMode = false;     // Expecting local streaming data?
 
   std::atomic<bool> _triggerUpdateDynParams;  // Trigger auto exposure/gain

@@ -188,7 +188,10 @@ void ZedCameraOne::getGeneralParams()
     RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << _svoFilepath.c_str() << "'");
     _svoMode = true;
     getParam("svo.svo_loop", _svoLoop, _svoLoop, " * SVO Loop: ");
-    getParam("svo.svo_realtime", _svoRealtime, _svoRealtime, );
+    getParam("svo.svo_realtime", _svoRealtime, _svoRealtime, " * SVO Real Time: ");
+    getParam(
+      "svo.use_svo_timestamps", _useSvoTimestamp, _useSvoTimestamp,
+      " * Use SVO timestamp: ");
   }
 #endif
 
@@ -259,6 +262,7 @@ void ZedCameraOne::getGeneralParams()
     get_logger(), " * Camera model: " << camera_model << " - " << _camUserModel);
 
   getParam("general.camera_name", _cameraName, _cameraName, " * Camera name: ");
+
   getParam(
     "general.serial_number", _camSerialNumber, _camSerialNumber,
     " * Camera SN: ");
@@ -610,7 +614,7 @@ void ZedCameraOne::initServices()
 #if ENABLE_SVO
   // Start SVO Recording
   srv_name = srv_prefix + _srvStartSvoRecName;
-  _srvStartSvoRec = create_service<zed_interfaces::srv::StartSvoRec>(
+  _srvStartSvoRec = create_service<zed_msgs::srv::StartSvoRec>(
     srv_name,
     std::bind(&ZedCameraOne::callback_startSvoRec, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", _srvStartSvoRec->get_service_name());
@@ -797,7 +801,7 @@ bool ZedCameraOne::startCamera()
 #if ENABLE_SVO
   if (_svoMode) {
     RCLCPP_INFO(
-      get_logger(), " * SVO resolution\t-> %ldx%ld",
+      get_logger(), " * SVO resolution\t-> %dx%d",
       camInfo.camera_configuration.resolution.width,
       camInfo.camera_configuration.resolution.height);
     RCLCPP_INFO_STREAM(
@@ -871,8 +875,12 @@ bool ZedCameraOne::startCamera()
   // Initialialized timestamp to avoid wrong initial data
   // ----> Timestamp
   if (_svoMode) {
-    _frameTimestamp =
-      sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+    if (_useSvoTimestamp) {
+      _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+    } else {
+      _frameTimestamp =
+        sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+    }
   } else {
     _frameTimestamp =
       sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
@@ -1777,8 +1785,12 @@ void ZedCameraOne::threadFunc_zedGrab()
 
         // ----> Timestamp
         if (_svoMode) {
-          _frameTimestamp = sl_tools::slTime2Ros(
-            _zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+          if (_useSvoTimestamp) {
+            _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+          } else {
+            _frameTimestamp =
+              sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+          }
         } else {
           _frameTimestamp =
             sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
@@ -2105,7 +2117,8 @@ void ZedCameraOne::applyDynamicSettings()
         rclcpp::Parameter("video.auto_exposure_time_range_max", _camExpTime)
       });
     DEBUG_STREAM_COMM(
-      "Forced video.auto_exposure to false and exposure range to [" << _camExpTime << "," << _camExpTime <<
+      "Forced video.auto_exposure to false and exposure range to [" << _camExpTime << "," <<
+        _camExpTime <<
         "]");
   }
   _camDynParMapChanged["video.auto_exposure"] = false;
@@ -2157,7 +2170,8 @@ void ZedCameraOne::applyDynamicSettings()
         rclcpp::Parameter("video.auto_analog_gain_range_max", _camAnalogGain)
       });
     DEBUG_STREAM_COMM(
-      "Forced video.auto_analog_gain to false and analog gain range to [" << _camAnalogGain << "," << _camAnalogGain <<
+      "Forced video.auto_analog_gain to false and analog gain range to [" << _camAnalogGain <<
+        "," << _camAnalogGain <<
         "]");
   }
   _camDynParMapChanged["video.auto_analog_gain"] = false;
@@ -2211,7 +2225,8 @@ void ZedCameraOne::applyDynamicSettings()
         rclcpp::Parameter("video.auto_digital_gain_range_max", _camDigitalGain)
       });
     DEBUG_STREAM_COMM(
-      "Forced video.auto_digital_gain to false and digital gain range to [" << _camDigitalGain << "," << _camDigitalGain <<
+      "Forced video.auto_digital_gain to false and digital gain range to [" << _camDigitalGain <<
+        "," << _camDigitalGain <<
         "]");
   }
   _camDynParMapChanged["video.auto_digital_gain"] = false;
@@ -2622,7 +2637,8 @@ void ZedCameraOne::retrieveImages()
       _zed->retrieveImage(_matColor, sl::VIEW::LEFT, sl::MEM::CPU, _matResol));
     _sdkGrabTS = _matColor.timestamp;
     DEBUG_STREAM_VD(
-      "Color image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
+      "Color image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " <<
+        _sdkGrabTS.getNanoseconds() <<
         " nsec");
   }
   if (_colorRawSubCount > 0) {
@@ -2632,7 +2648,8 @@ void ZedCameraOne::retrieveImages()
         sl::MEM::CPU, _matResol));
     _sdkGrabTS = _matColorRaw.timestamp;
     DEBUG_STREAM_VD(
-      "Color raw image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
+      "Color raw image " << _matResol.width << "x" << _matResol.height <<
+        " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
         " nsec");
   }
 #if ENABLE_GRAY_IMAGE
@@ -2643,7 +2660,8 @@ void ZedCameraOne::retrieveImages()
         sl::MEM::CPU, _matResol));
     _sdkGrabTS = _matGray.timestamp;
     DEBUG_STREAM_VD(
-      "Gray image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
+      "Gray image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " <<
+        _sdkGrabTS.getNanoseconds() <<
         " nsec");
   }
   if (_grayRawSubCount > 0) {
@@ -2654,7 +2672,8 @@ void ZedCameraOne::retrieveImages()
         sl::MEM::CPU, _matResol));
     _sdkGrabTS = _matGrayRaw.timestamp;
     DEBUG_STREAM_VD(
-      "Gray raw image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
+      "Gray raw image " << _matResol.width << "x" << _matResol.height <<
+        " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
         " nsec");
   }
 #endif
@@ -2832,8 +2851,8 @@ void ZedCameraOne::callback_enableStreaming(
 #if ENABLE_SVO
 void ZedCameraOne::callback_startSvoRec(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
-  std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res)
+  const std::shared_ptr<zed_msgs::srv::StartSvoRec_Request> req,
+  std::shared_ptr<zed_msgs::srv::StartSvoRec_Response> res)
 {
   (void)request_header;
 

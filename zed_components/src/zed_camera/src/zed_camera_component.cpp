@@ -407,7 +407,7 @@ void ZedCamera::initParameters()
   getGeneralParams();
 
   // VIDEO parameters
-  if(!mSvoMode && !mSimMode) {
+  if (!mSvoMode && !mSimMode) {
     getVideoParams();
   }
 
@@ -680,11 +680,13 @@ void ZedCamera::getGeneralParams()
     RCLCPP_INFO(
       get_logger(), " * Use SVO timestamp: %s",
       mUseSvoTimestamp ? "TRUE" : "FALSE");
-    
+
     getParam("svo.svo_loop", mSvoLoop, mSvoLoop);
-    if(mUseSvoTimestamp) {
-      if(mSvoLoop) {
-        RCLCPP_WARN(get_logger(), "SVO Loop is not supported when using SVO timestamps. Loop playback disabled.");
+    if (mUseSvoTimestamp) {
+      if (mSvoLoop) {
+        RCLCPP_WARN(
+          get_logger(),
+          "SVO Loop is not supported when using SVO timestamps. Loop playback disabled.");
         mSvoLoop = false;
       }
       RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop ? "TRUE" : "FALSE");
@@ -807,10 +809,10 @@ void ZedCamera::getGeneralParams()
     get_logger(), " * Camera model: " << camera_model << " - "
                                       << mCamUserModel);
 
-  
+
   getParam("general.camera_name", mCameraName, mCameraName, " * Camera name: ");
 
-  if(!mSvoMode) {
+  if (!mSvoMode) {
     getParam(
       "general.serial_number", mCamSerialNumber, mCamSerialNumber,
       " * Camera SN: ");
@@ -950,7 +952,7 @@ void ZedCamera::getGeneralParams()
     mPubFrameRate = 60;
   } else {
     getParam("general.pub_frame_rate", mPubFrameRate, mPubFrameRate, "", false);
-    if(!mSvoMode) {
+    if (!mSvoMode) {
       if (mPubFrameRate > mCamGrabFrameRate) {
         RCLCPP_WARN(
           get_logger(),
@@ -978,7 +980,7 @@ void ZedCamera::getVideoParams()
 
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
-  
+
   if (!sl_tools::isZEDX(mCamUserModel)) {
     getParam(
       "video.brightness", mCamBrightness, mCamBrightness,
@@ -4148,7 +4150,7 @@ bool ZedCamera::startCamera()
 
   float realFps = camInfo.camera_configuration.fps;
   if (realFps != static_cast<float>(mCamGrabFrameRate)) {
-    if(!mSvoMode) {
+    if (!mSvoMode) {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "!!! `general.grab_frame_rate` value is not valid: '"
@@ -4705,7 +4707,11 @@ bool ZedCamera::startCamera()
 
       DEBUG_COMM("**********************************************************");
       DEBUG_STREAM_COMM("SVO Timestamp\t\t" << mFrameTimestamp.nanoseconds() << " nsec");
-      DEBUG_STREAM_COMM("Current Timestamp\t" << sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT)).nanoseconds() << " nsec");
+      DEBUG_STREAM_COMM(
+        "Current Timestamp\t" <<
+          sl_tools::slTime2Ros(
+          mZed->getTimestamp(
+            sl::TIME_REFERENCE::CURRENT)).nanoseconds() << " nsec");
       DEBUG_COMM("**********************************************************");
     } else {
       mFrameTimestamp =

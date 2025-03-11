@@ -5,7 +5,7 @@
 
 <p align="center">
   ROS 2 packages for using Stereolabs ZED Camera cameras.<br>
-  ROS 2 Jazzy Jalisco (Ubuntu 24.04)
+  ROS 2 Foxy Fitzroy (Ubuntu 20.04) - ROS 2 Humble Hawksbill (Ubuntu 22.04)
 </p>
 
 <hr>
@@ -32,7 +32,9 @@ This package enables the use of ZED cameras with ROS 2, providing access to a va
 - [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/) or [Ubuntu 22.04 (Jammy Jellyfish)](https://releases.ubuntu.com/jammy/)
 - [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v4.2 (for older versions support please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
-- [ROS 2 Jazzy Jalisco on Ubuntu 24.04](https://docs.ros.org/en/jazzy/Installation/Linux-Install-Debians.html)
+- ROS 2 Foxy Fitzroy or ROS 2 Humble Hawksbill: 
+  - [Foxy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html) -> Close to EOL
+  - [Humble on Ubuntu 22.04](https://docs.ros.org/en/humble/Installation/Linux-Install-Debians.html)
 
 ### Build the package
 
@@ -55,7 +57,7 @@ echo source $(pwd)/install/local_setup.bash >> ~/.bashrc # automatically source 
 source ~/.bashrc
 ```
 
-> :pushpin: **Note:** the dependency `zed_msgs` is no more installed as a submodule of this package, but is available throught `apt` as a binary package with ROS 2 Humble. When working with ROS 2 Jazzy, or other distributions, you can install it from the sources from the [zed-ros2-interfaces repository](https://github.com/stereolabs/zed-ros2-interfaces?tab=readme-ov-file#install-the-package-from-the-source-code).
+> :pushpin: **Note:** the dependency `zed_msgs` is no more installed as a submodule of this package, but is available throught `apt` as a binary package with ROS 2 Humble. When working with ROS 2 Foxy, or other distributions, you can install it from the sources from the [zed-ros2-interfaces repository](https://github.com/stereolabs/zed-ros2-interfaces?tab=readme-ov-file#install-the-package-from-the-source-code).
 
 > :pushpin: **Note:** If `rosdep` is missing you can install it with:
 >

@@ -314,6 +314,7 @@ private:
   bool mSvoLoop = false;
   bool mSvoRealtime = false;
   int mSvoFrameStart = 0;
+  bool mUseSvoTimestamp = false;
   int mVerbose = 1;
   int mGpuId = -1;
   std::string mOpencvCalibFile;

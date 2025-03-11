@@ -33,10 +33,14 @@
 
 #include "sl_logging.hpp"
 
-#ifdef FOUND_FOXY
+#ifdef FOUND_HUMBLE
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#elif defined FOUND_IRON
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#elif defined FOUND_FOXY
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #else
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#error Unsupported ROS2 distro
 #endif
 
 #include <sl/Camera.hpp>
@@ -677,6 +681,11 @@ void ZedCamera::getGeneralParams()
       get_logger(), " * SVO Realtime: %s",
       mSvoRealtime ? "TRUE" : "FALSE");
     getParam("svo.play_from_frame", mSvoFrameStart, mSvoFrameStart, " * SVO start frame: ");
+
+    getParam("svo.use_svo_timestamps", mUseSvoTimestamp, mUseSvoTimestamp);
+    RCLCPP_INFO(
+      get_logger(), " * Use SVO timestamp: %s",
+      mUseSvoTimestamp ? "TRUE" : "FALSE");
   }
 
   mStreamMode = false;
@@ -4675,8 +4684,12 @@ bool ZedCamera::startCamera()
   // Initialialized timestamp to avoid wrong initial data
   // ----> Timestamp
   if (mSvoMode) {
-    mFrameTimestamp =
-      sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+    if (mUseSvoTimestamp) {
+      mFrameTimestamp = sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+    } else {
+      mFrameTimestamp =
+        sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+    }
   } else if (mSimMode) {
     if (mUseSimTime) {
       mFrameTimestamp = get_clock()->now();
@@ -4689,15 +4702,6 @@ bool ZedCamera::startCamera()
       sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
   }
   // <---- Timestamp
-
-  // RCLCPP_INFO_STREAM(
-  //   get_logger(),
-  //   "Timestamp - CURRENT: "
-  //     << mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT).getNanoseconds());
-  // RCLCPP_INFO_STREAM(
-  //   get_logger(),
-  //   "Timestamp - IMAGE: "
-  //     << mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE).getNanoseconds());
 
   // ----> Initialize Diagnostic statistics
   mElabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(mCamGrabFrameRate);
@@ -6189,8 +6193,12 @@ void ZedCamera::threadFunc_zedGrab()
 
         // ----> Timestamp
         if (mSvoMode) {
-          mFrameTimestamp = sl_tools::slTime2Ros(
-            mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+          if (mUseSvoTimestamp) {
+            mFrameTimestamp = sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+          } else {
+            mFrameTimestamp =
+              sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+          }
         } else if (mSimMode) {
           if (mUseSimTime) {
             mFrameTimestamp = get_clock()->now();
@@ -9245,8 +9253,6 @@ void ZedCamera::publishPointCloud()
   int ptsCount = width * height;
 
   if (mSvoMode) {
-    // pcMsg->header.stamp =
-    // sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
     pcMsg->header.stamp = mFrameTimestamp;
   } else if (mSimMode) {
     if (mUseSimTime) {

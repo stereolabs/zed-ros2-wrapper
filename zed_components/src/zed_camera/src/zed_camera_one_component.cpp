@@ -188,7 +188,10 @@ void ZedCameraOne::getGeneralParams()
     RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << _svoFilepath.c_str() << "'");
     _svoMode = true;
     getParam("svo.svo_loop", _svoLoop, _svoLoop, " * SVO Loop: ");
-    getParam("svo.svo_realtime", _svoRealtime, _svoRealtime, );
+    getParam("svo.svo_realtime", _svoRealtime, _svoRealtime, " * SVO Real Time: ");
+    getParam(
+      "svo.use_svo_timestamps", _useSvoTimestamp, _useSvoTimestamp,
+      " * Use SVO timestamp: ");
   }
 #endif
 
@@ -610,7 +613,7 @@ void ZedCameraOne::initServices()
 #if ENABLE_SVO
   // Start SVO Recording
   srv_name = srv_prefix + _srvStartSvoRecName;
-  _srvStartSvoRec = create_service<zed_interfaces::srv::StartSvoRec>(
+  _srvStartSvoRec = create_service<zed_msgs::srv::StartSvoRec>(
     srv_name,
     std::bind(&ZedCameraOne::callback_startSvoRec, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", _srvStartSvoRec->get_service_name());
@@ -871,8 +874,12 @@ bool ZedCameraOne::startCamera()
   // Initialialized timestamp to avoid wrong initial data
   // ----> Timestamp
   if (_svoMode) {
-    _frameTimestamp =
-      sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+    if (_useSvoTimestamp) {
+      _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+    } else {
+      _frameTimestamp =
+        sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+    }
   } else {
     _frameTimestamp =
       sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
@@ -1777,8 +1784,12 @@ void ZedCameraOne::threadFunc_zedGrab()
 
         // ----> Timestamp
         if (_svoMode) {
-          _frameTimestamp = sl_tools::slTime2Ros(
-            _zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+          if (_useSvoTimestamp) {
+            _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+          } else {
+            _frameTimestamp =
+              sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+          }
         } else {
           _frameTimestamp =
             sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
@@ -2014,7 +2025,7 @@ void ZedCameraOne::applyDynamicSettings()
 
   // ----> Set video settings lambda function
   auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
-    const std::string & settingName) {
+      const std::string & settingName) {
       if (this->_camDynParMapChanged[settingName]) {
         sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
         if (ret_code != sl::ERROR_CODE::SUCCESS) {
@@ -2032,7 +2043,7 @@ void ZedCameraOne::applyDynamicSettings()
 
   // ----> Set video settings range lambda function
   auto setVideoSettingRange = [this](sl::VIDEO_SETTINGS setting, int value_min,
-    int value_max, const std::string & settingName_min, const std::string & settingName_max) {
+      int value_max, const std::string & settingName_min, const std::string & settingName_max) {
       if (this->_camDynParMapChanged[settingName_min] ||
         this->_camDynParMapChanged[settingName_max])
       {
@@ -2839,8 +2850,8 @@ void ZedCameraOne::callback_enableStreaming(
 #if ENABLE_SVO
 void ZedCameraOne::callback_startSvoRec(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  const std::shared_ptr<zed_interfaces::srv::StartSvoRec_Request> req,
-  std::shared_ptr<zed_interfaces::srv::StartSvoRec_Response> res)
+  const std::shared_ptr<zed_msgs::srv::StartSvoRec_Request> req,
+  std::shared_ptr<zed_msgs::srv::StartSvoRec_Response> res)
 {
   (void)request_header;
 

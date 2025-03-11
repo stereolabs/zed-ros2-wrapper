@@ -17,7 +17,7 @@
 
 #define ENABLE_GRAY_IMAGE 1
 #define ENABLE_STREAM_INPUT 1
-#define ENABLE_SVO 1
+#define ENABLE_SVO 0
 
 #include <atomic>
 #include <sl/CameraOne.hpp>

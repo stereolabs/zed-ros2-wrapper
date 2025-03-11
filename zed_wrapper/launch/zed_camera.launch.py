@@ -21,7 +21,6 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     OpaqueFunction,
-    SetEnvironmentVariable,
     LogInfo
 )
 from launch.conditions import IfCondition
@@ -36,6 +35,9 @@ from launch_ros.actions import (
     LoadComposableNodes
 )
 from launch_ros.descriptions import ComposableNode
+
+# Enable colored output
+os.environ["RCUTILS_COLORIZED_OUTPUT"] = "1"
 
 # ZED Configurations to be loaded by ZED Node
 default_config_common = os.path.join(

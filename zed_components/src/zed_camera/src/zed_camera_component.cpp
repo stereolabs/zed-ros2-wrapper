@@ -407,7 +407,9 @@ void ZedCamera::initParameters()
   getGeneralParams();
 
   // VIDEO parameters
-  getVideoParams();
+  if(!mSvoMode && !mSimMode) {
+    getVideoParams();
+  }
 
   // DEPTH parameters
   getDepthParams();
@@ -674,18 +676,24 @@ void ZedCamera::getGeneralParams()
   } else {
     RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << mSvoFilepath.c_str() << "'");
     mSvoMode = true;
+    getParam("svo.use_svo_timestamps", mUseSvoTimestamp, mUseSvoTimestamp);
+    RCLCPP_INFO(
+      get_logger(), " * Use SVO timestamp: %s",
+      mUseSvoTimestamp ? "TRUE" : "FALSE");
+    
     getParam("svo.svo_loop", mSvoLoop, mSvoLoop);
-    RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop ? "TRUE" : "FALSE");
+    if(mUseSvoTimestamp) {
+      if(mSvoLoop) {
+        RCLCPP_WARN(get_logger(), "SVO Loop is not supported when using SVO timestamps. Loop playback disabled.");
+        mSvoLoop = false;
+      }
+      RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop ? "TRUE" : "FALSE");
+    }
     getParam("svo.svo_realtime", mSvoRealtime, mSvoRealtime);
     RCLCPP_INFO(
       get_logger(), " * SVO Realtime: %s",
       mSvoRealtime ? "TRUE" : "FALSE");
     getParam("svo.play_from_frame", mSvoFrameStart, mSvoFrameStart, " * SVO start frame: ");
-
-    getParam("svo.use_svo_timestamps", mUseSvoTimestamp, mUseSvoTimestamp);
-    RCLCPP_INFO(
-      get_logger(), " * Use SVO timestamp: %s",
-      mUseSvoTimestamp ? "TRUE" : "FALSE");
   }
 
   mStreamMode = false;
@@ -799,28 +807,32 @@ void ZedCamera::getGeneralParams()
     get_logger(), " * Camera model: " << camera_model << " - "
                                       << mCamUserModel);
 
+  
   getParam("general.camera_name", mCameraName, mCameraName, " * Camera name: ");
-  getParam(
-    "general.serial_number", mCamSerialNumber, mCamSerialNumber,
-    " * Camera SN: ");
-  getParam(
-    "general.camera_id", mCamId, mCamId,
-    " * Camera ID: ");
-  getParam(
-    "general.camera_timeout_sec", mCamTimeoutSec, mCamTimeoutSec,
-    " * Camera timeout [sec]: ");
-  getParam(
-    "general.camera_max_reconnect", mMaxReconnectTemp, mMaxReconnectTemp,
-    " * Camera reconnection temptatives: ");
-  if (mSimMode) {
-    RCLCPP_INFO(
-      get_logger(),
-      "* [Simulation mode] Camera framerate forced to 60 Hz");
-    mCamGrabFrameRate = 60;
-  } else {
+
+  if(!mSvoMode) {
     getParam(
-      "general.grab_frame_rate", mCamGrabFrameRate, mCamGrabFrameRate,
-      " * Camera framerate: ");
+      "general.serial_number", mCamSerialNumber, mCamSerialNumber,
+      " * Camera SN: ");
+    getParam(
+      "general.camera_id", mCamId, mCamId,
+      " * Camera ID: ");
+    getParam(
+      "general.camera_timeout_sec", mCamTimeoutSec, mCamTimeoutSec,
+      " * Camera timeout [sec]: ");
+    getParam(
+      "general.camera_max_reconnect", mMaxReconnectTemp, mMaxReconnectTemp,
+      " * Camera reconnection temptatives: ");
+    if (mSimMode) {
+      RCLCPP_INFO(
+        get_logger(),
+        "* [Simulation mode] Camera framerate forced to 60 Hz");
+      mCamGrabFrameRate = 60;
+    } else {
+      getParam(
+        "general.grab_frame_rate", mCamGrabFrameRate, mCamGrabFrameRate,
+        " * Camera framerate: ");
+    }
   }
   getParam("general.gpu_id", mGpuId, mGpuId, " * GPU ID: ");
   getParam("general.async_image_retrieval", mAsyncImageRetrieval, mAsyncImageRetrieval);
@@ -938,11 +950,13 @@ void ZedCamera::getGeneralParams()
     mPubFrameRate = 60;
   } else {
     getParam("general.pub_frame_rate", mPubFrameRate, mPubFrameRate, "", false);
-    if (mPubFrameRate > mCamGrabFrameRate) {
-      RCLCPP_WARN(
-        get_logger(),
-        "'pub_frame_rate' cannot be bigger than 'grab_frame_rate'");
-      mPubFrameRate = mCamGrabFrameRate;
+    if(!mSvoMode) {
+      if (mPubFrameRate > mCamGrabFrameRate) {
+        RCLCPP_WARN(
+          get_logger(),
+          "'pub_frame_rate' cannot be bigger than 'grab_frame_rate'");
+        mPubFrameRate = mCamGrabFrameRate;
+      }
     }
     if (mPubFrameRate < 0.1) {
       RCLCPP_WARN(
@@ -964,7 +978,7 @@ void ZedCamera::getVideoParams()
 
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
-
+  
   if (!sl_tools::isZEDX(mCamUserModel)) {
     getParam(
       "video.brightness", mCamBrightness, mCamBrightness,
@@ -4134,12 +4148,14 @@ bool ZedCamera::startCamera()
 
   float realFps = camInfo.camera_configuration.fps;
   if (realFps != static_cast<float>(mCamGrabFrameRate)) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "!!! `general.grab_frame_rate` value is not valid: '"
-        << mCamGrabFrameRate
-        << "'. Automatically replaced with '" << realFps
-        << "'. Please fix the parameter !!!");
+    if(!mSvoMode) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "!!! `general.grab_frame_rate` value is not valid: '"
+          << mCamGrabFrameRate
+          << "'. Automatically replaced with '" << realFps
+          << "'. Please fix the parameter !!!");
+    }
     mCamGrabFrameRate = realFps;
   }
 
@@ -4217,23 +4233,23 @@ bool ZedCamera::startCamera()
 
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Focal Lenght -> "
+    " * Focal Lenght\t-> "
       << camInfo.camera_configuration.calibration_parameters
       .left_cam.focal_length_metric
       << " mm");
 
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Input\t -> "
+    " * Input\t\t-> "
       << sl::toString(mZed->getCameraInformation().input_type).c_str());
   if (mSvoMode) {
     RCLCPP_INFO(
-      get_logger(), " * SVO resolution\t-> %dx%d",
+      get_logger(), " * SVO resolution -> %dx%d",
       mZed->getCameraInformation().camera_configuration.resolution.width,
       mZed->getCameraInformation().camera_configuration.resolution.height);
     RCLCPP_INFO_STREAM(
       get_logger(),
-      " * SVO framerate\t-> "
+      " * SVO framerate\t -> "
         << (mZed->getCameraInformation().camera_configuration.fps));
   }
 

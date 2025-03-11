@@ -4,7 +4,6 @@ LATEST CHANGES
 2025-03-10
 ----------
 - Add parameter `svo.use_svo_timestamps` to use the SVO timestamps when publishing data (both stereo and mono components)
-- Enable SVO input for ZED X One cameras
 
 2025-03-07
 ----------

@@ -262,6 +262,7 @@ void ZedCameraOne::getGeneralParams()
     get_logger(), " * Camera model: " << camera_model << " - " << _camUserModel);
 
   getParam("general.camera_name", _cameraName, _cameraName, " * Camera name: ");
+  
   getParam(
     "general.serial_number", _camSerialNumber, _camSerialNumber,
     " * Camera SN: ");

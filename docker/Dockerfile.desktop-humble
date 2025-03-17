@@ -82,6 +82,7 @@ RUN apt-get update || true && \
 RUN apt-get update || true && \
   apt-get install --no-install-recommends -y \
   ros-${ROS2_DIST}-ros-base \
+  ros-${ROS2_DIST}-rmw-cyclonedds-cpp \
   python3-flake8-docstrings \
   python3-pip \
   python3-pytest-cov \

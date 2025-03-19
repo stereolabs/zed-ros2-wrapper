@@ -23,6 +23,7 @@ ARG ANGLES_VERSION=1.15.0
 ARG GEOGRAPHIC_INFO_VERSION=1.0.6
 ARG POINTCLOUD_TRANSPORT_VERSION=1.0.18
 ARG POINTCLOUD_TRANSPORT_PLUGINS_VERSION=1.0.11
+ARG COB_COMMON_VERSION=2.8.12
 
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -45,15 +46,15 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 42D5A192B819C5DA ||
 
 ENV TZ=Europe/Paris
 
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \ 
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
   apt-get update && \
-  apt-get install --yes lsb-release wget less udev sudo build-essential cmake python3 python3-dev python3-pip python3-wheel git jq libpq-dev zstd usbutils && \    
+  apt-get install --yes lsb-release wget less udev sudo build-essential cmake python3 python3-dev python3-pip python3-wheel git jq libpq-dev zstd usbutils && \
   rm -rf /var/lib/apt/lists/*
 
 RUN echo "# R${L4T_MAJOR} (release), REVISION: ${L4T_MINOR}" > /etc/nv_tegra_release && \
   apt-get update -y || true && \
   apt-get install -y --no-install-recommends zstd wget less cmake curl gnupg2 \
-  build-essential python3 python3-pip python3-dev python3-setuptools libusb-1.0-0-dev \ 
+  build-essential python3 python3-pip python3-dev python3-setuptools libusb-1.0-0-dev \
   libgeographic-dev libdraco-dev zlib1g-dev -y && \
   pip install protobuf && \
   wget -q --no-check-certificate -O ZED_SDK_Linux_JP.run \
@@ -81,10 +82,11 @@ RUN wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz 
     wget https://github.com/ros/angles/archive/refs/tags/${ANGLES_VERSION}.tar.gz -O - | tar -xvz && mv angles-${ANGLES_VERSION} angles && \
     wget https://github.com/ros-perception/point_cloud_transport/archive/refs/tags/${POINTCLOUD_TRANSPORT_VERSION}.tar.gz -O - | tar -xvz && mv point_cloud_transport-${POINTCLOUD_TRANSPORT_VERSION} point_cloud_transport && \
     wget https://github.com/ros-perception/point_cloud_transport_plugins/archive/refs/tags/${POINTCLOUD_TRANSPORT_PLUGINS_VERSION}.tar.gz -O - | tar -xvz && mv point_cloud_transport_plugins-${POINTCLOUD_TRANSPORT_PLUGINS_VERSION} point_cloud_transport_plugins && \
+    wget https://github.com/4am-robotics/cob_common/archive/refs/tags/${COB_COMMON_VERSION}.tar.gz -O - | tar -xvz && mv cob_common-${COB_COMMON_VERSION} cob_common && \
     wget https://github.com/ros-geographic-info/geographic_info/archive/refs/tags/${GEOGRAPHIC_INFO_VERSION}.tar.gz -O - | tar -xvz && mv geographic_info-${GEOGRAPHIC_INFO_VERSION} geographic-info && \
     cp -r geographic-info/geographic_msgs/ . && \
     rm -rf geographic-info
-    
+
 # Install cython
 RUN python3 -m pip install --upgrade cython
 
@@ -100,7 +102,7 @@ RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/install/setup.bash && \
 
 WORKDIR /root/ros2_ws
 
-# Setup environment variables 
+# Setup environment variables
 COPY ros_entrypoint_jetson.sh /sbin/ros_entrypoint.sh
 RUN sudo chmod 755 /sbin/ros_entrypoint.sh
 

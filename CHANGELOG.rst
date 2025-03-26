@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-03-26
+----------
+- Add official support for ROS 2 Jazzy Jalisco
+
 v4.2.5
 ------
 - Add new parameter 'depth.point_cloud_res' to set a specific point cloud publishing resolution

@@ -5,7 +5,7 @@
 
 <p align="center">
   ROS 2 packages for using Stereolabs ZED Camera cameras.<br>
-  ROS 2 Foxy Fitzroy (Ubuntu 20.04) - ROS 2 Humble Hawksbill (Ubuntu 22.04)
+  ROS 2 Foxy Fitzroy (Ubuntu 20.04) - ROS 2 Humble Hawksbill (Ubuntu 22.04) - ROS 2 Jazzy Jalisco (Ubuntu 24.04)
 </p>
 
 <hr>
@@ -29,8 +29,8 @@ This package enables the use of ZED cameras with ROS 2, providing access to a va
 
 ### Prerequisites
 
-- [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/) or [Ubuntu 22.04 (Jammy Jellyfish)](https://releases.ubuntu.com/jammy/)
-- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v4.2 (for older versions support please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
+- [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/), [Ubuntu 22.04 (Jammy Jellyfish)](https://releases.ubuntu.com/jammy/), or [Ubuntu 24.04 (Noble Numbat)](https://releases.ubuntu.com/noble/)
+- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v5.0 (for older versions support please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - ROS 2 Foxy Fitzroy (deprecated), ROS 2 Humble Hawksbill, or ROS2 Jazzy Jalisco:
   - [Foxy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html) [**Not recommended. EOL reached**]
@@ -295,4 +295,3 @@ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --paralle
 
 ## Known issues
 
-- ZED X One component does not support **SVO** and **Streaming** input with ZED SDK v4.2.2. They will be enabled with future versions.

@@ -967,7 +967,7 @@ void ZedCameraOne::callback_pubTemp()
 
   // ----> Publish temperature
   if (tempSubCount > 0) {
-    tempMsgPtr imuTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+    auto imuTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
 
     imuTempMsg->header.stamp = get_clock()->now();
 
@@ -2386,7 +2386,7 @@ bool ZedCameraOne::publishSensorsData()
       "[publishSensorsData] IMU subscribers: "
         << static_cast<int>(_imuSubCount));
 
-    imuMsgPtr imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
+    auto imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
     imuMsg->header.stamp = ts_imu;
     imuMsg->header.frame_id = _imuFrameId;
@@ -2459,7 +2459,7 @@ bool ZedCameraOne::publishSensorsData()
       "[publishSensorsData] IMU subscribers: "
         << static_cast<int>(_imuRawSubCount));
 
-    imuMsgPtr imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
+    auto imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
     imuRawMsg->header.stamp = ts_imu;
     imuRawMsg->header.frame_id = _imuFrameId;

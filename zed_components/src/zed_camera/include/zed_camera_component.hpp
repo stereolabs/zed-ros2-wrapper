@@ -190,9 +190,8 @@ protected:
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
   bool publishSensorsData(rclcpp::Time force_ts = TIMEZERO_ROS);
-#if (ZED_SDK_MAJOR_VERSION >= 5)
   void publishHealthStatus();
-#endif
+  void publishSvoStatus(uint64_t frame_ts);
   // <---- Publishing functions
 
   // ----> Utility functions
@@ -252,6 +251,7 @@ private:
   // <---- Fusion module
 
   uint64_t mFrameCount = 0;
+  uint32_t mSvoLoopCount = 0;
 
   // ----> Topics
   std::string mTopicRoot = "~/";
@@ -609,6 +609,7 @@ private:
   pointcloudPub mPubFusedCloud;
 #endif
 
+  svoStatusPub mPubSvoStatus;
   imagePub mPubConfMap;
   disparityPub mPubDisparity;
   posePub mPubPose;

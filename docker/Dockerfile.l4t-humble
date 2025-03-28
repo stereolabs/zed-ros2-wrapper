@@ -86,10 +86,7 @@ RUN wget https://github.com/ros/xacro/archive/refs/tags/${XACRO_VERSION}.tar.gz 
     wget https://github.com/ros2/rmw_cyclonedds/archive/refs/tags/${RMW_CYCLONEDDS_VERSION}.tar.gz -O - | tar -xvz && mv rmw_cyclonedds-${RMW_CYCLONEDDS_VERSION} rmw_cyclonedds && \
     wget https://github.com/ros-geographic-info/geographic_info/archive/refs/tags/${GEOGRAPHIC_INFO_VERSION}.tar.gz -O - | tar -xvz && mv geographic_info-${GEOGRAPHIC_INFO_VERSION} geographic-info && \
     cp -r geographic-info/geographic_msgs/ . && \
-    rm -rf geographic-info && \
-    wget https://github.com/4am-robotics/cob_common/archive/refs/tags/2.7.10.tar.gz -O - | tar -xvz && mv cob_common-${COB_VERSION} cob_common && \
-    cp -r cob_common/cob_srvs/ . && \
-    rm -rf cob_common
+    rm -rf geographic-info
     
 # Install cython
 RUN python3 -m pip install --upgrade cython

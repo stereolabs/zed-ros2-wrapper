@@ -133,8 +133,8 @@ protected:
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_setSvoFrame(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<cob_srvs::srv::SetInt_Request> req,
-    std::shared_ptr<cob_srvs::srv::SetInt_Response> res);
+    const std::shared_ptr<zed_msgs::srv::SetSvoFrame_Request> req,
+    std::shared_ptr<zed_msgs::srv::SetSvoFrame_Response> res);
   void callback_clickedPoint(
     const geometry_msgs::msg::PointStamped::SharedPtr msg);
   void callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
@@ -639,11 +639,6 @@ private:
   gnssFusionStatusPub mPubGeoPoseStatus;
   gnssFixPub mPubFusedFix;
   gnssFixPub mPubOriginFix;
-
-  healthPub mPubHealthImage;
-  healthPub mPubHealthLight;
-  healthPub mPubHealthDepth;
-  healthPub mPubHealthSensor;
   // <---- Publishers
 
   // <---- Publisher variables

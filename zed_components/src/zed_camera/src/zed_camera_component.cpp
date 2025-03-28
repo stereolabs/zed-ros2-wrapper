@@ -323,7 +323,7 @@ void ZedCamera::initServices()
       RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
     }
     srv_name = srv_prefix + mSrvSetSvoFrameName;
-    mSetSvoFrameSrv = create_service<cob_srvs::srv::SetInt>(
+    mSetSvoFrameSrv = create_service<zed_msgs::srv::SetSvoFrame>(
       srv_name,
       std::bind(&ZedCamera::callback_setSvoFrame, this, _1, _2, _3));
     RCLCPP_INFO(get_logger(), " * '%s'", mSetSvoFrameSrv->get_service_name());
@@ -3520,38 +3520,14 @@ void ZedCamera::initPublishers()
   }
   // <---- SVO Status publisher
 
-  // ----> Health Status publishers
+  // ----> Health Status publisher
   mPubHealthStatus = create_publisher<zed_msgs::msg::HealthStatusStamped>(
     health_status_topic,
     mQos, mPubOpt);
   RCLCPP_INFO_STREAM(
     get_logger(),
     "Advertised on topic: " << mPubHealthStatus->get_topic_name());
-  mPubHealthImage = create_publisher<std_msgs::msg::Bool>(
-    health_low_quality_topic,
-    mQos, mPubOpt);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubHealthImage->get_topic_name());
-  mPubHealthLight = create_publisher<std_msgs::msg::Bool>(
-    health_low_lighting_topic,
-    mQos, mPubOpt);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubHealthLight->get_topic_name());
-  mPubHealthDepth = create_publisher<std_msgs::msg::Bool>(
-    health_low_depth_topic,
-    mQos, mPubOpt);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubHealthDepth->get_topic_name());
-  mPubHealthSensor = create_publisher<std_msgs::msg::Bool>(
-    health_low_sensor_topic,
-    mQos, mPubOpt);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubHealthSensor->get_topic_name());
-  // <---- Health Status publishers
+  // <---- Health Status publisher
 
   // ----> Camera publishers
   mPubRgb = image_transport::create_camera_publisher(
@@ -10196,8 +10172,8 @@ void ZedCamera::callback_pauseSvoInput(
 
 void ZedCamera::callback_setSvoFrame(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  const std::shared_ptr<cob_srvs::srv::SetInt_Request> req,
-  std::shared_ptr<cob_srvs::srv::SetInt_Response> res)
+  const std::shared_ptr<zed_msgs::srv::SetSvoFrame_Request> req,
+  std::shared_ptr<zed_msgs::srv::SetSvoFrame_Response> res)
 {
   (void)request_header;
 
@@ -10212,9 +10188,9 @@ void ZedCamera::callback_setSvoFrame(
     return;
   }
 
-  int frame = req->data;
+  int frame = req->frame_id;
   int svo_frames = mZed->getSVONumberOfFrames();
-  if (frame > svo_frames) {
+  if (frame >= svo_frames) {
     std::stringstream ss;
     ss << "Frame number is out of range. SVO has " << svo_frames << " frames";
     RCLCPP_WARN(get_logger(), ss.str().c_str());
@@ -11521,30 +11497,22 @@ void ZedCamera::stopStreamingServer()
 void ZedCamera::publishHealthStatus()
 {
   if (mImageValidityCheck > 0) {
-    size_t full_sub = 0;
-    size_t img_sub = 0;
-    size_t light_sub = 0;
-    size_t depth_sub = 0;
-    size_t sensor_sub = 0;
+    size_t sub_count = 0;
     try {
-      full_sub = mPubHealthStatus->get_subscription_count();
-      img_sub = mPubHealthImage->get_subscription_count();
-      light_sub = mPubHealthLight->get_subscription_count();
-      depth_sub = mPubHealthDepth->get_subscription_count();
-      sensor_sub = mPubHealthSensor->get_subscription_count();
+      sub_count = mPubHealthStatus->get_subscription_count();
     } catch (...) {
       rcutils_reset_error();
       DEBUG_STREAM_VD("publishHealthStatus: Exception while counting subscribers");
       return;
     }
 
-    if (full_sub + img_sub + light_sub + depth_sub + sensor_sub == 0) {
+    if (sub_count == 0) {
       return;
     }
 
     sl::HealthStatus status = mZed->getHealthStatus();
 
-    if (full_sub > 0) {
+    if (sub_count > 0) {
       auto msg = std::make_unique<zed_msgs::msg::HealthStatusStamped>();
       msg->header.stamp = mFrameTimestamp;
       msg->header.frame_id = mBaseFrameId;
@@ -11557,30 +11525,6 @@ void ZedCamera::publishHealthStatus()
         status.low_motion_sensors_reliability;
 
       mPubHealthStatus->publish(std::move(msg));
-    }
-
-    if (img_sub > 0) {
-      auto msg = std::make_unique<std_msgs::msg::Bool>();
-      msg->data = status.low_image_quality;
-      mPubHealthImage->publish(std::move(msg));
-    }
-
-    if (light_sub > 0) {
-      auto msg = std::make_unique<std_msgs::msg::Bool>();
-      msg->data = status.low_lighting;
-      mPubHealthLight->publish(std::move(msg));
-    }
-
-    if (depth_sub > 0) {
-      auto msg = std::make_unique<std_msgs::msg::Bool>();
-      msg->data = status.low_depth_reliability;
-      mPubHealthDepth->publish(std::move(msg));
-    }
-
-    if (sensor_sub > 0) {
-      auto msg = std::make_unique<std_msgs::msg::Bool>();
-      msg->data = status.low_motion_sensors_reliability;
-      mPubHealthSensor->publish(std::move(msg));
     }
   }
 }

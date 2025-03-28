@@ -3,7 +3,11 @@ LATEST CHANGES
 
 2025-03-28
 ----------
-- Add SVO Status topic to monitor the current SVO status. New custom message added to `zed_msgs`
+- Note: requires the latest `zed_msgs` package v5.0.0
+- Add SVO Status topic to monitor the current SVO status of type `zed_msgs::SvoStatus`
+- Add fully integrated Health Status topic of type `zed_msgs::HealthStatusStamped`
+  - Remove the single health status topics to simplicy health monitoring
+- Remove `cob_srvs` dependency to use the custom `zed_msgs::SetSvoFrame` service
 
 2025-03-26
 ----------

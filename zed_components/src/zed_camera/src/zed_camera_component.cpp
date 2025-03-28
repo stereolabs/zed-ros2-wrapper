@@ -11496,37 +11496,37 @@ void ZedCamera::stopStreamingServer()
 
 void ZedCamera::publishHealthStatus()
 {
-  if (mImageValidityCheck > 0) {
-    size_t sub_count = 0;
-    try {
-      sub_count = mPubHealthStatus->get_subscription_count();
-    } catch (...) {
-      rcutils_reset_error();
-      DEBUG_STREAM_VD("publishHealthStatus: Exception while counting subscribers");
-      return;
-    }
-
-    if (sub_count == 0) {
-      return;
-    }
-
-    sl::HealthStatus status = mZed->getHealthStatus();
-
-    if (sub_count > 0) {
-      auto msg = std::make_unique<zed_msgs::msg::HealthStatusStamped>();
-      msg->header.stamp = mFrameTimestamp;
-      msg->header.frame_id = mBaseFrameId;
-      msg->serial_number = mCamSerialNumber;
-      msg->camera_name = mCameraName;
-      msg->low_image_quality = status.low_image_quality;
-      msg->low_lighting = status.low_lighting;
-      msg->low_depth_reliability = status.low_depth_reliability;
-      msg->low_motion_sensors_reliability =
-        status.low_motion_sensors_reliability;
-
-      mPubHealthStatus->publish(std::move(msg));
-    }
+  if (mImageValidityCheck <= 0) {
+    return;
   }
+  
+  size_t sub_count = 0;
+  try {
+    sub_count = mPubHealthStatus->get_subscription_count();
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_VD("publishHealthStatus: Exception while counting subscribers");
+    return;
+  }
+
+  if (sub_count == 0) {
+    return;
+  }
+
+  sl::HealthStatus status = mZed->getHealthStatus();
+  auto msg = std::make_unique<zed_msgs::msg::HealthStatusStamped>();
+  msg->header.stamp = mFrameTimestamp;
+  msg->header.frame_id = mBaseFrameId;
+  msg->serial_number = mCamSerialNumber;
+  msg->camera_name = mCameraName;
+  msg->low_image_quality = status.low_image_quality;
+  msg->low_lighting = status.low_lighting;
+  msg->low_depth_reliability = status.low_depth_reliability;
+  msg->low_motion_sensors_reliability =
+    status.low_motion_sensors_reliability;
+
+  mPubHealthStatus->publish(std::move(msg));
+
 }
 
 bool ZedCamera::publishSvoStatus(uint64_t frame_ts)

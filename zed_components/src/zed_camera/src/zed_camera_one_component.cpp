@@ -75,7 +75,7 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
         << ZED_SDK_MINOR_VERSION << "."
         << ZED_SDK_PATCH_VERSION << "-"
         << ZED_SDK_BUILD_ID);
-    RCLCPP_INFO(get_logger(), "Node stopped");
+    RCLCPP_INFO(get_logger(), "Node stopped. Press Ctrl+C to exit.");
     exit(EXIT_FAILURE);
   }
 

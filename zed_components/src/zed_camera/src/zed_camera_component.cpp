@@ -115,7 +115,7 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
         << ZED_SDK_MINOR_VERSION << "."
         << ZED_SDK_PATCH_VERSION << "-"
         << ZED_SDK_BUILD_ID);
-    RCLCPP_INFO(get_logger(), "Node stopped");
+    RCLCPP_INFO(get_logger(), "Node stopped. Press Ctrl+C to exit.");
     exit(EXIT_FAILURE);
   }
 
@@ -6133,7 +6133,7 @@ void ZedCamera::threadFunc_zedGrab()
 
       // ----> Publish SVO Status information
       if (mSvoMode) {
-        publishSvoStatus(mLastTs_grab.getNanoseconds());
+        publishSvoStatus(mFrameTimestamp.nanoseconds());
       }
       // <---- Publish SVO Status information
 
@@ -6172,13 +6172,21 @@ void ZedCamera::threadFunc_zedGrab()
               }
               continue;
             } else {
-              RCLCPP_WARN(
-                get_logger(),
-                "SVO reached the end. The node has been stopped.");
+              RCLCPP_WARN(get_logger(), "SVO reached the end.");
 
               // Force SVO status update
-              publishSvoStatus(mLastTs_grab.getNanoseconds());
-              break;
+              if (!publishSvoStatus(mFrameTimestamp.nanoseconds())) {
+                RCLCPP_WARN(get_logger(), "Node stopped. Press Ctrl+C to exit.");
+                break;
+              } else {
+                RCLCPP_WARN_STREAM(
+                  get_logger(),
+                  "Waiting for SVO status subscribers to unsubscribe. Active subscribers: " <<
+                    mPubSvoStatus->get_subscription_count());
+                mDiagUpdater.force_update();
+                rclcpp::sleep_for(1000ms);
+                continue;
+              }
             }
             // <---- Check SVO status
           } else if (mGrabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
@@ -11552,10 +11560,10 @@ void ZedCamera::publishHealthStatus()
   }
 }
 
-void ZedCamera::publishSvoStatus(uint64_t frame_ts)
+bool ZedCamera::publishSvoStatus(uint64_t frame_ts)
 {
   if (!mSvoMode) {
-    return;
+    return false;
   }
 
   size_t subCount = 0;
@@ -11564,7 +11572,7 @@ void ZedCamera::publishSvoStatus(uint64_t frame_ts)
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_VD("publishSvoStatus: Exception while counting subscribers");
-    return;
+    return false;
   }
 
   if (subCount > 0) {
@@ -11574,10 +11582,12 @@ void ZedCamera::publishSvoStatus(uint64_t frame_ts)
     msg->file_name = mSvoFilepath;
     msg->frame_id = mZed->getSVOPosition();
     msg->total_frames = mZed->getSVONumberOfFrames();
+    msg->frame_ts = frame_ts;
 
     if (mSvoPause) {
       msg->status = zed_msgs::msg::SvoStatus::STATUS_PAUSED;
     } else if (mGrabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
+      msg->frame_id = msg->total_frames - 1;
       msg->status = zed_msgs::msg::SvoStatus::STATUS_END;
     } else {
       msg->status = zed_msgs::msg::SvoStatus::STATUS_PLAYING;
@@ -11590,9 +11600,11 @@ void ZedCamera::publishSvoStatus(uint64_t frame_ts)
 
     // Publish the message
     mPubSvoStatus->publish(std::move(msg));
+    return true;
   }
-
+  return false;
 }
+
 }  // namespace stereolabs
 
 #include "rclcpp_components/register_node_macro.hpp"

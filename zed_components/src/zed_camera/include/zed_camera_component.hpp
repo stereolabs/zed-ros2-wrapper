@@ -191,7 +191,7 @@ protected:
   void publishPoseTF(rclcpp::Time t);
   bool publishSensorsData(rclcpp::Time force_ts = TIMEZERO_ROS);
   void publishHealthStatus();
-  void publishSvoStatus(uint64_t frame_ts);
+  bool publishSvoStatus(uint64_t frame_ts);
   // <---- Publishing functions
 
   // ----> Utility functions

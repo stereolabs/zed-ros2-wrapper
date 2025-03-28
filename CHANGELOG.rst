@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-03-28
+----------
+- Add SVO Status topic to monitor the current SVO status. New custom message added to `zed_msgs`
+
 2025-03-26
 ----------
 - Add official support for ROS 2 Jazzy Jalisco

@@ -610,6 +610,7 @@ private:
 #endif
 
   svoStatusPub mPubSvoStatus;
+  healthStatusPub mPubHealthStatus;
   imagePub mPubConfMap;
   disparityPub mPubDisparity;
   posePub mPubPose;

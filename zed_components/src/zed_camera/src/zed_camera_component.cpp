@@ -3504,8 +3504,10 @@ void ZedCamera::initPublishers()
   std::string health_low_depth_topic = health_topic_root + "low_depth_reliability";
   std::string health_low_sensor_topic = health_topic_root + "low_motion_sensors_reliability";
 
-  // SVO Status topic name
-  std::string svo_status_topic = mTopicRoot + "svo_status";
+  // Status topic name
+  std::string status_root = mTopicRoot + "status/";
+  std::string svo_status_topic = status_root + "svo";
+  std::string health_status_topic = status_root + "health";
   // <---- Topics names definition
 
   // ----> SVO Status publisher
@@ -3519,6 +3521,12 @@ void ZedCamera::initPublishers()
   // <---- SVO Status publisher
 
   // ----> Health Status publishers
+  mPubHealthStatus = create_publisher<zed_msgs::msg::HealthStatusStamped>(
+    health_status_topic,
+    mQos, mPubOpt);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    "Advertised on topic: " << mPubHealthStatus->get_topic_name());
   mPubHealthImage = create_publisher<std_msgs::msg::Bool>(
     health_low_quality_topic,
     mQos, mPubOpt);
@@ -11513,11 +11521,13 @@ void ZedCamera::stopStreamingServer()
 void ZedCamera::publishHealthStatus()
 {
   if (mImageValidityCheck > 0) {
+    size_t full_sub = 0;
     size_t img_sub = 0;
     size_t light_sub = 0;
     size_t depth_sub = 0;
     size_t sensor_sub = 0;
     try {
+      full_sub = mPubHealthStatus->get_subscription_count();
       img_sub = mPubHealthImage->get_subscription_count();
       light_sub = mPubHealthLight->get_subscription_count();
       depth_sub = mPubHealthDepth->get_subscription_count();
@@ -11528,11 +11538,26 @@ void ZedCamera::publishHealthStatus()
       return;
     }
 
-    if (img_sub + light_sub + depth_sub + sensor_sub == 0) {
+    if (full_sub + img_sub + light_sub + depth_sub + sensor_sub == 0) {
       return;
     }
 
     sl::HealthStatus status = mZed->getHealthStatus();
+
+    if (full_sub > 0) {
+      auto msg = std::make_unique<zed_msgs::msg::HealthStatusStamped>();
+      msg->header.stamp = mFrameTimestamp;
+      msg->header.frame_id = mBaseFrameId;
+      msg->serial_number = mCamSerialNumber;
+      msg->camera_name = mCameraName;
+      msg->low_image_quality = status.low_image_quality;
+      msg->low_lighting = status.low_lighting;
+      msg->low_depth_reliability = status.low_depth_reliability;
+      msg->low_motion_sensors_reliability =
+        status.low_motion_sensors_reliability;
+
+      mPubHealthStatus->publish(std::move(msg));
+    }
 
     if (img_sub > 0) {
       auto msg = std::make_unique<std_msgs::msg::Bool>();

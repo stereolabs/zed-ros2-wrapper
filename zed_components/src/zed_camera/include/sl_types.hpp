@@ -59,6 +59,7 @@
 #include <zed_msgs/msg/plane_stamped.hpp>
 #include <zed_msgs/msg/pos_track_status.hpp>
 #include <zed_msgs/msg/svo_status.hpp>
+#include <zed_msgs/msg/health_status_stamped.hpp>
 #include <zed_msgs/srv/set_pose.hpp>
 #include <zed_msgs/srv/set_roi.hpp>
 #include <zed_msgs/srv/start_svo_rec.hpp>
@@ -97,6 +98,8 @@ const float NOT_VALID_TEMP = -273.15f;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
 typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::SvoStatus>>
   svoStatusPub;
+typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::HealthStatusStamped>>
+  healthStatusPub;
 
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> imagePub;
 typedef std::shared_ptr<rclcpp::Publisher<stereo_msgs::msg::DisparityImage>>

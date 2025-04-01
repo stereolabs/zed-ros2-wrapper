@@ -3508,6 +3508,7 @@ void ZedCamera::initPublishers()
   std::string status_root = mTopicRoot + "status/";
   std::string svo_status_topic = status_root + "svo";
   std::string health_status_topic = status_root + "health";
+  std::string heartbeat_topic = status_root + "heartbeat";
   // <---- Topics names definition
 
   // ----> SVO Status publisher
@@ -3528,6 +3529,15 @@ void ZedCamera::initPublishers()
     get_logger(),
     "Advertised on topic: " << mPubHealthStatus->get_topic_name());
   // <---- Health Status publisher
+
+  // ----> Heartbeat Status publisher
+  mPubHeartbeatStatus = create_publisher<zed_msgs::msg::Heartbeat>(
+    heartbeat_topic,
+    mQos, mPubOpt);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    "Advertised on topic: " << mPubHeartbeatStatus->get_topic_name());
+  // <---- Heartbeat Status publisher
 
   // ----> Camera publishers
   mPubRgb = image_transport::create_camera_publisher(
@@ -4831,6 +4841,9 @@ bool ZedCamera::startCamera()
 
 void ZedCamera::initThreads()
 {
+  // Start Heartbeat timer
+  startHeartbeatTimer();
+
   // ----> Start CMOS Temperatures thread
   if (!mSimMode && !sl_tools::isZED(mCamRealModel) &&
     !sl_tools::isZEDM(mCamRealModel))
@@ -4857,6 +4870,18 @@ void ZedCamera::initThreads()
 
   // Start grab thread
   mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
+}
+
+void ZedCamera::startHeartbeatTimer()
+{
+  if (mHeartbeatTimer != nullptr) {
+    mHeartbeatTimer->cancel();
+  }
+
+  std::chrono::milliseconds pubPeriod_msec(1000);
+  mHeartbeatTimer = create_wall_timer(
+    std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
+    std::bind(&ZedCamera::callback_pubHeartbeat, this));
 }
 
 void ZedCamera::startTempPubTimer()
@@ -6025,6 +6050,7 @@ void ZedCamera::threadFunc_zedGrab()
 
       // ----> Interruption check
       if (!rclcpp::ok()) {
+        mThreadStop = true;
         DEBUG_STREAM_COMM("Ctrl+C received: stopping grab thread");
         break;
       }
@@ -6414,6 +6440,9 @@ void ZedCamera::threadFunc_zedGrab()
       continue;
     }
   }
+
+  // Stop the heartbeat
+  mHeartbeatTimer->cancel();
 
   DEBUG_STREAM_COMM("Grab thread finished");
 }
@@ -11499,7 +11528,7 @@ void ZedCamera::publishHealthStatus()
   if (mImageValidityCheck <= 0) {
     return;
   }
-  
+
   size_t sub_count = 0;
   try {
     sub_count = mPubHealthStatus->get_subscription_count();
@@ -11572,6 +11601,42 @@ bool ZedCamera::publishSvoStatus(uint64_t frame_ts)
     return true;
   }
   return false;
+}
+
+void ZedCamera::callback_pubHeartbeat()
+{
+  if (mThreadStop) {
+    return;
+  }
+
+  // ----> Count the subscribers
+  size_t sub_count = 0;
+  try {
+    sub_count = mPubHeartbeatStatus->get_subscription_count();
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_VD("publishHeartbeat: Exception while counting subscribers");
+    return;
+  }
+
+  if (sub_count == 0) {
+    return;
+  }
+  // <---- Count the subscribers
+
+  // ----> Fill the message
+  auto msg = std::make_unique<zed_msgs::msg::Heartbeat>();
+  msg->beat_count = ++mHeartbeatCount;
+  msg->camera_sn = mCamSerialNumber;
+  msg->full_name = this->get_fully_qualified_name();
+  msg->node_name = this->get_name();
+  msg->node_ns = this->get_namespace();
+  msg->simul_mode = mSimMode;
+  msg->svo_mode = mSvoMode;
+  // <---- Fill the message
+
+  // Publish the hearbeat
+  mPubHeartbeatStatus->publish(std::move(msg));
 }
 
 }  // namespace stereolabs

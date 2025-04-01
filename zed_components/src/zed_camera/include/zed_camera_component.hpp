@@ -85,6 +85,7 @@ protected:
   void callback_pubFusedPc();
   void callback_pubPaths();
   void callback_pubTemp();
+  void callback_pubHeartbeat();
   void callback_gnssPubTimerTimeout();
   rcl_interfaces::msg::SetParametersResult callback_setParameters(
     std::vector<rclcpp::Parameter> parameters);
@@ -221,6 +222,7 @@ protected:
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
   void startTempPubTimer();
+  void startHeartbeatTimer();
 
   template<typename T>
   void getParam(
@@ -611,6 +613,7 @@ private:
 
   svoStatusPub mPubSvoStatus;
   healthStatusPub mPubHealthStatus;
+  heartbeatStatusPub mPubHeartbeatStatus;
   imagePub mPubConfMap;
   disparityPub mPubDisparity;
   posePub mPubPose;
@@ -697,6 +700,7 @@ private:
   rclcpp::TimerBase::SharedPtr
     mTempPubTimer;    // Timer to retrieve and publish CMOS temperatures
   rclcpp::TimerBase::SharedPtr mGnssPubCheckTimer;
+  rclcpp::TimerBase::SharedPtr mHeartbeatTimer;
   double mSensRateComp = 1.0;
   // <---- Threads and Timers
 
@@ -749,6 +753,7 @@ private:
   std::atomic<bool> mStreamingServerRunning;
 
   bool mCustomLabelsGood = false;
+  uint64_t mHeartbeatCount = 0;
   // <---- Status Flags
 
   // ----> Positional Tracking

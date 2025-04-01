@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-04-01
+----------
+- Add Heartbeat status message at 1 Hz: `~/status/heartbeat`
+
 2025-03-28
 ----------
 - Note: requires the latest `zed_msgs` package v5.0.0

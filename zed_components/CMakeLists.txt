@@ -113,6 +113,7 @@ set(DEPENDENCIES
     visualization_msgs
     shape_msgs
     robot_localization
+    backward_ros
 )
 
 find_package(ament_cmake_auto REQUIRED)
@@ -133,6 +134,7 @@ find_package(nmea_msgs REQUIRED)
 find_package(geographic_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
+find_package(backward_ros REQUIRED)
 
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)

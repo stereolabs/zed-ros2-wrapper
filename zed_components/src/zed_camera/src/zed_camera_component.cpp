@@ -8430,40 +8430,53 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   mObjDetSubscribed = true;
 
-  sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
+  sl::Objects objects;
+  sl::ERROR_CODE objDetRes;
 
   // ----> Process realtime dynamic parameters
-  objectTracker_parameters_rt.detection_confidence_threshold =
-    mObjDetConfidence;
-  mObjDetFilter.clear();
-  if (mObjDetPeopleEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
-  }
-  if (mObjDetVehiclesEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
-  }
-  if (mObjDetBagsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
-  }
-  if (mObjDetAnimalsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
-  }
-  if (mObjDetElectronicsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
-  }
-  if (mObjDetFruitsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
-  }
-  if (mObjDetSportEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
-  }
-  objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
-  // <---- Process realtime dynamic parameters
+  if (mObjDetModel != sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS &&
+    mObjDetModel != sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS)
+  {
+    sl::ObjectDetectionRuntimeParameters od_rt_params;
 
-  sl::Objects objects;
+    od_rt_params.detection_confidence_threshold =
+      mObjDetConfidence;
+    mObjDetFilter.clear();
+    if (mObjDetPeopleEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+    }
+    if (mObjDetVehiclesEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+    }
+    if (mObjDetBagsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
+    }
+    if (mObjDetAnimalsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
+    }
+    if (mObjDetElectronicsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
+    }
+    if (mObjDetFruitsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
+    }
+    if (mObjDetSportEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
+    }
+    od_rt_params.object_class_filter = mObjDetFilter;
+    // <---- Process realtime dynamic parameters
 
-  sl::ERROR_CODE objDetRes = mZed->retrieveObjects(
-    objects, objectTracker_parameters_rt, mObjDetInstID);
+    // Retrieve objects
+    objDetRes = mZed->retrieveObjects(objects, od_rt_params, mObjDetInstID);
+  } else {
+    // ----> Process realtime dynamic parameters
+    sl::CustomObjectDetectionRuntimeParameters cust_od_rt_params;
+    // <---- Process realtime dynamic parameters
+
+    // Retrieve Custom objects
+    objDetRes = mZed->retrieveCustomObjects(objects, cust_od_rt_params, mObjDetInstID);
+  }
+
 
   if (objDetRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(

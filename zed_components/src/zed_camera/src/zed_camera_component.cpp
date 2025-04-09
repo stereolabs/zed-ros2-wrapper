@@ -8471,10 +8471,15 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   } else {
     // ----> Process realtime dynamic parameters
     sl::CustomObjectDetectionRuntimeParameters cust_od_rt_params;
+    cust_od_rt_params.object_detection_properties.detection_confidence_threshold = mObjDetConfidence;
+    cust_od_rt_params.object_detection_properties.native_mapped_class;
     // <---- Process realtime dynamic parameters
 
     // Retrieve Custom objects
     objDetRes = mZed->retrieveCustomObjects(objects, cust_od_rt_params, mObjDetInstID);
+
+    
+    
   }
 
 

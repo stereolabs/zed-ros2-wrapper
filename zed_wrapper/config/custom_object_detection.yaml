@@ -1,3 +1,14 @@
+# Example of a custom object detection configuration file for the ZED ROS2 wrapper
+# This file is used to configure the object detection parameters for the ZED camera.
+# The parameters are defined in a YAML format and can be modified to suit the user's needs.
+# The parameters are divided into sections for each object class, with each section containing
+# specific parameters for that class.
+
+# This is an example of configuration file for a custom object detection model based on the COCO dataset.
+# COCO 2017 dataset https://cocodataset.org by Microsoft
+
+# To create a custom ONNX model, you can follow the online documentation: https://www.stereolabs.com/docs/yolo/export
+
 /**:
   ros__parameters:
       object_detection:

@@ -38,6 +38,7 @@
     <test_depend>ament_cmake_pep257</test_depend>
     <test_depend>ament_cmake_uncrustify</test_depend>
     <test_depend>ament_cmake_xmllint</test_depend>
+	<depend>isaac_ros_h264_encoder</depend>
     <export>
         <build_type>ament_cmake</build_type>
     </export>

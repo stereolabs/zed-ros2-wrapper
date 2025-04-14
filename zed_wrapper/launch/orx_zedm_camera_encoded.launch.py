@@ -104,9 +104,12 @@ def launch_setup(context, *args, **kwargs):
         ros_params_override_config = yaml.safe_load(file)
         datahub_name = ros_params_override_config["/**"]["ros__parameters"]["general"]["datahub_name"]
         camera_name = ros_params_override_config["/**"]["ros__parameters"]["general"]["camera_name"]
-        resolution_ID = ros_params_override_config["/**"]["ros__parameters"]["general"][
-            "grab_resolution"
-        ]  # Make sure pub_resolution=NATIVE
+        resolution_ID = ros_params_override_config["/**"]["ros__parameters"]["general"]["grab_resolution"]
+        pub_resolution = ros_params_override_config["/**"]["ros__parameters"]["general"]["pub_resolution"]
+        if pub_resolution != "NATIVE":
+            pub_downscale_factor = ros_params_override_config["/**"]["ros__parameters"]["general"][
+                "pub_downscale_factor"
+            ]
         frame_rate = ros_params_override_config["/**"]["ros__parameters"]["general"]["pub_frame_rate"]
 
     # Xacro command with options
@@ -180,6 +183,10 @@ def launch_setup(context, *args, **kwargs):
         input_width = 640
     else:
         raise ValueError(f"Invalid resolution_ID {resolution_ID}")
+
+    if pub_resolution != "NATIVE":
+        input_height = int(input_height // pub_downscale_factor)
+        input_width = int(input_width // pub_downscale_factor)
 
     # datahub name comes from namespace
     zed_left_raw_topic = PathJoinSubstitution([camera_name, "left", "image_rect_color"])

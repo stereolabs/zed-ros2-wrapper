@@ -6133,9 +6133,9 @@ void ZedCamera::threadFunc_zedGrab()
         grabElabTimer.tic();
 
         // ZED grab
-        DEBUG_STREAM_COMM( "Grab thread: grabbing frame #" << mFrameCount);
+        DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
         mGrabStatus = mZed->grab(mRunParams);
-        DEBUG_COMM( "Grabbed");
+        DEBUG_COMM("Grabbed");
 
         // ----> Grab errors?
         // Note: disconnection are automatically handled by the ZED SDK
@@ -9147,9 +9147,9 @@ bool ZedCamera::isPosTrackingRequired()
 
     if (!mPosTrackingEnabled) {
       RCLCPP_WARN_ONCE(
-          get_logger(),
-          "POSITIONAL TRACKING disabled in the parameters, but forced to "
-          "ENABLE because required by `pos_tracking.publish_tf: true`");
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `pos_tracking.publish_tf: true`");
     }
     return true;
   }
@@ -9160,9 +9160,9 @@ bool ZedCamera::isPosTrackingRequired()
 
     if (!mPosTrackingEnabled) {
       RCLCPP_WARN_ONCE(
-          get_logger(),
-          "POSITIONAL TRACKING disabled in the parameters, but forced to "
-          "ENABLE because required by `depth.depth_stabilization > 0`");
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `depth.depth_stabilization > 0`");
     }
 
     return true;
@@ -9173,9 +9173,9 @@ bool ZedCamera::isPosTrackingRequired()
 
     if (!mPosTrackingEnabled) {
       RCLCPP_WARN_ONCE(
-          get_logger(),
-          "POSITIONAL TRACKING disabled in the parameters, but forced to "
-          "ENABLE because required by `mapping.mapping_enabled: true`");
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `mapping.mapping_enabled: true`");
     }
 
     return true;
@@ -9186,9 +9186,9 @@ bool ZedCamera::isPosTrackingRequired()
 
     if (!mPosTrackingEnabled) {
       RCLCPP_WARN_ONCE(
-          get_logger(),
-          "POSITIONAL TRACKING disabled in the parameters, but forced to "
-          "ENABLE because required by `object_detection.enable_tracking: true`");
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `object_detection.enable_tracking: true`");
     }
 
     return true;
@@ -9199,9 +9199,9 @@ bool ZedCamera::isPosTrackingRequired()
 
     if (!mPosTrackingEnabled) {
       RCLCPP_WARN_ONCE(
-          get_logger(),
-          "POSITIONAL TRACKING disabled in the parameters, but forced to "
-          "ENABLE because required by `body_tracking.enable_tracking: true`");
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `body_tracking.enable_tracking: true`");
     }
 
     return true;
@@ -9227,8 +9227,8 @@ bool ZedCamera::isPosTrackingRequired()
     return true;
   }
 
-  if(mZed->isPositionalTrackingEnabled()) {
-    
+  if (mZed->isPositionalTrackingEnabled()) {
+
     DEBUG_ONCE_PT("POS. TRACKING required: enabled by ZED SDK.");
 
     RCLCPP_WARN_ONCE(

@@ -8481,7 +8481,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   if (!objects.is_new) {    // Async object detection. Update data only if new
     // detection is available
     DEBUG_OD("No new detected objects");
-    //return;
+    return;
   }
 
   DEBUG_STREAM_OD("Detected " << objects.object_list.size() << " objects");

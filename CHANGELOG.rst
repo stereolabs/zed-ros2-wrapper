@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2025-04-15
+----------
+- Improve performance with the default stereo configuration
+- Fix Positional Tracking enabling when required by ZED SDK modules
+
 2025-03-26
 ----------
 - Add official support for ROS 2 Jazzy Jalisco

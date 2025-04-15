@@ -1725,7 +1725,7 @@ void ZedCamera::getOdParams()
     "object_detection.prediction_timeout", mObjDetPredTimeout,
     mObjDetPredTimeout, " * Object Det. prediction timeout [sec]: ");
   getParam(
-    "object_detection.object_tracking_enabled", mObjDetTracking,
+    "object_detection.enable_tracking", mObjDetTracking,
     mObjDetTracking);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Object Det. tracking: "
@@ -5259,12 +5259,12 @@ bool ZedCamera::startObjDetect()
     return false;
   }
 
-  if (!mCamera2BaseTransfValid || !mSensor2CameraTransfValid ||
-    !mSensor2BaseTransfValid)
-  {
-    DEBUG_OD("Tracking transforms not yet ready, OD starting postponed");
-    return false;
-  }
+  // if (!mCamera2BaseTransfValid || !mSensor2CameraTransfValid ||
+  //   !mSensor2BaseTransfValid)
+  // {
+  //   DEBUG_OD("Tracking transforms not yet ready, OD starting postponed");
+  //   return false;
+  // }
 
   RCLCPP_INFO(get_logger(), "*** Starting Object Detection ***");
 
@@ -6133,7 +6133,9 @@ void ZedCamera::threadFunc_zedGrab()
         grabElabTimer.tic();
 
         // ZED grab
+        DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
         mGrabStatus = mZed->grab(mRunParams);
+        DEBUG_COMM("Grabbed");
 
         // ----> Grab errors?
         // Note: disconnection are automatically handled by the ZED SDK
@@ -8478,6 +8480,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   if (!objects.is_new) {    // Async object detection. Update data only if new
     // detection is available
+    DEBUG_OD("No new detected objects");
     return;
   }
 
@@ -9141,18 +9144,66 @@ bool ZedCamera::isPosTrackingRequired()
 
   if (mPublishTF) {
     DEBUG_ONCE_PT("POS. TRACKING required: enabled by TF param.");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `pos_tracking.publish_tf: true`");
+    }
     return true;
   }
 
   if (mDepthStabilization > 0) {
     DEBUG_ONCE_PT(
       "POS. TRACKING required: enabled by depth stabilization param.");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `depth.depth_stabilization > 0`");
+    }
+
     return true;
   }
 
-  if (mMappingEnabled || mObjDetEnabled) {
-    DEBUG_ONCE_PT(
-      "POS. TRACKING required: enabled by mapping or object detection.");
+  if (mMappingEnabled) {
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by mapping");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `mapping.mapping_enabled: true`");
+    }
+
+    return true;
+  }
+
+  if (mObjDetEnabled && mObjDetTracking) {
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by object detection.");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `object_detection.enable_tracking: true`");
+    }
+
+    return true;
+  }
+
+  if (mBodyTrkEnabled && mBodyTrkEnableTracking) {
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by body tracking.");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `body_tracking.enable_tracking: true`");
+    }
+
     return true;
   }
 
@@ -9173,6 +9224,17 @@ bool ZedCamera::isPosTrackingRequired()
 
   if (topics_sub > 0) {
     DEBUG_ONCE_PT("POS. TRACKING required: topic subscribed.");
+    return true;
+  }
+
+  if (mZed->isPositionalTrackingEnabled()) {
+
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by ZED SDK.");
+
+    RCLCPP_WARN_ONCE(
+      get_logger(),
+      "POSITIONAL TRACKING disabled in the parameters, enabled by the ZED SDK because required by one of the modules.");
+
     return true;
   }
 

@@ -4851,9 +4851,7 @@ void ZedCamera::initThreads()
   // <---- Start CMOS Temperatures thread
 
   // ----> Start Sensors thread if not sync
-  if (!mSimMode && !mSvoMode && !mSensCameraSync &&
-    !sl_tools::isZED(mCamRealModel))
-  {
+  if (!mSensCameraSync && !sl_tools::isZED(mCamRealModel)) {
     mSensThread = std::thread(&ZedCamera::threadFunc_pubSensorsData, this);
   }
   // <---- Start Sensors thread if not sync
@@ -6164,6 +6162,14 @@ void ZedCamera::threadFunc_zedGrab()
               }
               continue;
             } else {
+              // ----> Stop all the other threads and Timers
+              mThreadStop = true;
+              if (mPathTimer) {mPathTimer->cancel();}
+              if (mFusedPcTimer) {mFusedPcTimer->cancel();}
+              if (mTempPubTimer) {mTempPubTimer->cancel();}
+              if (mGnssPubCheckTimer) {mGnssPubCheckTimer->cancel();}
+              // <---- Stop all the other threads and Timers
+
               RCLCPP_WARN(
                 get_logger(),
                 "SVO reached the end. The node has been stopped.");
@@ -6430,7 +6436,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   }
 
   // ----> Subscribers count
-  //DEBUG_STREAM_SENS("Sensors callback: counting subscribers");
+  DEBUG_STREAM_SENS("Sensors callback: counting subscribers");
 
   size_t imu_SubCount = 0;
   size_t imu_RawSubCount = 0;
@@ -6464,25 +6470,21 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   rclcpp::Time now = get_clock()->now();
 
   sl::SensorsData sens_data;
+  sl::ERROR_CODE err;
 
-  if (mSvoMode || mSensCameraSync || mSimMode) {
-    sl::ERROR_CODE err =
-      mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
-    if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), "sl::getSensorsData error: "
-          << sl::toString(err).c_str());
-      return false;
-    }
+  if (mSensCameraSync) {
+    err = mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
   } else {
-    sl::ERROR_CODE err =
-      mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
-    if (err != sl::ERROR_CODE::SUCCESS) {
+    err = mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+  }
+
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    if (mSvoMode && err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
       RCLCPP_WARN_STREAM(
         get_logger(), "sl::getSensorsData error: "
           << sl::toString(err).c_str());
-      return false;
     }
+    return false;
   }
 
   if (mSensCameraSync) {
@@ -6513,8 +6515,22 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   bool new_mag_data = ts_mag != mLastTs_mag;
   mLastTs_mag = ts_mag;
 
+  // ----> Respect data frequency for SVO2
+  if (mSvoMode) {
+    const double imu_period = 1.0 / mSensPubRate;
+
+    if (dT < imu_period) {
+      DEBUG_SENS("SENSOR: IMU data not ready yet");
+      return false;
+    }
+  }
+  DEBUG_STREAM_SENS(
+    "IMU TS: " << ts_imu.seconds() << " - Grab TS: " << mFrameTimestamp.seconds() << " - Diff: " <<
+      mFrameTimestamp.seconds() - ts_imu.seconds());
+  // <---- Respect data frequency for SVO2
+
   if (!new_imu_data && !new_baro_data && !new_mag_data) {
-    //DEBUG_STREAM_SENS("No new sensors data");
+    DEBUG_STREAM_SENS("No new sensors data");
     return false;
   }
 
@@ -6526,16 +6542,14 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
   mLastTs_imu = ts_imu;
 
-  DEBUG_STREAM_SENS(
-    "SENSOR LAST PERIOD: " << dT << " sec @" << 1. / dT
-                           << " Hz");
+  DEBUG_STREAM_SENS("SENSOR LAST PERIOD: " << dT << " sec @" << 1. / dT << " Hz");
 
   // ----> Sensors freq for diagnostic
   if (new_imu_data) {
     double mean = mImuPeriodMean_sec->addValue(mImuFreqTimer.toc());
     mImuFreqTimer.tic();
 
-    DEBUG_STREAM_SENS("IMU MEAN freq: " << 1. / mean);
+    DEBUG_STREAM_SENS("Thread New data MEAN freq: " << 1. / mean);
   }
 
   if (new_baro_data) {

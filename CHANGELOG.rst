@@ -1,6 +1,15 @@
 LATEST CHANGES
 ==============
 
+2025-04-16
+----------
+- Fix realtime IMU data publishing when using SVO2
+
+2025-04-15
+----------
+- Improve performance with the default stereo configuration
+- Fix Positional Tracking enabling when required by ZED SDK modules
+
 2025-04-01
 ----------
 - Add Heartbeat status message at 1 Hz: `~/status/heartbeat`

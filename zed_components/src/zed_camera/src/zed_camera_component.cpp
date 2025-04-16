@@ -37,6 +37,10 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #elif defined FOUND_IRON
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#elif defined FOUND_JAZZY
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#elif defined FOUND_ROLLING
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #elif defined FOUND_FOXY
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #else
@@ -1725,7 +1729,7 @@ void ZedCamera::getOdParams()
     "object_detection.prediction_timeout", mObjDetPredTimeout,
     mObjDetPredTimeout, " * Object Det. prediction timeout [sec]: ");
   getParam(
-    "object_detection.object_tracking_enabled", mObjDetTracking,
+    "object_detection.enable_tracking", mObjDetTracking,
     mObjDetTracking);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Object Det. tracking: "
@@ -4853,9 +4857,7 @@ void ZedCamera::initThreads()
   // <---- Start CMOS Temperatures thread
 
   // ----> Start Sensors thread if not sync
-  if (!mSimMode && !mSvoMode && !mSensCameraSync &&
-    !sl_tools::isZED(mCamRealModel))
-  {
+  if (!mSensCameraSync && !sl_tools::isZED(mCamRealModel)) {
     mSensThread = std::thread(&ZedCamera::threadFunc_pubSensorsData, this);
   }
   // <---- Start Sensors thread if not sync
@@ -5273,12 +5275,12 @@ bool ZedCamera::startObjDetect()
     return false;
   }
 
-  if (!mCamera2BaseTransfValid || !mSensor2CameraTransfValid ||
-    !mSensor2BaseTransfValid)
-  {
-    DEBUG_OD("Tracking transforms not yet ready, OD starting postponed");
-    return false;
-  }
+  // if (!mCamera2BaseTransfValid || !mSensor2CameraTransfValid ||
+  //   !mSensor2BaseTransfValid)
+  // {
+  //   DEBUG_OD("Tracking transforms not yet ready, OD starting postponed");
+  //   return false;
+  // }
 
   RCLCPP_INFO(get_logger(), "*** Starting Object Detection ***");
 
@@ -6152,7 +6154,9 @@ void ZedCamera::threadFunc_zedGrab()
         grabElabTimer.tic();
 
         // ZED grab
+        DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
         mGrabStatus = mZed->grab(mRunParams);
+        DEBUG_COMM("Grabbed");
 
         // ----> Grab errors?
         // Note: disconnection are automatically handled by the ZED SDK
@@ -6182,6 +6186,14 @@ void ZedCamera::threadFunc_zedGrab()
               }
               continue;
             } else {
+              // ----> Stop all the other threads and Timers
+              mThreadStop = true;
+              if (mPathTimer) {mPathTimer->cancel();}
+              if (mFusedPcTimer) {mFusedPcTimer->cancel();}
+              if (mTempPubTimer) {mTempPubTimer->cancel();}
+              if (mGnssPubCheckTimer) {mGnssPubCheckTimer->cancel();}
+              // <---- Stop all the other threads and Timers
+
               RCLCPP_WARN(get_logger(), "SVO reached the end.");
 
               // Force SVO status update
@@ -6456,7 +6468,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   }
 
   // ----> Subscribers count
-  //DEBUG_STREAM_SENS("Sensors callback: counting subscribers");
+  DEBUG_STREAM_SENS("Sensors callback: counting subscribers");
 
   size_t imu_SubCount = 0;
   size_t imu_RawSubCount = 0;
@@ -6490,25 +6502,21 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   rclcpp::Time now = get_clock()->now();
 
   sl::SensorsData sens_data;
+  sl::ERROR_CODE err;
 
-  if (mSvoMode || mSensCameraSync || mSimMode) {
-    sl::ERROR_CODE err =
-      mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
-    if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), "sl::getSensorsData error: "
-          << sl::toString(err).c_str());
-      return false;
-    }
+  if (mSensCameraSync) {
+    err = mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::IMAGE);
   } else {
-    sl::ERROR_CODE err =
-      mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
-    if (err != sl::ERROR_CODE::SUCCESS) {
+    err = mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+  }
+
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    if (mSvoMode && err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
       RCLCPP_WARN_STREAM(
         get_logger(), "sl::getSensorsData error: "
           << sl::toString(err).c_str());
-      return false;
     }
+    return false;
   }
 
   if (mSensCameraSync) {
@@ -6539,8 +6547,22 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   bool new_mag_data = ts_mag != mLastTs_mag;
   mLastTs_mag = ts_mag;
 
+  // ----> Respect data frequency for SVO2
+  if (mSvoMode) {
+    const double imu_period = 1.0 / mSensPubRate;
+
+    if (dT < imu_period) {
+      DEBUG_SENS("SENSOR: IMU data not ready yet");
+      return false;
+    }
+  }
+  DEBUG_STREAM_SENS(
+    "IMU TS: " << ts_imu.seconds() << " - Grab TS: " << mFrameTimestamp.seconds() << " - Diff: " <<
+      mFrameTimestamp.seconds() - ts_imu.seconds());
+  // <---- Respect data frequency for SVO2
+
   if (!new_imu_data && !new_baro_data && !new_mag_data) {
-    //DEBUG_STREAM_SENS("No new sensors data");
+    DEBUG_STREAM_SENS("No new sensors data");
     return false;
   }
 
@@ -6552,16 +6574,14 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
   mLastTs_imu = ts_imu;
 
-  DEBUG_STREAM_SENS(
-    "SENSOR LAST PERIOD: " << dT << " sec @" << 1. / dT
-                           << " Hz");
+  DEBUG_STREAM_SENS("SENSOR LAST PERIOD: " << dT << " sec @" << 1. / dT << " Hz");
 
   // ----> Sensors freq for diagnostic
   if (new_imu_data) {
     double mean = mImuPeriodMean_sec->addValue(mImuFreqTimer.toc());
     mImuFreqTimer.tic();
 
-    DEBUG_STREAM_SENS("IMU MEAN freq: " << 1. / mean);
+    DEBUG_STREAM_SENS("Thread New data MEAN freq: " << 1. / mean);
   }
 
   if (new_baro_data) {
@@ -8500,6 +8520,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   if (!objects.is_new) {    // Async object detection. Update data only if new
     // detection is available
+    DEBUG_OD("No new detected objects");
     return;
   }
 
@@ -9163,18 +9184,66 @@ bool ZedCamera::isPosTrackingRequired()
 
   if (mPublishTF) {
     DEBUG_ONCE_PT("POS. TRACKING required: enabled by TF param.");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `pos_tracking.publish_tf: true`");
+    }
     return true;
   }
 
   if (mDepthStabilization > 0) {
     DEBUG_ONCE_PT(
       "POS. TRACKING required: enabled by depth stabilization param.");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `depth.depth_stabilization > 0`");
+    }
+
     return true;
   }
 
-  if (mMappingEnabled || mObjDetEnabled) {
-    DEBUG_ONCE_PT(
-      "POS. TRACKING required: enabled by mapping or object detection.");
+  if (mMappingEnabled) {
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by mapping");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `mapping.mapping_enabled: true`");
+    }
+
+    return true;
+  }
+
+  if (mObjDetEnabled && mObjDetTracking) {
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by object detection.");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `object_detection.enable_tracking: true`");
+    }
+
+    return true;
+  }
+
+  if (mBodyTrkEnabled && mBodyTrkEnableTracking) {
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by body tracking.");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `body_tracking.enable_tracking: true`");
+    }
+
     return true;
   }
 
@@ -9195,6 +9264,17 @@ bool ZedCamera::isPosTrackingRequired()
 
   if (topics_sub > 0) {
     DEBUG_ONCE_PT("POS. TRACKING required: topic subscribed.");
+    return true;
+  }
+
+  if (mZed->isPositionalTrackingEnabled()) {
+
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by ZED SDK.");
+
+    RCLCPP_WARN_ONCE(
+      get_logger(),
+      "POSITIONAL TRACKING disabled in the parameters, enabled by the ZED SDK because required by one of the modules.");
+
     return true;
   }
 

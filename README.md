@@ -6,6 +6,7 @@
 <p align="center">
   ROS 2 packages for using Stereolabs ZED Camera cameras.<br>
   ROS 2 Foxy Fitzroy (Ubuntu 20.04) - ROS 2 Humble Hawksbill (Ubuntu 22.04) - ROS 2 Jazzy Jalisco (Ubuntu 24.04)
+  ROS 2 Foxy Fitzroy (Ubuntu 20.04) - ROS 2 Humble Hawksbill (Ubuntu 22.04) - ROS 2 Jazzy Jalisco (Ubuntu 24.04)
 </p>
 
 <hr>
@@ -29,13 +30,13 @@ This package enables the use of ZED cameras with ROS 2, providing access to a va
 
 ### Prerequisites
 
-- [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/), [Ubuntu 22.04 (Jammy Jellyfish)](https://releases.ubuntu.com/jammy/), or [Ubuntu 24.04 (Noble Numbat)](https://releases.ubuntu.com/noble/)
-- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v5.0 (for older versions support please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
+- [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/) or [Ubuntu 22.04 (Jammy Jellyfish)](https://releases.ubuntu.com/jammy/)
+- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v5.0 EA (for older versions support please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
-- ROS 2 Foxy Fitzroy (deprecated), ROS 2 Humble Hawksbill, or ROS2 Jazzy Jalisco:
-  - [Foxy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html) - [**Not recommended. EOL reached**]
-  - [Humble on Ubuntu 22.04](https://docs.ros.org/en/humble/Installation/Linux-Install-Debians.html) - [EOL May 2027]
-  - [Jazzy Jalisco on Ubuntu 24.04](https://docs.ros.org/en/jazzy/Installation/Linux-Install-Debians.html) - [EOL May 2029]
+- ROS 2 Foxy Fitzroy (deprecated), ROS 2 Humble Hawksbill, or ROS 2 Jazzy Jalisco:
+  - [Foxy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html) [**Not recommended. EOL reached**]
+  - [Humble on Ubuntu 22.04](https://docs.ros.org/en/humble/Installation/Linux-Install-Debians.html) [EOL May 2027]
+  - [Jazzy Jalisco on Ubuntu 24.04](https://docs.ros.org/en/jazzy/Installation/Linux-Install-Debians.html) [EOL May 2029]
 
 ### Build the package
 
@@ -43,7 +44,7 @@ The **zed_ros2_wrapper** is a [colcon](http://design.ros2.org/articles/build_too
 
 > :pushpin: **Note:** If you haven’t set up your colcon workspace yet, please follow this short [tutorial](https://index.ros.org/doc/ros2/Tutorials/Colcon-Tutorial/).
 
-To install the **zed_ros2_wrapper**, open a bash terminal, clone the package from Github, and build it:
+To install the **zed_ros2_wrapper**, open a bash terminal, clone the package from GitHub, and build it:
 
 ```bash
 mkdir -p ~/ros2_ws/src/ # create your workspace if it does not exist
@@ -58,13 +59,13 @@ echo source $(pwd)/install/local_setup.bash >> ~/.bashrc # automatically source 
 source ~/.bashrc
 ```
 
-> :pushpin: **Note:** the dependency `zed_msgs` is no more installed as a submodule of this package, but is available throught `apt` as a binary package with ROS 2 Humble. When working with ROS 2 Foxy, or other distributions, you can install it from the sources from the [zed-ros2-interfaces repository](https://github.com/stereolabs/zed-ros2-interfaces?tab=readme-ov-file#install-the-package-from-the-source-code).
+> :pushpin: **Note:** the dependency `zed_msgs` is no longer installed as a submodule of this package, but is available through `apt` as a binary package with ROS 2 Humble. When working with ROS 2 Foxy, or other distributions, you can install it from the sources from the [zed-ros2-interfaces repository](https://github.com/stereolabs/zed-ros2-interfaces?tab=readme-ov-file#install-the-package-from-the-source-code).
 
-> :pushpin: **Note:** If `rosdep` is missing you can install it with:
+> :pushpin: **Note:** If `rosdep` is missing, you can install it with:
 >
 >`sudo apt-get install python3-rosdep python3-rosinstall-generator python3-vcstool python3-rosinstall build-essential`
 
-> :pushpin: **Note:** When using the ZED ROS 2 Wrapper on an NVIDIA Jetson with JP6, it is possible that you get the following error when building the package for the first time
+> :pushpin: **Note:** When using the ZED ROS 2 Wrapper on an NVIDIA Jetson with JP6, you may get the following error when building the package for the first time
 >
 > ```bash
 > CMake Error at /usr/share/cmake-3.22/Modules/FindCUDA.cmake:859 (message):
@@ -78,7 +79,7 @@ source ~/.bashrc
 >
 > `sudo apt install nvidia-jetpack nvidia-jetpack-dev`
 >
-> :pushpin: **Note:** The option `--symlink-install` is very important, it allows to use symlinks instead of copying files to the ROS 2 folders during the installation, where possible. Each package in ROS 2 must be installed and all the files used by the nodes must be copied into the installation folders. Using symlinks allows you to modify them in your workspace, reflecting the modification during the next executions without needing to issue a new `colcon build` command. This is true only for all the files that don't need to be compiled (Python scripts, configurations, etc.).
+> :pushpin: **Note:** The option `--symlink-install` is very important, it allows the use of symlinks instead of copying files to the ROS 2 folders during the installation, where possible. Each package in ROS 2 must be installed, and all the files used by the nodes must be copied into the installation folders. Using symlinks allows you to modify them in your workspace, reflecting the modification during the next executions without issuing a new `colcon build` command. This is true only for all the files that don't need to be compiled (Python scripts, configurations, etc.).
 >
 > :pushpin: **Note:** If you are using a different console interface like zsh, you have to change the `source` command as follows: `echo source $(pwd)/install/local_setup.zsh >> ~/.zshrc` and `source ~/.zshrc`.
 
@@ -94,10 +95,10 @@ ros2 launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>
 
 Replace `<camera_model>` with the model of the camera that you are using: `'zed'`, `'zedm'`, `'zed2'`, `'zed2i'`, `'zedx'`, `'zedxm'`, `'virtual'`,`'zedxonegs'`,`'zedxone4k'`.
 
-The `zed_camera.launch.py` is Python launch scripts that automatically start the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/). The parameters for the indicated camera model are loaded from the relative "YAML files".
+The `zed_camera.launch.py` is a Python launch script that automatically starts the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/). The parameters for the indicated camera model are loaded from the relative "YAML files."
 A Robot State Publisher node is started to publish the camera static links and joints loaded from the URDF model associated with the camera model.
 
-> :pushpin: **Note:** You can set your own configurations by modifying the parameters in the files **common_stereo.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, **zedxm.yaml**, **common_mono.yaml**, **zedxonegs.yaml**, and **zedxone4k.yaml**  available in the folder `zed_wrapper/config`.
+> :pushpin: **Note:** You can set your configurations by modifying the parameters in the files **common_stereo.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, **zedxm.yaml**, **common_mono.yaml**, **zedxonegs.yaml**, and **zedxone4k.yaml**  available in the folder `zed_wrapper/config`.
 
 You can get the list of all the available launch parameters by using the `-s` launch option:
 
@@ -108,11 +109,11 @@ ros2 launch zed_display_rviz2 display_zed_cam.launch.py -s
 
 For full descriptions of each parameter, follow the complete guide [here](https://www.stereolabs.com/docs/ros2/zed_node#configuration-parameters).
 
-### Rviz visualization
+### RViz visualization
 
-To start a pre-configured Rviz environment and visualize the data of all ZED cameras, we provide in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2). You'll see there more advanced examples and visualization that demonstrate depth, point clouds, odometry, object detection, etc.
+To start a pre-configured RViz environment and visualize the data of all ZED cameras, we provide in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2). You'll see there more advanced examples and visualization that demonstrate depth, point clouds, odometry, object detection, etc.
 
-You can also quickly check that your depth data is correctly retrieved in rviz with `rviz2 -d ./zed_wrapper/config/rviz2/<your camera model>.rviz`. Be aware that rviz subscribes to numerous ROS topics, which can potentially impact the performance of your application compared to when it runs without rviz.
+You can also quickly check that your depth data is correctly retrieved in RViz with `rviz2 -d ./zed_wrapper/config/rviz2/<your camera model>.rviz`. RViz subscribes to numerous ROS topics, which can potentially impact the performance of your application compared to when it runs without RViz.
 
 ### Simulation mode
 
@@ -126,10 +127,10 @@ ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zedx sim_mode:=true
 
 Launch options:
 
-- [Mandatory] `camera_model`: indicates the model of the simulated camera. It's required that this parameter matches the model of the simulated camera. In most case it will be a ZED X, since the first versions of the simulation plugins that we released are simulating this type of device.
+- [Mandatory] `camera_model`: indicates the model of the simulated camera. It's required that this parameter matches the model of the simulated camera. In most cases, it will be a ZED X, since the first versions of the simulation plugins that we released are simulating this type of device.
 - [Mandatory] `sim_mode`: start the ZED node in simulation mode if `true`.
 - [Optional] `use_sim_time`: force the node to wait for valid messages on the topic `/clock`, and so use the simulation clock as the time reference.
-- [Optional] `sim_address`: set the address of the simulation server. The default is `127.0.0.1` and it's valid if the node runs on the same machine as the simulator.
+- [Optional] `sim_address`: set the address of the simulation server. The default is `127.0.0.1`, and it's valid if the node runs on the same machine as the simulator.
 - [Optional] `sim_port`: set the port of the simulation server. It must match the value of the field `Streaming Port` of the properties of the `ZED camera streamer` Action Graph node. A different `Streaming Port` value for each camera is required in multi-camera simulations.
 
 You can also start a preconfigured instance of `rviz2` to visualize all the information available in the simulation by using the command:
@@ -138,7 +139,7 @@ You can also start a preconfigured instance of `rviz2` to visualize all the info
 ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx sim_mode:=true
 ```
 
-the `display_zed_cam.launch.py` launch file includes the `zed_camera.launch.py` launch file, so it provides the same parameters.
+The `display_zed_cam.launch.py` launch file includes the `zed_camera.launch.py` launch file, hence it gets the same parameters.
 
 Here's an example of `rviz2` running with the simulated information obtained by placing the ZED camera on a shelf of a simulated warehouse:
 
@@ -178,7 +179,7 @@ Install Ultralytics YOLO tools:
 python -m pip install ultralytics
 ```
 
-if you already installed the `ultralytics` package, we recommend updating it to the latest version:
+If you have already installed the `ultralytics` package, we recommend updating it to the latest version:
 
 ```bash
 pip install -U ultralytics
@@ -200,10 +201,10 @@ Please refer to the [Ultralytics documentation](https://github.com/ultralytics/u
 
 Modify the `common_stereo.yaml` parameters to match your configuration:
 
-- set `object_detection.model` to `CUSTOM_YOLOLIKE_BOX_OBJECTS`
-- set `object_detection.custom_onnx_file` to the full path of your custom ONNX file
-- set `object_detection.onnx_input_size` to the size of the YOLO input tensor, e.g. 640
-- set `object_detection.custom_label_yaml` to the full path of your YAML file storing class labels in [COCO format](https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml)
+- Set `object_detection.model` to `CUSTOM_YOLOLIKE_BOX_OBJECTS`
+- Set `object_detection.custom_onnx_file` to the full path of your custom ONNX file
+- Set `object_detection.onnx_input_size` to the size of the YOLO input tensor, e.g. 640
+- Set `object_detection.custom_label_yaml` to the full path of your YAML file storing class labels in [COCO format](https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml)
 
 > :pushpin: **Note:** The first time the custom model is used, the ZED SDK optimizes it to get the best performance from the GPU installed on the host. Please wait for the optimization to complete. When using Docker, we recommend using a shared volume to store the optimized file on the host and perform the optimization only once.
 
@@ -234,7 +235,7 @@ The Spatial Mapping can be enabled/disabled manually by calling the service `ena
 
 The ZED ROS 2 Wrapper can subscribe to a `NavSatFix` topic and fuse GNSS data information
 with Positional Tracking information to obtain a precise robot localization referred to Earth coordinates.
-To enable GNSS fusion set the parameter `gnss_fusion.gnss_fusion_enabled` to `true`.
+To enable GNSS fusion, set the parameter `gnss_fusion.gnss_fusion_enabled` to `true`.
 You must set the correct `gnss_frame` parameter when launching the node, e.g. `gnss_frame:='gnss_link'`.
 The services `toLL` and `fromLL` can be used to convert Latitude/Longitude coordinates to robot `map` coordinates.
 
@@ -260,19 +261,19 @@ See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-
 
 A series of tutorials are provided to better understand how to use the ZED nodes in the ROS2 environment :
 
-- [Video subscribing](./zed_video_tutorial): `zed_video_tutorial` - in this tutorial, you will learn how to write a simple node that subscribes to messages of type `sensor_msgs/Image` to retrieve the Left and Right rectified images published by the ZED node.
-- [Depth subscribing](./zed_depth_tutorial): `zed_depth_tutorial` - in this tutorial, you will learn how to write a simple node that subscribes to messages of type `sensor_msgs/Image` to retrieve the depth images published by the ZED node and to get the measured distance at the center of the image.
-- [Pose/Odometry subscribing](./zed_pose_tutorial): `zed_pose_tutorial` - in this tutorial, you will learn how to write a simple node that subscribes to messages of type `geometry_msgs/PoseStamped` and `nav_msgs/Odometry` to retrieve the position and the odometry of the camera while moving in the world.
-- [ROS2 Composition + BGRA2BGR conversion](./zed_rgb_convert): `zed_rgb_convert` - in this tutorial, you will learn how to use the concept of "ROS2 Composition" and "Intra Process Communication" to write a ROS2 component that gets a 4 channel BGRA image as input and re-publishes it as 3 channels BGR image.
-- [ROS2 Multi-Camera](./zed_multi_camera): `zed_multi_camera` - in this tutorial, you will learn how to use the provided launch file to start a multi-camera robot configuration.
-- [Robot integration](./zed_robot_integration): `zed_robot_integration` - in this tutorial, you will learn how to add one or more ZED cameras to a robot configuration.
+- [Video subscribing](./zed_video_tutorial): `zed_video_tutorial` - In this tutorial, you will learn how to write a simple node that subscribes to messages of type `sensor_msgs/Image` to retrieve the left and right rectified images published by the ZED node.
+- [Depth subscribing](./zed_depth_tutorial): `zed_depth_tutorial` - In this tutorial, you will learn how to write a simple node that subscribes to messages of type `sensor_msgs/Image` to retrieve the depth images published by the ZED node and to get the measured distance at the center of the image.
+- [Pose/Odometry subscribing](./zed_pose_tutorial): `zed_pose_tutorial` - In this tutorial, you will learn how to write a simple node that subscribes to messages of type `geometry_msgs/PoseStamped` and `nav_msgs/Odometry` to retrieve the position and the odometry of the camera while moving in the world.
+- [ROS2 Composition + BGRA2BGR conversion](./zed_rgb_convert): `zed_rgb_convert` - In this tutorial, you will learn how to use the concept of "ROS2 Composition" and "Intra Process Communication" to write a ROS2 component that gets a 4 channel BGRA image as input and re-publishes it as 3 channels BGR image.
+- [ROS2 Multi-Camera](./zed_multi_camera): `zed_multi_camera` - In this tutorial, you will learn how to use the provided launch file to start a multi-camera robot configuration.
+- [Robot integration](./zed_robot_integration): `zed_robot_integration` - In this tutorial, you will learn how to add one or more ZED cameras to a robot configuration.
 
 ### Examples
 
 How to use the ZED ROS 2 nodes alongside other ROS 2 packages or advanced features.
 
-- [zed_aruco_localization](./zed_aruco_localization): use localized ArUco tag as a reference for localization.
-- [zed_depth_to_laserscan](./zed_depth_to_laserscan): convert ZED Depth maps into virtual Laser Scans using
+- [zed_aruco_localization](./zed_aruco_localization): Use localized ArUco tag as a reference for localization.
+- [zed_depth_to_laserscan](./zed_depth_to_laserscan): Convert ZED Depth maps into virtual Laser Scans using
 
 ## Update the local repository
 

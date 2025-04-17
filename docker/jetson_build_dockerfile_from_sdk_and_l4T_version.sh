@@ -3,7 +3,7 @@ cd $(dirname $0)
 
 if [ "$#" -lt 2 ]; then
     echo "Please enter valid L4T version and ZED SDK version has parameters. For example:"
-    echo "./jetson_build_dockerfile_from_sdk_and_l4T_version.sh l4t-r36.3.0 zedsdk-4.2.3"
+    echo "./jetson_build_dockerfile_from_sdk_and_l4T_version.sh l4t-r36.3.0 zedsdk-4.2.5"
     exit 1
 fi
 
@@ -40,6 +40,15 @@ IFS='.' read -r l4t_major l4t_minor l4t_patch <<< "$l4t_version_number"
 # Split the string and assign to variables
 IFS='.' read -r sdk_major sdk_minor sdk_patch <<< "$zed_sdk_version_number"
 
+L4T_VERSION=${1:-l4t-r${l4t_major}.${l4t_minor}.${l4t_patch}}
+
+# Determine the IMAGE_NAME based on the L4T_VERSION
+if [[ "$L4T_VERSION" == *"l4t-r36.4"* ]]; then
+    IMAGE_NAME="dustynv/ros:humble-desktop-${L4T_VERSION}"
+else
+    IMAGE_NAME="dustynv/ros:humble-ros-base-${L4T_VERSION}"
+fi
+
 echo "Building dockerfile for $1 and ZED SDK $2"
 docker build -t zed_ros2_l4t_${l4t_major}.${l4t_minor}.${l4t_patch}_sdk_${sdk_major}.${sdk_minor}.${sdk_patch} \
 --build-arg ZED_SDK_MAJOR=$sdk_major \
@@ -48,6 +57,7 @@ docker build -t zed_ros2_l4t_${l4t_major}.${l4t_minor}.${l4t_patch}_sdk_${sdk_ma
 --build-arg L4T_VERSION=$1 \
 --build-arg L4T_MAJOR=$l4t_major \
 --build-arg L4T_MINOR=$l4t_minor \
+--build-arg IMAGE_NAME=$IMAGE_NAME \
 -f ./Dockerfile.l4t-humble .
 
 # Remove the temporary folder

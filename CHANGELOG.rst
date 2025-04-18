@@ -14,6 +14,18 @@ LATEST CHANGES
 - Improve performance with the default stereo configuration
 - Fix Positional Tracking enabling when required by ZED SDK modules
 
+2025-04-01
+----------
+- Add Heartbeat status message at 1 Hz: `~/status/heartbeat`
+
+2025-03-28
+----------
+- Note: requires the latest `zed_msgs` package v5.0.0
+- Add SVO Status topic to monitor the current SVO status of type `zed_msgs::SvoStatus`
+- Add fully integrated Health Status topic of type `zed_msgs::HealthStatusStamped`
+  - Remove the single health status topics to simplicy health monitoring
+- Remove `cob_srvs` dependency to use the custom `zed_msgs::SetSvoFrame` service
+
 2025-03-26
 ----------
 - Add official support for ROS 2 Jazzy Jalisco

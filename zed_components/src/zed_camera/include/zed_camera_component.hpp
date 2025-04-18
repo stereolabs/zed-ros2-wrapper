@@ -85,6 +85,7 @@ protected:
   void callback_pubFusedPc();
   void callback_pubPaths();
   void callback_pubTemp();
+  void callback_pubHeartbeat();
   void callback_gnssPubTimerTimeout();
   rcl_interfaces::msg::SetParametersResult callback_setParameters(
     std::vector<rclcpp::Parameter> parameters);
@@ -133,8 +134,8 @@ protected:
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
   void callback_setSvoFrame(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<cob_srvs::srv::SetInt_Request> req,
-    std::shared_ptr<cob_srvs::srv::SetInt_Response> res);
+    const std::shared_ptr<zed_msgs::srv::SetSvoFrame_Request> req,
+    std::shared_ptr<zed_msgs::srv::SetSvoFrame_Response> res);
   void callback_clickedPoint(
     const geometry_msgs::msg::PointStamped::SharedPtr msg);
   void callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
@@ -190,9 +191,8 @@ protected:
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
   bool publishSensorsData(rclcpp::Time force_ts = TIMEZERO_ROS);
-#if (ZED_SDK_MAJOR_VERSION >= 5)
   void publishHealthStatus();
-#endif
+  bool publishSvoStatus(uint64_t frame_ts);
   // <---- Publishing functions
 
   // ----> Utility functions
@@ -222,6 +222,7 @@ protected:
   void startFusedPcTimer(double fusedPcRate);
   void startPathPubTimer(double pathTimerRate);
   void startTempPubTimer();
+  void startHeartbeatTimer();
 
   template<typename T>
   void getParam(
@@ -252,6 +253,7 @@ private:
   // <---- Fusion module
 
   uint64_t mFrameCount = 0;
+  uint32_t mSvoLoopCount = 0;
 
   // ----> Topics
   std::string mTopicRoot = "~/";
@@ -610,6 +612,9 @@ private:
   pointcloudPub mPubFusedCloud;
 #endif
 
+  svoStatusPub mPubSvoStatus;
+  healthStatusPub mPubHealthStatus;
+  heartbeatStatusPub mPubHeartbeatStatus;
   imagePub mPubConfMap;
   disparityPub mPubDisparity;
   posePub mPubPose;
@@ -638,11 +643,6 @@ private:
   gnssFusionStatusPub mPubGeoPoseStatus;
   gnssFixPub mPubFusedFix;
   gnssFixPub mPubOriginFix;
-
-  healthPub mPubHealthImage;
-  healthPub mPubHealthLight;
-  healthPub mPubHealthDepth;
-  healthPub mPubHealthSensor;
   // <---- Publishers
 
   // <---- Publisher variables
@@ -701,6 +701,7 @@ private:
   rclcpp::TimerBase::SharedPtr
     mTempPubTimer;    // Timer to retrieve and publish CMOS temperatures
   rclcpp::TimerBase::SharedPtr mGnssPubCheckTimer;
+  rclcpp::TimerBase::SharedPtr mHeartbeatTimer;
   double mSensRateComp = 1.0;
   // <---- Threads and Timers
 
@@ -753,6 +754,7 @@ private:
   std::atomic<bool> mStreamingServerRunning;
 
   bool mCustomLabelsGood = false;
+  uint64_t mHeartbeatCount = 0;
   // <---- Status Flags
 
   // ----> Positional Tracking

@@ -318,6 +318,7 @@ private:
   int mSvoFrameStart = 0;
   bool mUseSvoTimestamp = false;
   int mVerbose = 1;
+  std::string mVerboseLogFile = "";
   int mGpuId = -1;
   std::string mOpencvCalibFile;
   sl::RESOLUTION mCamResol = sl::RESOLUTION::HD1080;    // Default resolution: RESOLUTION_HD1080

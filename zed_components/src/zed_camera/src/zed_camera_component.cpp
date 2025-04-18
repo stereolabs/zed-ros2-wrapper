@@ -541,6 +541,9 @@ void ZedCamera::getDebugParams()
   RCLCPP_INFO(get_logger(), "*** DEBUG parameters ***");
 
   getParam("debug.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
+  getParam(
+    "debug.sdk_verbose_log_file", mVerboseLogFile, mVerboseLogFile,
+    " * SDK Verbose File: ");
 
   getParam("debug.debug_common", _debugCommon, _debugCommon);
   RCLCPP_INFO(
@@ -4013,6 +4016,7 @@ bool ZedCamera::startCamera()
   mInitParams.coordinate_units = ROS_MEAS_UNITS;
   mInitParams.depth_mode = mDepthMode;
   mInitParams.sdk_verbose = mVerbose;
+  mInitParams.sdk_verbose_log_file = mVerboseLogFile;
   mInitParams.sdk_gpu_id = mGpuId;
   mInitParams.depth_stabilization = mDepthStabilization;
   mInitParams.camera_image_flip = (mCameraFlip ? sl::FLIP_MODE::ON : sl::FLIP_MODE::OFF);

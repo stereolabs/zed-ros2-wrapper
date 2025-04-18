@@ -438,6 +438,9 @@ void ZedCameraOne::getDebugParams()
   RCLCPP_INFO(get_logger(), "*** DEBUG parameters ***");
 
   getParam("debug.sdk_verbose", _sdkVerbose, _sdkVerbose, " * SDK Verbose: ", false, 0, 1000);
+  getParam(
+    "debug.sdk_verbose_log_file", _sdkVerboseLogFile, _sdkVerboseLogFile,
+    " * SDK Verbose File: ");
 
   getParam("debug.debug_common", _debugCommon, _debugCommon, " * Debug Common: ");
   getParam("debug.debug_video_depth", _debugVideoDepth, _debugVideoDepth, " * Debug Image/Depth: ");
@@ -701,6 +704,7 @@ bool ZedCameraOne::startCamera()
     _initParams.optional_opencv_calibration_file = _opencvCalibFile.c_str();
   }
   _initParams.sdk_verbose = _sdkVerbose;
+  _initParams.sdk_verbose_log_file = _sdkVerboseLogFile;
   // <---- ZED configuration
 
   // ----> Try to connect to a camera, to a stream, or to load an SVO

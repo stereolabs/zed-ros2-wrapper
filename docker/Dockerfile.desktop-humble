@@ -74,6 +74,7 @@ RUN apt-get update || true && \
 RUN apt-get update || true && \
   apt-get install --no-install-recommends -y \
   ros-${ROS2_DIST}-ros-base \
+  ros-${ROS2_DIST}-rmw-cyclonedds-cpp \
   python3-flake8-docstrings \
   python3-pip \
   python3-pytest-cov \
@@ -84,6 +85,13 @@ RUN apt-get update || true && \
   empy \
   lark && \
   rm -rf /var/lib/apt/lists/*
+
+ # Default DDS middleware
+ ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ 
+ # Copy Cyclone DDS tuning file
+ COPY cyclonedds.xml /root/cyclonedds.xml
+ ENV CYCLONEDDS_URI=file:///root/cyclonedds.xml
 
 # Initialize rosdep
 RUN rosdep init && rosdep update

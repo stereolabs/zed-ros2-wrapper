@@ -4029,7 +4029,7 @@ bool ZedCamera::startCamera()
   mInitParams.coordinate_units = ROS_MEAS_UNITS;
   mInitParams.depth_mode = mDepthMode;
   mInitParams.sdk_verbose = mVerbose;
-  mInitParams.sdk_verbose_log_file = mVerboseLogFile;
+  mInitParams.sdk_verbose_log_file = mVerboseLogFile.c_str();
   mInitParams.sdk_gpu_id = mGpuId;
   mInitParams.depth_stabilization = mDepthStabilization;
   mInitParams.camera_image_flip = (mCameraFlip ? sl::FLIP_MODE::ON : sl::FLIP_MODE::OFF);
@@ -4269,10 +4269,17 @@ bool ZedCamera::startCamera()
     " * Input\t\t-> "
       << sl::toString(mZed->getCameraInformation().input_type).c_str());
   if (mSvoMode) {
+  #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
     RCLCPP_INFO(
       get_logger(), " * SVO resolution -> %dx%d",
       mZed->getCameraInformation().camera_configuration.resolution.width,
       mZed->getCameraInformation().camera_configuration.resolution.height);
+  #else
+    RCLCPP_INFO(
+      get_logger(), " * SVO resolution -> %ldx%ld",
+      mZed->getCameraInformation().camera_configuration.resolution.width,
+      mZed->getCameraInformation().camera_configuration.resolution.height);
+  #endif
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * SVO framerate\t -> "
@@ -8466,7 +8473,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   sl::Objects objects;
   sl::ERROR_CODE objDetRes;
 
-  if (!mUsingCustomOd) {
+  if (!mUsingCustomOd || ZED_SDK_MAJOR_VERSION < 5) {
     // ----> Process realtime dynamic parameters
     sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
 
@@ -8499,7 +8506,9 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
     objDetRes = mZed->retrieveObjects(
       objects, objectTracker_parameters_rt, mObjDetInstID);
-  } else {
+  }
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
+  else {
     // ----> Process realtime dynamic parameters
     sl::CustomObjectDetectionRuntimeParameters custom_objectTracker_parameters_rt;
     custom_objectTracker_parameters_rt.object_detection_properties.detection_confidence_threshold =
@@ -8509,6 +8518,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     objDetRes = mZed->retrieveCustomObjects(
       objects, custom_objectTracker_parameters_rt, mObjDetInstID);
   }
+#endif
 
   if (objDetRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(

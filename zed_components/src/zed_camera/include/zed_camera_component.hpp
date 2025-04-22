@@ -752,6 +752,7 @@ private:
 
   std::atomic<bool> mStreamingServerRunning;
 
+  bool mUsingCustomOd = false;
   bool mCustomLabelsGood = false;
   // <---- Status Flags
 

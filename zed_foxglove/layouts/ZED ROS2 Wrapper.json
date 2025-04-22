@@ -1,0 +1,249 @@
+{
+  "configById": {
+    "Image!3uo4taw": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 45,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {
+        "imageTopic": "/zed/zed_node/left/image_rect_color/compressed"
+      }
+    },
+    "Image!j4xzm2": {
+      "cameraState": {
+        "distance": 20,
+        "perspective": true,
+        "phi": 60,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 45,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {},
+      "topics": {},
+      "layers": {},
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {
+        "imageTopic": "/zed/zed_node/depth/depth_registered",
+        "calibrationTopic": "/zed/zed_node/depth/camera_info"
+      }
+    },
+    "DiagnosticStatusPanel!1oq3v6x": {
+      "topicToRender": "/diagnostics",
+      "selectedHardwareId": "Stereolabs ZED X - 'zed' - S/N: 40976320",
+      "selectedName": "zed_node: zed"
+    },
+    "3D!j4ftra": {
+      "cameraState": {
+        "perspective": true,
+        "distance": 10.266841665560989,
+        "phi": 57.05367228187062,
+        "thetaOffset": 76.33221212838517,
+        "targetOffset": [
+          1.4009619196323757,
+          -0.20852728338356424,
+          -4.716946097236693e-16
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {
+        "backgroundColor": "#050505",
+        "transforms": {
+          "lineWidth": 1.5,
+          "showLabel": true,
+          "labelSize": 0.08
+        }
+      },
+      "transforms": {
+        "frame:zed_left_camera_frame": {
+          "visible": false
+        },
+        "frame:zed_imu_link": {
+          "visible": false
+        },
+        "frame:zed_left_camera_optical_frame": {
+          "visible": false
+        },
+        "frame:zed_right_camera_frame": {
+          "visible": false
+        },
+        "frame:zed_right_camera_optical_frame": {
+          "visible": false
+        },
+        "frame:zed_camera_center": {
+          "visible": false
+        },
+        "frame:map": {
+          "visible": false
+        },
+        "frame:odom": {
+          "visible": false
+        },
+        "frame:zed_camera_link": {
+          "visible": true
+        }
+      },
+      "topics": {
+        "/zed/zed_node/point_cloud/cloud_registered": {
+          "visible": true,
+          "colorField": "rgb",
+          "colorMode": "rgb",
+          "colorMap": "turbo",
+          "pointSize": 3
+        },
+        "/zed/zed_node/pose": {
+          "visible": false
+        },
+        "/zed/zed_node/path_map": {
+          "visible": true,
+          "lineWidth": 0.02,
+          "gradient": [
+            "#bbe124ff",
+            "#bbe02480"
+          ]
+        },
+        "/zed/zed_node/left_gray/image_rect_gray/compressed": {
+          "visible": false
+        },
+        "/zed/zed_node/left/image_rect_color/compressed": {
+          "visible": true,
+          "cameraInfoTopic": "/zed/zed_node/left/camera_info",
+          "distance": 1
+        },
+        "/zed/zed_node/left/camera_info": {
+          "visible": true
+        }
+      },
+      "layers": {
+        "grid": {
+          "visible": true,
+          "frameLocked": true,
+          "label": "Grid",
+          "instanceId": "f40f42ae-9bf3-4640-8aa9-8b9747a3689b",
+          "layerId": "foxglove.Grid",
+          "size": 6,
+          "divisions": 6,
+          "lineWidth": 1,
+          "color": "#bbe124ff",
+          "position": [
+            0,
+            0,
+            -0.5
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {},
+      "followTf": "zed_camera_link"
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": {
+      "first": "Image!3uo4taw",
+      "second": {
+        "first": "Image!j4xzm2",
+        "second": "DiagnosticStatusPanel!1oq3v6x",
+        "direction": "row",
+        "splitPercentage": 39.62264150943397
+      },
+      "direction": "row",
+      "splitPercentage": 28.4478616049976
+    },
+    "second": "3D!j4ftra",
+    "direction": "column",
+    "splitPercentage": 27.31958762886598
+  }
+}

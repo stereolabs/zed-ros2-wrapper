@@ -19,6 +19,8 @@ ARG CUDA_PATCH=3
 ARG ZED_SDK_MAJOR=4
 ARG ZED_SDK_MINOR=2
 ARG ZED_SDK_PATCH=3
+# Optional: Override ZED SDK URL
+ARG CUSTOM_ZED_SDK_URL=""
 
 ARG ROS2_DIST=humble       # ROS2 distribution
 
@@ -31,7 +33,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 RUN apt-get update || true && apt-get install -y --no-install-recommends apt-utils dialog curl && \
   rm -rf /var/lib/apt/lists/*
 
-ENV ZED_SDK_URL="https://download.stereolabs.com/zedsdk/${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}.${ZED_SDK_PATCH}/cu${CUDA_MAJOR}/ubuntu${UBUNTU_MAJOR}"
+ENV ZED_SDK_URL=${CUSTOM_ZED_SDK_URL:-"https://download.stereolabs.com/zedsdk/${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}.${ZED_SDK_PATCH}/cu${CUDA_MAJOR}/ubuntu${UBUNTU_MAJOR}"}
 
 # Check that this SDK exists
 RUN echo "SDK link: $ZED_SDK_URL"

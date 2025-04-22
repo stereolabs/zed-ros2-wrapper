@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-04-22
+----------
+- Add backward compatibility with SDK v4.2
+
 2025-04-18
 ----------
 - Add parameter 'debug.sdk_verbose_log_file' to Stereo and Mono components to set the path of the SDK verbose log file

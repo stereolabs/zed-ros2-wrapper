@@ -704,7 +704,7 @@ bool ZedCameraOne::startCamera()
     _initParams.optional_opencv_calibration_file = _opencvCalibFile.c_str();
   }
   _initParams.sdk_verbose = _sdkVerbose;
-  _initParams.sdk_verbose_log_file = _sdkVerboseLogFile;
+  _initParams.sdk_verbose_log_file = _sdkVerboseLogFile.c_str();
   // <---- ZED configuration
 
   // ----> Try to connect to a camera, to a stream, or to load an SVO

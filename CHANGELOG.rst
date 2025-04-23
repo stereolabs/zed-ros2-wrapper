@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-04-23
+----------
+- Clean shutdown of ZED components using `pre_shutdown_callback`
+
 2025-04-22
 ----------
 - Add backward compatibility with SDK v4.2

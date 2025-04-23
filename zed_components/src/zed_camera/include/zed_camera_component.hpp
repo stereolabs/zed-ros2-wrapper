@@ -42,6 +42,8 @@ protected:
   void initServices();
   void initThreads();
 
+  void close();
+
   void getDebugParams();
   void getSimParams();
   void getGeneralParams();
@@ -79,6 +81,7 @@ protected:
   void stopSvoRecording();
   bool startStreamingServer();
   void stopStreamingServer();
+  void closeCamera();
   // <---- Initialization functions
 
   // ----> Callbacks

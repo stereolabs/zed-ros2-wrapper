@@ -54,7 +54,10 @@ protected:
   void getStreamingServerParams();
   void getAdvancedParams();
 
+  void close();
+
   bool startCamera();
+  void closeCamera();
   void startTempPubTimer();
   bool startStreamingServer();
   void stopStreamingServer();

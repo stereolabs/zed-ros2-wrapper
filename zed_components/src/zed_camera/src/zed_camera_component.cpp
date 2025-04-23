@@ -169,14 +169,26 @@ void ZedCamera::init()
   }
   // <---- Start camera
 
+  // Callback when the node is destroyed
+  // This is used to stop the camera when the node is destroyed
+  // and to stop the timers
+
+  // Close camera callback before shutdown
+  using rclcpp::contexts::get_global_default_context;
+  get_global_default_context()->add_pre_shutdown_callback(
+    [this]() {
+      DEBUG_COMM("ZED Component is shutting down");
+      close();
+      DEBUG_COMM("ZED Component is shutting down - done");
+    });
+
   // Dynamic parameters callback
   mParamChangeCallbackHandle = add_on_set_parameters_callback(
     std::bind(&ZedCamera::callback_setParameters, this, _1));
 }
 
-ZedCamera::~ZedCamera()
+void ZedCamera::close()
 {
-  DEBUG_STREAM_COMM("Destroying node");
 
   // ----> Stop subscribers
   mClickedPtSub.reset();
@@ -249,7 +261,12 @@ ZedCamera::~ZedCamera()
   }
   DEBUG_STREAM_PC("... Point Cloud thread stopped");
 
-  // <---- Verify that all the threads are not active
+  closeCamera();
+}
+
+ZedCamera::~ZedCamera()
+{
+  close();
 }
 
 void ZedCamera::initServices()
@@ -4413,7 +4430,7 @@ bool ZedCamera::startCamera()
   // <---- Set Region of Interest
 
   // ----> Check default camera settings
-  if (_debugCamCtrl) {
+  if (_debugCamCtrl && !mSvoMode) {
     int value;
     sl::ERROR_CODE err;
     sl::VIDEO_SETTINGS setting;
@@ -4867,6 +4884,19 @@ bool ZedCamera::startCamera()
   return true;
 }  // namespace stereolabs
 
+void ZedCamera::closeCamera()
+{  
+  if (mZed == nullptr) {
+    return;
+  }
+
+  RCLCPP_INFO(get_logger(), "***** CLOSING CAMERA *****");
+
+  mZed->close();
+  mZed.reset();
+  DEBUG_COMM("Camera closed");
+}
+
 void ZedCamera::initThreads()
 {
   // ----> Start CMOS Temperatures thread
@@ -4980,7 +5010,7 @@ bool ZedCamera::startPosTracking()
   sl_tools::StopWatch stopWatch(get_clock());
 
   do {
-    transformOk =
+    transformOk =// true;
       setPose(
       mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
       mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);

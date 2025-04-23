@@ -81,7 +81,7 @@ protected:
   void stopSvoRecording();
   bool startStreamingServer();
   void stopStreamingServer();
-  bool closeCamera();
+  void closeCamera();
   // <---- Initialization functions
 
   // ----> Callbacks

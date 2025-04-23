@@ -97,10 +97,13 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   // <---- Start a "one shot timer" to initialize the node
 }
 
-ZedCameraOne::~ZedCameraOne()
+ZedCameraOne::~ZedCameraOne() 
 {
-  DEBUG_STREAM_COMM("Destroying node");
+  close();
+}
 
+void ZedCameraOne::close()
+{
   DEBUG_STREAM_SENS("Stopping temperatures timer");
   if (_tempPubTimer) {
     _tempPubTimer->cancel();
@@ -134,10 +137,21 @@ ZedCameraOne::~ZedCameraOne()
   // <---- Verify that all the threads are not active
 
   // ----> Close the ZED camera
-  DEBUG_STREAM_COMM("Closing ZED camera...");
-  _zed->close();
-  DEBUG_STREAM_COMM("... ZED camera closed");
+  closeCamera();
   // <---- Close the ZED camera
+}
+
+void ZedCameraOne::closeCamera()
+{  
+  if (_zed == nullptr) {
+    return;
+  }
+
+  RCLCPP_INFO(get_logger(), "***** CLOSING CAMERA *****");
+
+  _zed->close();
+  _zed.reset();
+  DEBUG_COMM("Camera closed");
 }
 
 void ZedCameraOne::initParameters()
@@ -594,6 +608,19 @@ void ZedCameraOne::init()
     exit(EXIT_FAILURE);
   }
   // <---- Start camera
+
+  // Callback when the node is destroyed
+  // This is used to stop the camera when the node is destroyed
+  // and to stop the timers
+
+  // Close camera callback before shutdown
+  using rclcpp::contexts::get_global_default_context;
+  get_global_default_context()->add_pre_shutdown_callback(
+    [this]() {
+      DEBUG_COMM("ZED X One Component is shutting down");
+      close();
+      DEBUG_COMM("ZED X One Component is shutting down - done");
+    });
 
   // Dynamic parameters callback
   _paramChangeCallbackHandle = add_on_set_parameters_callback(

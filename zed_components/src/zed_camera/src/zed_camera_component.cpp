@@ -177,9 +177,9 @@ void ZedCamera::init()
   using rclcpp::contexts::get_global_default_context;
   get_global_default_context()->add_pre_shutdown_callback(
     [this]() {
-      DEBUG_STREAM_COMM("ZED node is shutting down");
+      DEBUG_COMM("ZED Component is shutting down");
       close();
-      DEBUG_STREAM_COMM("ZED node is shutting down - done");
+      DEBUG_COMM("ZED Component is shutting down - done");
     });
 
   // Dynamic parameters callback
@@ -261,11 +261,7 @@ void ZedCamera::close()
   }
   DEBUG_STREAM_PC("... Point Cloud thread stopped");
 
-  if (closeCamera()) {
-    DEBUG_STREAM_COMM("Camera closed");
-  } else {
-    DEBUG_STREAM_COMM("Error while closing camera");
-  }
+  closeCamera();
 }
 
 ZedCamera::~ZedCamera()
@@ -4888,18 +4884,17 @@ bool ZedCamera::startCamera()
   return true;
 }  // namespace stereolabs
 
-bool ZedCamera::closeCamera()
-{
-  RCLCPP_INFO(get_logger(), "***** CLOSING CAMERA *****");
+void ZedCamera::closeCamera()
+{  
   if (mZed == nullptr) {
-    return true;
+    return;
   }
+
+  RCLCPP_INFO(get_logger(), "***** CLOSING CAMERA *****");
 
   mZed->close();
   mZed.reset();
   DEBUG_COMM("Camera closed");
-
-  return true;
 }
 
 void ZedCamera::initThreads()

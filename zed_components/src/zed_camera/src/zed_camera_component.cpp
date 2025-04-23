@@ -187,7 +187,8 @@ void ZedCamera::init()
     std::bind(&ZedCamera::callback_setParameters, this, _1));
 }
 
-void ZedCamera::close() {
+void ZedCamera::close()
+{
 
   // ----> Stop subscribers
   mClickedPtSub.reset();
@@ -4433,7 +4434,7 @@ bool ZedCamera::startCamera()
   // <---- Set Region of Interest
 
   // ----> Check default camera settings
-  if (_debugCamCtrl) {
+  if (_debugCamCtrl && !mSvoMode) {
     int value;
     sl::ERROR_CODE err;
     sl::VIDEO_SETTINGS setting;
@@ -4890,8 +4891,9 @@ bool ZedCamera::startCamera()
 bool ZedCamera::closeCamera()
 {
   RCLCPP_INFO(get_logger(), "***** CLOSING CAMERA *****");
-  if (mZed == nullptr)
+  if (mZed == nullptr) {
     return true;
+  }
 
   mZed->close();
   mZed.reset();
@@ -4899,6 +4901,7 @@ bool ZedCamera::closeCamera()
 
   return true;
 }
+
 void ZedCamera::initThreads()
 {
   // ----> Start CMOS Temperatures thread

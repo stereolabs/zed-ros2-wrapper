@@ -169,14 +169,25 @@ void ZedCamera::init()
   }
   // <---- Start camera
 
+  // Callback when the node is destroyed
+  // This is used to stop the camera when the node is destroyed
+  // and to stop the timers
+
+  // Close camera callback before shutdown
+  using rclcpp::contexts::get_global_default_context;
+  get_global_default_context()->add_pre_shutdown_callback(
+    [this]() {
+      DEBUG_STREAM_COMM("ZED node is shutting down");
+      close();
+      DEBUG_STREAM_COMM("ZED node is shutting down - done");
+    });
+
   // Dynamic parameters callback
   mParamChangeCallbackHandle = add_on_set_parameters_callback(
     std::bind(&ZedCamera::callback_setParameters, this, _1));
 }
 
-ZedCamera::~ZedCamera()
-{
-  DEBUG_STREAM_COMM("Destroying node");
+void ZedCamera::close() {
 
   // ----> Stop subscribers
   mClickedPtSub.reset();
@@ -249,7 +260,16 @@ ZedCamera::~ZedCamera()
   }
   DEBUG_STREAM_PC("... Point Cloud thread stopped");
 
-  // <---- Verify that all the threads are not active
+  if (closeCamera()) {
+    DEBUG_STREAM_COMM("Camera closed");
+  } else {
+    DEBUG_STREAM_COMM("Error while closing camera");
+  }
+}
+
+ZedCamera::~ZedCamera()
+{
+  close();
 }
 
 void ZedCamera::initServices()
@@ -4867,6 +4887,18 @@ bool ZedCamera::startCamera()
   return true;
 }  // namespace stereolabs
 
+bool ZedCamera::closeCamera()
+{
+  RCLCPP_INFO(get_logger(), "***** CLOSING CAMERA *****");
+  if (mZed == nullptr)
+    return true;
+
+  mZed->close();
+  mZed.reset();
+  DEBUG_COMM("Camera closed");
+
+  return true;
+}
 void ZedCamera::initThreads()
 {
   // ----> Start CMOS Temperatures thread
@@ -4980,7 +5012,7 @@ bool ZedCamera::startPosTracking()
   sl_tools::StopWatch stopWatch(get_clock());
 
   do {
-    transformOk =
+    transformOk =// true;
       setPose(
       mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
       mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);

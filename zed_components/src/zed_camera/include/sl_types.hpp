@@ -64,6 +64,7 @@
 #include <zed_msgs/srv/set_pose.hpp>
 #include <zed_msgs/srv/set_roi.hpp>
 #include <zed_msgs/srv/start_svo_rec.hpp>
+#include <zed_msgs/srv/set_svo_rate.hpp>
 
 
 #ifndef FOUND_FOXY
@@ -166,6 +167,7 @@ typedef rclcpp::Service<zed_msgs::srv::StartSvoRec>::SharedPtr
 typedef rclcpp::Service<zed_msgs::srv::SetROI>::SharedPtr setRoiSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoSrvPtr;
+typedef rclcpp::Service<zed_msgs::srv::SetSvoRate>::SharedPtr setSvoRateSrvPtr;
 typedef rclcpp::Service<zed_msgs::srv::SetSvoFrame>::SharedPtr setSvoFramePtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetRoiSrvPtr;
 typedef rclcpp::Service<robot_localization::srv::ToLL>::SharedPtr toLLSrvPtr;

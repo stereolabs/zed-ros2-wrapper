@@ -326,6 +326,14 @@ void ZedCamera::initServices()
         std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
       RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
     }
+    //Set Service for SVO replay rate
+    srv_name = srv_prefix + mSrvSetSvoRateName;
+    mSetSvoRateSrv = create_service<zed_msgs::srv::SetSvoRate>(
+      srv_name,
+      std::bind(&ZedCamera::callback_setSvoRate, this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mSetSvoRateSrv->get_service_name());
+    
+    //Set Service for SVO frame
     srv_name = srv_prefix + mSrvSetSvoFrameName;
     mSetSvoFrameSrv = create_service<zed_msgs::srv::SetSvoFrame>(
       srv_name,
@@ -6149,13 +6157,14 @@ void ZedCamera::threadFunc_zedGrab()
       }
       // <---- Publish SVO Status information
 
-      if (!mSvoPause) {
+      if (!mSvoPause || (mSvoPause && mGrabOnce)) {
         // Start processing timer for diagnostic
         grabElabTimer.tic();
 
         // ZED grab
         DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
         mGrabStatus = mZed->grab(mRunParams);
+        rclcpp::sleep_for(std::chrono::milliseconds(mSvoRate));
         DEBUG_COMM("Grabbed");
 
         // ----> Grab errors?
@@ -6331,6 +6340,9 @@ void ZedCamera::threadFunc_zedGrab()
         }
         mRecMutex.unlock();
         // <---- Check recording status
+      
+        //reset mGrabOnce
+        if (mGrabOnce) mGrabOnce = false;
       }
 
       // ----> Retrieve Image/Depth data if someone has subscribed to
@@ -10238,6 +10250,27 @@ void ZedCamera::callback_stopSvoRec(
   res->success = true;
 }
 
+void ZedCamera::callback_setSvoRate(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<zed_msgs::srv::SetSvoRate_Request> req,
+  std::shared_ptr<zed_msgs::srv::SetSvoRate_Response> res)
+{
+  (void)request_header;
+
+  std::lock_guard<std::mutex> lock(mRecMutex);
+
+
+  //Set Svo Rate
+  mSvoRate = req->rate;
+  RCLCPP_WARN(
+    get_logger(),
+    "Changing SVO replay rate.");
+  res->message =
+    "Changing SVO replay rate.";
+  res->success = true;
+  std::cout<<"new rate is "<<mSvoRate<<std::endl;
+}
+
 void ZedCamera::callback_pauseSvoInput(
   const std::shared_ptr<rmw_request_id_t> request_header,
   const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
@@ -10329,6 +10362,9 @@ void ZedCamera::callback_setSvoFrame(
   // Restart tracking
   startPosTracking();
   // <---- Set camera pose to identity
+
+  //if svo is paused, ensure one grab can update topics
+  if (mSvoPause) mGrabOnce = true;
 
   res->success = true;
 }

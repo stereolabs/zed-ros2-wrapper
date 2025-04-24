@@ -104,10 +104,7 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   const size_t SDK_MAJOR_REQ = 4;
   const size_t SDK_MINOR_REQ = 2;
 
-  if (ZED_SDK_MAJOR_VERSION < SDK_MAJOR_REQ ||
-    (ZED_SDK_MAJOR_VERSION == SDK_MAJOR_REQ &&
-    ZED_SDK_MINOR_VERSION < SDK_MINOR_REQ))
-  {
+  if ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < (SDK_MAJOR_REQ * 10 + SDK_MINOR_REQ)) {
     RCLCPP_ERROR_STREAM(
       get_logger(),
       "This version of the ZED ROS2 wrapper is designed to work with ZED SDK "
@@ -123,14 +120,18 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
     exit(EXIT_FAILURE);
   }
 
-  // ----> Publishers/Sbscribers options
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
+  sl::setEnvironmentVariable("ZED_SDK_DISABLE_PROGRESS_BAR_LOG", "1");
+#endif
+
+  // ----> Publishers/Subscribers options
   #ifndef FOUND_FOXY
   mPubOpt.qos_overriding_options =
     rclcpp::QosOverridingOptions::with_default_policies();
   mSubOpt.qos_overriding_options =
     rclcpp::QosOverridingOptions::with_default_policies();
   #endif
-  // <---- Publishers/Sbscribers options
+  // <---- Publishers/Subscribers options
 
   // ----> Start a "one shot timer" to initialize the node and make `shared_from_this` available
   std::chrono::milliseconds init_msec(static_cast<int>(50.0));
@@ -168,14 +169,26 @@ void ZedCamera::init()
   }
   // <---- Start camera
 
+  // Callback when the node is destroyed
+  // This is used to stop the camera when the node is destroyed
+  // and to stop the timers
+
+  // Close camera callback before shutdown
+  using rclcpp::contexts::get_global_default_context;
+  get_global_default_context()->add_pre_shutdown_callback(
+    [this]() {
+      DEBUG_COMM("ZED Component is shutting down");
+      close();
+      DEBUG_COMM("ZED Component is shutting down - done");
+    });
+
   // Dynamic parameters callback
   mParamChangeCallbackHandle = add_on_set_parameters_callback(
     std::bind(&ZedCamera::callback_setParameters, this, _1));
 }
 
-ZedCamera::~ZedCamera()
+void ZedCamera::close()
 {
-  DEBUG_STREAM_COMM("Destroying node");
 
   // ----> Stop subscribers
   mClickedPtSub.reset();
@@ -248,7 +261,12 @@ ZedCamera::~ZedCamera()
   }
   DEBUG_STREAM_PC("... Point Cloud thread stopped");
 
-  // <---- Verify that all the threads are not active
+  closeCamera();
+}
+
+ZedCamera::~ZedCamera()
+{
+  close();
 }
 
 void ZedCamera::initServices()
@@ -1707,12 +1725,27 @@ void ZedCamera::getOdParams()
     getParam(
       "object_detection.custom_onnx_file", mYoloOnnxPath, mYoloOnnxPath,
       " * Custom ONNX file: ");
+    if (mYoloOnnxPath.empty()) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "The parameter 'object_detection.custom_onnx_file' is empty. "
+        "Please check the value in the YAML file.");
+      exit(EXIT_FAILURE);
+    }
     getParam(
       "object_detection.custom_onnx_input_size", mYoloOnnxSize, mYoloOnnxSize,
       " * Custom ONNX input size: ");
     getParam(
       "object_detection.custom_label_yaml", mCustomLabelsPath, mCustomLabelsPath,
       " * Custom Label file: ");
+  }
+
+  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS ||
+    mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS)
+  {
+    mUsingCustomOd = true;
+  } else {
+    mUsingCustomOd = false;
   }
 
   getParam(
@@ -4016,7 +4049,7 @@ bool ZedCamera::startCamera()
   mInitParams.coordinate_units = ROS_MEAS_UNITS;
   mInitParams.depth_mode = mDepthMode;
   mInitParams.sdk_verbose = mVerbose;
-  mInitParams.sdk_verbose_log_file = mVerboseLogFile;
+  mInitParams.sdk_verbose_log_file = mVerboseLogFile.c_str();
   mInitParams.sdk_gpu_id = mGpuId;
   mInitParams.depth_stabilization = mDepthStabilization;
   mInitParams.camera_image_flip = (mCameraFlip ? sl::FLIP_MODE::ON : sl::FLIP_MODE::OFF);
@@ -4256,10 +4289,17 @@ bool ZedCamera::startCamera()
     " * Input\t\t-> "
       << sl::toString(mZed->getCameraInformation().input_type).c_str());
   if (mSvoMode) {
+  #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
     RCLCPP_INFO(
       get_logger(), " * SVO resolution -> %dx%d",
       mZed->getCameraInformation().camera_configuration.resolution.width,
       mZed->getCameraInformation().camera_configuration.resolution.height);
+  #else
+    RCLCPP_INFO(
+      get_logger(), " * SVO resolution -> %ldx%ld",
+      mZed->getCameraInformation().camera_configuration.resolution.width,
+      mZed->getCameraInformation().camera_configuration.resolution.height);
+  #endif
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * SVO framerate\t -> "
@@ -4393,7 +4433,7 @@ bool ZedCamera::startCamera()
   // <---- Set Region of Interest
 
   // ----> Check default camera settings
-  if (_debugCamCtrl) {
+  if (_debugCamCtrl && !mSvoMode) {
     int value;
     sl::ERROR_CODE err;
     sl::VIDEO_SETTINGS setting;
@@ -4847,6 +4887,19 @@ bool ZedCamera::startCamera()
   return true;
 }  // namespace stereolabs
 
+void ZedCamera::closeCamera()
+{  
+  if (mZed == nullptr) {
+    return;
+  }
+
+  RCLCPP_INFO(get_logger(), "***** CLOSING CAMERA *****");
+
+  mZed->close();
+  mZed.reset();
+  DEBUG_COMM("Camera closed");
+}
+
 void ZedCamera::initThreads()
 {
   // Start Heartbeat timer
@@ -4975,7 +5028,7 @@ bool ZedCamera::startPosTracking()
   sl_tools::StopWatch stopWatch(get_clock());
 
   do {
-    transformOk =
+    transformOk =// true;
       setPose(
       mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
       mInitialBasePose[3], mInitialBasePose[4], mInitialBasePose[5]);
@@ -5278,13 +5331,6 @@ bool ZedCamera::startObjDetect()
   if (!mObjDetEnabled) {
     return false;
   }
-
-  // if (!mCamera2BaseTransfValid || !mSensor2CameraTransfValid ||
-  //   !mSensor2BaseTransfValid)
-  // {
-  //   DEBUG_OD("Tracking transforms not yet ready, OD starting postponed");
-  //   return false;
-  // }
 
   RCLCPP_INFO(get_logger(), "*** Starting Object Detection ***");
 
@@ -8480,40 +8526,55 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   mObjDetSubscribed = true;
 
-  sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
-
-  // ----> Process realtime dynamic parameters
-  objectTracker_parameters_rt.detection_confidence_threshold =
-    mObjDetConfidence;
-  mObjDetFilter.clear();
-  if (mObjDetPeopleEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
-  }
-  if (mObjDetVehiclesEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
-  }
-  if (mObjDetBagsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
-  }
-  if (mObjDetAnimalsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
-  }
-  if (mObjDetElectronicsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
-  }
-  if (mObjDetFruitsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
-  }
-  if (mObjDetSportEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
-  }
-  objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
-  // <---- Process realtime dynamic parameters
-
   sl::Objects objects;
+  sl::ERROR_CODE objDetRes;
 
-  sl::ERROR_CODE objDetRes = mZed->retrieveObjects(
-    objects, objectTracker_parameters_rt, mObjDetInstID);
+  if (!mUsingCustomOd || ZED_SDK_MAJOR_VERSION < 5) {
+    // ----> Process realtime dynamic parameters
+    sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
+
+    objectTracker_parameters_rt.detection_confidence_threshold =
+      mObjDetConfidence;
+    mObjDetFilter.clear();
+    if (mObjDetPeopleEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+    }
+    if (mObjDetVehiclesEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+    }
+    if (mObjDetBagsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
+    }
+    if (mObjDetAnimalsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
+    }
+    if (mObjDetElectronicsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
+    }
+    if (mObjDetFruitsEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
+    }
+    if (mObjDetSportEnable) {
+      mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
+    }
+    objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
+    // <---- Process realtime dynamic parameters
+
+    objDetRes = mZed->retrieveObjects(
+      objects, objectTracker_parameters_rt, mObjDetInstID);
+  }
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
+  else {
+    // ----> Process realtime dynamic parameters
+    sl::CustomObjectDetectionRuntimeParameters custom_objectTracker_parameters_rt;
+    custom_objectTracker_parameters_rt.object_detection_properties.detection_confidence_threshold =
+      mObjDetConfidence;
+    // <---- Process realtime dynamic parameters
+
+    objDetRes = mZed->retrieveCustomObjects(
+      objects, custom_objectTracker_parameters_rt, mObjDetInstID);
+  }
+#endif
 
   if (objDetRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(

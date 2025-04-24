@@ -132,10 +132,6 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
-  void callback_setSvoRate(
-      const std::shared_ptr<rmw_request_id_t> request_header,
-      const std::shared_ptr<zed_msgs::srv::SetSvoRate_Request> req,
-      std::shared_ptr<zed_msgs::srv::SetSvoRate_Response> res);
   void callback_setSvoFrame(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_msgs::srv::SetSvoFrame_Request> req,
@@ -320,7 +316,7 @@ private:
   bool mSvoLoop = false;
   bool mSvoRealtime = false;
   int mSvoFrameStart = 0;
-  int mSvoRate = 20;
+  int mSvoRate = 0;
   bool mUseSvoTimestamp = false;
   bool mGrabOnce = false;
   int mVerbose = 1;
@@ -863,7 +859,6 @@ private:
   startSvoRecSrvPtr mStartSvoRecSrv;
   stopSvoRecSrvPtr mStopSvoRecSrv;
   pauseSvoSrvPtr mPauseSvoSrv;
-  setSvoRateSrvPtr mSetSvoRateSrv;
   setSvoFramePtr mSetSvoFrameSrv;
   setRoiSrvPtr mSetRoiSrv;
   resetRoiSrvPtr mResetRoiSrv;
@@ -884,7 +879,6 @@ private:
   const std::string mSrvStartSvoRecName = "start_svo_rec";
   const std::string mSrvStopSvoRecName = "stop_svo_rec";
   const std::string mSrvToggleSvoPauseName = "toggle_svo_pause";
-  const std::string mSrvSetSvoRateName = "set_svo_replay_rate";
   const std::string mSrvSetSvoFrameName = "set_svo_frame";
   const std::string mSrvSetRoiName = "set_roi";
   const std::string mSrvResetRoiName = "reset_roi";

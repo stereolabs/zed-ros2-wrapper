@@ -326,12 +326,6 @@ void ZedCamera::initServices()
         std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
       RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
     }
-    //Set Service for SVO replay rate
-    srv_name = srv_prefix + mSrvSetSvoRateName;
-    mSetSvoRateSrv = create_service<zed_msgs::srv::SetSvoRate>(
-      srv_name,
-      std::bind(&ZedCamera::callback_setSvoRate, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mSetSvoRateSrv->get_service_name());
     
     //Set Service for SVO frame
     srv_name = srv_prefix + mSrvSetSvoFrameName;
@@ -714,6 +708,23 @@ void ZedCamera::getGeneralParams()
       get_logger(), " * SVO Realtime: %s",
       mSvoRealtime ? "TRUE" : "FALSE");
     getParam("svo.play_from_frame", mSvoFrameStart, mSvoFrameStart, " * SVO start frame: ");
+
+    if (!mSvoRealtime) {
+      rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
+      read_only_descriptor.read_only = false;
+      std::string paramName = "svo.replay_rate";
+      declare_parameter(
+      paramName, rclcpp::ParameterValue(mSvoRate),
+      read_only_descriptor);
+      if (!get_parameter(paramName, mSvoRate)) {
+        RCLCPP_WARN_STREAM(
+          get_logger(),
+          "The parameter '"
+          << paramName
+        << "' is not available or is not valid, using the default value");
+    }
+  }
+    
   }
 
   mStreamMode = false;
@@ -3140,6 +3151,38 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
         get_logger(), "Parameter '" << param.get_name()
                                     << "' correctly set to "
                                     << val);
+    } 
+    
+    if (mSvoMode) {
+      if (!mSvoRealtime) {
+        if (param.get_name() == "svo.replay_rate") {
+
+          rclcpp::ParameterType correctType =
+          rclcpp::ParameterType::PARAMETER_INTEGER;
+          if (param.get_type() != correctType) {
+            result.successful = false;
+            result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            break;
+          }
+
+          double val = param.as_int();
+
+          if ((val < 0) || (val > 60)) {
+            result.successful = false;
+            result.reason = param.get_name() +
+            " must be positive double value in the range [0,60]";
+            RCLCPP_WARN_STREAM(get_logger(), result.reason);
+            break;
+          }
+
+          mSvoRate = val;
+
+          RCLCPP_INFO_STREAM(
+            get_logger(), "Parameter '" << param.get_name()
+                                        << "' correctly set to "
+                                        << val);
+        }
     }
   }
 
@@ -3156,6 +3199,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
   }
 
   return result;
+}
 }
 
 void ZedCamera::setTFCoordFrameNames()
@@ -6164,7 +6208,9 @@ void ZedCamera::threadFunc_zedGrab()
         // ZED grab
         DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
         mGrabStatus = mZed->grab(mRunParams);
-        rclcpp::sleep_for(std::chrono::milliseconds(mSvoRate));
+        if (!mSvoRealtime) {
+          rclcpp::sleep_for(std::chrono::milliseconds(mSvoRate));
+        }
         DEBUG_COMM("Grabbed");
 
         // ----> Grab errors?
@@ -10250,26 +10296,6 @@ void ZedCamera::callback_stopSvoRec(
   res->success = true;
 }
 
-void ZedCamera::callback_setSvoRate(
-  const std::shared_ptr<rmw_request_id_t> request_header,
-  const std::shared_ptr<zed_msgs::srv::SetSvoRate_Request> req,
-  std::shared_ptr<zed_msgs::srv::SetSvoRate_Response> res)
-{
-  (void)request_header;
-
-  std::lock_guard<std::mutex> lock(mRecMutex);
-
-
-  //Set Svo Rate
-  mSvoRate = req->rate;
-  RCLCPP_WARN(
-    get_logger(),
-    "Changing SVO replay rate.");
-  res->message =
-    "Changing SVO replay rate.";
-  res->success = true;
-  std::cout<<"new rate is "<<mSvoRate<<std::endl;
-}
 
 void ZedCamera::callback_pauseSvoInput(
   const std::shared_ptr<rmw_request_id_t> request_header,

@@ -314,7 +314,9 @@ private:
   std::string mCameraName = "zed";           // Default camera name
   int mCamGrabFrameRate = 15;
   bool mAsyncImageRetrieval = false;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
   int mImageValidityCheck = 1;
+#endif
   std::string mSvoFilepath = "";
   bool mSvoLoop = false;
   bool mSvoRealtime = false;

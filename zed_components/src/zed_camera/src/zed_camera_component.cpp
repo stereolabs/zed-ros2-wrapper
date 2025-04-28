@@ -873,11 +873,12 @@ void ZedCamera::getGeneralParams()
     get_logger(),
     " * Asynchronous image retrieval: " << (mAsyncImageRetrieval ? "TRUE" : "FALSE"));
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
   getParam("general.enable_image_validity_check", mImageValidityCheck, mImageValidityCheck);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Image Validity Check: " << (mImageValidityCheck == 1 ? "ENABLED" : "DISABLED"));
-
+#endif
 
   // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
 
@@ -4036,7 +4037,9 @@ bool ZedCamera::startCamera()
     mInitParams.grab_compute_capping_fps = static_cast<float>(mPubFrameRate);
     mInitParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
     mInitParams.async_image_retrieval = mAsyncImageRetrieval;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
     mInitParams.enable_image_validity_check = mImageValidityCheck;
+#endif
 
     if (mCamSerialNumber > 0) {
       mInitParams.input.setFromSerialNumber(mCamSerialNumber);
@@ -6365,7 +6368,9 @@ void ZedCamera::threadFunc_zedGrab()
           }
         }
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
         publishHealthStatus();
+#endif
 
         // ----> Check recording status
         mRecMutex.lock();
@@ -11670,6 +11675,7 @@ void ZedCamera::stopStreamingServer()
 
 void ZedCamera::publishHealthStatus()
 {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
   if (mImageValidityCheck <= 0) {
     return;
   }
@@ -11700,7 +11706,7 @@ void ZedCamera::publishHealthStatus()
     status.low_motion_sensors_reliability;
 
   mPubHealthStatus->publish(std::move(msg));
-
+#endif
 }
 
 bool ZedCamera::publishSvoStatus(uint64_t frame_ts)

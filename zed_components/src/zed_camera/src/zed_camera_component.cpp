@@ -3168,10 +3168,10 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
 
           double val = param.as_int();
 
-          if ((val < 0) || (val > 60)) {
+          if ((val < 0.1) || (val > 5.0)) {
             result.successful = false;
             result.reason = param.get_name() +
-            " must be positive double value in the range [0,60]";
+            " must be positive double value in the range [0.1,5.0]";
             RCLCPP_WARN_STREAM(get_logger(), result.reason);
             break;
           }
@@ -6091,6 +6091,7 @@ void ZedCamera::threadFunc_zedGrab()
 
   // Infinite grab thread
   while (1) {
+    auto t0 = get_clock()->now().nanoseconds();
     try {
       if (mUseSimTime && !mClockAvailable) {
         rclcpp::Clock steady_clock(RCL_STEADY_TIME);
@@ -6201,16 +6202,15 @@ void ZedCamera::threadFunc_zedGrab()
       }
       // <---- Publish SVO Status information
 
-      if (!mSvoPause || (mSvoPause && mGrabOnce)) {
+      if (!mSvoPause || (mGrabOnce)) {
         // Start processing timer for diagnostic
         grabElabTimer.tic();
 
         // ZED grab
         DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
+
         mGrabStatus = mZed->grab(mRunParams);
-        if (!mSvoRealtime) {
-          rclcpp::sleep_for(std::chrono::milliseconds(mSvoRate));
-        }
+       
         DEBUG_COMM("Grabbed");
 
         // ----> Grab errors?
@@ -6509,6 +6509,15 @@ void ZedCamera::threadFunc_zedGrab()
       DEBUG_STREAM_COMM("threadFunc_zedGrab: Generic exception.");
       continue;
     }
+
+    auto t1 = get_clock()->now().nanoseconds();
+    mSvoCurrentPeriod = (t1 - t0)/1e9;
+        if (!mSvoRealtime) {
+          mSvoExpectedPeriod = 1.0/(mSvoRate * (double)mCamGrabFrameRate);
+          double sleep = std::max(0.0, mSvoExpectedPeriod - mSvoCurrentPeriod);
+          rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep*1000)));
+          
+        }
   }
 
   // Stop the heartbeat

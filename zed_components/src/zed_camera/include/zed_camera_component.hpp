@@ -316,7 +316,9 @@ private:
   bool mSvoLoop = false;
   bool mSvoRealtime = false;
   int mSvoFrameStart = 0;
-  int mSvoRate = 0;
+  double mSvoRate = 0.0;
+  double mSvoCurrentPeriod = 0.0;
+  double mSvoExpectedPeriod = 0.0;
   bool mUseSvoTimestamp = false;
   bool mGrabOnce = false;
   int mVerbose = 1;

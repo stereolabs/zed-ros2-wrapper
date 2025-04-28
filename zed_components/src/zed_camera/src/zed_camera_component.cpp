@@ -3158,7 +3158,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
         if (param.get_name() == "svo.replay_rate") {
 
           rclcpp::ParameterType correctType =
-          rclcpp::ParameterType::PARAMETER_INTEGER;
+          rclcpp::ParameterType::PARAMETER_DOUBLE;
           if (param.get_type() != correctType) {
             result.successful = false;
             result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
@@ -3166,7 +3166,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
             break;
           }
 
-          double val = param.as_int();
+          double val = param.as_double();
 
           if ((val < 0.1) || (val > 5.0)) {
             result.successful = false;

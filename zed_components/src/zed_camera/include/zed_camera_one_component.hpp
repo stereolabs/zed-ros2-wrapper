@@ -54,7 +54,10 @@ protected:
   void getStreamingServerParams();
   void getAdvancedParams();
 
+  void close();
+
   bool startCamera();
+  void closeCamera();
   void startTempPubTimer();
   bool startStreamingServer();
   void stopStreamingServer();
@@ -214,6 +217,7 @@ private:
   bool _enableHDR = false; // Enable HDR if supported?
   std::string _opencvCalibFile; // Custom OpenCV calibration file
   int _sdkVerbose = 0; // SDK verbose level
+  std::string _sdkVerboseLogFile = ""; // SDK Verbose Log file
   int _gpuId = -1; // GPU ID
 
   int _camSerialNumber = 0; // Camera serial number

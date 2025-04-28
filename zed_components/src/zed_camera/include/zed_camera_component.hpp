@@ -42,6 +42,8 @@ protected:
   void initServices();
   void initThreads();
 
+  void close();
+
   void getDebugParams();
   void getSimParams();
   void getGeneralParams();
@@ -79,6 +81,7 @@ protected:
   void stopSvoRecording();
   bool startStreamingServer();
   void stopStreamingServer();
+  void closeCamera();
   // <---- Initialization functions
 
   // ----> Callbacks
@@ -322,6 +325,7 @@ private:
   bool mUseSvoTimestamp = false;
   bool mGrabOnce = false;
   int mVerbose = 1;
+  std::string mVerboseLogFile = "";
   int mGpuId = -1;
   std::string mOpencvCalibFile;
   sl::RESOLUTION mCamResol = sl::RESOLUTION::HD1080;    // Default resolution: RESOLUTION_HD1080
@@ -756,6 +760,7 @@ private:
 
   std::atomic<bool> mStreamingServerRunning;
 
+  bool mUsingCustomOd = false;
   bool mCustomLabelsGood = false;
   uint64_t mHeartbeatCount = 0;
   // <---- Status Flags

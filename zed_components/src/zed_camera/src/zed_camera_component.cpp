@@ -344,7 +344,7 @@ void ZedCamera::initServices()
         std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
       RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
     }
-    
+
     //Set Service for SVO frame
     srv_name = srv_prefix + mSrvSetSvoFrameName;
     mSetSvoFrameSrv = create_service<zed_msgs::srv::SetSvoFrame>(
@@ -697,7 +697,7 @@ void ZedCamera::getGeneralParams()
 {
   rclcpp::Parameter paramVal;
 
-  RCLCPP_INFO(get_logger(), "*** GENERAL parameters ***");
+  RCLCPP_INFO(get_logger(), "*** SVO INPUT parameters ***");
 
   getParam("svo.svo_path", std::string(), mSvoFilepath);
   if (mSvoFilepath.compare("live") == 0) {
@@ -731,25 +731,20 @@ void ZedCamera::getGeneralParams()
     getParam("svo.play_from_frame", mSvoFrameStart, mSvoFrameStart, " * SVO start frame: ");
 
     if (!mSvoRealtime) {
-      rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
-      read_only_descriptor.read_only = false;
-      std::string paramName = "svo.replay_rate";
-      declare_parameter(
-      paramName, rclcpp::ParameterValue(mSvoRate),
-      read_only_descriptor);
-      if (!get_parameter(paramName, mSvoRate)) {
+      getParam("svo.replay_rate", mSvoRate, mSvoRate, " * SVO replay rate: ", true);
+      if (mSvoRate < 0.1 || mSvoRate > 5.0) {
         RCLCPP_WARN_STREAM(
           get_logger(),
-          "The parameter '"
-          << paramName
-        << "' is not available or is not valid, using the default value");
+          "The parameter 'svo.replay_rate' is not valid, using the default value: "
+            << mSvoRate);
+        mSvoRate = 1.0;
+      }
     }
-  }
-    
   }
 
   mStreamMode = false;
   if (!mSvoMode) {
+    RCLCPP_INFO(get_logger(), "*** LOCAL STREAMING parameters ***");
     getParam("stream.stream_address", std::string(), mStreamAddr);
     if (mStreamAddr != "") {
       mStreamMode = true;
@@ -758,6 +753,8 @@ void ZedCamera::getGeneralParams()
         get_logger(), " * Local stream input: " << mStreamAddr << ":" << mStreamPort);
     }
   }
+
+  RCLCPP_INFO(get_logger(), "*** GENERAL parameters ***");
 
   std::string camera_model = "zed";
   getParam("general.camera_model", camera_model, camera_model);
@@ -998,6 +995,11 @@ void ZedCamera::getGeneralParams()
       get_logger(),
       "* [Simulation mode] Publish framerate forced to 60 Hz");
     mPubFrameRate = 60;
+  } if(mSvoMode && !mSvoRealtime) {
+    RCLCPP_INFO(
+      get_logger(),
+      "* [SVO mode - not realtime] Publish framerate forced to SVO Playback rate");
+    mPubFrameRate = 0;
   } else {
     getParam("general.pub_frame_rate", mPubFrameRate, mPubFrameRate, "", false);
     if (!mSvoMode) {
@@ -3187,14 +3189,14 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
         get_logger(), "Parameter '" << param.get_name()
                                     << "' correctly set to "
                                     << val);
-    } 
-    
+    }
+
     if (mSvoMode) {
       if (!mSvoRealtime) {
         if (param.get_name() == "svo.replay_rate") {
 
           rclcpp::ParameterType correctType =
-          rclcpp::ParameterType::PARAMETER_DOUBLE;
+            rclcpp::ParameterType::PARAMETER_DOUBLE;
           if (param.get_type() != correctType) {
             result.successful = false;
             result.reason = param.get_name() + " must be a " + rclcpp::to_string(correctType);
@@ -3207,35 +3209,35 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
           if ((val < 0.1) || (val > 5.0)) {
             result.successful = false;
             result.reason = param.get_name() +
-            " must be positive double value in the range [0.1,5.0]";
+              " must be positive double value in the range [0.1,5.0]";
             RCLCPP_WARN_STREAM(get_logger(), result.reason);
             break;
           }
 
           mSvoRate = val;
+          mPubFrameRate = static_cast<double>(mCamGrabFrameRate)*mSvoRate;
 
           RCLCPP_INFO_STREAM(
             get_logger(), "Parameter '" << param.get_name()
                                         << "' correctly set to "
                                         << val);
         }
+      }
+    }
+
+    if (result.successful) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Correctly set " << count << "/"
+                                       << parameters.size()
+                                       << " parameters");
+    } else {
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Correctly set " << count - 1 << "/"
+                                       << parameters.size()
+                                       << " parameters");
     }
   }
-
-  if (result.successful) {
-    RCLCPP_INFO_STREAM(
-      get_logger(), "Correctly set " << count << "/"
-                                     << parameters.size()
-                                     << " parameters");
-  } else {
-    RCLCPP_INFO_STREAM(
-      get_logger(), "Correctly set " << count - 1 << "/"
-                                     << parameters.size()
-                                     << " parameters");
-  }
-
   return result;
-}
 }
 
 void ZedCamera::setTFCoordFrameNames()
@@ -4253,8 +4255,11 @@ bool ZedCamera::startCamera()
           << mCamGrabFrameRate
           << "'. Automatically replaced with '" << realFps
           << "'. Please fix the parameter !!!");
-    }
+    } 
     mCamGrabFrameRate = realFps;
+  }
+  if(mSvoMode && !mSvoRealtime) {
+    mPubFrameRate = static_cast<double>(mCamGrabFrameRate)*mSvoRate;
   }
 
   // CUdevice devid;
@@ -4940,7 +4945,7 @@ bool ZedCamera::startCamera()
 }  // namespace stereolabs
 
 void ZedCamera::closeCamera()
-{  
+{
   if (mZed == nullptr) {
     return;
   }
@@ -6260,7 +6265,7 @@ void ZedCamera::threadFunc_zedGrab()
         DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
 
         mGrabStatus = mZed->grab(mRunParams);
-       
+
         DEBUG_COMM("Grabbed");
 
         // ----> Grab errors?
@@ -6436,9 +6441,9 @@ void ZedCamera::threadFunc_zedGrab()
         }
         mRecMutex.unlock();
         // <---- Check recording status
-      
+
         //reset mGrabOnce
-        if (mGrabOnce) mGrabOnce = false;
+        if (mGrabOnce) {mGrabOnce = false;}
       }
 
       // ----> Retrieve Image/Depth data if someone has subscribed to
@@ -6560,14 +6565,12 @@ void ZedCamera::threadFunc_zedGrab()
       continue;
     }
 
-    auto t1 = get_clock()->now().nanoseconds();
-    mSvoCurrentPeriod = (t1 - t0)/1e9;
-        if (!mSvoRealtime) {
-          mSvoExpectedPeriod = 1.0/(mSvoRate * (double)mCamGrabFrameRate);
-          double sleep = std::max(0.0, mSvoExpectedPeriod - mSvoCurrentPeriod);
-          rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep*1000)));
-          
-        }
+    if(mSvoMode && !mSvoRealtime) {
+        double effective_grab_period = mGrabPeriodMean_sec->getAvg();
+        mSvoExpectedPeriod = 1.0 / (mSvoRate * static_cast<double>(mCamGrabFrameRate));
+        double sleep = std::max(0.0, mSvoExpectedPeriod - effective_grab_period);
+        rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep * 1000)));
+      }
   }
 
   // Stop the heartbeat
@@ -7545,19 +7548,22 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   }
 
   if (mLastTs_grab.data_ns != 0) {
-    double period_sec =
-      static_cast<double>(mSdkGrabTS.data_ns - mLastTs_grab.data_ns) / 1e9;
-    DEBUG_STREAM_VD(
-      "VIDEO/DEPTH PUB LAST PERIOD: "
-        << period_sec << " sec @" << 1. / period_sec << " Hz");
+    if(!mSvoMode) {
+      double period_sec =
+        static_cast<double>(mSdkGrabTS.data_ns - mLastTs_grab.data_ns) / 1e9;
+      DEBUG_STREAM_VD(
+        "VIDEO/DEPTH PUB LAST PERIOD: "
+          << period_sec << " sec @" << 1. / period_sec << " Hz");
 
-    mVideoDepthPeriodMean_sec->addValue(period_sec);
-    DEBUG_STREAM_VD(
-      "VIDEO/DEPTH PUB MEAN PERIOD: "
-        << mVideoDepthPeriodMean_sec->getAvg() << " sec @"
-        << 1. / mVideoDepthPeriodMean_sec->getAvg() << " Hz");
+      mVideoDepthPeriodMean_sec->addValue(period_sec);
+      DEBUG_STREAM_VD(
+        "VIDEO/DEPTH PUB MEAN PERIOD: "
+          << mVideoDepthPeriodMean_sec->getAvg() << " sec @"
+          << 1. / mVideoDepthPeriodMean_sec->getAvg() << " Hz");
+      mLastTs_grab = mSdkGrabTS;
+    }
   }
-  mLastTs_grab = mSdkGrabTS;
+  
   // <---- Check if a grab has been done before publishing the same images
 
   rclcpp::Time timeStamp;
@@ -10464,7 +10470,7 @@ void ZedCamera::callback_setSvoFrame(
   // <---- Set camera pose to identity
 
   //if svo is paused, ensure one grab can update topics
-  if (mSvoPause) mGrabOnce = true;
+  if (mSvoPause) {mGrabOnce = true;}
 
   res->success = true;
 }
@@ -10484,15 +10490,16 @@ void ZedCamera::callback_updateDiagnostic(
   stat.addf("Uptime", "%s", sl_tools::seconds2str(mUptimer.toc()).c_str());
 
   if (mGrabStatus == sl::ERROR_CODE::SUCCESS || mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
+    stat.addf("Camera Grab rate", "%d Hz", mCamGrabFrameRate);
+
     double freq = 1. / mGrabPeriodMean_sec->getAvg();
     double freq_perc = 100. * freq / mPubFrameRate;
-    stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+    stat.addf("Data Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
 
     double frame_proc_sec = mElabPeriodMean_sec->getAvg();
-    // double frame_grab_period = 1. / mCamGrabFrameRate;
     double frame_grab_period = 1. / mPubFrameRate;
     stat.addf(
-      "Capture", "Tot. Processing Time: %.6f sec (Max. %.3f sec)",
+      "Data Capture", "Tot. Processing Time: %.6f sec (Max. %.3f sec)",
       frame_proc_sec, frame_grab_period);
 
     if (frame_proc_sec > frame_grab_period) {
@@ -10531,12 +10538,20 @@ void ZedCamera::callback_updateDiagnostic(
     }
 
     if (mVdPublishing) {
-      freq = 1. / mVideoDepthPeriodMean_sec->getAvg();
-      freq_perc = 100. * freq / mPubFrameRate;
-      frame_grab_period = 1. / mPubFrameRate;
-      stat.addf(
-        "Video/Depth", "Mean Frequency: %.1f Hz (%.1f%%)", freq,
-        freq_perc);
+      if(mSvoMode && !mSvoRealtime) {
+        freq = 1. / mGrabPeriodMean_sec->getAvg();
+        freq_perc = 100. * freq / mPubFrameRate;
+        stat.addf(
+          "Video/Depth", "Mean Frequency: %.1f Hz (%.1f%%)", freq,
+          freq_perc);
+      } else {
+        freq = 1. / mVideoDepthPeriodMean_sec->getAvg();
+        freq_perc = 100. * freq / mPubFrameRate;
+        frame_grab_period = 1. / mPubFrameRate;
+        stat.addf(
+          "Video/Depth", "Mean Frequency: %.1f Hz (%.1f%%)", freq,
+          freq_perc);
+      }
       stat.addf(
         "Video/Depth", "Processing Time: %.6f sec (Max. %.3f sec)",
         mVideoDepthElabMean_sec->getAvg(), frame_grab_period);
@@ -10552,6 +10567,14 @@ void ZedCamera::callback_updateDiagnostic(
       stat.addf(
         "Playing SVO", "Frame: %d/%d (%.1f%%)", frame, totFrames,
         svo_perc);
+      stat.addf("SVO Loop", "%s", (mSvoLoop?"ON":"OFF"));
+      if(mSvoLoop) {
+        stat.addf("SVO Loop Count", "%d", mSvoLoopCount);
+      }
+      stat.addf("Real Time mode", "%s", (mSvoRealtime?"ON":"OFF"));
+      if(!mSvoRealtime) {
+        stat.addf("SVO Playback rate", "%.1fx -> %.1f Hz", mSvoRate, mSvoRate*mCamGrabFrameRate);
+      }
     }
 
     if (isDepthRequired()) {

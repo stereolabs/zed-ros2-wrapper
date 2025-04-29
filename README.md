@@ -6,7 +6,6 @@
 <p align="center">
   ROS 2 packages for using Stereolabs ZED Camera cameras.<br>
   ROS 2 Foxy Fitzroy (Ubuntu 20.04) - ROS 2 Humble Hawksbill (Ubuntu 22.04) - ROS 2 Jazzy Jalisco (Ubuntu 24.04)
-  ROS 2 Foxy Fitzroy (Ubuntu 20.04) - ROS 2 Humble Hawksbill (Ubuntu 22.04) - ROS 2 Jazzy Jalisco (Ubuntu 24.04)
 </p>
 
 <hr>

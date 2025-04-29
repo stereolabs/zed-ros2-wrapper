@@ -1700,8 +1700,8 @@ void ZedCamera::getOdParams()
       static_cast<sl::OBJECT_DETECTION_MODEL>(idx);
     std::string test_model_str = sl::toString(test_model).c_str();
     std::replace(
-      test_model_str.begin(), test_model_str.end(), ' ',
-      '_');    // Replace spaces with underscores to match the YAML setting
+        test_model_str.begin(), test_model_str.end(), ' ',
+        '_');  // Replace spaces with underscores to match the YAML setting
     DEBUG_OD(" Comparing '%s' to '%s'", test_model_str.c_str(), model_str.c_str());
     if (model_str == test_model_str) {
       mObjDetModel = test_model;
@@ -1796,49 +1796,42 @@ void ZedCamera::getOdParams()
       << sl::toString(mObjFilterMode).c_str());
 
   if (!mUsingCustomOd) {
-    getParam(
-      "object_detection.people.enabled", mObjDetPeopleEnable,
-      mObjDetPeopleEnable, "", true);
+    getParam("object_detection.class.people.enabled", mObjDetPeopleEnable,
+             mObjDetPeopleEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox people: " << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
-    getParam(
-      "object_detection.vehicle.enabled", mObjDetVehiclesEnable,
-      mObjDetVehiclesEnable, "", true);
+    getParam("object_detection.class.vehicle.enabled", mObjDetVehiclesEnable,
+             mObjDetVehiclesEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox vehicles: "
         << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
-    getParam(
-      "object_detection.bag.enabled", mObjDetBagsEnable, mObjDetBagsEnable, "",
-      true);
+    getParam("object_detection.class.bag.enabled", mObjDetBagsEnable,
+             mObjDetBagsEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox bags: " << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
-    getParam(
-      "object_detection.animal.enabled", mObjDetAnimalsEnable,
-      mObjDetAnimalsEnable, "", true);
+    getParam("object_detection.class.animal.enabled", mObjDetAnimalsEnable,
+             mObjDetAnimalsEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox animals: "
         << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
-    getParam(
-      "object_detection.electronics.enabled", mObjDetElectronicsEnable,
-      mObjDetElectronicsEnable, "", true);
+    getParam("object_detection.class.electronics.enabled",
+             mObjDetElectronicsEnable, mObjDetElectronicsEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox electronics: "
         << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
-    getParam(
-      "object_detection.fruit_vegetable.enabled", mObjDetFruitsEnable,
-      mObjDetFruitsEnable, "", true);
+    getParam("object_detection.class.fruit_vegetable.enabled",
+             mObjDetFruitsEnable, mObjDetFruitsEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox fruits and vegetables: "
         << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
-    getParam(
-      "object_detection.sport.enabled", mObjDetSportEnable, mObjDetSportEnable,
-      "", true);
+    getParam("object_detection.class.sport.enabled", mObjDetSportEnable,
+             mObjDetSportEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox sport-related objects: "
@@ -2981,109 +2974,105 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
         get_logger(), "Parameter '" << param.get_name()
                                     << "' correctly set to "
                                     << val);
-    } else if (param.get_name() == "object_detection.people.enabled") {
+    } else if (param.get_name() == "object_detection.class.people.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
         result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            param.get_name() + " must be a " + rclcpp::to_string(correctType);
         RCLCPP_WARN_STREAM(get_logger(), result.reason);
         break;
       }
 
       mObjDetPeopleEnable = param.as_bool();
 
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "Parameter '"
-          << param.get_name() << "' correctly set to "
-          << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
-    } else if (param.get_name() == "object_detection.vehicle.enabled") {
+      RCLCPP_INFO_STREAM(get_logger(),
+                         "Parameter '"
+                             << param.get_name() << "' correctly set to "
+                             << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() == "object_detection.class.vehicle.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
         result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            param.get_name() + " must be a " + rclcpp::to_string(correctType);
         RCLCPP_WARN_STREAM(get_logger(), result.reason);
         break;
       }
 
       mObjDetVehiclesEnable = param.as_bool();
 
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "Parameter '"
-          << param.get_name() << "' correctly set to "
-          << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
-    } else if (param.get_name() == "object_detection.bag.enabled") {
+      RCLCPP_INFO_STREAM(get_logger(),
+                         "Parameter '"
+                             << param.get_name() << "' correctly set to "
+                             << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() == "object_detection.class.bag.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
         result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            param.get_name() + " must be a " + rclcpp::to_string(correctType);
         RCLCPP_WARN_STREAM(get_logger(), result.reason);
         break;
       }
 
       mObjDetBagsEnable = param.as_bool();
 
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "Parameter '"
-          << param.get_name() << "' correctly set to "
-          << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
-    } else if (param.get_name() == "object_detection.animal.enabled") {
+      RCLCPP_INFO_STREAM(get_logger(),
+                         "Parameter '"
+                             << param.get_name() << "' correctly set to "
+                             << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() == "object_detection.class.animal.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
         result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            param.get_name() + " must be a " + rclcpp::to_string(correctType);
         RCLCPP_WARN_STREAM(get_logger(), result.reason);
         break;
       }
 
       mObjDetAnimalsEnable = param.as_bool();
 
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "Parameter '"
-          << param.get_name() << "' correctly set to "
-          << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
-    } else if (param.get_name() == "object_detection.electronics.enabled") {
+      RCLCPP_INFO_STREAM(get_logger(),
+                         "Parameter '"
+                             << param.get_name() << "' correctly set to "
+                             << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() ==
+               "object_detection.class.electronics.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
         result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            param.get_name() + " must be a " + rclcpp::to_string(correctType);
         RCLCPP_WARN_STREAM(get_logger(), result.reason);
         break;
       }
 
       mObjDetElectronicsEnable = param.as_bool();
 
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "Parameter '"
-          << param.get_name() << "' correctly set to "
-          << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
-    } else if (param.get_name() == "object_detection.fruit_vegetable.enabled") {
+      RCLCPP_INFO_STREAM(get_logger(),
+                         "Parameter '"
+                             << param.get_name() << "' correctly set to "
+                             << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() ==
+               "object_detection.class.fruit_vegetable.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
         result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
+            param.get_name() + " must be a " + rclcpp::to_string(correctType);
         RCLCPP_WARN_STREAM(get_logger(), result.reason);
         break;
       }
 
       mObjDetFruitsEnable = param.as_bool();
 
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "Parameter '"
-          << param.get_name() << "' correctly set to "
-          << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
-    } else if (param.get_name() == "object_detection.sport.enabled") {
+      RCLCPP_INFO_STREAM(get_logger(),
+                         "Parameter '"
+                             << param.get_name() << "' correctly set to "
+                             << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
+    } else if (param.get_name() == "object_detection.class.sport.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
@@ -3129,8 +3118,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
                                     << "' correctly set to "
                                     << val);
     } else if (param.get_name() ==
-      "body_tracking.minimum_keypoints_threshold")
-    {
+               "body_tracking.minimum_keypoints_threshold") {
       rclcpp::ParameterType correctType =
         rclcpp::ParameterType::PARAMETER_INTEGER;
       if (param.get_type() != correctType) {

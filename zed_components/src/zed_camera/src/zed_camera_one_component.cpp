@@ -97,7 +97,7 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   // <---- Start a "one shot timer" to initialize the node
 }
 
-ZedCameraOne::~ZedCameraOne() 
+ZedCameraOne::~ZedCameraOne()
 {
   close();
 }
@@ -142,7 +142,7 @@ void ZedCameraOne::close()
 }
 
 void ZedCameraOne::closeCamera()
-{  
+{
   if (_zed == nullptr) {
     return;
   }

@@ -131,9 +131,6 @@
             allow_reduced_precision_inference: false # Allow inference to run at a lower precision to improve runtime and memory usage
             zed_conf_file: 'default' # Path to the class detection configuration file. This file contains the list of classes to be detected and their corresponding confidence thresholds. The file must be in YAML format. If 'default' the file 'config/object_detection.yaml' will be used.
             custom_det_conf_file: 'default' # Only used if 'model' is 'CUSTOM_YOLOLIKE_BOX_OBJECTS'. Path to the custom detection configuration file. This file contains the list of classes to be detected and their corresponding parameters. The file must be in YAML format. If 'default' the file 'config/custom_object_detection.yaml' will be used.
-            
-            
-
 
         body_tracking:
             bt_enabled: false # True to enable Body Tracking

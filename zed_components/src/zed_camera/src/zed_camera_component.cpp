@@ -1759,9 +1759,6 @@ void ZedCamera::getOdParams()
     "object_detection.max_range", mObjDetMaxRange, mObjDetMaxRange,
     " * Object Det. maximum range [m]: ");
   getParam(
-    "object_detection.confidence_threshold", mObjDetConfidence,
-    mObjDetConfidence, " * Object Det. min. confidence: ", true);
-  getParam(
     "object_detection.prediction_timeout", mObjDetPredTimeout,
     mObjDetPredTimeout, " * Object Det. prediction timeout [sec]: ");
   getParam(
@@ -1778,49 +1775,49 @@ void ZedCamera::getOdParams()
     get_logger(), " * Object Filtering mode: "
       << filtering_mode << " - "
       << sl::toString(mObjFilterMode).c_str());
-  if (mObjDetModel != sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
+  if (!mUsingCustomOd) {
     getParam(
-      "object_detection.mc_people", mObjDetPeopleEnable,
+      "object_detection.people.enabled", mObjDetPeopleEnable,
       mObjDetPeopleEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox people: " << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
     getParam(
-      "object_detection.mc_vehicle", mObjDetVehiclesEnable,
+      "object_detection.vehicle.enabled", mObjDetVehiclesEnable,
       mObjDetVehiclesEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox vehicles: "
         << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
     getParam(
-      "object_detection.mc_bag", mObjDetBagsEnable, mObjDetBagsEnable, "",
+      "object_detection.bag.enabled", mObjDetBagsEnable, mObjDetBagsEnable, "",
       true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox bags: " << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
     getParam(
-      "object_detection.mc_animal", mObjDetAnimalsEnable,
+      "object_detection.animal.enabled", mObjDetAnimalsEnable,
       mObjDetAnimalsEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox animals: "
         << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
     getParam(
-      "object_detection.mc_electronics", mObjDetElectronicsEnable,
+      "object_detection.electronics.enabled", mObjDetElectronicsEnable,
       mObjDetElectronicsEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox electronics: "
         << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
     getParam(
-      "object_detection.mc_fruit_vegetable", mObjDetFruitsEnable,
+      "object_detection.fruit_vegetable.enabled", mObjDetFruitsEnable,
       mObjDetFruitsEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox fruits and vegetables: "
         << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
     getParam(
-      "object_detection.mc_sport", mObjDetSportEnable, mObjDetSportEnable,
+      "object_detection.sport.enabled", mObjDetSportEnable, mObjDetSportEnable,
       "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -2964,35 +2961,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
         get_logger(), "Parameter '" << param.get_name()
                                     << "' correctly set to "
                                     << val);
-    } else if (param.get_name() == "object_detection.confidence_threshold") {
-      rclcpp::ParameterType correctType =
-        rclcpp::ParameterType::PARAMETER_DOUBLE;
-      if (param.get_type() != correctType) {
-        result.successful = false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      double val = param.as_double();
-
-      if ((val < 0.0) || (val > 100.0)) {
-        result.successful = false;
-        result.reason =
-          param.get_name() +
-          " must be positive double value in the range [0.0,100.0]";
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      mObjDetConfidence = val;
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name()
-                                    << "' correctly set to "
-                                    << val);
-    } else if (param.get_name() == "object_detection.mc_people") {
+    } else if (param.get_name() == "object_detection.people.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
@@ -3009,7 +2978,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
         "Parameter '"
           << param.get_name() << "' correctly set to "
           << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
-    } else if (param.get_name() == "object_detection.mc_vehicle") {
+    } else if (param.get_name() == "object_detection.vehicle.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
@@ -3026,7 +2995,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
         "Parameter '"
           << param.get_name() << "' correctly set to "
           << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
-    } else if (param.get_name() == "object_detection.mc_bag") {
+    } else if (param.get_name() == "object_detection.bag.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
@@ -3043,7 +3012,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
         "Parameter '"
           << param.get_name() << "' correctly set to "
           << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
-    } else if (param.get_name() == "object_detection.mc_animal") {
+    } else if (param.get_name() == "object_detection.animal.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
@@ -3060,7 +3029,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
         "Parameter '"
           << param.get_name() << "' correctly set to "
           << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
-    } else if (param.get_name() == "object_detection.mc_electronics") {
+    } else if (param.get_name() == "object_detection.electronics.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
@@ -3077,7 +3046,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
         "Parameter '"
           << param.get_name() << "' correctly set to "
           << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
-    } else if (param.get_name() == "object_detection.mc_fruit_vegetable") {
+    } else if (param.get_name() == "object_detection.fruit_vegetable.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
@@ -3094,7 +3063,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
         "Parameter '"
           << param.get_name() << "' correctly set to "
           << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
-    } else if (param.get_name() == "object_detection.mc_sport") {
+    } else if (param.get_name() == "object_detection.sport.enabled") {
       rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
       if (param.get_type() != correctType) {
         result.successful = false;
@@ -4888,7 +4857,7 @@ bool ZedCamera::startCamera()
 }  // namespace stereolabs
 
 void ZedCamera::closeCamera()
-{  
+{
   if (mZed == nullptr) {
     return;
   }
@@ -5347,29 +5316,38 @@ bool ZedCamera::startObjDetect()
   od_p.instance_module_id = mObjDetInstID;
 
   mObjDetFilter.clear();
+  mObjDetClassConfMap.clear();
   if (mObjDetPeopleEnable) {
     mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+    mObjDetClassConfMap[sl::OBJECT_CLASS::PERSON] = mObjDetPeopleConf;
   }
   if (mObjDetVehiclesEnable) {
     mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+    mObjDetClassConfMap[sl::OBJECT_CLASS::VEHICLE] = mObjDetVehiclesConf;
   }
   if (mObjDetBagsEnable) {
     mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
+    mObjDetClassConfMap[sl::OBJECT_CLASS::BAG] = mObjDetBagsConf;
   }
   if (mObjDetAnimalsEnable) {
     mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
+    mObjDetClassConfMap[sl::OBJECT_CLASS::ANIMAL] = mObjDetAnimalsConf;
   }
   if (mObjDetElectronicsEnable) {
     mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
+    mObjDetClassConfMap[sl::OBJECT_CLASS::ELECTRONICS] = mObjDetElectronicsConf;
   }
   if (mObjDetFruitsEnable) {
     mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
+    mObjDetClassConfMap[sl::OBJECT_CLASS::FRUIT_VEGETABLE] =
+      mObjDetFruitsConf;
   }
   if (mObjDetSportEnable) {
     mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
+    mObjDetClassConfMap[sl::OBJECT_CLASS::SPORT] = mObjDetSportConf;
   }
 
-  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
+  if (mUsingCustomOd) {
     od_p.enable_segmentation = false;
     od_p.custom_onnx_file = sl::String(mYoloOnnxPath.c_str());
     od_p.custom_onnx_dynamic_input_shape = sl::Resolution(mYoloOnnxSize, mYoloOnnxSize);
@@ -8533,8 +8511,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     // ----> Process realtime dynamic parameters
     sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
 
-    objectTracker_parameters_rt.detection_confidence_threshold =
-      mObjDetConfidence;
+    objectTracker_parameters_rt.detection_confidence_threshold = 20.0f; // Default value, overwritten by single class parameters
     mObjDetFilter.clear();
     if (mObjDetPeopleEnable) {
       mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);

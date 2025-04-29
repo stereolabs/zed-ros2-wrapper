@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2025-04-28
+----------
+- Add new parameter `svo.replay_rate` to set the replay rate for the SVO when not used in realtime mode (range [0.10-5.0])
+- Improved diagnostic information for SVO playback
+
 2025-04-23
 ----------
 - Clean shutdown of ZED components using `pre_shutdown_callback`

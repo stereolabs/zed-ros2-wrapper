@@ -14,8 +14,9 @@
         svo:
             use_svo_timestamps: true # Use the SVO timestamps to publish data. If false, data will be published at the system time.
             svo_loop: false # Enable loop mode when using an SVO as input source. NOTE: ignored if SVO timestamping is used
-            svo_realtime: true # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
+            svo_realtime: false # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
             play_from_frame: 0 # Start playing the SVO from a specific frame
+            replay_rate: 1.0 # Replay rate for the SVO when not used in realtime mode (between [0.10-5.0])
 
         general:
             camera_timeout_sec: 5
@@ -77,8 +78,8 @@
             pos_tracking_enabled: true # True to enable positional tracking from start
             pos_tracking_mode: 'GEN_1' # Matches the ZED SDK setting: 'GEN_1', 'GEN_2'
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
-            publish_tf: true # [usually overwritten by launch file] publish `odom -> camera_link` TF
-            publish_map_tf: true # [usually overwritten by launch file] publish `map -> odom` TF
+            publish_tf: false # [usually overwritten by launch file] publish `odom -> camera_link` TF
+            publish_map_tf: false # [usually overwritten by launch file] publish `map -> odom` TF
             map_frame: 'map'
             odometry_frame: 'odom'
             area_memory_db_path: ''

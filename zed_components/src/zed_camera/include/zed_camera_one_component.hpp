@@ -94,7 +94,7 @@ protected:
   // <---- Utility functions
 
   // ----> Callbacks functions
-  rcl_interfaces::msg::SetParametersResult callback_setParameters(
+  rcl_interfaces::msg::SetParametersResult callback_dynamicParamChange(
     std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(
     diagnostic_updater::DiagnosticStatusWrapper & stat);

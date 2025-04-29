@@ -90,7 +90,7 @@ protected:
   void callback_pubTemp();
   void callback_pubHeartbeat();
   void callback_gnssPubTimerTimeout();
-  rcl_interfaces::msg::SetParametersResult callback_setParameters(
+  rcl_interfaces::msg::SetParametersResult callback_dynamicParamChange(
     std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(
     diagnostic_updater::DiagnosticStatusWrapper & stat);
@@ -401,7 +401,7 @@ private:
   bool mObjDetReducedPrecision = false;
   float mObjDetMaxRange = 15.0f;
   std::vector<sl::OBJECT_CLASS> mObjDetFilter;
-  std::map<OBJECT_CLASS, float> mObjDetClassConfMap;
+  std::map<sl::OBJECT_CLASS, float> mObjDetClassConfMap;
   bool mObjDetPeopleEnable = true;
   float mObjDetPeopleConf = 50.0;
   bool mObjDetVehiclesEnable = true;

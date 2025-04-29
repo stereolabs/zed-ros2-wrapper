@@ -182,28 +182,29 @@ set(SL_TOOLS_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_logging.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/json.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/gnss_replay.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_types.hpp
 )
 
 set(SL_TOOLS_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_win_avg.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/gnss_replay.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_types.cpp
 )
 
 set(ZED_CAMERA_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/sl_types.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_component.hpp
 )
 
 set(ZED_CAMERA_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_component_main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_component_objdet.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_component_bodytrk.cpp
 )
 
 set(ZED_CAMERA_ONE_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/sl_types.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_one_component.hpp
 )
 

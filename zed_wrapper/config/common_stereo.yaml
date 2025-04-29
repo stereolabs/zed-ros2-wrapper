@@ -121,7 +121,7 @@
             pd_normal_similarity_threshold: 15.0 # Plane detection: controls the spread of plane by checking the angle difference.
 
         object_detection:
-            od_enabled: false # True to enable Object Detection
+            od_enabled: true # True to enable Object Detection
             enable_tracking: true # Whether the object detection system includes object tracking capabilities across a sequence of images.
             enable_segmentation: false # Whether the object masks will be computed and published.
             detection_model: 'MULTI_CLASS_BOX_FAST' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE', 'CUSTOM_YOLOLIKE_BOX_OBJECTS'
@@ -175,7 +175,7 @@
             debug_sensors: false
             debug_mapping: false
             debug_terrain_mapping: false
-            debug_object_detection: false
+            debug_object_detection: true
             debug_body_tracking: false
             debug_roi: false
             debug_streaming: false

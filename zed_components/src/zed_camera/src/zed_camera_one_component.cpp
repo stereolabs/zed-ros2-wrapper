@@ -624,7 +624,7 @@ void ZedCameraOne::init()
 
   // Dynamic parameters callback
   _paramChangeCallbackHandle = add_on_set_parameters_callback(
-    std::bind(&ZedCameraOne::callback_setParameters, this, _1));
+    std::bind(&ZedCameraOne::callback_dynamicParamChange, this, _1));
 }
 
 void ZedCameraOne::initServices()
@@ -1182,7 +1182,8 @@ void ZedCameraOne::callback_updateDiagnostic(
   }
 }
 
-rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_setParameters(
+rcl_interfaces::msg::SetParametersResult
+ZedCameraOne::callback_dynamicParamChange(
   std::vector<rclcpp::Parameter> parameters)
 {
   DEBUG_STREAM_COMM("*** Parameter change callback ***");

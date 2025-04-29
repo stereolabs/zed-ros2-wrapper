@@ -184,7 +184,7 @@ void ZedCamera::init()
 
   // Dynamic parameters callback
   mParamChangeCallbackHandle = add_on_set_parameters_callback(
-    std::bind(&ZedCamera::callback_setParameters, this, _1));
+    std::bind(&ZedCamera::callback_dynamicParamChange, this, _1));
 }
 
 void ZedCamera::close()
@@ -1687,9 +1687,8 @@ void ZedCamera::getOdParams()
       << (mObjDetEnabled ? "TRUE" : "FALSE"));
 
   std::string model_str;
-  getParam("object_detection.model", model_str, model_str);
-
-  DEBUG_STREAM_OD(" 'object_detection.model': " << model_str.c_str());
+  getParam("object_detection.detection_model", model_str, model_str);
+  DEBUG_STREAM_OD(" 'object_detection.detection_model': " << model_str.c_str());
 
   bool matched = false;
   for (int idx =
@@ -1703,8 +1702,7 @@ void ZedCamera::getOdParams()
     std::replace(
       test_model_str.begin(), test_model_str.end(), ' ',
       '_');    // Replace spaces with underscores to match the YAML setting
-    // DEBUG_OD(" Comparing '%s' to '%s'", test_model_str.c_str(),
-    // model_str.c_str());
+    DEBUG_OD(" Comparing '%s' to '%s'", test_model_str.c_str(), model_str.c_str());
     if (model_str == test_model_str) {
       mObjDetModel = test_model;
       matched = true;
@@ -1768,13 +1766,35 @@ void ZedCamera::getOdParams()
     get_logger(), " * Object Det. tracking: "
       << (mObjDetTracking ? "TRUE" : "FALSE"));
 
-  int filtering_mode = static_cast<int>(mObjFilterMode);
-  getParam("object_detection.filtering_mode", filtering_mode, filtering_mode);
-  mObjFilterMode = static_cast<sl::OBJECT_FILTERING_MODE>(filtering_mode);
+
+  std::string filtering_mode_str = "NONE";
+  getParam("object_detection.filtering_mode", filtering_mode_str, filtering_mode_str);
+
+  for (int idx = static_cast<int>(sl::OBJECT_FILTERING_MODE::NONE);
+    idx < static_cast<int>(sl::OBJECT_FILTERING_MODE::LAST); idx++)
+  {
+    sl::OBJECT_FILTERING_MODE test_mode =
+      static_cast<sl::OBJECT_FILTERING_MODE>(idx);
+    std::string test_mode_str = sl::toString(test_mode).c_str();
+    std::replace(
+      test_mode_str.begin(), test_mode_str.end(), ' ', '_'); // Replace spaces with underscores to match the YAML setting
+    DEBUG_OD(" Comparing '%s' to '%s'", filtering_mode_str.c_str(), test_mode_str.c_str());
+    if (filtering_mode_str == test_mode_str) {
+      mObjFilterMode = test_mode;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value of the parameter 'object_detection.filtering_mode' is not valid: '"
+        << model_str << "'. Using the default value.");
+  }
   RCLCPP_INFO_STREAM(
     get_logger(), " * Object Filtering mode: "
-      << filtering_mode << " - "
       << sl::toString(mObjFilterMode).c_str());
+
   if (!mUsingCustomOd) {
     getParam(
       "object_detection.people.enabled", mObjDetPeopleEnable,
@@ -2114,7 +2134,7 @@ void ZedCamera::getAdvancedParams()
   }
 }
 
-rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
+rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
   std::vector<rclcpp::Parameter> parameters)
 {
   DEBUG_STREAM_COMM("Parameter change callback");

@@ -5,7 +5,7 @@ ARG CUDA_MINOR=6
 ARG CUDA_PATCH=3
 ARG ZED_SDK_MAJOR=4
 ARG ZED_SDK_MINOR=2
-ARG ZED_SDK_PATCH=3
+ARG ZED_SDK_PATCH=5
 
 ARG IMAGE_NAME=nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-devel-ubuntu${UBUNTU_MAJOR}.${UBUNTU_MINOR}
 
@@ -19,6 +19,8 @@ ARG CUDA_PATCH=3
 ARG ZED_SDK_MAJOR=4
 ARG ZED_SDK_MINOR=2
 ARG ZED_SDK_PATCH=3
+# Optional: Override ZED SDK URL
+ARG CUSTOM_ZED_SDK_URL=""
 
 ARG ROS2_DIST=humble       # ROS2 distribution
 
@@ -31,19 +33,11 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 RUN apt-get update || true && apt-get install -y --no-install-recommends apt-utils dialog curl && \
   rm -rf /var/lib/apt/lists/*
 
-# Create the ZED SDK link
-ARG CUDA_MINOR_DW=1
-RUN if [ "$CUDA_MAJOR" = "12" ] && [ "$CUDA_MINOR" != "1" ]; then \
-      CUDA_MINOR_DW=1; \
-    fi
-RUN if [ "$CUDA_MAJOR" = "11" ] && [ "$CUDA_MINOR" != "8" ]; then \
-      CUDA_MINOR_DW=8; \
-    fi
-ENV ZED_SDK_URL="https://stereolabs.sfo2.cdn.digitaloceanspaces.com/zedsdk/${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}/ZED_SDK_Ubuntu${UBUNTU_MAJOR}_cuda${CUDA_MAJOR}.${CUDA_MINOR_DW}_v${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}.${ZED_SDK_PATCH}.zstd.run"
+ENV ZED_SDK_URL=${CUSTOM_ZED_SDK_URL:-"https://download.stereolabs.com/zedsdk/${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}.${ZED_SDK_PATCH}/cu${CUDA_MAJOR}/ubuntu${UBUNTU_MAJOR}"}
 
 # Check that this SDK exists
 RUN echo "SDK link: $ZED_SDK_URL"
-RUN if [ "$(curl -I "${ZED_SDK_URL}" -o /dev/null -s -w '%{http_code}\n' | head -n 1)" = "200" ]; then \
+RUN if [ "$(curl -L -I "${ZED_SDK_URL}" -o /dev/null -s -w '%{http_code}\n' | head -n 1)" = "200" ]; then \
         echo "The URL points to something."; \
     else \
         echo "The URL does not point to a .run file or the file does not exist."; \

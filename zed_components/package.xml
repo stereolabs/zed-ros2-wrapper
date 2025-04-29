@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
     <name>zed_components</name>
-    <version>4.2.1</version>
+    <version>5.0.0</version>
     <description>Contains the main ROS2 components to use a camera of the Ztereolabs ZED family</description>
     <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
     <license>Apache License 2.0</license>
@@ -30,7 +30,6 @@
     <build_depend>image_transport</build_depend>
     <build_depend>point_cloud_transport</build_depend>
     <build_depend>std_srvs</build_depend>
-    <build_depend>cob_srvs</build_depend>
     <build_depend>diagnostic_msgs</build_depend>
     <build_depend>diagnostic_updater</build_depend>
     <build_depend>visualization_msgs</build_depend>

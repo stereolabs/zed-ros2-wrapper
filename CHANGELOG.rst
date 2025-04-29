@@ -1,6 +1,39 @@
 LATEST CHANGES
 ==============
 
+2025-04-23
+----------
+- Clean shutdown of ZED components using `pre_shutdown_callback`
+
+2025-04-22
+----------
+- Add backward compatibility with SDK v4.2
+
+2025-04-18
+----------
+- Add parameter 'debug.sdk_verbose_log_file' to Stereo and Mono components to set the path of the SDK verbose log file
+
+2025-04-16
+----------
+- Fix realtime IMU data publishing when using SVO2
+
+2025-04-15
+----------
+- Improve performance with the default stereo configuration
+- Fix Positional Tracking enabling when required by ZED SDK modules
+
+2025-04-01
+----------
+- Add Heartbeat status message at 1 Hz: `~/status/heartbeat`
+
+2025-03-28
+----------
+- Note: requires the latest `zed_msgs` package v5.0.0
+- Add SVO Status topic to monitor the current SVO status of type `zed_msgs::SvoStatus`
+- Add fully integrated Health Status topic of type `zed_msgs::HealthStatusStamped`
+  - Remove the single health status topics to simplicy health monitoring
+- Remove `cob_srvs` dependency to use the custom `zed_msgs::SetSvoFrame` service
+
 2025-03-26
 ----------
 - Add official support for ROS 2 Jazzy Jalisco

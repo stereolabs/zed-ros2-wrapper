@@ -75,7 +75,7 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
         << ZED_SDK_MINOR_VERSION << "."
         << ZED_SDK_PATCH_VERSION << "-"
         << ZED_SDK_BUILD_ID);
-    RCLCPP_INFO(get_logger(), "Node stopped");
+    RCLCPP_INFO(get_logger(), "Node stopped. Press Ctrl+C to exit.");
     exit(EXIT_FAILURE);
   }
 
@@ -97,10 +97,13 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   // <---- Start a "one shot timer" to initialize the node
 }
 
-ZedCameraOne::~ZedCameraOne()
+ZedCameraOne::~ZedCameraOne() 
 {
-  DEBUG_STREAM_COMM("Destroying node");
+  close();
+}
 
+void ZedCameraOne::close()
+{
   DEBUG_STREAM_SENS("Stopping temperatures timer");
   if (_tempPubTimer) {
     _tempPubTimer->cancel();
@@ -134,10 +137,21 @@ ZedCameraOne::~ZedCameraOne()
   // <---- Verify that all the threads are not active
 
   // ----> Close the ZED camera
-  DEBUG_STREAM_COMM("Closing ZED camera...");
-  _zed->close();
-  DEBUG_STREAM_COMM("... ZED camera closed");
+  closeCamera();
   // <---- Close the ZED camera
+}
+
+void ZedCameraOne::closeCamera()
+{  
+  if (_zed == nullptr) {
+    return;
+  }
+
+  RCLCPP_INFO(get_logger(), "***** CLOSING CAMERA *****");
+
+  _zed->close();
+  _zed.reset();
+  DEBUG_COMM("Camera closed");
 }
 
 void ZedCameraOne::initParameters()
@@ -438,6 +452,9 @@ void ZedCameraOne::getDebugParams()
   RCLCPP_INFO(get_logger(), "*** DEBUG parameters ***");
 
   getParam("debug.sdk_verbose", _sdkVerbose, _sdkVerbose, " * SDK Verbose: ", false, 0, 1000);
+  getParam(
+    "debug.sdk_verbose_log_file", _sdkVerboseLogFile, _sdkVerboseLogFile,
+    " * SDK Verbose File: ");
 
   getParam("debug.debug_common", _debugCommon, _debugCommon, " * Debug Common: ");
   getParam("debug.debug_video_depth", _debugVideoDepth, _debugVideoDepth, " * Debug Image/Depth: ");
@@ -592,6 +609,19 @@ void ZedCameraOne::init()
   }
   // <---- Start camera
 
+  // Callback when the node is destroyed
+  // This is used to stop the camera when the node is destroyed
+  // and to stop the timers
+
+  // Close camera callback before shutdown
+  using rclcpp::contexts::get_global_default_context;
+  get_global_default_context()->add_pre_shutdown_callback(
+    [this]() {
+      DEBUG_COMM("ZED X One Component is shutting down");
+      close();
+      DEBUG_COMM("ZED X One Component is shutting down - done");
+    });
+
   // Dynamic parameters callback
   _paramChangeCallbackHandle = add_on_set_parameters_callback(
     std::bind(&ZedCameraOne::callback_setParameters, this, _1));
@@ -701,6 +731,7 @@ bool ZedCameraOne::startCamera()
     _initParams.optional_opencv_calibration_file = _opencvCalibFile.c_str();
   }
   _initParams.sdk_verbose = _sdkVerbose;
+  _initParams.sdk_verbose_log_file = _sdkVerboseLogFile.c_str();
   // <---- ZED configuration
 
   // ----> Try to connect to a camera, to a stream, or to load an SVO
@@ -967,7 +998,7 @@ void ZedCameraOne::callback_pubTemp()
 
   // ----> Publish temperature
   if (tempSubCount > 0) {
-    tempMsgPtr imuTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
+    auto imuTempMsg = std::make_unique<sensor_msgs::msg::Temperature>();
 
     imuTempMsg->header.stamp = get_clock()->now();
 
@@ -2386,7 +2417,7 @@ bool ZedCameraOne::publishSensorsData()
       "[publishSensorsData] IMU subscribers: "
         << static_cast<int>(_imuSubCount));
 
-    imuMsgPtr imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
+    auto imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
     imuMsg->header.stamp = ts_imu;
     imuMsg->header.frame_id = _imuFrameId;
@@ -2459,7 +2490,7 @@ bool ZedCameraOne::publishSensorsData()
       "[publishSensorsData] IMU subscribers: "
         << static_cast<int>(_imuRawSubCount));
 
-    imuMsgPtr imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
+    auto imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
     imuRawMsg->header.stamp = ts_imu;
     imuRawMsg->header.frame_id = _imuFrameId;

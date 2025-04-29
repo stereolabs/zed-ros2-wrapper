@@ -43,7 +43,7 @@ if(ROS2_FOUND)
         #message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
         add_definitions(-DFOUND_JAZZY)
     else()
-        message("*** WARNING *** ROS2 ${FOUND_ROS2_DISTRO} is not officially supported by the package '${PROJECT_NAME}'. Correct operation is not guaranteed.")
+        message("*** WARNING *** Unsupported ROS2 ${FOUND_ROS2_DISTRO}. '${PROJECT_NAME}' may not work correctly.")
     endif()
 else()
     message("*** WARNING *** ROS2 distro is unknown. This package could not work correctly.")
@@ -107,7 +107,6 @@ set(DEPENDENCIES
     stereo_msgs
     zed_msgs
     std_srvs
-    cob_srvs
     diagnostic_msgs
     diagnostic_updater
     visualization_msgs
@@ -138,7 +137,6 @@ find_package(backward_ros REQUIRED)
 
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
-find_package(cob_srvs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(visualization_msgs REQUIRED)

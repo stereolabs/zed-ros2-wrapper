@@ -997,6 +997,8 @@ void ZedCamera::getGeneralParams()
     mPubFrameRate = 60;
   }
   if (mSvoMode && !mSvoRealtime) {
+  }
+  if (mSvoMode && !mSvoRealtime) {
     RCLCPP_INFO(
       get_logger(),
       "* [SVO mode - not realtime] Publish framerate forced to SVO Playback rate");

@@ -995,7 +995,8 @@ void ZedCamera::getGeneralParams()
       get_logger(),
       "* [Simulation mode] Publish framerate forced to 60 Hz");
     mPubFrameRate = 60;
-  } if(mSvoMode && !mSvoRealtime) {
+  }
+  if (mSvoMode && !mSvoRealtime) {
     RCLCPP_INFO(
       get_logger(),
       "* [SVO mode - not realtime] Publish framerate forced to SVO Playback rate");
@@ -3215,7 +3216,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_setParameters(
           }
 
           mSvoRate = val;
-          mPubFrameRate = static_cast<double>(mCamGrabFrameRate)*mSvoRate;
+          mPubFrameRate = static_cast<double>(mCamGrabFrameRate) * mSvoRate;
 
           RCLCPP_INFO_STREAM(
             get_logger(), "Parameter '" << param.get_name()
@@ -4255,11 +4256,11 @@ bool ZedCamera::startCamera()
           << mCamGrabFrameRate
           << "'. Automatically replaced with '" << realFps
           << "'. Please fix the parameter !!!");
-    } 
+    }
     mCamGrabFrameRate = realFps;
   }
-  if(mSvoMode && !mSvoRealtime) {
-    mPubFrameRate = static_cast<double>(mCamGrabFrameRate)*mSvoRate;
+  if (mSvoMode && !mSvoRealtime) {
+    mPubFrameRate = static_cast<double>(mCamGrabFrameRate) * mSvoRate;
   }
 
   // CUdevice devid;
@@ -5617,7 +5618,7 @@ bool ZedCamera::startSvoRecording(std::string & errMsg)
   sl::RecordingParameters params;
 
   params.bitrate = mSvoRecBitrate;
-  params.compression_mode = mSvoRecCompr;
+  params.compression_mode = mSvoRecCompression;
   params.target_framerate = mSvoRecFramerate;
   params.transcode_streaming_input = mSvoRecTranscode;
   params.video_filename = mSvoRecFilename.c_str();
@@ -6431,12 +6432,16 @@ void ZedCamera::threadFunc_zedGrab()
         mRecMutex.lock();
         if (mRecording) {
           mRecStatus = mZed->getRecordingStatus();
-
-          if (!mRecStatus.status) {
-            rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-            RCLCPP_ERROR_THROTTLE(
-              get_logger(), steady_clock, 1000.0,
-              "Error saving frame to SVO");
+          static int svo_rec_err_count = 0;
+          if (mRecStatus.is_recording && !mRecStatus.status) {
+            if (++svo_rec_err_count > 3) {
+              rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+              RCLCPP_WARN_THROTTLE(
+                get_logger(), steady_clock, 1000.0,
+                "Error saving frame to SVO");
+            }
+          } else {
+            svo_rec_err_count = 0;
           }
         }
         mRecMutex.unlock();
@@ -6565,12 +6570,12 @@ void ZedCamera::threadFunc_zedGrab()
       continue;
     }
 
-    if(mSvoMode && !mSvoRealtime) {
-        double effective_grab_period = mGrabPeriodMean_sec->getAvg();
-        mSvoExpectedPeriod = 1.0 / (mSvoRate * static_cast<double>(mCamGrabFrameRate));
-        double sleep = std::max(0.0, mSvoExpectedPeriod - effective_grab_period);
-        rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep * 1000)));
-      }
+    if (mSvoMode && !mSvoRealtime) {
+      double effective_grab_period = mGrabPeriodMean_sec->getAvg();
+      mSvoExpectedPeriod = 1.0 / (mSvoRate * static_cast<double>(mCamGrabFrameRate));
+      double sleep = std::max(0.0, mSvoExpectedPeriod - effective_grab_period);
+      rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep * 1000)));
+    }
   }
 
   // Stop the heartbeat
@@ -7548,7 +7553,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   }
 
   if (mLastTs_grab.data_ns != 0) {
-    if(!mSvoMode) {
+    if (!mSvoMode) {
       double period_sec =
         static_cast<double>(mSdkGrabTS.data_ns - mLastTs_grab.data_ns) / 1e9;
       DEBUG_STREAM_VD(
@@ -7563,7 +7568,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
       mLastTs_grab = mSdkGrabTS;
     }
   }
-  
+
   // <---- Check if a grab has been done before publishing the same images
 
   rclcpp::Time timeStamp;
@@ -10306,24 +10311,41 @@ void ZedCamera::callback_startSvoRec(
     res->success = false;
     return;
   }
-  mSvoRecCompr = static_cast<sl::SVO_COMPRESSION_MODE>(req->compression_mode);
-  if (mSvoRecCompr >= sl::SVO_COMPRESSION_MODE::LAST) {
+
+  if (req->compression_mode > 5) {
     RCLCPP_WARN(
       get_logger(),
       "'compression_mode' mode not valid. Please use a value in "
-      "range [0,2]");
+      "range [0,5]");
     res->message =
       "'compression_mode' mode not valid. Please use a value in range "
-      "[0,2]";
+      "[0,5]";
     res->success = false;
     return;
+  }
+  switch (req->compression_mode) {
+    case 1:
+      mSvoRecCompression = sl::SVO_COMPRESSION_MODE::H264;
+      break;
+    case 3:
+      mSvoRecCompression = sl::SVO_COMPRESSION_MODE::H264_LOSSLESS;
+      break;
+    case 4:
+      mSvoRecCompression = sl::SVO_COMPRESSION_MODE::H265_LOSSLESS;
+      break;
+    case 5:
+      mSvoRecCompression = sl::SVO_COMPRESSION_MODE::LOSSLESS;
+      break;
+    default:
+      mSvoRecCompression = sl::SVO_COMPRESSION_MODE::H265;
+      break;
   }
   mSvoRecFramerate = req->target_framerate;
   mSvoRecTranscode = req->input_transcode;
   mSvoRecFilename = req->svo_filename;
 
   if (mSvoRecFilename.empty()) {
-    mSvoRecFilename = "zed.svo";
+    mSvoRecFilename = "zed.svo2";
   }
 
   std::string err;
@@ -10336,14 +10358,16 @@ void ZedCamera::callback_startSvoRec(
 
   RCLCPP_INFO(get_logger(), "SVO Recording started: ");
   RCLCPP_INFO_STREAM(get_logger(), " * Bitrate: " << mSvoRecBitrate);
-  RCLCPP_INFO_STREAM(get_logger(), " * Compression: " << mSvoRecCompr);
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Compression mode: " << sl::toString(
+      mSvoRecCompression).c_str());
   RCLCPP_INFO_STREAM(get_logger(), " * Framerate: " << mSvoRecFramerate);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Input Transcode: " << (mSvoRecTranscode ? "TRUE" : "FALSE"));
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Filename: " << (mSvoRecFilename.empty() ? "zed.svo" :
+    " * Filename: " << (mSvoRecFilename.empty() ? "zed.svo2" :
     mSvoRecFilename));
 
   res->message = "SVO Recording started";
@@ -10371,7 +10395,7 @@ void ZedCamera::callback_stopSvoRec(
 
   stopSvoRecording();
 
-  RCLCPP_WARN(get_logger(), "SVO Recording stopped");
+  RCLCPP_INFO(get_logger(), "SVO Recording stopped");
   res->message = "SVO Recording stopped";
   res->success = true;
 }
@@ -10538,7 +10562,7 @@ void ZedCamera::callback_updateDiagnostic(
     }
 
     if (mVdPublishing) {
-      if(mSvoMode && !mSvoRealtime) {
+      if (mSvoMode && !mSvoRealtime) {
         freq = 1. / mGrabPeriodMean_sec->getAvg();
         freq_perc = 100. * freq / mPubFrameRate;
         stat.addf(
@@ -10567,13 +10591,13 @@ void ZedCamera::callback_updateDiagnostic(
       stat.addf(
         "Playing SVO", "Frame: %d/%d (%.1f%%)", frame, totFrames,
         svo_perc);
-      stat.addf("SVO Loop", "%s", (mSvoLoop?"ON":"OFF"));
-      if(mSvoLoop) {
+      stat.addf("SVO Loop", "%s", (mSvoLoop ? "ON" : "OFF"));
+      if (mSvoLoop) {
         stat.addf("SVO Loop Count", "%d", mSvoLoopCount);
       }
-      stat.addf("Real Time mode", "%s", (mSvoRealtime?"ON":"OFF"));
-      if(!mSvoRealtime) {
-        stat.addf("SVO Playback rate", "%.1fx -> %.1f Hz", mSvoRate, mSvoRate*mCamGrabFrameRate);
+      stat.addf("Real Time mode", "%s", (mSvoRealtime ? "ON" : "OFF"));
+      if (!mSvoRealtime) {
+        stat.addf("SVO Playback rate", "%.1fx -> %.1f Hz", mSvoRate, mSvoRate * mCamGrabFrameRate);
       }
     }
 

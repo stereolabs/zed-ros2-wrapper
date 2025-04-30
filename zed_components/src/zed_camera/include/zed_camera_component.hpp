@@ -849,7 +849,7 @@ private:
 
   // ----> SVO Recording parameters
   unsigned int mSvoRecBitrate = 0;
-  sl::SVO_COMPRESSION_MODE mSvoRecCompr = sl::SVO_COMPRESSION_MODE::H264;
+  sl::SVO_COMPRESSION_MODE mSvoRecCompression = sl::SVO_COMPRESSION_MODE::H265;
   unsigned int mSvoRecFramerate = 0;
   bool mSvoRecTranscode = false;
   std::string mSvoRecFilename;

@@ -2938,7 +2938,7 @@ void ZedCameraOne::callback_startSvoRec(
   _svoRecFilename = req->svo_filename;
 
   if (_svoRecFilename.empty()) {
-    _svoRecFilename = "zed.svo";
+    _svoRecFilename = "zed.svo2";
   }
 
   std::string err;
@@ -2958,7 +2958,7 @@ void ZedCameraOne::callback_startSvoRec(
     " * Input Transcode: " << (_svoRecTranscode ? "TRUE" : "FALSE"));
   RCLCPP_INFO_STREAM(
     get_logger(), " * Filename: " << (_svoRecFilename.empty() ?
-    "zed.svo" :
+    "zed.svo2" :
     _svoRecFilename));
 
   res->message = "SVO Recording started";

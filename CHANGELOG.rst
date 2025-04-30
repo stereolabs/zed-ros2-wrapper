@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-04-30
+----------
+- Default SVO Recording Compression mode [`0`] is forced to `H265` replacing the old `LOSSLESS` mode
+
 2025-04-28
 ----------
 - Add new parameter `svo.replay_rate` to set the replay rate for the SVO when not used in realtime mode (range [0.10-5.0])

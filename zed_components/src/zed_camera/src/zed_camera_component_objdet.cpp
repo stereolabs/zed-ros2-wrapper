@@ -18,6 +18,319 @@
 
 namespace stereolabs
 {
+
+void ZedCamera::getOdParams()
+{
+  rclcpp::Parameter paramVal;
+
+  rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
+  read_only_descriptor.read_only = true;
+
+  RCLCPP_INFO(get_logger(), "*** Object Det. parameters ***");
+  if (sl_tools::isZED(mCamUserModel)) {
+    RCLCPP_WARN(get_logger(), "!!! OD parameters are not used with ZED!!!");
+    return;
+  }
+
+  getParam("object_detection.od_enabled", mObjDetEnabled, mObjDetEnabled);
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Object Det. enabled: "
+      << (mObjDetEnabled ? "TRUE" : "FALSE"));
+
+  std::string model_str;
+  getParam("object_detection.detection_model", model_str, model_str);
+  DEBUG_STREAM_OD(" 'object_detection.detection_model': " << model_str.c_str());
+
+  bool matched = false;
+  for (int idx =
+    static_cast<int>(sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST);
+    idx < static_cast<int>(sl::OBJECT_DETECTION_MODEL::LAST);
+    idx++)
+  {
+    sl::OBJECT_DETECTION_MODEL test_model =
+      static_cast<sl::OBJECT_DETECTION_MODEL>(idx);
+    std::string test_model_str = sl::toString(test_model).c_str();
+    std::replace(
+      test_model_str.begin(), test_model_str.end(), ' ',
+      '_');      // Replace spaces with underscores to match the YAML setting
+    DEBUG_OD(" Comparing '%s' to '%s'", test_model_str.c_str(), model_str.c_str());
+    if (model_str == test_model_str) {
+      mObjDetModel = test_model;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value of the parameter 'object_detection.model' is not valid: '"
+        << model_str << "'. Using the default value.");
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Object Det. model: "
+      << sl::toString(mObjDetModel).c_str());
+
+  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
+    getParam(
+      "object_detection.custom_onnx_file", mYoloOnnxPath, mYoloOnnxPath,
+      " * Custom ONNX file: ");
+    if (mYoloOnnxPath.empty()) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "The parameter 'object_detection.custom_onnx_file' is empty. "
+        "Please check the value in the YAML file.");
+      exit(EXIT_FAILURE);
+    }
+    getParam(
+      "object_detection.custom_onnx_input_size", mYoloOnnxSize, mYoloOnnxSize,
+      " * Custom ONNX input size: ");
+    getParam(
+      "object_detection.custom_label_yaml", mCustomLabelsPath, mCustomLabelsPath,
+      " * Custom Label file: ");
+  }
+
+  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS ||
+    mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS)
+  {
+    mUsingCustomOd = true;
+  } else {
+    mUsingCustomOd = false;
+  }
+
+  getParam(
+    "object_detection.allow_reduced_precision_inference",
+    mObjDetReducedPrecision, mObjDetReducedPrecision);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Object Det. allow reduced precision: "
+      << (mObjDetReducedPrecision ? "TRUE" : "FALSE"));
+  getParam(
+    "object_detection.max_range", mObjDetMaxRange, mObjDetMaxRange,
+    " * Object Det. maximum range [m]: ");
+  getParam(
+    "object_detection.prediction_timeout", mObjDetPredTimeout,
+    mObjDetPredTimeout, " * Object Det. prediction timeout [sec]: ");
+  getParam(
+    "object_detection.enable_tracking", mObjDetTracking,
+    mObjDetTracking);
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Object Det. tracking: "
+      << (mObjDetTracking ? "TRUE" : "FALSE"));
+
+
+  std::string filtering_mode_str = "NONE";
+  getParam("object_detection.filtering_mode", filtering_mode_str, filtering_mode_str);
+
+  for (int idx = static_cast<int>(sl::OBJECT_FILTERING_MODE::NONE);
+    idx < static_cast<int>(sl::OBJECT_FILTERING_MODE::LAST); idx++)
+  {
+    sl::OBJECT_FILTERING_MODE test_mode =
+      static_cast<sl::OBJECT_FILTERING_MODE>(idx);
+    std::string test_mode_str = sl::toString(test_mode).c_str();
+    std::replace(
+      test_mode_str.begin(), test_mode_str.end(), ' ', '_');   // Replace spaces with underscores to match the YAML setting
+    DEBUG_OD(" Comparing '%s' to '%s'", filtering_mode_str.c_str(), test_mode_str.c_str());
+    if (filtering_mode_str == test_mode_str) {
+      mObjFilterMode = test_mode;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value of the parameter 'object_detection.filtering_mode' is not valid: '"
+        << model_str << "'. Using the default value.");
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Object Filtering mode: "
+      << sl::toString(mObjFilterMode).c_str());
+
+  if (!mUsingCustomOd) {
+    getParam(
+      "object_detection.class.people.enabled", mObjDetPeopleEnable,
+      mObjDetPeopleEnable, "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox people: " << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
+    getParam(
+      "object_detection.class.vehicle.enabled", mObjDetVehiclesEnable,
+      mObjDetVehiclesEnable, "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox vehicles: "
+        << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
+    getParam(
+      "object_detection.class.bag.enabled", mObjDetBagsEnable,
+      mObjDetBagsEnable, "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox bags: " << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
+    getParam(
+      "object_detection.class.animal.enabled", mObjDetAnimalsEnable,
+      mObjDetAnimalsEnable, "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox animals: "
+        << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
+    getParam(
+      "object_detection.class.electronics.enabled",
+      mObjDetElectronicsEnable, mObjDetElectronicsEnable, "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox electronics: "
+        << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
+    getParam(
+      "object_detection.class.fruit_vegetable.enabled",
+      mObjDetFruitsEnable, mObjDetFruitsEnable, "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox fruits and vegetables: "
+        << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
+    getParam(
+      "object_detection.class.sport.enabled", mObjDetSportEnable,
+      mObjDetSportEnable, "", true);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * MultiClassBox sport-related objects: "
+        << (mObjDetSportEnable ? "TRUE" : "FALSE"));
+  }
+}
+
+bool ZedCamera::handleOdDynamicParams(
+  const rclcpp::Parameter & param,
+  rcl_interfaces::msg::SetParametersResult & result)
+{
+  DEBUG_OD("handleOdDynamicParams");
+
+  if (param.get_name() == "object_detection.class.people.enabled") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetPeopleEnable = param.as_bool();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
+  } else if (param.get_name() == "object_detection.class.vehicle.enabled") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetVehiclesEnable = param.as_bool();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
+  } else if (param.get_name() == "object_detection.class.bag.enabled") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetBagsEnable = param.as_bool();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
+  } else if (param.get_name() == "object_detection.class.animal.enabled") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetAnimalsEnable = param.as_bool();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
+  } else if (param.get_name() ==
+    "object_detection.class.electronics.enabled")
+  {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetElectronicsEnable = param.as_bool();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
+  } else if (param.get_name() ==
+    "object_detection.class.fruit_vegetable.enabled")
+  {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetFruitsEnable = param.as_bool();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
+  } else if (param.get_name() == "object_detection.class.sport.enabled") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetSportEnable = param.as_bool();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << (mObjDetSportEnable ? "TRUE" : "FALSE"));
+  }
+
+  return true;
+}
+
 bool ZedCamera::startObjDetect()
 {
   DEBUG_OD("startObjDetect");

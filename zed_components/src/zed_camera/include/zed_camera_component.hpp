@@ -59,6 +59,13 @@ protected:
   void getStreamingServerParams();
   void getAdvancedParams();
 
+  bool handleOdDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleBodyTrkDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+
   void setTFCoordFrameNames();
   void initPublishers();
   void initSubscribers();

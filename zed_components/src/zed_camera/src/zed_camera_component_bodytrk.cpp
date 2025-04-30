@@ -18,6 +18,226 @@
 
 namespace stereolabs
 {
+void ZedCamera::getBodyTrkParams()
+{
+  rclcpp::Parameter paramVal;
+
+  rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
+  read_only_descriptor.read_only = true;
+
+  RCLCPP_INFO(get_logger(), "*** Body Track. parameters ***");
+  if (sl_tools::isZED(mCamUserModel)) {
+    RCLCPP_WARN(
+      get_logger(),
+      "!!! Body Tracking parameters are not used with ZED!!!");
+    return;
+  }
+
+  getParam("body_tracking.bt_enabled", mBodyTrkEnabled, mBodyTrkEnabled);
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Body Track. enabled: "
+      << (mBodyTrkEnabled ? "TRUE" : "FALSE"));
+
+  bool matched = false;
+
+  std::string model_str = "HUMAN_BODY_FAST";
+  getParam("body_tracking.model", model_str, model_str);
+
+  for (int idx = static_cast<int>(sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST);
+    idx < static_cast<int>(sl::BODY_TRACKING_MODEL::LAST); idx++)
+  {
+    sl::BODY_TRACKING_MODEL test_model =
+      static_cast<sl::BODY_TRACKING_MODEL>(idx);
+    std::string test_model_str = sl::toString(test_model).c_str();
+    std::replace(
+      test_model_str.begin(), test_model_str.end(), ' ',
+      '_');      // Replace spaces with underscores to match the YAML setting
+    // DEBUG_BT(" Comparing '%s' to '%s'", test_model_str.c_str(),
+    // model_str.c_str());
+    if (model_str == test_model_str) {
+      mBodyTrkModel = test_model;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value of the parameter 'body_tracking.model' is not valid: '"
+        << model_str << "'. Using the default value.");
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Body Track. model: "
+      << sl::toString(mBodyTrkModel).c_str());
+
+  std::string fmt_str = "BODY_70";
+  getParam("body_tracking.body_format", fmt_str, fmt_str);
+
+  for (int idx = static_cast<int>(sl::BODY_FORMAT::BODY_18);
+    idx < static_cast<int>(sl::BODY_FORMAT::LAST); idx++)
+  {
+    sl::BODY_FORMAT test_fmt = static_cast<sl::BODY_FORMAT>(idx);
+    std::string test_fmt_str = sl::toString(test_fmt).c_str();
+    std::replace(
+      test_fmt_str.begin(), test_fmt_str.end(), ' ',
+      '_');      // Replace spaces with underscores to match the YAML setting
+    // DEBUG_BT(" Comparing '%s' to '%s'", test_fmt_str.c_str(),
+    // test_fmt.c_str());
+    if (fmt_str == test_fmt_str) {
+      mBodyTrkFmt = test_fmt;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value of the parameter 'body_tracking.body_format' is not valid: '"
+        << fmt_str << "'. Using the default value.");
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Body Track. format: "
+      << sl::toString(mBodyTrkFmt).c_str());
+
+  getParam(
+    "body_tracking.allow_reduced_precision_inference",
+    mBodyTrkReducedPrecision, mBodyTrkReducedPrecision);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Body Track. allow reduced precision: "
+      << (mObjDetReducedPrecision ? "TRUE" : "FALSE"));
+  getParam(
+    "body_tracking.max_range", mBodyTrkMaxRange, mBodyTrkMaxRange,
+    " * Body Track. maximum range [m]: ");
+
+  std::string body_sel_str = "FULL";
+  getParam(
+    "body_tracking.body_kp_selection", body_sel_str, body_sel_str,
+    " * Body Track. KP selection: ");
+
+  DEBUG_BT("body_selection.body_kp_selection: %s", body_sel_str.c_str());
+
+  for (int idx = static_cast<int>(sl::BODY_KEYPOINTS_SELECTION::FULL);
+    idx < static_cast<int>(sl::BODY_KEYPOINTS_SELECTION::LAST); idx++)
+  {
+    sl::BODY_KEYPOINTS_SELECTION test_kp_sel =
+      static_cast<sl::BODY_KEYPOINTS_SELECTION>(idx);
+    std::string test_body_sel_str = sl::toString(test_kp_sel).c_str();
+    std::replace(
+      test_body_sel_str.begin(), test_body_sel_str.end(), ' ',
+      '_');      // Replace spaces with underscores to match the YAML setting
+    DEBUG_BT(
+      " Comparing '%s' to '%s'", test_body_sel_str.c_str(),
+      body_sel_str.c_str());
+    if (body_sel_str == test_body_sel_str) {
+      mBodyTrkKpSelection = test_kp_sel;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value of the parameter "
+      "'body_tracking.body_kp_selection' is not valid: '"
+        << body_sel_str << "'. Using the default value.");
+  }
+
+  getParam(
+    "body_tracking.enable_body_fitting", mBodyTrkFitting,
+    mBodyTrkFitting);
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Body fitting: "
+      << (mBodyTrkFitting ? "TRUE" : "FALSE"));
+
+  getParam(
+    "body_tracking.enable_tracking", mBodyTrkEnableTracking,
+    mBodyTrkEnableTracking);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Body joints tracking: "
+      << (mBodyTrkEnableTracking ? "TRUE" : "FALSE"));
+
+  getParam(
+    "body_tracking.prediction_timeout_s", mBodyTrkPredTimeout,
+    mBodyTrkPredTimeout, " * Body Track. prediction timeout [sec]: ");
+
+  getParam(
+    "body_tracking.confidence_threshold", mBodyTrkConfThresh,
+    mBodyTrkConfThresh, " * Body Track. confidence thresh.: ", true);
+
+  getParam(
+    "body_tracking.minimum_keypoints_threshold", mBodyTrkMinKp,
+    mBodyTrkMinKp, " * Body Track. min. KP thresh.: ", true);
+}
+
+bool ZedCamera::handleBodyTrkDynamicParams(
+  const rclcpp::Parameter & param,
+  rcl_interfaces::msg::SetParametersResult & result)
+{
+  DEBUG_BT("handleBodyTrkDynamicParams");
+
+  if (param.get_name() == "body_tracking.confidence_threshold") {
+    rclcpp::ParameterType correctType =
+      rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    double val = param.as_double();
+
+    if ((val < 0.0) || (val >= 100.0)) {
+      result.successful = false;
+      result.reason =
+        param.get_name() +
+        " must be positive double value in the range [0.0,100.0[";
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mBodyTrkConfThresh = val;
+
+    RCLCPP_INFO_STREAM(
+      get_logger(), "Parameter '" << param.get_name()
+                                  << "' correctly set to "
+                                  << val);
+  } else if (param.get_name() ==
+    "body_tracking.minimum_keypoints_threshold")
+  {
+    rclcpp::ParameterType correctType =
+      rclcpp::ParameterType::PARAMETER_INTEGER;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    double val = param.as_int();
+
+    if ((val < 0) || (val > 70)) {
+      result.successful = false;
+      result.reason = param.get_name() +
+        " must be positive double value in the range [0,70]";
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mBodyTrkMinKp = val;
+
+    RCLCPP_INFO_STREAM(
+      get_logger(), "Parameter '" << param.get_name()
+                                  << "' correctly set to "
+                                  << val);
+  }
+
+  return true;
+}
 
 bool ZedCamera::startBodyTracking()
 {

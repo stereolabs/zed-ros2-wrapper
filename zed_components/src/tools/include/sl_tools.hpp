@@ -25,9 +25,34 @@
 
 #include "gnss_replay.hpp"
 #include "sl_win_avg.hpp"
+
+#include <rcutils/logging_macros.h>
+
 namespace sl_tools
 {
 
+/*! \brief Get a parameter from the node
+ * \param node : the node to get the parameter from
+ * \param paramName : the name of the parameter
+ * \param defValue : the default value of the parameter
+ * \param outVal : the output value of the parameter
+ * \param log_info : the info to log
+ * \param dynamic : if the parameter is dynamic
+ * \param min : the minimum value of the parameter
+ * \param max : the maximum value of the parameter
+ * \tparam T : the type of the parameter
+ */
+template<typename T>
+void getParam(
+  rclcpp::Node::ConstSharedPtr node,
+  std::string paramName, T defValue, T & outVal,
+  std::string log_info = std::string(), bool dynamic = false,
+  T min = std::numeric_limits<T>::min(), T max = std::numeric_limits<T>::max());
+
+/*! \brief Convert a sl::float3 to a vector of float
+ * \param r : the sl::float3 to convert
+ * \return a vector of float
+ */
 std::vector<float> convertRodrigues(sl::float3 r);
 
 /*! \brief Test if a file exist
@@ -166,6 +191,61 @@ private:
   rclcpp::Time mStartTime;  // Reference time point
   rclcpp::Clock::SharedPtr mClockPtr;  // Node clock interface
 };
+
+// ----> Template functions definitions
+template<typename T>
+void getParam(
+  rclcpp::Node::ConstSharedPtr node,
+  std::string paramName, T defValue, T & outVal,
+  std::string log_info, bool dynamic, T minVal, T maxVal)
+{
+  rcl_interfaces::msg::ParameterDescriptor descriptor;
+  descriptor.read_only = !dynamic;
+
+  std::stringstream ss;
+  if constexpr (std::is_same<T, bool>::value) {
+    ss << "Default value: " << (defValue ? "TRUE" : "FALSE");
+  } else {
+    ss << "Default value: " << defValue;
+  }
+  descriptor.description = ss.str();
+
+  if constexpr (std::is_same<T, double>::value) {
+    descriptor.additional_constraints = "Range: [" + std::to_string(minVal) + ", " + std::to_string(
+      maxVal) + "]";
+    rcl_interfaces::msg::FloatingPointRange range;
+    range.from_value = minVal;
+    range.to_value = maxVal;
+    descriptor.floating_point_range.push_back(range);
+  } else if constexpr (std::is_same<T, int>::value) {
+    descriptor.additional_constraints = "Range: [" + std::to_string(minVal) + ", " + std::to_string(
+      maxVal) + "]";
+    rcl_interfaces::msg::IntegerRange range;
+    range.from_value = minVal;
+    range.to_value = maxVal;
+    descriptor.integer_range.push_back(range);
+  }
+
+  declare_parameter(paramName, rclcpp::ParameterValue(defValue), descriptor);
+
+  if (!get_parameter(paramName, outVal)) {
+    RCLCPP_WARN_STREAM(
+      node->get_logger(),
+      "The parameter '"
+        << paramName
+        << "' is not available or is not valid, using the default value: "
+        << defValue);
+  }
+
+  if (!log_info.empty()) {
+    if constexpr (std::is_same<T, bool>::value) {
+      RCLCPP_INFO_STREAM(node->get_logger(), log_info << (outVal ? "TRUE" : "FALSE"));
+    } else {
+      RCLCPP_INFO_STREAM(node->get_logger(), log_info << outVal);
+    }
+  }
+}
+// <---- Template functions definitions
 
 }  // namespace sl_tools
 

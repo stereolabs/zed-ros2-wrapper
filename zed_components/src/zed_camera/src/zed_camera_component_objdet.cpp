@@ -326,6 +326,123 @@ bool ZedCamera::handleOdDynamicParams(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << (mObjDetSportEnable ? "TRUE" : "FALSE"));
+  } else if (param.get_name() == "object_detection.class.people.confidence_threshold") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetPeopleConf = param.as_double();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << mObjDetPeopleConf);
+  } else if (param.get_name() == "object_detection.class.vehicle.confidence_threshold") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetVehiclesConf = param.as_double();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << mObjDetVehiclesConf);
+  } else if (param.get_name() == "object_detection.class.bag.confidence_threshold") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetBagsConf = param.as_double();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << mObjDetBagsConf);
+  } else if (param.get_name() == "object_detection.class.animal.confidence_threshold") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetAnimalsConf = param.as_double();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << mObjDetAnimalsConf);
+  } else if (param.get_name() == "object_detection.class.electronics.confidence_threshold") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+    mObjDetElectronicsConf = param.as_double();
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << mObjDetElectronicsConf);
+  } else if (param.get_name() == "object_detection.class.fruit_vegetable.confidence_threshold") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetFruitsConf = param.as_double();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << mObjDetFruitsConf);
+  } else if (param.get_name() == "object_detection.class.sport.confidence_threshold") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+
+    mObjDetSportConf = param.as_double();
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << mObjDetSportConf);
   }
 
   return true;
@@ -507,7 +624,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     // ----> Process realtime dynamic parameters
     sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
 
-    objectTracker_parameters_rt.detection_confidence_threshold = 20.0f; // Default value, overwritten by single class parameters
+    objectTracker_parameters_rt.detection_confidence_threshold = 50.0f; // Default value, overwritten by single class parameters
     mObjDetFilter.clear();
     if (mObjDetPeopleEnable) {
       mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
@@ -541,7 +658,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     // ----> Process realtime dynamic parameters
     sl::CustomObjectDetectionRuntimeParameters custom_objectTracker_parameters_rt;
     custom_objectTracker_parameters_rt.object_detection_properties.detection_confidence_threshold =
-      20.0f;                                                                                               // Default value, overwritten by single class parameters
+      50.0f;                                                                                               // Default value, overwritten by single class parameters
     // <---- Process realtime dynamic parameters
 
     objDetRes = mZed->retrieveCustomObjects(

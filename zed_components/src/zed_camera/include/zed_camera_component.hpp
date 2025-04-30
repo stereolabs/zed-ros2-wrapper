@@ -59,6 +59,13 @@ protected:
   void getStreamingServerParams();
   void getAdvancedParams();
 
+  bool handleOdDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleBodyTrkDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+
   void setTFCoordFrameNames();
   void initPublishers();
   void initSubscribers();
@@ -90,7 +97,7 @@ protected:
   void callback_pubTemp();
   void callback_pubHeartbeat();
   void callback_gnssPubTimerTimeout();
-  rcl_interfaces::msg::SetParametersResult callback_setParameters(
+  rcl_interfaces::msg::SetParametersResult callback_dynamicParamChange(
     std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(
     diagnostic_updater::DiagnosticStatusWrapper & stat);
@@ -397,19 +404,25 @@ private:
 
   bool mObjDetEnabled = false;
   bool mObjDetTracking = true;
-  float mObjDetConfidence = 40.0f;
   double mObjDetPredTimeout = 0.5;
   bool mObjDetReducedPrecision = false;
   float mObjDetMaxRange = 15.0f;
   std::vector<sl::OBJECT_CLASS> mObjDetFilter;
+  std::map<sl::OBJECT_CLASS, float> mObjDetClassConfMap;
   bool mObjDetPeopleEnable = true;
+  float mObjDetPeopleConf = 50.0;
   bool mObjDetVehiclesEnable = true;
+  float mObjDetVehiclesConf = 50.0;
   bool mObjDetBagsEnable = true;
+  float mObjDetBagsConf = 50.0;
   bool mObjDetAnimalsEnable = true;
+  float mObjDetAnimalsConf = 50.0;
   bool mObjDetElectronicsEnable = true;
+  float mObjDetElectronicsConf = 50.0;
   bool mObjDetFruitsEnable = true;
+  float mObjDetFruitsConf = 50.0;
   bool mObjDetSportEnable = true;
-  bool mObjDetBodyFitting = false;
+  float mObjDetSportConf = 50.0;
   sl::OBJECT_DETECTION_MODEL mObjDetModel =
     sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST;
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;

@@ -15,6 +15,8 @@
 #ifndef SL_TYPES_HPP_
 #define SL_TYPES_HPP_
 
+#include <sl/Camera.hpp>
+
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -64,7 +66,6 @@
 #include <zed_msgs/srv/set_pose.hpp>
 #include <zed_msgs/srv/set_roi.hpp>
 #include <zed_msgs/srv/start_svo_rec.hpp>
-
 
 #ifndef FOUND_FOXY
   #include <point_cloud_transport/point_cloud_transport.hpp>
@@ -181,17 +182,7 @@ typedef enum
   CUSTOM   //!< Custom Rescale Factor
 } PubRes;
 
-std::string toString(const PubRes & res)
-{
-  switch (res) {
-    case NATIVE:
-      return "NATIVE";
-    case CUSTOM:
-      return "CUSTOM";
-    default:
-      return "";
-  }
-}
+std::string toString(const PubRes & res);
 
 typedef enum
 {
@@ -200,21 +191,8 @@ typedef enum
   COMPACT,  //!< Standard resolution. Optimizes processing and bandwidth
   REDUCED   //!< Half resolution. Low processing and bandwidth requirements
 } PcRes;
-std::string toString(const PcRes & res)
-{
-  switch (res) {
-    case PUB:
-      return "PUB";
-    case FULL:
-      return "FULL";
-    case COMPACT:
-      return "COMPACT";
-    case REDUCED:
-      return "REDUCED";
-    default:
-      return "";
-  }
-}
+
+std::string toString(const PcRes & res);
 
 const int NEURAL_W = 896;
 const int NEURAL_H = 512;

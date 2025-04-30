@@ -10312,7 +10312,7 @@ void ZedCamera::callback_startSvoRec(
     return;
   }
 
-  if (req->compression_mode > 5) {
+  if (req->compression_mode < 0 || req->compression_mode > 5) {
     RCLCPP_WARN(
       get_logger(),
       "'compression_mode' mode not valid. Please use a value in "

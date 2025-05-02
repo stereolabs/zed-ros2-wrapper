@@ -7194,7 +7194,7 @@ void ZedCamera::threadFunc_pointcloudElab()
       rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
       DEBUG_STREAM_PC("threadFunc_pointcloudElab: wait_usec " << wait_usec);
     } else {
-      rclcpp::sleep_for(std::chrono::milliseconds(wait_usec));
+      rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
     }
     DEBUG_STREAM_PC("threadFunc_pointcloudElab: sleeped for " << wait_usec << " µsec");
 

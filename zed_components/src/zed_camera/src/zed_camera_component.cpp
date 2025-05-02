@@ -7153,7 +7153,7 @@ void ZedCamera::threadFunc_pointcloudElab()
     DEBUG_STREAM_PC( "pointcloudThreadFunc -> mPcDataReady value: " << (mPcDataReady ? "TRUE" : "FALSE"));
 
     while (!mPcDataReady) {  // loop to avoid spurious wakeups
-      if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(10)) ==
+      if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) ==
         std::cv_status::timeout)
       {
         // Check thread stopping

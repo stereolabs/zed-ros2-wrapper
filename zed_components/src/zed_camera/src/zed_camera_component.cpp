@@ -3592,13 +3592,6 @@ void ZedCamera::initPublishers()
   std::string temp_topic_left = mTopicRoot + temp_topic_root + "/left";
   std::string temp_topic_right = mTopicRoot + temp_topic_root + "/right";
 
-  // Set the Health Status topic names
-  std::string health_topic_root = mTopicRoot + "health_status/";
-  std::string health_low_quality_topic = health_topic_root + "low_image_quality";
-  std::string health_low_lighting_topic = health_topic_root + "low_lighting";
-  std::string health_low_depth_topic = health_topic_root + "low_depth_reliability";
-  std::string health_low_sensor_topic = health_topic_root + "low_motion_sensors_reliability";
-
   // Status topic name
   std::string status_root = mTopicRoot + "status/";
   std::string svo_status_topic = status_root + "svo";
@@ -6496,8 +6489,10 @@ void ZedCamera::threadFunc_zedGrab()
           // Run the point cloud conversion asynchronously to avoid slowing down
           // all the program
           // Retrieve raw pointCloud data if latest Pointcloud is ready
+          DEBUG_PC("pc_lock -> defer");
           std::unique_lock<std::mutex> pc_lock(mPcMutex, std::defer_lock);
 
+          DEBUG_PC("pc_lock -> try_lock");
           if (pc_lock.try_lock()) {
             DEBUG_STREAM_PC(
               "Retrieving point cloud size: " << mPcResol.width << "x" << mPcResol.height);
@@ -6514,9 +6509,12 @@ void ZedCamera::threadFunc_zedGrab()
             mPcPublishing = true;
 
             DEBUG_STREAM_PC("Extracted point cloud: " << mMatCloud.getInfos().c_str() );
+          } else {
+            DEBUG_PC( "pc_lock not locked");
           }
         } else {
           mPcPublishing = false;
+          DEBUG_PC( "No point cloud subscribers");
         }
         // <---- Retrieve the point cloud if someone has subscribed to
 
@@ -6573,7 +6571,7 @@ void ZedCamera::threadFunc_zedGrab()
     if (mSvoMode && !mSvoRealtime) {
       double effective_grab_period = mGrabPeriodMean_sec->getAvg();
       mSvoExpectedPeriod = 1.0 / (mSvoRate * static_cast<double>(mCamGrabFrameRate));
-      double sleep = std::max(0.0, mSvoExpectedPeriod - effective_grab_period);
+      double sleep = std::max(0.001, mSvoExpectedPeriod - effective_grab_period);
       rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep * 1000)));
     }
   }
@@ -7138,15 +7136,14 @@ void ZedCamera::threadFunc_pointcloudElab()
 
   while (1) {
     if (!rclcpp::ok()) {
-      DEBUG_STREAM_PC("Ctrl+C received: stopping point cloud thread");
+      DEBUG_PC("Ctrl+C received: stopping point cloud thread");
       break;
     }
 
-    // DEBUG_STREAM_PC( "pointcloudThreadFunc -> mPcDataReady value:
-    // %s", mPcDataReady ? "TRUE" : "FALSE");
+    DEBUG_STREAM_PC( "pointcloudThreadFunc -> mPcDataReady value: " << (mPcDataReady ? "TRUE" : "FALSE"));
 
     while (!mPcDataReady) {  // loop to avoid spurious wakeups
-      if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) ==
+      if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(10)) ==
         std::cv_status::timeout)
       {
         // Check thread stopping
@@ -7157,11 +7154,10 @@ void ZedCamera::threadFunc_pointcloudElab()
         }
         if (mThreadStop) {
           DEBUG_STREAM_PC(
-            "threadFunc_pointcloudElab (2): Point Cloud thread stopped");
+            "threadFunc_pointcloudElab (1): Point Cloud thread stopped");
           break;
         } else {
-          // DEBUG_STREAM_PC( "pointcloudThreadFunc -> WAIT FOR CLOUD
-          // DATA");
+          DEBUG_STREAM_PC( "pointcloudThreadFunc -> WAIT FOR CLOUD DATA");
           continue;
         }
       }
@@ -7169,7 +7165,7 @@ void ZedCamera::threadFunc_pointcloudElab()
 
     if (mThreadStop) {
       DEBUG_STREAM_PC(
-        "threadFunc_pointcloudElab (1): Point Cloud thread stopped");
+        "threadFunc_pointcloudElab (2): Point Cloud thread stopped");
       break;
     }
 
@@ -7180,13 +7176,17 @@ void ZedCamera::threadFunc_pointcloudElab()
 
     double elapsed_usec = mPcPubFreqTimer.toc() * 1e6;
 
-    DEBUG_STREAM_PC("threadFunc_pointcloudElab: elapsed_usec " << elapsed_usec);
+    DEBUG_STREAM_PC("threadFunc_pointcloudElab (3): elapsed_usec " << elapsed_usec);
 
+    int wait_usec = 1;
     if (elapsed_usec < pc_period_usec) {
-      int wait_usec = static_cast<int>(pc_period_usec - elapsed_usec);
+      wait_usec = static_cast<int>(pc_period_usec - elapsed_usec);
       rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
       DEBUG_STREAM_PC("threadFunc_pointcloudElab: wait_usec " << wait_usec);
+    } else {
+      rclcpp::sleep_for(std::chrono::milliseconds(wait_usec));
     }
+    DEBUG_STREAM_PC("threadFunc_pointcloudElab: sleeped for " << wait_usec << " µsec");
 
     mPcPubFreqTimer.tic();
     // <---- Check publishing frequency
@@ -7768,7 +7768,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   // Diagnostic statistic
   mVideoDepthElabMean_sec->addValue(vdElabTimer.toc());
 
-  // ----> Check publishing frequency
+  /*/ ----> Check publishing frequency
   double vd_period_usec = 1e6 / mPubFrameRate;
 
   double elapsed_usec = mVdPubFreqTimer.toc() * 1e6;
@@ -7780,7 +7780,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   }
 
   mVdPubFreqTimer.tic();
-  // <---- Check publishing frequency
+  // <---- Check publishing frequency */
 
   DEBUG_VD("*** Video and Depth topics published *** ");
 }

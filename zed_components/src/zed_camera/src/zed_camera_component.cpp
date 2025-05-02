@@ -996,6 +996,7 @@ void ZedCamera::getGeneralParams()
       "* [Simulation mode] Publish framerate forced to 60 Hz");
     mPubFrameRate = 60;
   }
+  
   if (mSvoMode && !mSvoRealtime) {
     RCLCPP_INFO(
       get_logger(),

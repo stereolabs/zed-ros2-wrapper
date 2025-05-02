@@ -996,7 +996,7 @@ void ZedCamera::getGeneralParams()
       "* [Simulation mode] Publish framerate forced to 60 Hz");
     mPubFrameRate = 60;
   }
-  
+
   if (mSvoMode && !mSvoRealtime) {
     RCLCPP_INFO(
       get_logger(),
@@ -1302,13 +1302,13 @@ void ZedCamera::getDepthParams()
       mOpenniDepthMode ? "TRUE" : "FALSE");
 
     getParam("depth.point_cloud_freq", mPcPubRate, mPcPubRate, "", true);
-    if(mSvoMode && !mSvoRealtime) {
+    if (mSvoMode && !mSvoRealtime) {
       if (mPcPubRate > 30.0) {
         RCLCPP_WARN(
           get_logger(),
           "'point_cloud_freq' cannot be bigger than '30' in SVO Mode");
         mPcPubRate = 30.0;
-      }      
+      }
     } else {
       if (mPcPubRate > mPubFrameRate) {
         RCLCPP_WARN(
@@ -6520,11 +6520,11 @@ void ZedCamera::threadFunc_zedGrab()
 
             DEBUG_STREAM_PC("Extracted point cloud: " << mMatCloud.getInfos().c_str() );
           } else {
-            DEBUG_PC( "pc_lock not locked");
+            DEBUG_PC("pc_lock not locked");
           }
         } else {
           mPcPublishing = false;
-          DEBUG_PC( "No point cloud subscribers");
+          DEBUG_PC("No point cloud subscribers");
         }
         // <---- Retrieve the point cloud if someone has subscribed to
 
@@ -7150,7 +7150,9 @@ void ZedCamera::threadFunc_pointcloudElab()
       break;
     }
 
-    DEBUG_STREAM_PC( "pointcloudThreadFunc -> mPcDataReady value: " << (mPcDataReady ? "TRUE" : "FALSE"));
+    DEBUG_STREAM_PC(
+      "pointcloudThreadFunc -> mPcDataReady value: " <<
+        (mPcDataReady ? "TRUE" : "FALSE"));
 
     while (!mPcDataReady) {  // loop to avoid spurious wakeups
       if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) ==
@@ -7167,7 +7169,7 @@ void ZedCamera::threadFunc_pointcloudElab()
             "threadFunc_pointcloudElab (1): Point Cloud thread stopped");
           break;
         } else {
-          DEBUG_STREAM_PC( "pointcloudThreadFunc -> WAIT FOR CLOUD DATA");
+          DEBUG_STREAM_PC("pointcloudThreadFunc -> WAIT FOR CLOUD DATA");
           continue;
         }
       }

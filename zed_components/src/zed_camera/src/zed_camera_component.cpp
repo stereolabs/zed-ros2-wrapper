@@ -6320,7 +6320,7 @@ void ZedCamera::threadFunc_zedGrab()
                   "Waiting for SVO status subscribers to unsubscribe. Active subscribers: " <<
                     mPubSvoStatus->get_subscription_count());
                 mDiagUpdater.force_update();
-                rclcpp::sleep_for(1000ms);
+                rclcpp::sleep_for(1s);
                 continue;
               }
             }
@@ -6330,7 +6330,7 @@ void ZedCamera::threadFunc_zedGrab()
               get_logger(),
               "Connection issue detected: "
                 << sl::toString(mGrabStatus).c_str());
-            rclcpp::sleep_for(1000ms);
+            rclcpp::sleep_for(1s);
             continue;
           } else if (mGrabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED ||
             mGrabStatus == sl::ERROR_CODE::FAILURE)
@@ -6339,7 +6339,7 @@ void ZedCamera::threadFunc_zedGrab()
               get_logger(),
               "Camera issue detected: "
                 << sl::toString(mGrabStatus).c_str() << ". Trying to recover the connection...");
-            rclcpp::sleep_for(1000ms);
+            rclcpp::sleep_for(1s);
             continue;
           } else if (mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
             RCLCPP_WARN_STREAM(
@@ -7188,7 +7188,7 @@ void ZedCamera::threadFunc_pointcloudElab()
 
     DEBUG_STREAM_PC("threadFunc_pointcloudElab (3): elapsed_usec " << elapsed_usec);
 
-    int wait_usec = 1;
+    int wait_usec = 100;
     if (elapsed_usec < pc_period_usec) {
       wait_usec = static_cast<int>(pc_period_usec - elapsed_usec);
       rclcpp::sleep_for(std::chrono::microseconds(wait_usec));

@@ -1787,7 +1787,7 @@ void ZedCameraOne::threadFunc_zedGrab()
               get_logger(),
               "Connection issue detected: "
                 << sl::toString(_grabStatus).c_str());
-            rclcpp::sleep_for(1000ms);
+            rclcpp::sleep_for(1s);
             continue;
           } else if (_grabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED ||
             _grabStatus == sl::ERROR_CODE::FAILURE)
@@ -1797,7 +1797,7 @@ void ZedCameraOne::threadFunc_zedGrab()
               "Camera issue detected: "
                 << sl::toString(_grabStatus).c_str() << ". " << sl::toVerbose(
                 _grabStatus).c_str() << ". Trying to recover the connection...");
-            rclcpp::sleep_for(1000ms);
+            rclcpp::sleep_for(1s);
             continue;
           } else {
             RCLCPP_ERROR_STREAM(
@@ -1987,16 +1987,14 @@ void ZedCameraOne::threadFunc_pubSensorsData()
       // std::lock_guard<std::mutex> lock(mCloseZedMutex);
       if (!_zed->isOpened()) {
         DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] the camera is not open");
-        rclcpp::sleep_for(
-          std::chrono::milliseconds(200));    // Avoid busy-waiting
+        rclcpp::sleep_for(200ms);    // Avoid busy-waiting
         continue;
       }
 
       _imuPublishing = areSensorsTopicsSubscribed();
 
       if (!_imuPublishing && !_publishImuTF) {
-        rclcpp::sleep_for(
-          std::chrono::milliseconds(200));    // Avoid busy-waiting
+        rclcpp::sleep_for(200ms);    // Avoid busy-waiting
         continue;
       }
 

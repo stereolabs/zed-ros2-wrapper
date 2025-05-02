@@ -319,7 +319,10 @@ private:
   bool mSvoLoop = false;
   bool mSvoRealtime = false;
   int mSvoFrameStart = 0;
+  double mSvoRate = 1.0;
+  double mSvoExpectedPeriod = 0.0;
   bool mUseSvoTimestamp = false;
+  bool mGrabOnce = false;
   int mVerbose = 1;
   std::string mVerboseLogFile = "";
   int mGpuId = -1;
@@ -846,7 +849,7 @@ private:
 
   // ----> SVO Recording parameters
   unsigned int mSvoRecBitrate = 0;
-  sl::SVO_COMPRESSION_MODE mSvoRecCompr = sl::SVO_COMPRESSION_MODE::H264;
+  sl::SVO_COMPRESSION_MODE mSvoRecCompression = sl::SVO_COMPRESSION_MODE::H265;
   unsigned int mSvoRecFramerate = 0;
   bool mSvoRecTranscode = false;
   std::string mSvoRecFilename;

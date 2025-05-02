@@ -1302,17 +1302,26 @@ void ZedCamera::getDepthParams()
       mOpenniDepthMode ? "TRUE" : "FALSE");
 
     getParam("depth.point_cloud_freq", mPcPubRate, mPcPubRate, "", true);
-    if (mPcPubRate > mPubFrameRate) {
-      RCLCPP_WARN(
-        get_logger(),
-        "'point_cloud_freq' cannot be bigger than 'pub_frame_rate'");
-      mPcPubRate = mPubFrameRate;
+    if(mSvoMode && !mSvoRealtime) {
+      if (mPcPubRate > 30.0) {
+        RCLCPP_WARN(
+          get_logger(),
+          "'point_cloud_freq' cannot be bigger than '30' in SVO Mode");
+        mPcPubRate = 30.0;
+      }      
+    } else {
+      if (mPcPubRate > mPubFrameRate) {
+        RCLCPP_WARN(
+          get_logger(),
+          "'point_cloud_freq' cannot be bigger than 'pub_frame_rate'");
+        mPcPubRate = mPubFrameRate;
+      }
     }
     if (mPcPubRate < 0.1) {
       RCLCPP_WARN(
         get_logger(),
         "'point_cloud_freq' cannot be lower than 0.1 Hz or negative.");
-      mPcPubRate = mPubFrameRate;
+      mPcPubRate = 0.1;
     }
     RCLCPP_INFO_STREAM(
       get_logger(),

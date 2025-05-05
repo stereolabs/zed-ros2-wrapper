@@ -340,13 +340,17 @@ void ZedCamera::initServices()
 
   // Pause SVO (only if the realtime playing mode is disabled)
   if (mSvoMode) {
+#ifndef USE_SVO_REALTIME_PAUSE
     if (!mSvoRealtime) {
+#endif
       srv_name = srv_prefix + mSrvToggleSvoPauseName;
       mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(
         srv_name,
         std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
       RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+#ifndef USE_SVO_REALTIME_PAUSE
     }
+#endif
 
     //Set Service for SVO frame
     srv_name = srv_prefix + mSrvSetSvoFrameName;

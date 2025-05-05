@@ -6360,6 +6360,10 @@ void ZedCamera::threadFunc_zedGrab()
         // <---- Grab errors?
 
         mFrameCount++;
+        if (mSvoMode) {
+          mSvoFrameId = mZed->getSVOPosition();
+          mSvoFrameCount = mZed->getSVONumberOfFrames();
+        }
 
         if (mGnssFusionEnabled) {
           // Process Fusion data
@@ -10602,13 +10606,11 @@ void ZedCamera::callback_updateDiagnostic(
     }
 
     if (mSvoMode) {
-      int frame = mZed->getSVOPosition();
-      int totFrames = mZed->getSVONumberOfFrames();
-      double svo_perc = 100. * (static_cast<double>(frame) / totFrames);
+      double svo_perc = 100. * (static_cast<double>(mSvoFrameId) / mSvoFrameCount);
 
       stat.addf(
-        "Playing SVO", "Frame: %d/%d (%.1f%%)", frame, totFrames,
-        svo_perc);
+        "Playing SVO", "%sFrame: %d/%d (%.1f%%)",
+        (mSvoPause ? "PAUSED - " : ""), mSvoFrameId, mSvoFrameCount, svo_perc);
       stat.addf("SVO Loop", "%s", (mSvoLoop ? "ON" : "OFF"));
       if (mSvoLoop) {
         stat.addf("SVO Loop Count", "%d", mSvoLoopCount);

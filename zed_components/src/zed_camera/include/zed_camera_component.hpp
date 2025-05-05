@@ -726,6 +726,8 @@ private:
   bool mDebugMode = false;  // Debug mode active?
   bool mSvoMode = false;
   bool mSvoPause = false;
+  int mSvoFrameId = 0;
+  int mSvoFrameCount = 0;
   bool mPosTrackingStarted = false;
   bool mVdPublishing = false;  // Indicates if video and depth data are
                                // subscribed and then published

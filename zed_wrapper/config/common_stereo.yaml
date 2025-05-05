@@ -176,7 +176,7 @@
             sdk_verbose_log_file: '' # Path to the file where the ZED SDK will log its messages. If empty, no file will be created. The log level can be set using the `sdk_verbose` parameter.
             debug_common: false
             debug_sim: false
-            debug_video_depth: true
+            debug_video_depth: false
             debug_camera_controls: false
             debug_point_cloud: false
             debug_positional_tracking: false

@@ -6579,10 +6579,16 @@ void ZedCamera::threadFunc_zedGrab()
     }
 
     if (mSvoMode && !mSvoRealtime) {
-      double effective_grab_period = mGrabPeriodMean_sec->getAvg();
+      double effective_grab_period = mElabPeriodMean_sec->getAvg();
       mSvoExpectedPeriod = 1.0 / (mSvoRate * static_cast<double>(mCamGrabFrameRate));
       double sleep = std::max(0.001, mSvoExpectedPeriod - effective_grab_period);
       rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep * 1000)));
+
+
+      DEBUG_STREAM_COMM(
+        "SVO sleep time: " << sleep << " sec - Expecter grab period:"
+                           << mSvoExpectedPeriod << " sec - Elab time:"
+                           << effective_grab_period << " sec");
     }
   }
 

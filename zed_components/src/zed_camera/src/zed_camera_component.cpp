@@ -57,6 +57,9 @@ using namespace std::placeholders;
 // Used for simulation data input
 #define ZED_SDK_PORT 30000
 
+// Used to enable ZED SDK RealTime SVO pause
+//#define USE_SVO_REALTIME_PAUSE
+
 namespace stereolabs
 {
 
@@ -6152,16 +6155,6 @@ void ZedCamera::threadFunc_zedGrab()
   while (1) {
     auto t0 = get_clock()->now().nanoseconds();
     try {
-      if (mUseSimTime && !mClockAvailable) {
-        rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-        RCLCPP_WARN_THROTTLE(
-          get_logger(), steady_clock, 5000.0,
-          "Waiting for a valid simulation time on the '/clock' topic...");
-        continue;
-      }
-
-      sl_tools::StopWatch grabElabTimer(get_clock());
-
       // ----> Interruption check
       if (!rclcpp::ok()) {
         mThreadStop = true;
@@ -6174,6 +6167,27 @@ void ZedCamera::threadFunc_zedGrab()
         break;
       }
       // <---- Interruption check
+
+      if (mSvoMode && mSvoPause) {
+        if (!mGrabOnce) {
+          rclcpp::sleep_for(100ms);
+  #ifdef USE_SVO_REALTIME_PAUSE
+          // Dummy grab
+          mZed->grab();
+  #endif
+          continue;
+        }
+      }
+
+      if (mUseSimTime && !mClockAvailable) {
+        rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), steady_clock, 5000.0,
+          "Waiting for a valid simulation time on the '/clock' topic...");
+        continue;
+      }
+
+      sl_tools::StopWatch grabElabTimer(get_clock());
 
       // ----> Apply depth settings
       applyDepthSettings();
@@ -6261,203 +6275,198 @@ void ZedCamera::threadFunc_zedGrab()
       }
       // <---- Publish SVO Status information
 
-      if (!mSvoPause || (mGrabOnce)) {
-        // Start processing timer for diagnostic
-        grabElabTimer.tic();
 
-        // ZED grab
-        DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
+      // Start processing timer for diagnostic
+      grabElabTimer.tic();
 
-        mGrabStatus = mZed->grab(mRunParams);
+      // ZED grab
+      DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
 
-        DEBUG_COMM("Grabbed");
+      mGrabStatus = mZed->grab(mRunParams);
 
-        // ----> Grab errors?
-        // Note: disconnection are automatically handled by the ZED SDK
-        if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
-          if (mSvoMode && mGrabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
-            // ----> Check SVO status
-            if (mSvoLoop) {
-              mSvoLoopCount++;
-              mZed->setSVOPosition(mSvoFrameStart);
-              RCLCPP_WARN_STREAM(
-                get_logger(),
-                "SVO reached the end and it has been restarted from frame #" << mSvoFrameStart);
-              rclcpp::sleep_for(
-                std::chrono::microseconds(
-                  static_cast<int>(mGrabPeriodMean_sec->getAvg() * 1e6)));
-              if (mResetPoseWithSvoLoop) {
-                RCLCPP_WARN(
-                  get_logger(),
-                  " * Camera pose reset to initial conditions.");
+      DEBUG_COMM("Grabbed");
 
-                mResetOdomFromSrv = true;
-                mOdomPath.clear();
-                mPosePath.clear();
-
-                // Restart tracking
-                startPosTracking();
-              }
-              continue;
-            } else {
-              // ----> Stop all the other threads and Timers
-              mThreadStop = true;
-              if (mPathTimer) {mPathTimer->cancel();}
-              if (mFusedPcTimer) {mFusedPcTimer->cancel();}
-              if (mTempPubTimer) {mTempPubTimer->cancel();}
-              if (mGnssPubCheckTimer) {mGnssPubCheckTimer->cancel();}
-              // <---- Stop all the other threads and Timers
-
-              RCLCPP_WARN(get_logger(), "SVO reached the end.");
-
-              // Force SVO status update
-              if (!publishSvoStatus(mFrameTimestamp.nanoseconds())) {
-                RCLCPP_WARN(get_logger(), "Node stopped. Press Ctrl+C to exit.");
-                break;
-              } else {
-                RCLCPP_WARN_STREAM(
-                  get_logger(),
-                  "Waiting for SVO status subscribers to unsubscribe. Active subscribers: " <<
-                    mPubSvoStatus->get_subscription_count());
-                mDiagUpdater.force_update();
-                rclcpp::sleep_for(1s);
-                continue;
-              }
-            }
-            // <---- Check SVO status
-          } else if (mGrabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
-            RCLCPP_ERROR_STREAM(
-              get_logger(),
-              "Connection issue detected: "
-                << sl::toString(mGrabStatus).c_str());
-            rclcpp::sleep_for(1s);
-            continue;
-          } else if (mGrabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED ||
-            mGrabStatus == sl::ERROR_CODE::FAILURE)
-          {
-            RCLCPP_ERROR_STREAM(
-              get_logger(),
-              "Camera issue detected: "
-                << sl::toString(mGrabStatus).c_str() << ". Trying to recover the connection...");
-            rclcpp::sleep_for(1s);
-            continue;
-          } else if (mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
+      // ----> Grab errors?
+      // Note: disconnection are automatically handled by the ZED SDK
+      if (mGrabStatus != sl::ERROR_CODE::SUCCESS) {
+        if (mSvoMode && mGrabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
+          // ----> Check SVO status
+          if (mSvoLoop) {
+            mSvoLoopCount++;
+            mZed->setSVOPosition(mSvoFrameStart);
             RCLCPP_WARN_STREAM(
               get_logger(),
-              "Corrupted frame detected: "
-                << sl::toString(mGrabStatus).c_str());
-            static const int frame_grab_period =
-              static_cast<int>(std::round(1000. / mCamGrabFrameRate));
+              "SVO reached the end and it has been restarted from frame #" << mSvoFrameStart);
+            rclcpp::sleep_for(
+              std::chrono::microseconds(
+                static_cast<int>(mGrabPeriodMean_sec->getAvg() * 1e6)));
+            if (mResetPoseWithSvoLoop) {
+              RCLCPP_WARN(
+                get_logger(),
+                " * Camera pose reset to initial conditions.");
+
+              mResetOdomFromSrv = true;
+              mOdomPath.clear();
+              mPosePath.clear();
+
+              // Restart tracking
+              startPosTracking();
+            }
+            continue;
           } else {
-            RCLCPP_ERROR_STREAM(
-              get_logger(),
-              "Critical camera error: " << sl::toString(mGrabStatus).c_str()
-                                        << ". NODE KILLED.");
-            mZed.reset();
-            exit(EXIT_FAILURE);
-          }
-        }
-        // <---- Grab errors?
+            // ----> Stop all the other threads and Timers
+            mThreadStop = true;
+            if (mPathTimer) {mPathTimer->cancel();}
+            if (mFusedPcTimer) {mFusedPcTimer->cancel();}
+            if (mTempPubTimer) {mTempPubTimer->cancel();}
+            if (mGnssPubCheckTimer) {mGnssPubCheckTimer->cancel();}
+            // <---- Stop all the other threads and Timers
 
-        mFrameCount++;
-        if (mSvoMode) {
-          mSvoFrameId = mZed->getSVOPosition();
-          mSvoFrameCount = mZed->getSVONumberOfFrames();
-        }
+            RCLCPP_WARN(get_logger(), "SVO reached the end.");
 
-        if (mGnssFusionEnabled) {
-          // Process Fusion data
-          mFusionStatus = mFusion.process();
-          // ----> Fusion errors?
-          if (mFusionStatus != sl::FUSION_ERROR_CODE::SUCCESS &&
-            mFusionStatus != sl::FUSION_ERROR_CODE::NO_NEW_DATA_AVAILABLE)
-          {
-            RCLCPP_ERROR_STREAM(
-              get_logger(),
-              "Fusion error: " << sl::toString(mFusionStatus).c_str());
-          }
-          // <---- Fusion errors?
-        }
-
-        // ----> Timestamp
-        if (mSvoMode) {
-          if (mUseSvoTimestamp) {
-            mFrameTimestamp = sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
-          } else {
-            mFrameTimestamp =
-              sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
-          }
-        } else if (mSimMode) {
-          if (mUseSimTime) {
-            mFrameTimestamp = get_clock()->now();
-          } else {
-            mFrameTimestamp = sl_tools::slTime2Ros(
-              mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
-          }
-        } else {
-          mFrameTimestamp =
-            sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
-        }
-        //DEBUG_STREAM_COMM("Grab timestamp: " << mFrameTimestamp.nanoseconds() << " nsec");
-        // <---- Timestamp
-
-        if (mStreamingServerRequired && !mStreamingServerRunning) {
-          DEBUG_STR("Streaming server required, but not running");
-          startStreamingServer();
-        }
-
-        if (!mSimMode) {
-          if (mGnssFusionEnabled && mGnssFixNew) {
-            mGnssFixNew = false;
-
-            rclcpp::Time real_frame_ts = sl_tools::slTime2Ros(
-              mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
-            DEBUG_STREAM_GNSS(
-              "GNSS synced frame ts: "
-                << real_frame_ts.nanoseconds() << " nsec");
-            float dT_sec = (static_cast<float>(real_frame_ts.nanoseconds()) -
-              static_cast<float>(mGnssTimestamp.nanoseconds())) /
-              1e9;
-            DEBUG_STREAM_GNSS(
-              "DeltaT: "
-                << dT_sec << " sec [" << std::fixed << std::setprecision(9)
-                << static_cast<float>(real_frame_ts.nanoseconds()) / 1e9 << "-"
-                << static_cast<float>(mGnssTimestamp.nanoseconds()) / 1e9 << "]");
-
-            if (dT_sec < 0.0) {
+            // Force SVO status update
+            if (!publishSvoStatus(mFrameTimestamp.nanoseconds())) {
+              RCLCPP_WARN(get_logger(), "Node stopped. Press Ctrl+C to exit.");
+              break;
+            } else {
               RCLCPP_WARN_STREAM(
                 get_logger(),
-                "GNSS sensor and ZED Timestamps are not good. dT = " << dT_sec
-                                                                     << " sec");
+                "Waiting for SVO status subscribers to unsubscribe. Active subscribers: " <<
+                  mPubSvoStatus->get_subscription_count());
+              mDiagUpdater.force_update();
+              rclcpp::sleep_for(1s);
+              continue;
             }
           }
+          // <---- Check SVO status
+        } else if (mGrabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
+          RCLCPP_ERROR_STREAM(
+            get_logger(),
+            "Connection issue detected: "
+              << sl::toString(mGrabStatus).c_str());
+          rclcpp::sleep_for(1s);
+          continue;
+        } else if (mGrabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED ||
+          mGrabStatus == sl::ERROR_CODE::FAILURE)
+        {
+          RCLCPP_ERROR_STREAM(
+            get_logger(),
+            "Camera issue detected: "
+              << sl::toString(mGrabStatus).c_str() << ". Trying to recover the connection...");
+          rclcpp::sleep_for(1s);
+          continue;
+        } else if (mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
+          RCLCPP_WARN_STREAM(
+            get_logger(),
+            "Corrupted frame detected: "
+              << sl::toString(mGrabStatus).c_str());
+          static const int frame_grab_period =
+            static_cast<int>(std::round(1000. / mCamGrabFrameRate));
+        } else {
+          RCLCPP_ERROR_STREAM(
+            get_logger(),
+            "Critical camera error: " << sl::toString(mGrabStatus).c_str()
+                                      << ". NODE KILLED.");
+          mZed.reset();
+          exit(EXIT_FAILURE);
         }
+      }
+      // <---- Grab errors?
 
-        publishHealthStatus();
-
-        // ----> Check recording status
-        mRecMutex.lock();
-        if (mRecording) {
-          mRecStatus = mZed->getRecordingStatus();
-          static int svo_rec_err_count = 0;
-          if (mRecStatus.is_recording && !mRecStatus.status) {
-            if (++svo_rec_err_count > 3) {
-              rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-              RCLCPP_WARN_THROTTLE(
-                get_logger(), steady_clock, 1000.0,
-                "Error saving frame to SVO");
-            }
-          } else {
-            svo_rec_err_count = 0;
-          }
-        }
-        mRecMutex.unlock();
-        // <---- Check recording status
-
-        //reset mGrabOnce
-        if (mGrabOnce) {mGrabOnce = false;}
+      mFrameCount++;
+      if (mSvoMode) {
+        mSvoFrameId = mZed->getSVOPosition();
+        mSvoFrameCount = mZed->getSVONumberOfFrames();
       }
 
+      if (mGnssFusionEnabled) {
+        // Process Fusion data
+        mFusionStatus = mFusion.process();
+        // ----> Fusion errors?
+        if (mFusionStatus != sl::FUSION_ERROR_CODE::SUCCESS &&
+          mFusionStatus != sl::FUSION_ERROR_CODE::NO_NEW_DATA_AVAILABLE)
+        {
+          RCLCPP_ERROR_STREAM(
+            get_logger(),
+            "Fusion error: " << sl::toString(mFusionStatus).c_str());
+        }
+        // <---- Fusion errors?
+      }
+
+      // ----> Timestamp
+      if (mSvoMode) {
+        if (mUseSvoTimestamp) {
+          mFrameTimestamp = sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+        } else {
+          mFrameTimestamp =
+            sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+        }
+      } else if (mSimMode) {
+        if (mUseSimTime) {
+          mFrameTimestamp = get_clock()->now();
+        } else {
+          mFrameTimestamp = sl_tools::slTime2Ros(
+            mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+        }
+      } else {
+        mFrameTimestamp =
+          sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+      }
+      //DEBUG_STREAM_COMM("Grab timestamp: " << mFrameTimestamp.nanoseconds() << " nsec");
+      // <---- Timestamp
+
+      if (mStreamingServerRequired && !mStreamingServerRunning) {
+        DEBUG_STR("Streaming server required, but not running");
+        startStreamingServer();
+      }
+
+      if (!mSimMode) {
+        if (mGnssFusionEnabled && mGnssFixNew) {
+          mGnssFixNew = false;
+
+          rclcpp::Time real_frame_ts = sl_tools::slTime2Ros(
+            mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+          DEBUG_STREAM_GNSS(
+            "GNSS synced frame ts: "
+              << real_frame_ts.nanoseconds() << " nsec");
+          float dT_sec = (static_cast<float>(real_frame_ts.nanoseconds()) -
+            static_cast<float>(mGnssTimestamp.nanoseconds())) /
+            1e9;
+          DEBUG_STREAM_GNSS(
+            "DeltaT: "
+              << dT_sec << " sec [" << std::fixed << std::setprecision(9)
+              << static_cast<float>(real_frame_ts.nanoseconds()) / 1e9 << "-"
+              << static_cast<float>(mGnssTimestamp.nanoseconds()) / 1e9 << "]");
+
+          if (dT_sec < 0.0) {
+            RCLCPP_WARN_STREAM(
+              get_logger(),
+              "GNSS sensor and ZED Timestamps are not good. dT = " << dT_sec
+                                                                   << " sec");
+          }
+        }
+      }
+
+      publishHealthStatus();
+
+      // ----> Check recording status
+      mRecMutex.lock();
+      if (mRecording) {
+        mRecStatus = mZed->getRecordingStatus();
+        static int svo_rec_err_count = 0;
+        if (mRecStatus.is_recording && !mRecStatus.status) {
+          if (++svo_rec_err_count > 3) {
+            rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+            RCLCPP_WARN_THROTTLE(
+              get_logger(), steady_clock, 1000.0,
+              "Error saving frame to SVO");
+          }
+        } else {
+          svo_rec_err_count = 0;
+        }
+      }
+      mRecMutex.unlock();
+      // <---- Check recording status
       // ----> Retrieve Image/Depth data if someone has subscribed to
       // Retrieve data if there are subscriber to topics
       if (areVideoDepthSubscribed()) {
@@ -6594,6 +6603,9 @@ void ZedCamera::threadFunc_zedGrab()
                            << mSvoExpectedPeriod << " sec - Elab time:"
                            << effective_grab_period << " sec");
     }
+
+    //reset mGrabOnce
+    if (mGrabOnce) {mGrabOnce = false;}
   }
 
   // Stop the heartbeat
@@ -7308,6 +7320,14 @@ void ZedCamera::threadFunc_pubSensorsData()
           "threadFunc_pubSensorsData (2): Sensors thread stopped");
         break;
       }
+
+      if (mSvoMode && mSvoPause) {
+        if (!mGrabOnce) {
+          rclcpp::sleep_for(100ms);
+          continue;
+        }
+      }
+
 
       // std::lock_guard<std::mutex> lock(mCloseZedMutex);
       if (!mZed->isOpened()) {
@@ -10441,6 +10461,7 @@ void ZedCamera::callback_pauseSvoInput(
     return;
   }
 
+#ifndef USE_SVO_REALTIME_PAUSE
   if (mSvoRealtime) {
     RCLCPP_WARN(
       get_logger(),
@@ -10451,6 +10472,7 @@ void ZedCamera::callback_pauseSvoInput(
     mSvoPause = false;
     return;
   }
+#endif
 
   if (!mSvoPause) {
     RCLCPP_WARN(get_logger(), "SVO is paused");
@@ -10462,6 +10484,11 @@ void ZedCamera::callback_pauseSvoInput(
     mSvoPause = false;
   }
   res->success = true;
+
+#ifdef USE_SVO_REALTIME_PAUSE
+  mZed->pauseSVOReading(mSvoPause);
+#endif
+
 }
 
 void ZedCamera::callback_setSvoFrame(

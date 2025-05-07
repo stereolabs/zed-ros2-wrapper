@@ -95,7 +95,8 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mLastClock(TIMEZERO_ROS),
   mStreamingServerRequired(false),
   mStreamingServerRunning(false),
-  mUptimer(get_clock())
+  mUptimer(get_clock()),
+  mSetSvoFrameCheckTimer(get_clock())
 {
   RCLCPP_INFO(get_logger(), "********************************");
   RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
@@ -6191,6 +6192,8 @@ void ZedCamera::threadFunc_zedGrab()
           mZed->grab();
   #endif
           continue;
+        } else {
+          mGrabOnce = false; // Reset the flag and grab once
         }
       }
 
@@ -6618,9 +6621,6 @@ void ZedCamera::threadFunc_zedGrab()
                            << mSvoExpectedPeriod << " sec - Elab time:"
                            << effective_grab_period << " sec");
     }
-
-    //reset mGrabOnce
-    if (mGrabOnce) {mGrabOnce = false;}
   }
 
   // Stop the heartbeat
@@ -7337,12 +7337,13 @@ void ZedCamera::threadFunc_pubSensorsData()
       }
 
       if (mSvoMode && mSvoPause) {
-        if (!mGrabOnce) {
+        if (!mGrabImuOnce) {
           rclcpp::sleep_for(100ms);
           continue;
+        } else {
+          mGrabImuOnce = false; // Reset the flag and grab the IMU data
         }
       }
-
 
       // std::lock_guard<std::mutex> lock(mCloseZedMutex);
       if (!mZed->isOpened()) {
@@ -10515,6 +10516,16 @@ void ZedCamera::callback_setSvoFrame(
 
   RCLCPP_INFO(get_logger(), "** Set SVO Frame service called **");
 
+  // ----> Check service call frequency
+  if (mSetSvoFrameCheckTimer.toc() < 0.5) {
+    RCLCPP_WARN(get_logger(), "SVO frame set too fast");
+    res->message = "SVO frame set too fast";
+    res->success = false;
+    return;
+  }
+  mSetSvoFrameCheckTimer.tic();
+  // <---- Check service call frequency
+
   std::lock_guard<std::mutex> lock(mRecMutex);
 
   if (!mSvoMode) {
@@ -10558,7 +10569,10 @@ void ZedCamera::callback_setSvoFrame(
   // <---- Set camera pose to identity
 
   //if svo is paused, ensure one grab can update topics
-  if (mSvoPause) {mGrabOnce = true;}
+  if (mSvoPause) {
+    mGrabOnce = true;
+    mGrabImuOnce = true;
+  }
 
   res->success = true;
 }

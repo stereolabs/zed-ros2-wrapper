@@ -323,6 +323,7 @@ private:
   double mSvoExpectedPeriod = 0.0;
   bool mUseSvoTimestamp = false;
   bool mGrabOnce = false;
+  bool mGrabImuOnce = false;
   int mVerbose = 1;
   std::string mVerboseLogFile = "";
   int mGpuId = -1;
@@ -874,6 +875,7 @@ private:
   fromLLSrvPtr mFromLlSrv;
   enableStreamingPtr mEnableStreamingSrv;
 
+  sl_tools::StopWatch mSetSvoFrameCheckTimer;
   // <---- Services
 
   // ----> Services names

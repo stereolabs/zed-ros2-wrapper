@@ -343,13 +343,13 @@ void ZedCamera::initServices()
 #ifndef USE_SVO_REALTIME_PAUSE
     if (!mSvoRealtime) {
 #endif
-      srv_name = srv_prefix + mSrvToggleSvoPauseName;
-      mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(
-        srv_name,
-        std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
-      RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+    srv_name = srv_prefix + mSrvToggleSvoPauseName;
+    mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(
+      srv_name,
+      std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
+    RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
 #ifndef USE_SVO_REALTIME_PAUSE
-    }
+  }
 #endif
 
     //Set Service for SVO frame
@@ -1467,18 +1467,29 @@ void ZedCamera::getPosTrackingParams()
     " * Positional tracking enabled: "
       << (mPosTrackingEnabled ? "TRUE" : "FALSE"));
 
-  std::string pos_trk_mode;
-  getParam("pos_tracking.pos_tracking_mode", pos_trk_mode, pos_trk_mode);
-  if (pos_trk_mode == "GEN_1") {
-    mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::GEN_1;
-  } else if (pos_trk_mode == "GEN_2") {
-    mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::GEN_2;
-  } else {
+  std::string pos_trk_mode_str = "GEN_1";
+  getParam("pos_tracking.pos_tracking_mode", pos_trk_mode_str, pos_trk_mode_str);
+  bool matched = false;
+  for (int idx = static_cast<int>(sl::POSITIONAL_TRACKING_MODE::GEN_1);
+    idx < static_cast<int>(sl::POSITIONAL_TRACKING_MODE::LAST); idx++)
+  {
+    sl::POSITIONAL_TRACKING_MODE test_mode =
+      static_cast<sl::POSITIONAL_TRACKING_MODE>(idx);
+    std::string test_mode_str = sl::toString(test_mode).c_str();
+    std::replace(
+      test_mode_str.begin(), test_mode_str.end(), ' ', '_');    // Replace spaces with underscores to match the YAML setting
+    DEBUG_PT(" Comparing '%s' to '%s'", test_mode_str.c_str(), pos_trk_mode_str.c_str());
+    if (pos_trk_mode_str == test_mode_str) {
+      mPosTrkMode = test_mode;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
     RCLCPP_WARN_STREAM(
       get_logger(),
-      "'pos_tracking.pos_tracking_mode' not valid ('"
-        << pos_trk_mode << "'). Using default value.");
-    mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::GEN_2;
+      "The value of the parameter 'pos_tracking.pos_tracking_mode' is not valid: '"
+        << pos_trk_mode_str << "'. Using the default value.");
   }
   RCLCPP_INFO_STREAM(
     get_logger(), " * Positional tracking mode: "

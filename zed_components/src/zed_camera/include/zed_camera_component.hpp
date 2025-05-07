@@ -364,7 +364,7 @@ private:
   bool mAreaMemory = true;
   std::string mAreaMemoryDbPath = "";
   sl::POSITIONAL_TRACKING_MODE mPosTrkMode =
-    sl::POSITIONAL_TRACKING_MODE::GEN_2;
+    sl::POSITIONAL_TRACKING_MODE::GEN_1;
   bool mImuFusion = true;
   bool mFloorAlignment = false;
   bool mTwoDMode = false;

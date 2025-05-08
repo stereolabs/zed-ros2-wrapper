@@ -895,9 +895,9 @@ bool ZedCameraOne::startCamera()
   initTFCoordFrameNames();
 
   // Rectified image
-  fillCamInfo(_camInfoMsg, _camImgFrameId, false);
+  fillCamInfo(_camInfoMsg, _camOptFrameId, false);
   // Raw image
-  fillCamInfo(_camInfoRawMsg, _camImgFrameId, true);
+  fillCamInfo(_camInfoRawMsg, _camOptFrameId, true);
   // <---- Camera Info messages
 
   // Initialize publishers
@@ -2760,7 +2760,7 @@ void ZedCameraOne::publishImages()
   if (_colorSubCount > 0) {
     DEBUG_STREAM_VD("_colorSubCount: " << _colorSubCount);
     publishImageWithInfo(
-      _matColor, _pubColorImg, _camInfoMsg, _camImgFrameId,
+      _matColor, _pubColorImg, _camInfoMsg, _camOptFrameId,
       timeStamp);
   }
   // <---- Publish the COLOR image if someone has subscribed to
@@ -2770,7 +2770,7 @@ void ZedCameraOne::publishImages()
     DEBUG_STREAM_VD("_colorRawSubCount: " << _colorSubCount);
     publishImageWithInfo(
       _matColorRaw, _pubColorRawImg, _camInfoRawMsg,
-      _camImgFrameId, timeStamp);
+      _camOptFrameId, timeStamp);
   }
   // <---- Publish the COLOR RAW image if someone has subscribed to
 
@@ -2779,7 +2779,7 @@ void ZedCameraOne::publishImages()
   if (_graySubCount > 0) {
     DEBUG_STREAM_VD("_graySubCount: " << _graySubCount);
     publishImageWithInfo(
-      _matGray, _pubGrayImg, _camInfoMsg, _camImgFrameId,
+      _matGray, _pubGrayImg, _camInfoMsg, _camOptFrameId,
       timeStamp);
   }
   // <---- Publish the GRAY image if someone has subscribed to
@@ -2789,7 +2789,7 @@ void ZedCameraOne::publishImages()
     DEBUG_STREAM_VD("_grayRawSubCount: " << _grayRawSubCount);
     publishImageWithInfo(
       _matGrayRaw, _pubGrayRawImg, _camInfoRawMsg,
-      _camImgFrameId, timeStamp);
+      _camOptFrameId, timeStamp);
   }
   // <---- Publish the GRAY RAW image if someone has subscribed to
 #endif

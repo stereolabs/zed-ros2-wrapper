@@ -1798,7 +1798,7 @@ void ZedCameraOne::threadFunc_zedGrab()
               get_logger(),
               "Connection issue detected: "
                 << sl::toString(_grabStatus).c_str());
-            rclcpp::sleep_for(1000ms);
+            rclcpp::sleep_for(1s);
             continue;
           } else if (_grabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED ||
             _grabStatus == sl::ERROR_CODE::FAILURE)
@@ -1808,7 +1808,7 @@ void ZedCameraOne::threadFunc_zedGrab()
               "Camera issue detected: "
                 << sl::toString(_grabStatus).c_str() << ". " << sl::toVerbose(
                 _grabStatus).c_str() << ". Trying to recover the connection...");
-            rclcpp::sleep_for(1000ms);
+            rclcpp::sleep_for(1s);
             continue;
           } else {
             RCLCPP_ERROR_STREAM(
@@ -1998,16 +1998,14 @@ void ZedCameraOne::threadFunc_pubSensorsData()
       // std::lock_guard<std::mutex> lock(mCloseZedMutex);
       if (!_zed->isOpened()) {
         DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] the camera is not open");
-        rclcpp::sleep_for(
-          std::chrono::milliseconds(200));    // Avoid busy-waiting
+        rclcpp::sleep_for(200ms);    // Avoid busy-waiting
         continue;
       }
 
       _imuPublishing = areSensorsTopicsSubscribed();
 
       if (!_imuPublishing && !_publishImuTF) {
-        rclcpp::sleep_for(
-          std::chrono::milliseconds(200));    // Avoid busy-waiting
+        rclcpp::sleep_for(200ms);    // Avoid busy-waiting
         continue;
       }
 
@@ -2949,7 +2947,7 @@ void ZedCameraOne::callback_startSvoRec(
   _svoRecFilename = req->svo_filename;
 
   if (_svoRecFilename.empty()) {
-    _svoRecFilename = "zed.svo";
+    _svoRecFilename = "zed.svo2";
   }
 
   std::string err;
@@ -2969,7 +2967,7 @@ void ZedCameraOne::callback_startSvoRec(
     " * Input Transcode: " << (_svoRecTranscode ? "TRUE" : "FALSE"));
   RCLCPP_INFO_STREAM(
     get_logger(), " * Filename: " << (_svoRecFilename.empty() ?
-    "zed.svo" :
+    "zed.svo2" :
     _svoRecFilename));
 
   res->message = "SVO Recording started";

@@ -69,6 +69,8 @@
   if (_debugCamCtrl) RCLCPP_DEBUG_STREAM(get_logger(), stream_arg)
 
 // Point Cloud
+#define DEBUG_PC(...) \
+  if (_debugCamCtrl) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
 #define DEBUG_STREAM_PC(stream_arg) \
   if (_debugPointCloud) RCLCPP_DEBUG_STREAM(get_logger(), stream_arg)
 

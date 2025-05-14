@@ -76,6 +76,7 @@ def launch_setup(context, *args, **kwargs):
 
     # Launch configuration variables
     svo_path = LaunchConfiguration('svo_path')
+    publish_svo_clock = LaunchConfiguration('publish_svo_clock')
 
     use_sim_time = LaunchConfiguration('use_sim_time')
     sim_mode = LaunchConfiguration('sim_mode')
@@ -205,6 +206,7 @@ def launch_setup(context, *args, **kwargs):
         name=rsp_name,
         output='screen',
         parameters=[{
+            'use_sim_time': publish_svo_clock,
             'robot_description': Command(xacro_command)
         }]
     )
@@ -253,6 +255,7 @@ def launch_setup(context, *args, **kwargs):
                 'general.camera_name': camera_name_val,
                 'general.camera_model': camera_model_val,
                 'svo.svo_path': svo_path,
+                'svo.publish_svo_clock': publish_svo_clock,
                 'general.serial_number': serial_number,
                 'general.camera_id': camera_id,
                 'pos_tracking.publish_tf': publish_tf,
@@ -363,11 +366,15 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'xacro_path',
                 default_value=TextSubstitution(text=default_xacro_path),
-                description='Path to the camera URDF file as a xacro file.'),            
+                description='Path to the camera URDF file as a xacro file.'),
             DeclareLaunchArgument(
                 'svo_path',
                 default_value=TextSubstitution(text='live'),
                 description='Path to an input SVO file.'),
+            DeclareLaunchArgument(
+                'publish_svo_clock',
+                default_value='false',
+                description='If set to `true` the node will act as a clock server publishing the SVO timestamp. This is useful for node synchronization'),
             DeclareLaunchArgument(
                 'enable_gnss',
                 default_value='false',

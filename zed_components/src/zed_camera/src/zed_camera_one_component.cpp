@@ -2742,7 +2742,7 @@ void ZedCameraOne::publishImages()
     return;
   }
 
-  if (_lastTs_grab.data_ns != 0) {
+  if (_sdkGrabTS.data_ns != 0) {
     double period_sec =
       static_cast<double>(_sdkGrabTS.data_ns - _lastTs_grab.data_ns) / 1e9;
     DEBUG_STREAM_VD(

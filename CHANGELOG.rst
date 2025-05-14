@@ -1,6 +1,12 @@
 LATEST CHANGES
 ==============
 
+2025-05-14
+----------
+- Add `/clock` publisher to be used in SVO Mode to synchronize other nodes with the SVO timestamp
+- Add parameter `svo.publish_svo_clock` to enable the `/clock` publisher
+  - The parameter 'svo.publish_svo_clock' is normally overridden by the `publish_svo_clock` launch option
+
 2025-04-30
 ----------
 - Default SVO Recording Compression mode [`0`] is forced to `H265` replacing the old `LOSSLESS` mode

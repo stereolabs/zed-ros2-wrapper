@@ -20,6 +20,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 
+#include <rosgraph_msgs/msg/clock.hpp>
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
 #include <diagnostic_updater/diagnostic_updater.hpp>
 #include <geographic_msgs/msg/geo_pose_stamped.hpp>
@@ -97,6 +98,7 @@ const float NOT_VALID_TEMP = -273.15f;
 
 // ----> Typedefs to simplify declarations
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
+typedef std::shared_ptr<rclcpp::Publisher<rosgraph_msgs::msg::Clock>> clockPub;
 typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::SvoStatus>>
   svoStatusPub;
 typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::HealthStatusStamped>>

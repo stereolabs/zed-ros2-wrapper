@@ -226,8 +226,7 @@ def launch_setup(context, *args, **kwargs):
                 package='rclcpp_components',
                 executable=container_exec,
                 arguments=['--use_multi_threaded_executor','--ros-args', '--log-level', 'info'],
-                output='screen',
-                prefix=["sudo -E env \"PYTHONPATH=$PYTHONPATH\" \"LD_LIBRARY_PATH=$LD_LIBRARY_PATH\" \"PATH=$PATH\" \"USER=$USER\"  bash -c "],
+                output='screen'
         )
         return_array.append(zed_container)
 

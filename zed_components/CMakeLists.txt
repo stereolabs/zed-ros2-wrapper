@@ -99,7 +99,7 @@ set(DEPENDENCIES
     tf2
     tf2_ros
     tf2_geometry_msgs
-    geometry_msgs    
+    geometry_msgs
     nav_msgs
     nmea_msgs
     geographic_msgs

@@ -210,7 +210,7 @@ Modify the `common_stereo.yaml` parameters to match your configuration:
 Console log while optimization is running:
 
 ```bash
-[zed_wrapper-3] [INFO] [1729184874.634985183] [zed.zed_node]: *** Starting Object Detection ***
+[zed_wrapper-3] [INFO] [1729184874.634985183] [zed.zed_node]: === Starting Object Detection ===
 [zed_wrapper-3] [2024-10-17 17:07:55 UTC][ZED][INFO] Please wait while the AI model is being optimized for your graphics card
 [zed_wrapper-3]  This operation will be run only once and may take a few minutes 
 ```

@@ -176,7 +176,7 @@
             debug_sensors: false
             debug_mapping: false
             debug_terrain_mapping: false
-            debug_object_detection: true
+            debug_object_detection: false
             debug_body_tracking: false
             debug_roi: false
             debug_streaming: false

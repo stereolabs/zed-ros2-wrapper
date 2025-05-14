@@ -234,6 +234,7 @@ protected:
   void startTempPubTimer();
   void startHeartbeatTimer();
 
+
   // Region of Interest
   std::string getParam(
     std::string paramName,
@@ -375,8 +376,8 @@ private:
   bool mResetOdomWhenLoopClosure = true;
   bool mResetPoseWithSvoLoop = true;
   double mPathPubRate = 2.0;
-  double mTfOffset = 0.05;
-  double mPosTrackDepthMinRange = 0.0;
+  float mTfOffset = 0.05f;
+  float mPosTrackDepthMinRange = 0.0f;
   bool mSetAsStatic = false;
   bool mSetGravityAsOrigin = false;
   int mPathMaxCount = -1;

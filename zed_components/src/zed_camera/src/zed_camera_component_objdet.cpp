@@ -32,13 +32,15 @@ void ZedCamera::getOdParams()
     return;
   }
 
-  sl_tools::getParam(shared_from_this(), "object_detection.od_enabled",
-                     mObjDetEnabled, mObjDetEnabled,
-                     " * Object Det. enabled: ");
+  sl_tools::getParam(
+    shared_from_this(), "object_detection.od_enabled",
+    mObjDetEnabled, mObjDetEnabled,
+    " * Object Det. enabled: ");
 
   std::string model_str;
-  sl_tools::getParam(shared_from_this(), "object_detection.detection_model",
-                     model_str, model_str);
+  sl_tools::getParam(
+    shared_from_this(), "object_detection.detection_model",
+    model_str, model_str);
   DEBUG_STREAM_OD(" 'object_detection.detection_model': " << model_str.c_str());
 
   bool matched = false;
@@ -71,8 +73,9 @@ void ZedCamera::getOdParams()
       << sl::toString(mObjDetModel).c_str());
 
   if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
-    sl_tools::getParam(shared_from_this(), "object_detection.custom_onnx_file",
-                       mYoloOnnxPath, mYoloOnnxPath, " * Custom ONNX file: ");
+    sl_tools::getParam(
+      shared_from_this(), "object_detection.custom_onnx_file",
+      mYoloOnnxPath, mYoloOnnxPath, " * Custom ONNX file: ");
     if (mYoloOnnxPath.empty()) {
       RCLCPP_ERROR_STREAM(
         get_logger(),
@@ -80,12 +83,14 @@ void ZedCamera::getOdParams()
         "Please check the value in the YAML file.");
       exit(EXIT_FAILURE);
     }
-    sl_tools::getParam(shared_from_this(),
-                       "object_detection.custom_onnx_input_size", mYoloOnnxSize,
-                       mYoloOnnxSize, " * Custom ONNX input size: ");
-    sl_tools::getParam(shared_from_this(), "object_detection.custom_label_yaml",
-                       mCustomLabelsPath, mCustomLabelsPath,
-                       " * Custom Label file: ");
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.custom_onnx_input_size", mYoloOnnxSize,
+      mYoloOnnxSize, " * Custom ONNX input size: ");
+    sl_tools::getParam(
+      shared_from_this(), "object_detection.custom_label_yaml",
+      mCustomLabelsPath, mCustomLabelsPath,
+      " * Custom Label file: ");
   }
 
   if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS ||
@@ -96,29 +101,34 @@ void ZedCamera::getOdParams()
     mUsingCustomOd = false;
   }
 
-  sl_tools::getParam(shared_from_this(),
-                     "object_detection.allow_reduced_precision_inference",
-                     mObjDetReducedPrecision, mObjDetReducedPrecision);
+  sl_tools::getParam(
+    shared_from_this(),
+    "object_detection.allow_reduced_precision_inference",
+    mObjDetReducedPrecision, mObjDetReducedPrecision);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Object Det. allow reduced precision: "
       << (mObjDetReducedPrecision ? "TRUE" : "FALSE"));
-  sl_tools::getParam(shared_from_this(), "object_detection.max_range",
-                     mObjDetMaxRange, mObjDetMaxRange,
-                     " * Object Det. maximum range [m]: ");
-  sl_tools::getParam(shared_from_this(), "object_detection.prediction_timeout",
-                     mObjDetPredTimeout, mObjDetPredTimeout,
-                     " * Object Det. prediction timeout [sec]: ");
-  sl_tools::getParam(shared_from_this(), "object_detection.enable_tracking",
-                     mObjDetTracking, mObjDetTracking);
+  sl_tools::getParam(
+    shared_from_this(), "object_detection.max_range",
+    mObjDetMaxRange, mObjDetMaxRange,
+    " * Object Det. maximum range [m]: ");
+  sl_tools::getParam(
+    shared_from_this(), "object_detection.prediction_timeout",
+    mObjDetPredTimeout, mObjDetPredTimeout,
+    " * Object Det. prediction timeout [sec]: ");
+  sl_tools::getParam(
+    shared_from_this(), "object_detection.enable_tracking",
+    mObjDetTracking, mObjDetTracking);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Object Det. tracking: "
       << (mObjDetTracking ? "TRUE" : "FALSE"));
 
 
   std::string filtering_mode_str = "NONE";
-  sl_tools::getParam(shared_from_this(), "object_detection.filtering_mode",
-                     filtering_mode_str, filtering_mode_str);
+  sl_tools::getParam(
+    shared_from_this(), "object_detection.filtering_mode",
+    filtering_mode_str, filtering_mode_str);
 
   for (int idx = static_cast<int>(sl::OBJECT_FILTERING_MODE::NONE);
     idx < static_cast<int>(sl::OBJECT_FILTERING_MODE::LAST); idx++)
@@ -146,39 +156,46 @@ void ZedCamera::getOdParams()
       << sl::toString(mObjFilterMode).c_str());
 
   if (!mUsingCustomOd) {
-    sl_tools::getParam(shared_from_this(),
-                       "object_detection.class.people.enabled",
-                       mObjDetPeopleEnable, mObjDetPeopleEnable,
-                       " * MultiClassBox people: ", true);
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.people.enabled",
+      mObjDetPeopleEnable, mObjDetPeopleEnable,
+      " * MultiClassBox people: ", true);
 
-    sl_tools::getParam(shared_from_this(),
-                       "object_detection.class.vehicle.enabled",
-                       mObjDetVehiclesEnable, mObjDetVehiclesEnable,
-                       " * MultiClassBox vehicles: ", true);
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.vehicle.enabled",
+      mObjDetVehiclesEnable, mObjDetVehiclesEnable,
+      " * MultiClassBox vehicles: ", true);
 
-    sl_tools::getParam(shared_from_this(), "object_detection.class.bag.enabled",
-                       mObjDetBagsEnable, mObjDetBagsEnable,
-                       " * MultiClassBox bags: ", true);
+    sl_tools::getParam(
+      shared_from_this(), "object_detection.class.bag.enabled",
+      mObjDetBagsEnable, mObjDetBagsEnable,
+      " * MultiClassBox bags: ", true);
 
-    sl_tools::getParam(shared_from_this(),
-                       "object_detection.class.animal.enabled",
-                       mObjDetAnimalsEnable, mObjDetAnimalsEnable,
-                       " * MultiClassBox animals: ", true);
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.animal.enabled",
+      mObjDetAnimalsEnable, mObjDetAnimalsEnable,
+      " * MultiClassBox animals: ", true);
 
-    sl_tools::getParam(shared_from_this(),
-                       "object_detection.class.electronics.enabled",
-                       mObjDetElectronicsEnable, mObjDetElectronicsEnable,
-                       " * MultiClassBox electronics: ", true);
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.electronics.enabled",
+      mObjDetElectronicsEnable, mObjDetElectronicsEnable,
+      " * MultiClassBox electronics: ", true);
 
-    sl_tools::getParam(shared_from_this(),
-                       "object_detection.class.fruit_vegetable.enabled",
-                       mObjDetFruitsEnable, mObjDetFruitsEnable,
-                       " * MultiClassBox fruits and vegetables: ", true);
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.fruit_vegetable.enabled",
+      mObjDetFruitsEnable, mObjDetFruitsEnable,
+      " * MultiClassBox fruits and vegetables: ", true);
 
-    sl_tools::getParam(shared_from_this(),
-                       "object_detection.class.sport.enabled",
-                       mObjDetSportEnable, mObjDetSportEnable,
-                       " * MultiClassBox sport-related objects: ", true);
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.sport.enabled",
+      mObjDetSportEnable, mObjDetSportEnable,
+      " * MultiClassBox sport-related objects: ", true);
   }
 }
 

@@ -7631,7 +7631,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     return;
   }
 
-  if (mLastTs_grab.data_ns != 0) {
+  if (mSdkGrabTS.data_ns != 0) {
     if (!mSvoMode) {
       double period_sec =
         static_cast<double>(mSdkGrabTS.data_ns - mLastTs_grab.data_ns) / 1e9;

@@ -234,10 +234,10 @@ protected:
   void startTempPubTimer();
   void startHeartbeatTimer();
 
-  template<typename T>
-  void getParam(
-    std::string paramName, T defValue, T & outVal,
-    std::string log_info = std::string(), bool dynamic = false);
+  // template<typename T>
+  // void getParam(
+  //   std::string paramName, T defValue, T & outVal,
+  //   std::string log_info = std::string(), bool dynamic = false);
 
   // Region of Interest
   std::string getParam(
@@ -915,29 +915,29 @@ private:
 };
 
 // ----> Template Function definitions
-template<typename T>
-void ZedCamera::getParam(
-  std::string paramName, T defValue, T & outVal,
-  std::string log_info, bool dynamic)
-{
-  rcl_interfaces::msg::ParameterDescriptor descriptor;
-  descriptor.read_only = !dynamic;
+// template<typename T>
+// void ZedCamera::getParam(
+//   std::string paramName, T defValue, T & outVal,
+//   std::string log_info, bool dynamic)
+// {
+//   rcl_interfaces::msg::ParameterDescriptor descriptor;
+//   descriptor.read_only = !dynamic;
 
-  declare_parameter(paramName, rclcpp::ParameterValue(defValue), descriptor);
+//   declare_parameter(paramName, rclcpp::ParameterValue(defValue), descriptor);
 
-  if (!get_parameter(paramName, outVal)) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "The parameter '"
-        << paramName
-        << "' is not available or is not valid, using the default value: "
-        << defValue);
-  }
+//   if (!get_parameter(paramName, outVal)) {
+//     RCLCPP_WARN_STREAM(
+//       get_logger(),
+//       "The parameter '"
+//         << paramName
+//         << "' is not available or is not valid, using the default value: "
+//         << defValue);
+//   }
 
-  if (!log_info.empty()) {
-    RCLCPP_INFO_STREAM(get_logger(), log_info << outVal);
-  }
-}
+//   if (!log_info.empty()) {
+//     RCLCPP_INFO_STREAM(get_logger(), log_info << outVal);
+//   }
+// }
 
 }  // namespace stereolabs
 

@@ -2705,7 +2705,6 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
 
     handleOdDynamicParams(param, result);
     handleBodyTrkDynamicParams(param, result);
-  }
 
     if (result.successful) {
       RCLCPP_INFO_STREAM(

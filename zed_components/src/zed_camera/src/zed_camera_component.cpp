@@ -721,6 +721,12 @@ void ZedCamera::getGeneralParams()
     RCLCPP_INFO(
       get_logger(), " * Use SVO timestamp: %s",
       mUseSvoTimestamp ? "TRUE" : "FALSE");
+    if (mUseSvoTimestamp) {
+      getParam("svo.publish_svo_clock", mPublishSvoClock, mPublishSvoClock);
+      RCLCPP_INFO(
+        get_logger(), " * Publish SVO timestamp: %s",
+        mPublishSvoClock ? "TRUE" : "FALSE");
+    }
 
     getParam("svo.svo_loop", mSvoLoop, mSvoLoop);
     if (mUseSvoTimestamp) {
@@ -3635,6 +3641,15 @@ void ZedCamera::initPublishers()
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Advertised on topic: " << mPubSvoStatus->get_topic_name());
+    if (mUseSvoTimestamp && mPublishSvoClock) {
+      auto clock_qos = rclcpp::ClockQoS();
+      clock_qos.reliability(rclcpp::ReliabilityPolicy::Reliable); // REQUIRED
+      mPubClock =
+        create_publisher<rosgraph_msgs::msg::Clock>("/clock", clock_qos, mPubOpt);
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "Advertised on topic: " << mPubClock->get_topic_name());
+    }
   }
   // <---- SVO Status publisher
 
@@ -6395,6 +6410,12 @@ void ZedCamera::threadFunc_zedGrab()
       if (mSvoMode) {
         mSvoFrameId = mZed->getSVOPosition();
         mSvoFrameCount = mZed->getSVONumberOfFrames();
+
+        // ----> Publish Clock if required
+        if (mUseSvoTimestamp && mPublishSvoClock) {
+          publishClock(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+        }
+        // <---- Publish Clock if required
       }
 
       if (mGnssFusionEnabled) {
@@ -11976,6 +11997,29 @@ void ZedCamera::callback_pubHeartbeat()
 
   // Publish the hearbeat
   mPubHeartbeatStatus->publish(std::move(msg));
+}
+
+void ZedCamera::publishClock(const sl::Timestamp & ts)
+{
+  DEBUG_COMM("Publishing clock");
+
+  size_t subCount = 0;
+  try {
+    subCount = mPubClock->get_subscription_count();
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_VD("publishClock: Exception while counting subscribers");
+    return;
+  }
+
+  if (subCount == 0) {
+    return;
+  }
+
+  auto msg = std::make_unique<rosgraph_msgs::msg::Clock>();
+  msg->clock = sl_tools::slTime2Ros(ts);
+
+  mPubClock->publish(std::move(msg));
 }
 
 }  // namespace stereolabs

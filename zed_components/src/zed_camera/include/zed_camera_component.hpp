@@ -234,11 +234,6 @@ protected:
   void startTempPubTimer();
   void startHeartbeatTimer();
 
-  // template<typename T>
-  // void getParam(
-  //   std::string paramName, T defValue, T & outVal,
-  //   std::string log_info = std::string(), bool dynamic = false);
-
   // Region of Interest
   std::string getParam(
     std::string paramName,
@@ -246,7 +241,6 @@ protected:
   std::string parseRoiPoly(
     const std::vector<std::vector<float>> & in_poly,
     std::vector<sl::float2> & out_poly);
-  void resetRoi();
   // <---- Utility functions
 
 private:

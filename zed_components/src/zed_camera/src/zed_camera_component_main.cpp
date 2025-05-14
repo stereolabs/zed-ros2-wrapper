@@ -568,75 +568,85 @@ void ZedCamera::getDebugParams()
 
   RCLCPP_INFO(get_logger(), "*** DEBUG parameters ***");
 
-  getParam("debug.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(), "debug.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
+  sl_tools::getParam(
+    this->shared_from_this(),
     "debug.sdk_verbose_log_file", mVerboseLogFile, mVerboseLogFile,
     " * SDK Verbose File: ");
 
-  getParam("debug.debug_common", _debugCommon, _debugCommon);
+  sl_tools::getParam(this->shared_from_this(), "debug.debug_common", _debugCommon, _debugCommon);
   RCLCPP_INFO(
     get_logger(), " * Debug Common: %s",
     _debugCommon ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_sim", _debugSim, _debugSim);
+  sl_tools::getParam(this->shared_from_this(), "debug.debug_sim", _debugSim, _debugSim);
   RCLCPP_INFO(
     get_logger(), " * Debug Simulation: %s",
     _debugSim ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_video_depth", _debugVideoDepth, _debugVideoDepth);
+  sl_tools::getParam(
+    this->shared_from_this(), "debug.debug_video_depth", _debugVideoDepth, _debugVideoDepth);
   RCLCPP_INFO(
     get_logger(), " * Debug Video/Depth: %s",
     _debugVideoDepth ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_camera_controls", _debugCamCtrl, _debugCamCtrl);
+  sl_tools::getParam(
+    this->shared_from_this(), "debug.debug_camera_controls", _debugCamCtrl, _debugCamCtrl);
   RCLCPP_INFO(
     get_logger(), " * Debug Control settings: %s",
     _debugCamCtrl ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_point_cloud", _debugPointCloud, _debugPointCloud);
+  sl_tools::getParam(
+    this->shared_from_this(), "debug.debug_point_cloud", _debugPointCloud, _debugPointCloud);
   RCLCPP_INFO(
     get_logger(), " * Debug Point Cloud: %s",
     _debugPointCloud ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_gnss", _debugGnss, _debugGnss);
+  sl_tools::getParam(this->shared_from_this(), "debug.debug_gnss", _debugGnss, _debugGnss);
   RCLCPP_INFO(get_logger(), " * Debug GNSS: %s", _debugGnss ? "TRUE" : "FALSE");
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "debug.debug_positional_tracking", _debugPosTracking,
     _debugPosTracking);
   RCLCPP_INFO(
     get_logger(), " * Debug Positional Tracking: %s",
     _debugPosTracking ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_sensors", _debugSensors, _debugSensors);
+  sl_tools::getParam(this->shared_from_this(), "debug.debug_sensors", _debugSensors, _debugSensors);
   RCLCPP_INFO(
     get_logger(), " * Debug sensors: %s",
     _debugSensors ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_mapping", _debugMapping, _debugMapping);
+  sl_tools::getParam(this->shared_from_this(), "debug.debug_mapping", _debugMapping, _debugMapping);
   RCLCPP_INFO(
     get_logger(), " * Debug Mapping: %s",
     _debugMapping ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_object_detection", _debugObjectDet, _debugObjectDet);
+  sl_tools::getParam(
+    this->shared_from_this(), "debug.debug_object_detection", _debugObjectDet, _debugObjectDet);
   RCLCPP_INFO(
     get_logger(), " * Debug Object Detection: %s",
     _debugObjectDet ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_body_tracking", _debugBodyTrk, _debugBodyTrk);
+  sl_tools::getParam(
+    this->shared_from_this(), "debug.debug_body_tracking", _debugBodyTrk, _debugBodyTrk);
   RCLCPP_INFO(
     get_logger(), " * Debug Body Tracking: %s",
     _debugBodyTrk ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_streaming", _debugStreaming, _debugStreaming);
+  sl_tools::getParam(
+    this->shared_from_this(), "debug.debug_streaming", _debugStreaming, _debugStreaming);
   RCLCPP_INFO(
     get_logger(), " * Debug Streaming: %s",
     _debugStreaming ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_roi", _debugRoi, _debugRoi);
+  sl_tools::getParam(this->shared_from_this(), "debug.debug_roi", _debugRoi, _debugRoi);
   RCLCPP_INFO(get_logger(), " * Debug ROI: %s", _debugRoi ? "TRUE" : "FALSE");
 
-  getParam("debug.debug_advanced", _debugAdvanced, _debugAdvanced);
+  sl_tools::getParam(
+    this->shared_from_this(), "debug.debug_advanced", _debugAdvanced, _debugAdvanced);
   RCLCPP_INFO(
     get_logger(), " * Debug Advanced: %s",
     _debugAdvanced ? "TRUE" : "FALSE");
@@ -672,7 +682,7 @@ void ZedCamera::getDebugParams()
 void ZedCamera::getSimParams()
 {
   // SIMULATION active?
-  getParam("simulation.sim_enabled", mSimMode, mSimMode);
+  sl_tools::getParam(this->shared_from_this(), "simulation.sim_enabled", mSimMode, mSimMode);
 
   if (!get_parameter("use_sim_time", mUseSimTime)) {
     RCLCPP_WARN(
@@ -683,10 +693,12 @@ void ZedCamera::getSimParams()
 
   if (mSimMode) {
     RCLCPP_INFO(get_logger(), " *** SIMULATION MODE ACTIVE ***");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "simulation.sim_address", mSimAddr, mSimAddr,
       " * Sim. server address: ");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "simulation.sim_port", mSimPort, mSimPort,
       " * Sim. server port: ");
 
@@ -707,7 +719,7 @@ void ZedCamera::getGeneralParams()
 
   RCLCPP_INFO(get_logger(), "*** SVO INPUT parameters ***");
 
-  getParam("svo.svo_path", std::string(), mSvoFilepath);
+  sl_tools::getParam(this->shared_from_this(), "svo.svo_path", std::string(), mSvoFilepath);
   if (mSvoFilepath.compare("live") == 0) {
     mSvoFilepath = "";
   }
@@ -717,12 +729,13 @@ void ZedCamera::getGeneralParams()
   } else {
     RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << mSvoFilepath.c_str() << "'");
     mSvoMode = true;
-    getParam("svo.use_svo_timestamps", mUseSvoTimestamp, mUseSvoTimestamp);
+    sl_tools::getParam(
+      this->shared_from_this(), "svo.use_svo_timestamps", mUseSvoTimestamp, mUseSvoTimestamp);
     RCLCPP_INFO(
       get_logger(), " * Use SVO timestamp: %s",
       mUseSvoTimestamp ? "TRUE" : "FALSE");
 
-    getParam("svo.svo_loop", mSvoLoop, mSvoLoop);
+    sl_tools::getParam(this->shared_from_this(), "svo.svo_loop", mSvoLoop, mSvoLoop);
     if (mUseSvoTimestamp) {
       if (mSvoLoop) {
         RCLCPP_WARN(
@@ -732,14 +745,18 @@ void ZedCamera::getGeneralParams()
       }
       RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop ? "TRUE" : "FALSE");
     }
-    getParam("svo.svo_realtime", mSvoRealtime, mSvoRealtime);
+    sl_tools::getParam(this->shared_from_this(), "svo.svo_realtime", mSvoRealtime, mSvoRealtime);
     RCLCPP_INFO(
       get_logger(), " * SVO Realtime: %s",
       mSvoRealtime ? "TRUE" : "FALSE");
-    getParam("svo.play_from_frame", mSvoFrameStart, mSvoFrameStart, " * SVO start frame: ");
+    sl_tools::getParam(
+      this->shared_from_this(), "svo.play_from_frame", mSvoFrameStart, mSvoFrameStart,
+      " * SVO start frame: ");
 
     if (!mSvoRealtime) {
-      getParam("svo.replay_rate", mSvoRate, mSvoRate, " * SVO replay rate: ", true);
+      sl_tools::getParam(
+        this->shared_from_this(), "svo.replay_rate", mSvoRate, mSvoRate, " * SVO replay rate: ",
+        true);
       if (mSvoRate < 0.1 || mSvoRate > 5.0) {
         RCLCPP_WARN_STREAM(
           get_logger(),
@@ -753,10 +770,12 @@ void ZedCamera::getGeneralParams()
   mStreamMode = false;
   if (!mSvoMode) {
     RCLCPP_INFO(get_logger(), "*** LOCAL STREAMING parameters ***");
-    getParam("stream.stream_address", std::string(), mStreamAddr);
+    sl_tools::getParam(
+      this->shared_from_this(), "stream.stream_address", std::string(),
+      mStreamAddr);
     if (mStreamAddr != "") {
       mStreamMode = true;
-      getParam("stream.stream_port", mStreamPort, mStreamPort);
+      sl_tools::getParam(this->shared_from_this(), "stream.stream_port", mStreamPort, mStreamPort);
       RCLCPP_INFO_STREAM(
         get_logger(), " * Local stream input: " << mStreamAddr << ":" << mStreamPort);
     }
@@ -765,7 +784,7 @@ void ZedCamera::getGeneralParams()
   RCLCPP_INFO(get_logger(), "*** GENERAL parameters ***");
 
   std::string camera_model = "zed";
-  getParam("general.camera_model", camera_model, camera_model);
+  sl_tools::getParam(this->shared_from_this(), "general.camera_model", camera_model, camera_model);
   if (camera_model == "zed") {
     mCamUserModel = sl::MODEL::ZED;
   } else if (camera_model == "zedm") {
@@ -865,19 +884,25 @@ void ZedCamera::getGeneralParams()
                                       << mCamUserModel);
 
 
-  getParam("general.camera_name", mCameraName, mCameraName, " * Camera name: ");
+  sl_tools::getParam(
+    this->shared_from_this(), "general.camera_name", mCameraName, mCameraName,
+    " * Camera name: ");
 
   if (!mSvoMode) {
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "general.serial_number", mCamSerialNumber, mCamSerialNumber,
       " * Camera SN: ");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "general.camera_id", mCamId, mCamId,
       " * Camera ID: ");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "general.camera_timeout_sec", mCamTimeoutSec, mCamTimeoutSec,
       " * Camera timeout [sec]: ");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "general.camera_max_reconnect", mMaxReconnectTemp, mMaxReconnectTemp,
       " * Camera reconnection temptatives: ");
     if (mSimMode) {
@@ -886,18 +911,23 @@ void ZedCamera::getGeneralParams()
         "* [Simulation mode] Camera framerate forced to 60 Hz");
       mCamGrabFrameRate = 60;
     } else {
-      getParam(
+      sl_tools::getParam(
+        this->shared_from_this(),
         "general.grab_frame_rate", mCamGrabFrameRate, mCamGrabFrameRate,
         " * Camera framerate: ");
     }
   }
-  getParam("general.gpu_id", mGpuId, mGpuId, " * GPU ID: ");
-  getParam("general.async_image_retrieval", mAsyncImageRetrieval, mAsyncImageRetrieval);
+  sl_tools::getParam(this->shared_from_this(), "general.gpu_id", mGpuId, mGpuId, " * GPU ID: ");
+  sl_tools::getParam(
+    this->shared_from_this(), "general.async_image_retrieval", mAsyncImageRetrieval,
+    mAsyncImageRetrieval);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Asynchronous image retrieval: " << (mAsyncImageRetrieval ? "TRUE" : "FALSE"));
 
-  getParam("general.enable_image_validity_check", mImageValidityCheck, mImageValidityCheck);
+  sl_tools::getParam(
+    this->shared_from_this(), "general.enable_image_validity_check", mImageValidityCheck,
+    mImageValidityCheck);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Image Validity Check: " << (mImageValidityCheck == 1 ? "ENABLED" : "DISABLED"));
@@ -912,7 +942,7 @@ void ZedCamera::getGeneralParams()
     mCamResol = sl::RESOLUTION::HD1080;
   } else {
     std::string resol = "AUTO";
-    getParam("general.grab_resolution", resol, resol);
+    sl_tools::getParam(this->shared_from_this(), "general.grab_resolution", resol, resol);
     if (resol == "AUTO") {
       mCamResol = sl::RESOLUTION::AUTO;
     } else if (sl_tools::isZEDX(mCamUserModel)) {
@@ -957,7 +987,7 @@ void ZedCamera::getGeneralParams()
   }
 
   std::string out_resol = "NATIVE";
-  getParam("general.pub_resolution", out_resol, out_resol);
+  sl_tools::getParam(this->shared_from_this(), "general.pub_resolution", out_resol, out_resol);
   if (out_resol == toString(PubRes::NATIVE)) {
     mPubResolution = PubRes::NATIVE;
   } else if (out_resol == toString(PubRes::CUSTOM)) {
@@ -976,22 +1006,25 @@ void ZedCamera::getGeneralParams()
     " * Publishing resolution: " << out_resol.c_str());
 
   if (mPubResolution == PubRes::CUSTOM) {
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "general.pub_downscale_factor", mCustomDownscaleFactor,
       mCustomDownscaleFactor, " * Publishing downscale factor: ");
   } else {
     mCustomDownscaleFactor = 1.0;
   }
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "general.optional_opencv_calibration_file", mOpencvCalibFile,
     mOpencvCalibFile, " * OpenCV custom calibration: ");
 
-  getParam("general.self_calib", mCameraSelfCalib, mCameraSelfCalib);
+  sl_tools::getParam(
+    this->shared_from_this(), "general.self_calib", mCameraSelfCalib, mCameraSelfCalib);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Camera self calibration: " << (mCameraSelfCalib ? "TRUE" : "FALSE"));
-  getParam("general.camera_flip", mCameraFlip, mCameraFlip);
+  sl_tools::getParam(this->shared_from_this(), "general.camera_flip", mCameraFlip, mCameraFlip);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Camera flip: " << (mCameraFlip ? "TRUE" : "FALSE"));
@@ -1011,7 +1044,9 @@ void ZedCamera::getGeneralParams()
       "* [SVO mode - not realtime] Publish framerate forced to SVO Playback rate");
     mPubFrameRate = 0;
   } else {
-    getParam("general.pub_frame_rate", mPubFrameRate, mPubFrameRate, "", false);
+    sl_tools::getParam(
+      this->shared_from_this(), "general.pub_frame_rate", mPubFrameRate, mPubFrameRate, "",
+      false);
     if (!mSvoMode) {
       if (mPubFrameRate > mCamGrabFrameRate) {
         RCLCPP_WARN(
@@ -1042,23 +1077,30 @@ void ZedCamera::getVideoParams()
   read_only_descriptor.read_only = true;
 
   if (!sl_tools::isZEDX(mCamUserModel)) {
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.brightness", mCamBrightness, mCamBrightness,
       " * [DYN] Brightness: ", true);
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.contrast", mCamContrast, mCamContrast,
       " * [DYN] Contrast: ", true);
-    getParam("video.hue", mCamHue, mCamHue, " * [DYN] Hue: ", true);
+    sl_tools::getParam(
+      this->shared_from_this(), "video.hue", mCamHue, mCamHue, " * [DYN] Hue: ", true);
   }
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "video.saturation", mCamSaturation, mCamSaturation,
     " * [DYN] Saturation: ", true);
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "video.sharpness", mCamSharpness, mCamSharpness,
     " * [DYN] Sharpness: ", true);
-  getParam("video.gamma", mCamGamma, mCamGamma, " * [DYN] Gamma: ", true);
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(), "video.gamma", mCamGamma, mCamGamma, " * [DYN] Gamma: ", true);
+  sl_tools::getParam(
+    this->shared_from_this(),
     "video.auto_exposure_gain", mCamAutoExpGain, mCamAutoExpGain, "",
     true);
   RCLCPP_INFO(
@@ -1067,11 +1109,14 @@ void ZedCamera::getVideoParams()
   if (mCamAutoExpGain) {
     mTriggerAutoExpGain = true;
   }
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "video.exposure", mCamExposure, mCamExposure,
     " * [DYN] Exposure: ", true);
-  getParam("video.gain", mCamGain, mCamGain, " * [DYN] Gain: ", true);
-  getParam("video.auto_whitebalance", mCamAutoWB, mCamAutoWB, "", true);
+  sl_tools::getParam(
+    this->shared_from_this(), "video.gain", mCamGain, mCamGain, " * [DYN] Gain: ", true);
+  sl_tools::getParam(
+    this->shared_from_this(), "video.auto_whitebalance", mCamAutoWB, mCamAutoWB, "", true);
   RCLCPP_INFO(
     get_logger(), " * [DYN] Auto White Balance: %s",
     mCamAutoWB ? "TRUE" : "FALSE");
@@ -1079,20 +1124,24 @@ void ZedCamera::getVideoParams()
     mTriggerAutoWB = true;
   }
   int wb = 42;
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "video.whitebalance_temperature", wb, wb,
     " * [DYN] White Balance Temperature: ", true);
   mCamWBTemp = wb * 100;
 
   if (sl_tools::isZEDX(mCamUserModel)) {
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.exposure_time", mGmslExpTime, mGmslExpTime,
       " * [DYN] ZED X Exposure time: ", true);
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.auto_exposure_time_range_min", mGmslAutoExpTimeRangeMin,
       mGmslAutoExpTimeRangeMin,
       " * [DYN] ZED X Auto Exp. time range min: ", true);
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.auto_exposure_time_range_max", mGmslAutoExpTimeRangeMax,
       mGmslAutoExpTimeRangeMax,
       " * [DYN] ZED X Auto Exp. time range max: ", true);
@@ -1106,32 +1155,40 @@ void ZedCamera::getVideoParams()
         "max(30000,'general.grab_frame_rate'x1000): "
           << mGmslAutoExpTimeRangeMax);
     }
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.exposure_compensation", mGmslExposureComp,
       mGmslExposureComp, " * [DYN] ZED X Exposure comp.: ", true);
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.analog_gain", mGmslAnalogGain, mGmslAnalogGain,
       " * [DYN] ZED X Analog Gain: ", true);
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.auto_analog_gain_range_min", mGmslAnalogGainRangeMin,
       mGmslAnalogGainRangeMin,
       " * [DYN] ZED X Auto Analog Gain range min: ", true);
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.auto_analog_gain_range_max", mGmslAnalogGainRangeMax,
       mGmslAnalogGainRangeMax,
       " * [DYN] ZED X Auto Analog Gain range max: ", true);
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.digital_gain", mGmslDigitalGain, mGmslDigitalGain,
       " * [DYN] ZED X Digital Gain: ", true);
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.auto_digital_gain_range_min", mGmslAutoDigitalGainRangeMin,
       mGmslAutoDigitalGainRangeMin,
       " * [DYN] ZED X Auto Digital Gain range min: ", true);
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.auto_digital_gain_range_max", mGmslAutoDigitalGainRangeMax,
       mGmslAutoDigitalGainRangeMax,
       " * [DYN] ZED X Auto Digital Gain range max: ", true);
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "video.denoising", mGmslDenoising, mGmslDenoising,
       " * [DYN] ZED X Auto Digital Gain range max: ", true);
   }
@@ -1146,7 +1203,8 @@ void ZedCamera::getRoiParams()
 
   RCLCPP_INFO(get_logger(), "*** Region of Interest parameters ***");
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "region_of_interest.automatic_roi", mAutoRoiEnabled,
     mAutoRoiEnabled);
   RCLCPP_INFO(
@@ -1164,17 +1222,19 @@ void ZedCamera::getRoiParams()
           "improved results.");
     }
 
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "region_of_interest.depth_far_threshold_meters",
       mRoiDepthFarThresh, mRoiDepthFarThresh,
       " * Depth far threshold [m]: ");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "region_of_interest.image_height_ratio_cutoff",
       mRoiImgHeightRationCutOff, mRoiImgHeightRationCutOff,
       " * Image Height Ratio Cut Off: ");
   } else {
     std::string parsed_str =
-      getParam("region_of_interest.manual_polygon", mRoyPolyParam);
+      this->getParam("region_of_interest.manual_polygon", mRoyPolyParam);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Manual ROI polygon: " << parsed_str.c_str());
@@ -1184,7 +1244,7 @@ void ZedCamera::getRoiParams()
     mRoiModules.clear();
     bool apply = true;
 
-    getParam("region_of_interest.apply_to_depth", apply, apply);
+    sl_tools::getParam(this->shared_from_this(), "region_of_interest.apply_to_depth", apply, apply);
     RCLCPP_INFO(
       get_logger(), " * Apply to depth: %s",
       apply ? "TRUE" : "FALSE");
@@ -1193,7 +1253,8 @@ void ZedCamera::getRoiParams()
     }
 
     apply = true;
-    getParam("region_of_interest.apply_to_positional_tracking", apply, apply);
+    sl_tools::getParam(
+      this->shared_from_this(), "region_of_interest.apply_to_positional_tracking", apply, apply);
     RCLCPP_INFO(
       get_logger(), " * Apply to positional tracking: %s",
       apply ? "TRUE" : "FALSE");
@@ -1202,7 +1263,8 @@ void ZedCamera::getRoiParams()
     }
 
     apply = true;
-    getParam("region_of_interest.apply_to_object_detection", apply, apply);
+    sl_tools::getParam(
+      this->shared_from_this(), "region_of_interest.apply_to_object_detection", apply, apply);
     RCLCPP_INFO(
       get_logger(), " * Apply to object detection: %s",
       apply ? "TRUE" : "FALSE");
@@ -1211,7 +1273,8 @@ void ZedCamera::getRoiParams()
     }
 
     apply = true;
-    getParam("region_of_interest.apply_to_body_tracking", apply, apply);
+    sl_tools::getParam(
+      this->shared_from_this(), "region_of_interest.apply_to_body_tracking", apply, apply);
     RCLCPP_INFO(
       get_logger(), " * Apply to body tracking: %s",
       apply ? "TRUE" : "FALSE");
@@ -1220,7 +1283,8 @@ void ZedCamera::getRoiParams()
     }
 
     apply = true;
-    getParam("region_of_interest.apply_to_spatial_mapping", apply, apply);
+    sl_tools::getParam(
+      this->shared_from_this(), "region_of_interest.apply_to_spatial_mapping", apply, apply);
     RCLCPP_INFO(
       get_logger(), " * Apply to spatial mapping: %s",
       apply ? "TRUE" : "FALSE");
@@ -1240,7 +1304,7 @@ void ZedCamera::getDepthParams()
   RCLCPP_INFO(get_logger(), "*** DEPTH parameters ***");
 
   std::string depth_mode_str = sl::toString(mDepthMode).c_str();
-  getParam("depth.depth_mode", depth_mode_str, depth_mode_str);
+  sl_tools::getParam(this->shared_from_this(), "depth.depth_mode", depth_mode_str, depth_mode_str);
 
   bool matched = false;
   for (int mode = static_cast<int>(sl::DEPTH_MODE::NONE);
@@ -1286,14 +1350,17 @@ void ZedCamera::getDepthParams()
   }
 
   if (!mDepthDisabled) {
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "depth.min_depth", mCamMinDepth, mCamMinDepth,
       " * Min depth [m]: ");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "depth.max_depth", mCamMaxDepth, mCamMaxDepth,
       " * Max depth [m]: ");
 
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "depth.depth_stabilization", mDepthStabilization,
       mDepthStabilization, " * Depth Stabilization: ");
     if (mDepthStabilization < 0 || mDepthStabilization > 100) {
@@ -1304,12 +1371,14 @@ void ZedCamera::getDepthParams()
         "range [0,100]. Using the default value.");
     }
 
-    getParam("depth.openni_depth_mode", mOpenniDepthMode, mOpenniDepthMode);
+    sl_tools::getParam(
+      this->shared_from_this(), "depth.openni_depth_mode", mOpenniDepthMode, mOpenniDepthMode);
     RCLCPP_INFO(
       get_logger(), " * OpenNI mode (16bit point cloud): %s",
       mOpenniDepthMode ? "TRUE" : "FALSE");
 
-    getParam("depth.point_cloud_freq", mPcPubRate, mPcPubRate, "", true);
+    sl_tools::getParam(
+      this->shared_from_this(), "depth.point_cloud_freq", mPcPubRate, mPcPubRate, "", true);
     if (mSvoMode && !mSvoRealtime) {
       if (mPcPubRate > 30.0) {
         RCLCPP_WARN(
@@ -1336,7 +1405,7 @@ void ZedCamera::getDepthParams()
       " * [DYN] Point cloud rate [Hz]: " << mPcPubRate);
 
     std::string out_resol = "COMPACT";
-    getParam("depth.point_cloud_res", out_resol, out_resol);
+    sl_tools::getParam(this->shared_from_this(), "depth.point_cloud_res", out_resol, out_resol);
     if (out_resol == toString(PcRes::PUB)) {
       mPcResolution = PcRes::PUB;
     } else if (out_resol == toString(PcRes::FULL)) {
@@ -1358,13 +1427,16 @@ void ZedCamera::getDepthParams()
       get_logger(),
       " * Point cloud resolution: " << out_resol.c_str());
 
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "depth.depth_confidence", mDepthConf, mDepthConf,
       " * [DYN] Depth Confidence: ", true);
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "depth.depth_texture_conf", mDepthTextConf, mDepthTextConf,
       " * [DYN] Depth Texture Confidence: ", true);
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "depth.remove_saturated_areas", mRemoveSatAreas, mRemoveSatAreas,
       "", true);
     RCLCPP_INFO(
@@ -1389,17 +1461,20 @@ void ZedCamera::getSensorsParams()
     return;
   }
 
-  getParam("sensors.publish_imu_tf", mPublishImuTF, mPublishImuTF);
+  sl_tools::getParam(
+    this->shared_from_this(), "sensors.publish_imu_tf", mPublishImuTF, mPublishImuTF);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Broadcast IMU TF [not for ZED]: "
       << (mPublishImuTF ? "TRUE" : "FALSE"));
 
-  getParam("sensors.sensors_image_sync", mSensCameraSync, mSensCameraSync);
+  sl_tools::getParam(
+    this->shared_from_this(), "sensors.sensors_image_sync", mSensCameraSync, mSensCameraSync);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Sensors Camera Sync: "
       << (mSensCameraSync ? "TRUE" : "FALSE"));
 
-  getParam("sensors.sensors_pub_rate", mSensPubRate, mSensPubRate);
+  sl_tools::getParam(
+    this->shared_from_this(), "sensors.sensors_pub_rate", mSensPubRate, mSensPubRate);
   if (mSensPubRate < mCamGrabFrameRate) {
     mSensPubRate = mCamGrabFrameRate;
   }
@@ -1417,15 +1492,18 @@ void ZedCamera::getMappingParams()
 
   RCLCPP_INFO(get_logger(), "*** Spatial Mapping parameters ***");
 
-  getParam("mapping.mapping_enabled", mMappingEnabled, mMappingEnabled);
+  sl_tools::getParam(
+    this->shared_from_this(), "mapping.mapping_enabled", mMappingEnabled, mMappingEnabled);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Spatial Mapping Enabled: "
       << (mMappingEnabled ? "TRUE" : "FALSE"));
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "mapping.resolution", mMappingRes, mMappingRes,
     " * Spatial Mapping resolution [m]: ");
-  getParam("mapping.max_mapping_range", mMappingRangeMax, mMappingRangeMax);
+  sl_tools::getParam(
+    this->shared_from_this(), "mapping.max_mapping_range", mMappingRangeMax, mMappingRangeMax);
   if (mMappingRangeMax == -1.0f) {
     RCLCPP_INFO(get_logger(), " * 3D Max Mapping range: AUTO");
   } else {
@@ -1433,18 +1511,22 @@ void ZedCamera::getMappingParams()
       get_logger(),
       " * 3D Max Mapping range [m]: " << mMappingRangeMax);
   }
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "mapping.fused_pointcloud_freq", mFusedPcPubRate, mFusedPcPubRate,
     " * Map publishing rate [Hz]: ");
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "mapping.clicked_point_topic", mClickedPtTopic, mClickedPtTopic,
     " * Clicked point topic: ");
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "mapping.pd_max_distance_threshold", mPdMaxDistanceThreshold,
     mPdMaxDistanceThreshold, " * Plane Det. Max Dist. Thresh.: ");
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "mapping.pd_normal_similarity_threshold",
     mPdNormalSimilarityThreshold, mPdNormalSimilarityThreshold,
     " * Plane Det. Normals Sim. Thresh.: ");
@@ -1460,7 +1542,8 @@ void ZedCamera::getPosTrackingParams()
 
   RCLCPP_INFO(get_logger(), "*** POSITIONAL TRACKING parameters ***");
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "pos_tracking.pos_tracking_enabled", mPosTrackingEnabled,
     mPosTrackingEnabled);
   RCLCPP_INFO_STREAM(
@@ -1469,7 +1552,9 @@ void ZedCamera::getPosTrackingParams()
       << (mPosTrackingEnabled ? "TRUE" : "FALSE"));
 
   std::string pos_trk_mode_str = "GEN_1";
-  getParam("pos_tracking.pos_tracking_mode", pos_trk_mode_str, pos_trk_mode_str);
+  sl_tools::getParam(
+    this->shared_from_this(), "pos_tracking.pos_tracking_mode", pos_trk_mode_str,
+    pos_trk_mode_str);
   bool matched = false;
   for (int idx = static_cast<int>(sl::POSITIONAL_TRACKING_MODE::GEN_1);
     idx < static_cast<int>(sl::POSITIONAL_TRACKING_MODE::LAST); idx++)
@@ -1499,19 +1584,22 @@ void ZedCamera::getPosTrackingParams()
   mBaseFrameId = mCameraName;
   mBaseFrameId += "_camera_link";
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "pos_tracking.map_frame", mMapFrameId, mMapFrameId,
     " * Map frame id: ");
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "pos_tracking.odometry_frame", mOdomFrameId, mOdomFrameId,
     " * Odometry frame id: ");
 
-  getParam("pos_tracking.publish_tf", mPublishTF, mPublishTF);
+  sl_tools::getParam(this->shared_from_this(), "pos_tracking.publish_tf", mPublishTF, mPublishTF);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Broadcast Odometry TF: "
       << (mPublishTF ? "TRUE" : "FALSE"));
   if (mPublishTF) {
-    getParam("pos_tracking.publish_map_tf", mPublishMapTF, mPublishMapTF);
+    sl_tools::getParam(
+      this->shared_from_this(), "pos_tracking.publish_map_tf", mPublishMapTF, mPublishMapTF);
   } else {
     mPublishMapTF = false;
   }
@@ -1519,16 +1607,20 @@ void ZedCamera::getPosTrackingParams()
     get_logger(), " * Broadcast Pose TF: "
       << (mPublishMapTF ? "TRUE" : "FALSE"));
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "pos_tracking.depth_min_range", mPosTrackDepthMinRange,
     mPosTrackDepthMinRange, " * [DYN] Depth minimum range: ");
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "pos_tracking.transform_time_offset", mTfOffset, mTfOffset,
     " * [DYN] TF timestamp offset: ", true);
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "pos_tracking.path_pub_rate", mPathPubRate, mPathPubRate,
     " * [DYN] Path publishing rate: ", true);
-  getParam("pos_tracking.path_max_count", mPathMaxCount, mPathMaxCount);
+  sl_tools::getParam(
+    this->shared_from_this(), "pos_tracking.path_max_count", mPathMaxCount, mPathMaxCount);
   if (mPathMaxCount < 2 && mPathMaxCount != -1) {
     mPathMaxCount = 2;
   }
@@ -1569,50 +1661,58 @@ void ZedCamera::getPosTrackingParams()
       "   Note: loop closure (Area Memory) is disabled when using "
       "GNSS fusion");
   } else {
-    getParam("pos_tracking.area_memory", mAreaMemory, mAreaMemory);
+    sl_tools::getParam(
+      this->shared_from_this(), "pos_tracking.area_memory", mAreaMemory, mAreaMemory);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Area Memory: " << (mAreaMemory ? "TRUE" : "FALSE"));
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "pos_tracking.area_memory_db_path", mAreaMemoryDbPath,
       mAreaMemoryDbPath, " * Area Memory DB: ");
   }
-  getParam("pos_tracking.set_as_static", mSetAsStatic, mSetAsStatic);
+  sl_tools::getParam(
+    this->shared_from_this(), "pos_tracking.set_as_static", mSetAsStatic, mSetAsStatic);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Camera is static: "
       << (mSetAsStatic ? "TRUE" : "FALSE"));
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "pos_tracking.set_gravity_as_origin", mSetGravityAsOrigin,
     mSetGravityAsOrigin);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Gravity as origin [not for ZED]: "
       << (mSetGravityAsOrigin ? "TRUE" : "FALSE"));
-  getParam("pos_tracking.imu_fusion", mImuFusion, mImuFusion);
+  sl_tools::getParam(this->shared_from_this(), "pos_tracking.imu_fusion", mImuFusion, mImuFusion);
   RCLCPP_INFO_STREAM(
     get_logger(), " * IMU Fusion [not for ZED]: "
       << (mImuFusion ? "TRUE" : "FALSE"));
-  getParam("pos_tracking.floor_alignment", mFloorAlignment, mFloorAlignment);
+  sl_tools::getParam(
+    this->shared_from_this(), "pos_tracking.floor_alignment", mFloorAlignment, mFloorAlignment);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Floor Alignment: "
       << (mFloorAlignment ? "TRUE" : "FALSE"));
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "pos_tracking.reset_odom_with_loop_closure",
     mResetOdomWhenLoopClosure, mResetOdomWhenLoopClosure);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Reset Odometry with Loop Closure: "
       << (mResetOdomWhenLoopClosure ? "TRUE" : "FALSE"));
-  getParam("pos_tracking.two_d_mode", mTwoDMode, mTwoDMode);
+  sl_tools::getParam(this->shared_from_this(), "pos_tracking.two_d_mode", mTwoDMode, mTwoDMode);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * 2D mode: " << (mTwoDMode ? "TRUE" : "FALSE"));
   if (mTwoDMode) {
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "pos_tracking.fixed_z_value", mFixedZValue, mFixedZValue,
       " * Fixed Z value: ");
   }
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "pos_tracking.reset_pose_with_svo_loop",
     mResetPoseWithSvoLoop, mResetPoseWithSvoLoop);
   RCLCPP_INFO_STREAM(
@@ -1637,7 +1737,8 @@ void ZedCamera::getGnssFusionParams()
     return;
   }
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "gnss_fusion.gnss_fusion_enabled", mGnssFusionEnabled,
     mGnssFusionEnabled);
   RCLCPP_INFO_STREAM(
@@ -1656,24 +1757,28 @@ void ZedCamera::getGnssFusionParams()
   if (mGnssFusionEnabled) {
     mGnssFrameId = mCameraName + "_gnss_link";
 
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "gnss_fusion.gnss_fix_topic", mGnssTopic, mGnssTopic,
       " * GNSS topic name: ");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "gnss_fusion.enable_reinitialization", mGnssEnableReinitialization,
       mGnssEnableReinitialization);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * GNSS Reinitialization: "
         << (mGnssEnableReinitialization ? "TRUE" : "FALSE"));
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "gnss_fusion.enable_rolling_calibration",
       mGnssEnableRollingCalibration, mGnssEnableRollingCalibration);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * GNSS Rolling Calibration: "
         << (mGnssEnableRollingCalibration ? "TRUE" : "FALSE"));
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "gnss_fusion.enable_translation_uncertainty_target",
       mGnssEnableTranslationUncertaintyTarget,
       mGnssEnableTranslationUncertaintyTarget);
@@ -1681,36 +1786,44 @@ void ZedCamera::getGnssFusionParams()
       get_logger(),
       " * GNSS Transl. Uncert. Target: "
         << (mGnssEnableTranslationUncertaintyTarget ? "TRUE" : "FALSE"));
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "gnss_fusion.gnss_vio_reinit_threshold", mGnssVioReinitThreshold,
       mGnssVioReinitThreshold, " * GNSS VIO Reinit. Thresh.: ");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "gnss_fusion.target_translation_uncertainty",
       mGnssTargetTranslationUncertainty,
       mGnssTargetTranslationUncertainty,
       " * GNSS Target Transl. Uncert.: ");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "gnss_fusion.target_yaw_uncertainty", mGnssTargetYawUncertainty,
       mGnssTargetYawUncertainty, " * GNSS Target Yaw Uncert.: ");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "gnss_fusion.gnss_zero_altitude", mGnssZeroAltitude,
       mGnssZeroAltitude);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * GNSS Zero Altitude: " << (mGnssZeroAltitude ? "TRUE" : "FALSE"));
 
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "gnss_fusion.h_covariance_mul", mGnssHcovMul, mGnssHcovMul,
       " * Horiz. Covariance mult.: ");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "gnss_fusion.v_covariance_mul", mGnssVcovMul, mGnssVcovMul,
       " * Vert. Covariance mult.: ");
 
-    getParam("gnss_fusion.publish_utm_tf", mPublishUtmTf, mPublishUtmTf);
+    sl_tools::getParam(
+      this->shared_from_this(), "gnss_fusion.publish_utm_tf", mPublishUtmTf, mPublishUtmTf);
     RCLCPP_INFO_STREAM(
       get_logger(), " * Publish UTM TF: "
         << (mPublishUtmTf ? "TRUE" : "FALSE"));
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "gnss_fusion.broadcast_utm_transform_as_parent_frame",
       mUtmAsParent, mUtmAsParent);
     RCLCPP_INFO_STREAM(
@@ -1729,7 +1842,8 @@ void ZedCamera::getStreamingServerParams()
   RCLCPP_INFO(get_logger(), "*** Streaming Server parameters ***");
 
   bool stream_server = false;
-  getParam("stream_server.stream_enabled", stream_server, stream_server);
+  sl_tools::getParam(
+    this->shared_from_this(), "stream_server.stream_enabled", stream_server, stream_server);
   mStreamingServerRequired = stream_server;
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -1737,7 +1851,7 @@ void ZedCamera::getStreamingServerParams()
       << (mStreamingServerRequired ? "TRUE" : "FALSE"));
 
   std::string codec = "H264";
-  getParam("stream_server.codec", codec, codec);
+  sl_tools::getParam(this->shared_from_this(), "stream_server.codec", codec, codec);
   if (codec == "H264") {
     mStreamingServerCodec = sl::STREAMING_CODEC::H264;
     RCLCPP_INFO(get_logger(), " * Stream codec: H264");
@@ -1753,9 +1867,13 @@ void ZedCamera::getStreamingServerParams()
     RCLCPP_INFO(get_logger(), " * Stream codec: H264");
   }
 
-  getParam("stream_server.port", mStreamingServerPort, mStreamingServerPort, " * Stream port: ");
+  sl_tools::getParam(
+    this->shared_from_this(), "stream_server.port", mStreamingServerPort, mStreamingServerPort,
+    " * Stream port: ");
 
-  getParam("stream_server.bitrate", mStreamingServerBitrate, mStreamingServerBitrate);
+  sl_tools::getParam(
+    this->shared_from_this(), "stream_server.bitrate", mStreamingServerBitrate,
+    mStreamingServerBitrate);
   if (mStreamingServerBitrate < 1000) {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -1772,7 +1890,9 @@ void ZedCamera::getStreamingServerParams()
   }
   RCLCPP_INFO_STREAM(get_logger(), " * Stream bitrate: " << mStreamingServerBitrate);
 
-  getParam("stream_server.gop_size", mStreamingServerGopSize, mStreamingServerGopSize);
+  sl_tools::getParam(
+    this->shared_from_this(), "stream_server.gop_size", mStreamingServerGopSize,
+    mStreamingServerGopSize);
   if (mStreamingServerGopSize < -1) {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -1789,7 +1909,9 @@ void ZedCamera::getStreamingServerParams()
   }
   RCLCPP_INFO_STREAM(get_logger(), " * Stream GOP size: " << mStreamingServerGopSize);
 
-  getParam("stream_server.chunk_size", mStreamingServerChunckSize, mStreamingServerChunckSize);
+  sl_tools::getParam(
+    this->shared_from_this(), "stream_server.chunk_size", mStreamingServerChunckSize,
+    mStreamingServerChunckSize);
   if (mStreamingServerChunckSize < 1024) {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -1806,14 +1928,16 @@ void ZedCamera::getStreamingServerParams()
   }
   RCLCPP_INFO_STREAM(get_logger(), " * Stream Chunk size: " << mStreamingServerChunckSize);
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "stream_server.adaptative_bitrate", mStreamingServerAdaptiveBitrate,
     mStreamingServerAdaptiveBitrate);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Adaptive bitrate: " << (mStreamingServerAdaptiveBitrate ? "TRUE" : "FALSE"));
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "stream_server.target_framerate", mStreamingServerTargetFramerate,
     mStreamingServerTargetFramerate, " * Target frame rate:");
 }
@@ -1827,7 +1951,8 @@ void ZedCamera::getAdvancedParams()
 
   RCLCPP_INFO(get_logger(), "*** Advanced parameters ***");
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "advanced.thread_sched_policy", mThreadSchedPolicy,
     mThreadSchedPolicy, " * Thread sched. policy: ");
 
@@ -1841,13 +1966,16 @@ void ZedCamera::getAdvancedParams()
           "default [SCHED_OTHER]");
       mThreadSchedPolicy = "SCHED_OTHER";
     } else {
-      getParam(
+      sl_tools::getParam(
+        this->shared_from_this(),
         "advanced.thread_grab_priority", mThreadPrioGrab,
         mThreadPrioGrab, " * Grab thread priority: ");
-      getParam(
+      sl_tools::getParam(
+        this->shared_from_this(),
         "advanced.thread_sensor_priority", mThreadPrioSens,
         mThreadPrioSens, " * Sensors thread priority: ");
-      getParam(
+      sl_tools::getParam(
+        this->shared_from_this(),
         "advanced.thread_pointcloud_priority", mThreadPrioPointCloud,
         mThreadPrioPointCloud, " * Point Cloud thread priority: ");
     }

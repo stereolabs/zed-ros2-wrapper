@@ -33,7 +33,8 @@ void ZedCamera::getBodyTrkParams()
     return;
   }
 
-  getParam("body_tracking.bt_enabled", mBodyTrkEnabled, mBodyTrkEnabled);
+  sl_tools::getParam(
+    this->shared_from_this(), "body_tracking.bt_enabled", mBodyTrkEnabled, mBodyTrkEnabled);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Body Track. enabled: "
       << (mBodyTrkEnabled ? "TRUE" : "FALSE"));
@@ -41,7 +42,7 @@ void ZedCamera::getBodyTrkParams()
   bool matched = false;
 
   std::string model_str = "HUMAN_BODY_FAST";
-  getParam("body_tracking.model", model_str, model_str);
+  sl_tools::getParam(this->shared_from_this(), "body_tracking.model", model_str, model_str);
 
   for (int idx = static_cast<int>(sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST);
     idx < static_cast<int>(sl::BODY_TRACKING_MODEL::LAST); idx++)
@@ -71,7 +72,7 @@ void ZedCamera::getBodyTrkParams()
       << sl::toString(mBodyTrkModel).c_str());
 
   std::string fmt_str = "BODY_70";
-  getParam("body_tracking.body_format", fmt_str, fmt_str);
+  sl_tools::getParam(this->shared_from_this(), "body_tracking.body_format", fmt_str, fmt_str);
 
   for (int idx = static_cast<int>(sl::BODY_FORMAT::BODY_18);
     idx < static_cast<int>(sl::BODY_FORMAT::LAST); idx++)
@@ -99,19 +100,22 @@ void ZedCamera::getBodyTrkParams()
     get_logger(), " * Body Track. format: "
       << sl::toString(mBodyTrkFmt).c_str());
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "body_tracking.allow_reduced_precision_inference",
     mBodyTrkReducedPrecision, mBodyTrkReducedPrecision);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Body Track. allow reduced precision: "
       << (mObjDetReducedPrecision ? "TRUE" : "FALSE"));
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "body_tracking.max_range", mBodyTrkMaxRange, mBodyTrkMaxRange,
     " * Body Track. maximum range [m]: ");
 
   std::string body_sel_str = "FULL";
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "body_tracking.body_kp_selection", body_sel_str, body_sel_str,
     " * Body Track. KP selection: ");
 
@@ -143,14 +147,16 @@ void ZedCamera::getBodyTrkParams()
         << body_sel_str << "'. Using the default value.");
   }
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "body_tracking.enable_body_fitting", mBodyTrkFitting,
     mBodyTrkFitting);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Body fitting: "
       << (mBodyTrkFitting ? "TRUE" : "FALSE"));
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "body_tracking.enable_tracking", mBodyTrkEnableTracking,
     mBodyTrkEnableTracking);
   RCLCPP_INFO_STREAM(
@@ -158,15 +164,18 @@ void ZedCamera::getBodyTrkParams()
     " * Body joints tracking: "
       << (mBodyTrkEnableTracking ? "TRUE" : "FALSE"));
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "body_tracking.prediction_timeout_s", mBodyTrkPredTimeout,
     mBodyTrkPredTimeout, " * Body Track. prediction timeout [sec]: ");
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "body_tracking.confidence_threshold", mBodyTrkConfThresh,
     mBodyTrkConfThresh, " * Body Track. confidence thresh.: ", true);
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "body_tracking.minimum_keypoints_threshold", mBodyTrkMinKp,
     mBodyTrkMinKp, " * Body Track. min. KP thresh.: ", true);
 }

@@ -32,13 +32,15 @@ void ZedCamera::getOdParams()
     return;
   }
 
-  getParam("object_detection.od_enabled", mObjDetEnabled, mObjDetEnabled);
+  sl_tools::getParam(
+    this->shared_from_this(), "object_detection.od_enabled", mObjDetEnabled, mObjDetEnabled);
   RCLCPP_INFO_STREAM(
     get_logger(), " * Object Det. enabled: "
       << (mObjDetEnabled ? "TRUE" : "FALSE"));
 
   std::string model_str;
-  getParam("object_detection.detection_model", model_str, model_str);
+  sl_tools::getParam(
+    this->shared_from_this(), "object_detection.detection_model", model_str, model_str);
   DEBUG_STREAM_OD(" 'object_detection.detection_model': " << model_str.c_str());
 
   bool matched = false;
@@ -71,7 +73,8 @@ void ZedCamera::getOdParams()
       << sl::toString(mObjDetModel).c_str());
 
   if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "object_detection.custom_onnx_file", mYoloOnnxPath, mYoloOnnxPath,
       " * Custom ONNX file: ");
     if (mYoloOnnxPath.empty()) {
@@ -81,10 +84,12 @@ void ZedCamera::getOdParams()
         "Please check the value in the YAML file.");
       exit(EXIT_FAILURE);
     }
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "object_detection.custom_onnx_input_size", mYoloOnnxSize, mYoloOnnxSize,
       " * Custom ONNX input size: ");
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "object_detection.custom_label_yaml", mCustomLabelsPath, mCustomLabelsPath,
       " * Custom Label file: ");
   }
@@ -97,20 +102,24 @@ void ZedCamera::getOdParams()
     mUsingCustomOd = false;
   }
 
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "object_detection.allow_reduced_precision_inference",
     mObjDetReducedPrecision, mObjDetReducedPrecision);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Object Det. allow reduced precision: "
       << (mObjDetReducedPrecision ? "TRUE" : "FALSE"));
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "object_detection.max_range", mObjDetMaxRange, mObjDetMaxRange,
     " * Object Det. maximum range [m]: ");
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "object_detection.prediction_timeout", mObjDetPredTimeout,
     mObjDetPredTimeout, " * Object Det. prediction timeout [sec]: ");
-  getParam(
+  sl_tools::getParam(
+    this->shared_from_this(),
     "object_detection.enable_tracking", mObjDetTracking,
     mObjDetTracking);
   RCLCPP_INFO_STREAM(
@@ -119,7 +128,9 @@ void ZedCamera::getOdParams()
 
 
   std::string filtering_mode_str = "NONE";
-  getParam("object_detection.filtering_mode", filtering_mode_str, filtering_mode_str);
+  sl_tools::getParam(
+    this->shared_from_this(), "object_detection.filtering_mode", filtering_mode_str,
+    filtering_mode_str);
 
   for (int idx = static_cast<int>(sl::OBJECT_FILTERING_MODE::NONE);
     idx < static_cast<int>(sl::OBJECT_FILTERING_MODE::LAST); idx++)
@@ -147,47 +158,54 @@ void ZedCamera::getOdParams()
       << sl::toString(mObjFilterMode).c_str());
 
   if (!mUsingCustomOd) {
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "object_detection.class.people.enabled", mObjDetPeopleEnable,
       mObjDetPeopleEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox people: " << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "object_detection.class.vehicle.enabled", mObjDetVehiclesEnable,
       mObjDetVehiclesEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox vehicles: "
         << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "object_detection.class.bag.enabled", mObjDetBagsEnable,
       mObjDetBagsEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox bags: " << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "object_detection.class.animal.enabled", mObjDetAnimalsEnable,
       mObjDetAnimalsEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox animals: "
         << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "object_detection.class.electronics.enabled",
       mObjDetElectronicsEnable, mObjDetElectronicsEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox electronics: "
         << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "object_detection.class.fruit_vegetable.enabled",
       mObjDetFruitsEnable, mObjDetFruitsEnable, "", true);
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * MultiClassBox fruits and vegetables: "
         << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
-    getParam(
+    sl_tools::getParam(
+      this->shared_from_this(),
       "object_detection.class.sport.enabled", mObjDetSportEnable,
       mObjDetSportEnable, "", true);
     RCLCPP_INFO_STREAM(

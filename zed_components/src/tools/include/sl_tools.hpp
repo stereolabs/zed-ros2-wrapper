@@ -17,6 +17,7 @@
 
 #include <chrono>
 #include <memory>
+#include <rclcpp/rclcpp.hpp>
 #include <rclcpp/clock.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sl/Camera.hpp>
@@ -44,10 +45,10 @@ namespace sl_tools
  */
 template<typename T>
 void getParam(
-  rclcpp::Node::ConstSharedPtr node,
+  const std::shared_ptr<rclcpp::Node> node,
   std::string paramName, T defValue, T & outVal,
   std::string log_info = std::string(), bool dynamic = false,
-  T min = std::numeric_limits<T>::min(), T max = std::numeric_limits<T>::max());
+  T minVal = std::numeric_limits<T>::min(), T maxVal = std::numeric_limits<T>::max());
 
 /*! \brief Convert a sl::float3 to a vector of float
  * \param r : the sl::float3 to convert
@@ -195,9 +196,10 @@ private:
 // ----> Template functions definitions
 template<typename T>
 void getParam(
-  rclcpp::Node::ConstSharedPtr node,
+  const std::shared_ptr<rclcpp::Node> node,
   std::string paramName, T defValue, T & outVal,
-  std::string log_info, bool dynamic, T minVal, T maxVal)
+  std::string log_info, bool dynamic,
+  T minVal, T maxVal)
 {
   rcl_interfaces::msg::ParameterDescriptor descriptor;
   descriptor.read_only = !dynamic;
@@ -226,9 +228,9 @@ void getParam(
     descriptor.integer_range.push_back(range);
   }
 
-  declare_parameter(paramName, rclcpp::ParameterValue(defValue), descriptor);
+  node->declare_parameter(paramName, rclcpp::ParameterValue(defValue), descriptor);
 
-  if (!get_parameter(paramName, outVal)) {
+  if (!node->get_parameter(paramName, outVal)) {
     RCLCPP_WARN_STREAM(
       node->get_logger(),
       "The parameter '"

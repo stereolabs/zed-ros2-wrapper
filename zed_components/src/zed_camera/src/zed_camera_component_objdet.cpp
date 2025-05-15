@@ -66,36 +66,21 @@ void ZedCamera::getOdParams()
     RCLCPP_WARN_STREAM(
       get_logger(),
       "The value of the parameter 'object_detection.model' is not valid: '"
-        << model_str << "'. Using the default value.");
+        << model_str << "'. Stopping the node");
+    exit(EXIT_FAILURE);
+  }
+  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value of the parameter 'object_detection.model' is not supported: '"
+        << model_str << "'. Stopping the node");
+    exit(EXIT_FAILURE);
   }
   RCLCPP_INFO_STREAM(
     get_logger(), " * Object Det. model: "
       << sl::toString(mObjDetModel).c_str());
 
   if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
-    sl_tools::getParam(
-      shared_from_this(), "object_detection.custom_onnx_file",
-      mYoloOnnxPath, mYoloOnnxPath, " * Custom ONNX file: ");
-    if (mYoloOnnxPath.empty()) {
-      RCLCPP_ERROR_STREAM(
-        get_logger(),
-        "The parameter 'object_detection.custom_onnx_file' is empty. "
-        "Please check the value in the YAML file.");
-      exit(EXIT_FAILURE);
-    }
-    sl_tools::getParam(
-      shared_from_this(),
-      "object_detection.custom_onnx_input_size", mYoloOnnxSize,
-      mYoloOnnxSize, " * Custom ONNX input size: ");
-    sl_tools::getParam(
-      shared_from_this(), "object_detection.custom_label_yaml",
-      mCustomLabelsPath, mCustomLabelsPath,
-      " * Custom Label file: ");
-  }
-
-  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS ||
-    mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS)
-  {
     mUsingCustomOd = true;
   } else {
     mUsingCustomOd = false;
@@ -155,7 +140,10 @@ void ZedCamera::getOdParams()
     get_logger(), " * Object Filtering mode: "
       << sl::toString(mObjFilterMode).c_str());
 
-  if (!mUsingCustomOd) {
+
+  if (mUsingCustomOd) {
+    getCustomOdParams();
+  } else {
     sl_tools::getParam(
       shared_from_this(),
       "object_detection.class.people.enabled",
@@ -227,6 +215,29 @@ void ZedCamera::getOdParams()
       mObjDetSportConf, mObjDetSportConf,
       " * MultiClassBox sport-related objects confidence: ", true, 0.0, 100.0);
   }
+}
+
+void ZedCamera::getCustomOdParams()
+{
+  sl_tools::getParam(
+    shared_from_this(), "object_detection.custom_onnx_file",
+    mYoloOnnxPath, mYoloOnnxPath, " * Custom ONNX file: ");
+  if (mYoloOnnxPath.empty()) {
+    RCLCPP_ERROR_STREAM(
+      get_logger(),
+      "The parameter 'object_detection.custom_onnx_file' is empty. "
+      "Please check the value in the YAML file.");
+    exit(EXIT_FAILURE);
+  }
+  sl_tools::getParam(
+    shared_from_this(),
+    "object_detection.custom_onnx_input_size", mYoloOnnxSize,
+    mYoloOnnxSize, " * Custom ONNX input size: ");
+  sl_tools::getParam(
+    shared_from_this(), "object_detection.custom_label_yaml",
+    mCustomLabelsPath, mCustomLabelsPath,
+    " * Custom Label file: ");
+
 }
 
 bool ZedCamera::handleOdDynamicParams(

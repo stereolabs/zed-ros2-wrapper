@@ -55,6 +55,7 @@ protected:
   void getSensorsParams();
   void getMappingParams();
   void getOdParams();
+  void getCustomOdParams();
   void getBodyTrkParams();
   void getStreamingServerParams();
   void getAdvancedParams();

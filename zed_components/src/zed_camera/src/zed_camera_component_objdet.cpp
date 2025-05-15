@@ -161,41 +161,71 @@ void ZedCamera::getOdParams()
       "object_detection.class.people.enabled",
       mObjDetPeopleEnable, mObjDetPeopleEnable,
       " * MultiClassBox people: ", true);
-
     sl_tools::getParam(
       shared_from_this(),
       "object_detection.class.vehicle.enabled",
       mObjDetVehiclesEnable, mObjDetVehiclesEnable,
       " * MultiClassBox vehicles: ", true);
-
     sl_tools::getParam(
       shared_from_this(), "object_detection.class.bag.enabled",
       mObjDetBagsEnable, mObjDetBagsEnable,
       " * MultiClassBox bags: ", true);
-
     sl_tools::getParam(
       shared_from_this(),
       "object_detection.class.animal.enabled",
       mObjDetAnimalsEnable, mObjDetAnimalsEnable,
       " * MultiClassBox animals: ", true);
-
     sl_tools::getParam(
       shared_from_this(),
       "object_detection.class.electronics.enabled",
       mObjDetElectronicsEnable, mObjDetElectronicsEnable,
       " * MultiClassBox electronics: ", true);
-
     sl_tools::getParam(
       shared_from_this(),
       "object_detection.class.fruit_vegetable.enabled",
       mObjDetFruitsEnable, mObjDetFruitsEnable,
       " * MultiClassBox fruits and vegetables: ", true);
-
     sl_tools::getParam(
       shared_from_this(),
       "object_detection.class.sport.enabled",
       mObjDetSportEnable, mObjDetSportEnable,
       " * MultiClassBox sport-related objects: ", true);
+
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.people.confidence_threshold",
+      mObjDetPeopleConf, mObjDetPeopleConf,
+      " * MultiClassBox people confidence: ", true, 0.0, 100.0);
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.vehicle.confidence_threshold",
+      mObjDetVehiclesConf, mObjDetVehiclesConf,
+      " * MultiClassBox vehicles confidence: ", true, 0.0, 100.0);
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.bag.confidence_threshold",
+      mObjDetBagsConf, mObjDetBagsConf,
+      " * MultiClassBox bags confidence: ", true, 0.0, 100.0);
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.animal.confidence_threshold",
+      mObjDetAnimalsConf, mObjDetAnimalsConf,
+      " * MultiClassBox animals confidence: ", true, 0.0, 100.0);
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.electronics.confidence_threshold",
+      mObjDetElectronicsConf, mObjDetElectronicsConf,
+      " * MultiClassBox electronics confidence: ", true, 0.0, 100.0);
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.fruit_vegetable.confidence_threshold",
+      mObjDetFruitsConf, mObjDetFruitsConf,
+      " * MultiClassBox fruits and vegetables confidence: ", true, 0.0, 100.0);
+    sl_tools::getParam(
+      shared_from_this(),
+      "object_detection.class.sport.confidence_threshold",
+      mObjDetSportConf, mObjDetSportConf,
+      " * MultiClassBox sport-related objects confidence: ", true, 0.0, 100.0);
   }
 }
 
@@ -499,38 +529,6 @@ bool ZedCamera::startObjDetect()
   mObjDetInstID = ++mAiInstanceID;
   od_p.instance_module_id = mObjDetInstID;
 
-  mObjDetFilter.clear();
-  mObjDetClassConfMap.clear();
-  if (mObjDetPeopleEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
-    mObjDetClassConfMap[sl::OBJECT_CLASS::PERSON] = mObjDetPeopleConf;
-  }
-  if (mObjDetVehiclesEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
-    mObjDetClassConfMap[sl::OBJECT_CLASS::VEHICLE] = mObjDetVehiclesConf;
-  }
-  if (mObjDetBagsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
-    mObjDetClassConfMap[sl::OBJECT_CLASS::BAG] = mObjDetBagsConf;
-  }
-  if (mObjDetAnimalsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
-    mObjDetClassConfMap[sl::OBJECT_CLASS::ANIMAL] = mObjDetAnimalsConf;
-  }
-  if (mObjDetElectronicsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
-    mObjDetClassConfMap[sl::OBJECT_CLASS::ELECTRONICS] = mObjDetElectronicsConf;
-  }
-  if (mObjDetFruitsEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
-    mObjDetClassConfMap[sl::OBJECT_CLASS::FRUIT_VEGETABLE] =
-      mObjDetFruitsConf;
-  }
-  if (mObjDetSportEnable) {
-    mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
-    mObjDetClassConfMap[sl::OBJECT_CLASS::SPORT] = mObjDetSportConf;
-  }
-
   if (mUsingCustomOd) {
     od_p.enable_segmentation = false;
     od_p.custom_onnx_file = sl::String(mYoloOnnxPath.c_str());
@@ -637,28 +635,38 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
     objectTracker_parameters_rt.detection_confidence_threshold = 50.0f; // Default value, overwritten by single class parameters
     mObjDetFilter.clear();
+    mObjDetClassConfMap.clear();
     if (mObjDetPeopleEnable) {
       mObjDetFilter.push_back(sl::OBJECT_CLASS::PERSON);
+      mObjDetClassConfMap[sl::OBJECT_CLASS::PERSON] = mObjDetPeopleConf;
     }
     if (mObjDetVehiclesEnable) {
       mObjDetFilter.push_back(sl::OBJECT_CLASS::VEHICLE);
+      mObjDetClassConfMap[sl::OBJECT_CLASS::VEHICLE] = mObjDetVehiclesConf;
     }
     if (mObjDetBagsEnable) {
       mObjDetFilter.push_back(sl::OBJECT_CLASS::BAG);
+      mObjDetClassConfMap[sl::OBJECT_CLASS::BAG] = mObjDetBagsConf;
     }
     if (mObjDetAnimalsEnable) {
       mObjDetFilter.push_back(sl::OBJECT_CLASS::ANIMAL);
+      mObjDetClassConfMap[sl::OBJECT_CLASS::ANIMAL] = mObjDetAnimalsConf;
     }
     if (mObjDetElectronicsEnable) {
       mObjDetFilter.push_back(sl::OBJECT_CLASS::ELECTRONICS);
+      mObjDetClassConfMap[sl::OBJECT_CLASS::ELECTRONICS] = mObjDetElectronicsConf;
     }
     if (mObjDetFruitsEnable) {
       mObjDetFilter.push_back(sl::OBJECT_CLASS::FRUIT_VEGETABLE);
+      mObjDetClassConfMap[sl::OBJECT_CLASS::FRUIT_VEGETABLE] =
+        mObjDetFruitsConf;
     }
     if (mObjDetSportEnable) {
       mObjDetFilter.push_back(sl::OBJECT_CLASS::SPORT);
+      mObjDetClassConfMap[sl::OBJECT_CLASS::SPORT] = mObjDetSportConf;
     }
     objectTracker_parameters_rt.object_class_filter = mObjDetFilter;
+    objectTracker_parameters_rt.object_class_detection_confidence_threshold = mObjDetClassConfMap;
     // <---- Process realtime dynamic parameters
 
     objDetRes = mZed->retrieveObjects(

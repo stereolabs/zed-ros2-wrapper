@@ -412,19 +412,19 @@ private:
   std::vector<sl::OBJECT_CLASS> mObjDetFilter;
   std::map<sl::OBJECT_CLASS, float> mObjDetClassConfMap;
   bool mObjDetPeopleEnable = true;
-  float mObjDetPeopleConf = 50.0;
+  double mObjDetPeopleConf = 50.0;
   bool mObjDetVehiclesEnable = true;
-  float mObjDetVehiclesConf = 50.0;
+  double mObjDetVehiclesConf = 50.0;
   bool mObjDetBagsEnable = true;
-  float mObjDetBagsConf = 50.0;
+  double mObjDetBagsConf = 50.0;
   bool mObjDetAnimalsEnable = true;
-  float mObjDetAnimalsConf = 50.0;
+  double mObjDetAnimalsConf = 50.0;
   bool mObjDetElectronicsEnable = true;
-  float mObjDetElectronicsConf = 50.0;
+  double mObjDetElectronicsConf = 50.0;
   bool mObjDetFruitsEnable = true;
-  float mObjDetFruitsConf = 50.0;
+  double mObjDetFruitsConf = 50.0;
   bool mObjDetSportEnable = true;
-  float mObjDetSportConf = 50.0;
+  double mObjDetSportConf = 50.0;
   sl::OBJECT_DETECTION_MODEL mObjDetModel =
     sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST;
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;

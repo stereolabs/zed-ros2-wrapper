@@ -112,11 +112,11 @@ void ZedCamera::getOdParams()
   sl_tools::getParam(
     shared_from_this(), "object_detection.max_range",
     mObjDetMaxRange, mObjDetMaxRange,
-    " * Object Det. maximum range [m]: ");
+    " * Object Det. maximum range [m]: ", false, 0.1, 40.0);
   sl_tools::getParam(
     shared_from_this(), "object_detection.prediction_timeout",
     mObjDetPredTimeout, mObjDetPredTimeout,
-    " * Object Det. prediction timeout [sec]: ");
+    " * Object Det. prediction timeout [sec]: ", false, 0.0, 300.0);
   sl_tools::getParam(
     shared_from_this(), "object_detection.enable_tracking",
     mObjDetTracking, mObjDetTracking);
@@ -677,7 +677,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     // ----> Process realtime dynamic parameters
     sl::CustomObjectDetectionRuntimeParameters custom_objectTracker_parameters_rt;
     custom_objectTracker_parameters_rt.object_detection_properties.detection_confidence_threshold =
-      50.0f;                                                                                               // Default value, overwritten by single class parameters
+      50.0f; // Default value, overwritten by single class parameters
     // <---- Process realtime dynamic parameters
 
     objDetRes = mZed->retrieveCustomObjects(

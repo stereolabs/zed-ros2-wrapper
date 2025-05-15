@@ -112,7 +112,7 @@ void ZedCamera::getBodyTrkParams()
   sl_tools::getParam(
     shared_from_this(), "body_tracking.max_range",
     mBodyTrkMaxRange, mBodyTrkMaxRange,
-    " * Body Track. maximum range [m]: ");
+    " * Body Track. maximum range [m]: ", false, 0.1, 40.0);
 
   std::string body_sel_str = "FULL";
   sl_tools::getParam(
@@ -160,17 +160,17 @@ void ZedCamera::getBodyTrkParams()
   sl_tools::getParam(
     shared_from_this(), "body_tracking.prediction_timeout_s",
     mBodyTrkPredTimeout, mBodyTrkPredTimeout,
-    " * Body Track. prediction timeout [sec]: ");
+    " * Body Track. prediction timeout [sec]: ", false, 0.0, 300.0);
 
   sl_tools::getParam(
     shared_from_this(), "body_tracking.confidence_threshold",
     mBodyTrkConfThresh, mBodyTrkConfThresh,
-    " * Body Track. confidence thresh.: ", true);
+    " * Body Track. confidence thresh.: ", true, 0.0, 100.0);
 
   sl_tools::getParam(
     shared_from_this(),
     "body_tracking.minimum_keypoints_threshold", mBodyTrkMinKp,
-    mBodyTrkMinKp, " * Body Track. min. KP thresh.: ", true);
+    mBodyTrkMinKp, " * Body Track. min. KP thresh.: ", true, 0, 38);
 }
 
 bool ZedCamera::handleBodyTrkDynamicParams(

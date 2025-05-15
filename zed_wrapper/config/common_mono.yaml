@@ -34,7 +34,7 @@
 
         sensors:
             publish_imu_tf: true # [overwritten by launch file options] enable/disable the IMU TF broadcasting
-            sensors_pub_rate: 200. # [DYNAMIC] - frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
+            sensors_pub_rate: 100. # [DYNAMIC] - frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
 
         stream_server:
             stream_enabled: false # enable the streaming server when the camera is open

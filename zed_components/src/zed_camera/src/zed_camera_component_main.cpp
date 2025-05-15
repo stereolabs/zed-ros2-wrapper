@@ -570,7 +570,7 @@ void ZedCamera::getDebugParams()
 
   sl_tools::getParam(
     shared_from_this(), "debug.sdk_verbose", mVerbose,
-    mVerbose, " * SDK Verbose: ");
+    mVerbose, " * SDK Verbose: ", false, 0, 9999);
   sl_tools::getParam(
     shared_from_this(), "debug.sdk_verbose_log_file",
     mVerboseLogFile, mVerboseLogFile, " * SDK Verbose File: ");
@@ -868,18 +868,18 @@ void ZedCamera::getGeneralParams()
   if (!mSvoMode) {
     sl_tools::getParam(
       shared_from_this(), "general.serial_number",
-      mCamSerialNumber, mCamSerialNumber, " * Camera SN: ");
+      mCamSerialNumber, mCamSerialNumber, " * Camera SN: ", false, 0);
     sl_tools::getParam(
       shared_from_this(), "general.camera_id", mCamId, mCamId,
-      " * Camera ID: ");
+      " * Camera ID: ", false, -1, 256);
     sl_tools::getParam(
       shared_from_this(), "general.camera_timeout_sec",
       mCamTimeoutSec, mCamTimeoutSec,
-      " * Camera timeout [sec]: ");
+      " * Camera timeout [sec]: ", false, 0, 9999);
     sl_tools::getParam(
       shared_from_this(), "general.camera_max_reconnect",
       mMaxReconnectTemp, mMaxReconnectTemp,
-      " * Camera reconnection temptatives: ");
+      " * Camera reconnection temptatives: ", false, 0, 9999);
     if (mSimMode) {
       RCLCPP_INFO(
         get_logger(),
@@ -889,12 +889,12 @@ void ZedCamera::getGeneralParams()
       sl_tools::getParam(
         shared_from_this(), "general.grab_frame_rate",
         mCamGrabFrameRate, mCamGrabFrameRate,
-        " * Camera framerate: ");
+        " * Camera framerate: ", false, 0, 120);
     }
   }
   sl_tools::getParam(
     shared_from_this(), "general.gpu_id", mGpuId, mGpuId,
-    " * GPU ID: ");
+    " * GPU ID: ", false, -1, 999);
   sl_tools::getParam(
     shared_from_this(), "general.async_image_retrieval",
     mAsyncImageRetrieval, mAsyncImageRetrieval,
@@ -903,7 +903,7 @@ void ZedCamera::getGeneralParams()
   sl_tools::getParam(
     shared_from_this(), "general.enable_image_validity_check",
     mImageValidityCheck, mImageValidityCheck,
-    " * Image Validity Check: ");
+    " * Image Validity Check: ", false, 0, 10);
 
   // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
 
@@ -985,7 +985,7 @@ void ZedCamera::getGeneralParams()
     sl_tools::getParam(
       shared_from_this(), "general.pub_downscale_factor",
       mCustomDownscaleFactor, mCustomDownscaleFactor,
-      " * Publishing downscale factor: ");
+      " * Publishing downscale factor: ", false, 1.0, 5.0);
   } else {
     mCustomDownscaleFactor = 1.0;
   }
@@ -1019,7 +1019,7 @@ void ZedCamera::getGeneralParams()
   } else {
     sl_tools::getParam(
       shared_from_this(), "general.pub_frame_rate",
-      mPubFrameRate, mPubFrameRate, "", false);
+      mPubFrameRate, mPubFrameRate, "", false, 0.1, 120.0);
     if (!mSvoMode) {
       if (mPubFrameRate > mCamGrabFrameRate) {
         RCLCPP_WARN(
@@ -1303,22 +1303,16 @@ void ZedCamera::getDepthParams()
   if (!mDepthDisabled) {
     sl_tools::getParam(
       shared_from_this(), "depth.min_depth", mCamMinDepth,
-      mCamMinDepth, " * Min depth [m]: ");
+      mCamMinDepth, " * Min depth [m]: ", false, 0.1, 100.0);
     sl_tools::getParam(
       shared_from_this(), "depth.max_depth", mCamMaxDepth,
-      mCamMaxDepth, " * Max depth [m]: ");
+      mCamMaxDepth, " * Max depth [m]: ", false, 0.1, 100.0);
 
     sl_tools::getParam(
       shared_from_this(), "depth.depth_stabilization",
       mDepthStabilization, mDepthStabilization,
-      " * Depth Stabilization: ");
-    if (mDepthStabilization < 0 || mDepthStabilization > 100) {
-      mDepthStabilization = 1;
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        "'depth.depth_stabilization' is not in the valid "
-        "range [0,100]. Using the default value.");
-    }
+      " * Depth Stabilization: ", false, 0, 100);
+
 
     sl_tools::getParam(
       shared_from_this(), "depth.openni_depth_mode",
@@ -1327,7 +1321,7 @@ void ZedCamera::getDepthParams()
 
     sl_tools::getParam(
       shared_from_this(), "depth.point_cloud_freq", mPcPubRate,
-      mPcPubRate, "", true);
+      mPcPubRate, "", true, 0.1, 120.0);
     if (mSvoMode && !mSvoRealtime) {
       if (mPcPubRate > 30.0) {
         RCLCPP_WARN(
@@ -1380,11 +1374,11 @@ void ZedCamera::getDepthParams()
 
     sl_tools::getParam(
       shared_from_this(), "depth.depth_confidence", mDepthConf,
-      mDepthConf, " * [DYN] Depth Confidence: ", true);
+      mDepthConf, " * [DYN] Depth Confidence: ", true, 0, 100);
     sl_tools::getParam(
       shared_from_this(), "depth.depth_texture_conf",
       mDepthTextConf, mDepthTextConf,
-      " * [DYN] Depth Texture Confidence: ", true);
+      " * [DYN] Depth Texture Confidence: ", true, 0, 100);
     sl_tools::getParam(
       shared_from_this(), "depth.remove_saturated_areas",
       mRemoveSatAreas, mRemoveSatAreas,
@@ -1420,13 +1414,7 @@ void ZedCamera::getSensorsParams()
 
   sl_tools::getParam(
     shared_from_this(), "sensors.sensors_pub_rate",
-    mSensPubRate, mSensPubRate);
-  if (mSensPubRate < mCamGrabFrameRate) {
-    mSensPubRate = mCamGrabFrameRate;
-  }
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Sensors publishing rate: " << mSensPubRate << " Hz");
+    mSensPubRate, mSensPubRate, " * Sensors publishing rate [Hz]: ", true, 1.0, 400.0);
 }
 
 void ZedCamera::getMappingParams()
@@ -1459,7 +1447,7 @@ void ZedCamera::getMappingParams()
   sl_tools::getParam(
     shared_from_this(), "mapping.fused_pointcloud_freq",
     mFusedPcPubRate, mFusedPcPubRate,
-    " * Map publishing rate [Hz]: ");
+    " * Map publishing rate [Hz]: ", true, 0.1, 30.0);
 
   sl_tools::getParam(
     shared_from_this(), "mapping.clicked_point_topic",
@@ -1469,12 +1457,12 @@ void ZedCamera::getMappingParams()
   sl_tools::getParam(
     shared_from_this(), "mapping.pd_max_distance_threshold",
     mPdMaxDistanceThreshold, mPdMaxDistanceThreshold,
-    " * Plane Det. Max Dist. Thresh.: ");
+    " * Plane Det. Max Dist. Thresh.: ", false, 0.0, 100.0);
   sl_tools::getParam(
     shared_from_this(),
     "mapping.pd_normal_similarity_threshold",
     mPdNormalSimilarityThreshold, mPdNormalSimilarityThreshold,
-    " * Plane Det. Normals Sim. Thresh.: ");
+    " * Plane Det. Normals Sim. Thresh.: ", false, -180.0, 180.0);
 }
 
 void ZedCamera::getPosTrackingParams()
@@ -1550,18 +1538,14 @@ void ZedCamera::getPosTrackingParams()
   sl_tools::getParam(
     shared_from_this(), "pos_tracking.transform_time_offset",
     mTfOffset, mTfOffset,
-    " * [DYN] TF timestamp offset: ", true, -5.0f, 5.0f);
+    " * [DYN] TF timestamp offset: ", true, -10.0, 10.0);
   sl_tools::getParam(
     shared_from_this(), "pos_tracking.path_pub_rate",
     mPathPubRate, mPathPubRate,
-    " * [DYN] Path publishing rate: ", true);
+    " * [DYN] Path publishing rate: ", true, 0.1, 120.0);
   sl_tools::getParam(
     shared_from_this(), "pos_tracking.path_max_count",
-    mPathMaxCount, mPathMaxCount);
-  if (mPathMaxCount < 2 && mPathMaxCount != -1) {
-    mPathMaxCount = 2;
-  }
-  RCLCPP_INFO_STREAM(get_logger(), " * Path history lenght: " << mPathMaxCount);
+    mPathMaxCount, mPathMaxCount, " * Path history lenght: ", false, -1, 10000);
 
   paramName = "pos_tracking.initial_base_pose";
   declare_parameter(
@@ -1760,64 +1744,20 @@ void ZedCamera::getStreamingServerParams()
   sl_tools::getParam(
     shared_from_this(), "stream_server.port",
     mStreamingServerPort, mStreamingServerPort,
-    " * Stream port: ");
+    " * Stream port: ", false, 0, 65535);
 
   sl_tools::getParam(
     shared_from_this(), "stream_server.bitrate",
-    mStreamingServerBitrate, mStreamingServerBitrate);
-  if (mStreamingServerBitrate < 1000) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Invalid value for the parameter 'stream_server.bitrate': " << codec <<
-        ". The minimum allowed value is 1000");
-    mStreamingServerBitrate = 1000;
-  }
-  if (mStreamingServerBitrate > 60000) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Invalid value for the parameter 'stream_server.bitrate': " << codec <<
-        ". The maximum allowed value is 60000");
-    mStreamingServerBitrate = 60000;
-  }
-  RCLCPP_INFO_STREAM(get_logger(), " * Stream bitrate: " << mStreamingServerBitrate);
+    mStreamingServerBitrate, mStreamingServerBitrate, " * Stream bitrate: ", false, 1000, 60000);
 
   sl_tools::getParam(
     shared_from_this(), "stream_server.gop_size",
-    mStreamingServerGopSize, mStreamingServerGopSize);
-  if (mStreamingServerGopSize < -1) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Invalid value for the parameter 'stream_server.gop_size': " << codec <<
-        ". The minimum allowed value is -1");
-    mStreamingServerGopSize = -1;
-  }
-  if (mStreamingServerGopSize > 256) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Invalid value for the parameter 'stream_server.gop_size': " << codec <<
-        ". The maximum allowed value is 256");
-    mStreamingServerGopSize = 256;
-  }
-  RCLCPP_INFO_STREAM(get_logger(), " * Stream GOP size: " << mStreamingServerGopSize);
+    mStreamingServerGopSize, mStreamingServerGopSize, " * Stream GOP size: ", false, -1, 256);
 
   sl_tools::getParam(
     shared_from_this(), "stream_server.chunk_size",
-    mStreamingServerChunckSize, mStreamingServerChunckSize);
-  if (mStreamingServerChunckSize < 1024) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Invalid value for the parameter 'stream_server.chunk_size': " << codec <<
-        ". The minimum allowed value is 1024");
-    mStreamingServerChunckSize = 1024;
-  }
-  if (mStreamingServerChunckSize > 65000) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Invalid value for the parameter 'stream_server.chunk_size': " << codec <<
-        ". The maximum allowed value is 65000");
-    mStreamingServerChunckSize = 65000;
-  }
-  RCLCPP_INFO_STREAM(get_logger(), " * Stream Chunk size: " << mStreamingServerChunckSize);
+    mStreamingServerChunckSize, mStreamingServerChunckSize, " * Stream Chunk size: ", false, 1024,
+    65000);
 
   sl_tools::getParam(
     shared_from_this(), "stream_server.adaptative_bitrate",
@@ -1827,7 +1767,7 @@ void ZedCamera::getStreamingServerParams()
   sl_tools::getParam(
     shared_from_this(), "stream_server.target_framerate",
     mStreamingServerTargetFramerate,
-    mStreamingServerTargetFramerate, " * Target frame rate:");
+    mStreamingServerTargetFramerate, " * Target frame rate:", false, 0, 120);
 }
 
 void ZedCamera::getAdvancedParams()
@@ -2716,6 +2656,26 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
         get_logger(), "Parameter '" << param.get_name()
                                     << "' correctly set to "
                                     << val);
+    } else if (param.get_name() == "sensors.sensors_pub_rate") {
+      rclcpp::ParameterType correctType =
+        rclcpp::ParameterType::PARAMETER_DOUBLE;
+      if (param.get_type() != correctType) {
+        result.successful = false;
+        result.reason =
+          param.get_name() + " must be a " + rclcpp::to_string(correctType);
+        RCLCPP_WARN_STREAM(get_logger(), result.reason);
+        break;
+      }
+      double value = param.as_double();
+      if (value != mSensPubRate) {
+        mSensPubRate = value;
+        mPubImuTF_sec->setNewSize(static_cast<int>(mSensPubRate));
+        mImuPeriodMean_sec->setNewSize(static_cast<int>(mSensPubRate));
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name()
+                                      << "' correctly set to "
+                                      << value);
+      }
     }
 
     // ----> Object Detection dynamic parameters

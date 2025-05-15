@@ -138,7 +138,7 @@
             model: 'HUMAN_BODY_MEDIUM' # 'HUMAN_BODY_FAST', 'HUMAN_BODY_MEDIUM', 'HUMAN_BODY_ACCURATE'
             body_format: 'BODY_38' # 'BODY_18','BODY_34','BODY_38','BODY_70'
             allow_reduced_precision_inference: false # Allow inference to run at a lower precision to improve runtime and memory usage
-            max_range: 20.0 # [m] Defines a upper depth range for detections
+            max_range: 15.0 # [m] Defines a upper depth range for detections
             body_kp_selection: 'FULL' # 'FULL', 'UPPER_BODY'
             enable_body_fitting: false # Defines if the body fitting will be applied
             enable_tracking: true # Defines if the object detection will track objects across images flow

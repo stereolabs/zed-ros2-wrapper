@@ -353,7 +353,7 @@ private:
 
 
   bool mSensCameraSync = false;
-  double mSensPubRate = 400.;
+  double mSensPubRate = 200.;
 
   std::vector<std::vector<float>> mRoyPolyParam;  // Manual ROI polygon
   bool mAutoRoiEnabled = false;
@@ -379,7 +379,7 @@ private:
   bool mResetOdomWhenLoopClosure = true;
   bool mResetPoseWithSvoLoop = true;
   double mPathPubRate = 2.0;
-  float mTfOffset = 0.05f;
+  double mTfOffset = 0.0;
   float mPosTrackDepthMinRange = 0.0f;
   bool mSetAsStatic = false;
   bool mSetGravityAsOrigin = false;
@@ -408,7 +408,7 @@ private:
   bool mObjDetTracking = true;
   double mObjDetPredTimeout = 0.5;
   bool mObjDetReducedPrecision = false;
-  float mObjDetMaxRange = 15.0f;
+  double mObjDetMaxRange = 15.0;
   std::vector<sl::OBJECT_CLASS> mObjDetFilter;
   std::map<sl::OBJECT_CLASS, float> mObjDetClassConfMap;
   bool mObjDetPeopleEnable = true;
@@ -438,7 +438,7 @@ private:
     sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST;
   sl::BODY_FORMAT mBodyTrkFmt = sl::BODY_FORMAT::BODY_38;
   bool mBodyTrkReducedPrecision = false;
-  float mBodyTrkMaxRange = 15.0f;
+  double mBodyTrkMaxRange = 15.0f;
   sl::BODY_KEYPOINTS_SELECTION mBodyTrkKpSelection =
     sl::BODY_KEYPOINTS_SELECTION::FULL;
   bool mBodyTrkFitting = true;
@@ -690,8 +690,8 @@ private:
   sl::Mat mMatRightGray, mMatRightRawGray;
   sl::Mat mMatDepth, mMatDisp, mMatConf;
 
-  float mMinDepth = 0.0f;
-  float mMaxDepth = 0.0f;
+  float mMinDepth = 0.0;
+  float mMaxDepth = 0.0;
   // <---- Publisher variables
 
   // ----> Point cloud variables

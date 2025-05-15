@@ -450,6 +450,15 @@ bool ZedCamera::handleOdDynamicParams(
   return true;
 }
 
+bool ZedCamera::handleCustomOdDynamicParams(
+  const rclcpp::Parameter & param,
+  rcl_interfaces::msg::SetParametersResult & result)
+{
+  DEBUG_OD("handleCustomOdDynamicParams");
+
+  return true;
+}
+
 bool ZedCamera::startObjDetect()
 {
   DEBUG_OD("startObjDetect");

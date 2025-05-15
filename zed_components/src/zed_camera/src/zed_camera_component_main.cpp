@@ -1052,24 +1052,24 @@ void ZedCamera::getVideoParams()
   if (!sl_tools::isZEDX(mCamUserModel)) {
     sl_tools::getParam(
       shared_from_this(), "video.brightness", mCamBrightness,
-      mCamBrightness, " * [DYN] Brightness: ", true);
+      mCamBrightness, " * [DYN] Brightness: ", true, 0, 8);
     sl_tools::getParam(
       shared_from_this(), "video.contrast", mCamContrast,
-      mCamContrast, " * [DYN] Contrast: ", true);
+      mCamContrast, " * [DYN] Contrast: ", true, 0, 8);
     sl_tools::getParam(
       shared_from_this(), "video.hue", mCamHue, mCamHue,
-      " * [DYN] Hue: ", true);
+      " * [DYN] Hue: ", true, 0, 11);
   }
 
   sl_tools::getParam(
     shared_from_this(), "video.saturation", mCamSaturation,
-    mCamSaturation, " * [DYN] Saturation: ", true);
+    mCamSaturation, " * [DYN] Saturation: ", true, 0, 8);
   sl_tools::getParam(
     shared_from_this(), "video.sharpness", mCamSharpness,
-    mCamSharpness, " * [DYN] Sharpness: ", true);
+    mCamSharpness, " * [DYN] Sharpness: ", true, 0, 8);
   sl_tools::getParam(
     shared_from_this(), "video.gamma", mCamGamma, mCamGamma,
-    " * [DYN] Gamma: ", true);
+    " * [DYN] Gamma: ", true, 0, 8);
   sl_tools::getParam(
     shared_from_this(), "video.auto_exposure_gain",
     mCamAutoExpGain, mCamAutoExpGain,
@@ -1079,10 +1079,10 @@ void ZedCamera::getVideoParams()
   }
   sl_tools::getParam(
     shared_from_this(), "video.exposure", mCamExposure,
-    mCamExposure, " * [DYN] Exposure: ", true);
+    mCamExposure, " * [DYN] Exposure: ", true, 0, 100);
   sl_tools::getParam(
     shared_from_this(), "video.gain", mCamGain, mCamGain,
-    " * [DYN] Gain: ", true);
+    " * [DYN] Gain: ", true, 0, 100);
   sl_tools::getParam(
     shared_from_this(), "video.auto_whitebalance", mCamAutoWB,
     mCamAutoWB, " * [DYN] Auto White Balance: ", true);
@@ -1092,7 +1092,7 @@ void ZedCamera::getVideoParams()
   int wb = 42;
   sl_tools::getParam(
     shared_from_this(), "video.whitebalance_temperature", wb,
-    wb, " * [DYN] White Balance Temperature: ", true);
+    wb, " * [DYN] White Balance Temperature: ", true, 28, 65);
   mCamWBTemp = wb * 100;
 
   if (sl_tools::isZEDX(mCamUserModel)) {
@@ -2718,19 +2718,35 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
                                     << val);
     }
 
-    handleOdDynamicParams(param, result);
-    handleBodyTrkDynamicParams(param, result);
-
-    if (result.successful) {
-      DEBUG_STREAM_COMM(
-        "Correctly set " << count << "/" << parameters.size()
-                         << " parameters");
+    // ----> Object Detection dynamic parameters
+    if (mUsingCustomOd) {
+      if (!handleCustomOdDynamicParams(param, result)) {
+        break;
+      }
     } else {
-      DEBUG_STREAM_COMM(
-        "Correctly set " << count - 1 << "/"
-                         << parameters.size() << " parameters");
+      if (!handleOdDynamicParams(param, result)) {
+        break;
+      }
     }
+    // <---- Object Detection dynamic parameters
+
+    // ----> Body Tracking dynamica parameters
+    if (!handleBodyTrkDynamicParams(param, result)) {
+      break;
+    }
+    // <---- Body Tracking dynamica parameters
   }
+
+  if (result.successful) {
+    DEBUG_STREAM_COMM(
+      "Correctly set " << count << "/" << parameters.size()
+                       << " parameters");
+  } else {
+    DEBUG_STREAM_COMM(
+      "Correctly set " << count - 1 << "/"
+                       << parameters.size() << " parameters");
+  }
+
   return result;
 }
 

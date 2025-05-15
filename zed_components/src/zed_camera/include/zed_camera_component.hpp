@@ -62,6 +62,9 @@ protected:
   bool handleOdDynamicParams(
     const rclcpp::Parameter & param,
     rcl_interfaces::msg::SetParametersResult & result);
+  bool handleCustomOdDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
   bool handleBodyTrkDynamicParams(
     const rclcpp::Parameter & param,
     rcl_interfaces::msg::SetParametersResult & result);

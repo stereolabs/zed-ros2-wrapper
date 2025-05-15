@@ -1,10 +1,10 @@
 # Example of a custom object detection configuration file for the ZED ROS2 wrapper
-# This file is used to configure the object detection parameters for the ZED camera.
+# This file is used to configure the CUSTOM object detection parameters for the ZED camera.
 # The parameters are defined in a YAML format and can be modified to suit the user's needs.
-# The parameters are divided into sections for each object class, with each section containing
+# The parameters are divided into sections for each CUSTOM object class, with each section containing
 # specific parameters for that class.
 
-# This is an example of configuration file for a custom object detection model based on the COCO dataset.
+# This is an example of configuration file for a custom object detection model trained on the COCO dataset.
 # COCO 2017 dataset https://cocodataset.org by Microsoft
 
 # To create a custom ONNX model, you can follow the online documentation: https://www.stereolabs.com/docs/yolo/export
@@ -271,8 +271,26 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_014:
+            label: 'bird'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_015:
+            label: 'cat'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -289,8 +307,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_016:
+            label: 'dog'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -307,8 +325,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_017:
+            label: 'horse'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -325,8 +343,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_018:
+            label: 'sheep'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -343,8 +361,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_019:
+            label: 'cow'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -361,8 +379,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_020:
+            label: 'elephant'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -379,8 +397,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_021:
+            label: 'bear'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -397,8 +415,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_022:
+            label: 'zebra'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -415,8 +433,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_023:
+            label: 'giraffe'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -433,8 +451,116 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_024:
+            label: 'backpack'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_025:
+            label: 'umbrella'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_026:
+            label: 'handbag'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_027:
+            label: 'tie'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_028:
+            label: 'suitcase'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_029:
+            label: 'frisbee'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_030:
+            label: 'skis'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -451,8 +577,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_031:
+            label: 'snowboard'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -469,8 +595,242 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_032:
+            label: 'pesports ballrson'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_033:
+            label: 'kite'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_034:
+            label: 'baseball bat'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_035:
+            label: 'baseball glove'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_036:
+            label: 'skateboard'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_037:
+            label: 'surfboard'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_038:
+            label: 'tennis racket'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_039:
+            label: 'bottle'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_040:
+            label: 'wine glass'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_041:
+            label: 'cup'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_042:
+            label: 'forkfork'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_043:
+            label: 'knife'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_044:
+            label: 'spoon'
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+
+          class_045:
+            label: 'bowl'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -487,8 +847,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_046:
+            label: 'banana'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -505,8 +865,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_047:
+            label: 'apple'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -523,8 +883,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_048:
+            label: 'sandwich'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -541,8 +901,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_049:
+            label: 'orange'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -559,8 +919,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_050:
+            label: 'broccoli'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -577,8 +937,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_051:
+            label: 'carrot'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -595,8 +955,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_052:
+            label: 'hot dog'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -613,8 +973,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_053:
+            label: 'pizza'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -631,8 +991,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_054:
+            label: 'donut'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -649,8 +1009,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_055:
+            label: 'cake'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -667,8 +1027,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_056:
+            label: 'chair'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -685,8 +1045,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_057:
+            label: 'couch'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -703,8 +1063,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_058:
+            label: 'potted plant'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -721,8 +1081,8 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
+          class_059:
+            label: 'bed'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
@@ -739,426 +1099,12 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-            class_000:
-            label: 'person'
-            enabled: true # Enable/disable the detection of this class
-            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
-            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
-            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
-            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
-            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
-            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
-            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
-            max_box_width_meters: -1.0 # Maximum allowed 3D width
-            min_box_width_meters: -1.0 # Minimum allowed 3D width
-            max_box_height_meters: -1.0 # Maximum allowed 3D height
-            min_box_height_meters: -1.0 # Minimum allowed 3D height
-            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-
-          class_000:
+          class_060:
             label: 'dining table'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
             tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
             tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
             max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
@@ -1171,12 +1117,12 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
 
-          class_000:
+          class_061:
             label: 'toilet'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
             is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
             tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
             tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
             max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
@@ -1193,8 +1139,8 @@
             label: 'tv'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
             tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
             tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
             max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
@@ -1211,7 +1157,7 @@
             label: 'laptop'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
             is_static: true # Provide hypothesis about the object staticity to improve the object tracking
             tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
             tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
@@ -1229,8 +1175,8 @@
             label: 'mouse'
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
-            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
-            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
             tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
             tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
             max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size

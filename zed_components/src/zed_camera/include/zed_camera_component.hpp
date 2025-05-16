@@ -429,10 +429,11 @@ private:
   sl::OBJECT_DETECTION_MODEL mObjDetModel =
     sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST;
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
-  std::string mYoloOnnxPath;
-  int mYoloOnnxSize;
-  std::string mCustomLabelsPath;
-  std::unordered_map<std::string, std::string> mCustomLabels;
+  std::string mYoloOnnxPath = "";
+  int mYoloOnnxSize = 512;
+  int mCustomClassCount = 1;
+  std::unordered_map<int, sl::CustomObjectDetectionProperties> mCustomOdProperties;
+  std::unordered_map<int, std::string> mCustomLabels;
 
   bool mBodyTrkEnabled = false;
   sl::BODY_TRACKING_MODEL mBodyTrkModel =
@@ -775,7 +776,6 @@ private:
   std::atomic<bool> mStreamingServerRunning;
 
   bool mUsingCustomOd = false;
-  bool mCustomLabelsGood = false;
   uint64_t mHeartbeatCount = 0;
   // <---- Status Flags
 

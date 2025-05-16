@@ -37,13 +37,68 @@ void ZedCamera::getOdParams()
     mObjDetEnabled, mObjDetEnabled,
     " * Object Det. enabled: ");
 
+  sl_tools::getParam(
+    shared_from_this(),
+    "object_detection.allow_reduced_precision_inference",
+    mObjDetReducedPrecision, mObjDetReducedPrecision);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Object Det. allow reduced precision: "
+      << (mObjDetReducedPrecision ? "TRUE" : "FALSE"));
+  sl_tools::getParam(
+    shared_from_this(), "object_detection.max_range",
+    mObjDetMaxRange, mObjDetMaxRange,
+    " * Object Det. maximum range [m]: ", false, 0.1, 40.0);
+  sl_tools::getParam(
+    shared_from_this(), "object_detection.prediction_timeout",
+    mObjDetPredTimeout, mObjDetPredTimeout,
+    " * Object Det. prediction timeout [sec]: ", false, 0.0, 300.0);
+  sl_tools::getParam(
+    shared_from_this(), "object_detection.enable_tracking",
+    mObjDetTracking, mObjDetTracking);
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Object Det. tracking: "
+      << (mObjDetTracking ? "TRUE" : "FALSE"));
+
+  bool matched = false;
+  std::string filtering_mode_str = "NONE";
+  sl_tools::getParam(
+    shared_from_this(), "object_detection.filtering_mode",
+    filtering_mode_str, filtering_mode_str);
+
+  for (int idx = static_cast<int>(sl::OBJECT_FILTERING_MODE::NONE);
+    idx < static_cast<int>(sl::OBJECT_FILTERING_MODE::LAST); idx++)
+  {
+    sl::OBJECT_FILTERING_MODE test_mode =
+      static_cast<sl::OBJECT_FILTERING_MODE>(idx);
+    std::string test_mode_str = sl::toString(test_mode).c_str();
+    std::replace(
+      test_mode_str.begin(), test_mode_str.end(), ' ', '_');   // Replace spaces with underscores to match the YAML setting
+    DEBUG_OD(" Comparing '%s' to '%s'", filtering_mode_str.c_str(), test_mode_str.c_str());
+    if (filtering_mode_str == test_mode_str) {
+      mObjFilterMode = test_mode;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value of the parameter 'object_detection.filtering_mode' is not valid: '"
+        << filtering_mode_str << "'. Using the default value.");
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Object Filtering mode: "
+      << sl::toString(mObjFilterMode).c_str());
+
+  // ----> Object Detection model
   std::string model_str;
   sl_tools::getParam(
     shared_from_this(), "object_detection.detection_model",
     model_str, model_str);
   DEBUG_STREAM_OD(" 'object_detection.detection_model': " << model_str.c_str());
 
-  bool matched = false;
+  matched = false;
   for (int idx =
     static_cast<int>(sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST);
     idx < static_cast<int>(sl::OBJECT_DETECTION_MODEL::LAST);
@@ -85,65 +140,12 @@ void ZedCamera::getOdParams()
   } else {
     mUsingCustomOd = false;
   }
-
-  sl_tools::getParam(
-    shared_from_this(),
-    "object_detection.allow_reduced_precision_inference",
-    mObjDetReducedPrecision, mObjDetReducedPrecision);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Object Det. allow reduced precision: "
-      << (mObjDetReducedPrecision ? "TRUE" : "FALSE"));
-  sl_tools::getParam(
-    shared_from_this(), "object_detection.max_range",
-    mObjDetMaxRange, mObjDetMaxRange,
-    " * Object Det. maximum range [m]: ", false, 0.1, 40.0);
-  sl_tools::getParam(
-    shared_from_this(), "object_detection.prediction_timeout",
-    mObjDetPredTimeout, mObjDetPredTimeout,
-    " * Object Det. prediction timeout [sec]: ", false, 0.0, 300.0);
-  sl_tools::getParam(
-    shared_from_this(), "object_detection.enable_tracking",
-    mObjDetTracking, mObjDetTracking);
-  RCLCPP_INFO_STREAM(
-    get_logger(), " * Object Det. tracking: "
-      << (mObjDetTracking ? "TRUE" : "FALSE"));
-
-
-  std::string filtering_mode_str = "NONE";
-  sl_tools::getParam(
-    shared_from_this(), "object_detection.filtering_mode",
-    filtering_mode_str, filtering_mode_str);
-
-  for (int idx = static_cast<int>(sl::OBJECT_FILTERING_MODE::NONE);
-    idx < static_cast<int>(sl::OBJECT_FILTERING_MODE::LAST); idx++)
-  {
-    sl::OBJECT_FILTERING_MODE test_mode =
-      static_cast<sl::OBJECT_FILTERING_MODE>(idx);
-    std::string test_mode_str = sl::toString(test_mode).c_str();
-    std::replace(
-      test_mode_str.begin(), test_mode_str.end(), ' ', '_');   // Replace spaces with underscores to match the YAML setting
-    DEBUG_OD(" Comparing '%s' to '%s'", filtering_mode_str.c_str(), test_mode_str.c_str());
-    if (filtering_mode_str == test_mode_str) {
-      mObjFilterMode = test_mode;
-      matched = true;
-      break;
-    }
-  }
-  if (!matched) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "The value of the parameter 'object_detection.filtering_mode' is not valid: '"
-        << model_str << "'. Using the default value.");
-  }
-  RCLCPP_INFO_STREAM(
-    get_logger(), " * Object Filtering mode: "
-      << sl::toString(mObjFilterMode).c_str());
-
+  // <---- Object Detection model
 
   if (mUsingCustomOd) {
     getCustomOdParams();
   } else {
+    // ----> MultiClassBox parameters
     sl_tools::getParam(
       shared_from_this(),
       "object_detection.class.people.enabled",
@@ -178,7 +180,6 @@ void ZedCamera::getOdParams()
       "object_detection.class.sport.enabled",
       mObjDetSportEnable, mObjDetSportEnable,
       " * MultiClassBox sport-related objects: ", true);
-
     sl_tools::getParam(
       shared_from_this(),
       "object_detection.class.people.confidence_threshold",
@@ -214,6 +215,7 @@ void ZedCamera::getOdParams()
       "object_detection.class.sport.confidence_threshold",
       mObjDetSportConf, mObjDetSportConf,
       " * MultiClassBox sport-related objects confidence: ", true, 0.0, 100.0);
+    // <---- MultiClassBox parameters
   }
 }
 
@@ -232,11 +234,131 @@ void ZedCamera::getCustomOdParams()
   sl_tools::getParam(
     shared_from_this(),
     "object_detection.custom_onnx_input_size", mYoloOnnxSize,
-    mYoloOnnxSize, " * Custom ONNX input size: ");
+    mYoloOnnxSize, " * Custom ONNX input size: ", false, 128, 2048);
   sl_tools::getParam(
-    shared_from_this(), "object_detection.custom_label_yaml",
-    mCustomLabelsPath, mCustomLabelsPath,
-    " * Custom Label file: ");
+    shared_from_this(),
+    "object_detection.custom_class_count", mCustomClassCount,
+    mCustomClassCount, " * Custom ONNX class count: ", false, 1, 999);
+
+  for (int i = 0; i < mCustomClassCount; i++) {
+    std::string param_name;
+    std::string label = "";
+    int class_id = i;
+    std::stringstream param_prefix;
+    param_prefix.width(3);
+    param_prefix.fill('0');
+    param_prefix << "object_detection.class_" << i << ".";
+
+    param_name = param_prefix.str() + "label";
+    sl_tools::getParam(shared_from_this(), param_name, label, label, param_name + ": ");
+
+    param_name = param_prefix.str() + "model_class_id";
+    sl_tools::getParam(shared_from_this(), param_name, class_id, class_id, param_name + ": ");
+
+    mCustomLabels[class_id] = label; // Update the label information
+
+    sl::CustomObjectDetectionProperties customOdProperties;
+
+    param_name = param_prefix.str() + "enabled";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.enabled, customOdProperties.enabled, param_name + ": ");
+
+    param_name = param_prefix.str() + "confidence_threshold";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.enabled, customOdProperties.enabled, param_name + ": ", true);
+    param_name = param_prefix.str() + "is_grounded";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.is_grounded, customOdProperties.is_grounded, param_name + ": ", true);
+    param_name = param_prefix.str() + "is_static";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.is_static, customOdProperties.is_static, param_name + ": ", true);
+    param_name = param_prefix.str() + "tracking_timeout";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.tracking_timeout, customOdProperties.tracking_timeout, param_name + ": ", true, -1.0f,
+      300.0f);
+    param_name = param_prefix.str() + "tracking_max_dist";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.tracking_max_dist, customOdProperties.tracking_max_dist, param_name + ": ", true, -1.0f,
+      100.0f);
+    param_name = param_prefix.str() + "max_box_width_normalized";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.max_box_width_normalized, customOdProperties.max_box_width_normalized, param_name + ": ", true, -1.0f,
+      1.0f);
+    param_name = param_prefix.str() + "min_box_width_normalized";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.min_box_width_normalized, customOdProperties.min_box_width_normalized, param_name + ": ", true, -1.0f,
+      1.0f);
+    param_name = param_prefix.str() + "max_box_height_normalized";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.max_box_height_normalized, customOdProperties.max_box_height_normalized, param_name + ": ", true, -1.0f,
+      1.0f);
+    param_name = param_prefix.str() + "min_box_height_normalized";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.min_box_height_normalized, customOdProperties.min_box_height_normalized, param_name + ": ", true, -1.0f,
+      1.0f);
+    param_name = param_prefix.str() + "max_box_width_meters";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.max_box_width_meters, customOdProperties.max_box_width_meters, param_name + ": ", true, -1.0f,
+      10000.0f);
+    param_name = param_prefix.str() + "min_box_width_meters";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.min_box_width_meters, customOdProperties.min_box_width_meters, param_name + ": ", true, -1.0f,
+      10000.0f);
+    param_name = param_prefix.str() + "max_box_height_meters";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.max_box_height_meters, customOdProperties.max_box_height_meters, param_name + ": ", true, -1.0f,
+      10000.0f);
+    param_name = param_prefix.str() + "max_allowed_acceleration";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.max_allowed_acceleration, customOdProperties.max_allowed_acceleration, param_name + ": ", true, 0.0f,
+      100000.0f);
+
+    bool matched = false;
+    std::string acc_preset_str = "DEFAULT";
+    param_name = param_prefix.str() + "object_acceleration_preset";
+    sl_tools::getParam(shared_from_this(), param_name, acc_preset_str, acc_preset_str);
+
+    for (int idx = static_cast<int>(sl::OBJECT_ACCELERATION_PRESET::DEFAULT);
+      idx < static_cast<int>(sl::OBJECT_ACCELERATION_PRESET::LAST); idx++)
+    {
+      sl::OBJECT_ACCELERATION_PRESET test_mode =
+        static_cast<sl::OBJECT_ACCELERATION_PRESET>(idx);
+      std::string test_mode_str = sl::toString(test_mode).c_str();
+      std::replace(
+        test_mode_str.begin(), test_mode_str.end(), ' ', '_');   // Replace spaces with underscores to match the YAML setting
+      DEBUG_OD(" Comparing '%s' to '%s'", acc_preset_str.c_str(), test_mode_str.c_str());
+      if (acc_preset_str == test_mode_str) {
+        customOdProperties.object_acceleration_preset = test_mode;
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "The value of the parameter 'object_detection.filtering_mode' is not valid: '"
+          << acc_preset_str << "'. Using the default value.");
+    }
+    RCLCPP_INFO_STREAM(
+      get_logger(), param_name + ": "
+        << sl::toString(customOdProperties.object_acceleration_preset).c_str());
+
+    mCustomOdProperties[class_id] = customOdProperties; // Update the Custom OD Properties information
+  }
 
 }
 
@@ -540,29 +662,7 @@ bool ZedCamera::startObjDetect()
   mObjDetInstID = ++mAiInstanceID;
   od_p.instance_module_id = mObjDetInstID;
 
-  if (mUsingCustomOd) {
-    od_p.enable_segmentation = false;
-    od_p.custom_onnx_file = sl::String(mYoloOnnxPath.c_str());
-    od_p.custom_onnx_dynamic_input_shape = sl::Resolution(mYoloOnnxSize, mYoloOnnxSize);
-
-    if (!mCustomLabelsPath.empty()) {
-      mCustomLabelsGood = sl_tools::ReadCocoYaml(mCustomLabelsPath, mCustomLabels);
-
-      if (mCustomLabelsGood) {
-        std::stringstream ss;
-        ss << " * Custom labels: ";
-        for (auto label:mCustomLabels) {
-          ss << "'" << label.first << ":" << label.second << "' ";
-        }
-        RCLCPP_INFO(get_logger(), ss.str().c_str());
-      } else {
-        RCLCPP_WARN(get_logger(), "Custom open error. Using class ID instead of labels. ");
-      }
-    }
-  }
-
   sl::ERROR_CODE objDetError = mZed->enableObjectDetection(od_p);
-
   if (objDetError != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_ERROR_STREAM(
       get_logger(), "Object detection error: " << sl::toString(objDetError));

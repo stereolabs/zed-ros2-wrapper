@@ -7,7 +7,7 @@ CUDA_MINOR=$3
 ZED_SDK_MAJOR=$4
 ZED_SDK_MINOR=$5
 
-ttk="***>"
+ttk="===>"
 
 echo "Europe/Paris" > /etc/localtime ; echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.0" > /usr/local/cuda/version.txt
 

@@ -53,6 +53,19 @@ default_config_ffmpeg = os.path.join(
     'ffmpeg.yaml'
 )
 
+# Object Detection Configuration to be loaded by ZED Node
+default_object_detection_config_path = os.path.join(
+    get_package_share_directory('zed_wrapper'),
+    'config',
+    'object_detection.yaml'
+)
+# Custom Object Detection Configuration to be loaded by ZED Node
+default_custom_object_detection_config_path = os.path.join(
+    get_package_share_directory('zed_wrapper'),
+    'config',
+    'custom_object_detection.yaml'
+)
+
 # URDF/xacro file to be loaded by the Robot State Publisher node
 default_xacro_path = os.path.join(
     get_package_share_directory('zed_wrapper'),
@@ -95,6 +108,8 @@ def launch_setup(context, *args, **kwargs):
 
     ros_params_override_path = LaunchConfiguration('ros_params_override_path')
     config_ffmpeg = LaunchConfiguration('ffmpeg_config_path')
+    object_detection_config_path = LaunchConfiguration('object_detection_config_path')
+    custom_object_detection_config_path = LaunchConfiguration('custom_object_detection_config_path')
 
     serial_number = LaunchConfiguration('serial_number')
     camera_id = LaunchConfiguration('camera_id')
@@ -159,6 +174,14 @@ def launch_setup(context, *args, **kwargs):
 
     # FFMPEG configuration file
     info = 'Using FFMPEG configuration file: ' + config_ffmpeg.perform(context)
+    return_array.append(LogInfo(msg=TextSubstitution(text=info)))
+
+    # Object Detection configuration file
+    info = 'Using Object Detection configuration file: ' + object_detection_config_path.perform(context)
+    return_array.append(LogInfo(msg=TextSubstitution(text=info)))
+    
+    # Custom Object Detection configuration file
+    info = 'Using Custom Object Detection configuration file: ' + custom_object_detection_config_path.perform(context)
     return_array.append(LogInfo(msg=TextSubstitution(text=info)))
 
     # ROS parameters override file
@@ -228,7 +251,7 @@ def launch_setup(context, *args, **kwargs):
                 package='rclcpp_components',
                 executable=container_exec,
                 arguments=['--use_multi_threaded_executor','--ros-args', '--log-level', 'info'],
-                output='screen',
+                output='screen'
         )
         return_array.append(zed_container)
 
@@ -237,7 +260,9 @@ def launch_setup(context, *args, **kwargs):
             # YAML files
             config_common_path_val,  # Common parameters
             config_camera_path,  # Camera related parameters
-            config_ffmpeg # FFMPEG parameters
+            config_ffmpeg, # FFMPEG parameters
+            object_detection_config_path, # Object detection parameters
+            custom_object_detection_config_path # Custom object detection parameters
     ]
 
     if( ros_params_override_path_val != ''):
@@ -335,6 +360,14 @@ def generate_launch_description():
                 'ffmpeg_config_path',
                 default_value=TextSubstitution(text=default_config_ffmpeg),
                 description='Path to the YAML configuration file for the FFMPEG parameters when using FFMPEG image transport plugin.'),
+            DeclareLaunchArgument(
+                'object_detection_config_path',
+                default_value=TextSubstitution(text=default_object_detection_config_path),
+                description='Path to the YAML configuration file for the Object Detection parameters.'),
+            DeclareLaunchArgument(
+                'custom_object_detection_config_path',
+                default_value=TextSubstitution(text=default_custom_object_detection_config_path),
+                description='Path to the YAML configuration file for the Custom Object Detection parameters.'),
             DeclareLaunchArgument(
                 'serial_number',
                 default_value='0',

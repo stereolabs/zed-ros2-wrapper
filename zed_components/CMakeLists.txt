@@ -100,7 +100,7 @@ set(DEPENDENCIES
     tf2
     tf2_ros
     tf2_geometry_msgs
-    geometry_msgs    
+    geometry_msgs
     nav_msgs
     nmea_msgs
     geographic_msgs
@@ -113,6 +113,7 @@ set(DEPENDENCIES
     visualization_msgs
     shape_msgs
     robot_localization
+    backward_ros
 )
 
 find_package(ament_cmake_auto REQUIRED)
@@ -134,6 +135,7 @@ find_package(nmea_msgs REQUIRED)
 find_package(geographic_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
+find_package(backward_ros REQUIRED)
 
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
@@ -182,27 +184,29 @@ set(SL_TOOLS_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_logging.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/json.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/gnss_replay.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_types.hpp
 )
 
 set(SL_TOOLS_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_tools.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_win_avg.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/gnss_replay.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/src/sl_types.cpp
 )
 
 set(ZED_CAMERA_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/sl_types.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_component.hpp    
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_component.hpp
 )
 
 set(ZED_CAMERA_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_component.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_component_main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_component_objdet.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_component_bodytrk.cpp
 )
 
 set(ZED_CAMERA_ONE_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/sl_types.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_one_component.hpp
 )
 

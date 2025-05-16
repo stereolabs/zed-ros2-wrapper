@@ -134,7 +134,7 @@
             detection_model: 'CUSTOM_YOLOLIKE_BOX_OBJECTS' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE', 'CUSTOM_YOLOLIKE_BOX_OBJECTS'
             max_range: 20.0 # [m] Upper depth range for detections.The value cannot be greater than 'depth.max_depth'
             filtering_mode: 'NMS3D' # Filtering mode that should be applied to raw detections: 'NONE', 'NMS3D', 'NMS3D_PER_CLASS'
-            prediction_timeout: 0.5 # During this time [sec], the object will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
+            prediction_timeout: 2.0 # During this time [sec], the object will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
             allow_reduced_precision_inference: false # Allow inference to run at a lower precision to improve runtime and memory usage
             # Other parameters are defined in the 'object_detection.yaml' and 'custom_object_detection.yaml' files
 
@@ -171,7 +171,7 @@
         debug:
             sdk_verbose: 1 # Set the verbose level of the ZED SDK
             sdk_verbose_log_file: '' # Path to the file where the ZED SDK will log its messages. If empty, no file will be created. The log level can be set using the `sdk_verbose` parameter.
-            debug_common: false
+            debug_common: true
             debug_sim: false
             debug_video_depth: false
             debug_camera_controls: false

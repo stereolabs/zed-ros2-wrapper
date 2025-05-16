@@ -5490,11 +5490,11 @@ void ZedCamera::threadFunc_zedGrab()
       grabElabTimer.tic();
 
       // ZED grab
-      DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
+      //DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
 
       mGrabStatus = mZed->grab(mRunParams);
 
-      DEBUG_COMM("Grabbed");
+      //DEBUG_COMM("Grabbed");
 
       // ----> Grab errors?
       // Note: disconnection are automatically handled by the ZED SDK

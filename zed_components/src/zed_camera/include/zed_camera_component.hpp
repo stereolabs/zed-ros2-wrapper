@@ -434,6 +434,8 @@ private:
   int mCustomClassCount = 1;
   std::unordered_map<int, sl::CustomObjectDetectionProperties> mCustomOdProperties;
   std::unordered_map<int, std::string> mCustomLabels;
+  std::unordered_map<std::string, int> mCustomClassIdMap;
+
 
   bool mBodyTrkEnabled = false;
   sl::BODY_TRACKING_MODEL mBodyTrkModel =

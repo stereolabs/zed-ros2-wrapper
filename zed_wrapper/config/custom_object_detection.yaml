@@ -17,8 +17,11 @@
           
           custom_class_count: 80 # Number of classes in the custom ONNX file. For example, 80 for YOLOv8 trained on COCO dataset
 
-          # Add one instance of each class to the list below
-          # Note: This is the default setup for the COCO dataset
+          # TODO: Add one instance of each class to the list below
+          # Note: create a class_XXX identifier for each class in the custom ONNX file.
+          # Note: XXX is a number from 000 to 'custom_class_count-1', and it must be unique for each class.
+          # Note: the class_XXX identifier is not required to match the class ID [model_class_id] in the custom ONNX file.
+
           class_000:
             label: 'person'
             model_class_id: 0 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)

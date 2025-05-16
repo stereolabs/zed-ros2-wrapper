@@ -207,6 +207,8 @@ protected:
   bool publishSensorsData(rclcpp::Time force_ts = TIMEZERO_ROS);
   void publishHealthStatus();
   bool publishSvoStatus(uint64_t frame_ts);
+
+  void publishClock(const sl::Timestamp & ts);
   // <---- Publishing functions
 
   // ----> Utility functions
@@ -328,6 +330,7 @@ private:
   double mSvoRate = 1.0;
   double mSvoExpectedPeriod = 0.0;
   bool mUseSvoTimestamp = false;
+  bool mPublishSvoClock = false;
   bool mGrabOnce = false;
   bool mGrabImuOnce = false;
   int mVerbose = 1;
@@ -607,6 +610,8 @@ private:
   // <---- Messages
 
   // ----> Publishers
+  clockPub mPubClock;
+
   image_transport::CameraPublisher mPubRgb;
   image_transport::CameraPublisher mPubRawRgb;
   image_transport::CameraPublisher mPubLeft;

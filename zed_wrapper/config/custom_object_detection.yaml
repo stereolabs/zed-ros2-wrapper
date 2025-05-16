@@ -12,7 +12,7 @@
 /**:
   ros__parameters:
       object_detection:
-          custom_onnx_file: '/home/walter/devel/yolo/yolov8n.onnx' # Path to the YOLO-like ONNX file for custom object detection directly performed by the ZED SDK
+          custom_onnx_file: '' # Path to the YOLO-like ONNX file for custom object detection directly performed by the ZED SDK
           custom_onnx_input_size: 512 # Resolution used with the YOLO-like ONNX file. For example, 512 means a input tensor '1x3x512x512' 
           
           custom_class_count: 80 # Number of classes in the custom ONNX file. For example, 80 for YOLOv8 trained on COCO dataset

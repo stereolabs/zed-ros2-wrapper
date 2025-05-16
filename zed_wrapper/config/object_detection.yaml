@@ -7,7 +7,7 @@
             confidence_threshold: 70.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
           vehicle:
             enabled: true # [DYNAMIC] - Enable/disable the detection of vehicles
-            confidence_threshold: 70 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
+            confidence_threshold: 60.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
           bag:
             enabled: true # [DYNAMIC] - Enable/disable the detection of bags
             confidence_threshold: 40.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]

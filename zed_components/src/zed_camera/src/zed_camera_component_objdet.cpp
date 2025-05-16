@@ -244,16 +244,18 @@ void ZedCamera::getCustomOdParams()
     std::string param_name;
     std::string label = "";
     int class_id = i;
+
     std::stringstream param_prefix;
+    param_prefix << "object_detection.class_";
     param_prefix.width(3);
     param_prefix.fill('0');
-    param_prefix << "object_detection.class_" << i << ".";
+    param_prefix << i << ".";
 
     param_name = param_prefix.str() + "label";
-    sl_tools::getParam(shared_from_this(), param_name, label, label, param_name + ": ");
+    sl_tools::getParam(shared_from_this(), param_name, label, label, std::string("  * ") + param_name + ": ");
 
     param_name = param_prefix.str() + "model_class_id";
-    sl_tools::getParam(shared_from_this(), param_name, class_id, class_id, param_name + ": ");
+    sl_tools::getParam(shared_from_this(), param_name, class_id, class_id, std::string("  * ") + param_name + ": ");
 
     mCustomLabels[class_id] = label; // Update the label information
 
@@ -262,69 +264,69 @@ void ZedCamera::getCustomOdParams()
     param_name = param_prefix.str() + "enabled";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.enabled, customOdProperties.enabled, param_name + ": ");
+      customOdProperties.enabled, customOdProperties.enabled, std::string("  * ") + param_name + ": ");
 
     param_name = param_prefix.str() + "confidence_threshold";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.enabled, customOdProperties.enabled, param_name + ": ", true);
+      customOdProperties.detection_confidence_threshold, customOdProperties.detection_confidence_threshold, std::string("  * ") + param_name + ": ", true);
     param_name = param_prefix.str() + "is_grounded";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.is_grounded, customOdProperties.is_grounded, param_name + ": ", true);
+      customOdProperties.is_grounded, customOdProperties.is_grounded, std::string("  * ") + param_name + ": ", true);
     param_name = param_prefix.str() + "is_static";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.is_static, customOdProperties.is_static, param_name + ": ", true);
+      customOdProperties.is_static, customOdProperties.is_static, std::string("  * ") + param_name + ": ", true);
     param_name = param_prefix.str() + "tracking_timeout";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.tracking_timeout, customOdProperties.tracking_timeout, param_name + ": ", true, -1.0f,
+      customOdProperties.tracking_timeout, customOdProperties.tracking_timeout, std::string("  * ") + param_name + ": ", true, -1.0f,
       300.0f);
     param_name = param_prefix.str() + "tracking_max_dist";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.tracking_max_dist, customOdProperties.tracking_max_dist, param_name + ": ", true, -1.0f,
+      customOdProperties.tracking_max_dist, customOdProperties.tracking_max_dist, std::string("  * ") + param_name + ": ", true, -1.0f,
       100.0f);
     param_name = param_prefix.str() + "max_box_width_normalized";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.max_box_width_normalized, customOdProperties.max_box_width_normalized, param_name + ": ", true, -1.0f,
+      customOdProperties.max_box_width_normalized, customOdProperties.max_box_width_normalized, std::string("  * ") + param_name + ": ", true, -1.0f,
       1.0f);
     param_name = param_prefix.str() + "min_box_width_normalized";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.min_box_width_normalized, customOdProperties.min_box_width_normalized, param_name + ": ", true, -1.0f,
+      customOdProperties.min_box_width_normalized, customOdProperties.min_box_width_normalized, std::string("  * ") + param_name + ": ", true, -1.0f,
       1.0f);
     param_name = param_prefix.str() + "max_box_height_normalized";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.max_box_height_normalized, customOdProperties.max_box_height_normalized, param_name + ": ", true, -1.0f,
+      customOdProperties.max_box_height_normalized, customOdProperties.max_box_height_normalized, std::string("  * ") + param_name + ": ", true, -1.0f,
       1.0f);
     param_name = param_prefix.str() + "min_box_height_normalized";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.min_box_height_normalized, customOdProperties.min_box_height_normalized, param_name + ": ", true, -1.0f,
+      customOdProperties.min_box_height_normalized, customOdProperties.min_box_height_normalized, std::string("  * ") + param_name + ": ", true, -1.0f,
       1.0f);
     param_name = param_prefix.str() + "max_box_width_meters";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.max_box_width_meters, customOdProperties.max_box_width_meters, param_name + ": ", true, -1.0f,
+      customOdProperties.max_box_width_meters, customOdProperties.max_box_width_meters, std::string("  * ") + param_name + ": ", true, -1.0f,
       10000.0f);
     param_name = param_prefix.str() + "min_box_width_meters";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.min_box_width_meters, customOdProperties.min_box_width_meters, param_name + ": ", true, -1.0f,
+      customOdProperties.min_box_width_meters, customOdProperties.min_box_width_meters, std::string("  * ") + param_name + ": ", true, -1.0f,
       10000.0f);
     param_name = param_prefix.str() + "max_box_height_meters";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.max_box_height_meters, customOdProperties.max_box_height_meters, param_name + ": ", true, -1.0f,
+      customOdProperties.max_box_height_meters, customOdProperties.max_box_height_meters, std::string("  * ") + param_name + ": ", true, -1.0f,
       10000.0f);
     param_name = param_prefix.str() + "max_allowed_acceleration";
     sl_tools::getParam(
       shared_from_this(), param_name,
-      customOdProperties.max_allowed_acceleration, customOdProperties.max_allowed_acceleration, param_name + ": ", true, 0.0f,
+      customOdProperties.max_allowed_acceleration, customOdProperties.max_allowed_acceleration, std::string("  * ") + param_name + ": ", true, 0.0f,
       100000.0f);
 
     bool matched = false;
@@ -354,7 +356,7 @@ void ZedCamera::getCustomOdParams()
           << acc_preset_str << "'. Using the default value.");
     }
     RCLCPP_INFO_STREAM(
-      get_logger(), param_name + ": "
+      get_logger(), std::string("  * ") + param_name + ": "
         << sl::toString(customOdProperties.object_acceleration_preset).c_str());
 
     mCustomOdProperties[class_id] = customOdProperties; // Update the Custom OD Properties information
@@ -827,11 +829,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
       objMsg->objects[idx].sublabel = sl::toString(data.sublabel).c_str();
     } else {
       objMsg->objects[idx].sublabel = "";
-      if (!mCustomLabelsGood) {
-        objMsg->objects[idx].label = std::string("Class ID: ") + std::to_string(data.raw_label);
-      } else {
-        objMsg->objects[idx].label = mCustomLabels[std::to_string(data.raw_label)];
-      }
+        objMsg->objects[idx].label = mCustomLabels[data.raw_label];
     }
 
     objMsg->objects[idx].label_id = data.id;

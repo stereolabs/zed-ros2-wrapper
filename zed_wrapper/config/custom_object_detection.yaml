@@ -57,7 +57,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_002:
             label: 'car'
@@ -77,7 +77,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_003:
             label: 'motorcycle'
@@ -97,7 +97,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_004:
             label: 'airplane'
@@ -117,7 +117,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_005:
             label: 'bus'
@@ -137,7 +137,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_006:
             label: 'train'
@@ -157,7 +157,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_007:
             label: 'truck'
@@ -177,7 +177,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_008:
             label: 'boat'
@@ -197,7 +197,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_009:
             label: 'traffic light'
@@ -217,7 +217,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_010:
             label: 'fire hydrant'
@@ -237,7 +237,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_011:
             label: 'stop sign'
@@ -257,7 +257,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_012:
             label: 'parking meter'
@@ -277,7 +277,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_013:
             label: 'bench'
@@ -297,7 +297,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_014:
             label: 'bird'
@@ -317,7 +317,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_015:
             label: 'cat'
@@ -337,7 +337,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_016:
             label: 'dog'
@@ -357,7 +357,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_017:
             label: 'horse'
@@ -377,7 +377,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_018:
             label: 'sheep'
@@ -397,7 +397,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_019:
             label: 'cow'
@@ -417,7 +417,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_020:
             label: 'elephant'
@@ -437,7 +437,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_021:
             label: 'bear'
@@ -457,7 +457,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_022:
             label: 'zebra'
@@ -477,7 +477,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_023:
             label: 'giraffe'
@@ -497,7 +497,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_024:
             label: 'backpack'
@@ -517,7 +517,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_025:
             label: 'umbrella'
@@ -537,7 +537,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_026:
             label: 'handbag'
@@ -557,7 +557,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_027:
             label: 'tie'
@@ -577,7 +577,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_028:
             label: 'suitcase'
@@ -597,7 +597,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_029:
             label: 'frisbee'
@@ -617,7 +617,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_030:
             label: 'skis'
@@ -637,7 +637,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_031:
             label: 'snowboard'
@@ -657,7 +657,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_032:
             label: 'pesports ballrson'
@@ -677,7 +677,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_033:
             label: 'kite'
@@ -697,7 +697,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_034:
             label: 'baseball bat'
@@ -717,7 +717,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_035:
             label: 'baseball glove'
@@ -737,7 +737,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_036:
             label: 'skateboard'
@@ -757,7 +757,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_037:
             label: 'surfboard'
@@ -777,7 +777,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_038:
             label: 'tennis racket'
@@ -797,7 +797,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_039:
             label: 'bottle'
@@ -817,7 +817,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_040:
             label: 'wine glass'
@@ -837,7 +837,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_041:
             label: 'cup'
@@ -857,7 +857,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_042:
             label: 'fork'
@@ -877,7 +877,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_043:
             label: 'knife'
@@ -897,7 +897,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_044:
             label: 'spoon'
@@ -917,7 +917,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_045:
             label: 'bowl'
@@ -937,7 +937,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_046:
             label: 'banana'
@@ -957,7 +957,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_047:
             label: 'apple'
@@ -977,7 +977,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_048:
             label: 'sandwich'
@@ -997,7 +997,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_049:
             label: 'orange'
@@ -1017,7 +1017,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_050:
             label: 'broccoli'
@@ -1037,7 +1037,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_051:
             label: 'carrot'
@@ -1057,7 +1057,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_052:
             label: 'hot dog'
@@ -1077,7 +1077,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_053:
             label: 'pizza'
@@ -1097,7 +1097,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_054:
             label: 'donut'
@@ -1117,7 +1117,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_055:
             label: 'cake'
@@ -1137,7 +1137,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_056:
             label: 'chair'
@@ -1157,7 +1157,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_057:
             label: 'couch'
@@ -1177,7 +1177,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_058:
             label: 'potted plant'
@@ -1197,7 +1197,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_059:
             label: 'bed'
@@ -1217,7 +1217,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_060:
             label: 'dining table'
@@ -1237,7 +1237,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_061:
             label: 'toilet'
@@ -1257,7 +1257,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_062:
             label: 'tv'
@@ -1277,7 +1277,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_063:
             label: 'laptop'
@@ -1297,7 +1297,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_064:
             label: 'mouse'
@@ -1317,7 +1317,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_065:
             label: 'remote'
@@ -1337,7 +1337,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_066:
             label: 'keyboard'
@@ -1357,7 +1357,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_067:
             label: 'cell phone'
@@ -1377,7 +1377,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_068:
             label: 'microwave'
@@ -1397,7 +1397,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_069:
             label: 'oven'
@@ -1417,7 +1417,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_070:
             label: 'toaster'
@@ -1437,7 +1437,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_071:
             label: 'sink'
@@ -1457,7 +1457,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_072:
             label: 'refrigerator'
@@ -1477,7 +1477,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_073:
             label: 'book'
@@ -1497,7 +1497,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_074:
             label: 'clock'
@@ -1517,7 +1517,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_075:
             label: 'vase'
@@ -1537,7 +1537,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_076:
             label: 'scissors'
@@ -1557,7 +1557,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_077:
             label: 'teddy bear'
@@ -1577,7 +1577,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_078:
             label: 'hair drier'
@@ -1597,7 +1597,7 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_079:
             label: 'toothbrush'
@@ -1617,4 +1617,4 @@
             max_box_height_meters: -1.0 # Maximum allowed 3D height
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
-            max_allowed_acceleration: 100000 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.

@@ -31,14 +31,11 @@
             enable_image_validity_check: 1 # [SDK5 required] Sets the image validity check. If set to 1, the SDK will check if the frames are valid before processing.
             gpu_id: -1
             optional_opencv_calibration_file: '' # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
-            async_image_retrieval: false # Enable/disable the asynchronous image retrieval - Note: enable only to improve SVO recording performance
+            async_image_retrieval: false # If set to true will camera image retrieve at a framerate different from \ref grab() application framerate. This is useful for recording SVO or sending camera stream at different rate than application.
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
             # 'zedx.yaml', 'zedxmini.yaml', 'virtual.yaml' files
 
         video:
-            brightness: 4 # [DYNAMIC] Not available for ZED X/ZED X Mini
-            contrast: 4 # [DYNAMIC] Not available for ZED X/ZED X Mini
-            hue: 0 # [DYNAMIC] Not available for ZED X/ZED X Mini
             saturation: 4 # [DYNAMIC]
             sharpness: 4 # [DYNAMIC]
             gamma: 8 # [DYNAMIC]

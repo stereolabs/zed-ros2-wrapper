@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-05-19
+-----------
+- Move `brightness`, `contrast`, and `hue` from `common_stereo.yaml` to `zed.yaml`, `zed2.yaml`, `zed2i.yaml`, and `zedm.yaml` files
+
 2025-05-14
 ----------
 - Add `/clock` publisher to be used in SVO Mode to synchronize other nodes with the SVO timestamp

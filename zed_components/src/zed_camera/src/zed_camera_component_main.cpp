@@ -1828,7 +1828,9 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
 
     DEBUG_STREAM_COMM("Param #" << count << ": " << param.get_name());
 
+    
     if (sl_tools::isZEDX(mCamRealModel)) {
+      // ----> GMSL2 parameters
       if (param.get_name() == "video.exposure_time") {
         rclcpp::ParameterType correctType =
           rclcpp::ParameterType::PARAMETER_INTEGER;
@@ -2140,142 +2142,120 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
                                       << "' correctly set to "
                                       << val);
       }
+      // <---- GMSL2 parameters
+    } else {
+      // ----> USB 3 parameters
+      if (param.get_name() == "video.brightness") {
+        if (sl_tools::isZEDX(mCamRealModel)) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "Parameter '" << param.get_name()
+                                        << "' not available for "
+                                        << sl::toString(mCamRealModel).c_str());
+          break;
+        }
+
+        rclcpp::ParameterType correctType =
+          rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason =
+            param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 8)) {
+          result.successful = false;
+          result.reason =
+            param.get_name() + " must be a positive integer in the range [0,8]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mCamBrightness = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name()
+                                      << "' correctly set to "
+                                      << val);
+      } else if (param.get_name() == "video.contrast") {
+        if (sl_tools::isZEDX(mCamRealModel)) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "Parameter '" << param.get_name()
+                                        << "' not available for "
+                                        << sl::toString(mCamRealModel).c_str());
+          break;
+        }
+
+        rclcpp::ParameterType correctType =
+          rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason =
+            param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 8)) {
+          result.successful = false;
+          result.reason =
+            param.get_name() + " must be a positive integer in the range [0,8]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mCamContrast = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name()
+                                      << "' correctly set to "
+                                      << val);
+      } else if (param.get_name() == "video.hue") {
+        if (sl_tools::isZEDX(mCamRealModel)) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "Parameter '" << param.get_name()
+                                        << "' not available for "
+                                        << sl::toString(mCamRealModel).c_str());
+          break;
+        }
+
+        rclcpp::ParameterType correctType =
+          rclcpp::ParameterType::PARAMETER_INTEGER;
+        if (param.get_type() != correctType) {
+          result.successful = false;
+          result.reason =
+            param.get_name() + " must be a " + rclcpp::to_string(correctType);
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        int val = param.as_int();
+
+        if ((val < 0) || (val > 11)) {
+          result.successful = false;
+          result.reason = param.get_name() +
+            " must be a positive integer in the range [0,11]";
+          RCLCPP_WARN_STREAM(get_logger(), result.reason);
+          break;
+        }
+
+        mCamHue = val;
+
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Parameter '" << param.get_name()
+                                      << "' correctly set to "
+                                      << val);
+      }
+      // <---- USB 3 parameters
     }
 
-    if (param.get_name() == "general.pub_frame_rate") {
-      rclcpp::ParameterType correctType =
-        rclcpp::ParameterType::PARAMETER_DOUBLE;
-      if (param.get_type() != correctType) {
-        result.successful = false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      double val = param.as_double();
-
-      if ((val <= 0.0) || (val > mCamGrabFrameRate)) {
-        result.successful = false;
-        result.reason =
-          param.get_name() +
-          " must be positive and minor or equal to `grab_frame_rate`";
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      mPubFrameRate = val;
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name()
-                                    << "' correctly set to "
-                                    << val);
-    } else if (param.get_name() == "video.brightness") {
-      if (sl_tools::isZEDX(mCamRealModel)) {
-        RCLCPP_WARN_STREAM(
-          get_logger(), "Parameter '" << param.get_name()
-                                      << "' not available for "
-                                      << sl::toString(mCamRealModel).c_str());
-        break;
-      }
-
-      rclcpp::ParameterType correctType =
-        rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful = false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      int val = param.as_int();
-
-      if ((val < 0) || (val > 8)) {
-        result.successful = false;
-        result.reason =
-          param.get_name() + " must be a positive integer in the range [0,8]";
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      mCamBrightness = val;
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name()
-                                    << "' correctly set to "
-                                    << val);
-    } else if (param.get_name() == "video.contrast") {
-      if (sl_tools::isZEDX(mCamRealModel)) {
-        RCLCPP_WARN_STREAM(
-          get_logger(), "Parameter '" << param.get_name()
-                                      << "' not available for "
-                                      << sl::toString(mCamRealModel).c_str());
-        break;
-      }
-
-      rclcpp::ParameterType correctType =
-        rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful = false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      int val = param.as_int();
-
-      if ((val < 0) || (val > 8)) {
-        result.successful = false;
-        result.reason =
-          param.get_name() + " must be a positive integer in the range [0,8]";
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      mCamContrast = val;
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name()
-                                    << "' correctly set to "
-                                    << val);
-    } else if (param.get_name() == "video.hue") {
-      if (sl_tools::isZEDX(mCamRealModel)) {
-        RCLCPP_WARN_STREAM(
-          get_logger(), "Parameter '" << param.get_name()
-                                      << "' not available for "
-                                      << sl::toString(mCamRealModel).c_str());
-        break;
-      }
-
-      rclcpp::ParameterType correctType =
-        rclcpp::ParameterType::PARAMETER_INTEGER;
-      if (param.get_type() != correctType) {
-        result.successful = false;
-        result.reason =
-          param.get_name() + " must be a " + rclcpp::to_string(correctType);
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      int val = param.as_int();
-
-      if ((val < 0) || (val > 11)) {
-        result.successful = false;
-        result.reason = param.get_name() +
-          " must be a positive integer in the range [0,11]";
-        RCLCPP_WARN_STREAM(get_logger(), result.reason);
-        break;
-      }
-
-      mCamHue = val;
-
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name()
-                                    << "' correctly set to "
-                                    << val);
-    } else if (param.get_name() == "video.saturation") {
+    // ----> Common parameters
+    if (param.get_name() == "video.saturation") {
       rclcpp::ParameterType correctType =
         rclcpp::ParameterType::PARAMETER_INTEGER;
       if (param.get_type() != correctType) {

@@ -1118,7 +1118,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
       objMsg->objects[idx].sublabel = sl::toString(data.sublabel).c_str();
     } else {
       objMsg->objects[idx].label = mCustomLabels[data.raw_label];
-      objMsg->objects[idx].sublabel = std::to_string(data.raw_label);      
+      objMsg->objects[idx].sublabel = std::to_string(data.raw_label);
     }
 
     objMsg->objects[idx].label_id = data.id;

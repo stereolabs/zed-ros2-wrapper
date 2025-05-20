@@ -55,9 +55,20 @@ protected:
   void getSensorsParams();
   void getMappingParams();
   void getOdParams();
+  void getCustomOdParams();
   void getBodyTrkParams();
   void getStreamingServerParams();
   void getAdvancedParams();
+
+  bool handleOdDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleCustomOdDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleBodyTrkDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
 
   void setTFCoordFrameNames();
   void initPublishers();
@@ -90,7 +101,7 @@ protected:
   void callback_pubTemp();
   void callback_pubHeartbeat();
   void callback_gnssPubTimerTimeout();
-  rcl_interfaces::msg::SetParametersResult callback_setParameters(
+  rcl_interfaces::msg::SetParametersResult callback_dynamicParamChange(
     std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(
     diagnostic_updater::DiagnosticStatusWrapper & stat);
@@ -229,10 +240,6 @@ protected:
   void startTempPubTimer();
   void startHeartbeatTimer();
 
-  template<typename T>
-  void getParam(
-    std::string paramName, T defValue, T & outVal,
-    std::string log_info = std::string(), bool dynamic = false);
 
   // Region of Interest
   std::string getParam(
@@ -241,7 +248,6 @@ protected:
   std::string parseRoiPoly(
     const std::vector<std::vector<float>> & in_poly,
     std::vector<sl::float2> & out_poly);
-  void resetRoi();
   // <---- Utility functions
 
 private:
@@ -351,7 +357,7 @@ private:
 
 
   bool mSensCameraSync = false;
-  double mSensPubRate = 400.;
+  double mSensPubRate = 200.;
 
   std::vector<std::vector<float>> mRoyPolyParam;  // Manual ROI polygon
   bool mAutoRoiEnabled = false;
@@ -377,8 +383,8 @@ private:
   bool mResetOdomWhenLoopClosure = true;
   bool mResetPoseWithSvoLoop = true;
   double mPathPubRate = 2.0;
-  double mTfOffset = 0.05;
-  double mPosTrackDepthMinRange = 0.0;
+  double mTfOffset = 0.0;
+  float mPosTrackDepthMinRange = 0.0f;
   bool mSetAsStatic = false;
   bool mSetGravityAsOrigin = false;
   int mPathMaxCount = -1;
@@ -404,33 +410,42 @@ private:
 
   bool mObjDetEnabled = false;
   bool mObjDetTracking = true;
-  float mObjDetConfidence = 40.0f;
   double mObjDetPredTimeout = 0.5;
   bool mObjDetReducedPrecision = false;
-  float mObjDetMaxRange = 15.0f;
+  double mObjDetMaxRange = 15.0;
   std::vector<sl::OBJECT_CLASS> mObjDetFilter;
+  std::map<sl::OBJECT_CLASS, float> mObjDetClassConfMap;
   bool mObjDetPeopleEnable = true;
+  double mObjDetPeopleConf = 50.0;
   bool mObjDetVehiclesEnable = true;
+  double mObjDetVehiclesConf = 50.0;
   bool mObjDetBagsEnable = true;
+  double mObjDetBagsConf = 50.0;
   bool mObjDetAnimalsEnable = true;
+  double mObjDetAnimalsConf = 50.0;
   bool mObjDetElectronicsEnable = true;
+  double mObjDetElectronicsConf = 50.0;
   bool mObjDetFruitsEnable = true;
+  double mObjDetFruitsConf = 50.0;
   bool mObjDetSportEnable = true;
-  bool mObjDetBodyFitting = false;
+  double mObjDetSportConf = 50.0;
   sl::OBJECT_DETECTION_MODEL mObjDetModel =
     sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST;
   sl::OBJECT_FILTERING_MODE mObjFilterMode = sl::OBJECT_FILTERING_MODE::NMS3D;
-  std::string mYoloOnnxPath;
-  int mYoloOnnxSize;
-  std::string mCustomLabelsPath;
-  std::unordered_map<std::string, std::string> mCustomLabels;
+  std::string mYoloOnnxPath = "";
+  int mYoloOnnxSize = 512;
+  int mCustomClassCount = 1;
+  std::unordered_map<int, sl::CustomObjectDetectionProperties> mCustomOdProperties;
+  std::unordered_map<int, std::string> mCustomLabels;
+  std::unordered_map<std::string, int> mCustomClassIdMap;
+
 
   bool mBodyTrkEnabled = false;
   sl::BODY_TRACKING_MODEL mBodyTrkModel =
     sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST;
   sl::BODY_FORMAT mBodyTrkFmt = sl::BODY_FORMAT::BODY_38;
   bool mBodyTrkReducedPrecision = false;
-  float mBodyTrkMaxRange = 15.0f;
+  double mBodyTrkMaxRange = 15.0f;
   sl::BODY_KEYPOINTS_SELECTION mBodyTrkKpSelection =
     sl::BODY_KEYPOINTS_SELECTION::FULL;
   bool mBodyTrkFitting = true;
@@ -768,7 +783,6 @@ private:
   std::atomic<bool> mStreamingServerRunning;
 
   bool mUsingCustomOd = false;
-  bool mCustomLabelsGood = false;
   uint64_t mHeartbeatCount = 0;
   // <---- Status Flags
 
@@ -905,31 +919,6 @@ private:
   std::unique_ptr<sl_tools::GNSSReplay> mGnssReplay;
   // <---- SVO v2
 };
-
-// ----> Template Function definitions
-template<typename T>
-void ZedCamera::getParam(
-  std::string paramName, T defValue, T & outVal,
-  std::string log_info, bool dynamic)
-{
-  rcl_interfaces::msg::ParameterDescriptor descriptor;
-  descriptor.read_only = !dynamic;
-
-  declare_parameter(paramName, rclcpp::ParameterValue(defValue), descriptor);
-
-  if (!get_parameter(paramName, outVal)) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "The parameter '"
-        << paramName
-        << "' is not available or is not valid, using the default value: "
-        << defValue);
-  }
-
-  if (!log_info.empty()) {
-    RCLCPP_INFO_STREAM(get_logger(), log_info << outVal);
-  }
-}
 
 }  // namespace stereolabs
 

@@ -50,12 +50,12 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   _triggerUpdateDynParams(true),
   _uptimer(get_clock())
 {
-  RCLCPP_INFO(get_logger(), "********************************");
+  RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), "    ZED Camera One Component    ");
-  RCLCPP_INFO(get_logger(), "********************************");
+  RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), " * namespace: %s", get_namespace());
   RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
-  RCLCPP_INFO(get_logger(), "********************************");
+  RCLCPP_INFO(get_logger(), "================================");
 
   const size_t SDK_MAJOR_REQ = 4;
   const size_t SDK_MINOR_REQ = 2;
@@ -147,7 +147,7 @@ void ZedCameraOne::closeCamera()
     return;
   }
 
-  RCLCPP_INFO(get_logger(), "***** CLOSING CAMERA *****");
+  RCLCPP_INFO(get_logger(), "=== CLOSING CAMERA ===");
 
   _zed->close();
   _zed.reset();
@@ -179,9 +179,11 @@ void ZedCameraOne::getGeneralParams()
 {
   rclcpp::Parameter paramVal;
 
-  RCLCPP_INFO(get_logger(), "*** GENERAL parameters ***");
+  RCLCPP_INFO(get_logger(), "=== GENERAL parameters ===");
 
-  getParam("svo.svo_path", std::string(), _svoFilepath);
+  sl_tools::getParam(
+    shared_from_this(), "svo.svo_path", std::string(),
+    _svoFilepath);
   if (_svoFilepath.compare("live") == 0) {
     _svoFilepath = "";
   }
@@ -201,9 +203,13 @@ void ZedCameraOne::getGeneralParams()
   } else {
     RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << _svoFilepath.c_str() << "'");
     _svoMode = true;
-    getParam("svo.svo_loop", _svoLoop, _svoLoop, " * SVO Loop: ");
-    getParam("svo.svo_realtime", _svoRealtime, _svoRealtime, " * SVO Real Time: ");
-    getParam(
+    sl_tools::getParam(
+      shared_from_this(), "svo.svo_loop", _svoLoop, _svoLoop,
+      " * SVO Loop: ");
+    sl_tools::getParam(
+      shared_from_this(), "svo.svo_realtime", _svoRealtime,
+      _svoRealtime, " * SVO Real Time: ");
+    sl_tools::getParam(
       "svo.use_svo_timestamps", _useSvoTimestamp, _useSvoTimestamp,
       " * Use SVO timestamp: ");
   }
@@ -211,11 +217,15 @@ void ZedCameraOne::getGeneralParams()
 
   _streamMode = false;
   if (!_svoMode) {
-    getParam("stream.stream_address", std::string(), _streamAddr);
+    sl_tools::getParam(
+      shared_from_this(), "stream.stream_address",
+      std::string(), _streamAddr);
     if (_streamAddr != "") {
 #if ENABLE_STREAM_INPUT
       _streamMode = true;
-      getParam("stream.stream_port", _streamPort, _streamPort);
+      sl_tools::getParam(
+        shared_from_this(), "stream.stream_port", _streamPort,
+        _streamPort);
       RCLCPP_INFO_STREAM(
         get_logger(), " * Local stream input: " << _streamAddr << ":" << _streamPort);
 #else
@@ -228,7 +238,9 @@ void ZedCameraOne::getGeneralParams()
   }
 
   std::string camera_model = "zed";
-  getParam("general.camera_model", camera_model, camera_model);
+  sl_tools::getParam(
+    shared_from_this(), "general.camera_model", camera_model,
+    camera_model);
   if (camera_model == "zedxonegs") {
     _camUserModel = sl::MODEL::ZED_XONE_GS;
     if (_svoMode) {
@@ -275,21 +287,28 @@ void ZedCameraOne::getGeneralParams()
   RCLCPP_INFO_STREAM(
     get_logger(), " * Camera model: " << camera_model << " - " << _camUserModel);
 
-  getParam("general.camera_name", _cameraName, _cameraName, " * Camera name: ");
+  sl_tools::getParam(
+    shared_from_this(), "general.camera_name", _cameraName,
+    _cameraName, " * Camera name: ");
 
-  getParam(
-    "general.serial_number", _camSerialNumber, _camSerialNumber,
-    " * Camera SN: ");
-  getParam(
-    "general.camera_id", _camId, _camId,
+  sl_tools::getParam(
+    shared_from_this(), "general.serial_number",
+    _camSerialNumber, _camSerialNumber, " * Camera SN: ");
+  sl_tools::getParam(
+    shared_from_this(), "general.camera_id", _camId, _camId,
     " * Camera ID: ");
-  getParam(
-    "general.grab_frame_rate", _camGrabFrameRate, _camGrabFrameRate,
+  sl_tools::getParam(
+    shared_from_this(), "general.grab_frame_rate",
+    _camGrabFrameRate, _camGrabFrameRate,
     " * Camera framerate: ", false, 15, 120);
-  getParam("general.gpu_id", _gpuId, _gpuId, " * GPU ID: ", false, -1, 256);
+  sl_tools::getParam(
+    shared_from_this(), "general.gpu_id", _gpuId, _gpuId,
+    " * GPU ID: ", false, -1, 256);
 
   std::string resol = "AUTO";
-  getParam("general.grab_resolution", resol, resol);
+  sl_tools::getParam(
+    shared_from_this(), "general.grab_resolution", resol,
+    resol);
   if (resol == "AUTO") {
     _camResol = sl::RESOLUTION::AUTO;
   } else if (resol == "HD4K" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
@@ -316,7 +335,9 @@ void ZedCameraOne::getGeneralParams()
 
 
   std::string out_resol = "NATIVE";
-  getParam("general.pub_resolution", out_resol, out_resol);
+  sl_tools::getParam(
+    shared_from_this(), "general.pub_resolution", out_resol,
+    out_resol);
   if (out_resol == "NATIVE") {
     _pubResolution = PubRes::NATIVE;
   } else if (out_resol == "CUSTOM") {
@@ -335,16 +356,17 @@ void ZedCameraOne::getGeneralParams()
     " * Publishing resolution: " << out_resol.c_str());
 
   if (_pubResolution == PubRes::CUSTOM) {
-    getParam(
-      "general.pub_downscale_factor", _customDownscaleFactor,
-      _customDownscaleFactor, " * Publishing downscale factor: ", false, 1.0, 5.0);
+    sl_tools::getParam(
+      shared_from_this(), "general.pub_downscale_factor",
+      _customDownscaleFactor, _customDownscaleFactor,
+      " * Publishing downscale factor: ", false, 1.0, 5.0);
   } else {
     _customDownscaleFactor = 1.0;
   }
 
-  getParam(
-    "general.optional_opencv_calibration_file", _opencvCalibFile,
-    _opencvCalibFile, " * OpenCV custom calibration: ");
+  sl_tools::getParam(
+    shared_from_this(), "general.optional_opencv_calibration_file",
+    _opencvCalibFile, _opencvCalibFile, " * OpenCV custom calibration: ");
 }
 
 void ZedCameraOne::getSensorsParams()
@@ -354,11 +376,14 @@ void ZedCameraOne::getSensorsParams()
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
 
-  RCLCPP_INFO(get_logger(), "*** SENSORS parameters ***");
+  RCLCPP_INFO(get_logger(), "=== SENSORS parameters ===");
 
-  getParam("sensors.publish_imu_tf", _publishImuTF, _publishImuTF, " * Publish IMU TF: ");
-  getParam(
-    "sensors.sensors_pub_rate", _sensPubRate, _sensPubRate,
+  sl_tools::getParam(
+    shared_from_this(), "sensors.publish_imu_tf",
+    _publishImuTF, _publishImuTF, " * Publish IMU TF: ");
+  sl_tools::getParam(
+    shared_from_this(), "sensors.sensors_pub_rate",
+    _sensPubRate, _sensPubRate,
     " * Sensors publishing rate [Hz]: ", true, 1.0, 400.0);
 }
 
@@ -369,14 +394,16 @@ void ZedCameraOne::getStreamingServerParams()
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
 
-  RCLCPP_INFO(get_logger(), "*** Streaming Server parameters ***");
+  RCLCPP_INFO(get_logger(), "=== STREAMING SERVER parameters ===");
 
   bool stream_server = false;
-  getParam("stream_server.stream_enabled", stream_server, stream_server, " * Stream enabled: ");
+  sl_tools::getParam(
+    shared_from_this(), "stream_server.stream_enabled",
+    stream_server, stream_server, " * Stream enabled: ");
   _streamingServerRequired = stream_server;
 
   std::string codec = "H264";
-  getParam("stream_server.codec", codec, codec);
+  sl_tools::getParam(shared_from_this(), "stream_server.codec", codec, codec);
   if (codec == "H264") {
     _streamingServerCodec = sl::STREAMING_CODEC::H264;
     RCLCPP_INFO(get_logger(), " * Stream codec: H264");
@@ -392,23 +419,29 @@ void ZedCameraOne::getStreamingServerParams()
     RCLCPP_INFO(get_logger(), " * Stream codec: H264");
   }
 
-  getParam(
-    "stream_server.port", _streamingServerPort, _streamingServerPort, " * Stream port:",
-    false, 1024, 65535);
-  getParam(
-    "stream_server.bitrate", _streamingServerBitrate, _streamingServerBitrate,
+  sl_tools::getParam(
+    shared_from_this(), "stream_server.port",
+    _streamingServerPort, _streamingServerPort,
+    " * Stream port:", false, 1024, 65535);
+  sl_tools::getParam(
+    shared_from_this(), "stream_server.bitrate",
+    _streamingServerBitrate, _streamingServerBitrate,
     " * Stream bitrate:", false, 1000, 60000);
-  getParam(
-    "stream_server.gop_size", _streamingServerGopSize, _streamingServerGopSize,
+  sl_tools::getParam(
+    shared_from_this(), "stream_server.gop_size",
+    _streamingServerGopSize, _streamingServerGopSize,
     " * Stream GOP size:", false, -1, 256);
-  getParam(
-    "stream_server.chunk_size", _streamingServerChunckSize, _streamingServerChunckSize,
+  sl_tools::getParam(
+    shared_from_this(), "stream_server.chunk_size",
+    _streamingServerChunckSize, _streamingServerChunckSize,
     " * Stream Chunk size:", false, 1024, 65000);
-  getParam(
-    "stream_server.adaptative_bitrate", _streamingServerAdaptiveBitrate,
+  sl_tools::getParam(
+    shared_from_this(), "stream_server.adaptative_bitrate",
+    _streamingServerAdaptiveBitrate,
     _streamingServerAdaptiveBitrate, " * Adaptative bitrate:");
-  getParam(
-    "stream_server.target_framerate", _streamingServerTargetFramerate,
+  sl_tools::getParam(
+    shared_from_this(), "stream_server.target_framerate",
+    _streamingServerTargetFramerate,
     _streamingServerTargetFramerate, " * Target frame rate:");
 }
 
@@ -419,11 +452,12 @@ void ZedCameraOne::getAdvancedParams()
   rcl_interfaces::msg::ParameterDescriptor read_only_descriptor;
   read_only_descriptor.read_only = true;
 
-  RCLCPP_INFO(get_logger(), "*** Advanced parameters ***");
+  RCLCPP_INFO(get_logger(), "=== ADVANCED parameters ===");
 
-  getParam(
-    "advanced.thread_sched_policy", _threadSchedPolicy,
-    _threadSchedPolicy, " * Thread sched. policy: ");
+  sl_tools::getParam(
+    shared_from_this(), "advanced.thread_sched_policy",
+    _threadSchedPolicy, _threadSchedPolicy,
+    " * Thread sched. policy: ");
 
   if (_threadSchedPolicy == "SCHED_FIFO" || _threadSchedPolicy == "SCHED_RR") {
     if (!sl_tools::checkRoot()) {
@@ -435,12 +469,14 @@ void ZedCameraOne::getAdvancedParams()
           "default [SCHED_OTHER]");
       _threadSchedPolicy = "SCHED_OTHER";
     } else {
-      getParam(
-        "advanced.thread_grab_priority", _threadPrioGrab,
-        _threadPrioGrab, " * Grab thread priority: ");
-      getParam(
-        "advanced.thread_sensor_priority", _threadPrioSens,
-        _threadPrioSens, " * Sensors thread priority: ");
+      sl_tools::getParam(
+        shared_from_this(), "advanced.thread_grab_priority",
+        _threadPrioGrab, _threadPrioGrab,
+        " * Grab thread priority: ");
+      sl_tools::getParam(
+        shared_from_this(), "advanced.thread_sensor_priority",
+        _threadPrioSens, _threadPrioSens,
+        " * Sensors thread priority: ");
     }
   }
 }
@@ -449,21 +485,36 @@ void ZedCameraOne::getDebugParams()
 {
   rclcpp::Parameter paramVal;
 
-  RCLCPP_INFO(get_logger(), "*** DEBUG parameters ***");
+  RCLCPP_INFO(get_logger(), "=== DEBUG parameters ===");
 
-  getParam("debug.sdk_verbose", _sdkVerbose, _sdkVerbose, " * SDK Verbose: ", false, 0, 1000);
-  getParam(
-    "debug.sdk_verbose_log_file", _sdkVerboseLogFile, _sdkVerboseLogFile,
+  sl_tools::getParam(
+    shared_from_this(), "debug.sdk_verbose", _sdkVerbose,
+    _sdkVerbose, " * SDK Verbose: ", false, 0, 1000);
+  sl_tools::getParam(
+    shared_from_this(), "debug.sdk_verbose_log_file",
+    _sdkVerboseLogFile, _sdkVerboseLogFile,
     " * SDK Verbose File: ");
 
-  getParam("debug.debug_common", _debugCommon, _debugCommon, " * Debug Common: ");
-  getParam("debug.debug_video_depth", _debugVideoDepth, _debugVideoDepth, " * Debug Image/Depth: ");
-  getParam(
-    "debug.debug_camera_controls", _debugCamCtrl, _debugCamCtrl,
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_common", _debugCommon,
+    _debugCommon, " * Debug Common: ");
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_video_depth",
+    _debugVideoDepth, _debugVideoDepth,
+    " * Debug Image/Depth: ");
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_camera_controls",
+    _debugCamCtrl, _debugCamCtrl,
     " * Debug Camera Controls: ");
-  getParam("debug.debug_sensors", _debugSensors, _debugSensors, " * Debug Sensors: ");
-  getParam("debug.debug_streaming", _debugStreaming, _debugStreaming, " * Debug Streaming: ");
-  getParam("debug.debug_advanced", _debugAdvanced, _debugAdvanced, " * Debug Advanced: ");
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_sensors", _debugSensors,
+    _debugSensors, " * Debug Sensors: ");
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_streaming",
+    _debugStreaming, _debugStreaming, " * Debug Streaming: ");
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_advanced", _debugAdvanced,
+    _debugAdvanced, " * Debug Advanced: ");
 
   // Set debug mode
   _debugMode = _debugCommon || _debugVideoDepth || _debugCamCtrl ||
@@ -496,88 +547,100 @@ void ZedCameraOne::getVideoParams()
 {
   rclcpp::Parameter paramVal;
 
-  RCLCPP_INFO(get_logger(), "*** CAMERA CONTROL parameters ***");
+  RCLCPP_INFO(get_logger(), "=== CAMERA CONTROL parameters ===");
 
-  getParam("video.enable_hdr", _enableHDR, _enableHDR, " * Enable HDR: ");
+  sl_tools::getParam(
+    shared_from_this(), "video.enable_hdr", _enableHDR,
+    _enableHDR, " * Enable HDR: ");
 
-  getParam("video.saturation", _camSaturation, _camSaturation, " * [DYN] Saturation: ", true, 0, 8);
+  sl_tools::getParam(
+    shared_from_this(), "video.saturation", _camSaturation,
+    _camSaturation, " * [DYN] Saturation: ", true, 0, 8);
   _camDynParMapChanged["video.saturation"] = true;
-  getParam(
-    "video.sharpness", _camSharpness, _camSharpness,
-    " * [DYN] Sharpness: ", true, 0, 8);
+  sl_tools::getParam(
+    shared_from_this(), "video.sharpness", _camSharpness,
+    _camSharpness, " * [DYN] Sharpness: ", true, 0, 8);
   _camDynParMapChanged["video.sharpness"] = true;
-  getParam("video.gamma", _camGamma, _camGamma, " * [DYN] Gamma: ", true, 1, 9);
+  sl_tools::getParam(
+    shared_from_this(), "video.gamma", _camGamma, _camGamma,
+    " * [DYN] Gamma: ", true, 1, 9);
   _camDynParMapChanged["video.gamma"] = true;
-  getParam(
-    "video.auto_whitebalance", _camAutoWB, _camAutoWB, " * [DYN] Auto White Balance: ",
-    true);
+  sl_tools::getParam(
+    shared_from_this(), "video.auto_whitebalance", _camAutoWB,
+    _camAutoWB, " * [DYN] Auto White Balance: ", true);
   _camDynParMapChanged["video.auto_whitebalance"] = true;
-  getParam(
-    "video.whitebalance_temperature", _camWBTemp, _camWBTemp,
+  sl_tools::getParam(
+    shared_from_this(), "video.whitebalance_temperature",
+    _camWBTemp, _camWBTemp,
     " * [DYN] White Balance Temp (x100): ", true, 28, 65);
   _camDynParMapChanged["video.whitebalance_temperature"] = true;
 
-  getParam(
-    "video.auto_exposure", _camAutoExposure, _camAutoExposure,
+  sl_tools::getParam(
+    shared_from_this(), "video.auto_exposure",
+    _camAutoExposure, _camAutoExposure,
     " * [DYN] Auto Exposure: ", true);
   _camDynParMapChanged["video.auto_exposure"] = true;
-  getParam(
-    "video.exposure_time", _camExpTime, _camExpTime,
-    " * [DYN] Exposure (us): ", true, 28, 30000);
+  sl_tools::getParam(
+    shared_from_this(), "video.exposure_time", _camExpTime,
+    _camExpTime, " * [DYN] Exposure (us): ", true, 28, 30000);
   _camDynParMapChanged["video.exposure_time"] = true;
-  getParam(
-    "video.auto_exposure_time_range_min", _camAutoExpTimeRangeMin,
-    _camAutoExpTimeRangeMin, " * [DYN] Auto Exp Time Min (us): ", true,
-    28, 30000);
+  sl_tools::getParam(
+    shared_from_this(), "video.auto_exposure_time_range_min",
+    _camAutoExpTimeRangeMin, _camAutoExpTimeRangeMin,
+    " * [DYN] Auto Exp Time Min (us): ", true, 28, 30000);
   _camDynParMapChanged["video.auto_exposure_time_range_min"] = true;
-  getParam(
-    "video.auto_exposure_time_range_max", _camAutoExpTimeRangeMax,
-    _camAutoExpTimeRangeMax, " * [DYN] Auto Exp Time Max (us): ", true,
-    28, 30000);
+  sl_tools::getParam(
+    shared_from_this(), "video.auto_exposure_time_range_max",
+    _camAutoExpTimeRangeMax, _camAutoExpTimeRangeMax,
+    " * [DYN] Auto Exp Time Max (us): ", true, 28, 30000);
   _camDynParMapChanged["video.auto_exposure_time_range_max"] = true;
-  getParam(
-    "video.exposure_compensation", _camExposureComp, _camExposureComp,
+  sl_tools::getParam(
+    shared_from_this(), "video.exposure_compensation",
+    _camExposureComp, _camExposureComp,
     " * [DYN] Exposure Compensation: ", true, 0, 100);
   _camDynParMapChanged["video.exposure_compensation"] = true;
-  getParam(
-    "video.auto_analog_gain", _camAutoAnalogGain, _camAutoAnalogGain,
+  sl_tools::getParam(
+    shared_from_this(), "video.auto_analog_gain",
+    _camAutoAnalogGain, _camAutoAnalogGain,
     " * [DYN] Auto Analog Gain: ", true);
   _camDynParMapChanged["video.auto_analog_gain"] = true;
-  getParam(
-    "video.analog_gain", _camAnalogGain, _camAnalogGain,
-    " * [DYN] Analog Gain: ", true, 1000, 16000);
+  sl_tools::getParam(
+    shared_from_this(), "video.analog_gain", _camAnalogGain,
+    _camAnalogGain, " * [DYN] Analog Gain: ", true, 1000,
+    16000);
   _camDynParMapChanged["video.analog_gain"] = true;
-  getParam(
-    "video.auto_analog_gain_range_min", _camAutoAnalogGainRangeMin,
-    _camAutoAnalogGainRangeMin, " * [DYN] Analog Gain Min: ", true, 1000,
-    16000);
+  sl_tools::getParam(
+    shared_from_this(), "video.auto_analog_gain_range_min",
+    _camAutoAnalogGainRangeMin, _camAutoAnalogGainRangeMin,
+    " * [DYN] Analog Gain Min: ", true, 1000, 16000);
   _camDynParMapChanged["video.auto_analog_gain_range_min"] = true;
-  getParam(
-    "video.auto_analog_gain_range_max", _camAutoAnalogGainRangeMax,
-    _camAutoAnalogGainRangeMax, " * [DYN] Analog Gain Max: ", true, 1000,
-    16000);
+  sl_tools::getParam(
+    shared_from_this(), "video.auto_analog_gain_range_max",
+    _camAutoAnalogGainRangeMax, _camAutoAnalogGainRangeMax,
+    " * [DYN] Analog Gain Max: ", true, 1000, 16000);
   _camDynParMapChanged["video.auto_analog_gain_range_max"] = true;
-  getParam(
-    "video.auto_digital_gain", _camAutoDigitalGain, _camAutoDigitalGain,
+  sl_tools::getParam(
+    shared_from_this(), "video.auto_digital_gain",
+    _camAutoDigitalGain, _camAutoDigitalGain,
     " * [DYN] Auto Digital Gain: ", true);
   _camDynParMapChanged["video.auto_digital_gain"] = true;
-  getParam(
-    "video.digital_gain", _camDigitalGain, _camDigitalGain,
-    " * [DYN] Digital Gain: ", true, 1, 256);
+  sl_tools::getParam(
+    shared_from_this(), "video.digital_gain", _camDigitalGain,
+    _camDigitalGain, " * [DYN] Digital Gain: ", true, 1, 256);
   _camDynParMapChanged["video.digital_gain"] = true;
-  getParam(
-    "video.auto_digital_gain_range_min", _camAutoDigitalGainRangeMin,
-    _camAutoDigitalGainRangeMin, " * [DYN] Digital Gain Min: ", true, 1,
-    256);
+  sl_tools::getParam(
+    shared_from_this(), "video.auto_digital_gain_range_min",
+    _camAutoDigitalGainRangeMin, _camAutoDigitalGainRangeMin,
+    " * [DYN] Digital Gain Min: ", true, 1, 256);
   _camDynParMapChanged["video.auto_digital_gain_range_min"] = true;
-  getParam(
-    "video.auto_digital_gain_range_max", _camAutoDigitalGainRangeMax,
-    _camAutoDigitalGainRangeMax, " * [DYN] Digital Gain Max: ", true, 1,
-    256);
+  sl_tools::getParam(
+    shared_from_this(), "video.auto_digital_gain_range_max",
+    _camAutoDigitalGainRangeMax, _camAutoDigitalGainRangeMax,
+    " * [DYN] Digital Gain Max: ", true, 1, 256);
   _camDynParMapChanged["video.auto_digital_gain_range_max"] = true;
-  getParam(
-    "video.denoising", _camDenoising, _camDenoising,
-    " * [DYN] Denoising: ", true, 0, 100);
+  sl_tools::getParam(
+    shared_from_this(), "video.denoising", _camDenoising,
+    _camDenoising, " * [DYN] Denoising: ", true, 0, 100);
   _camDynParMapChanged["video.denoising"] = true;
 
   _triggerUpdateDynParams = true;
@@ -624,12 +687,12 @@ void ZedCameraOne::init()
 
   // Dynamic parameters callback
   _paramChangeCallbackHandle = add_on_set_parameters_callback(
-    std::bind(&ZedCameraOne::callback_setParameters, this, _1));
+    std::bind(&ZedCameraOne::callback_dynamicParamChange, this, _1));
 }
 
 void ZedCameraOne::initServices()
 {
-  RCLCPP_INFO(get_logger(), "*** SERVICES ***");
+  RCLCPP_INFO(get_logger(), "=== SERVICES ===");
 
   std::string srv_name;
   std::string srv_prefix = "~/";
@@ -668,7 +731,7 @@ void ZedCameraOne::initServices()
 
 bool ZedCameraOne::startCamera()
 {
-  RCLCPP_INFO(get_logger(), "***** STARTING CAMERA *****");
+  RCLCPP_INFO(get_logger(), "=== STARTING CAMERA ===");
 
   // Create a ZED object
   _zed = std::make_shared<sl::CameraOne>();
@@ -690,7 +753,7 @@ bool ZedCameraOne::startCamera()
   // ----> ZED configuration
 #if ENABLE_SVO
   if (!_svoFilepath.empty()) {
-    RCLCPP_INFO(get_logger(), "*** SVO OPENING ***");
+    RCLCPP_INFO(get_logger(), "=== SVO OPENING ===");
 
     _initParams.input.setFromSVOFile(_svoFilepath.c_str());
     _initParams.svo_real_time_mode = _svoRealtime;
@@ -699,7 +762,7 @@ bool ZedCameraOne::startCamera()
   } else
 #endif
   if (!_streamAddr.empty()) {
-    RCLCPP_INFO(get_logger(), "*** LOCAL STREAMING OPENING ***");
+    RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING OPENING ===");
 
     _initParams.input.setFromStream(
       _streamAddr.c_str(),
@@ -707,7 +770,7 @@ bool ZedCameraOne::startCamera()
 
     _streamMode = true;
   } else {
-    RCLCPP_INFO(get_logger(), "*** CAMERA OPENING ***");
+    RCLCPP_INFO(get_logger(), "=== CAMERA OPENING ===");
 
     _initParams.camera_fps = _camGrabFrameRate;
     _initParams.camera_resolution = static_cast<sl::RESOLUTION>(_camResol);
@@ -1021,7 +1084,7 @@ void ZedCameraOne::callback_pubTemp()
 void ZedCameraOne::callback_updateDiagnostic(
   diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
-  DEBUG_COMM("*** Update Diagnostic ***");
+  DEBUG_COMM("=== Update Diagnostic ===");
 
   if (_connStatus != sl::ERROR_CODE::SUCCESS) {
     stat.summary(
@@ -1182,10 +1245,11 @@ void ZedCameraOne::callback_updateDiagnostic(
   }
 }
 
-rcl_interfaces::msg::SetParametersResult ZedCameraOne::callback_setParameters(
+rcl_interfaces::msg::SetParametersResult
+ZedCameraOne::callback_dynamicParamChange(
   std::vector<rclcpp::Parameter> parameters)
 {
-  DEBUG_STREAM_COMM("*** Parameter change callback ***");
+  DEBUG_STREAM_COMM("=== Parameter change callback ===");
 
   rcl_interfaces::msg::SetParametersResult result;
   result.successful = true;
@@ -1459,7 +1523,7 @@ void ZedCameraOne::initTFCoordFrameNames()
   _imuFrameId = _cameraName + "_imu_link";
 
   // Print TF frames
-  RCLCPP_INFO_STREAM(get_logger(), "*** TF FRAMES ***");
+  RCLCPP_INFO_STREAM(get_logger(), "=== TF FRAMES ===");
   RCLCPP_INFO_STREAM(get_logger(), " * Camera link\t-> " << _cameraLinkFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Camera center\t-> " << _cameraCenterFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Image\t\t-> " << _camImgFrameId);
@@ -1555,7 +1619,7 @@ void ZedCameraOne::fillCamInfo(
 
 void ZedCameraOne::initPublishers()
 {
-  RCLCPP_INFO(get_logger(), "*** PUBLISHED TOPICS ***");
+  RCLCPP_INFO(get_logger(), "=== PUBLISHED TOPICS ===");
 
   // ----> Images
   RCLCPP_INFO(get_logger(), " +++ IMAGE TOPICS +++");
@@ -1721,7 +1785,9 @@ void ZedCameraOne::threadFunc_zedGrab()
   // ----> Infinite grab thread
   while (1) {
     try {
-      RCLCPP_INFO_STREAM_ONCE(get_logger(), "*** " << _cameraName << " started ***");
+      RCLCPP_INFO_STREAM_ONCE(
+        get_logger(),
+        "=== " << _cameraName << " started ===");
 
       // Start grab timer for diagnostic
       sl_tools::StopWatch grabElabTimer(get_clock());
@@ -2044,7 +2110,7 @@ void ZedCameraOne::threadFunc_pubSensorsData()
 
 void ZedCameraOne::applyDynamicSettings()
 {
-  DEBUG_STREAM_COMM("*** Applying dynamic settings ***");
+  DEBUG_STREAM_COMM("=== Applying dynamic settings ===");
 
   if (_debugCommon) {
     DEBUG_COMM("Settings to apply: ");
@@ -2133,7 +2199,9 @@ void ZedCameraOne::applyDynamicSettings()
         });
       DEBUG_STREAM_COMM("Forced exposure range to [" << 28 << "," << 30000 << "]");
     }
-    DEBUG_STREAM_COMM("Set video.auto_exposure to " << (_camAutoExposure ? "true" : "false"));
+    DEBUG_STREAM_COMM(
+      "Set video.auto_exposure to "
+        << (_camAutoExposure ? "TRUE" : "FALSE"));
   } else {
     setVideoSetting(
       sl::VIDEO_SETTINGS::EXPOSURE_TIME, _camExpTime,
@@ -2187,7 +2255,9 @@ void ZedCameraOne::applyDynamicSettings()
         });
       DEBUG_STREAM_COMM("Forced analog gain range to [" << 1000 << "," << 16000 << "]");
     }
-    DEBUG_STREAM_COMM("Set video.auto_analog_gain to " << (_camAutoAnalogGain ? "true" : "false"));
+    DEBUG_STREAM_COMM(
+      "Set video.auto_analog_gain to "
+        << (_camAutoAnalogGain ? "TRUE" : "FALSE"));
   } else {
     setVideoSetting(
       sl::VIDEO_SETTINGS::ANALOG_GAIN, _camAnalogGain, "video.analog_gain");
@@ -2241,8 +2311,8 @@ void ZedCameraOne::applyDynamicSettings()
       DEBUG_STREAM_COMM("Forced digital gain range to [" << 1 << "," << 256 << "]");
     }
     DEBUG_STREAM_COMM(
-      "Set video.auto_digital_gain to " <<
-        (_camAutoDigitalGain ? "true" : "false"));
+      "Set video.auto_digital_gain to "
+        << (_camAutoDigitalGain ? "TRUE" : "FALSE"));
   } else {
     setVideoSetting(
       sl::VIDEO_SETTINGS::DIGITAL_GAIN, _camDigitalGain, "video.digital_gain");
@@ -2305,7 +2375,7 @@ void ZedCameraOne::applyDynamicSettings()
 
   _triggerUpdateDynParams = (count > 0);
 
-  DEBUG_STREAM_COMM("*** Dynamic settings applied ***");
+  DEBUG_STREAM_COMM("=== Dynamic settings applied ===");
 }
 
 bool ZedCameraOne::startStreamingServer()
@@ -2714,7 +2784,7 @@ void ZedCameraOne::retrieveImages()
 
 void ZedCameraOne::publishImages()
 {
-  DEBUG_VD("*** Publish Image topics *** ");
+  DEBUG_VD("=== Publish Image topics === ");
   sl_tools::StopWatch vdElabTimer(get_clock());
 
   // Start processing timer for diagnostic
@@ -2731,7 +2801,7 @@ void ZedCameraOne::publishImages()
     return;
   }
 
-  if (_lastTs_grab.data_ns != 0) {
+  if (_sdkGrabTS.data_ns != 0) {
     double period_sec =
       static_cast<double>(_sdkGrabTS.data_ns - _lastTs_grab.data_ns) / 1e9;
     DEBUG_STREAM_VD(
@@ -2811,7 +2881,7 @@ void ZedCameraOne::publishImages()
   _imgPubFreqTimer.tic();
   // <---- Check publishing frequency
 
-  DEBUG_VD("*** Video and Depth topics published *** ");
+  DEBUG_VD("=== Video and Depth topics published === ");
 }
 
 void ZedCameraOne::publishImageWithInfo(

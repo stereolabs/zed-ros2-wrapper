@@ -164,6 +164,8 @@ Supported simulation environments:
 Object Detection can be enabled *automatically* when the node starts by setting the parameter `object_detection/od_enabled` to `true` in the file `common_stereo.yaml`.
 The Object Detection can be enabled/disabled *manually* by calling the services `enable_obj_det`.
 
+You can find a detailed explanation of the Object Detection module in the [ZED ROS 2 documentation](https://www.stereolabs.com/docs/ros2/object-detection).
+
 ### Custom Object Detection with YOLO-like ONNX model file
 
 > :pushpin: **Note:** This feature is incompatible with the ZED X One and the older first-generation ZED cameras.
@@ -201,19 +203,20 @@ Please refer to the [Ultralytics documentation](https://github.com/ultralytics/u
 Modify the `common_stereo.yaml` parameters to match your configuration:
 
 - Set `object_detection.model` to `CUSTOM_YOLOLIKE_BOX_OBJECTS`
-- Set `object_detection.custom_onnx_file` to the full path of your custom ONNX file
-- Set `object_detection.onnx_input_size` to the size of the YOLO input tensor, e.g. 640
-- Set `object_detection.custom_label_yaml` to the full path of your YAML file storing class labels in [COCO format](https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml)
+
+Modify the `custom_object_detection.yaml` parameters to match your configuration.
 
 > :pushpin: **Note:** The first time the custom model is used, the ZED SDK optimizes it to get the best performance from the GPU installed on the host. Please wait for the optimization to complete. When using Docker, we recommend using a shared volume to store the optimized file on the host and perform the optimization only once.
 
 Console log while optimization is running:
 
 ```bash
-[zed_wrapper-3] [INFO] [1729184874.634985183] [zed.zed_node]: *** Starting Object Detection ***
+[zed_wrapper-3] [INFO] [1729184874.634985183] [zed.zed_node]: === Starting Object Detection ===
 [zed_wrapper-3] [2024-10-17 17:07:55 UTC][ZED][INFO] Please wait while the AI model is being optimized for your graphics card
 [zed_wrapper-3]  This operation will be run only once and may take a few minutes 
 ```
+
+You can find a detailed explanation of the Custom Object Detection module in the [ZED ROS 2 documentation](https://www.stereolabs.com/docs/ros2/custom-object-detection).
 
 ### Body Tracking
 

@@ -68,12 +68,6 @@ protected:
   // <---- Initialization functions
 
   // ----> Utility functions
-  template<typename T>
-  void getParam(
-    std::string paramName, T defValue, T & outVal,
-    std::string log_info = std::string(), bool dynamic = false,
-    T min = std::numeric_limits<T>::min(), T max = std::numeric_limits<T>::max());
-
   void fillCamInfo(
     const std::shared_ptr<sensor_msgs::msg::CameraInfo> & camInfoMsg,
     const std::string & frameId,
@@ -94,7 +88,7 @@ protected:
   // <---- Utility functions
 
   // ----> Callbacks functions
-  rcl_interfaces::msg::SetParametersResult callback_setParameters(
+  rcl_interfaces::msg::SetParametersResult callback_dynamicParamChange(
     std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(
     diagnostic_updater::DiagnosticStatusWrapper & stat);
@@ -386,60 +380,6 @@ private:
 #endif
   // <---- Services names
 };
-
-// ----> Template Function definitions
-template<typename T>
-void ZedCameraOne::getParam(
-  std::string paramName, T defValue, T & outVal,
-  std::string log_info, bool dynamic, T minVal, T maxVal)
-{
-  rcl_interfaces::msg::ParameterDescriptor descriptor;
-  descriptor.read_only = !dynamic;
-
-  std::stringstream ss;
-  if constexpr (std::is_same<T, bool>::value) {
-    ss << "Default value: " << (defValue ? "TRUE" : "FALSE");
-  } else {
-    ss << "Default value: " << defValue;
-  }
-  descriptor.description = ss.str();
-
-  if constexpr (std::is_same<T, double>::value) {
-    descriptor.additional_constraints = "Range: [" + std::to_string(minVal) + ", " + std::to_string(
-      maxVal) + "]";
-    rcl_interfaces::msg::FloatingPointRange range;
-    range.from_value = minVal;
-    range.to_value = maxVal;
-    descriptor.floating_point_range.push_back(range);
-  } else if constexpr (std::is_same<T, int>::value) {
-    descriptor.additional_constraints = "Range: [" + std::to_string(minVal) + ", " + std::to_string(
-      maxVal) + "]";
-    rcl_interfaces::msg::IntegerRange range;
-    range.from_value = minVal;
-    range.to_value = maxVal;
-    descriptor.integer_range.push_back(range);
-  }
-
-
-  declare_parameter(paramName, rclcpp::ParameterValue(defValue), descriptor);
-
-  if (!get_parameter(paramName, outVal)) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "The parameter '"
-        << paramName
-        << "' is not available or is not valid, using the default value: "
-        << defValue);
-  }
-
-  if (!log_info.empty()) {
-    if constexpr (std::is_same<T, bool>::value) {
-      RCLCPP_INFO_STREAM(get_logger(), log_info << (outVal ? "TRUE" : "FALSE"));
-    } else {
-      RCLCPP_INFO_STREAM(get_logger(), log_info << outVal);
-    }
-  }
-}
 
 }  // namespace stereolabs
 

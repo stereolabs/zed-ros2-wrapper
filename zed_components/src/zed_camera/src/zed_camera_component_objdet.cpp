@@ -1113,16 +1113,21 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   size_t idx = 0;
   for (auto data : objects.object_list) {
-    if (mObjDetModel != sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
+    if (!mUsingCustomOd) {
       objMsg->objects[idx].label = sl::toString(data.label).c_str();
       objMsg->objects[idx].sublabel = sl::toString(data.sublabel).c_str();
     } else {
-      objMsg->objects[idx].sublabel = std::to_string(data.raw_label);
       objMsg->objects[idx].label = mCustomLabels[data.raw_label];
+      objMsg->objects[idx].sublabel = std::to_string(data.raw_label);      
     }
 
     objMsg->objects[idx].label_id = data.id;
     objMsg->objects[idx].confidence = data.confidence;
+
+    DEBUG_STREAM_OD(
+      " * Object ID:" << data.id << " - " <<
+        objMsg->objects[idx].label << " [" << objMsg->objects[idx].sublabel << "] - Confidence: " <<
+        objMsg->objects[idx].confidence);
 
     memcpy(
       &(objMsg->objects[idx].position[0]), &(data.position[0]),

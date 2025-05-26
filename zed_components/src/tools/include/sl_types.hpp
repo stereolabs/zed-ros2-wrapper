@@ -160,6 +160,9 @@ typedef std::shared_ptr<rclcpp::Subscription<rosgraph_msgs::msg::Clock>> clockSu
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetOdomSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetPosTrkSrvPtr;
 typedef rclcpp::Service<zed_msgs::srv::SetPose>::SharedPtr setPoseSrvPtr;
+typedef rclcpp::Service<zed_msgs::srv::SetROI>::SharedPtr setAreaMemSrvPtr; // TODO(Walter) change with "zed_msgs::srv:SetAreaMemory" when available via APT
+
+
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableObjDetPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableBodyTrkPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;

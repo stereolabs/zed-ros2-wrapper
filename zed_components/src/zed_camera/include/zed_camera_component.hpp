@@ -118,6 +118,10 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_msgs::srv::SetPose_Request> req,
     std::shared_ptr<zed_msgs::srv::SetPose_Response> res);
+  void callback_saveAreaMemory(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<zed_msgs::srv::SetROI_Request> req,
+    std::shared_ptr<zed_msgs::srv::SetROI_Response> res);
   void callback_enableObjDet(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
@@ -375,6 +379,7 @@ private:
   std::string mAreaMemoryDbPath = "";
   sl::POSITIONAL_TRACKING_MODE mPosTrkMode =
     sl::POSITIONAL_TRACKING_MODE::GEN_1;
+  bool mSaveAreaMemoryOnClosing = true;
   bool mImuFusion = true;
   bool mFloorAlignment = false;
   bool mTwoDMode = false;
@@ -881,6 +886,7 @@ private:
   resetOdomSrvPtr mResetOdomSrv;
   resetPosTrkSrvPtr mResetPosTrkSrv;
   setPoseSrvPtr mSetPoseSrv;
+  setAreaMemSrvPtr mSaveAreaMemorySrv;
   enableObjDetPtr mEnableObjDetSrv;
   enableBodyTrkPtr mEnableBodyTrkSrv;
   enableMappingPtr mEnableMappingSrv;
@@ -901,6 +907,7 @@ private:
   const std::string mSrvResetOdomName = "reset_odometry";
   const std::string mSrvResetPoseName = "reset_pos_tracking";
   const std::string mSrvSetPoseName = "set_pose";
+  const std::string mSrvSaveAreaMemoryName = "save_area_memory";
   const std::string mSrvEnableObjDetName = "enable_obj_det";
   const std::string mSrvEnableBodyTrkName = "enable_body_trk";
   const std::string mSrvEnableMappingName = "enable_mapping";

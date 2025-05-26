@@ -86,8 +86,9 @@
             publish_map_tf: true # [overwritten by launch file options] publish `map -> odom` TF
             map_frame: 'map'
             odometry_frame: 'odom'
-            area_memory_db_path: ''
+            area_file_path: '~/test_area_memory.area' # Path to the area memory file. If empty, the area memory will not be saved on camera closing
             area_memory: true # Enable to detect loop closure
+            save_area_memory_on_closing: true # Save Area memory before closing the camera if `area_file_path` is not empty
             reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
             set_as_static: false # If 'true' the camera will be static and not move in the environment

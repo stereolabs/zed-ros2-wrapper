@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2025-05-26
+-----------
+- Change `pos_tracking.area_memory_db_path` to `pos_tracking.area_file_path` to match the ZED SDK parameter name
+- Add parameter `pos_tracking.save_area_memory_on_closing` to save the Area Memory before closing the camera
+
 2025-05-30
 ----------
 - Add advanced handling of the Object Detection and Tracking module of the ZED SDK

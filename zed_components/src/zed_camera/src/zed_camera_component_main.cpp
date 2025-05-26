@@ -723,21 +723,13 @@ void ZedCamera::getGeneralParams()
       shared_from_this(), "svo.svo_realtime", mSvoRealtime,
       mSvoRealtime, " * SVO Realtime: ");
 
-    sl_tools::getParam(
-      shared_from_this(), "svo.play_from_frame",
-      mSvoFrameStart, mSvoFrameStart, " * SVO start frame: ");
+    sl_tools::getParam(shared_from_this(), "svo.play_from_frame",
+                       mSvoFrameStart, mSvoFrameStart,
+                       " * SVO start frame: ", false, 0);
 
     if (!mSvoRealtime) {
-      sl_tools::getParam(
-        shared_from_this(), "svo.replay_rate", mSvoRate,
-        mSvoRate, " * SVO replay rate: ", true);
-      if (mSvoRate < 0.1 || mSvoRate > 5.0) {
-        RCLCPP_WARN_STREAM(
-          get_logger(),
-          "The parameter 'svo.replay_rate' is not valid, using the default value: "
-            << mSvoRate);
-        mSvoRate = 1.0;
-      }
+      sl_tools::getParam(shared_from_this(), "svo.replay_rate", mSvoRate,
+                         mSvoRate, " * SVO replay rate: ", true, 0.1, 5.0);
     }
   }
 
@@ -1034,9 +1026,8 @@ void ZedCamera::getGeneralParams()
         "'pub_frame_rate' cannot be lower than 0.1 Hz or negative.");
       mPubFrameRate = mCamGrabFrameRate;
     }
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * [DYN] Publish framerate [Hz]:  " << mPubFrameRate);
+    RCLCPP_INFO_STREAM(get_logger(),
+                       " * Publish framerate [Hz]:  " << mPubFrameRate);
   }
 }
 
@@ -1050,96 +1041,78 @@ void ZedCamera::getVideoParams()
   read_only_descriptor.read_only = true;
 
   if (!sl_tools::isZEDX(mCamUserModel)) {
-    sl_tools::getParam(
-      shared_from_this(), "video.brightness", mCamBrightness,
-      mCamBrightness, " * [DYN] Brightness: ", true, 0, 8);
-    sl_tools::getParam(
-      shared_from_this(), "video.contrast", mCamContrast,
-      mCamContrast, " * [DYN] Contrast: ", true, 0, 8);
-    sl_tools::getParam(
-      shared_from_this(), "video.hue", mCamHue, mCamHue,
-      " * [DYN] Hue: ", true, 0, 11);
+    sl_tools::getParam(shared_from_this(), "video.brightness", mCamBrightness,
+                       mCamBrightness, " * Brightness: ", true, 0, 8);
+    sl_tools::getParam(shared_from_this(), "video.contrast", mCamContrast,
+                       mCamContrast, " * Contrast: ", true, 0, 8);
+    sl_tools::getParam(shared_from_this(), "video.hue", mCamHue, mCamHue,
+                       " * Hue: ", true, 0, 11);
   }
 
-  sl_tools::getParam(
-    shared_from_this(), "video.saturation", mCamSaturation,
-    mCamSaturation, " * [DYN] Saturation: ", true, 0, 8);
-  sl_tools::getParam(
-    shared_from_this(), "video.sharpness", mCamSharpness,
-    mCamSharpness, " * [DYN] Sharpness: ", true, 0, 8);
-  sl_tools::getParam(
-    shared_from_this(), "video.gamma", mCamGamma, mCamGamma,
-    " * [DYN] Gamma: ", true, 1, 9);
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_exposure_gain",
-    mCamAutoExpGain, mCamAutoExpGain,
-    " * [DYN] Auto Exposure/Gain: ", true);
+  sl_tools::getParam(shared_from_this(), "video.saturation", mCamSaturation,
+                     mCamSaturation, " * Saturation: ", true, 0, 8);
+  sl_tools::getParam(shared_from_this(), "video.sharpness", mCamSharpness,
+                     mCamSharpness, " * Sharpness: ", true, 0, 8);
+  sl_tools::getParam(shared_from_this(), "video.gamma", mCamGamma, mCamGamma,
+                     " * Gamma: ", true, 1, 9);
+  sl_tools::getParam(shared_from_this(), "video.auto_exposure_gain",
+                     mCamAutoExpGain, mCamAutoExpGain,
+                     " * Auto Exposure/Gain: ", true);
   if (mCamAutoExpGain) {
     mTriggerAutoExpGain = true;
   }
-  sl_tools::getParam(
-    shared_from_this(), "video.exposure", mCamExposure,
-    mCamExposure, " * [DYN] Exposure: ", true, 0, 100);
-  sl_tools::getParam(
-    shared_from_this(), "video.gain", mCamGain, mCamGain,
-    " * [DYN] Gain: ", true, 0, 100);
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_whitebalance", mCamAutoWB,
-    mCamAutoWB, " * [DYN] Auto White Balance: ", true);
+  sl_tools::getParam(shared_from_this(), "video.exposure", mCamExposure,
+                     mCamExposure, " * Exposure: ", true, 0, 100);
+  sl_tools::getParam(shared_from_this(), "video.gain", mCamGain, mCamGain,
+                     " * Gain: ", true, 0, 100);
+  sl_tools::getParam(shared_from_this(), "video.auto_whitebalance", mCamAutoWB,
+                     mCamAutoWB, " * Auto White Balance: ", true);
   if (mCamAutoWB) {
     mTriggerAutoWB = true;
   }
   int wb = 42;
-  sl_tools::getParam(
-    shared_from_this(), "video.whitebalance_temperature", wb,
-    wb, " * [DYN] White Balance Temperature: ", true, 28, 65);
+  sl_tools::getParam(shared_from_this(), "video.whitebalance_temperature", wb,
+                     wb, " * White Balance Temperature: ", true, 28, 65);
   mCamWBTemp = wb * 100;
 
   if (sl_tools::isZEDX(mCamUserModel)) {
-    sl_tools::getParam(
-      shared_from_this(), "video.exposure_time", mGmslExpTime,
-      mGmslExpTime, " * [DYN] ZED X Exposure time: ", true, 28, 66000);
-    sl_tools::getParam(
-      shared_from_this(), "video.auto_exposure_time_range_min",
-      mGmslAutoExpTimeRangeMin, mGmslAutoExpTimeRangeMin,
-      " * [DYN] ZED X Auto Exp. time range min: ", true, 28, 66000);
-    sl_tools::getParam(
-      shared_from_this(), "video.auto_exposure_time_range_max",
-      mGmslAutoExpTimeRangeMax, mGmslAutoExpTimeRangeMax,
-      " * [DYN] ZED X Auto Exp. time range max: ", true, 28, 66000);
-    sl_tools::getParam(
-      shared_from_this(), "video.exposure_compensation",
-      mGmslExposureComp, mGmslExposureComp,
-      " * [DYN] ZED X Exposure comp.: ", true, 0, 100);
-    sl_tools::getParam(
-      shared_from_this(), "video.analog_gain", mGmslAnalogGain,
-      mGmslAnalogGain, " * [DYN] ZED X Analog Gain: ", true, 1000, 16000);
-    sl_tools::getParam(
-      shared_from_this(), "video.auto_analog_gain_range_min",
-      mGmslAnalogGainRangeMin, mGmslAnalogGainRangeMin,
-      " * [DYN] ZED X Auto Analog Gain range min: ", true, 1000, 16000);
-    sl_tools::getParam(
-      shared_from_this(), "video.auto_analog_gain_range_max",
-      mGmslAnalogGainRangeMax, mGmslAnalogGainRangeMax,
-      " * [DYN] ZED X Auto Analog Gain range max: ", true, 1000, 16000);
-    sl_tools::getParam(
-      shared_from_this(), "video.digital_gain",
-      mGmslDigitalGain, mGmslDigitalGain,
-      " * [DYN] ZED X Digital Gain: ", true, 1, 256);
-    sl_tools::getParam(
-      shared_from_this(), "video.auto_digital_gain_range_min",
-      mGmslAutoDigitalGainRangeMin,
-      mGmslAutoDigitalGainRangeMin,
-      " * [DYN] ZED X Auto Digital Gain range min: ", true, 1, 256);
-    sl_tools::getParam(
-      shared_from_this(), "video.auto_digital_gain_range_max",
-      mGmslAutoDigitalGainRangeMax,
-      mGmslAutoDigitalGainRangeMax,
-      " * [DYN] ZED X Auto Digital Gain range max: ", true, 1, 256);
-    sl_tools::getParam(
-      shared_from_this(), "video.denoising", mGmslDenoising,
-      mGmslDenoising,
-      " * [DYN] ZED X Auto Digital Gain range max: ", true, 0, 100);
+    sl_tools::getParam(shared_from_this(), "video.exposure_time", mGmslExpTime,
+                       mGmslExpTime, " * ZED X Exposure time: ", true, 28,
+                       66000);
+    sl_tools::getParam(shared_from_this(), "video.auto_exposure_time_range_min",
+                       mGmslAutoExpTimeRangeMin, mGmslAutoExpTimeRangeMin,
+                       " * ZED X Auto Exp. time range min: ", true, 28, 66000);
+    sl_tools::getParam(shared_from_this(), "video.auto_exposure_time_range_max",
+                       mGmslAutoExpTimeRangeMax, mGmslAutoExpTimeRangeMax,
+                       " * ZED X Auto Exp. time range max: ", true, 28, 66000);
+    sl_tools::getParam(shared_from_this(), "video.exposure_compensation",
+                       mGmslExposureComp, mGmslExposureComp,
+                       " * ZED X Exposure comp.: ", true, 0, 100);
+    sl_tools::getParam(shared_from_this(), "video.analog_gain", mGmslAnalogGain,
+                       mGmslAnalogGain, " * ZED X Analog Gain: ", true, 1000,
+                       16000);
+    sl_tools::getParam(shared_from_this(), "video.auto_analog_gain_range_min",
+                       mGmslAnalogGainRangeMin, mGmslAnalogGainRangeMin,
+                       " * ZED X Auto Analog Gain range min: ", true, 1000,
+                       16000);
+    sl_tools::getParam(shared_from_this(), "video.auto_analog_gain_range_max",
+                       mGmslAnalogGainRangeMax, mGmslAnalogGainRangeMax,
+                       " * ZED X Auto Analog Gain range max: ", true, 1000,
+                       16000);
+    sl_tools::getParam(shared_from_this(), "video.digital_gain",
+                       mGmslDigitalGain, mGmslDigitalGain,
+                       " * ZED X Digital Gain: ", true, 1, 256);
+    sl_tools::getParam(shared_from_this(), "video.auto_digital_gain_range_min",
+                       mGmslAutoDigitalGainRangeMin,
+                       mGmslAutoDigitalGainRangeMin,
+                       " * ZED X Auto Digital Gain range min: ", true, 1, 256);
+    sl_tools::getParam(shared_from_this(), "video.auto_digital_gain_range_max",
+                       mGmslAutoDigitalGainRangeMax,
+                       mGmslAutoDigitalGainRangeMax,
+                       " * ZED X Auto Digital Gain range max: ", true, 1, 256);
+    sl_tools::getParam(shared_from_this(), "video.denoising", mGmslDenoising,
+                       mGmslDenoising,
+                       " * ZED X Auto Digital Gain range max: ", true, 0, 100);
   }
 }
 
@@ -1333,9 +1306,8 @@ void ZedCamera::getDepthParams()
         "'point_cloud_freq' cannot be lower than 0.1 Hz or negative.");
       mPcPubRate = 0.1;
     }
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * [DYN] Point cloud rate [Hz]: " << mPcPubRate);
+    RCLCPP_INFO_STREAM(get_logger(),
+                       " * Point cloud rate [Hz]: " << mPcPubRate);
 
     std::string out_resol = "COMPACT";
     sl_tools::getParam(
@@ -1362,17 +1334,14 @@ void ZedCamera::getDepthParams()
       get_logger(),
       " * Point cloud resolution: " << out_resol.c_str());
 
-    sl_tools::getParam(
-      shared_from_this(), "depth.depth_confidence", mDepthConf,
-      mDepthConf, " * [DYN] Depth Confidence: ", true, 0, 100);
-    sl_tools::getParam(
-      shared_from_this(), "depth.depth_texture_conf",
-      mDepthTextConf, mDepthTextConf,
-      " * [DYN] Depth Texture Confidence: ", true, 0, 100);
-    sl_tools::getParam(
-      shared_from_this(), "depth.remove_saturated_areas",
-      mRemoveSatAreas, mRemoveSatAreas,
-      " * [DYN] Remove saturated areas: ", true);
+    sl_tools::getParam(shared_from_this(), "depth.depth_confidence", mDepthConf,
+                       mDepthConf, " * Depth Confidence: ", true, 0, 100);
+    sl_tools::getParam(shared_from_this(), "depth.depth_texture_conf",
+                       mDepthTextConf, mDepthTextConf,
+                       " * Depth Texture Confidence: ", true, 0, 100);
+    sl_tools::getParam(shared_from_this(), "depth.remove_saturated_areas",
+                       mRemoveSatAreas, mRemoveSatAreas,
+                       " * Remove saturated areas: ", true);
     // ------------------------------------------
   }
 }
@@ -1525,14 +1494,12 @@ void ZedCamera::getPosTrackingParams()
     shared_from_this(), "pos_tracking.depth_min_range",
     mPosTrackDepthMinRange, mPosTrackDepthMinRange,
     " * Depth minimum range: ", false, 0.0f, 40.0f);
-  sl_tools::getParam(
-    shared_from_this(), "pos_tracking.transform_time_offset",
-    mTfOffset, mTfOffset,
-    " * [DYN] TF timestamp offset: ", true, -10.0, 10.0);
-  sl_tools::getParam(
-    shared_from_this(), "pos_tracking.path_pub_rate",
-    mPathPubRate, mPathPubRate,
-    " * [DYN] Path publishing rate: ", true, 0.1, 120.0);
+  sl_tools::getParam(shared_from_this(), "pos_tracking.transform_time_offset",
+                     mTfOffset, mTfOffset, " * TF timestamp offset: ", true,
+                     -10.0, 10.0);
+  sl_tools::getParam(shared_from_this(), "pos_tracking.path_pub_rate",
+                     mPathPubRate, mPathPubRate,
+                     " * Path publishing rate: ", true, 0.1, 120.0);
   sl_tools::getParam(
     shared_from_this(), "pos_tracking.path_max_count",
     mPathMaxCount, mPathMaxCount, " * Path history lenght: ", false, -1, 10000);
@@ -2462,6 +2429,22 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
                                       << "' correctly set to "
                                       << value);
       }
+    } else if (param.get_name() == "svo.replay_rate") {
+      rclcpp::ParameterType correctType =
+          rclcpp::ParameterType::PARAMETER_DOUBLE;
+      if (param.get_type() != correctType) {
+        result.successful = false;
+        result.reason =
+            param.get_name() + " must be a " + rclcpp::to_string(correctType);
+        RCLCPP_WARN_STREAM(get_logger(), result.reason);
+        break;
+      }
+      double value = param.as_double();
+
+      mSvoRate = value;
+      RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << param.get_name()
+                                                     << "' correctly set to "
+                                                     << value);
     }
 
     // ----> Object Detection dynamic parameters

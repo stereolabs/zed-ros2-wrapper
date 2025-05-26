@@ -555,92 +555,91 @@ void ZedCameraOne::getVideoParams()
 
   sl_tools::getParam(
     shared_from_this(), "video.saturation", _camSaturation,
-    _camSaturation, " * [DYN] Saturation: ", true, 0, 8);
+    _camSaturation, " * Saturation: ", true, 0, 8);
   _camDynParMapChanged["video.saturation"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.sharpness", _camSharpness,
-    _camSharpness, " * [DYN] Sharpness: ", true, 0, 8);
+    _camSharpness, " * Sharpness: ", true, 0, 8);
   _camDynParMapChanged["video.sharpness"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.gamma", _camGamma, _camGamma,
-    " * [DYN] Gamma: ", true, 1, 9);
+    " * Gamma: ", true, 1, 9);
   _camDynParMapChanged["video.gamma"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.auto_whitebalance", _camAutoWB,
-    _camAutoWB, " * [DYN] Auto White Balance: ", true);
+    _camAutoWB, " * Auto White Balance: ", true);
   _camDynParMapChanged["video.auto_whitebalance"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.whitebalance_temperature",
     _camWBTemp, _camWBTemp,
-    " * [DYN] White Balance Temp (x100): ", true, 28, 65);
+    " * White Balance Temp (x100): ", true, 28, 65);
   _camDynParMapChanged["video.whitebalance_temperature"] = true;
 
   sl_tools::getParam(
     shared_from_this(), "video.auto_exposure",
     _camAutoExposure, _camAutoExposure,
-    " * [DYN] Auto Exposure: ", true);
+    " * Auto Exposure: ", true);
   _camDynParMapChanged["video.auto_exposure"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.exposure_time", _camExpTime,
-    _camExpTime, " * [DYN] Exposure (us): ", true, 28, 30000);
+    _camExpTime, " * Exposure (us): ", true, 28, 30000);
   _camDynParMapChanged["video.exposure_time"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.auto_exposure_time_range_min",
     _camAutoExpTimeRangeMin, _camAutoExpTimeRangeMin,
-    " * [DYN] Auto Exp Time Min (us): ", true, 28, 30000);
+    " * Auto Exp Time Min (us): ", true, 28, 30000);
   _camDynParMapChanged["video.auto_exposure_time_range_min"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.auto_exposure_time_range_max",
     _camAutoExpTimeRangeMax, _camAutoExpTimeRangeMax,
-    " * [DYN] Auto Exp Time Max (us): ", true, 28, 30000);
+    " * Auto Exp Time Max (us): ", true, 28, 30000);
   _camDynParMapChanged["video.auto_exposure_time_range_max"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.exposure_compensation",
     _camExposureComp, _camExposureComp,
-    " * [DYN] Exposure Compensation: ", true, 0, 100);
+    " * Exposure Compensation: ", true, 0, 100);
   _camDynParMapChanged["video.exposure_compensation"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.auto_analog_gain",
     _camAutoAnalogGain, _camAutoAnalogGain,
-    " * [DYN] Auto Analog Gain: ", true);
+    " * Auto Analog Gain: ", true);
   _camDynParMapChanged["video.auto_analog_gain"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.analog_gain", _camAnalogGain,
-    _camAnalogGain, " * [DYN] Analog Gain: ", true, 1000,
-    16000);
+    _camAnalogGain, " * Analog Gain: ", true, 1000, 16000);
   _camDynParMapChanged["video.analog_gain"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.auto_analog_gain_range_min",
     _camAutoAnalogGainRangeMin, _camAutoAnalogGainRangeMin,
-    " * [DYN] Analog Gain Min: ", true, 1000, 16000);
+    " * Analog Gain Min: ", true, 1000, 16000);
   _camDynParMapChanged["video.auto_analog_gain_range_min"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.auto_analog_gain_range_max",
     _camAutoAnalogGainRangeMax, _camAutoAnalogGainRangeMax,
-    " * [DYN] Analog Gain Max: ", true, 1000, 16000);
+    " * Analog Gain Max: ", true, 1000, 16000);
   _camDynParMapChanged["video.auto_analog_gain_range_max"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.auto_digital_gain",
     _camAutoDigitalGain, _camAutoDigitalGain,
-    " * [DYN] Auto Digital Gain: ", true);
+    " * Auto Digital Gain: ", true);
   _camDynParMapChanged["video.auto_digital_gain"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.digital_gain", _camDigitalGain,
-    _camDigitalGain, " * [DYN] Digital Gain: ", true, 1, 256);
+    _camDigitalGain, " * Digital Gain: ", true, 1, 256);
   _camDynParMapChanged["video.digital_gain"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.auto_digital_gain_range_min",
     _camAutoDigitalGainRangeMin, _camAutoDigitalGainRangeMin,
-    " * [DYN] Digital Gain Min: ", true, 1, 256);
+    " * Digital Gain Min: ", true, 1, 256);
   _camDynParMapChanged["video.auto_digital_gain_range_min"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.auto_digital_gain_range_max",
     _camAutoDigitalGainRangeMax, _camAutoDigitalGainRangeMax,
-    " * [DYN] Digital Gain Max: ", true, 1, 256);
+    " * Digital Gain Max: ", true, 1, 256);
   _camDynParMapChanged["video.auto_digital_gain_range_max"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.denoising", _camDenoising,
-    _camDenoising, " * [DYN] Denoising: ", true, 0, 100);
+    _camDenoising, " * Denoising: ", true, 0, 100);
   _camDynParMapChanged["video.denoising"] = true;
 
   _triggerUpdateDynParams = true;

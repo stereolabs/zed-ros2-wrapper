@@ -174,6 +174,7 @@ protected:
 
   // ----> Thread functions
   void threadFunc_zedGrab();
+  void threadFunc_videoDepthElab();
   void threadFunc_pointcloudElab();
   void threadFunc_pubSensorsData();
   // <---- Thread functions
@@ -741,6 +742,9 @@ private:
   std::mutex mPcMutex;
   std::condition_variable mPcDataReadyCondVar;
   std::atomic_bool mPcDataReady;
+  std::mutex mVdMutex;
+  std::condition_variable mVideoDepthReadyCondVar;
+  std::atomic_bool mVideoDepthReady;
   // <---- Thread Sync
 
   // ----> Status Flags

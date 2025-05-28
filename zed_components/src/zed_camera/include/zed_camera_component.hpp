@@ -476,7 +476,7 @@ private:
   // ----> Dynamic params
   OnSetParametersCallbackHandle::SharedPtr mParamChangeCallbackHandle;
 
-  double mPubFrameRate = 15.0;
+  double mVdPubRate = 15.0;
   int mCamBrightness = 4;
   int mCamContrast = 4;
   int mCamHue = 0;
@@ -720,6 +720,7 @@ private:
   sl::ERROR_CODE mConnStatus;
   sl::FUSION_ERROR_CODE mFusionStatus = sl::FUSION_ERROR_CODE::MODULE_NOT_ENABLED;
   std::thread mGrabThread;        // Main grab thread
+  std::thread mVdThread;          // Video and Depth data processing thread
   std::thread mPcThread;          // Point Cloud publish thread
   std::thread mSensThread;        // Sensors data publish thread
   std::atomic<bool> mThreadStop;
@@ -743,8 +744,8 @@ private:
   std::condition_variable mPcDataReadyCondVar;
   std::atomic_bool mPcDataReady;
   std::mutex mVdMutex;
-  std::condition_variable mVideoDepthReadyCondVar;
-  std::atomic_bool mVideoDepthReady;
+  std::condition_variable mVdDataReadyCondVar;
+  std::atomic_bool mVdDataReady;
   // <---- Thread Sync
 
   // ----> Status Flags

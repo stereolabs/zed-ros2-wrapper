@@ -969,7 +969,7 @@ void ZedCamera::retrieveVideoDepth()
       sl::MEM::CPU, mMatResol);
 
     mSdkGrabTS = mMatDepth.timestamp;
-    DEBUG_STREAM_VD("Depth map retrieved: " << mMatDepth.getInfos().c_str());
+    DEBUG_VD("Depth map retrieved");
   }
   if (mDisparitySubCount > 0) {
     DEBUG_STREAM_VD("Retrieving Disparity");
@@ -1050,7 +1050,8 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
         static_cast<double>(mSdkGrabTS.data_ns - mLastTs_grab.data_ns) / 1e9;
       DEBUG_STREAM_VD(
         "VIDEO/DEPTH PUB LAST PERIOD: "
-          << period_sec << " sec @" << 1. / period_sec << " Hz");
+          << period_sec << " sec @" << 1. / period_sec << " Hz / Expected: " << 1. / mVdPubRate << " sec @" << mVdPubRate <<
+          " Hz");
 
       mVideoDepthPeriodMean_sec->addValue(period_sec);
       DEBUG_STREAM_VD(
@@ -1259,20 +1260,6 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
   // Diagnostic statistic
   mVideoDepthElabMean_sec->addValue(vdElabTimer.toc());
-
-  /*/ ----> Check publishing frequency
-  double vd_period_usec = 1e6 / mVdPubRate;
-
-  double elapsed_usec = mVdPubFreqTimer.toc() * 1e6;
-
-  if (elapsed_usec < vd_period_usec) {
-    rclcpp::sleep_for(
-      std::chrono::microseconds(
-        static_cast<int>(vd_period_usec - elapsed_usec)));
-  }
-
-  mVdPubFreqTimer.tic();
-  // <---- Check publishing frequency */
 
   DEBUG_VD("=== Video and Depth topics published === ");
 }
@@ -1565,7 +1552,7 @@ void ZedCamera::threadFunc_videoDepthElab()
         (mVdDataReady ? "TRUE" : "FALSE"));
 
     while (!mVdDataReady) { // loop to avoid spurious wakeups
-      if (mPcDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) ==
+      if (mVdDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) ==
         std::cv_status::timeout)
       {
         // Check thread stopping

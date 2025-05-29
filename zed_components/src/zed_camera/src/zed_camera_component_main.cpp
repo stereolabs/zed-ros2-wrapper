@@ -7685,11 +7685,11 @@ void ZedCamera::callback_updateDiagnostic(
     stat.addf("Camera Grab rate", "%d Hz", mCamGrabFrameRate);
 
     double freq = 1. / mGrabPeriodMean_sec->getAvg();
-    double freq_perc = 100. * freq / mVdPubRate;
+    double freq_perc = 100. * freq / mCamGrabFrameRate;
     stat.addf("Data Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
 
     double frame_proc_sec = mElabPeriodMean_sec->getAvg();
-    double frame_grab_period = 1. / mVdPubRate;
+    double frame_grab_period = 1. / mCamGrabFrameRate;
     stat.addf(
       "Data Capture", "Tot. Processing Time: %.6f sec (Max. %.3f sec)",
       frame_proc_sec, frame_grab_period);

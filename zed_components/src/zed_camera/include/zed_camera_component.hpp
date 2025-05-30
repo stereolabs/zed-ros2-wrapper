@@ -86,15 +86,30 @@ protected:
   // <---- Initialization functions
 
   // ----> Dynamic Parameters Handlers
+  // Video/Depth
   bool handleVideoDepthDynamicParams(
     const rclcpp::Parameter & param,
     rcl_interfaces::msg::SetParametersResult & result);
+  bool handleGmsl2Params(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleUsb3Params(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleCommonVideoParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleDepthParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  // Object Detection
   bool handleOdDynamicParams(
     const rclcpp::Parameter & param,
     rcl_interfaces::msg::SetParametersResult & result);
   bool handleCustomOdDynamicParams(
     const rclcpp::Parameter & param,
     rcl_interfaces::msg::SetParametersResult & result);
+  // Body Tracking
   bool handleBodyTrkDynamicParams(
     const rclcpp::Parameter & param,
     rcl_interfaces::msg::SetParametersResult & result);

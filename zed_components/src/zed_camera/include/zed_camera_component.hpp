@@ -219,6 +219,20 @@ protected:
   bool isPosTrackingRequired();
 
   void applyVideoSettings();
+  void applyAutoExposureGainSettings();
+  void applyExposureGainSettings();
+  void applyWhiteBalanceSettings();
+  void applyBrightnessContrastHueSettings();
+  void applySaturationSharpnessGammaSettings();
+  void applyZEDXSettings();
+  void applyZEDXExposureSettings();
+  void applyZEDXAutoExposureTimeRange();
+  void applyZEDXExposureCompensation();
+  void applyZEDXAnalogDigitalGain();
+  void applyZEDXAutoAnalogGainRange();
+  void applyZEDXAutoDigitalGainRange();
+  void applyZEDXDenoising();
+
   void applyDepthSettings();
 
   void processOdometry();

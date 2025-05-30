@@ -191,6 +191,19 @@ protected:
   void processVideoDepth();
   bool areVideoDepthSubscribed();
   void retrieveVideoDepth();
+  bool retrieveLeftImage();
+  bool retrieveLeftRawImage();
+  bool retrieveRightImage();
+  bool retrieveRightRawImage();
+  bool retrieveLeftGrayImage();
+  bool retrieveLeftRawGrayImage();
+  bool retrieveRightGrayImage();
+  bool retrieveRightRawGrayImage();
+  bool retrieveDepthMap();
+  bool retrieveDisparity();
+  bool retrieveConfidence();
+  bool retrieveDepthInfo();
+
   void publishVideoDepth(rclcpp::Time & out_pub_ts);
 
   void publishPointCloud();

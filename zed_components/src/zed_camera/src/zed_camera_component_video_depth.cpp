@@ -999,126 +999,231 @@ void ZedCamera::retrieveVideoDepth()
   mRgbSubscribed = false;
   bool retrieved = false;
 
-  // ----> Retrieve all required data
-  if (mRgbSubCount + mLeftSubCount + mStereoSubCount > 0) {
-    DEBUG_VD(" * Retrieving Left image");
-    retrieved |=
-      sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveImage(mMatLeft, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatLeft.timestamp;
-    mRgbSubscribed = true;
-    DEBUG_VD(" * Left image retrieved");
-  }
-  if (mRgbRawSubCount + mLeftRawSubCount + mStereoRawSubCount > 0) {
-    DEBUG_VD(" * Retrieving Left raw image");
-    retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveImage(
-      mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED,
-      sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatLeftRaw.timestamp;
-    DEBUG_VD(" * Left raw image retrieved");
-  }
-  if (mRightSubCount + mStereoSubCount > 0) {
-    DEBUG_VD(" * Retrieving Right image");
-    retrieved |=
-      sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveImage(mMatRight, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatRight.timestamp;
-    DEBUG_VD(" * Right image retrieved");
-  }
-  if (mRightRawSubCount + mStereoRawSubCount > 0) {
-    DEBUG_VD(" * Retrieving Right raw image");
-    retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveImage(
-      mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED,
-      sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatRightRaw.timestamp;
-    DEBUG_VD(" * Right raw image retrieved");
-  }
-  if (mRgbGraySubCount + mLeftGraySubCount > 0) {
-    DEBUG_VD(" * Retrieving Left gray image");
-    retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveImage(
-      mMatLeftGray, sl::VIEW::LEFT_GRAY,
-      sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatLeftGray.timestamp;
-    DEBUG_VD(" * Left gray image retrieved");
-  }
-  if (mRgbGrayRawSubCount + mLeftGrayRawSubCount > 0) {
-    DEBUG_VD(" * Retrieving Left gray raw image");
-    retrieved |=
-      sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveImage(
-      mMatLeftRawGray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
-      sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatLeftRawGray.timestamp;
-    DEBUG_VD(" * Left gray raw image retrieved");
-  }
-  if (mRightGraySubCount > 0) {
-    DEBUG_VD(" * Retrieving Right gray image");
-    retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveImage(
-      mMatRightGray, sl::VIEW::RIGHT_GRAY,
-      sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatRightGray.timestamp;
-    DEBUG_VD(" * Right gray image retrieved");
-  }
-  if (mRightGrayRawSubCount > 0) {
-    DEBUG_VD(" * Retrieving Right gray raw image");
-    retrieved |=
-      sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveImage(
-      mMatRightRawGray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY,
-      sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatRightRawGray.timestamp;
-    DEBUG_VD(" * Right gray raw image retrieved");
-  }
+  retrieved |= retrieveLeftImage();
+  retrieved |= retrieveLeftRawImage();
+  retrieved |= retrieveRightImage();
+  retrieved |= retrieveRightRawImage();
+  retrieved |= retrieveLeftGrayImage();
+  retrieved |= retrieveLeftRawGrayImage();
+  retrieved |= retrieveRightGrayImage();
+  retrieved |= retrieveRightRawGrayImage();
+
   if (retrieved) {
     DEBUG_STREAM_VD(" *** Video Data retrieved ***");
   }
 
   retrieved = false;
   DEBUG_STREAM_VD(" *** Retrieving Depth Data ***");
-  if (mDepthSubCount > 0 || mDepthInfoSubCount > 0) {
-    DEBUG_STREAM_VD(" * Retrieving Depth Map");
-    retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveMeasure(
-      mMatDepth, sl::MEASURE::DEPTH,
-      sl::MEM::CPU, mMatResol);
+  retrieved |= retrieveDepthMap();
+  retrieved |= retrieveDisparity();
+  retrieved |= retrieveConfidence();
+  retrieved |= retrieveDepthInfo();
 
-    mSdkGrabTS = mMatDepth.timestamp;
-    DEBUG_VD(" * Depth map retrieved");
-  }
-  if (mDisparitySubCount > 0) {
-    DEBUG_STREAM_VD(" * Retrieving Disparity");
-    retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveMeasure(
-      mMatDisp, sl::MEASURE::DISPARITY,
-      sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatDisp.timestamp;
-    DEBUG_VD(" * Disparity map retrieved");
-  }
-  if (mConfMapSubCount > 0) {
-    DEBUG_STREAM_VD(" * Retrieving Confidence");
-    retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveMeasure(
-      mMatConf, sl::MEASURE::CONFIDENCE,
-      sl::MEM::CPU, mMatResol);
-    mSdkGrabTS = mMatConf.timestamp;
-    DEBUG_VD(" * Confidence map retrieved");
-  }
-  if (mDepthInfoSubCount > 0) {
-    retrieved |= sl::ERROR_CODE::SUCCESS ==
-      mZed->getCurrentMinMaxDepth(mMinDepth, mMaxDepth);
-    mSdkGrabTS = mMatConf.timestamp;
-    DEBUG_VD(" * Depth info retrieved");
-  }
   if (retrieved) {
     DEBUG_STREAM_VD(" *** Depth Data retrieved ***");
   }
-  // <---- Retrieve all required data
 
   DEBUG_VD(" *** Retrieving Video Data DONE ***");
+}
+
+// Helper functions for retrieveVideoDepth()
+
+bool ZedCamera::retrieveLeftImage()
+{
+  if (mRgbSubCount + mLeftSubCount + mStereoSubCount > 0) {
+    DEBUG_VD(" * Retrieving Left image");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveImage(mMatLeft, sl::VIEW::LEFT, sl::MEM::CPU, mMatResol);
+    if (ok) {
+      mSdkGrabTS = mMatLeft.timestamp;
+      mRgbSubscribed = true;
+      DEBUG_VD(" * Left image retrieved");
+    }
+    return ok;
+  }
+  return false;
+}
+
+bool ZedCamera::retrieveLeftRawImage()
+{
+  if (mRgbRawSubCount + mLeftRawSubCount + mStereoRawSubCount > 0) {
+    DEBUG_VD(" * Retrieving Left raw image");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveImage(
+      mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED,
+      sl::MEM::CPU, mMatResol);
+    if (ok) {
+      mSdkGrabTS = mMatLeftRaw.timestamp;
+      DEBUG_VD(" * Left raw image retrieved");
+    }
+    return ok;
+  }
+  return false;
+}
+
+bool ZedCamera::retrieveRightImage()
+{
+  if (mRightSubCount + mStereoSubCount > 0) {
+    DEBUG_VD(" * Retrieving Right image");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveImage(mMatRight, sl::VIEW::RIGHT, sl::MEM::CPU, mMatResol);
+    if (ok) {
+      mSdkGrabTS = mMatRight.timestamp;
+      DEBUG_VD(" * Right image retrieved");
+    }
+    return ok;
+  }
+  return false;
+}
+
+bool ZedCamera::retrieveRightRawImage()
+{
+  if (mRightRawSubCount + mStereoRawSubCount > 0) {
+    DEBUG_VD(" * Retrieving Right raw image");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveImage(
+      mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED,
+      sl::MEM::CPU, mMatResol);
+    if (ok) {
+      mSdkGrabTS = mMatRightRaw.timestamp;
+      DEBUG_VD(" * Right raw image retrieved");
+    }
+    return ok;
+  }
+  return false;
+}
+
+bool ZedCamera::retrieveLeftGrayImage()
+{
+  if (mRgbGraySubCount + mLeftGraySubCount > 0) {
+    DEBUG_VD(" * Retrieving Left gray image");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveImage(
+      mMatLeftGray, sl::VIEW::LEFT_GRAY,
+      sl::MEM::CPU, mMatResol);
+    if (ok) {
+      mSdkGrabTS = mMatLeftGray.timestamp;
+      DEBUG_VD(" * Left gray image retrieved");
+    }
+    return ok;
+  }
+  return false;
+}
+
+bool ZedCamera::retrieveLeftRawGrayImage()
+{
+  if (mRgbGrayRawSubCount + mLeftGrayRawSubCount > 0) {
+    DEBUG_VD(" * Retrieving Left gray raw image");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveImage(
+      mMatLeftRawGray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
+      sl::MEM::CPU, mMatResol);
+    if (ok) {
+      mSdkGrabTS = mMatLeftRawGray.timestamp;
+      DEBUG_VD(" * Left gray raw image retrieved");
+    }
+    return ok;
+  }
+  return false;
+}
+
+bool ZedCamera::retrieveRightGrayImage()
+{
+  if (mRightGraySubCount > 0) {
+    DEBUG_VD(" * Retrieving Right gray image");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveImage(
+      mMatRightGray, sl::VIEW::RIGHT_GRAY,
+      sl::MEM::CPU, mMatResol);
+    if (ok) {
+      mSdkGrabTS = mMatRightGray.timestamp;
+      DEBUG_VD(" * Right gray image retrieved");
+    }
+    return ok;
+  }
+  return false;
+}
+
+bool ZedCamera::retrieveRightRawGrayImage()
+{
+  if (mRightGrayRawSubCount > 0) {
+    DEBUG_VD(" * Retrieving Right gray raw image");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveImage(
+      mMatRightRawGray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY,
+      sl::MEM::CPU, mMatResol);
+    if (ok) {
+      mSdkGrabTS = mMatRightRawGray.timestamp;
+      DEBUG_VD(" * Right gray raw image retrieved");
+    }
+    return ok;
+  }
+  return false;
+}
+
+bool ZedCamera::retrieveDepthMap()
+{
+  if (mDepthSubCount > 0 || mDepthInfoSubCount > 0) {
+    DEBUG_STREAM_VD(" * Retrieving Depth Map");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveMeasure(
+      mMatDepth, sl::MEASURE::DEPTH,
+      sl::MEM::CPU, mMatResol);
+    if (ok) {
+      mSdkGrabTS = mMatDepth.timestamp;
+      DEBUG_VD(" * Depth map retrieved");
+    }
+    return ok;
+  }
+  return false;
+}
+
+bool ZedCamera::retrieveDisparity()
+{
+  if (mDisparitySubCount > 0) {
+    DEBUG_STREAM_VD(" * Retrieving Disparity");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveMeasure(
+      mMatDisp, sl::MEASURE::DISPARITY,
+      sl::MEM::CPU, mMatResol);
+    if (ok) {
+      mSdkGrabTS = mMatDisp.timestamp;
+      DEBUG_VD(" * Disparity map retrieved");
+    }
+    return ok;
+  }
+  return false;
+}
+
+bool ZedCamera::retrieveConfidence()
+{
+  if (mConfMapSubCount > 0) {
+    DEBUG_STREAM_VD(" * Retrieving Confidence");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveMeasure(
+      mMatConf, sl::MEASURE::CONFIDENCE,
+      sl::MEM::CPU, mMatResol);
+    if (ok) {
+      mSdkGrabTS = mMatConf.timestamp;
+      DEBUG_VD(" * Confidence map retrieved");
+    }
+    return ok;
+  }
+  return false;
+}
+
+bool ZedCamera::retrieveDepthInfo()
+{
+  if (mDepthInfoSubCount > 0) {
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->getCurrentMinMaxDepth(mMinDepth, mMaxDepth);
+    if (ok) {
+      mSdkGrabTS = mMatConf.timestamp;
+      DEBUG_VD(" * Depth info retrieved");
+    }
+    return ok;
+  }
+  return false;
 }
 
 void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)

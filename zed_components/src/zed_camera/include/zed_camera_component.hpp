@@ -188,9 +188,11 @@ protected:
   void publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t);
   void publishDisparity(sl::Mat disparity, rclcpp::Time t);
 
+  void processVideoDepth();
   bool areVideoDepthSubscribed();
   void retrieveVideoDepth();
   void publishVideoDepth(rclcpp::Time & out_pub_ts);
+
   void publishPointCloud();
   void publishImuFrameAndTopic();
 

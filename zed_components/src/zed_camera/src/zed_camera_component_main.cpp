@@ -2028,6 +2028,33 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
         get_logger(), "Parameter '" << param.get_name()
                                     << "' correctly set to "
                                     << val);
+    } else if (param.get_name() == "general.pub_frame_rate") {
+      rclcpp::ParameterType correctType =
+        rclcpp::ParameterType::PARAMETER_DOUBLE;
+      if (param.get_type() != correctType) {
+        result.successful = false;
+        result.reason =
+          param.get_name() + " must be a " + rclcpp::to_string(correctType);
+        RCLCPP_WARN_STREAM(get_logger(), result.reason);
+        break;
+      }
+
+      double val = param.as_double();
+
+      if ((val <= 0.0) || (val > mCamGrabFrameRate)) {
+        result.successful = false;
+        result.reason = param.get_name() +
+          " must be positive and minor of `grab_frame_rate`";
+        RCLCPP_WARN_STREAM(get_logger(), result.reason);
+        break;
+      }
+
+      mVdPubRate = val;
+
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Parameter '" << param.get_name()
+                                    << "' correctly set to "
+                                    << val);
     } else if (param.get_name() == "depth.point_cloud_freq") {
       rclcpp::ParameterType correctType =
         rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -5081,46 +5108,7 @@ void ZedCamera::threadFunc_zedGrab()
       // <---- Check recording status
 
       // ----> Retrieve Image/Depth data if someone has subscribed to
-      // Retrieve data if there are subscriber to topics
-      // if (areVideoDepthSubscribed()) {
-      //   DEBUG_STREAM_VD("Retrieving video/depth data");
-      //   retrieveVideoDepth();
-
-      //   rclcpp::Time pub_ts;
-      //   publishVideoDepth(pub_ts);
-
-      //   if (!sl_tools::isZED(mCamRealModel) && mVdPublishing &&
-      //     pub_ts != TIMEZERO_ROS)
-      //   {
-      //     if (mSensCameraSync) {
-      //       publishSensorsData(pub_ts);
-      //     }
-      //   }
-
-      //   mVdPublishing = true;
-      // } else {
-      //   mVdPublishing = false;
-      // }
-      if (areVideoDepthSubscribed()) {
-        DEBUG_VD("vd_lock -> defer");
-        std::unique_lock<std::mutex> vd_lock(mVdMutex, std::defer_lock);
-
-        DEBUG_VD("vd_lock -> try_lock");
-        if (vd_lock.try_lock()) {
-          DEBUG_STREAM_VD("Retrieving video/depth data");
-          retrieveVideoDepth();
-
-          // Signal Video/Depth thread that a new pointcloud is ready
-          mVdDataReadyCondVar.notify_one();
-          mVdDataReady = true;
-          mVdPublishing = true;
-        } else {
-          DEBUG_VD("vd_lock not locked");
-        }
-      } else {
-        mVdPublishing = false;
-        DEBUG_VD("No video/depth subscribers");
-      }
+      processVideoDepth();
       // <---- Retrieve Image/Depth data if someone has subscribed to
 
       if (!mDepthDisabled) {

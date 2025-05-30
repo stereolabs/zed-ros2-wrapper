@@ -60,16 +60,6 @@ protected:
   void getStreamingServerParams();
   void getAdvancedParams();
 
-  bool handleOdDynamicParams(
-    const rclcpp::Parameter & param,
-    rcl_interfaces::msg::SetParametersResult & result);
-  bool handleCustomOdDynamicParams(
-    const rclcpp::Parameter & param,
-    rcl_interfaces::msg::SetParametersResult & result);
-  bool handleBodyTrkDynamicParams(
-    const rclcpp::Parameter & param,
-    rcl_interfaces::msg::SetParametersResult & result);
-
   void setTFCoordFrameNames();
   void initPublishers();
   void initSubscribers();
@@ -94,6 +84,21 @@ protected:
   void stopStreamingServer();
   void closeCamera();
   // <---- Initialization functions
+
+  // ----> Dynamic Parameters Handlers
+  bool handleVideoDepthDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleOdDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleCustomOdDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleBodyTrkDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  // <---- Dynamic Parameters Handlers
 
   // ----> Callbacks
   void callback_pubFusedPc();
@@ -173,12 +178,20 @@ protected:
   // <---- Callbacks
 
   // ----> Thread functions
+  // Main thread
   void threadFunc_zedGrab();
+
+  // Video/Depth thread
   void threadFunc_videoDepthElab();
   void setupVideoDepthThread();
   bool waitForVideoDepthData(std::unique_lock<std::mutex> & lock);
   void handleVideoDepthPublishing();
+  // Point Cloud thread
   void threadFunc_pointcloudElab();
+  void setupPointCloudThread();
+  bool waitForPointCloudData(std::unique_lock<std::mutex> & lock);
+  void handlePointCloudPublishing();
+  // Sensors thread
   void threadFunc_pubSensorsData();
   // <---- Thread functions
 

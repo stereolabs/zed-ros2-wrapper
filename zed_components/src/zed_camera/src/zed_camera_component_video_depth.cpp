@@ -995,10 +995,11 @@ void ZedCamera::processVideoDepth()
 
 void ZedCamera::retrieveVideoDepth()
 {
-  DEBUG_VD(" *** Retrieving Video Data ***");
+  DEBUG_VD(" *** Retrieving Video/Depth Data ***");
   mRgbSubscribed = false;
   bool retrieved = false;
 
+  DEBUG_STREAM_VD(" *** Retrieving Video Data ***");
   retrieved |= retrieveLeftImage();
   retrieved |= retrieveLeftRawImage();
   retrieved |= retrieveRightImage();
@@ -1023,7 +1024,7 @@ void ZedCamera::retrieveVideoDepth()
     DEBUG_STREAM_VD(" *** Depth Data retrieved ***");
   }
 
-  DEBUG_VD(" *** Retrieving Video Data DONE ***");
+  DEBUG_VD(" *** Retrieving Video/Depth Data DONE ***");
 }
 
 // Helper functions for retrieveVideoDepth()
@@ -1531,13 +1532,13 @@ void ZedCamera::publishImageWithInfo(
 {
   auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
   camInfoMsg->header.stamp = t;
-  DEBUG_STREAM_VD("Publishing IMAGE message: " << t.nanoseconds() << " nsec");
+  DEBUG_STREAM_VD(" * Publishing IMAGE message: " << t.nanoseconds() << " nsec");
   try {
     pubImg.publish(std::move(image), camInfoMsg);
   } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+    DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
   }
 }
 
@@ -1723,8 +1724,42 @@ void ZedCamera::publishPointCloud()
 void ZedCamera::threadFunc_videoDepthElab()
 {
   DEBUG_STREAM_VD("Video Depth thread started");
+  setupVideoDepthThread();
 
-  // ----> Advanced thread settings
+  mVdDataReady = false;
+  std::unique_lock<std::mutex> lock(mVdMutex);
+
+  while (1) {
+    if (!rclcpp::ok()) {
+      DEBUG_PC("Ctrl+C received: stopping video depth thread");
+      break;
+    }
+
+    DEBUG_STREAM_VD(
+      " * threadFunc_videoDepthElab -> mVdDataReady value: " <<
+        (mVdDataReady ? "TRUE" : "FALSE"));
+
+    if (!waitForVideoDepthData(lock)) {
+      break;
+    }
+
+    if (mThreadStop) {
+      DEBUG_STREAM_PC(
+        " * threadFunc_videoDepthElab (2): Video/Depth thread stopped");
+      break;
+    }
+
+    handleVideoDepthPublishing();
+
+    mVdDataReady = false;
+  }
+
+  DEBUG_STREAM_VD("Video/Depth thread finished");
+}
+
+// Helper: Setup thread scheduling and debug info
+void ZedCamera::setupVideoDepthThread()
+{
   DEBUG_STREAM_ADV("Video/Depth thread settings");
   if (_debugAdvanced) {
     int policy;
@@ -1742,47 +1777,34 @@ void ZedCamera::threadFunc_videoDepthElab()
     }
   }
 
+  sched_param par;
+  par.sched_priority =
+    (mThreadSchedPolicy == "SCHED_FIFO" ||
+    mThreadSchedPolicy == "SCHED_RR") ? mThreadPrioPointCloud : 0;
+
+  int sched_policy = SCHED_OTHER;
   if (mThreadSchedPolicy == "SCHED_OTHER") {
-    sched_param par;
-    par.sched_priority = 0;
-    if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), " ! Failed to set thread params! - "
-          << std::strerror(errno));
-    }
+    sched_policy = SCHED_OTHER;
   } else if (mThreadSchedPolicy == "SCHED_BATCH") {
-    sched_param par;
-    par.sched_priority = 0;
-    if (pthread_setschedparam(pthread_self(), SCHED_BATCH, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), " ! Failed to set thread params! - "
-          << std::strerror(errno));
-    }
+    sched_policy = SCHED_BATCH;
   } else if (mThreadSchedPolicy == "SCHED_FIFO") {
-    sched_param par;
-    par.sched_priority = mThreadPrioPointCloud;
-    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), " ! Failed to set thread params! - "
-          << std::strerror(errno));
-    }
-  } else if (mThreadSchedPolicy == "SCHED_RR") {
-    sched_param par;
-    par.sched_priority = mThreadPrioPointCloud;
-    if (pthread_setschedparam(pthread_self(), SCHED_RR, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), " ! Failed to set thread params! - "
-          << std::strerror(errno));
-    }
-  } else {
+    sched_policy = SCHED_FIFO;
+  } else if (mThreadSchedPolicy == "SCHED_RR") {sched_policy = SCHED_RR;} else {
     RCLCPP_WARN_STREAM(
       get_logger(), " ! Failed to set thread params! - Policy not supported");
+    return;
+  }
+
+  if (pthread_setschedparam(pthread_self(), sched_policy, &par)) {
+    RCLCPP_WARN_STREAM(
+      get_logger(), " ! Failed to set thread params! - "
+        << std::strerror(errno));
   }
 
   if (_debugAdvanced) {
     int policy;
-    sched_param par;
-    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+    sched_param par2;
+    if (pthread_getschedparam(pthread_self(), &policy, &par2)) {
       RCLCPP_WARN_STREAM(
         get_logger(), " ! Failed to get thread policy! - "
           << std::strerror(errno));
@@ -1791,88 +1813,69 @@ void ZedCamera::threadFunc_videoDepthElab()
         " * New Video/Depth thread (#"
           << pthread_self() << ") settings - Policy: "
           << sl_tools::threadSched2Str(policy).c_str()
-          << " - Priority: " << par.sched_priority);
+          << " - Priority: " << par2.sched_priority);
     }
   }
-  // <---- Advanced thread settings
+}
 
-  mVdDataReady = false;
-
-  std::unique_lock<std::mutex> lock(mVdMutex);
-
-  while (1) {
-    if (!rclcpp::ok()) {
-      DEBUG_PC("Ctrl+C received: stopping video depth thread");
-      break;
-    }
-
-    DEBUG_STREAM_VD(
-      " * threadFunc_videoDepthElab -> mVdDataReady value: " <<
-        (mVdDataReady ? "TRUE" : "FALSE"));
-
-    while (!mVdDataReady) { // loop to avoid spurious wakeups
-      if (mVdDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) ==
-        std::cv_status::timeout)
-      {
-        // Check thread stopping
-        if (!rclcpp::ok()) {
-          DEBUG_STREAM_PC("Ctrl+C received: stopping video/depth thread");
-          mThreadStop = true;
-          break;
-        }
-        if (mThreadStop) {
-          DEBUG_STREAM_PC(
-            " * threadFunc_videoDepthElab (1): Video/Depth thread stopped");
-          break;
-        } else {
-          DEBUG_STREAM_PC(" * threadFunc_videoDepthElab -> WAIT FOR VIDEO/DEPTH DATA");
-          continue;
-        }
-      }
-    }
-
-    if (mThreadStop) {
-      DEBUG_STREAM_PC(
-        " * threadFunc_videoDepthElab (2): Video/Depth thread stopped");
-      break;
-    }
-
-    rclcpp::Time pub_ts;
-    publishVideoDepth(pub_ts);
-
-    if (!sl_tools::isZED(mCamRealModel) && mVdPublishing &&
-      pub_ts != TIMEZERO_ROS)
+// Helper: Wait for video/depth data or thread stop
+bool ZedCamera::waitForVideoDepthData(std::unique_lock<std::mutex> & lock)
+{
+  while (!mVdDataReady) { // loop to avoid spurious wakeups
+    if (mVdDataReadyCondVar.wait_for(lock, std::chrono::milliseconds(500)) ==
+      std::cv_status::timeout)
     {
-      if (mSensCameraSync) {
-        publishSensorsData(pub_ts);
+      // Check thread stopping
+      if (!rclcpp::ok()) {
+        DEBUG_STREAM_PC("Ctrl+C received: stopping video/depth thread");
+        mThreadStop = true;
+        return false;
+      }
+      if (mThreadStop) {
+        DEBUG_STREAM_PC(
+          " * threadFunc_videoDepthElab (1): Video/Depth thread stopped");
+        return false;
+      } else {
+        DEBUG_STREAM_PC(" * threadFunc_videoDepthElab -> WAIT FOR VIDEO/DEPTH DATA");
+        continue;
       }
     }
+  }
+  return true;
+}
 
-    // ----> Check publishing frequency
-    double vd_period_usec = 1e6 / mVdPubRate;
+// Helper: Handle publishing and frequency control
+void ZedCamera::handleVideoDepthPublishing()
+{
+  rclcpp::Time pub_ts;
+  publishVideoDepth(pub_ts);
 
-    double elapsed_usec = mVdPubFreqTimer.toc() * 1e6;
-
-    DEBUG_STREAM_VD(" * threadFunc_videoDepthElab: elapsed_usec " << elapsed_usec);
-
-    int wait_usec = 100;
-    if (elapsed_usec < vd_period_usec) {
-      wait_usec = static_cast<int>(vd_period_usec - elapsed_usec);
-      rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
-      DEBUG_STREAM_VD(" * threadFunc_videoDepthElab: wait_usec " << wait_usec);
-    } else {
-      rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+  if (!sl_tools::isZED(mCamRealModel) && mVdPublishing &&
+    pub_ts != TIMEZERO_ROS)
+  {
+    if (mSensCameraSync) {
+      publishSensorsData(pub_ts);
     }
-    DEBUG_STREAM_VD(" * threadFunc_videoDepthElab: sleeped for " << wait_usec << " µsec");
-
-    mVdPubFreqTimer.tic();
-    // <---- Check publishing frequency
-
-    mVdDataReady = false;
-    // DEBUG_STREAM_VD( "threadFunc_videoDepthElab -> mVdDataReady FALSE")
   }
 
-  DEBUG_STREAM_VD("Video/Depth thread finished");
+  // ----> Check publishing frequency
+  double vd_period_usec = 1e6 / mVdPubRate;
+  double elapsed_usec = mVdPubFreqTimer.toc() * 1e6;
+
+  DEBUG_STREAM_VD(" * threadFunc_videoDepthElab: elapsed_usec " << elapsed_usec);
+
+  int wait_usec = 100;
+  if (elapsed_usec < vd_period_usec) {
+    wait_usec = static_cast<int>(vd_period_usec - elapsed_usec);
+    rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+    DEBUG_STREAM_VD(" * threadFunc_videoDepthElab: wait_usec " << wait_usec);
+  } else {
+    rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+  }
+  DEBUG_STREAM_VD(" * threadFunc_videoDepthElab: sleeped for " << wait_usec << " µsec");
+
+  mVdPubFreqTimer.tic();
+  // <---- Check publishing frequency
 }
 
 void ZedCamera::threadFunc_pointcloudElab()

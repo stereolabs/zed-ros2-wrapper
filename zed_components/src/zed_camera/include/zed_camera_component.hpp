@@ -175,6 +175,9 @@ protected:
   // ----> Thread functions
   void threadFunc_zedGrab();
   void threadFunc_videoDepthElab();
+  void setupVideoDepthThread();
+  bool waitForVideoDepthData(std::unique_lock<std::mutex> & lock);
+  void handleVideoDepthPublishing();
   void threadFunc_pointcloudElab();
   void threadFunc_pubSensorsData();
   // <---- Thread functions

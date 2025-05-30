@@ -205,6 +205,23 @@ protected:
   bool retrieveDepthInfo();
 
   void publishVideoDepth(rclcpp::Time & out_pub_ts);
+  void publishLeftAndRgbImages(const rclcpp::Time & t);
+  void publishLeftRawAndRgbRawImages(const rclcpp::Time & t);
+  void publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t);
+  void publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t);
+  void publishRightImages(const rclcpp::Time & t);
+  void publishRightRawImages(const rclcpp::Time & t);
+  void publishRightGrayImages(const rclcpp::Time & t);
+  void publishRightRawGrayImages(const rclcpp::Time & t);
+  void publishStereoImages(const rclcpp::Time & t);
+  void publishStereoRawImages(const rclcpp::Time & t);
+  void publishDepthImage(const rclcpp::Time & t);
+  void publishConfidenceMap(const rclcpp::Time & t);
+  void publishDisparityImage(const rclcpp::Time & t);
+  void publishDepthInfo(const rclcpp::Time & t);
+
+  void checkRgbDepthSync();
+  bool checkGrabAndUpdateTimestamp(rclcpp::Time & out_pub_ts);
 
   void publishPointCloud();
   void publishImuFrameAndTopic();

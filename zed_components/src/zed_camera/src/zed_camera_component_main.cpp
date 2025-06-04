@@ -4191,6 +4191,7 @@ bool ZedCamera::startCamera()
 
 void ZedCamera::closeCamera()
 {
+  std::lock_guard<std::mutex> lock(mCloseCameraMutex);
   if (mZed == nullptr) {
     return;
   }
@@ -9237,6 +9238,15 @@ void ZedCamera::callback_updateDiagnostic(
   diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
   DEBUG_COMM("=== Update Diagnostic ===");
+
+  std::lock_guard<std::mutex> lock(mCloseCameraMutex);
+
+  if (mZed == nullptr) {
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+      "Camera not opened");
+    return;
+  }
 
   if (mConnStatus != sl::ERROR_CODE::SUCCESS) {
     stat.summary(

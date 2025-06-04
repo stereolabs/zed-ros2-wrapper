@@ -44,9 +44,9 @@ RUN if [ "$(curl -L -I "${ZED_SDK_URL}" -o /dev/null -s -w '%{http_code}\n' | he
     fi
 
 # Disable apt-get warnings
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 42D5A192B819C5DA || true && \
-  apt-get update || true && apt-get install -y --no-install-recommends apt-utils dialog && \
-  rm -rf /var/lib/apt/lists/*
+RUN sudo curl -fsSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+   apt-get update || true && apt-get install -y --no-install-recommends apt-utils dialog && \
+   rm -rf /var/lib/apt/lists/*
 
 ENV TZ=Europe/Paris
 
@@ -97,7 +97,7 @@ RUN python3 -m pip install --upgrade cython
 
 # Build the dependencies and the ZED ROS2 Wrapper
 WORKDIR /root/ros2_ws
-RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/install/setup.bash && \
+RUN export MAKEFLAGS="-j6" && /bin/bash -c "source /opt/ros/$ROS_DISTRO/install/setup.bash && \
   colcon build --parallel-workers $(nproc) --symlink-install \
   --event-handlers console_direct+ --base-paths src \
   --cmake-args ' -DCMAKE_BUILD_TYPE=Release' \

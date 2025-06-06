@@ -1848,7 +1848,17 @@ bool ZedCamera::waitForVideoDepthData(std::unique_lock<std::mutex> & lock)
 void ZedCamera::handleVideoDepthPublishing()
 {
   rclcpp::Time pub_ts;
-  publishVideoDepth(pub_ts);
+
+  DEBUG_VD(" * [handleVideoDepthPublishing] vd_lock -> defer");
+  std::unique_lock<std::mutex> vd_lock(mVdMutex, std::defer_lock);
+
+  DEBUG_VD(" * [handleVideoDepthPublishing] vd_lock -> try_lock");
+  if (vd_lock.try_lock()) {
+    publishVideoDepth(pub_ts);
+  } else {
+    DEBUG_VD(" * [handleVideoDepthPublishing] vd_lock not locked");
+    return;
+  }
 
   if (!sl_tools::isZED(mCamRealModel) && mVdPublishing &&
     pub_ts != TIMEZERO_ROS)
@@ -1978,7 +1988,18 @@ bool ZedCamera::waitForPointCloudData(std::unique_lock<std::mutex> & lock)
 
 void ZedCamera::handlePointCloudPublishing()
 {
-  publishPointCloud();
+  rclcpp::Time pub_ts;
+
+  DEBUG_VD(" * [handlePointCloudPublishing] vd_lock -> defer");
+  std::unique_lock<std::mutex> pc_lock(mPcMutex, std::defer_lock);
+
+  DEBUG_VD(" * [handlePointCloudPublishing] vd_lock -> try_lock");
+  if (pc_lock.try_lock()) {
+    publishPointCloud();
+  } else {
+    DEBUG_VD(" * [handlePointCloudPublishing] vd_lock not locked");
+    return;
+  }
 
   // ----> Check publishing frequency
   double pc_period_usec = 1e6 / mPcPubRate;

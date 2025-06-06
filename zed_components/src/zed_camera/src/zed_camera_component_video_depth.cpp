@@ -979,10 +979,10 @@ void ZedCamera::processVideoDepth()
     if (vd_lock.try_lock()) {
       retrieveVideoDepth();
 
-      // Signal Video/Depth thread that a new pointcloud is ready
-      mVdDataReadyCondVar.notify_one();
+      // Signal Video/Depth thread that a new pointcloud is ready      
       mVdDataReady = true;
       mVdPublishing = true;
+      mVdDataReadyCondVar.notify_one();
     } else {
       DEBUG_VD(" * vd_lock not locked");
     }

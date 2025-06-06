@@ -4578,9 +4578,9 @@ void ZedCamera::threadFunc_zedGrab()
                 mMatCloud.getHeight());
 
             // Signal Pointcloud thread that a new pointcloud is ready
-            mPcDataReadyCondVar.notify_one();
             mPcDataReady = true;
             mPcPublishing = true;
+            mPcDataReadyCondVar.notify_one();
 
             DEBUG_STREAM_PC("Extracted point cloud: " << mMatCloud.getInfos().c_str() );
           } else {

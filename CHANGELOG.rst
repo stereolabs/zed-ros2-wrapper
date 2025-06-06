@@ -1,7 +1,13 @@
 LATEST CHANGES
 ==============
 
-2025-05-30
+2025-05-29
+----------
+- Separated Video/Depth data publishing into its own thread for more precise control over the publishing rate, 
+  independent of the camera grab rate. This enables recording SVO files or processing positional tracking at 
+  full grab rate, while publishing data at a reduced rate to optimize bandwidth usage.
+
+2025-05-20
 ----------
 - Add advanced handling of the Object Detection and Tracking module of the ZED SDK
 

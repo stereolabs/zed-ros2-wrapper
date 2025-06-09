@@ -464,7 +464,7 @@ bool ZedCamera::areVideoDepthSubscribed()
     }
   } catch (...) {
     rcutils_reset_error();
-    DEBUG_STREAM_VD("publishImages: Exception while counting subscribers");
+    DEBUG_STREAM_VD(" * [areVideoDepthSubscribed] Exception while counting subscribers");
     return false;
   }
 
@@ -505,7 +505,7 @@ bool ZedCamera::isDepthRequired()
     tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub;
   } catch (...) {
     rcutils_reset_error();
-    DEBUG_STREAM_VD("isDepthRequired: Exception while counting subscribers");
+    DEBUG_STREAM_VD(" * [isDepthRequired] Exception while counting subscribers");
     return false;
   }
 
@@ -980,9 +980,9 @@ void ZedCamera::processVideoDepth()
       retrieveVideoDepth();
 
       // Signal Video/Depth thread that a new pointcloud is ready
+      mVdDataReadyCondVar.notify_one();
       mVdDataReady = true;
       mVdPublishing = true;
-      mVdDataReadyCondVar.notify_one();
     } else {
       DEBUG_VD(" * [processVideoDepth] vd_lock not locked");
     }
@@ -1907,17 +1907,7 @@ bool ZedCamera::waitForVideoDepthData(std::unique_lock<std::mutex> & lock)
 void ZedCamera::handleVideoDepthPublishing()
 {
   rclcpp::Time pub_ts;
-
-  DEBUG_VD(" * [handleVideoDepthPublishing] vd_lock -> defer");
-  std::unique_lock<std::mutex> vd_lock(mVdMutex, std::defer_lock);
-
-  DEBUG_VD(" * [handleVideoDepthPublishing] vd_lock -> try_lock");
-  if (vd_lock.try_lock()) {
-    publishVideoDepth(pub_ts);
-  } else {
-    DEBUG_VD(" * [handleVideoDepthPublishing] vd_lock not locked");
-    return;
-  }
+  publishVideoDepth(pub_ts);
 
   if (!sl_tools::isZED(mCamRealModel) && mVdPublishing &&
     pub_ts != TIMEZERO_ROS)
@@ -2028,13 +2018,13 @@ bool ZedCamera::waitForPointCloudData(std::unique_lock<std::mutex> & lock)
     {
       // Check thread stopping
       if (!rclcpp::ok()) {
-        DEBUG_PC("[waitForPointCloudData] Ctrl+C received: stopping point cloud thread");
+        DEBUG_PC(" * [waitForPointCloudData] Ctrl+C received: stopping point cloud thread");
         mThreadStop = true;
         return false;
       }
       if (mThreadStop) {
         DEBUG_PC(
-          "[waitForPointCloudData] Point Cloud thread stopped");
+          " * [waitForPointCloudData] Point Cloud thread stopped");
         return false;
       }
 
@@ -2050,18 +2040,7 @@ bool ZedCamera::waitForPointCloudData(std::unique_lock<std::mutex> & lock)
 
 void ZedCamera::handlePointCloudPublishing()
 {
-  rclcpp::Time pub_ts;
-
-  DEBUG_VD(" * [handlePointCloudPublishing] vd_lock -> defer");
-  std::unique_lock<std::mutex> pc_lock(mPcMutex, std::defer_lock);
-
-  DEBUG_VD(" * [handlePointCloudPublishing] vd_lock -> try_lock");
-  if (pc_lock.try_lock()) {
-    publishPointCloud();
-  } else {
-    DEBUG_VD(" * [handlePointCloudPublishing] vd_lock not locked");
-    return;
-  }
+  publishPointCloud();
 
   // ----> Check publishing frequency
   double pc_period_usec = 1e6 / mPcPubRate;

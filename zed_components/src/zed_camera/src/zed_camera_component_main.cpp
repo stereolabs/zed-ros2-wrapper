@@ -4543,53 +4543,7 @@ void ZedCamera::threadFunc_zedGrab()
 
       if (!mDepthDisabled) {
         // ----> Retrieve the point cloud if someone has subscribed to
-
-        size_t cloudSubCount = 0;
-        try {
-  #ifndef FOUND_FOXY
-          cloudSubCount = mPubCloud.getNumSubscribers();
-#else
-          cloudSubCount = count_subscribers(mPubCloud->get_topic_name());
-#endif
-        } catch (...) {
-          rcutils_reset_error();
-          DEBUG_STREAM_PC(
-            "threadFunc_zedGrab: Exception while counting point cloud "
-            "subscribers");
-          continue;
-        }
-
-        if (cloudSubCount > 0) {
-          // Run the point cloud conversion asynchronously to avoid slowing down
-          // all the program
-          // Retrieve raw pointCloud data if latest Pointcloud is ready
-          DEBUG_PC("pc_lock -> defer");
-          std::unique_lock<std::mutex> pc_lock(mPcMutex, std::defer_lock);
-
-          DEBUG_PC("pc_lock -> try_lock");
-          if (pc_lock.try_lock()) {
-            DEBUG_STREAM_PC(
-              "Retrieving point cloud size: " << mPcResol.width << "x" << mPcResol.height);
-            mZed->retrieveMeasure(
-              mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU,
-              mPcResol);
-            DEBUG_STREAM_PC(
-              "Retrieved point cloud size: " << mMatCloud.getWidth() << "x" <<
-                mMatCloud.getHeight());
-
-            // Signal Pointcloud thread that a new pointcloud is ready
-            mPcDataReady = true;
-            mPcPublishing = true;
-            mPcDataReadyCondVar.notify_one();
-
-            DEBUG_STREAM_PC("Extracted point cloud: " << mMatCloud.getInfos().c_str() );
-          } else {
-            DEBUG_PC("pc_lock not locked");
-          }
-        } else {
-          mPcPublishing = false;
-          DEBUG_PC("No point cloud subscribers");
-        }
+        processPointCloud();
         // <---- Retrieve the point cloud if someone has subscribed to
 
         // ----> Localization processing

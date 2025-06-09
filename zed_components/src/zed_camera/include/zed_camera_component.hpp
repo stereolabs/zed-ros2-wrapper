@@ -234,7 +234,6 @@ protected:
   bool retrieveDisparity();
   bool retrieveConfidence();
   bool retrieveDepthInfo();
-
   void publishVideoDepth(rclcpp::Time & out_pub_ts);
   void publishLeftAndRgbImages(const rclcpp::Time & t);
   void publishLeftRawAndRgbRawImages(const rclcpp::Time & t);
@@ -254,6 +253,8 @@ protected:
   void checkRgbDepthSync();
   bool checkGrabAndUpdateTimestamp(rclcpp::Time & out_pub_ts);
 
+  void processPointCloud();
+  bool isPointCloudSubscribed();
   void publishPointCloud();
   void publishImuFrameAndTopic();
 

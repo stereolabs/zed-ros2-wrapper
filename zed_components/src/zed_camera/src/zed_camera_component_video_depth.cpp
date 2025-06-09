@@ -478,7 +478,7 @@ bool ZedCamera::areVideoDepthSubscribed()
 
 bool ZedCamera::isDepthRequired()
 {
-  // DEBUG_STREAM_VD( "isDepthRequired called");
+  // DEBUG_STREAM_COMM( "isDepthRequired called");
 
   if (mDepthDisabled) {
     return false;
@@ -972,10 +972,10 @@ void ZedCamera::processVideoDepth()
 
   // If no subscribers, do not retrieve data
   if (areVideoDepthSubscribed()) {
-    DEBUG_VD(" * vd_lock -> defer");
+    DEBUG_VD(" * [processVideoDepth] vd_lock -> defer");
     std::unique_lock<std::mutex> vd_lock(mVdMutex, std::defer_lock);
 
-    DEBUG_VD(" * vd_lock -> try_lock");
+    DEBUG_VD(" * [processVideoDepth] vd_lock -> try_lock");
     if (vd_lock.try_lock()) {
       retrieveVideoDepth();
 
@@ -984,11 +984,11 @@ void ZedCamera::processVideoDepth()
       mVdPublishing = true;
       mVdDataReadyCondVar.notify_one();
     } else {
-      DEBUG_VD(" * vd_lock not locked");
+      DEBUG_VD(" * [processVideoDepth] vd_lock not locked");
     }
   } else {
     mVdPublishing = false;
-    DEBUG_VD(" * No video/depth subscribers");
+    DEBUG_VD(" * [processVideoDepth] No video/depth subscribers");
   }
   DEBUG_VD("=== Process Video/Depth done ===");
 }
@@ -1629,6 +1629,67 @@ void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
   }
 }
 
+void ZedCamera::processPointCloud()
+{
+  DEBUG_PC("=== Process Point Cloud ===");
+
+  if (isPointCloudSubscribed()) {
+    // Run the point cloud conversion asynchronously to avoid slowing down
+    // all the program
+    // Retrieve raw pointCloud data if latest Pointcloud is ready
+    DEBUG_PC(" * [processPointCloud] pc_lock -> defer");
+    std::unique_lock<std::mutex> pc_lock(mPcMutex, std::defer_lock);
+
+    DEBUG_PC(" * [processPointCloud] pc_lock -> try_lock");
+    if (pc_lock.try_lock()) {
+      DEBUG_STREAM_PC(
+        " * [processPointCloud] Retrieving point cloud size: " << mPcResol.width << "x" <<
+          mPcResol.height);
+      mZed->retrieveMeasure(
+        mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU,
+        mPcResol);
+      DEBUG_STREAM_PC(
+        " * [processPointCloud] Retrieved point cloud size: " << mMatCloud.getWidth() << "x" <<
+          mMatCloud.getHeight());
+
+      // Signal Pointcloud thread that a new pointcloud is ready
+      mPcDataReadyCondVar.notify_one();
+      mPcDataReady = true;
+      mPcPublishing = true;
+
+      DEBUG_STREAM_PC(
+        " * [processPointCloud] Extracted point cloud: " << mMatCloud.getInfos().c_str() );
+    } else {
+      DEBUG_PC(" * [processPointCloud] pc_lock not locked");
+    }
+  } else {
+    mPcPublishing = false;
+    DEBUG_PC(" * [processPointCloud] No point cloud subscribers");
+  }
+
+  DEBUG_PC("=== Process Point Cloud done ===");
+}
+
+bool ZedCamera::isPointCloudSubscribed()
+{
+  size_t cloudSubCount = 0;
+  try {
+#ifndef FOUND_FOXY
+    cloudSubCount = mPubCloud.getNumSubscribers();
+#else
+    cloudSubCount = count_subscribers(mPubCloud->get_topic_name());
+#endif
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_PC(
+      " * [isPointCloudSubscribed] Exception while counting point cloud "
+      "subscribers");
+    return false;
+  }
+
+  return cloudSubCount > 0;
+}
+
 void ZedCamera::publishPointCloud()
 {
   sl_tools::StopWatch pcElabTimer(get_clock());
@@ -1659,7 +1720,7 @@ void ZedCamera::publishPointCloud()
   // published pointcloud Avoid to publish the same old data
   if (mLastTs_pc == pcMsg->header.stamp) {
     // Data not updated by a grab calling in the grab thread
-    DEBUG_STREAM_PC("publishPointCloud: ignoring not update data");
+    DEBUG_STREAM_PC(" * [publishPointCloud] ignoring not update data");
     return;
   }
   mLastTs_pc = pcMsg->header.stamp;
@@ -1693,22 +1754,22 @@ void ZedCamera::publishPointCloud()
     ptsCount * 4 * sizeof(float));
 
   // Pointcloud publishing
-  DEBUG_STREAM_PC("Publishing POINT CLOUD message");
+  DEBUG_PC(" * [publishPointCloud] Publishing POINT CLOUD message");
 #ifndef FOUND_FOXY
   try {
     mPubCloud.publish(std::move(pcMsg));
   } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+    DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing ecception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing generic ecception");
   }
 #else
   try {
     mPubCloud->publish(std::move(pcMsg));
   } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+    DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing ecception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing generic ecception");
   }
 #endif
 
@@ -1718,7 +1779,7 @@ void ZedCamera::publishPointCloud()
 
   // Point cloud elaboration time
   mPcProcMean_sec->addValue(pcElabTimer.toc());
-  DEBUG_STREAM_PC("Point cloud freq: " << 1. / mean);
+  DEBUG_STREAM_PC(" * [publishPointCloud] Point cloud freq: " << 1. / mean);
 }
 
 void ZedCamera::threadFunc_videoDepthElab()
@@ -1731,12 +1792,12 @@ void ZedCamera::threadFunc_videoDepthElab()
 
   while (1) {
     if (!rclcpp::ok()) {
-      DEBUG_PC("Ctrl+C received: stopping video depth thread");
+      DEBUG_VD(" * [threadFunc_videoDepthElab] Ctrl+C received: stopping video depth thread");
       break;
     }
     if (mThreadStop) {
-      DEBUG_STREAM_PC(
-        " * threadFunc_videoDepthElab (2): Video/Depth thread stopped");
+      DEBUG_VD(
+        " * [threadFunc_videoDepthElab] Video/Depth thread stopped");
       break;
     }
 
@@ -2036,12 +2097,12 @@ void ZedCamera::threadFunc_pointcloudElab()
 
   while (1) {
     if (!rclcpp::ok()) {
-      DEBUG_PC("Ctrl+C received: stopping point cloud thread");
+      DEBUG_PC(" * [threadFunc_pointcloudElab] Ctrl+C received: stopping point cloud thread");
       break;
     }
     if (mThreadStop) {
       DEBUG_STREAM_PC(
-        "[threadFunc_pointcloudElab] Point Cloud thread stopped");
+        " * [threadFunc_pointcloudElab] Point Cloud thread stopped");
       break;
     }
 

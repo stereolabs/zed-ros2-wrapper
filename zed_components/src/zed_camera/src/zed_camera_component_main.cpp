@@ -8262,7 +8262,7 @@ void ZedCamera::processRtRoi(rclcpp::Time ts)
       subCount = mPubRoiMask.getNumSubscribers();
     } catch (...) {
       rcutils_reset_error();
-      DEBUG_STREAM_VD("processRtRoi: Exception while counting subscribers");
+      DEBUG_STREAM_COMM("processRtRoi: Exception while counting subscribers");
       return;
     }
 
@@ -8335,7 +8335,7 @@ void ZedCamera::publishHealthStatus()
     sub_count = mPubHealthStatus->get_subscription_count();
   } catch (...) {
     rcutils_reset_error();
-    DEBUG_STREAM_VD("publishHealthStatus: Exception while counting subscribers");
+    DEBUG_STREAM_COMM("publishHealthStatus: Exception while counting subscribers");
     return;
   }
 
@@ -8370,7 +8370,7 @@ bool ZedCamera::publishSvoStatus(uint64_t frame_ts)
     subCount = mPubSvoStatus->get_subscription_count();
   } catch (...) {
     rcutils_reset_error();
-    DEBUG_STREAM_VD("publishSvoStatus: Exception while counting subscribers");
+    DEBUG_STREAM_COMM("publishSvoStatus: Exception while counting subscribers");
     return false;
   }
 
@@ -8416,7 +8416,7 @@ void ZedCamera::callback_pubHeartbeat()
     sub_count = mPubHeartbeatStatus->get_subscription_count();
   } catch (...) {
     rcutils_reset_error();
-    DEBUG_STREAM_VD("publishHeartbeat: Exception while counting subscribers");
+    DEBUG_STREAM_COMM("publishHeartbeat: Exception while counting subscribers");
     return;
   }
 
@@ -8449,7 +8449,7 @@ void ZedCamera::publishClock(const sl::Timestamp & ts)
     subCount = mPubClock->get_subscription_count();
   } catch (...) {
     rcutils_reset_error();
-    DEBUG_STREAM_VD("publishClock: Exception while counting subscribers");
+    DEBUG_COMM("publishClock: Exception while counting subscribers");
     return;
   }
 

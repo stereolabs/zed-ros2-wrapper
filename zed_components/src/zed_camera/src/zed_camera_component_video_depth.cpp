@@ -1734,18 +1734,13 @@ void ZedCamera::threadFunc_videoDepthElab()
       DEBUG_PC("Ctrl+C received: stopping video depth thread");
       break;
     }
-
-    DEBUG_STREAM_VD(
-      " * threadFunc_videoDepthElab -> mVdDataReady value: " <<
-        (mVdDataReady ? "TRUE" : "FALSE"));
-
-    if (!waitForVideoDepthData(lock)) {
-      break;
-    }
-
     if (mThreadStop) {
       DEBUG_STREAM_PC(
         " * threadFunc_videoDepthElab (2): Video/Depth thread stopped");
+      break;
+    }
+
+    if (!waitForVideoDepthData(lock)) {
       break;
     }
 
@@ -1827,20 +1822,23 @@ bool ZedCamera::waitForVideoDepthData(std::unique_lock<std::mutex> & lock)
     {
       // Check thread stopping
       if (!rclcpp::ok()) {
-        DEBUG_STREAM_PC("Ctrl+C received: stopping video/depth thread");
+        DEBUG_VD("[waitForVideoDepthData] Ctrl+C received: stopping video/depth thread");
         mThreadStop = true;
         return false;
       }
       if (mThreadStop) {
-        DEBUG_STREAM_PC(
-          " * threadFunc_videoDepthElab (1): Video/Depth thread stopped");
+        DEBUG_VD(
+          "[waitForVideoDepthData] Video/Depth thread stopped");
         return false;
-      } else {
-        DEBUG_STREAM_PC(" * threadFunc_videoDepthElab -> WAIT FOR VIDEO/DEPTH DATA");
-        continue;
       }
+
+      DEBUG_VD(" * [waitForVideoDepthData] Waiting for Video/Depth data");
     }
   }
+  DEBUG_VD(" * [waitForVideoDepthData] Video/Depth data ready to be published");
+  DEBUG_STREAM_VD(
+    " * [waitForVideoDepthData] mVdMutex: " <<
+      (lock.owns_lock() ? "Locked" : "Unlocked"));
   return true;
 }
 
@@ -1862,17 +1860,17 @@ void ZedCamera::handleVideoDepthPublishing()
   double vd_period_usec = 1e6 / mVdPubRate;
   double elapsed_usec = mVdPubFreqTimer.toc() * 1e6;
 
-  DEBUG_STREAM_VD(" * threadFunc_videoDepthElab: elapsed_usec " << elapsed_usec);
+  DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] elapsed_usec " << elapsed_usec);
 
   int wait_usec = 100;
   if (elapsed_usec < vd_period_usec) {
     wait_usec = static_cast<int>(vd_period_usec - elapsed_usec);
     rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
-    DEBUG_STREAM_VD(" * threadFunc_videoDepthElab: wait_usec " << wait_usec);
+    DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] wait_usec " << wait_usec);
   } else {
     rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
   }
-  DEBUG_STREAM_VD(" * threadFunc_videoDepthElab: sleeped for " << wait_usec << " µsec");
+  DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] sleeped for " << wait_usec << " µsec");
 
   mVdPubFreqTimer.tic();
   // <---- Check publishing frequency
@@ -1959,20 +1957,23 @@ bool ZedCamera::waitForPointCloudData(std::unique_lock<std::mutex> & lock)
     {
       // Check thread stopping
       if (!rclcpp::ok()) {
-        DEBUG_STREAM_PC("Ctrl+C received: stopping point cloud thread");
+        DEBUG_PC("[waitForPointCloudData] Ctrl+C received: stopping point cloud thread");
         mThreadStop = true;
         return false;
       }
       if (mThreadStop) {
-        DEBUG_STREAM_PC(
-          "threadFunc_pointcloudElab (1): Point Cloud thread stopped");
+        DEBUG_PC(
+          "[waitForPointCloudData] Point Cloud thread stopped");
         return false;
-      } else {
-        DEBUG_STREAM_PC("pointcloudThreadFunc -> WAIT FOR CLOUD DATA");
-        continue;
       }
+
+      DEBUG_PC(" * [waitForPointCloudData] Waiting for point cloud data");
     }
   }
+  DEBUG_PC(" * [waitForPointCloudData] Point Cloud ready to be published");
+  DEBUG_STREAM_PC(
+    " * [waitForPointCloudData] mPcMutex: " <<
+      (lock.owns_lock() ? "Locked" : "Unlocked"));
   return true;
 }
 
@@ -1985,17 +1986,17 @@ void ZedCamera::handlePointCloudPublishing()
 
   double elapsed_usec = mPcPubFreqTimer.toc() * 1e6;
 
-  DEBUG_STREAM_PC("threadFunc_pointcloudElab (3): elapsed_usec " << elapsed_usec);
+  DEBUG_STREAM_PC(" * [handlePointCloudPublishing] elapsed_usec " << elapsed_usec);
 
   int wait_usec = 100;
   if (elapsed_usec < pc_period_usec) {
     wait_usec = static_cast<int>(pc_period_usec - elapsed_usec);
     rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
-    DEBUG_STREAM_PC("threadFunc_pointcloudElab: wait_usec " << wait_usec);
+    DEBUG_STREAM_PC(" * [handlePointCloudPublishing] wait_usec " << wait_usec);
   } else {
     rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
   }
-  DEBUG_STREAM_PC("threadFunc_pointcloudElab: sleeped for " << wait_usec << " µsec");
+  DEBUG_STREAM_PC(" * [handlePointCloudPublishing] sleeped for " << wait_usec << " µsec");
 
   mPcPubFreqTimer.tic();
   // <---- Check publishing frequency
@@ -2017,18 +2018,13 @@ void ZedCamera::threadFunc_pointcloudElab()
       DEBUG_PC("Ctrl+C received: stopping point cloud thread");
       break;
     }
-
-    DEBUG_STREAM_PC(
-      "pointcloudThreadFunc -> mPcDataReady value: " <<
-        (mPcDataReady ? "TRUE" : "FALSE"));
-
-    if (!waitForPointCloudData(lock)) {
+    if (mThreadStop) {
+      DEBUG_STREAM_PC(
+        "[threadFunc_pointcloudElab] Point Cloud thread stopped");
       break;
     }
 
-    if (mThreadStop) {
-      DEBUG_STREAM_PC(
-        "threadFunc_pointcloudElab (2): Point Cloud thread stopped");
+    if (!waitForPointCloudData(lock)) {
       break;
     }
 

@@ -60,16 +60,6 @@ protected:
   void getStreamingServerParams();
   void getAdvancedParams();
 
-  bool handleOdDynamicParams(
-    const rclcpp::Parameter & param,
-    rcl_interfaces::msg::SetParametersResult & result);
-  bool handleCustomOdDynamicParams(
-    const rclcpp::Parameter & param,
-    rcl_interfaces::msg::SetParametersResult & result);
-  bool handleBodyTrkDynamicParams(
-    const rclcpp::Parameter & param,
-    rcl_interfaces::msg::SetParametersResult & result);
-
   void setTFCoordFrameNames();
   void initPublishers();
   void initSubscribers();
@@ -94,6 +84,36 @@ protected:
   void stopStreamingServer();
   void closeCamera();
   // <---- Initialization functions
+
+  // ----> Dynamic Parameters Handlers
+  // Video/Depth
+  bool handleVideoDepthDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleGmsl2Params(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleUsb3Params(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleCommonVideoParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleDepthParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  // Object Detection
+  bool handleOdDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  bool handleCustomOdDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  // Body Tracking
+  bool handleBodyTrkDynamicParams(
+    const rclcpp::Parameter & param,
+    rcl_interfaces::msg::SetParametersResult & result);
+  // <---- Dynamic Parameters Handlers
 
   // ----> Callbacks
   void callback_pubFusedPc();
@@ -173,8 +193,20 @@ protected:
   // <---- Callbacks
 
   // ----> Thread functions
+  // Main thread
   void threadFunc_zedGrab();
+
+  // Video/Depth thread
+  void threadFunc_videoDepthElab();
+  void setupVideoDepthThread();
+  bool waitForVideoDepthData(std::unique_lock<std::mutex> & lock);
+  void handleVideoDepthPublishing();
+  // Point Cloud thread
   void threadFunc_pointcloudElab();
+  void setupPointCloudThread();
+  bool waitForPointCloudData(std::unique_lock<std::mutex> & lock);
+  void handlePointCloudPublishing();
+  // Sensors thread
   void threadFunc_pubSensorsData();
   // <---- Thread functions
 
@@ -187,9 +219,42 @@ protected:
   void publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t);
   void publishDisparity(sl::Mat disparity, rclcpp::Time t);
 
+  void processVideoDepth();
   bool areVideoDepthSubscribed();
   void retrieveVideoDepth();
+  bool retrieveLeftImage();
+  bool retrieveLeftRawImage();
+  bool retrieveRightImage();
+  bool retrieveRightRawImage();
+  bool retrieveLeftGrayImage();
+  bool retrieveLeftRawGrayImage();
+  bool retrieveRightGrayImage();
+  bool retrieveRightRawGrayImage();
+  bool retrieveDepthMap();
+  bool retrieveDisparity();
+  bool retrieveConfidence();
+  bool retrieveDepthInfo();
   void publishVideoDepth(rclcpp::Time & out_pub_ts);
+  void publishLeftAndRgbImages(const rclcpp::Time & t);
+  void publishLeftRawAndRgbRawImages(const rclcpp::Time & t);
+  void publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t);
+  void publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t);
+  void publishRightImages(const rclcpp::Time & t);
+  void publishRightRawImages(const rclcpp::Time & t);
+  void publishRightGrayImages(const rclcpp::Time & t);
+  void publishRightRawGrayImages(const rclcpp::Time & t);
+  void publishStereoImages(const rclcpp::Time & t);
+  void publishStereoRawImages(const rclcpp::Time & t);
+  void publishDepthImage(const rclcpp::Time & t);
+  void publishConfidenceMap(const rclcpp::Time & t);
+  void publishDisparityImage(const rclcpp::Time & t);
+  void publishDepthInfo(const rclcpp::Time & t);
+
+  void checkRgbDepthSync();
+  bool checkGrabAndUpdateTimestamp(rclcpp::Time & out_pub_ts);
+
+  void processPointCloud();
+  bool isPointCloudSubscribed();
   void publishPointCloud();
   void publishImuFrameAndTopic();
 
@@ -216,6 +281,20 @@ protected:
   bool isPosTrackingRequired();
 
   void applyVideoSettings();
+  void applyAutoExposureGainSettings();
+  void applyExposureGainSettings();
+  void applyWhiteBalanceSettings();
+  void applyBrightnessContrastHueSettings();
+  void applySaturationSharpnessGammaSettings();
+  void applyZEDXSettings();
+  void applyZEDXExposureSettings();
+  void applyZEDXAutoExposureTimeRange();
+  void applyZEDXExposureCompensation();
+  void applyZEDXAnalogDigitalGain();
+  void applyZEDXAutoAnalogGainRange();
+  void applyZEDXAutoDigitalGainRange();
+  void applyZEDXDenoising();
+
   void applyDepthSettings();
 
   void processOdometry();
@@ -396,7 +475,7 @@ private:
   bool mGnssEnableRollingCalibration = true;
   bool mGnssEnableTranslationUncertaintyTarget = false;
   double mGnssVioReinitThreshold = 5.0;
-  double mGnssTargetTranslationUncertainty = 10e-2;
+  double mGnssTargetTranslationUncertainty = 0.1;
   double mGnssTargetYawUncertainty = 0.1;
   double mGnssHcovMul = 1.0;
   double mGnssVcovMul = 1.0;
@@ -475,7 +554,7 @@ private:
   // ----> Dynamic params
   OnSetParametersCallbackHandle::SharedPtr mParamChangeCallbackHandle;
 
-  double mPubFrameRate = 15.0;
+  double mVdPubRate = 15.0;
   int mCamBrightness = 4;
   int mCamContrast = 4;
   int mCamHue = 0;
@@ -719,6 +798,7 @@ private:
   sl::ERROR_CODE mConnStatus;
   sl::FUSION_ERROR_CODE mFusionStatus = sl::FUSION_ERROR_CODE::MODULE_NOT_ENABLED;
   std::thread mGrabThread;        // Main grab thread
+  std::thread mVdThread;          // Video and Depth data processing thread
   std::thread mPcThread;          // Point Cloud publish thread
   std::thread mSensThread;        // Sensors data publish thread
   std::atomic<bool> mThreadStop;
@@ -742,6 +822,9 @@ private:
   std::mutex mCloseCameraMutex;
   std::condition_variable mPcDataReadyCondVar;
   std::atomic_bool mPcDataReady;
+  std::mutex mVdMutex;
+  std::condition_variable mVdDataReadyCondVar;
+  std::atomic_bool mVdDataReady;
   // <---- Thread Sync
 
   // ----> Status Flags

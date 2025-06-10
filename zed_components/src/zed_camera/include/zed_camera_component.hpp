@@ -819,6 +819,7 @@ private:
   std::mutex mObjDetMutex;
   std::mutex mBodyTrkMutex;
   std::mutex mPcMutex;
+  std::mutex mCloseCameraMutex;
   std::condition_variable mPcDataReadyCondVar;
   std::atomic_bool mPcDataReady;
   std::mutex mVdMutex;

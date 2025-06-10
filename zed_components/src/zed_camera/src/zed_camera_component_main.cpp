@@ -736,8 +736,15 @@ void ZedCamera::getGeneralParams()
       shared_from_this(), "svo.play_from_frame",
       mSvoFrameStart, mSvoFrameStart,
       " * SVO start frame: ", false, 0);
+    sl_tools::getParam(
+      shared_from_this(), "svo.play_from_frame",
+      mSvoFrameStart, mSvoFrameStart,
+      " * SVO start frame: ", false, 0);
 
     if (!mSvoRealtime) {
+      sl_tools::getParam(
+        shared_from_this(), "svo.replay_rate", mSvoRate,
+        mSvoRate, " * SVO replay rate: ", true, 0.1, 5.0);
       sl_tools::getParam(
         shared_from_this(), "svo.replay_rate", mSvoRate,
         mSvoRate, " * SVO replay rate: ", true, 0.1, 5.0);
@@ -1267,6 +1274,14 @@ void ZedCamera::getPosTrackingParams()
     shared_from_this(), "pos_tracking.depth_min_range",
     mPosTrackDepthMinRange, mPosTrackDepthMinRange,
     " * Depth minimum range: ", false, 0.0f, 40.0f);
+  sl_tools::getParam(
+    shared_from_this(), "pos_tracking.transform_time_offset",
+    mTfOffset, mTfOffset, " * TF timestamp offset: ", true,
+    -10.0, 10.0);
+  sl_tools::getParam(
+    shared_from_this(), "pos_tracking.path_pub_rate",
+    mPathPubRate, mPathPubRate,
+    " * Path publishing rate: ", true, 0.1, 120.0);
   sl_tools::getParam(
     shared_from_this(), "pos_tracking.transform_time_offset",
     mTfOffset, mTfOffset, " * TF timestamp offset: ", true,
@@ -3259,6 +3274,7 @@ bool ZedCamera::startCamera()
 
 void ZedCamera::closeCamera()
 {
+  std::lock_guard<std::mutex> lock(mCloseCameraMutex);
   if (mZed == nullptr) {
     return;
   }
@@ -7043,6 +7059,15 @@ void ZedCamera::callback_updateDiagnostic(
   diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
   DEBUG_COMM("=== Update Diagnostic ===");
+
+  std::lock_guard<std::mutex> lock(mCloseCameraMutex);
+
+  if (mZed == nullptr) {
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+      "Camera not opened");
+    return;
+  }
 
   if (mConnStatus != sl::ERROR_CODE::SUCCESS) {
     stat.summary(

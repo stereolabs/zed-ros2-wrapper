@@ -10,10 +10,12 @@ LATEST CHANGES
 2025-05-20
 ----------
 - Add advanced handling of the Object Detection and Tracking module of the ZED SDK
+
   - Move the multi-box native object detection parameters to the `object_detection.yaml` file
   - Add specific parameters to set the confidence threshold for each of the includes object detection classes of the ZED SDK
   - Move the Custom Object Detection parameters to the `custom_object_detection.yaml` file
   - Support all the new parameters of the ZED SDK v5 separately for each of the custom object detection classes
+
 - The usage of the new Object Detection support is fully described on the ZED ROS 2 online documentation:
   - Object Detection: https://www.stereolabs.com/docs/ros2/object-detection/
   - Custom Object Detection: https://www.stereolabs.com/docs/ros2/custom-object-detection/

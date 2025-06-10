@@ -475,7 +475,7 @@ private:
   bool mGnssEnableRollingCalibration = true;
   bool mGnssEnableTranslationUncertaintyTarget = false;
   double mGnssVioReinitThreshold = 5.0;
-  double mGnssTargetTranslationUncertainty = 10e-2;
+  double mGnssTargetTranslationUncertainty = 0.1;
   double mGnssTargetYawUncertainty = 0.1;
   double mGnssHcovMul = 1.0;
   double mGnssVcovMul = 1.0;

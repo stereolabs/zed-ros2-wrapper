@@ -113,8 +113,8 @@
             enable_rolling_calibration: true # If this parameter is set to true, the fusion algorithm will used a rough VIO / GNSS calibration at first and then refine it. This allow you to quickly get a fused position.
             enable_translation_uncertainty_target: false # When this parameter is enabled (set to true), the calibration process between GNSS and VIO accounts for the uncertainty in the determined translation, thereby facilitating the calibration termination. The maximum allowable uncertainty is controlled by the 'target_translation_uncertainty' parameter.
             gnss_vio_reinit_threshold: 5.0 # determines the threshold for GNSS/VIO reinitialization. If the fused position deviates beyond out of the region defined by the product of the GNSS covariance and the gnss_vio_reinit_threshold, a reinitialization will be triggered.
-            target_translation_uncertainty: 10e-2 # defines the target translation uncertainty at which the calibration process between GNSS and VIO concludes. By default, the threshold is set at 10 centimeters.
-            target_yaw_uncertainty: 1e-2 # defines the target yaw uncertainty at which the calibration process between GNSS and VIO concludes. The unit of this parameter is in radian. By default, the threshold is set at 0.1 radians.
+            target_translation_uncertainty: 0.1 # defines the target translation uncertainty at which the calibration process between GNSS and VIO concludes. By default, the threshold is set at 10 centimeters.
+            target_yaw_uncertainty: 0.1 # defines the target yaw uncertainty at which the calibration process between GNSS and VIO concludes. The unit of this parameter is in radian. By default, the threshold is set at 0.1 radians.
 
         mapping:
             mapping_enabled: false # True to enable mapping and fused point cloud pubblication

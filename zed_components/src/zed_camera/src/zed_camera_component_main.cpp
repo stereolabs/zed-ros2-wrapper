@@ -736,15 +736,8 @@ void ZedCamera::getGeneralParams()
       shared_from_this(), "svo.play_from_frame",
       mSvoFrameStart, mSvoFrameStart,
       " * SVO start frame: ", false, 0);
-    sl_tools::getParam(
-      shared_from_this(), "svo.play_from_frame",
-      mSvoFrameStart, mSvoFrameStart,
-      " * SVO start frame: ", false, 0);
 
     if (!mSvoRealtime) {
-      sl_tools::getParam(
-        shared_from_this(), "svo.replay_rate", mSvoRate,
-        mSvoRate, " * SVO replay rate: ", true, 0.1, 5.0);
       sl_tools::getParam(
         shared_from_this(), "svo.replay_rate", mSvoRate,
         mSvoRate, " * SVO replay rate: ", true, 0.1, 5.0);
@@ -1231,7 +1224,7 @@ void ZedCamera::getPosTrackingParams()
       static_cast<sl::POSITIONAL_TRACKING_MODE>(idx);
     std::string test_mode_str = sl::toString(test_mode).c_str();
     std::replace(
-      test_mode_str.begin(), test_mode_str.end(), ' ', '_');    // Replace spaces with underscores to match the YAML setting
+      test_mode_str.begin(), test_mode_str.end(), ' ', '_'); // Replace spaces with underscores to match the YAML setting
     DEBUG_PT(" Comparing '%s' to '%s'", test_mode_str.c_str(), pos_trk_mode_str.c_str());
     if (pos_trk_mode_str == test_mode_str) {
       mPosTrkMode = test_mode;
@@ -1274,14 +1267,6 @@ void ZedCamera::getPosTrackingParams()
     shared_from_this(), "pos_tracking.depth_min_range",
     mPosTrackDepthMinRange, mPosTrackDepthMinRange,
     " * Depth minimum range: ", false, 0.0f, 40.0f);
-  sl_tools::getParam(
-    shared_from_this(), "pos_tracking.transform_time_offset",
-    mTfOffset, mTfOffset, " * TF timestamp offset: ", true,
-    -10.0, 10.0);
-  sl_tools::getParam(
-    shared_from_this(), "pos_tracking.path_pub_rate",
-    mPathPubRate, mPathPubRate,
-    " * Path publishing rate: ", true, 0.1, 120.0);
   sl_tools::getParam(
     shared_from_this(), "pos_tracking.transform_time_offset",
     mTfOffset, mTfOffset, " * TF timestamp offset: ", true,

@@ -457,7 +457,7 @@ private:
   bool mImuFusion = true;
   bool mFloorAlignment = false;
   bool mTwoDMode = false;
-  double mFixedZValue = 0.0;
+  float mFixedZValue = 0.0;
   std::vector<double> mInitialBasePose = std::vector<double>(6, 0.0);
   bool mResetOdomWhenLoopClosure = true;
   bool mResetPoseWithSvoLoop = true;

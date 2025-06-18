@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2025-06-18
+----------
+- Added a new launch option 'node_log_type' to set the type of log to be used by the ZED Node.
+  - The available options are `screen`, `log`, and `both`.
+
 2025-05-29
 ----------
 - Separated Video/Depth data publishing into its own thread for more precise control over the publishing rate, 

@@ -259,6 +259,26 @@ See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-
 - Example launch files to start a preconfigured instance of Rviz displaying all the ZED Wrapper node information: [zed_display_rviz2](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
 - ROS 2 plugin for ZED2 to visualize the results of the Object Detection and Body Tracking modules (bounding boxes and skeletons): [rviz-plugin-zed-od](https://github.com/stereolabs/zed-ros2-examples/tree/master/rviz-plugin-zed-od)
 
+## ISAAC ROS support
+
+The ZED ROS 2 Wrapper is compatible with the [ISAAC ROS](https://nvidia-isaac-ros.github.io/) framework, which provides a set of tools and libraries for building robotics applications on NVIDIA platforms.
+
+The ZED ROS 2 Wrapper leverages [NITROS](https://nvidia-isaac-ros.github.io/concepts/nitros/index.html) (NVIDIA Isaac Transport for ROS) a technology to enable streaming through NVIDIA-accelerated ROS graphs.
+
+### Use ISAAC ROS precompiled binaries
+
+From the ISAAC ROS documentation:
+
+```bash
+COPY FROM HERE: https://nvidia-isaac-ros.github.io/getting_started/isaac_apt_repository.html#setting-up-isaac-apt-repository
+```
+
+Dependencies for ISAAC ROS can be installed by running the following command:
+
+```bash
+sudo apt install ros-humble-isaac-ros-managed-nitros ros-humble-isaac-ros-nitros-image-type
+```
+
 ### Tutorials
 
 A series of tutorials are provided to better understand how to use the ZED nodes in the ROS2 environment :

@@ -715,6 +715,12 @@ void ZedCamera::getGeneralParams()
       shared_from_this(), "svo.use_svo_timestamps",
       mUseSvoTimestamp, mUseSvoTimestamp,
       " * Use SVO timestamp: ");
+		if (mUseSvoTimestamp) {
+			sl_tools::getParam(
+				shared_from_this(), "svo.publish_svo_clock",
+				mPublishSvoClock, mPublishSvoClock,
+				" * Publish SVO timestamp: ");
+    }
 
     sl_tools::getParam(shared_from_this(), "svo.svo_loop", mSvoLoop, mSvoLoop);
     if (mUseSvoTimestamp) {

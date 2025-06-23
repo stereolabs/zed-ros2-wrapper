@@ -242,6 +242,7 @@ protected:
   bool retrieveDisparity();
   bool retrieveConfidence();
   bool retrieveDepthInfo();
+
   void publishVideoDepth(rclcpp::Time & out_pub_ts);
   void publishLeftAndRgbImages(const rclcpp::Time & t);
   void publishLeftRawAndRgbRawImages(const rclcpp::Time & t);
@@ -257,7 +258,9 @@ protected:
   void publishConfidenceMap(const rclcpp::Time & t);
   void publishDisparityImage(const rclcpp::Time & t);
   void publishDepthInfo(const rclcpp::Time & t);
+
 #ifdef FOUND_ISAAC_ROS_NITROS
+  bool retrieveRgbNitros();
   void publishRgbNitros(const rclcpp::Time & t);
 #endif
 

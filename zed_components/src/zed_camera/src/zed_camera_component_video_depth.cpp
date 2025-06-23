@@ -1150,6 +1150,10 @@ void ZedCamera::retrieveVideoDepth()
   retrieved |= retrieveRightGrayImage();
   retrieved |= retrieveRightRawGrayImage();
 
+#ifdef FOUND_ISAAC_ROS_NITROS
+  retrieved |= retrieveRgbNitros();
+#endif
+
   if (retrieved) {
     DEBUG_STREAM_VD(" *** Video Data retrieved ***");
   }
@@ -1670,6 +1674,22 @@ void ZedCamera::publishDepthInfo(const rclcpp::Time & t)
 }
 
 #ifdef FOUND_ISAAC_ROS_NITROS
+bool ZedCamera::retrieveRgbNitros()
+{
+  if (mRgbNitrosSubCount > 0) {
+    DEBUG_VD(" * Retrieving Left image to GPU memory");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveImage(mMatLeftGpu, sl::VIEW::LEFT, sl::MEM::GPU, mMatResol);
+    if (ok) {
+      mSdkGrabTS = mMatLeftGpu.timestamp;
+      mRgbSubscribed = true;
+      DEBUG_VD(" * Left image retrieved to GPU memory");
+    }
+    return ok;
+  }
+  return false;
+}
+
 void ZedCamera::publishRgbNitros(const rclcpp::Time & t)
 {
 

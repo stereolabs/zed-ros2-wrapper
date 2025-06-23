@@ -26,50 +26,56 @@ namespace stereolabs
 
 void ZedCamera::initVideoDepthPublishers()
 {
-  // ----> Topic names
-  const std::string rgbTopicRoot = "rgb";
-  const std::string rightTopicRoot = "right";
-  const std::string leftTopicRoot = "left";
-  const std::string stereoTopicRoot = "stereo";
-  const std::string img_topic = "/image_rect_color";
-  const std::string img_raw_topic = "/image_raw_color";
-  const std::string img_gray_topic = "_gray/image_rect_gray";
-  const std::string img_raw_gray_topic = "_gray/image_raw_gray";
-  const std::string raw_suffix = "_raw";
+  // ----> Topic name roots and suffixes
+  const std::string rgbRoot = "rgb";
+  const std::string rightRoot = "right";
+  const std::string leftRoot = "left";
+  const std::string stereoRoot = "stereo";
+  const std::string imgRectColor = "/image_rect_color";
+  const std::string imgRawColor = "/image_raw_color";
+  const std::string imgRectGray = "_gray/image_rect_gray";
+  const std::string imgRawGray = "_gray/image_raw_gray";
+  const std::string rawSuffix = "_raw";
 
+  // Helper to build topic names
   auto make_topic =
     [&](const std::string & root, const std::string & suffix, const std::string & type) {
       return mTopicRoot + root + suffix + type;
     };
 
-  std::string left_topic = make_topic(leftTopicRoot, "", img_topic);
-  std::string left_raw_topic = make_topic(leftTopicRoot, raw_suffix, img_raw_topic);
-  std::string right_topic = make_topic(rightTopicRoot, "", img_topic);
-  std::string right_raw_topic = make_topic(rightTopicRoot, raw_suffix, img_raw_topic);
-  std::string rgb_topic = make_topic(rgbTopicRoot, "", img_topic);
-  std::string rgb_raw_topic = make_topic(rgbTopicRoot, raw_suffix, img_raw_topic);
-  std::string stereo_topic = make_topic(stereoTopicRoot, "", img_topic);
-  std::string stereo_raw_topic = make_topic(stereoTopicRoot, raw_suffix, img_raw_topic);
-  std::string left_gray_topic = make_topic(leftTopicRoot, "", img_gray_topic);
-  std::string left_raw_gray_topic = make_topic(leftTopicRoot, raw_suffix, img_raw_gray_topic);
-  std::string right_gray_topic = make_topic(rightTopicRoot, "", img_gray_topic);
-  std::string right_raw_gray_topic = make_topic(rightTopicRoot, raw_suffix, img_raw_gray_topic);
-  std::string rgb_gray_topic = make_topic(rgbTopicRoot, "", img_gray_topic);
-  std::string rgb_raw_gray_topic = make_topic(rgbTopicRoot, raw_suffix, img_raw_gray_topic);
+  // Image topics
+  const std::string left_topic = make_topic(leftRoot, "", imgRectColor);
+  const std::string left_raw_topic = make_topic(leftRoot, rawSuffix, imgRawColor);
+  const std::string right_topic = make_topic(rightRoot, "", imgRectColor);
+  const std::string right_raw_topic = make_topic(rightRoot, rawSuffix, imgRawColor);
+  const std::string rgb_topic = make_topic(rgbRoot, "", imgRectColor);
+  const std::string rgb_raw_topic = make_topic(rgbRoot, rawSuffix, imgRawColor);
+  const std::string stereo_topic = make_topic(stereoRoot, "", imgRectColor);
+  const std::string stereo_raw_topic = make_topic(stereoRoot, rawSuffix, imgRawColor);
+  const std::string left_gray_topic = make_topic(leftRoot, "", imgRectGray);
+  const std::string left_raw_gray_topic = make_topic(leftRoot, rawSuffix, imgRawGray);
+  const std::string right_gray_topic = make_topic(rightRoot, "", imgRectGray);
+  const std::string right_raw_gray_topic = make_topic(rightRoot, rawSuffix, imgRawGray);
+  const std::string rgb_gray_topic = make_topic(rgbRoot, "", imgRectGray);
+  const std::string rgb_raw_gray_topic = make_topic(rgbRoot, rawSuffix, imgRawGray);
 
-  std::string disparity_topic = mTopicRoot + "disparity/disparity_image";
-  std::string depth_topic = mTopicRoot + "depth/depth_registered";
-  std::string depth_info_topic = mTopicRoot + "depth/depth_info";
-  std::string conf_map_topic = mTopicRoot + "confidence/confidence_map";
-  mRoiMaskTopic = mTopicRoot + "roi_mask";
-  std::string pointcloud_topic = mTopicRoot + "point_cloud/cloud_registered";
-
+  // Depth topics
+  const std::string disparity_topic = mTopicRoot + "disparity/disparity_image";
+  const std::string depth_topic = mTopicRoot + "depth/depth_registered";
+  const std::string depth_info_topic = mTopicRoot + "depth/depth_info";
+  const std::string conf_map_topic = mTopicRoot + "confidence/confidence_map";  
+  const std::string pointcloud_topic = mTopicRoot + "point_cloud/cloud_registered";
   if (mOpenniDepthMode) {
-    RCLCPP_INFO_STREAM(get_logger(), "Openni depth mode activated -> Units: mm, Encoding: MONO16");
+    RCLCPP_INFO(get_logger(), "OpenNI depth mode activated -> Units: mm, Encoding: MONO16");
   }
+
+  // ROI mask topic
+  mRoiMaskTopic = mTopicRoot + "roi_mask";
 
   // ----> Camera publishers
   auto qos = mQos.get_rmw_qos_profile();
+
+  // Camera publishers
   mPubRgb = image_transport::create_camera_publisher(this, rgb_topic, qos);
   mPubRgbGray = image_transport::create_camera_publisher(this, rgb_gray_topic, qos);
   mPubRawRgb = image_transport::create_camera_publisher(this, rgb_raw_topic, qos);
@@ -83,10 +89,12 @@ void ZedCamera::initVideoDepthPublishers()
   mPubRawRight = image_transport::create_camera_publisher(this, right_raw_topic, qos);
   mPubRawRightGray = image_transport::create_camera_publisher(this, right_raw_gray_topic, qos);
 
+  // Log helper
   auto log_cam_pub = [&](const auto & pub) {
-      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub.getTopic());
-      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub.getInfoTopic());
-    };
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub.getTopic());
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub.getInfoTopic());
+  };
+
   log_cam_pub(mPubRgb);
   log_cam_pub(mPubRgbGray);
   log_cam_pub(mPubRawRgb);
@@ -100,13 +108,15 @@ void ZedCamera::initVideoDepthPublishers()
   log_cam_pub(mPubRawRight);
   log_cam_pub(mPubRawRightGray);
 
+  // Depth-related publishers
   if (!mDepthDisabled) {
     mPubDepth = image_transport::create_camera_publisher(this, depth_topic, qos);
     log_cam_pub(mPubDepth);
+
     mPubDepthInfo = create_publisher<zed_msgs::msg::DepthInfoStamped>(
-      depth_info_topic, mQos,
-      mPubOpt);
+      depth_info_topic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDepthInfo->get_topic_name());
+
     if (mAutoRoiEnabled || mManualRoiEnabled) {
       mPubRoiMask = image_transport::create_camera_publisher(this, mRoiMaskTopic, qos);
       log_cam_pub(mPubRoiMask);
@@ -121,18 +131,21 @@ void ZedCamera::initVideoDepthPublishers()
     nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name);
 #endif
 
+  // Stereo publishers
   mPubStereo = image_transport::create_publisher(this, stereo_topic, qos);
   mPubRawStereo = image_transport::create_publisher(this, stereo_raw_topic, qos);
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubStereo.getTopic());
   RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawStereo.getTopic());
 
+  // Point cloud and disparity/confidence publishers
   if (!mDepthDisabled) {
     mPubConfMap = create_publisher<sensor_msgs::msg::Image>(conf_map_topic, mQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubConfMap->get_topic_name());
+
     mPubDisparity = create_publisher<stereo_msgs::msg::DisparityImage>(
-      disparity_topic, mQos,
-      mPubOpt);
+      disparity_topic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDisparity->get_topic_name());
+
 #ifndef FOUND_FOXY
     mPubCloud = point_cloud_transport::create_publisher(
       shared_from_this(), pointcloud_topic, qos, mPubOpt);

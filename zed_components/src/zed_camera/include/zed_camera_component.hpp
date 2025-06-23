@@ -24,6 +24,11 @@
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
 
+#ifdef FOUND_ISAAC_ROS_NITROS
+#include "isaac_ros_managed_nitros/managed_nitros_publisher.hpp"
+#include "isaac_ros_nitros_image_type/nitros_image.hpp"
+#endif
+
 namespace stereolabs
 {
 
@@ -62,7 +67,10 @@ protected:
 
   void setTFCoordFrameNames();
   void initPublishers();
+  void initVideoDepthPublishers();
+
   void initSubscribers();
+
   void fillCamInfo(
     const std::shared_ptr<sl::Camera> zed,
     const std::shared_ptr<sensor_msgs::msg::CameraInfo> & leftCamInfoMsg,
@@ -249,6 +257,9 @@ protected:
   void publishConfidenceMap(const rclcpp::Time & t);
   void publishDisparityImage(const rclcpp::Time & t);
   void publishDepthInfo(const rclcpp::Time & t);
+#ifdef FOUND_ISAAC_ROS_NITROS
+  void publishRgbNitros(const rclcpp::Time & t);
+#endif
 
   void checkRgbDepthSync();
   bool checkGrabAndUpdateTimestamp(rclcpp::Time & out_pub_ts);
@@ -710,6 +721,11 @@ private:
 
   image_transport::CameraPublisher mPubRoiMask;
 
+#ifdef FOUND_ISAAC_ROS_NITROS
+  std::shared_ptr<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
+      nvidia::isaac_ros::nitros::NitrosImage>> mNitrosPubRgb;
+#endif
+
 #ifndef FOUND_FOXY
   point_cloud_transport::Publisher mPubCloud;
   point_cloud_transport::Publisher mPubFusedCloud;
@@ -772,11 +788,15 @@ private:
   size_t mDisparitySubCount = 0;
   size_t mDepthInfoSubCount = 0;
 
+  size_t mRgbNitrosSubCount = 0;
+  std::string mTopicRgbNitrosName = "";
+
   sl::Mat mMatLeft, mMatLeftRaw;
   sl::Mat mMatRight, mMatRightRaw;
   sl::Mat mMatLeftGray, mMatLeftRawGray;
   sl::Mat mMatRightGray, mMatRightRawGray;
   sl::Mat mMatDepth, mMatDisp, mMatConf;
+  sl::Mat mMatLeftGpu;
 
   float mMinDepth = 0.0f;
   float mMaxDepth = 0.0f;

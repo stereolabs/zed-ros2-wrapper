@@ -44,27 +44,27 @@ void ZedCamera::initVideoDepthPublishers()
     };
 
   // Image topics
-  const std::string left_topic = make_topic(leftRoot, "", imgRectColor);
-  const std::string left_raw_topic = make_topic(leftRoot, rawSuffix, imgRawColor);
-  const std::string right_topic = make_topic(rightRoot, "", imgRectColor);
-  const std::string right_raw_topic = make_topic(rightRoot, rawSuffix, imgRawColor);
-  const std::string rgb_topic = make_topic(rgbRoot, "", imgRectColor);
-  const std::string rgb_raw_topic = make_topic(rgbRoot, rawSuffix, imgRawColor);
-  const std::string stereo_topic = make_topic(stereoRoot, "", imgRectColor);
-  const std::string stereo_raw_topic = make_topic(stereoRoot, rawSuffix, imgRawColor);
-  const std::string left_gray_topic = make_topic(leftRoot, "", imgRectGray);
-  const std::string left_raw_gray_topic = make_topic(leftRoot, rawSuffix, imgRawGray);
-  const std::string right_gray_topic = make_topic(rightRoot, "", imgRectGray);
-  const std::string right_raw_gray_topic = make_topic(rightRoot, rawSuffix, imgRawGray);
-  const std::string rgb_gray_topic = make_topic(rgbRoot, "", imgRectGray);
-  const std::string rgb_raw_gray_topic = make_topic(rgbRoot, rawSuffix, imgRawGray);
+  mLeftTopic = make_topic(leftRoot, "", imgRectColor);
+  mLeftRawTopic = make_topic(leftRoot, rawSuffix, imgRawColor);
+  mRightTopic = make_topic(rightRoot, "", imgRectColor);
+  mRightRawTopic = make_topic(rightRoot, rawSuffix, imgRawColor);
+  mRgbTopic = make_topic(rgbRoot, "", imgRectColor);
+  mRgbRawTopic = make_topic(rgbRoot, rawSuffix, imgRawColor);
+  mStereoTopic = make_topic(stereoRoot, "", imgRectColor);
+  mStereoRawTopic = make_topic(stereoRoot, rawSuffix, imgRawColor);
+  mLeftGrayTopic = make_topic(leftRoot, "", imgRectGray);
+  mLeftRawGrayTopic = make_topic(leftRoot, rawSuffix, imgRawGray);
+  mRightGrayTopic = make_topic(rightRoot, "", imgRectGray);
+  mRightRawGrayTopic = make_topic(rightRoot, rawSuffix, imgRawGray);
+  mRgbGrayTopic = make_topic(rgbRoot, "", imgRectGray);
+  mRgbRawGrayTopic = make_topic(rgbRoot, rawSuffix, imgRawGray);
 
   // Depth topics
-  const std::string disparity_topic = mTopicRoot + "disparity/disparity_image";
-  const std::string depth_topic = mTopicRoot + "depth/depth_registered";
-  const std::string depth_info_topic = mTopicRoot + "depth/depth_info";
-  const std::string conf_map_topic = mTopicRoot + "confidence/confidence_map";
-  const std::string pointcloud_topic = mTopicRoot + "point_cloud/cloud_registered";
+  mDisparityTopic = mTopicRoot + "disparity/disparity_image";
+  mDepthTopic = mTopicRoot + "depth/depth_registered";
+  mDepthInfoTopic = mTopicRoot + "depth/depth_info";
+  mConfMapTopic = mTopicRoot + "confidence/confidence_map";
+  mPointcloudTopic = mTopicRoot + "point_cloud/cloud_registered";
   if (mOpenniDepthMode) {
     RCLCPP_INFO(get_logger(), "OpenNI depth mode activated -> Units: mm, Encoding: MONO16");
   }
@@ -77,18 +77,18 @@ void ZedCamera::initVideoDepthPublishers()
 
   // Camera publishers
 #ifndef FOUND_ISAAC_ROS_NITROS
-  mPubRgb = image_transport::create_publisher(this, rgb_topic, qos);
-  mPubRgbGray = image_transport::create_publisher(this, rgb_gray_topic, qos);
-  mPubRawRgb = image_transport::create_publisher(this, rgb_raw_topic, qos);
-  mPubRawRgbGray = image_transport::create_publisher(this, rgb_raw_gray_topic, qos);
-  mPubLeft = image_transport::create_publisher(this, left_topic, qos);
-  mPubLeftGray = image_transport::create_publisher(this, left_gray_topic, qos);
-  mPubRawLeft = image_transport::create_publisher(this, left_raw_topic, qos);
-  mPubRawLeftGray = image_transport::create_publisher(this, left_raw_gray_topic, qos);
-  mPubRight = image_transport::create_publisher(this, right_topic, qos);
-  mPubRightGray = image_transport::create_publisher(this, right_gray_topic, qos);
-  mPubRawRight = image_transport::create_publisher(this, right_raw_topic, qos);
-  mPubRawRightGray = image_transport::create_publisher(this, right_raw_gray_topic, qos);
+  mPubRgb = image_transport::create_publisher(this, mRgbTopic, qos);
+  mPubRgbGray = image_transport::create_publisher(this, mRgbGrayTopic, qos);
+  mPubRawRgb = image_transport::create_publisher(this, mRgbRawTopic, qos);
+  mPubRawRgbGray = image_transport::create_publisher(this, mRgbRawGrayTopic, qos);
+  mPubLeft = image_transport::create_publisher(this, mLeftTopic, qos);
+  mPubLeftGray = image_transport::create_publisher(this, mLeftGrayTopic, qos);
+  mPubRawLeft = image_transport::create_publisher(this, mLeftRawTopic, qos);
+  mPubRawLeftGray = image_transport::create_publisher(this, mLeftRawGrayTopic, qos);
+  mPubRight = image_transport::create_publisher(this, mRightTopic, qos);
+  mPubRightGray = image_transport::create_publisher(this, mRightGrayTopic, qos);
+  mPubRawRight = image_transport::create_publisher(this, mRightRawTopic, qos);
+  mPubRawRightGray = image_transport::create_publisher(this, mRightRawGrayTopic, qos);
 
   // Log helper
   auto log_cam_pub = [&](const auto & pub) {
@@ -109,7 +109,7 @@ void ZedCamera::initVideoDepthPublishers()
   log_cam_pub(mPubRawRightGray);
 
   if (!mDepthDisabled) {
-    mPubDepth = image_transport::create_publisher(this, depth_topic, qos);
+    mPubDepth = image_transport::create_publisher(this, mDepthTopic, qos);
     log_cam_pub(mPubDepth);
 
     if (mAutoRoiEnabled || mManualRoiEnabled) {
@@ -119,8 +119,8 @@ void ZedCamera::initVideoDepthPublishers()
   }
 
   // Stereo publishers
-  mPubStereo = image_transport::create_publisher(this, stereo_topic, qos);
-  mPubRawStereo = image_transport::create_publisher(this, stereo_raw_topic, qos);
+  mPubStereo = image_transport::create_publisher(this, mStereoTopic, qos);
+  mPubRawStereo = image_transport::create_publisher(this, mStereoRawTopic, qos);
   log_cam_pub(mPubStereo);
   log_cam_pub(mPubRawStereo);
 #else
@@ -128,47 +128,47 @@ void ZedCamera::initVideoDepthPublishers()
   auto make_nitros_img_pub = [&](const std::string & topic) {
       auto ret = std::make_shared<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
             nvidia::isaac_ros::nitros::NitrosImage>>(
-        this, topic,
-        nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name, {}, mQos);
+        this, topic, nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name,
+        nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic + "/nitros");
       return ret;
     };
 
-  mNitrosPubRgb = make_nitros_img_pub(rgb_topic);
-  mNitrosPubRgbGray = make_nitros_img_pub(rgb_gray_topic);
-  mNitrosPubRawRgb = make_nitros_img_pub(rgb_raw_topic);
-  mNitrosPubRawRgbGray = make_nitros_img_pub(rgb_raw_gray_topic);
-  mNitrosPubLeft = make_nitros_img_pub(left_topic);
-  mNitrosPubLeftGray = make_nitros_img_pub(left_gray_topic);
-  mNitrosPubRawLeft = make_nitros_img_pub(left_raw_topic);
-  mNitrosPubRawLeftGray = make_nitros_img_pub(left_raw_gray_topic);
-  mNitrosPubRight = make_nitros_img_pub(right_topic);
-  mNitrosPubRightGray = make_nitros_img_pub(right_gray_topic);
-  mNitrosPubRawRight = make_nitros_img_pub(right_raw_topic);
-  mNitrosPubRawRightGray = make_nitros_img_pub(right_raw_gray_topic);
+  mNitrosPubRgb = make_nitros_img_pub(mRgbTopic);
+  mNitrosPubRgbGray = make_nitros_img_pub(mRgbGrayTopic);
+  mNitrosPubRawRgb = make_nitros_img_pub(mRgbRawTopic);
+  mNitrosPubRawRgbGray = make_nitros_img_pub(mRgbRawGrayTopic);
+  mNitrosPubLeft = make_nitros_img_pub(mLeftTopic);
+  mNitrosPubLeftGray = make_nitros_img_pub(mLeftGrayTopic);
+  mNitrosPubRawLeft = make_nitros_img_pub(mLeftRawTopic);
+  mNitrosPubRawLeftGray = make_nitros_img_pub(mLeftRawGrayTopic);
+  mNitrosPubRight = make_nitros_img_pub(mRightTopic);
+  mNitrosPubRightGray = make_nitros_img_pub(mRightGrayTopic);
+  mNitrosPubRawRight = make_nitros_img_pub(mRightRawTopic);
+  mNitrosPubRawRightGray = make_nitros_img_pub(mRightRawGrayTopic);
 #endif
 
   // Depth-related publishers
   if (!mDepthDisabled) {
     mPubDepthInfo = create_publisher<zed_msgs::msg::DepthInfoStamped>(
-      depth_info_topic, mQos, mPubOpt);
+      mDepthInfoTopic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDepthInfo->get_topic_name());
 
     // Point cloud and disparity/confidence publishers
-    mPubConfMap = create_publisher<sensor_msgs::msg::Image>(conf_map_topic, mQos);
+    mPubConfMap = create_publisher<sensor_msgs::msg::Image>(mConfMapTopic, mQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubConfMap->get_topic_name());
 
     mPubDisparity = create_publisher<stereo_msgs::msg::DisparityImage>(
-      disparity_topic, mQos, mPubOpt);
+      mDisparityTopic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDisparity->get_topic_name());
 
 #ifndef FOUND_FOXY
     mPubCloud = point_cloud_transport::create_publisher(
-      shared_from_this(), pointcloud_topic, qos, mPubOpt);
+      shared_from_this(), mPointcloudTopic, qos, mPubOpt);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCloud.getTopic());
 #else
-    mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>(pointcloud_topic, mQos, mPubOpt);
+    mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudTopic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCloud->get_topic_name());
 #endif
   }
@@ -591,10 +591,24 @@ bool ZedCamera::areVideoDepthSubscribed()
   mDisparitySubCount = 0;
   mDepthInfoSubCount = 0;
 
-  mRgbNitrosSubCount = 0;
+  mRgbGrayNitrosSubCount = 0;
+  mRgbGrayRawNitrosSubCount = 0;
+  mLeftNitrosSubCount = 0;
+  mLeftRawNitrosSubCount = 0;
+  mLeftGrayNitrosSubCount = 0;
+  mLeftGrayRawNitrosSubCount = 0;
+  mRightNitrosSubCount = 0;
+  mRightRawNitrosSubCount = 0;
+  mRightGrayNitrosSubCount = 0;
+  mRightGrayRawNitrosSubCount = 0;
+  mStereoNitrosSubCount = 0;
+  mStereoRawNitrosSubCount = 0;
+  mDepthNitrosSubCount = 0;
+  mConfMapNitrosSubCount = 0;
+  mDisparityNitrosSubCount = 0;
 
   try {
-#ifndef FOUND_ISAAC_ROS_NITRO
+#ifndef FOUND_ISAAC_ROS_NITROS
     mRgbSubCount = mPubRgb.getNumSubscribers();
     mRgbRawSubCount = mPubRawRgb.getNumSubscribers();
     mRgbGraySubCount = mPubRgbGray.getNumSubscribers();
@@ -614,7 +628,38 @@ bool ZedCamera::areVideoDepthSubscribed()
       mDepthSubCount = mPubDepth.getNumSubscribers();
     }
 #else
-    mRgbNitrosSubCount = count_subscribers(mTopicRgbNitrosName) + count_subscribers(mTopicRgbNitrosName + "/nitros" );
+    mRgbNitrosSubCount = count_subscribers(mRgbTopic) + count_subscribers(mRgbTopic + "/nitros");
+    mRgbRawNitrosSubCount = count_subscribers(mRgbRawTopic) + count_subscribers(
+      mRgbRawTopic + "/nitros");
+    mRgbGrayNitrosSubCount = count_subscribers(mRgbGrayTopic) + count_subscribers(
+      mRgbGrayTopic + "/nitros");
+    mRgbGrayRawNitrosSubCount = count_subscribers(mRgbRawGrayTopic) + count_subscribers(
+      mRgbRawGrayTopic + "/nitros");
+    mLeftNitrosSubCount = count_subscribers(mLeftTopic) + count_subscribers(mLeftTopic + "/nitros");
+    mLeftRawNitrosSubCount = count_subscribers(mLeftRawTopic) + count_subscribers(
+      mLeftRawTopic + "/nitros");
+    mLeftGrayNitrosSubCount = count_subscribers(mLeftGrayTopic) + count_subscribers(
+      mLeftGrayTopic + "/nitros");
+    mLeftGrayRawNitrosSubCount = count_subscribers(mLeftRawGrayTopic) + count_subscribers(
+      mLeftRawGrayTopic + "/nitros");
+    mRightNitrosSubCount = count_subscribers(mRightTopic) + count_subscribers(
+      mRightTopic + "/nitros");
+    mRightRawNitrosSubCount = count_subscribers(mRightRawTopic) + count_subscribers(
+      mRightRawTopic + "/nitros");
+    mRightGrayNitrosSubCount = count_subscribers(mRightGrayTopic) + count_subscribers(
+      mRightGrayTopic + "/nitros");
+    mRightGrayRawNitrosSubCount = count_subscribers(mRightRawGrayTopic) + count_subscribers(
+      mRightRawGrayTopic + "/nitros");
+    mStereoNitrosSubCount = count_subscribers(mStereoTopic) + count_subscribers(
+      mStereoTopic + "/nitros");
+    mStereoRawNitrosSubCount = count_subscribers(mStereoRawTopic) + count_subscribers(
+      mStereoRawTopic + "/nitros");
+    mDepthNitrosSubCount = count_subscribers(mDepthTopic) + count_subscribers(
+      mDepthTopic + "/nitros");
+    mConfMapNitrosSubCount = count_subscribers(mConfMapTopic) + count_subscribers(
+      mConfMapTopic + "/nitros");
+    mDisparityNitrosSubCount = count_subscribers(mDisparityTopic) + count_subscribers(
+      mDisparityTopic + "/nitros");
 #endif
 
     if (!mDepthDisabled) {
@@ -634,7 +679,14 @@ bool ZedCamera::areVideoDepthSubscribed()
          mRightRawSubCount + mRightGraySubCount + mRightGrayRawSubCount +
          mStereoSubCount + mStereoRawSubCount + mDepthSubCount +
          mConfMapSubCount + mDisparitySubCount + mDepthInfoSubCount +
-         mRgbNitrosSubCount) > 0;
+         mRgbGrayNitrosSubCount + mRgbGrayRawNitrosSubCount +
+         mLeftNitrosSubCount + mLeftRawNitrosSubCount +
+         mLeftGrayNitrosSubCount + mLeftGrayRawNitrosSubCount +
+         mRightNitrosSubCount + mRightRawNitrosSubCount +
+         mRightGrayNitrosSubCount + mRightGrayRawNitrosSubCount +
+         mStereoNitrosSubCount + mStereoRawNitrosSubCount +
+         mDepthNitrosSubCount + mConfMapNitrosSubCount +
+         mDisparityNitrosSubCount) > 0;
 }
 
 bool ZedCamera::isDepthRequired()

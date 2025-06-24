@@ -367,6 +367,31 @@ private:
 
   // ----> Topics
   std::string mTopicRoot = "~/";
+
+  // Image Topics
+  std::string mLeftTopic;
+  std::string mLeftRawTopic;
+  std::string mRightTopic;
+  std::string mRightRawTopic;
+  std::string mRgbTopic;
+  std::string mRgbRawTopic;
+  std::string mStereoTopic;
+  std::string mStereoRawTopic;
+  std::string mLeftGrayTopic;
+  std::string mLeftRawGrayTopic;
+  std::string mRightGrayTopic;
+  std::string mRightRawGrayTopic;
+  std::string mRgbGrayTopic;
+  std::string mRgbRawGrayTopic;
+
+  // Depth Topics
+  std::string mDisparityTopic;
+  std::string mDepthTopic;
+  std::string mDepthInfoTopic;
+  std::string mConfMapTopic;
+  std::string mPointcloudTopic;
+
+  // Localization Topics
   std::string mOdomTopic;
   std::string mPoseTopic;
   std::string mPoseStatusTopic;
@@ -852,7 +877,6 @@ private:
   size_t mDepthNitrosSubCount = 0;
   size_t mConfMapNitrosSubCount = 0;
   size_t mDisparityNitrosSubCount = 0;
-  size_t mDepthInfoNitrosSubCount = 0;
 
   sl::Mat mMatLeft, mMatLeftRaw;
   sl::Mat mMatRight, mMatRightRaw;

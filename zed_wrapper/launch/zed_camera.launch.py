@@ -317,7 +317,8 @@ def launch_setup(context, *args, **kwargs):
             plugin='stereolabs::ZedCamera',
             name=node_name_val,
             parameters=node_parameters,
-            extra_arguments=[{'use_intra_process_comms': True}]
+            #extra_arguments=[{'use_intra_process_comms': True}]
+            extra_arguments=[{'use_intra_process_comms': False}]
         )
     else: # 'zedxonegs' or 'zedxone4k')
         zed_wrapper_component = ComposableNode(
@@ -326,7 +327,8 @@ def launch_setup(context, *args, **kwargs):
             plugin='stereolabs::ZedCameraOne',
             name=node_name_val,
             parameters=node_parameters,
-            extra_arguments=[{'use_intra_process_comms': True}]
+            #extra_arguments=[{'use_intra_process_comms': True}]
+            extra_arguments=[{'use_intra_process_comms': False}]
         )
     
     full_container_name = '/' + namespace_val + '/' + container_name_val

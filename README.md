@@ -279,6 +279,18 @@ Dependencies for ISAAC ROS can be installed by running the following command:
 sudo apt install ros-humble-isaac-ros-managed-nitros ros-humble-isaac-ros-nitros-image-type
 ```
 
+### VPI dependency
+
+In case of building errors related to VPI, you may need to install the VPI library.
+
+### Jetson setup for VPI
+
+We recommend to follow the official configuration guide on the ISAAC ROS documentation: [Jetson setup for VPI](https://nvidia-isaac-ros.github.io/getting_started/hardware_setup/compute/jetson_vpi.html).
+
+### Desktop setup for VPI
+
+We recomemend to install the VPI library from the NVIDIA package repository, as described in the [VPI installation guide](https://docs.nvidia.com/vpi/installation.html).
+
 ### Tutorials
 
 A series of tutorials are provided to better understand how to use the ZED nodes in the ROS2 environment :

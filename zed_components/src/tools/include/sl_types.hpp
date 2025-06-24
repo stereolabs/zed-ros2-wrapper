@@ -29,7 +29,6 @@
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <image_transport/camera_publisher.hpp>
 #include <image_transport/image_transport.hpp>
 #include <image_transport/publisher.hpp>
 #include <memory>
@@ -68,6 +67,11 @@
 #include <zed_msgs/srv/set_roi.hpp>
 #include <zed_msgs/srv/start_svo_rec.hpp>
 
+#ifdef FOUND_ISAAC_ROS_NITROS
+  #include "isaac_ros_managed_nitros/managed_nitros_publisher.hpp"
+  #include "isaac_ros_nitros_image_type/nitros_image.hpp"
+#endif
+
 #ifndef FOUND_FOXY
   #include <point_cloud_transport/point_cloud_transport.hpp>
 #endif
@@ -98,7 +102,14 @@ const bool IS_JETSON = false;
 const float NOT_VALID_TEMP = -273.15f;
 
 // ----> Typedefs to simplify declarations
+
+#ifdef FOUND_ISAAC_ROS_NITROS
+typedef std::shared_ptr<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
+      nvidia::isaac_ros::nitros::NitrosImage>> nitrosImgPub;
+#endif
+
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
+typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::CameraInfo>> camInfoPub;
 typedef std::shared_ptr<rclcpp::Publisher<rosgraph_msgs::msg::Clock>> clockPub;
 typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::SvoStatus>>
   svoStatusPub;

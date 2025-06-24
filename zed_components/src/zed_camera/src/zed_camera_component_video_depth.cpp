@@ -63,7 +63,7 @@ void ZedCamera::initVideoDepthPublishers()
   const std::string disparity_topic = mTopicRoot + "disparity/disparity_image";
   const std::string depth_topic = mTopicRoot + "depth/depth_registered";
   const std::string depth_info_topic = mTopicRoot + "depth/depth_info";
-  const std::string conf_map_topic = mTopicRoot + "confidence/confidence_map";  
+  const std::string conf_map_topic = mTopicRoot + "confidence/confidence_map";
   const std::string pointcloud_topic = mTopicRoot + "point_cloud/cloud_registered";
   if (mOpenniDepthMode) {
     RCLCPP_INFO(get_logger(), "OpenNI depth mode activated -> Units: mm, Encoding: MONO16");
@@ -76,24 +76,24 @@ void ZedCamera::initVideoDepthPublishers()
   auto qos = mQos.get_rmw_qos_profile();
 
   // Camera publishers
-  mPubRgb = image_transport::create_camera_publisher(this, rgb_topic, qos);
-  mPubRgbGray = image_transport::create_camera_publisher(this, rgb_gray_topic, qos);
-  mPubRawRgb = image_transport::create_camera_publisher(this, rgb_raw_topic, qos);
-  mPubRawRgbGray = image_transport::create_camera_publisher(this, rgb_raw_gray_topic, qos);
-  mPubLeft = image_transport::create_camera_publisher(this, left_topic, qos);
-  mPubLeftGray = image_transport::create_camera_publisher(this, left_gray_topic, qos);
-  mPubRawLeft = image_transport::create_camera_publisher(this, left_raw_topic, qos);
-  mPubRawLeftGray = image_transport::create_camera_publisher(this, left_raw_gray_topic, qos);
-  mPubRight = image_transport::create_camera_publisher(this, right_topic, qos);
-  mPubRightGray = image_transport::create_camera_publisher(this, right_gray_topic, qos);
-  mPubRawRight = image_transport::create_camera_publisher(this, right_raw_topic, qos);
-  mPubRawRightGray = image_transport::create_camera_publisher(this, right_raw_gray_topic, qos);
+#ifndef FOUND_ISAAC_ROS_NITROS
+  mPubRgb = image_transport::create_publisher(this, rgb_topic, qos);
+  mPubRgbGray = image_transport::create_publisher(this, rgb_gray_topic, qos);
+  mPubRawRgb = image_transport::create_publisher(this, rgb_raw_topic, qos);
+  mPubRawRgbGray = image_transport::create_publisher(this, rgb_raw_gray_topic, qos);
+  mPubLeft = image_transport::create_publisher(this, left_topic, qos);
+  mPubLeftGray = image_transport::create_publisher(this, left_gray_topic, qos);
+  mPubRawLeft = image_transport::create_publisher(this, left_raw_topic, qos);
+  mPubRawLeftGray = image_transport::create_publisher(this, left_raw_gray_topic, qos);
+  mPubRight = image_transport::create_publisher(this, right_topic, qos);
+  mPubRightGray = image_transport::create_publisher(this, right_gray_topic, qos);
+  mPubRawRight = image_transport::create_publisher(this, right_raw_topic, qos);
+  mPubRawRightGray = image_transport::create_publisher(this, right_raw_gray_topic, qos);
 
   // Log helper
   auto log_cam_pub = [&](const auto & pub) {
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub.getTopic());
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub.getInfoTopic());
-  };
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub.getTopic());
+    };
 
   log_cam_pub(mPubRgb);
   log_cam_pub(mPubRgbGray);
@@ -108,37 +108,54 @@ void ZedCamera::initVideoDepthPublishers()
   log_cam_pub(mPubRawRight);
   log_cam_pub(mPubRawRightGray);
 
-  // Depth-related publishers
   if (!mDepthDisabled) {
-    mPubDepth = image_transport::create_camera_publisher(this, depth_topic, qos);
+    mPubDepth = image_transport::create_publisher(this, depth_topic, qos);
     log_cam_pub(mPubDepth);
 
-    mPubDepthInfo = create_publisher<zed_msgs::msg::DepthInfoStamped>(
-      depth_info_topic, mQos, mPubOpt);
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDepthInfo->get_topic_name());
-
     if (mAutoRoiEnabled || mManualRoiEnabled) {
-      mPubRoiMask = image_transport::create_camera_publisher(this, mRoiMaskTopic, qos);
+      mPubRoiMask = image_transport::create_publisher(this, mRoiMaskTopic, qos);
       log_cam_pub(mPubRoiMask);
     }
   }
 
-#ifdef FOUND_ISAAC_ROS_NITROS
-  mTopicRgbNitrosName = rgb_topic + "/nitros";
-  mNitrosPubRgb = std::make_shared<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
-        nvidia::isaac_ros::nitros::NitrosImage>>(
-    this, mTopicRgbNitrosName,
-    nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name);
-#endif
-
   // Stereo publishers
   mPubStereo = image_transport::create_publisher(this, stereo_topic, qos);
   mPubRawStereo = image_transport::create_publisher(this, stereo_raw_topic, qos);
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubStereo.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubRawStereo.getTopic());
+  log_cam_pub(mPubStereo);
+  log_cam_pub(mPubRawStereo);
+#else
+  // Nitros publishers lambda
+  auto make_nitros_img_pub = [&](const std::string & topic) {
+      auto ret = std::make_shared<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
+            nvidia::isaac_ros::nitros::NitrosImage>>(
+        this, topic,
+        nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name, {}, mQos);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic + "/nitros");
+      return ret;
+    };
 
-  // Point cloud and disparity/confidence publishers
+  mNitrosPubRgb = make_nitros_img_pub(rgb_topic);
+  mNitrosPubRgbGray = make_nitros_img_pub(rgb_gray_topic);
+  mNitrosPubRawRgb = make_nitros_img_pub(rgb_raw_topic);
+  mNitrosPubRawRgbGray = make_nitros_img_pub(rgb_raw_gray_topic);
+  mNitrosPubLeft = make_nitros_img_pub(left_topic);
+  mNitrosPubLeftGray = make_nitros_img_pub(left_gray_topic);
+  mNitrosPubRawLeft = make_nitros_img_pub(left_raw_topic);
+  mNitrosPubRawLeftGray = make_nitros_img_pub(left_raw_gray_topic);
+  mNitrosPubRight = make_nitros_img_pub(right_topic);
+  mNitrosPubRightGray = make_nitros_img_pub(right_gray_topic);
+  mNitrosPubRawRight = make_nitros_img_pub(right_raw_topic);
+  mNitrosPubRawRightGray = make_nitros_img_pub(right_raw_gray_topic);
+#endif
+
+  // Depth-related publishers
   if (!mDepthDisabled) {
+    mPubDepthInfo = create_publisher<zed_msgs::msg::DepthInfoStamped>(
+      depth_info_topic, mQos, mPubOpt);
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDepthInfo->get_topic_name());
+
+    // Point cloud and disparity/confidence publishers
     mPubConfMap = create_publisher<sensor_msgs::msg::Image>(conf_map_topic, mQos);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubConfMap->get_topic_name());
 
@@ -577,6 +594,7 @@ bool ZedCamera::areVideoDepthSubscribed()
   mRgbNitrosSubCount = 0;
 
   try {
+#ifndef FOUND_ISAAC_ROS_NITRO
     mRgbSubCount = mPubRgb.getNumSubscribers();
     mRgbRawSubCount = mPubRawRgb.getNumSubscribers();
     mRgbGraySubCount = mPubRgbGray.getNumSubscribers();
@@ -592,12 +610,14 @@ bool ZedCamera::areVideoDepthSubscribed()
     mStereoSubCount = mPubStereo.getNumSubscribers();
     mStereoRawSubCount = mPubRawStereo.getNumSubscribers();
 
-#ifdef FOUND_ISAAC_ROS_NITROS
-    mRgbNitrosSubCount = count_subscribers(mTopicRgbNitrosName);
+    if (!mDepthDisabled) {
+      mDepthSubCount = mPubDepth.getNumSubscribers();
+    }
+#else
+    mRgbNitrosSubCount = count_subscribers(mTopicRgbNitrosName) + count_subscribers(mTopicRgbNitrosName + "/nitros" );
 #endif
 
     if (!mDepthDisabled) {
-      mDepthSubCount = mPubDepth.getNumSubscribers();
       mDepthInfoSubCount = count_subscribers(mPubDepthInfo->get_topic_name());
       mConfMapSubCount = count_subscribers(mPubConfMap->get_topic_name());
       mDisparitySubCount = count_subscribers(mPubDisparity->get_topic_name());

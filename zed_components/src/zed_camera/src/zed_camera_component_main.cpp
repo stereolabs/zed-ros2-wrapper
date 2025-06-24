@@ -102,6 +102,9 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), " * namespace: %s", get_namespace());
   RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
+  RCLCPP_INFO(
+    get_logger(), " * IPC: %s",
+    options.use_intra_process_comms() ? "enabled" : "disabled");
   RCLCPP_INFO(get_logger(), "================================");
 
   const size_t SDK_MAJOR_REQ = 4;

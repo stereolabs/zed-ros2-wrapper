@@ -81,6 +81,7 @@ protected:
   void publishImageWithInfo(
     const sl::Mat & img,
     const image_transport::CameraPublisher & pubImg,
+    const camInfoMsgPtr & camInfoMsg,
     const camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
     const rclcpp::Time & t);
   bool publishSensorsData();

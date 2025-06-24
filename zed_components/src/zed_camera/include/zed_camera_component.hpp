@@ -24,11 +24,6 @@
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
 
-#ifdef FOUND_ISAAC_ROS_NITROS
-#include "isaac_ros_managed_nitros/managed_nitros_publisher.hpp"
-#include "isaac_ros_nitros_image_type/nitros_image.hpp"
-#endif
-
 namespace stereolabs
 {
 
@@ -219,11 +214,22 @@ protected:
   // <---- Thread functions
 
   // ----> Publishing functions
+#ifndef FOUND_ISAAC_ROS_NITROS
   void publishImageWithInfo(
-    sl::Mat & img,
-    image_transport::CameraPublisher & pubImg,
-    camInfoMsgPtr & camInfoMsg, std::string imgFrameId,
-    rclcpp::Time t);
+    const sl::Mat & img,
+    const image_transport::CameraPublisher & pubImg,
+    const camInfoPub & camInfoPub,
+    const camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
+    const rclcpp::Time & t);
+#else
+  void publishImageWithInfo(
+    const sl::Mat & img,
+    const nitrosImgPub & nitrosPubImg,
+    const camInfoPub & camInfoPub,
+    const camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
+    const rclcpp::Time & t);
+#endif
+
   void publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t);
   void publishDisparity(sl::Mat disparity, rclcpp::Time t);
 
@@ -705,28 +711,66 @@ private:
   // ----> Publishers
   clockPub mPubClock;
 
-  image_transport::CameraPublisher mPubRgb;
-  image_transport::CameraPublisher mPubRawRgb;
-  image_transport::CameraPublisher mPubLeft;
-  image_transport::CameraPublisher mPubRawLeft;
-  image_transport::CameraPublisher mPubRight;
-  image_transport::CameraPublisher mPubRawRight;
-  image_transport::CameraPublisher mPubDepth;
+#ifndef FOUND_ISAAC_ROS_NITROS
+  // Image publishers with camera info
+  image_transport::Publisher mPubRgb;
+  image_transport::Publisher mPubRawRgb;
+  image_transport::Publisher mPubLeft;
+  image_transport::Publisher mPubRawLeft;
+  image_transport::Publisher mPubRight;
+  image_transport::Publisher mPubRawRight;
+  image_transport::Publisher mPubDepth;
+  image_transport::Publisher mPubRgbGray;
+  image_transport::Publisher mPubRawRgbGray;
+  image_transport::Publisher mPubLeftGray;
+  image_transport::Publisher mPubRawLeftGray;
+  image_transport::Publisher mPubRightGray;
+  image_transport::Publisher mPubRawRightGray;
+  image_transport::Publisher mPubRoiMask;
+
+  // Image publishers without camera info
   image_transport::Publisher mPubStereo;
   image_transport::Publisher mPubRawStereo;
+#else
+  // Nitros image publishers with camera info
+  nitrosImgPub mNitrosPubRgb;
+  nitrosImgPub mNitrosPubRawRgb;
+  nitrosImgPub mNitrosPubLeft;
+  nitrosImgPub mNitrosPubRawLeft;
+  nitrosImgPub mNitrosPubRight;
+  nitrosImgPub mNitrosPubRawRight;
+  nitrosImgPub mNitrosPubDepth;
+  nitrosImgPub mNitrosPubRgbGray;
+  nitrosImgPub mNitrosPubRawRgbGray;
+  nitrosImgPub mNitrosPubLeftGray;
+  nitrosImgPub mNitrosPubRawLeftGray;
+  nitrosImgPub mNitrosPubRightGray;
+  nitrosImgPub mNitrosPubRawRightGray;
+  nitrosImgPub mNitrosPubRoiMask;
 
-  image_transport::CameraPublisher mPubRgbGray;
-  image_transport::CameraPublisher mPubRawRgbGray;
-  image_transport::CameraPublisher mPubLeftGray;
-  image_transport::CameraPublisher mPubRawLeftGray;
-  image_transport::CameraPublisher mPubRightGray;
-  image_transport::CameraPublisher mPubRawRightGray;
+  // Nitros image publishers without camera info
+  nitrosImgPub mNitrosPubStereo;
+  nitrosImgPub mNitrosPubRawStereo;
+#endif
 
-  image_transport::CameraPublisher mPubRoiMask;
+  // Camera Info publishers
+  camInfoPub mPubRgbCamInfo;
+  camInfoPub mPubRawRgbCamInfo;
+  camInfoPub mPubLeftCamInfo;
+  camInfoPub mPubRawLeftCamInfo;
+  camInfoPub mPubRightCamInfo;
+  camInfoPub mPubRawRightCamInfo;
+  camInfoPub mPubDepthCamInfo;
+  camInfoPub mPubRgbGrayCamInfo;
+  camInfoPub mPubRawRgbGrayCamInfo;
+  camInfoPub mPubLeftGrayCamInfo;
+  camInfoPub mPubRawLeftGrayCamInfo;
+  camInfoPub mPubRightGrayCamInfo;
+  camInfoPub mPubRawRightGrayCamInfo;
+  camInfoPub mPubRoiMaskCamInfo;
 
-#ifdef FOUND_ISAAC_ROS_NITROS
-  std::shared_ptr<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
-      nvidia::isaac_ros::nitros::NitrosImage>> mNitrosPubRgb;
+#ifndef FOUND_ISAAC_ROS_NITROS
+  nitrosImgPub mNitrosPubRgb;
 #endif
 
 #ifndef FOUND_FOXY
@@ -792,7 +836,23 @@ private:
   size_t mDepthInfoSubCount = 0;
 
   size_t mRgbNitrosSubCount = 0;
-  std::string mTopicRgbNitrosName = "";
+  size_t mRgbRawNitrosSubCount = 0;
+  size_t mRgbGrayNitrosSubCount = 0;
+  size_t mRgbGrayRawNitrosSubCount = 0;
+  size_t mLeftNitrosSubCount = 0;
+  size_t mLeftRawNitrosSubCount = 0;
+  size_t mLeftGrayNitrosSubCount = 0;
+  size_t mLeftGrayRawNitrosSubCount = 0;
+  size_t mRightNitrosSubCount = 0;
+  size_t mRightRawNitrosSubCount = 0;
+  size_t mRightGrayNitrosSubCount = 0;
+  size_t mRightGrayRawNitrosSubCount = 0;
+  size_t mStereoNitrosSubCount = 0;
+  size_t mStereoRawNitrosSubCount = 0;
+  size_t mDepthNitrosSubCount = 0;
+  size_t mConfMapNitrosSubCount = 0;
+  size_t mDisparityNitrosSubCount = 0;
+  size_t mDepthInfoNitrosSubCount = 0;
 
   sl::Mat mMatLeft, mMatLeftRaw;
   sl::Mat mMatRight, mMatRightRaw;

@@ -157,6 +157,7 @@ typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> 
 typedef std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>> gnssFixSub;
 typedef std::shared_ptr<rclcpp::Subscription<rosgraph_msgs::msg::Clock>> clockSub;
 
+typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr rebootSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetOdomSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetPosTrkSrvPtr;
 typedef rclcpp::Service<zed_msgs::srv::SetPose>::SharedPtr setPoseSrvPtr;

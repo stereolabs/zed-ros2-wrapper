@@ -290,6 +290,11 @@ void ZedCamera::initServices()
 
   std::string srv_prefix = "~/";
 
+
+  srv_name = srv_prefix + mSrvReboot;
+  mRebootSrv = create_service<std_srvs::srv::Trigger>(
+    srv_name, std::bind(&ZedCamera::callback_reboot, this, _1, _2, _3));
+
   if (!mDepthDisabled) {
     // Reset Odometry
     srv_name = srv_prefix + mSrvResetOdomName;
@@ -3312,6 +3317,29 @@ void ZedCamera::initThreads()
   mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
 }
 
+
+void ZedCamera::guardDataThread() {
+  // Lock reboot mutex to ensure that the camera is not being rebooted
+  std::unique_lock<std::mutex> lock(mRebootMutex);
+
+  // Wait until camera is available
+  mRebootCondVar.wait(lock, [&]() { return !mCameraRebooting; });
+
+  // Mark that this thread is using the camera
+  ++activeUsers;
+}
+
+void ZedCamera::releaseDataThread() {
+  std::lock_guard<std::mutex> lock(mRebootMutex);
+
+  --activeUsers;
+
+  // If reboot thread is waiting and no threads are accessing ZED, notify it
+  if (mCameraRebooting && activeUsers == 0) {
+      mRebootCondVar.notify_all();
+  }
+}
+
 void ZedCamera::startHeartbeatTimer()
 {
   if (mHeartbeatTimer != nullptr) {
@@ -4222,6 +4250,10 @@ void ZedCamera::threadFunc_zedGrab()
   // Infinite grab thread
   while (1) {
     auto t0 = get_clock()->now().nanoseconds();
+
+    // Wait here on camera reboot
+    guardDataThread();
+
     try {
       // ----> Interruption check
       if (!rclcpp::ok()) {
@@ -4615,6 +4647,9 @@ void ZedCamera::threadFunc_zedGrab()
                            << mSvoExpectedPeriod << " sec - Elab time:"
                            << effective_grab_period << " sec");
     }
+
+    // Release camera access for reboot
+    releaseDataThread();
   }
 
   // Stop the heartbeat
@@ -5172,6 +5207,8 @@ void ZedCamera::threadFunc_pubSensorsData()
   // <---- Advanced thread settings
 
   while (1) {
+    // Wait here on camera reboot
+    guardDataThread();
     try {
       if (!rclcpp::ok()) {
         DEBUG_STREAM_SENS("Ctrl+C received: stopping sensors thread");
@@ -5208,6 +5245,9 @@ void ZedCamera::threadFunc_pubSensorsData()
             << sleep_usec << " µsec");
         rclcpp::sleep_for(
           std::chrono::microseconds(sleep_usec)); // Avoid busy-waiting
+
+        // Release camera access
+        releaseDataThread();
         continue;
       }
 
@@ -5233,8 +5273,14 @@ void ZedCamera::threadFunc_pubSensorsData()
     } catch (...) {
       rcutils_reset_error();
       DEBUG_STREAM_COMM("threadFunc_pubSensorsData: Generic exception.");
+
+      // Release camera access
+      releaseDataThread();
       continue;
     }
+
+    // Release camera access
+    releaseDataThread();
   }
 
   DEBUG_STREAM_SENS("Sensors thread finished");
@@ -6491,6 +6537,130 @@ void ZedCamera::callback_pubPaths()
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
+}
+
+void ZedCamera::callback_reboot(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+  std::shared_ptr<std_srvs::srv::Trigger_Response> res)
+{
+  (void)request_header;
+  (void)req;
+
+  RCLCPP_INFO(get_logger(), "** Reboot service called **");
+
+  if (mZed == nullptr || !mZed->isOpened()) {
+    RCLCPP_ERROR(get_logger(), "ZED Camera not initialized");
+    res->message = "ZED Camera not initialized";
+    res->success = false;
+    return;
+  }
+
+  // Set camera as unavailable
+  {
+      std::lock_guard<std::mutex> lock(mRebootMutex);
+      mCameraRebooting = true;
+      std::cout << "Locked mutex for camera rebooting" << std::endl;
+  }
+
+  // Wait for all threads to stop using camera
+  {
+      std::unique_lock<std::mutex> lock(mRebootMutex);
+      std::cout << "Waiting for all threads to stop using camera" << std::endl;
+      mRebootCondVar.wait(lock, [&]() { return activeUsers == 0; });
+  }
+
+  auto cam_info = mZed->getCameraInformation();
+
+  std::cout << "All threads stopped using camera" << std::endl;
+
+  std::cout << "Closing camera" << std::endl;
+  mZed->close();
+  std::cout << "Camera closed" << std::endl;
+
+
+  std::cout << "Rebooting camera with serial number: "
+            << cam_info.serial_number << std::endl;
+  auto reboot_error = sl::Camera::reboot(cam_info.serial_number);
+  if (reboot_error != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_ERROR(
+      get_logger(),
+      "Reboot failed: %s", sl::toString(reboot_error).c_str());
+    res->message = "Reboot failed";
+    res->success = false;
+    return;
+  }
+  std::cout << "Camera rebooted" << std::endl;
+
+  rclcpp::sleep_for(500ms);
+
+  sl_tools::StopWatch connectTimer(get_clock());
+  while (1) {
+    mConnStatus = mZed->open(mInitParams);
+
+    if (mConnStatus == sl::ERROR_CODE::SUCCESS) {
+      DEBUG_STREAM_COMM("Opening successfull");
+      mUptimer.tic(); // Sets the beginning of the camera connection time
+      break;
+    }
+
+    if (mConnStatus == sl::ERROR_CODE::INVALID_CALIBRATION_FILE) {
+      if (mOpencvCalibFile.empty()) {
+        RCLCPP_ERROR_STREAM(
+          get_logger(), "Calibration file error: "
+            << sl::toVerbose(mConnStatus));
+      } else {
+        RCLCPP_ERROR_STREAM(
+          get_logger(),
+          "If you are using a custom OpenCV calibration file, please check "
+          "the correctness of the path of the calibration file "
+          "in the parameter 'general.optional_opencv_calibration_file': '"
+            << mOpencvCalibFile << "'.");
+        RCLCPP_ERROR(
+          get_logger(),
+          "If the file exists, it may contain invalid information.");
+      }
+      res->message = "Invalid calibration file";
+      res->success = false;
+      return;
+    }
+
+    RCLCPP_WARN(
+      get_logger(), "Error opening camera: %s",
+      sl::toString(mConnStatus).c_str());
+    if (mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE &&
+      sl_tools::isZEDM(mCamUserModel))
+    {
+      RCLCPP_INFO(
+        get_logger(),
+        "Try to flip the USB3 Type-C connector and verify the USB3 "
+        "connection");
+    } else {
+      RCLCPP_INFO(get_logger(), "Please verify the camera connection");
+    }
+
+    if (connectTimer.toc() > mMaxReconnectTemp * mCamTimeoutSec) {
+      RCLCPP_ERROR(get_logger(), "Camera detection timeout");
+      res->message = "Camera detection timeout";
+      res->success = false;
+      return;
+    }
+
+    mDiagUpdater.force_update();
+
+    rclcpp::sleep_for(std::chrono::seconds(mCamTimeoutSec));
+  }
+
+  res->message = "Rebooted ZED Camera";
+  res->success = true;
+
+  // Mark camera as available again
+  {
+      std::lock_guard<std::mutex> lock(mRebootMutex);
+      mCameraRebooting = false;
+      std::cout << "Unlocked mutex for camera rebooting" << std::endl;
+  }
+  mRebootCondVar.notify_all();
 }
 
 void ZedCamera::callback_resetOdometry(

@@ -41,6 +41,8 @@ protected:
   void initParameters();
   void initServices();
   void initThreads();
+  void guardDataThread();
+  void releaseDataThread();
 
   void close();
 
@@ -116,6 +118,7 @@ protected:
   // <---- Dynamic Parameters Handlers
 
   // ----> Callbacks
+
   void callback_pubFusedPc();
   void callback_pubPaths();
   void callback_pubTemp();
@@ -125,6 +128,11 @@ protected:
     std::vector<rclcpp::Parameter> parameters);
   void callback_updateDiagnostic(
     diagnostic_updater::DiagnosticStatusWrapper & stat);
+
+  void callback_reboot(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
 
   void callback_resetOdometry(
     const std::shared_ptr<rmw_request_id_t> request_header,
@@ -825,6 +833,10 @@ private:
   std::mutex mVdMutex;
   std::condition_variable mVdDataReadyCondVar;
   std::atomic_bool mVdDataReady;
+  bool mCameraRebooting = false;
+  int activeUsers = 0;
+  std::mutex mRebootMutex;  // Mutex to protect camera rebooting
+  std::condition_variable mRebootCondVar;  // Condition variable to wait for camera
   // <---- Thread Sync
 
   // ----> Status Flags
@@ -962,6 +974,7 @@ private:
   // <---- SVO Recording parameters
 
   // ----> Services
+  rebootSrvPtr mRebootSrv;
   resetOdomSrvPtr mResetOdomSrv;
   resetPosTrkSrvPtr mResetPosTrkSrv;
   setPoseSrvPtr mSetPoseSrv;
@@ -997,6 +1010,7 @@ private:
   const std::string mSrvResetRoiName = "reset_roi";
   const std::string mSrvToLlName = "toLL";  // Convert from `map` to `Lat Long`
   const std::string mSrvFromLlName = "fromLL";  // Convert from `Lat Long` to `map`
+  const std::string mSrvReboot = "reboot";
   // <---- Services names
 
   // ----> SVO v2

@@ -72,6 +72,37 @@ void ZedCamera::initVideoDepthPublishers()
   // ROI mask topic
   mRoiMaskTopic = mTopicRoot + "roi_mask";
 
+  // ----> Camera Info publishers
+  mPubRgbCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mRgbTopic + "/camera_info", mQos);
+  mPubRawRgbCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mRgbRawTopic + "/camera_info", mQos);
+  mPubLeftCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mLeftTopic + "/camera_info", mQos);
+  mPubRawLeftCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mLeftRawTopic + "/camera_info", mQos);
+  mPubRightCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mRightTopic + "/camera_info", mQos);
+  mPubRawRightCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mRightRawTopic + "/camera_info", mQos);
+  mPubDepthCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mDepthTopic + "/camera_info", mQos);
+  mPubRgbGrayCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mRgbGrayTopic + "/camera_info", mQos);
+  mPubRawRgbGrayCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mRgbRawGrayTopic + "/camera_info", mQos);
+  mPubLeftGrayCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mLeftGrayTopic + "/camera_info", mQos);
+  mPubRawLeftGrayCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mLeftRawGrayTopic + "/camera_info", mQos);
+  mPubRightGrayCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mRightGrayTopic + "/camera_info", mQos);
+  mPubRawRightGrayCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mRightRawGrayTopic + "/camera_info", mQos);
+  mPubRoiMaskCamInfo = create_publisher<sensor_msgs::msg::CameraInfo>(
+    mRoiMaskTopic + "/camera_info", mQos);
+  // <---- Camera Info publishers
+
   // ----> Camera publishers
   auto qos = mQos.get_rmw_qos_profile();
 
@@ -405,9 +436,9 @@ void ZedCamera::getDepthParams()
 }
 
 void ZedCamera::fillCamInfo(
-  const std::shared_ptr<sl::Camera> zed,
-  const std::shared_ptr<sensor_msgs::msg::CameraInfo> & leftCamInfoMsg,
-  const std::shared_ptr<sensor_msgs::msg::CameraInfo> & rightCamInfoMsg,
+  const std::shared_ptr<sl::Camera> & zed,
+  const sensor_msgs::msg::CameraInfo::SharedPtr & leftCamInfoMsg,
+  const sensor_msgs::msg::CameraInfo::SharedPtr & rightCamInfoMsg,
   const std::string & leftFrameId, const std::string & rightFrameId,
   bool rawParam /*= false*/)
 {
@@ -1560,15 +1591,15 @@ void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
   if (mLeftSubCount > 0) {
     DEBUG_STREAM_VD(" * mLeftSubCount: " << mLeftSubCount);
     publishImageWithInfo(
-      mMatLeft, mPubLeft, mLeftCamInfoMsg,
+      mMatLeft, mPubLeft, mPubLeftCamInfo, mLeftCamInfoMsg,
       mLeftCamOptFrameId, t);
   }
 
   if (mRgbSubCount > 0) {
     DEBUG_STREAM_VD(" * mRgbSubCount: " << mRgbSubCount);
     publishImageWithInfo(
-      mMatLeft, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId,
-      t);
+      mMatLeft, mPubRgb, mPubRgbCamInfo, mLeftCamInfoMsg,
+      mLeftCamOptFrameId, t);
   }
 }
 
@@ -1577,14 +1608,14 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
   if (mLeftRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mLeftRawSubCount: " << mLeftRawSubCount);
     publishImageWithInfo(
-      mMatLeftRaw, mPubRawLeft, mLeftCamInfoRawMsg,
-      mLeftCamOptFrameId, t);
+      mMatLeftRaw, mPubRawLeft, mPubRawLeftCamInfo,
+      mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
   }
   if (mRgbRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mRgbRawSubCount: " << mRgbRawSubCount);
     publishImageWithInfo(
-      mMatLeftRaw, mPubRawRgb, mRgbCamInfoRawMsg,
-      mDepthOptFrameId, t);
+      mMatLeftRaw, mPubRawRgb, mPubRawRgbCamInfo,
+      mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
   }
 }
 
@@ -1593,14 +1624,14 @@ void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
   if (mLeftGraySubCount > 0) {
     DEBUG_STREAM_VD(" * mLeftGraySubCount: " << mLeftGraySubCount);
     publishImageWithInfo(
-      mMatLeftGray, mPubLeftGray, mLeftCamInfoMsg,
-      mLeftCamOptFrameId, t);
+      mMatLeftGray, mPubLeftGray, mPubLeftGrayCamInfo,
+      mLeftCamInfoMsg, mLeftCamOptFrameId, t);
   }
   if (mRgbGraySubCount > 0) {
     DEBUG_STREAM_VD(" * mRgbGraySubCount: " << mRgbGraySubCount);
     publishImageWithInfo(
-      mMatLeftGray, mPubRgbGray, mRgbCamInfoMsg,
-      mDepthOptFrameId, t);
+      mMatLeftGray, mPubRgbGray, mPubRgbGrayCamInfo,
+      mLeftCamInfoMsg, mLeftCamOptFrameId, t);
   }
 }
 
@@ -1609,14 +1640,15 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
   if (mLeftGrayRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mLeftGrayRawSubCount: " << mLeftGrayRawSubCount);
     publishImageWithInfo(
-      mMatLeftRawGray, mPubRawLeftGray, mLeftCamInfoRawMsg,
+      mMatLeftRawGray, mPubRawLeftGray,
+      mPubRawLeftGrayCamInfo, mLeftCamInfoRawMsg,
       mLeftCamOptFrameId, t);
   }
   if (mRgbGrayRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mRgbGrayRawSubCount: " << mRgbGrayRawSubCount);
     publishImageWithInfo(
-      mMatLeftRawGray, mPubRawRgbGray, mRgbCamInfoRawMsg,
-      mDepthOptFrameId, t);
+      mMatLeftRawGray, mPubRawRgbGray, mPubRawRgbGrayCamInfo,
+      mLeftCamInfoRawMsg, mDepthOptFrameId, t);
   }
 }
 
@@ -1625,8 +1657,8 @@ void ZedCamera::publishRightImages(const rclcpp::Time & t)
   if (mRightSubCount > 0) {
     DEBUG_STREAM_VD(" * mRightSubCount: " << mRightSubCount);
     publishImageWithInfo(
-      mMatRight, mPubRight, mRightCamInfoMsg,
-      mRightCamOptFrameId, t);
+      mMatRight, mPubRight, mPubRightCamInfo,
+      mRightCamInfoMsg, mRightCamOptFrameId, t);
   }
 }
 
@@ -1635,8 +1667,8 @@ void ZedCamera::publishRightRawImages(const rclcpp::Time & t)
   if (mRightRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mRightRawSubCount: " << mRightRawSubCount);
     publishImageWithInfo(
-      mMatRightRaw, mPubRawRight, mRightCamInfoRawMsg,
-      mRightCamOptFrameId, t);
+      mMatRightRaw, mPubRawRight, mPubRawRightCamInfo,
+      mRightCamInfoRawMsg, mRightCamOptFrameId, t);
   }
 }
 
@@ -1645,8 +1677,8 @@ void ZedCamera::publishRightGrayImages(const rclcpp::Time & t)
   if (mRightGraySubCount > 0) {
     DEBUG_STREAM_VD(" * mRightGraySubCount: " << mRightGraySubCount);
     publishImageWithInfo(
-      mMatRightGray, mPubRightGray, mRightCamInfoMsg,
-      mRightCamOptFrameId, t);
+      mMatRightGray, mPubRightGray, mPubRightGrayCamInfo,
+      mRightCamInfoMsg, mRightCamOptFrameId, t);
   }
 }
 
@@ -1656,7 +1688,8 @@ void ZedCamera::publishRightRawGrayImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRightGrayRawSubCount: " << mRightGrayRawSubCount);
     publishImageWithInfo(
       mMatRightRawGray, mPubRawRightGray,
-      mRightCamInfoRawMsg, mRightCamOptFrameId, t);
+      mPubRawRightGrayCamInfo, mRightCamInfoRawMsg,
+      mRightCamOptFrameId, t);
   }
 }
 
@@ -1768,17 +1801,32 @@ void ZedCamera::publishRgbNitros(const rclcpp::Time & t)
 }
 #endif
 
-void ZedCamera::publishImageWithInfo(
-  sl::Mat & img,
-  image_transport::CameraPublisher & pubImg,
+void ZedCamera::publishCameraInfo(
+  const camInfoPub & camInfoPub,
   camInfoMsgPtr & camInfoMsg,
-  std::string imgFrameId, rclcpp::Time t)
+  const rclcpp::Time & t)
+{
+  camInfoMsg->header.stamp = t;
+  DEBUG_STREAM_VD(
+    " * Publishing Camera Info message: " << t.nanoseconds()
+                                          << " nsec");
+
+  camInfoPub->publish(*camInfoMsg);
+}
+
+void ZedCamera::publishImageWithInfo(
+  const sl::Mat & img,
+  const image_transport::Publisher & pubImg,
+  const camInfoPub & camInfoPub,
+  camInfoMsgPtr & camInfoMsg,
+  const std::string & imgFrameId,
+  const rclcpp::Time & t)
 {
   auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
-  camInfoMsg->header.stamp = t;
   DEBUG_STREAM_VD(" * Publishing IMAGE message: " << t.nanoseconds() << " nsec");
   try {
-    pubImg.publish(std::move(image), camInfoMsg);
+    pubImg.publish(std::move(image));
+    publishCameraInfo(camInfoPub, camInfoMsg, t);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
   } catch (...) {
@@ -1788,7 +1836,7 @@ void ZedCamera::publishImageWithInfo(
 
 void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 {
-  mDepthCamInfoMsg->header.stamp = t;
+  mLeftCamInfoMsg->header.stamp = t;
 
   if (!mOpenniDepthMode) {
     auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t);
@@ -1796,7 +1844,8 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
       " * Publishing DEPTH message: " << t.nanoseconds()
                                       << " nsec");
     try {
-      mPubDepth.publish(std::move(depth_img), mDepthCamInfoMsg);
+      mPubDepth.publish(std::move(depth_img));
+      publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
     } catch (...) {
@@ -1834,7 +1883,8 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 
   DEBUG_STREAM_VD(" * Publishing OPENNI DEPTH message");
   try {
-    mPubDepth.publish(std::move(openniDepthMsg), mDepthCamInfoMsg);
+    mPubDepth.publish(std::move(openniDepthMsg));
+    publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
   } catch (...) {

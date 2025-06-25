@@ -67,9 +67,9 @@ protected:
   void initSubscribers();
 
   void fillCamInfo(
-    const std::shared_ptr<sl::Camera> zed,
-    const std::shared_ptr<sensor_msgs::msg::CameraInfo> & leftCamInfoMsg,
-    const std::shared_ptr<sensor_msgs::msg::CameraInfo> & rightCamInfoMsg,
+    const std::shared_ptr<sl::Camera> & zed,
+    const sensor_msgs::msg::CameraInfo::SharedPtr & leftCamInfoMsg,
+    const sensor_msgs::msg::CameraInfo::SharedPtr & rightCamInfoMsg,
     const std::string & leftFrameId, const std::string & rightFrameId,
     bool rawParam = false);
 
@@ -217,9 +217,10 @@ protected:
 #ifndef FOUND_ISAAC_ROS_NITROS
   void publishImageWithInfo(
     const sl::Mat & img,
-    const image_transport::CameraPublisher & pubImg,
+    const image_transport::Publisher & pubImg,
     const camInfoPub & camInfoPub,
-    const camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
+    camInfoMsgPtr & camInfoMsg,
+    const std::string & imgFrameId,
     const rclcpp::Time & t);
 #else
   void publishImageWithInfo(
@@ -229,6 +230,9 @@ protected:
     const camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
     const rclcpp::Time & t);
 #endif
+  void publishCameraInfo(
+    const camInfoPub & camInfoPub,
+    camInfoMsgPtr & camInfoMsg, const rclcpp::Time & t);
 
   void publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t);
   void publishDisparity(sl::Mat disparity, rclcpp::Time t);
@@ -638,19 +642,9 @@ private:
   // <---- QoS
 
   // ----> Frame IDs
-  std::string mRgbFrameId;
-  std::string mRgbOptFrameId;
-
   std::string mDepthFrameId;
   std::string mDepthOptFrameId;
 
-  std::string mDisparityFrameId;
-  std::string mDisparityOptFrameId;
-
-  std::string mConfidenceFrameId;
-  std::string mConfidenceOptFrameId;
-
-  std::string mCloudFrameId;
   std::string mPointCloudFrameId;
 
   std::string mUtmFrameId = "utm";
@@ -724,13 +718,10 @@ private:
 
   // ----> Messages (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
   // Camera infos
-  camInfoMsgPtr mRgbCamInfoMsg;
   camInfoMsgPtr mLeftCamInfoMsg;
   camInfoMsgPtr mRightCamInfoMsg;
-  camInfoMsgPtr mRgbCamInfoRawMsg;
   camInfoMsgPtr mLeftCamInfoRawMsg;
   camInfoMsgPtr mRightCamInfoRawMsg;
-  camInfoMsgPtr mDepthCamInfoMsg;
   // <---- Messages
 
   // ----> Publishers
@@ -793,10 +784,6 @@ private:
   camInfoPub mPubRightGrayCamInfo;
   camInfoPub mPubRawRightGrayCamInfo;
   camInfoPub mPubRoiMaskCamInfo;
-
-#ifndef FOUND_ISAAC_ROS_NITROS
-  nitrosImgPub mNitrosPubRgb;
-#endif
 
 #ifndef FOUND_FOXY
   point_cloud_transport::Publisher mPubCloud;

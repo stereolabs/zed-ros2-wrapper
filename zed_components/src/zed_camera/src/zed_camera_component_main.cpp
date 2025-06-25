@@ -1740,15 +1740,6 @@ void ZedCamera::setTFCoordFrameNames()
   mDepthOptFrameId = mLeftCamOptFrameId;
   mPointCloudFrameId = mDepthFrameId;
 
-  // Note: Depth image frame id must match color image frame id
-  mCloudFrameId = mDepthOptFrameId;
-  mRgbFrameId = mDepthFrameId;
-  mRgbOptFrameId = mDepthOptFrameId;
-  mDisparityFrameId = mDepthFrameId;
-  mDisparityOptFrameId = mDepthOptFrameId;
-  mConfidenceFrameId = mDepthFrameId;
-  mConfidenceOptFrameId = mDepthOptFrameId;
-
   // Print TF frames
   RCLCPP_INFO_STREAM(get_logger(), "=== TF FRAMES ===");
   RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
@@ -1759,8 +1750,6 @@ void ZedCamera::setTFCoordFrameNames()
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Left Optical\t\t-> " << mLeftCamOptFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * RGB\t\t\t-> " << mRgbFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * RGB Optical\t\t-> " << mRgbOptFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Right\t\t\t-> " << mRightCamFrameId);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -1770,19 +1759,7 @@ void ZedCamera::setTFCoordFrameNames()
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Depth Optical\t\t-> " << mDepthOptFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * Point Cloud\t\t-> " << mCloudFrameId);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Disparity\t\t-> " << mDisparityFrameId);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Disparity Optical\t-> " << mDisparityOptFrameId);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Confidence\t\t-> " << mConfidenceFrameId);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Confidence Optical\t-> " << mConfidenceOptFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Point Cloud\t\t-> " << mPointCloudFrameId);
   }
 
   if (!sl_tools::isZED(mCamRealModel)) {
@@ -2884,13 +2861,11 @@ bool ZedCamera::startCamera()
   // <----> Check default camera settings
 
   // ----> Camera Info messages
-  mRgbCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-  mRgbCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   mLeftCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   mLeftCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   mRightCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   mRightCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-  mDepthCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+  mLeftCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
 
   setTFCoordFrameNames();  // Requires mZedRealCamModel available only after
                            // camera opening
@@ -2901,9 +2876,6 @@ bool ZedCamera::startCamera()
   fillCamInfo(
     mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId,
     mRightCamOptFrameId, true);
-  mRgbCamInfoMsg = mLeftCamInfoMsg;
-  mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
-  mDepthCamInfoMsg = mLeftCamInfoMsg;
   // <---- Camera Info messages
 
   initPublishers();  // Requires mZedRealCamModel available only after camera
@@ -7857,7 +7829,7 @@ void ZedCamera::callback_setRoi(
       mManualRoiEnabled = false;
 
       if (mPubRoiMask.getTopic().empty()) {
-        mPubRoiMask = image_transport::create_camera_publisher(
+        mPubRoiMask = image_transport::create_publisher(
           this, mRoiMaskTopic, mQos.get_rmw_qos_profile());
         RCLCPP_INFO_STREAM(
           get_logger(),
@@ -8080,7 +8052,7 @@ void ZedCamera::processRtRoi(rclcpp::Time ts)
 
       DEBUG_ROI("Publish ROI Mask");
       publishImageWithInfo(
-        roi_mask, mPubRoiMask, mLeftCamInfoMsg,
+        roi_mask, mPubRoiMask, mPubRoiMaskCamInfo, mLeftCamInfoMsg,
         mLeftCamOptFrameId, ts);
     }
   }

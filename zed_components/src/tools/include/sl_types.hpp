@@ -109,64 +109,45 @@ typedef std::shared_ptr<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
 #endif
 
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::CameraInfo>> camInfoPub;
-typedef std::shared_ptr<rclcpp::Publisher<rosgraph_msgs::msg::Clock>> clockPub;
-typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::SvoStatus>>
-  svoStatusPub;
-typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::HealthStatusStamped>>
-  healthStatusPub;
-typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::Heartbeat>>
-  heartbeatStatusPub;
 
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> imagePub;
-typedef std::shared_ptr<rclcpp::Publisher<stereo_msgs::msg::DisparityImage>>
-  disparityPub;
+typedef rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr camInfoPub;
+typedef rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clockPub;
+typedef rclcpp::Publisher<zed_msgs::msg::SvoStatus>::SharedPtr svoStatusPub;
+typedef rclcpp::Publisher<zed_msgs::msg::HealthStatusStamped>::SharedPtr healthStatusPub;
+typedef rclcpp::Publisher<zed_msgs::msg::Heartbeat>::SharedPtr heartbeatStatusPub;
 
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>>
-  pointcloudPub;
+typedef rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr imagePub;
+typedef rclcpp::Publisher<stereo_msgs::msg::DisparityImage>::SharedPtr disparityPub;
 
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Imu>> imuPub;
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::MagneticField>>
-  magPub;
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::FluidPressure>>
-  pressPub;
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Temperature>>
-  tempPub;
+typedef rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloudPub;
 
-typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>>
-  posePub;
-typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::PosTrackStatus>>
-  poseStatusPub;
-typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::GnssFusionStatus>>
-  gnssFusionStatusPub;
-typedef std::shared_ptr<
-    rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>>
-  poseCovPub;
-typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::TransformStamped>>
-  transfPub;
-typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odomPub;
-typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
+typedef rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imuPub;
+typedef rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr magPub;
+typedef rclcpp::Publisher<sensor_msgs::msg::FluidPressure>::SharedPtr pressPub;
+typedef rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr tempPub;
 
-typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::ObjectsStamped>>
-  objPub;
-typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::DepthInfoStamped>>
-  depthInfoPub;
+typedef rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr posePub;
+typedef rclcpp::Publisher<zed_msgs::msg::PosTrackStatus>::SharedPtr poseStatusPub;
+typedef rclcpp::Publisher<zed_msgs::msg::GnssFusionStatus>::SharedPtr gnssFusionStatusPub;
+typedef rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr poseCovPub;
+typedef rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr transfPub;
+typedef rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odomPub;
+typedef rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pathPub;
 
-typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::PlaneStamped>>
-  planePub;
-typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>>
-  markerPub;
+typedef rclcpp::Publisher<zed_msgs::msg::ObjectsStamped>::SharedPtr objPub;
+typedef rclcpp::Publisher<zed_msgs::msg::DepthInfoStamped>::SharedPtr depthInfoPub;
 
-typedef std::shared_ptr<rclcpp::Publisher<geographic_msgs::msg::GeoPoseStamped>>
-  geoPosePub;
-typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::NavSatFix>>
-  gnssFixPub;
+typedef rclcpp::Publisher<zed_msgs::msg::PlaneStamped>::SharedPtr planePub;
+typedef rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr markerPub;
 
-typedef std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Bool>> healthPub;
+typedef rclcpp::Publisher<geographic_msgs::msg::GeoPoseStamped>::SharedPtr geoPosePub;
+typedef rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr gnssFixPub;
 
-typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> clickedPtSub;
-typedef std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>> gnssFixSub;
-typedef std::shared_ptr<rclcpp::Subscription<rosgraph_msgs::msg::Clock>> clockSub;
+typedef rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr healthPub;
+
+typedef rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr clickedPtSub;
+typedef rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnssFixSub;
+typedef rclcpp::Subscription<rosgraph_msgs::msg::Clock>::SharedPtr clockSub;
 
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetOdomSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetPosTrkSrvPtr;
@@ -175,8 +156,7 @@ typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableObjDetPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableBodyTrkPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;
 
-typedef rclcpp::Service<zed_msgs::srv::StartSvoRec>::SharedPtr
-  startSvoRecSrvPtr;
+typedef rclcpp::Service<zed_msgs::srv::StartSvoRec>::SharedPtr startSvoRecSrvPtr;
 typedef rclcpp::Service<zed_msgs::srv::SetROI>::SharedPtr setRoiSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoSrvPtr;

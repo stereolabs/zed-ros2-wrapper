@@ -1968,8 +1968,8 @@ void ZedCamera::initPublishers()
 #endif
     }
 
-    std::string marker_topic = "plane_marker";
-    std::string plane_topic = "plane";
+    std::string marker_topic = mTopicRoot + "plane_marker";
+    std::string plane_topic = mTopicRoot + "plane";
     // Rviz markers publisher
     mPubMarker = create_publisher<visualization_msgs::msg::Marker>(
       marker_topic, mQos, mPubOpt);

@@ -735,7 +735,6 @@ private:
   image_transport::Publisher mPubRawLeft;
   image_transport::Publisher mPubRight;
   image_transport::Publisher mPubRawRight;
-  image_transport::Publisher mPubDepth;
   image_transport::Publisher mPubRgbGray;
   image_transport::Publisher mPubRawRgbGray;
   image_transport::Publisher mPubLeftGray;
@@ -743,6 +742,8 @@ private:
   image_transport::Publisher mPubRightGray;
   image_transport::Publisher mPubRawRightGray;
   image_transport::Publisher mPubRoiMask;
+  image_transport::Publisher mPubDepth;
+  image_transport::Publisher mPubConfMap;
 
   // Image publishers without camera info
   image_transport::Publisher mPubStereo;
@@ -776,7 +777,6 @@ private:
   camInfoPub mPubRawLeftCamInfo;
   camInfoPub mPubRightCamInfo;
   camInfoPub mPubRawRightCamInfo;
-  camInfoPub mPubDepthCamInfo;
   camInfoPub mPubRgbGrayCamInfo;
   camInfoPub mPubRawRgbGrayCamInfo;
   camInfoPub mPubLeftGrayCamInfo;
@@ -784,6 +784,8 @@ private:
   camInfoPub mPubRightGrayCamInfo;
   camInfoPub mPubRawRightGrayCamInfo;
   camInfoPub mPubRoiMaskCamInfo;
+  camInfoPub mPubDepthCamInfo;
+  camInfoPub mPubConfMapCamInfo;
 
 #ifndef FOUND_FOXY
   point_cloud_transport::Publisher mPubCloud;
@@ -796,7 +798,6 @@ private:
   svoStatusPub mPubSvoStatus;
   healthStatusPub mPubHealthStatus;
   heartbeatStatusPub mPubHeartbeatStatus;
-  imagePub mPubConfMap;
   disparityPub mPubDisparity;
   posePub mPubPose;
   poseStatusPub mPubPoseStatus;

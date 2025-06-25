@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2025-06-25
+----------
+- Fixed plane topic names, adding missing node name prefix
+- Add camera_info to Confidence Map topic
+
 2025-06-18
 ----------
 - Added a new launch option 'node_log_type' to set the type of log to be used by the ZED Node.

@@ -1944,6 +1944,13 @@ void ZedCamera::publishImageWithInfo(
 {
   DEBUG_STREAM_VD(" * Publishing NITROS IMAGE message: " << t.nanoseconds() << " nsec");
   try {
+    size_t buffer_size{img.getPixelBytes() * img.getWidth() * img.getHeight()};
+    void * buffer;
+    cudaMalloc(&buffer, buffer_size);
+
+    // Copy data bytes to CUDA buffer
+    cudaMemcpy(buffer, img.getPtr<sl::uchar1>(sl::MEM::GPU), buffer_size, cudaMemcpyDeviceToDevice);
+
     // Adding header data
     std_msgs::msg::Header header;
     header.stamp = t;
@@ -1955,7 +1962,7 @@ void ZedCamera::publishImageWithInfo(
       .WithHeader(header)
       .WithEncoding(img_encodings::BGRA8)
       .WithDimensions(img.getHeight(), img.getWidth())
-      .WithGpuData(img.getPtr<sl::uchar4>(sl::MEM::GPU))
+      .WithGpuData(buffer)
       .Build();
 
     nitrosPubImg->publish(nitros_image);
@@ -2028,6 +2035,14 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 #else
   DEBUG_STREAM_VD(" * Publishing NITROS DEPTH IMAGE message: " << t.nanoseconds() << " nsec");
   try {
+    size_t buffer_size{depth.getPixelBytes() * depth.getWidth() * depth.getHeight()};
+    void * buffer;
+    cudaMalloc(&buffer, buffer_size);
+
+    // Copy data bytes to CUDA buffer
+    cudaMemcpy(
+      buffer, depth.getPtr<sl::uchar1>(sl::MEM::GPU), buffer_size,
+      cudaMemcpyDeviceToDevice);
     // Adding header data
     std_msgs::msg::Header header;
     header.stamp = t;
@@ -2039,7 +2054,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
       .WithHeader(header)
       .WithEncoding(img_encodings::TYPE_32FC1)
       .WithDimensions(depth.getHeight(), depth.getWidth())
-      .WithGpuData(depth.getPtr<sl::float1>(sl::MEM::GPU))
+      .WithGpuData(buffer)
       .Build();
 
     mNitrosPubDepth->publish(nitros_image);

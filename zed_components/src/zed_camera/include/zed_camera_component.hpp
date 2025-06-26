@@ -227,7 +227,8 @@ protected:
     const sl::Mat & img,
     const nitrosImgPub & nitrosPubImg,
     const camInfoPub & camInfoPub,
-    const camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
+    camInfoMsgPtr & camInfoMsg,
+    const std::string & imgFrameId,
     const rclcpp::Time & t);
 #endif
   void publishCameraInfo(
@@ -239,18 +240,18 @@ protected:
 
   void processVideoDepth();
   bool areVideoDepthSubscribed();
-  void retrieveVideoDepth();
-  bool retrieveLeftImage();
-  bool retrieveLeftRawImage();
-  bool retrieveRightImage();
-  bool retrieveRightRawImage();
-  bool retrieveLeftGrayImage();
-  bool retrieveLeftRawGrayImage();
-  bool retrieveRightGrayImage();
-  bool retrieveRightRawGrayImage();
-  bool retrieveDepthMap();
+  void retrieveVideoDepth(bool gpu);
+  bool retrieveLeftImage(bool gpu);
+  bool retrieveLeftRawImage(bool gpu);
+  bool retrieveRightImage(bool gpu);
+  bool retrieveRightRawImage(bool gpu);
+  bool retrieveLeftGrayImage(bool gpu);
+  bool retrieveLeftRawGrayImage(bool gpu);
+  bool retrieveRightGrayImage(bool gpu);
+  bool retrieveRightRawGrayImage(bool gpu);
+  bool retrieveDepthMap(bool gpu);
+  bool retrieveConfidence(bool gpu);
   bool retrieveDisparity();
-  bool retrieveConfidence();
   bool retrieveDepthInfo();
 
   void publishVideoDepth(rclcpp::Time & out_pub_ts);
@@ -268,11 +269,6 @@ protected:
   void publishConfidenceMap(const rclcpp::Time & t);
   void publishDisparityImage(const rclcpp::Time & t);
   void publishDepthInfo(const rclcpp::Time & t);
-
-#ifdef FOUND_ISAAC_ROS_NITROS
-  bool retrieveRgbNitros();
-  void publishRgbNitros(const rclcpp::Time & t);
-#endif
 
   void checkRgbDepthSync();
   bool checkGrabAndUpdateTimestamp(rclcpp::Time & out_pub_ts);
@@ -744,10 +740,6 @@ private:
   image_transport::Publisher mPubRoiMask;
   image_transport::Publisher mPubDepth;
   image_transport::Publisher mPubConfMap;
-
-  // Image publishers without camera info
-  image_transport::Publisher mPubStereo;
-  image_transport::Publisher mPubRawStereo;
 #else
   // Nitros image publishers with camera info
   nitrosImgPub mNitrosPubRgb;
@@ -756,7 +748,6 @@ private:
   nitrosImgPub mNitrosPubRawLeft;
   nitrosImgPub mNitrosPubRight;
   nitrosImgPub mNitrosPubRawRight;
-  nitrosImgPub mNitrosPubDepth;
   nitrosImgPub mNitrosPubRgbGray;
   nitrosImgPub mNitrosPubRawRgbGray;
   nitrosImgPub mNitrosPubLeftGray;
@@ -764,11 +755,13 @@ private:
   nitrosImgPub mNitrosPubRightGray;
   nitrosImgPub mNitrosPubRawRightGray;
   nitrosImgPub mNitrosPubRoiMask;
-
-  // Nitros image publishers without camera info
-  nitrosImgPub mNitrosPubStereo;
-  nitrosImgPub mNitrosPubRawStereo;
+  nitrosImgPub mNitrosPubDepth;
+  nitrosImgPub mNitrosPubConfMap;
 #endif
+
+  // Image publishers without camera info
+  image_transport::Publisher mPubStereo;
+  image_transport::Publisher mPubRawStereo;
 
   // Camera Info publishers
   camInfoPub mPubRgbCamInfo;
@@ -848,30 +841,11 @@ private:
   size_t mDisparitySubCount = 0;
   size_t mDepthInfoSubCount = 0;
 
-  size_t mRgbNitrosSubCount = 0;
-  size_t mRgbRawNitrosSubCount = 0;
-  size_t mRgbGrayNitrosSubCount = 0;
-  size_t mRgbGrayRawNitrosSubCount = 0;
-  size_t mLeftNitrosSubCount = 0;
-  size_t mLeftRawNitrosSubCount = 0;
-  size_t mLeftGrayNitrosSubCount = 0;
-  size_t mLeftGrayRawNitrosSubCount = 0;
-  size_t mRightNitrosSubCount = 0;
-  size_t mRightRawNitrosSubCount = 0;
-  size_t mRightGrayNitrosSubCount = 0;
-  size_t mRightGrayRawNitrosSubCount = 0;
-  size_t mStereoNitrosSubCount = 0;
-  size_t mStereoRawNitrosSubCount = 0;
-  size_t mDepthNitrosSubCount = 0;
-  size_t mConfMapNitrosSubCount = 0;
-  size_t mDisparityNitrosSubCount = 0;
-
   sl::Mat mMatLeft, mMatLeftRaw;
   sl::Mat mMatRight, mMatRightRaw;
   sl::Mat mMatLeftGray, mMatLeftRawGray;
   sl::Mat mMatRightGray, mMatRightRawGray;
   sl::Mat mMatDepth, mMatDisp, mMatConf;
-  sl::Mat mMatLeftGpu;
 
   float mMinDepth = 0.0f;
   float mMaxDepth = 0.0f;

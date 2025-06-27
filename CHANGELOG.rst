@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2025-06-27
+----------
+- Added `enable_ipc` launch argument to enable intra-process communication (IPC) when using ROS 2 Composition. 
+  - Note: NITROS requires IPC to be disabled to work properly.
+
 2025-06-25
 ----------
 - Fixed plane topic names, adding missing node name prefix

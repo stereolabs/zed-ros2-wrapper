@@ -93,6 +93,7 @@ def launch_setup(context, *args, **kwargs):
     svo_path = LaunchConfiguration('svo_path')
     publish_svo_clock = LaunchConfiguration('publish_svo_clock')
 
+    enable_ipc = LaunchConfiguration('enable_ipc')
     use_sim_time = LaunchConfiguration('use_sim_time')
     sim_mode = LaunchConfiguration('sim_mode')
     sim_address = LaunchConfiguration('sim_address')
@@ -317,8 +318,7 @@ def launch_setup(context, *args, **kwargs):
             plugin='stereolabs::ZedCamera',
             name=node_name_val,
             parameters=node_parameters,
-            #extra_arguments=[{'use_intra_process_comms': True}]
-            extra_arguments=[{'use_intra_process_comms': False}]
+            extra_arguments=[{'use_intra_process_comms': enable_ipc}]
         )
     else: # 'zedxonegs' or 'zedxone4k')
         zed_wrapper_component = ComposableNode(
@@ -327,8 +327,7 @@ def launch_setup(context, *args, **kwargs):
             plugin='stereolabs::ZedCameraOne',
             name=node_name_val,
             parameters=node_parameters,
-            #extra_arguments=[{'use_intra_process_comms': True}]
-            extra_arguments=[{'use_intra_process_comms': False}]
+            extra_arguments=[{'use_intra_process_comms': enable_ipc}]
         )
     
     full_container_name = '/' + namespace_val + '/' + container_name_val
@@ -437,6 +436,11 @@ def generate_launch_description():
                 'gnss_antenna_offset',
                 default_value='[]',
                 description='Position of the GNSS antenna with respect to the mounting point of the ZED camera. Format: [x,y,z]'),
+            DeclareLaunchArgument(
+                'enable_ipc',
+                default_value='true',
+                description='Enable intra-process communication (IPC) with ROS 2 Composition',
+                choices=['true', 'false']),
             DeclareLaunchArgument(
                 'use_sim_time',
                 default_value='false',

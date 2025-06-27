@@ -1944,12 +1944,12 @@ void ZedCamera::publishImageWithInfo(
 {
   DEBUG_STREAM_VD(" * Publishing NITROS IMAGE message: " << t.nanoseconds() << " nsec");
   try {
-    /*size_t buffer_size{img.getPixelBytes() * img.getWidth() * img.getHeight()};
+    size_t buffer_size{img.getPixelBytes() * img.getWidth() * img.getHeight()};
     void * buffer;
     cudaMalloc(&buffer, buffer_size);
 
     // Copy data bytes to CUDA buffer
-    cudaMemcpy(buffer, img.getPtr<sl::uchar1>(sl::MEM::GPU), buffer_size, cudaMemcpyDeviceToDevice);*/
+    cudaMemcpy(buffer, img.getPtr<sl::uchar1>(sl::MEM::GPU), buffer_size, cudaMemcpyDeviceToDevice);
 
     // Adding header data
     std_msgs::msg::Header header;
@@ -1962,8 +1962,8 @@ void ZedCamera::publishImageWithInfo(
       .WithHeader(header)
       .WithEncoding(img_encodings::BGRA8)
       .WithDimensions(img.getHeight(), img.getWidth())
-      //.WithGpuData(buffer)
-      .WithGpuData(img.getPtr<sl::uchar4>(sl::MEM::GPU))
+      .WithGpuData(buffer)
+      //.WithGpuData(img.getPtr<sl::uchar4>(sl::MEM::GPU)) // Direct GPU memory sharing not working 
       .Build();
 
     nitrosPubImg->publish(nitros_image);

@@ -339,7 +339,6 @@ protected:
   void startTempPubTimer();
   void startHeartbeatTimer();
 
-
   // Region of Interest
   std::string getParam(
     std::string paramName,
@@ -354,6 +353,7 @@ private:
   std::shared_ptr<sl::Camera> mZed;
   sl::InitParameters mInitParams;
   sl::RuntimeParameters mRunParams;
+
 
   // ----> Fusion module
   std::shared_ptr<sl::FusionConfiguration> mFusionConfig;

@@ -2132,6 +2132,11 @@ bool ZedCamera::startCamera()
 {
   RCLCPP_INFO(get_logger(), "=== STARTING CAMERA ===");
 
+  CUcontext * primary_cuda_context;
+  cuCtxGetCurrent(primary_cuda_context);
+  int ctx_gpu_id;
+  cudaGetDevice(&ctx_gpu_id);
+
   // Create a ZED object
   mZed = std::make_shared<sl::Camera>();
 
@@ -2150,6 +2155,15 @@ bool ZedCamera::startCamera()
   // <---- TF2 Transform
 
   // ----> ZED configuration
+
+  if (primary_cuda_context) {
+    mInitParams.sdk_cuda_ctx = *primary_cuda_context;
+  } else {
+    RCLCPP_WARN(
+      get_logger(),
+      "No CUDA context found, using default ZED SDK context.");
+  }
+
   if (mSimMode) {  // Simulation?
     RCLCPP_INFO_STREAM(
       get_logger(), "=== CONNECTING TO THE SIMULATION SERVER ["

@@ -1396,7 +1396,7 @@ void ZedCamera::getPosTrackingParams()
         if (mSaveAreaMemoryOnClosing) {
           RCLCPP_INFO(
             get_logger(),
-            "  * The Area Memory file will be created on node closing or by manually calling the `save_are_memory` service with empty parameter.");
+            "  * The Area Memory file will be created on node closing or by manually calling the `save_area_memory` service with empty parameter.");
         }
       }
     }

@@ -305,8 +305,9 @@ void ZedCamera::initServices()
       " * Advertised on service: '" << mSetPoseSrv->get_service_name() << "'");
     // Save Area Memory
     srv_name = srv_prefix + mSrvSaveAreaMemoryName;
+    /*mSaveAreaMemorySrv = create_service<zed_msgs::srv::SaveAreaMemory>(
+      srv_name, std::bind(&ZedCamera::callback_saveAreaMemory, this, _1, _2, _3));*/// TODO(Walter): Uncomment when available in `zed_msgs` package from APT
     mSaveAreaMemorySrv = create_service<zed_msgs::srv::SetROI>(
-      // TODO(Walter) change with "zed_msgs::srv::SetAreaMemory" when available via APT
       srv_name, std::bind(&ZedCamera::callback_saveAreaMemory, this, _1, _2, _3));
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -4558,6 +4559,7 @@ bool ZedCamera::saveAreaMemoryFile(const std::string & filePath)
     return false;
   }
 
+  RCLCPP_INFO_STREAM(get_logger(), "Saving area memory to: '" << filePath << "' ...");
   sl::ERROR_CODE err = mZed->saveAreaMap(filePath.c_str());
 
   if (err != sl::ERROR_CODE::SUCCESS) {
@@ -4580,7 +4582,7 @@ bool ZedCamera::saveAreaMemoryFile(const std::string & filePath)
     return false;
   }
 
-  RCLCPP_INFO(get_logger(), "Area memory saved successfully");
+  RCLCPP_INFO(get_logger(), "... Area memory saved successfully");
   return true;
 }
 
@@ -8808,12 +8810,51 @@ void ZedCamera::callback_pubPaths()
   }
 }
 
+/*void callback_saveAreaMemory(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<zed_msgs::srv::SaveAreaMemory_Request> req,
+    std::shared_ptr<zed_msgs::srv::SaveAreaMemory_Response> res);*/// TODO(Walter): Uncomment when available in `zed_msgs` package from APT
 void ZedCamera::callback_saveAreaMemory(
   const std::shared_ptr<rmw_request_id_t> request_header,
   const std::shared_ptr<zed_msgs::srv::SetROI_Request> req,
   std::shared_ptr<zed_msgs::srv::SetROI_Response> res)
 {
+  (void)request_header;
 
+  RCLCPP_INFO(get_logger(), "** Save Area Memory_Response service called **");
+
+  if (!mPosTrackingStarted) {
+    RCLCPP_WARN(get_logger(), " * Pos. Tracking was not started");
+    res->message = "Positional tracking not started";
+    res->success = false;
+    return;
+  }
+
+  std::string filename = req->roi;
+  // std::string filename = req->area_file_path; // TODO(Walter): Uncomment when available in `zed_msgs` package from APT
+
+  if (filename.empty()) {
+    if (mAreaMemoryFilePath.empty()) {
+      RCLCPP_WARN(
+        get_logger(),
+        " * Empty filename and empty 'pos_tracking.area_file_path' parameter.");
+      res->message = "Empty filename and empty 'pos_tracking.area_file_path' parameter.";
+      res->success = false;
+      return;
+    }
+    filename = mAreaMemoryFilePath;
+  }
+
+  filename = sl_tools::getFullFilePath(filename);
+
+  if (!saveAreaMemoryFile(filename) ) {
+    res->message = "Error saving Area Memory File. Read node log for more information.";
+    res->success = false;
+    return;
+  }
+
+  res->message = "Area Memory File saved";
+  res->success = true;
 }
 
 void ZedCamera::callback_resetOdometry(

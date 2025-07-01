@@ -23,6 +23,7 @@
 #include <sl/Camera.hpp>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #include "gnss_replay.hpp"
 #include "sl_win_avg.hpp"
@@ -242,11 +243,17 @@ void getParam(
   }
 
   if (!log_info.empty()) {
+    std::stringstream ss;
+    ss << log_info;
     if constexpr (std::is_same<T, bool>::value) {
-      RCLCPP_INFO_STREAM(node->get_logger(), log_info << (outVal ? "TRUE" : "FALSE"));
+      ss << (outVal ? "TRUE" : "FALSE");
     } else {
-      RCLCPP_INFO_STREAM(node->get_logger(), log_info << outVal);
+      ss << outVal;
     }
+    if (dynamic) {
+      ss << " [DYNAMIC]";
+    }
+    RCLCPP_INFO_STREAM(node->get_logger(), ss.str());
   }
 }
 // <---- Template functions definitions

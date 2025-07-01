@@ -88,6 +88,8 @@ def launch_setup(context, *args, **kwargs):
     wrapper_dir = get_package_share_directory('zed_wrapper')    
 
     # Launch configuration variables
+    node_log_type = LaunchConfiguration('node_log_type')
+
     svo_path = LaunchConfiguration('svo_path')
     publish_svo_clock = LaunchConfiguration('publish_svo_clock')
 
@@ -125,6 +127,7 @@ def launch_setup(context, *args, **kwargs):
     enable_gnss = LaunchConfiguration('enable_gnss')
     gnss_antenna_offset = LaunchConfiguration('gnss_antenna_offset')
 
+    node_log_type_val = node_log_type.perform(context)
     container_name_val = container_name.perform(context)
     namespace_val = namespace.perform(context)
     camera_name_val = camera_name.perform(context)
@@ -133,6 +136,14 @@ def launch_setup(context, *args, **kwargs):
     enable_gnss_val = enable_gnss.perform(context)
     gnss_coords = parse_array_param(gnss_antenna_offset.perform(context))
     custom_baseline_val = custom_baseline.perform(context)
+
+    if(node_log_type_val == 'both'):
+        node_log_effective = 'both'
+    else:  # 'screen' or 'log'
+        node_log_effective = {
+            'stdout': node_log_type_val,
+            'stderr': node_log_type_val
+            }
 
     if (camera_name_val == ''):
         camera_name_val = 'zed'
@@ -186,7 +197,7 @@ def launch_setup(context, *args, **kwargs):
 
     # ROS parameters override file
     ros_params_override_path_val = ros_params_override_path.perform(context)
-    if(ros_params_override_path_val != ''):        
+    if(ros_params_override_path_val != ''):
         info = 'Using ROS parameters override file: ' + ros_params_override_path_val
         return_array.append(LogInfo(msg=TextSubstitution(text=info)))
 
@@ -227,7 +238,7 @@ def launch_setup(context, *args, **kwargs):
         namespace=namespace_val,
         executable='robot_state_publisher',
         name=rsp_name,
-        output='screen',
+        output=node_log_effective,
         parameters=[{
             'use_sim_time': publish_svo_clock,
             'robot_description': Command(xacro_command)
@@ -251,7 +262,7 @@ def launch_setup(context, *args, **kwargs):
                 package='rclcpp_components',
                 executable=container_exec,
                 arguments=['--use_multi_threaded_executor','--ros-args', '--log-level', 'info'],
-                output='screen',
+                output=node_log_effective,
                 composable_node_descriptions=[]
         )
         return_array.append(zed_container)
@@ -333,6 +344,12 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description():
     return LaunchDescription(
         [
+            # Declare launch arguments
+            DeclareLaunchArgument(
+                'node_log_type',
+                default_value=TextSubstitution(text='both'),
+                description='The log type of the node. It can be `screen`, `log` or `both`. The `log` type will save the log in a file in the `~/.ros/log/` folder. The `screen` type will print the log on the terminal. The `both` type will do both.',
+                choices=['screen', 'log', 'both']),
             DeclareLaunchArgument(
                 'camera_name',
                 default_value=TextSubstitution(text='zed'),

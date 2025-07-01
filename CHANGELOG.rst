@@ -11,13 +11,26 @@ LATEST CHANGES
 - Add `save_area_memory` service
   - Set filename as a parameter. If filename is empty it uses the the value of the parameter `pos_tracking.area_file_path` if not empty.
 
-2025-05-30
+2025-06-18
+----------
+- Added a new launch option 'node_log_type' to set the type of log to be used by the ZED Node.
+  - The available options are `screen`, `log`, and `both`.
+
+2025-05-29
+----------
+- Separated Video/Depth data publishing into its own thread for more precise control over the publishing rate, 
+  independent of the camera grab rate. This enables recording SVO files or processing positional tracking at 
+  full grab rate, while publishing data at a reduced rate to optimize bandwidth usage.
+
+2025-05-20
 ----------
 - Add advanced handling of the Object Detection and Tracking module of the ZED SDK
+
   - Move the multi-box native object detection parameters to the `object_detection.yaml` file
   - Add specific parameters to set the confidence threshold for each of the includes object detection classes of the ZED SDK
   - Move the Custom Object Detection parameters to the `custom_object_detection.yaml` file
   - Support all the new parameters of the ZED SDK v5 separately for each of the custom object detection classes
+
 - The usage of the new Object Detection support is fully described on the ZED ROS 2 online documentation:
   - Object Detection: https://www.stereolabs.com/docs/ros2/object-detection/
   - Custom Object Detection: https://www.stereolabs.com/docs/ros2/custom-object-detection/

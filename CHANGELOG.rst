@@ -9,7 +9,7 @@ LATEST CHANGES
   - The Area Memory file is now saved only if the Area Memory is enabled, if the `pos_tracking.save_area_memory_on_closing` 
   parameter is set to `true`, if the `pos_tracking.area_file_path` is set, and if the `pos_tracking.area_file_path` is valid.
 - Add `save_area_memory` service
-  - Set filename as a parameter. If filename is empty it uses the the value of the parameter `pos_tracking.area_file_path` if not empty.
+  - Set filename as a parameter. If filename is empty it uses the value of the parameter `pos_tracking.area_file_path` if not empty.
 
 2025-06-18
 ----------

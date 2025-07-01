@@ -82,6 +82,7 @@ protected:
 
   bool startCamera();
   bool startPosTracking();
+  bool saveAreaMemoryFile(const std::string & filePath);
   bool start3dMapping();
   void stop3dMapping();
   bool startObjDetect();
@@ -376,7 +377,7 @@ private:
   bool mPublishImuTF = false;
   bool mPoseSmoothing = false;
   bool mAreaMemory = true;
-  std::string mAreaMemoryDbPath = "";
+  std::string mAreaMemoryFilePath = "";
   sl::POSITIONAL_TRACKING_MODE mPosTrkMode =
     sl::POSITIONAL_TRACKING_MODE::GEN_1;
   bool mSaveAreaMemoryOnClosing = true;
@@ -771,6 +772,7 @@ private:
   sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE mAutoRoiStatus =
     sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::NOT_ENABLED;
 
+  bool mAreaFileExists = false;
   bool mResetOdomFromSrv = false;
   bool mSpatialMappingRunning = false;
   bool mObjDetRunning = false;

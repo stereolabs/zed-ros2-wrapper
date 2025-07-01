@@ -56,10 +56,12 @@ void getParam(
  */
 std::vector<float> convertRodrigues(sl::float3 r);
 
-/*! \brief Test if a file exist
- * \param name : the path to the file
+/*!
+ * @brief Get the full file path from a relative file name
+ * @param file_name the relative file name
+ * @return the full file path
  */
-bool file_exist(const std::string & name);
+std::string getFullFilePath(const std::string & file_name);
 
 /*! \brief Get Stereolabs SDK version
  * \param major : major value for version

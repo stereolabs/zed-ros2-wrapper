@@ -1,10 +1,13 @@
 LATEST CHANGES
 ==============
 
-2025-05-26
+2025-07-01
 -----------
 - Change `pos_tracking.area_memory_db_path` to `pos_tracking.area_file_path` to match the ZED SDK parameter name
 - Add parameter `pos_tracking.save_area_memory_on_closing` to save the Area Memory before closing the camera
+- Fix Area Mapping file handling according to the ZED SDK policies.
+  - The Area Memory file is now saved only if the Area Memory is enabled, if the `pos_tracking.save_area_memory_on_closing` parameter is set to `true`,
+    if the `pos_tracking.area_file_path` is set, and if the `pos_tracking.area_file_path` is valid.
 
 2025-05-30
 ----------

@@ -30,6 +30,7 @@
 #include <type_traits>
 #include <vector>
 #include <sstream>
+#include <filesystem>
 
 #include "sl_logging.hpp"
 
@@ -193,7 +194,6 @@ void ZedCamera::init()
 
 void ZedCamera::close()
 {
-
   // ----> Stop subscribers
   mClickedPtSub.reset();
   mGnssFixSub.reset();
@@ -1612,12 +1612,46 @@ void ZedCamera::getPosTrackingParams()
       mAreaMemory, mAreaMemory, " * Area Memory: ");
     sl_tools::getParam(
       shared_from_this(), "pos_tracking.area_file_path",
-      mAreaMemoryDbPath, mAreaMemoryDbPath,
-      " * Area Memory DB: ");
+      mAreaMemoryFilePath, mAreaMemoryFilePath,
+      " * Area Memory File: ");
     sl_tools::getParam(
       shared_from_this(), "pos_tracking.save_area_memory_on_closing",
       mSaveAreaMemoryOnClosing, mSaveAreaMemoryOnClosing,
       " * Save Area Memory on closing: ");
+
+    if (mAreaMemoryFilePath.empty()) {
+      if (mSaveAreaMemoryOnClosing) {
+        RCLCPP_WARN(
+          get_logger(),
+          "  * The parameter 'pos_tracking.area_file_path' is empty, "
+          "no Area Memory File will be saved on closing.");
+        mSaveAreaMemoryOnClosing = false;
+      }
+    } else {
+      mAreaMemoryFilePath = sl_tools::getFullFilePath(mAreaMemoryFilePath);
+      mAreaFileExists = std::filesystem::exists(mAreaMemoryFilePath);
+
+      if (mAreaFileExists) {
+        RCLCPP_INFO_STREAM(
+          get_logger(),
+          "  * Using the existing Area Memory file '" << mAreaMemoryFilePath << "'");
+        if (mSaveAreaMemoryOnClosing) {
+          RCLCPP_INFO(
+            get_logger(),
+            "  * The Area Memory file will be updated on node closing or by manually calling the `save_are_memory` service with empty parameter.");
+        }
+      } else {
+        RCLCPP_INFO_STREAM(
+          get_logger(),
+          "  * The Area Memory file '" << mAreaMemoryFilePath << "' does not exist.");
+        if (mSaveAreaMemoryOnClosing) {
+          RCLCPP_INFO(
+            get_logger(),
+            "  * The Area Memory file will be created on node closing or by manually calling the `save_are_memory` service with empty parameter.");
+        }
+      }
+    }
+
   }
   sl_tools::getParam(
     shared_from_this(), "pos_tracking.set_as_static",
@@ -4253,14 +4287,10 @@ void ZedCamera::closeCamera()
 
   RCLCPP_INFO(get_logger(), "=== CLOSING CAMERA ===");
 
-  if( mPosTrackingStarted && !mAreaMemoryDbPath.empty() && mSaveAreaMemoryOnClosing ) {
-    sl::ERROR_CODE err = mZed->saveAreaMap(mAreaMemoryDbPath.c_str();
-    if(r!=sl::ERROR_CODE::SUCCESS)
-    {
-      RCLCPP_STREAM_WARN(get_logger(), "Error saving the Area Memory file: " << sl::toString(err) << " - " << sl::toVerbose(err)); 
-    } else {
-      RCLCPP_STREAM_INFO(get_logger(), "Area Memory file saved: " << mAreaMemoryDbPath );
-    }
+  if (mPosTrackingStarted && !mAreaMemoryFilePath.empty() &&
+    mSaveAreaMemoryOnClosing)
+  {
+    saveAreaMemoryFile(mAreaMemoryFilePath);
   }
 
   mZed->close();
@@ -4432,14 +4462,6 @@ bool ZedCamera::startPosTracking()
     mInitialPoseSl.getOrientation().oy, mInitialPoseSl.getOrientation().oz,
     mInitialPoseSl.getOrientation().ow);
 
-  if (mAreaMemoryDbPath != "" && !sl_tools::file_exist(mAreaMemoryDbPath)) {
-    mAreaMemoryDbPath = "";
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "'area_file_path' path doesn't exist or is unreachable: "
-        << mAreaMemoryDbPath);
-  }
-
   // Tracking parameters
   sl::PositionalTrackingParameters ptParams;
 
@@ -4448,7 +4470,7 @@ bool ZedCamera::startPosTracking()
 
   ptParams.enable_pose_smoothing = mPoseSmoothing;
   ptParams.enable_area_memory = mAreaMemory;
-  ptParams.area_file_path = mAreaMemoryDbPath.c_str();
+  ptParams.area_file_path = (mAreaFileExists ? mAreaMemoryFilePath.c_str() : "");
   ptParams.enable_imu_fusion = mImuFusion;
   ptParams.initial_world_transform = mInitialPoseSl;
   ptParams.set_floor_as_origin = mFloorAlignment;
@@ -4520,6 +4542,46 @@ bool ZedCamera::startPosTracking()
   startPathPubTimer(mPathPubRate);
 
   return mPosTrackingStarted;
+}
+
+bool ZedCamera::saveAreaMemoryFile(const std::string & filePath)
+{
+  if (!mZed) {
+    RCLCPP_WARN(get_logger(), "ZED camera is not initialized");
+    return false;
+  }
+
+  if (!mAreaMemory) {
+    RCLCPP_WARN(
+      get_logger(),
+      "Failed to save area memory: 'Area Memory was not enabled'");
+    return false;
+  }
+
+  sl::ERROR_CODE err = mZed->saveAreaMap(filePath.c_str());
+
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Failed to save area memory: '"
+        << sl::toString(err) << "'");
+    return false;
+  }
+
+  auto export_state = sl::AREA_EXPORTING_STATE::RUNNING;
+  while (export_state == sl::AREA_EXPORTING_STATE::RUNNING) {
+    export_state = mZed->getAreaExportState();
+    sl::sleep_ms(5);
+  }
+
+  if (export_state != sl::AREA_EXPORTING_STATE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Failed to save area memory: '"
+        << sl::toString(export_state) << "'");
+    return false;
+  }
+
+  RCLCPP_INFO(get_logger(), "Area memory saved successfully");
+  return true;
 }
 
 bool ZedCamera::start3dMapping()

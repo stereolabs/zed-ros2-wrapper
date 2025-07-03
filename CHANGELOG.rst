@@ -1,6 +1,16 @@
 LATEST CHANGES
 ==============
 
+2025-07-01
+-----------
+- Change `pos_tracking.area_memory_db_path` to `pos_tracking.area_file_path` to match the ZED SDK parameter name
+- Add parameter `pos_tracking.save_area_memory_on_closing` to save the Area Memory before closing the camera
+- Fix Area Mapping file handling according to the ZED SDK policies.
+  - The Area Memory file is now saved only if the Area Memory is enabled, if the `pos_tracking.save_area_memory_on_closing` 
+  parameter is set to `true`, if the `pos_tracking.area_file_path` is set, and if the `pos_tracking.area_file_path` is valid.
+- Add `save_area_memory` service
+  - Set filename as a parameter. If filename is empty it uses the value of the parameter `pos_tracking.area_file_path` if not empty.
+
 2025-06-18
 ----------
 - Added a new launch option 'node_log_type' to set the type of log to be used by the ZED Node.

@@ -94,10 +94,22 @@ std::vector<float> convertRodrigues(sl::float3 r)
   return R;
 }
 
-bool file_exist(const std::string & name)
+std::string getFullFilePath(const std::string & file_name)
 {
-  struct stat buffer;
-  return stat(name.c_str(), &buffer) == 0;
+  std::string new_filename;
+  if (file_name.front() == '~') {
+    std::string home_path = std::getenv("HOME");
+    if (!home_path.empty()) {
+      new_filename = home_path;
+      new_filename += file_name.substr(1, file_name.size() - 1);
+    }
+  } else {
+    new_filename = file_name;
+  }
+
+  std::filesystem::path path(new_filename);
+  auto abs_path = std::filesystem::absolute(path);
+  return abs_path.string();
 }
 
 std::string getSDKVersion(int & major, int & minor, int & sub_minor)

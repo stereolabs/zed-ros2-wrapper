@@ -965,7 +965,7 @@ bool ZedCameraOne::startCamera()
   // Initialize publishers
   initPublishers();
 
-  // Initialialized timestamp to avoid wrong initial data
+  // Initialized timestamp to avoid wrong initial data
   // ----> Timestamp
   if (_svoMode) {
     if (_useSvoTimestamp) {
@@ -2836,7 +2836,7 @@ void ZedCameraOne::publishImages()
 
   // ----> Publish the COLOR RAW image if someone has subscribed to
   if (_colorRawSubCount > 0) {
-    DEBUG_STREAM_VD("_colorRawSubCount: " << _colorSubCount);
+    DEBUG_STREAM_VD("_colorRawSubCount: " << _colorRawSubCount);
     publishImageWithInfo(
       _matColorRaw, _pubColorRawImg, _camInfoRawMsg,
       _camOptFrameId, timeStamp);

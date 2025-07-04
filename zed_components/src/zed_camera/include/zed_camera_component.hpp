@@ -85,6 +85,7 @@ protected:
   bool startStreamingServer();
   void stopStreamingServer();
   void closeCamera();
+  bool restartCamera();
   // <---- Initialization functions
 
   // ----> Dynamic Parameters Handlers
@@ -833,10 +834,11 @@ private:
   std::mutex mVdMutex;
   std::condition_variable mVdDataReadyCondVar;
   std::atomic_bool mVdDataReady;
-  bool mCameraRebooting = false;
+  bool mCameraClosed = false;  // Indicates if the camera has been closed
+  bool mCameraRebooting = false; // Indicates if the camera is being rebooted
   int activeUsers = 0;
   std::mutex mRebootMutex;  // Mutex to protect camera rebooting
-  std::condition_variable mRebootCondVar;  // Condition variable to wait for camera
+  std::condition_variable mRebootCondVar;  // Condition variable to wait for camera during reboot process
   // <---- Thread Sync
 
   // ----> Status Flags

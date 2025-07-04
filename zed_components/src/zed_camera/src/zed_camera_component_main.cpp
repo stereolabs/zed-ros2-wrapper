@@ -3317,6 +3317,69 @@ void ZedCamera::initThreads()
   mGrabThread = std::thread(&ZedCamera::threadFunc_zedGrab, this);
 }
 
+bool ZedCamera::restartCamera() {
+  sl_tools::StopWatch connectTimer(get_clock());
+
+  RCLCPP_INFO(get_logger(), "=== RESTARTING CAMERA ===");
+
+  // Wait longer for GMSL camera connection
+  int camera_timeout_sec = sl_tools::isZEDX(mCamRealModel) ? 15: mCamTimeoutSec;
+
+
+  while (1) {
+    mConnStatus = mZed->open(mInitParams);
+
+    if (mConnStatus == sl::ERROR_CODE::SUCCESS) {
+      DEBUG_STREAM_COMM("Opening successfull");
+      mUptimer.tic(); // Sets the beginning of the camera connection time
+      return true;
+    }
+
+    if (mConnStatus == sl::ERROR_CODE::INVALID_CALIBRATION_FILE) {
+      if (mOpencvCalibFile.empty()) {
+        RCLCPP_ERROR_STREAM(
+          get_logger(), "Calibration file error: "
+            << sl::toVerbose(mConnStatus));
+      } else {
+        RCLCPP_ERROR_STREAM(
+          get_logger(),
+          "If you are using a custom OpenCV calibration file, please check "
+          "the correctness of the path of the calibration file "
+          "in the parameter 'general.optional_opencv_calibration_file': '"
+            << mOpencvCalibFile << "'.");
+        RCLCPP_ERROR(
+          get_logger(),
+          "If the file exists, it may contain invalid information.");
+      }
+      return false;
+    }
+
+    RCLCPP_WARN(
+      get_logger(), "Error opening camera: %s",
+      sl::toString(mConnStatus).c_str());
+    if (mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE &&
+      sl_tools::isZEDM(mCamUserModel))
+    {
+      RCLCPP_INFO(
+        get_logger(),
+        "Try to flip the USB3 Type-C connector and verify the USB3 "
+        "connection");
+    } else {
+      RCLCPP_INFO(get_logger(), "Please verify the camera connection");
+    }
+
+    if (connectTimer.toc() > mMaxReconnectTemp * camera_timeout_sec) {
+      RCLCPP_ERROR(get_logger(), "Camera detection timeout");
+      return false;
+    }
+
+    mDiagUpdater.force_update();
+
+    rclcpp::sleep_for(std::chrono::seconds(camera_timeout_sec));
+  }
+  return false;
+}
+
 
 void ZedCamera::guardDataThread() {
   // Lock reboot mutex to ensure that the camera is not being rebooted
@@ -4250,9 +4313,38 @@ void ZedCamera::threadFunc_zedGrab()
   // Infinite grab thread
   while (1) {
     auto t0 = get_clock()->now().nanoseconds();
+    {
+      // Lock reboot mutex to ensure that the camera is not being rebooted
+      std::unique_lock<std::mutex> lock(mRebootMutex);
 
-    // Wait here on camera reboot
-    guardDataThread();
+      // Wait until camera has been closed by reboot service call
+      mRebootCondVar.wait(lock, [&]() { return !mCameraRebooting || mCameraClosed; });
+
+      if (mCameraRebooting) {
+        // Restart camera loop
+        bool camera_restarted = restartCamera();
+        if (!camera_restarted) {
+          RCLCPP_ERROR(get_logger(), "Failed to restart camera");
+          mThreadStop = true;
+          break;
+        }
+
+        // Reset camera states
+        mPosTrackingStarted = false;
+        mSpatialMappingRunning = false;
+        mObjDetRunning = false;
+        mBodyTrkRunning = false;
+
+        mCameraRebooting = false;
+        mCameraClosed = false;
+
+        std::cout << "Notify threads" << std::endl;
+        mRebootCondVar.notify_all();
+      }
+
+        // Mark that this thread is using the camera
+        ++activeUsers;
+    }
 
     try {
       // ----> Interruption check
@@ -6578,10 +6670,16 @@ void ZedCamera::callback_reboot(
   mZed->close();
   std::cout << "Camera closed" << std::endl;
 
-
   std::cout << "Rebooting camera with serial number: "
             << cam_info.serial_number << std::endl;
-  auto reboot_error = sl::Camera::reboot(cam_info.serial_number);
+
+  sl::ERROR_CODE reboot_error = sl::ERROR_CODE::SUCCESS;
+  if (cam_info.input_type == sl::INPUT_TYPE::GMSL) {
+    reboot_error = sl::Camera::reboot(sl::INPUT_TYPE::GMSL);
+  } else {
+    reboot_error = sl::Camera::reboot(cam_info.serial_number);
+  }
+
   if (reboot_error != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_ERROR(
       get_logger(),
@@ -6590,74 +6688,15 @@ void ZedCamera::callback_reboot(
     res->success = false;
     return;
   }
-  std::cout << "Camera rebooted" << std::endl;
+  std::cout << "Camera rebooting" << std::endl;
 
-  rclcpp::sleep_for(500ms);
-
-  sl_tools::StopWatch connectTimer(get_clock());
-  while (1) {
-    mConnStatus = mZed->open(mInitParams);
-
-    if (mConnStatus == sl::ERROR_CODE::SUCCESS) {
-      DEBUG_STREAM_COMM("Opening successfull");
-      mUptimer.tic(); // Sets the beginning of the camera connection time
-      break;
-    }
-
-    if (mConnStatus == sl::ERROR_CODE::INVALID_CALIBRATION_FILE) {
-      if (mOpencvCalibFile.empty()) {
-        RCLCPP_ERROR_STREAM(
-          get_logger(), "Calibration file error: "
-            << sl::toVerbose(mConnStatus));
-      } else {
-        RCLCPP_ERROR_STREAM(
-          get_logger(),
-          "If you are using a custom OpenCV calibration file, please check "
-          "the correctness of the path of the calibration file "
-          "in the parameter 'general.optional_opencv_calibration_file': '"
-            << mOpencvCalibFile << "'.");
-        RCLCPP_ERROR(
-          get_logger(),
-          "If the file exists, it may contain invalid information.");
-      }
-      res->message = "Invalid calibration file";
-      res->success = false;
-      return;
-    }
-
-    RCLCPP_WARN(
-      get_logger(), "Error opening camera: %s",
-      sl::toString(mConnStatus).c_str());
-    if (mConnStatus == sl::ERROR_CODE::CAMERA_DETECTION_ISSUE &&
-      sl_tools::isZEDM(mCamUserModel))
-    {
-      RCLCPP_INFO(
-        get_logger(),
-        "Try to flip the USB3 Type-C connector and verify the USB3 "
-        "connection");
-    } else {
-      RCLCPP_INFO(get_logger(), "Please verify the camera connection");
-    }
-
-    if (connectTimer.toc() > mMaxReconnectTemp * mCamTimeoutSec) {
-      RCLCPP_ERROR(get_logger(), "Camera detection timeout");
-      res->message = "Camera detection timeout";
-      res->success = false;
-      return;
-    }
-
-    mDiagUpdater.force_update();
-
-    rclcpp::sleep_for(std::chrono::seconds(mCamTimeoutSec));
-  }
-
-  res->message = "Rebooted ZED Camera";
+  res->message = "Rebooting ZED Camera";
   res->success = true;
 
   // Mark camera as available again
   {
       std::lock_guard<std::mutex> lock(mRebootMutex);
-      mCameraRebooting = false;
+      mCameraClosed = true;
       std::cout << "Unlocked mutex for camera rebooting" << std::endl;
   }
   mRebootCondVar.notify_all();

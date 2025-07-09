@@ -797,7 +797,7 @@ void ZedCamera::applyZEDXAutoExposureTimeRange()
     return;
   }
   // <---- TODO(Walter) Remove this check when fixed in ZED SDK
-  
+
   sl::ERROR_CODE err;
   int value_min, value_max;
   err = mZed->getCameraSettings(

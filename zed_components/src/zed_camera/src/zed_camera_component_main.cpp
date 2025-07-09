@@ -3475,6 +3475,16 @@ bool ZedCamera::startPosTracking()
     return false;
   }
 
+  if (mZed && mZed->isPositionalTrackingEnabled()) {
+    if (!mAreaMemoryFilePath.empty() && mSaveAreaMemoryOnClosing) {
+      mZed->disablePositionalTracking(mAreaMemoryFilePath.c_str());
+      RCLCPP_INFO(
+        get_logger(), "Area memory updated before restarting the Positional Tracking module.");
+    } else {
+      mZed->disablePositionalTracking();
+    }
+  }
+
   RCLCPP_INFO(get_logger(), "=== Starting Positional Tracking ===");
 
   RCLCPP_INFO(get_logger(), " * Waiting for valid static transformations...");

@@ -217,6 +217,8 @@ protected:
   void handlePointCloudPublishing();
   // Sensors thread
   void threadFunc_pubSensorsData();
+  // Restart thread
+  void threadFunc_zedRestart();
   // <---- Thread functions
 
   // ----> Publishing functions
@@ -810,6 +812,7 @@ private:
   std::thread mVdThread;          // Video and Depth data processing thread
   std::thread mPcThread;          // Point Cloud publish thread
   std::thread mSensThread;        // Sensors data publish thread
+  std::thread mRestartThread;     // Camera restart thread for reboot service
   std::atomic<bool> mThreadStop;
   rclcpp::TimerBase::SharedPtr mInitTimer;
   rclcpp::TimerBase::SharedPtr mPathTimer;
@@ -834,7 +837,6 @@ private:
   std::mutex mVdMutex;
   std::condition_variable mVdDataReadyCondVar;
   std::atomic_bool mVdDataReady;
-  bool mCameraClosed = false;  // Indicates if the camera has been closed
   bool mCameraRebooting = false; // Indicates if the camera is being rebooted
   int activeUsers = 0;
   std::mutex mRebootMutex;  // Mutex to protect camera rebooting

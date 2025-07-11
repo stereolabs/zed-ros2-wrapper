@@ -3395,7 +3395,9 @@ void ZedCamera::guardDataThread() {
 void ZedCamera::releaseDataThread() {
   std::lock_guard<std::mutex> lock(mRebootMutex);
 
-  --activeUsers;
+  if (activeUsers > 0) {
+    --activeUsers;
+  }
 
   // If reboot thread is waiting and no threads are accessing ZED, notify it
   if (mCameraRebooting && activeUsers == 0) {
@@ -4226,6 +4228,36 @@ void ZedCamera::publishImuFrameAndTopic()
   mImuTfFreqTimer.tic();
 }
 
+void ZedCamera::threadFunc_zedRestart()
+{
+  // Restart camera loop
+  bool camera_restarted = restartCamera();
+  if (!camera_restarted) {
+    RCLCPP_ERROR(get_logger(), "Failed to restart camera");
+    // Notify all threads to stop
+    {
+      std::lock_guard<std::mutex> lock(mRebootMutex);
+      mCameraRebooting = false;
+      mThreadStop = true;
+    }
+    mRebootCondVar.notify_all();
+    return;
+  }
+
+  // Reset camera states
+  mPosTrackingStarted = false;
+  mSpatialMappingRunning = false;
+  mObjDetRunning = false;
+  mBodyTrkRunning = false;
+
+  // Mark camera as available again
+  {
+      std::lock_guard<std::mutex> lock(mRebootMutex);
+      mCameraRebooting = false;
+  }
+  mRebootCondVar.notify_all();
+}
+
 void ZedCamera::threadFunc_zedGrab()
 {
   DEBUG_STREAM_COMM("Grab thread started");
@@ -4318,28 +4350,10 @@ void ZedCamera::threadFunc_zedGrab()
       std::unique_lock<std::mutex> lock(mRebootMutex);
 
       // Wait until camera has been closed by reboot service call
-      mRebootCondVar.wait(lock, [&]() { return !mCameraRebooting || mCameraClosed; });
+      mRebootCondVar.wait(lock, [&]() { return !mCameraRebooting; });
 
-      if (mCameraRebooting) {
-        // Restart camera loop
-        bool camera_restarted = restartCamera();
-        if (!camera_restarted) {
-          RCLCPP_ERROR(get_logger(), "Failed to restart camera");
-          mThreadStop = true;
-          break;
-        }
-
-        // Reset camera states
-        mPosTrackingStarted = false;
-        mSpatialMappingRunning = false;
-        mObjDetRunning = false;
-        mBodyTrkRunning = false;
-
-        mCameraRebooting = false;
-        mCameraClosed = false;
-
-        std::cout << "Notify threads" << std::endl;
-        mRebootCondVar.notify_all();
+      if (mRestartThread.joinable()) {
+        mRestartThread.join();
       }
 
         // Mark that this thread is using the camera
@@ -6652,26 +6666,19 @@ void ZedCamera::callback_reboot(
   {
       std::lock_guard<std::mutex> lock(mRebootMutex);
       mCameraRebooting = true;
-      std::cout << "Locked mutex for camera rebooting" << std::endl;
   }
 
   // Wait for all threads to stop using camera
   {
       std::unique_lock<std::mutex> lock(mRebootMutex);
-      std::cout << "Waiting for all threads to stop using camera" << std::endl;
       mRebootCondVar.wait(lock, [&]() { return activeUsers == 0; });
   }
 
   auto cam_info = mZed->getCameraInformation();
 
-  std::cout << "All threads stopped using camera" << std::endl;
-
-  std::cout << "Closing camera" << std::endl;
   mZed->close();
-  std::cout << "Camera closed" << std::endl;
 
-  std::cout << "Rebooting camera with serial number: "
-            << cam_info.serial_number << std::endl;
+  RCLCPP_INFO_STREAM(get_logger(), "Rebooting camera with serial number: " << cam_info.serial_number);
 
   sl::ERROR_CODE reboot_error = sl::ERROR_CODE::SUCCESS;
   if (cam_info.input_type == sl::INPUT_TYPE::GMSL) {
@@ -6688,18 +6695,10 @@ void ZedCamera::callback_reboot(
     res->success = false;
     return;
   }
-  std::cout << "Camera rebooting" << std::endl;
+  mRestartThread = std::thread(&ZedCamera::threadFunc_zedRestart, this);
 
   res->message = "Rebooting ZED Camera";
   res->success = true;
-
-  // Mark camera as available again
-  {
-      std::lock_guard<std::mutex> lock(mRebootMutex);
-      mCameraClosed = true;
-      std::cout << "Unlocked mutex for camera rebooting" << std::endl;
-  }
-  mRebootCondVar.notify_all();
 }
 
 void ZedCamera::callback_resetOdometry(

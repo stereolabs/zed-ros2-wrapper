@@ -1936,13 +1936,15 @@ void ZedCamera::handleVideoDepthPublishing()
   rclcpp::Time pub_ts;
   publishVideoDepth(pub_ts);
 
-  if (!sl_tools::isZED(mCamRealModel) && mVdPublishing &&
-    pub_ts != TIMEZERO_ROS)
-  {
-    if (mSensCameraSync) {
+  // ----> Publish sync sensors data if needed
+  if (mSensCameraSync) {
+    if (!sl_tools::isZED(mCamRealModel) && mVdPublishing &&
+      pub_ts != TIMEZERO_ROS)
+    {
       publishSensorsData(pub_ts);
     }
   }
+  // <---- Publish sync sensors data if needed
 
   // ----> Check publishing frequency
   double vd_period_usec = 1e6 / mVdPubRate;

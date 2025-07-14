@@ -4800,9 +4800,13 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
     ts_imu = force_ts;
     ts_baro = force_ts;
     ts_mag = force_ts;
+  } else if(mSvoMode && !mUseSvoTimestamp) {
+    ts_imu = now;
+    ts_baro = now;
+    ts_mag = now;
   } else if (mSimMode) {
     if (mUseSimTime) {
-      ts_imu = get_clock()->now();
+      ts_imu = now;
     } else {
       ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
     }

@@ -4800,7 +4800,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
     ts_imu = force_ts;
     ts_baro = force_ts;
     ts_mag = force_ts;
-  } else if(mSvoMode && !mUseSvoTimestamp) {
+  } else if (mSvoMode && !mUseSvoTimestamp) {
     ts_imu = now;
     ts_baro = now;
     ts_mag = now;

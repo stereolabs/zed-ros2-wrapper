@@ -29,6 +29,7 @@
 #include <type_traits>
 #include <vector>
 #include <sstream>
+#include <filesystem>
 
 #include "sl_logging.hpp"
 
@@ -195,7 +196,6 @@ void ZedCamera::init()
 
 void ZedCamera::close()
 {
-
   // ----> Stop subscribers
   mClickedPtSub.reset();
   mGnssFixSub.reset();
@@ -299,57 +299,82 @@ void ZedCamera::initServices()
     mResetOdomSrv = create_service<std_srvs::srv::Trigger>(
       srv_name,
       std::bind(&ZedCamera::callback_resetOdometry, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mResetOdomSrv->get_service_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(), " * Advertised on service: '" << mResetOdomSrv->get_service_name() << "'");
     // Reset Pose
     srv_name = srv_prefix + mSrvResetPoseName;
     mResetPosTrkSrv = create_service<std_srvs::srv::Trigger>(
       srv_name,
       std::bind(&ZedCamera::callback_resetPosTracking, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mResetPosTrkSrv->get_service_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(), " * Advertised on service: '" << mResetPosTrkSrv->get_service_name() << "'");
     // Set Pose
     srv_name = srv_prefix + mSrvSetPoseName;
     mSetPoseSrv = create_service<zed_msgs::srv::SetPose>(
       srv_name, std::bind(&ZedCamera::callback_setPose, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mSetPoseSrv->get_service_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Advertised on service: '" << mSetPoseSrv->get_service_name() << "'");
+    // Save Area Memory
+    srv_name = srv_prefix + mSrvSaveAreaMemoryName;
+    /*mSaveAreaMemorySrv = create_service<zed_msgs::srv::SaveAreaMemory>(
+      srv_name, std::bind(&ZedCamera::callback_saveAreaMemory, this, _1, _2, _3));*/// TODO(Walter): Uncomment when available in `zed_msgs` package from APT
+    mSaveAreaMemorySrv = create_service<zed_msgs::srv::SetROI>(
+      srv_name, std::bind(&ZedCamera::callback_saveAreaMemory, this, _1, _2, _3));
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Advertised on service: '" << mSaveAreaMemorySrv->get_service_name() << "'");
 
     // Enable Object Detection
     srv_name = srv_prefix + mSrvEnableObjDetName;
     mEnableObjDetSrv = create_service<std_srvs::srv::SetBool>(
       srv_name,
       std::bind(&ZedCamera::callback_enableObjDet, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mEnableObjDetSrv->get_service_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(), " * Advertised on service: '" << mEnableObjDetSrv->get_service_name() << "'");
 
     // Enable BodyTracking
     srv_name = srv_prefix + mSrvEnableBodyTrkName;
     mEnableBodyTrkSrv = create_service<std_srvs::srv::SetBool>(
       srv_name,
       std::bind(&ZedCamera::callback_enableBodyTrk, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mEnableBodyTrkSrv->get_service_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Advertised on service: '" << mEnableBodyTrkSrv->get_service_name() << "'");
 
     // Enable Mapping
     srv_name = srv_prefix + mSrvEnableMappingName;
     mEnableMappingSrv = create_service<std_srvs::srv::SetBool>(
       srv_name,
       std::bind(&ZedCamera::callback_enableMapping, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mEnableMappingSrv->get_service_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Advertised on service: '" << mEnableMappingSrv->get_service_name() << "'");
+
+
   }
 
   // Enable Streaming
   srv_name = srv_prefix + mSrvEnableStreamingName;
   mEnableStreamingSrv = create_service<std_srvs::srv::SetBool>(
     srv_name, std::bind(&ZedCamera::callback_enableStreaming, this, _1, _2, _3));
-  RCLCPP_INFO(get_logger(), " * '%s'", mEnableStreamingSrv->get_service_name());
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Advertised on service: '" << mEnableStreamingSrv->get_service_name() << "'");
 
   // Start SVO Recording
   srv_name = srv_prefix + mSrvStartSvoRecName;
   mStartSvoRecSrv = create_service<zed_msgs::srv::StartSvoRec>(
     srv_name, std::bind(&ZedCamera::callback_startSvoRec, this, _1, _2, _3));
-  RCLCPP_INFO(get_logger(), " * '%s'", mStartSvoRecSrv->get_service_name());
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Advertised on service: '" << mStartSvoRecSrv->get_service_name() << "'");
   // Stop SVO Recording
   srv_name = srv_prefix + mSrvStopSvoRecName;
   mStopSvoRecSrv = create_service<std_srvs::srv::Trigger>(
     srv_name, std::bind(&ZedCamera::callback_stopSvoRec, this, _1, _2, _3));
-  RCLCPP_INFO(get_logger(), " * '%s'", mStopSvoRecSrv->get_service_name());
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Advertised on service: '" << mStopSvoRecSrv->get_service_name() << "'");
 
   // Pause SVO (only if the realtime playing mode is disabled)
   if (mSvoMode) {
@@ -360,7 +385,9 @@ void ZedCamera::initServices()
     mPauseSvoSrv = create_service<std_srvs::srv::Trigger>(
       srv_name,
       std::bind(&ZedCamera::callback_pauseSvoInput, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mPauseSvoSrv->get_service_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Advertised on service: '" << mPauseSvoSrv->get_service_name() << "'");
 #ifndef USE_SVO_REALTIME_PAUSE
   }
 #endif
@@ -370,31 +397,40 @@ void ZedCamera::initServices()
     mSetSvoFrameSrv = create_service<zed_msgs::srv::SetSvoFrame>(
       srv_name,
       std::bind(&ZedCamera::callback_setSvoFrame, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mSetSvoFrameSrv->get_service_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(), " * Advertised on service: '" << mSetSvoFrameSrv->get_service_name() << "'");
   }
 
   // Set ROI
   srv_name = srv_prefix + mSrvSetRoiName;
   mSetRoiSrv = create_service<zed_msgs::srv::SetROI>(
     srv_name, std::bind(&ZedCamera::callback_setRoi, this, _1, _2, _3));
-  RCLCPP_INFO(get_logger(), " * '%s'", mSetRoiSrv->get_service_name());
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Advertised on service: '" << mSetRoiSrv->get_service_name() << "'");
   // Reset ROI
   srv_name = srv_prefix + mSrvResetRoiName;
   mResetRoiSrv = create_service<std_srvs::srv::Trigger>(
     srv_name, std::bind(&ZedCamera::callback_resetRoi, this, _1, _2, _3));
-  RCLCPP_INFO(get_logger(), " * '%s'", mResetRoiSrv->get_service_name());
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Advertised on service: '" << mResetRoiSrv->get_service_name() << "'");
 
   if (mGnssFusionEnabled) {
     // To Latitude/Longitude
     srv_name = srv_prefix + mSrvToLlName;
     mToLlSrv = create_service<robot_localization::srv::ToLL>(
       srv_name, std::bind(&ZedCamera::callback_toLL, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mToLlSrv->get_service_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Advertised on service: '" << mToLlSrv->get_service_name() << "'");
     // From Latitude/Longitude
     srv_name = srv_prefix + mSrvFromLlName;
     mFromLlSrv = create_service<robot_localization::srv::FromLL>(
       srv_name, std::bind(&ZedCamera::callback_fromLL, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", mFromLlSrv->get_service_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Advertised on service: '" << mFromLlSrv->get_service_name() << "'");
   }
 }
 
@@ -1327,9 +1363,47 @@ void ZedCamera::getPosTrackingParams()
       shared_from_this(), "pos_tracking.area_memory",
       mAreaMemory, mAreaMemory, " * Area Memory: ");
     sl_tools::getParam(
-      shared_from_this(), "pos_tracking.area_memory_db_path",
-      mAreaMemoryDbPath, mAreaMemoryDbPath,
-      " * Area Memory DB: ");
+      shared_from_this(), "pos_tracking.area_file_path",
+      mAreaMemoryFilePath, mAreaMemoryFilePath,
+      " * Area Memory File: ");
+    sl_tools::getParam(
+      shared_from_this(), "pos_tracking.save_area_memory_on_closing",
+      mSaveAreaMemoryOnClosing, mSaveAreaMemoryOnClosing,
+      " * Save Area Memory on closing: ");
+
+    if (mAreaMemoryFilePath.empty()) {
+      if (mSaveAreaMemoryOnClosing) {
+        RCLCPP_WARN(
+          get_logger(),
+          "  * The parameter 'pos_tracking.area_file_path' is empty, "
+          "no Area Memory File will be saved on closing.");
+        mSaveAreaMemoryOnClosing = false;
+      }
+    } else {
+      mAreaMemoryFilePath = sl_tools::getFullFilePath(mAreaMemoryFilePath);
+      mAreaFileExists = std::filesystem::exists(mAreaMemoryFilePath);
+
+      if (mAreaFileExists) {
+        RCLCPP_INFO_STREAM(
+          get_logger(),
+          "  * Using the existing Area Memory file '" << mAreaMemoryFilePath << "'");
+        if (mSaveAreaMemoryOnClosing) {
+          RCLCPP_INFO(
+            get_logger(),
+            "  * The Area Memory file will be updated on node closing or by manually calling the `save_area_memory` service with empty parameter.");
+        }
+      } else {
+        RCLCPP_INFO_STREAM(
+          get_logger(),
+          "  * The Area Memory file '" << mAreaMemoryFilePath << "' does not exist.");
+        if (mSaveAreaMemoryOnClosing) {
+          RCLCPP_INFO(
+            get_logger(),
+            "  * The Area Memory file will be created on node closing or by manually calling the `save_area_memory` service with empty parameter.");
+        }
+      }
+    }
+
   }
   sl_tools::getParam(
     shared_from_this(), "pos_tracking.set_as_static",
@@ -3049,6 +3123,12 @@ void ZedCamera::closeCamera()
 
   RCLCPP_INFO(get_logger(), "=== CLOSING CAMERA ===");
 
+  if (mPosTrackingStarted && !mAreaMemoryFilePath.empty() &&
+    mSaveAreaMemoryOnClosing)
+  {
+    saveAreaMemoryFile(mAreaMemoryFilePath);
+  }
+
   mZed->close();
   mZed.reset();
   DEBUG_COMM("Camera closed");
@@ -3222,14 +3302,6 @@ bool ZedCamera::startPosTracking()
     mInitialPoseSl.getOrientation().oy, mInitialPoseSl.getOrientation().oz,
     mInitialPoseSl.getOrientation().ow);
 
-  if (mAreaMemoryDbPath != "" && !sl_tools::file_exist(mAreaMemoryDbPath)) {
-    mAreaMemoryDbPath = "";
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "'area_memory_db_path' path doesn't exist or is unreachable: "
-        << mAreaMemoryDbPath);
-  }
-
   // Tracking parameters
   sl::PositionalTrackingParameters ptParams;
 
@@ -3238,7 +3310,7 @@ bool ZedCamera::startPosTracking()
 
   ptParams.enable_pose_smoothing = mPoseSmoothing;
   ptParams.enable_area_memory = mAreaMemory;
-  ptParams.area_file_path = mAreaMemoryDbPath.c_str();
+  ptParams.area_file_path = (mAreaFileExists ? mAreaMemoryFilePath.c_str() : "");
   ptParams.enable_imu_fusion = mImuFusion;
   ptParams.initial_world_transform = mInitialPoseSl;
   ptParams.set_floor_as_origin = mFloorAlignment;
@@ -3310,6 +3382,47 @@ bool ZedCamera::startPosTracking()
   startPathPubTimer(mPathPubRate);
 
   return mPosTrackingStarted;
+}
+
+bool ZedCamera::saveAreaMemoryFile(const std::string & filePath)
+{
+  if (!mZed) {
+    RCLCPP_WARN(get_logger(), "ZED camera is not initialized");
+    return false;
+  }
+
+  if (!mAreaMemory) {
+    RCLCPP_WARN(
+      get_logger(),
+      "Failed to save area memory: 'Area Memory was not enabled'");
+    return false;
+  }
+
+  RCLCPP_INFO_STREAM(get_logger(), "Saving area memory to: '" << filePath << "' ...");
+  sl::ERROR_CODE err = mZed->saveAreaMap(filePath.c_str());
+
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Failed to save area memory: '"
+        << sl::toString(err) << "'");
+    return false;
+  }
+
+  auto export_state = sl::AREA_EXPORTING_STATE::RUNNING;
+  while (export_state == sl::AREA_EXPORTING_STATE::RUNNING) {
+    export_state = mZed->getAreaExportState();
+    sl::sleep_ms(5);
+  }
+
+  if (export_state != sl::AREA_EXPORTING_STATE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Failed to save area memory: '"
+        << sl::toString(export_state) << "'");
+    return false;
+  }
+
+  RCLCPP_INFO(get_logger(), "... Area memory saved successfully");
+  return true;
 }
 
 bool ZedCamera::start3dMapping()
@@ -6268,6 +6381,53 @@ void ZedCamera::callback_pubPaths()
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
   }
+}
+
+/*void callback_saveAreaMemory(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<zed_msgs::srv::SaveAreaMemory_Request> req,
+    std::shared_ptr<zed_msgs::srv::SaveAreaMemory_Response> res);*/// TODO(Walter): Uncomment when available in `zed_msgs` package from APT
+void ZedCamera::callback_saveAreaMemory(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<zed_msgs::srv::SetROI_Request> req,
+  std::shared_ptr<zed_msgs::srv::SetROI_Response> res)
+{
+  (void)request_header;
+
+  RCLCPP_INFO(get_logger(), "** Save Area Memory_Response service called **");
+
+  if (!mPosTrackingStarted) {
+    RCLCPP_WARN(get_logger(), " * Pos. Tracking was not started");
+    res->message = "Positional tracking not started";
+    res->success = false;
+    return;
+  }
+
+  std::string filename = req->roi;
+  // std::string filename = req->area_file_path; // TODO(Walter): Uncomment when available in `zed_msgs` package from APT
+
+  if (filename.empty()) {
+    if (mAreaMemoryFilePath.empty()) {
+      RCLCPP_WARN(
+        get_logger(),
+        " * Empty filename and empty 'pos_tracking.area_file_path' parameter.");
+      res->message = "Empty filename and empty 'pos_tracking.area_file_path' parameter.";
+      res->success = false;
+      return;
+    }
+    filename = mAreaMemoryFilePath;
+  }
+
+  filename = sl_tools::getFullFilePath(filename);
+
+  if (!saveAreaMemoryFile(filename) ) {
+    res->message = "Error saving Area Memory File. Read node log for more information.";
+    res->success = false;
+    return;
+  }
+
+  res->message = "Area Memory File saved";
+  res->success = true;
 }
 
 void ZedCamera::callback_resetOdometry(

@@ -1,25 +1,22 @@
 LATEST CHANGES
 ==============
 
-2025-06-27
+2025-07-22
 ----------
 - Added `enable_ipc` launch argument to enable intra-process communication (IPC) when using ROS 2 Composition. 
   - Note: NITROS requires IPC to be disabled to work properly.
+- Fixed plane topic names, adding missing node name prefix
+- Added camera_info to Confidence Map topic
 
 2025-07-08
 -----------
-- Change `pos_tracking.area_memory_db_path` to `pos_tracking.area_file_path` to match the ZED SDK parameter name
-- Add parameter `pos_tracking.save_area_memory_on_closing` to save the Area Memory before closing the camera
-- Fix Area Mapping file handling according to the ZED SDK policies.
+- Changed `pos_tracking.area_memory_db_path` to `pos_tracking.area_file_path` to match the ZED SDK parameter name
+- Added parameter `pos_tracking.save_area_memory_on_closing` to save the Area Memory before closing the camera
+- Fixed Area Mapping file handling according to the ZED SDK policies.
   - The Area Memory file is now saved only if the Area Memory is enabled, if the `pos_tracking.save_area_memory_on_closing` 
   parameter is set to `true`, if the `pos_tracking.area_file_path` is set and if the `pos_tracking.area_file_path` is valid.
-- Add `save_area_memory` service
+- Added `save_area_memory` service
   - Set the filename as a parameter. If the filename is empty, it uses the value of the parameter `pos_tracking.area_file_path` if not empty.
-
-2025-06-25
-----------
-- Fixed plane topic names, adding missing node name prefix
-- Add camera_info to Confidence Map topic
 
 2025-06-18
 ----------

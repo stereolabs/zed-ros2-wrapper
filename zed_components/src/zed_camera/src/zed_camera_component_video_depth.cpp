@@ -1990,7 +1990,7 @@ void ZedCamera::publishImageWithInfo(
       .WithEncoding(img_encodings::BGRA8)
       .WithDimensions(img.getHeight(), img.getWidth())
       .WithGpuData(buffer)
-      //.WithGpuData(img.getPtr<sl::uchar4>(sl::MEM::GPU)) // Direct GPU memory sharing not working 
+      //.WithGpuData(img.getPtr<sl::uchar4>(sl::MEM::GPU)) // Direct GPU memory sharing not working
       .Build();
 
     nitrosPubImg->publish(nitros_image);

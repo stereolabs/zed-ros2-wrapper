@@ -249,21 +249,11 @@ For robots moving on a planar surface, activating the "2D mode" (parameter `pos_
 The value of the coordinate Z for odometry and pose will have a fixed value (parameter `pos_tracking/fixed_z_value` in `common_stereo.yaml`). 
 Roll, Pitch, and the relative velocities will be fixed to zero.
 
-## Examples and Tutorials
-
-Examples and tutorials are provided to better understand how to use the ZED wrapper and how to integrate it into the ROS 2 framework.
-See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples)
-
-### RVIZ2 visualization examples
-
-- Example launch files to start a preconfigured instance of Rviz displaying all the ZED Wrapper node information: [zed_display_rviz2](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
-- ROS 2 plugin for ZED2 to visualize the results of the Object Detection and Body Tracking modules (bounding boxes and skeletons): [rviz-plugin-zed-od](https://github.com/stereolabs/zed-ros2-examples/tree/master/rviz-plugin-zed-od)
-
-## ISAAC ROS support
+## ISAAC ROS integration
 
 The ZED ROS 2 Wrapper is compatible with the [ISAAC ROS](https://nvidia-isaac-ros.github.io/) framework, which provides a set of tools and libraries for building robotics applications on NVIDIA platforms.
 
-The ZED ROS 2 Wrapper leverages [NITROS](https://nvidia-isaac-ros.github.io/concepts/nitros/index.html) (NVIDIA Isaac Transport for ROS) a technology to enable streaming through NVIDIA-accelerated ROS graphs.
+The ZED ROS 2 Wrapper leverages [NITROS](https://nvidia-isaac-ros.github.io/concepts/nitros/index.html) (NVIDIA Isaac Transport for ROS) a technology to enable data streaming through NVIDIA-accelerated ROS graphs.
 
 ### Use ISAAC ROS precompiled binaries
 
@@ -283,13 +273,27 @@ sudo apt install ros-humble-isaac-ros-managed-nitros ros-humble-isaac-ros-nitros
 
 In case of building errors related to VPI, you may need to install the VPI library.
 
-### Jetson setup for VPI
+#### Jetson setup for VPI
 
 We recommend to follow the official configuration guide on the ISAAC ROS documentation: [Jetson setup for VPI](https://nvidia-isaac-ros.github.io/getting_started/hardware_setup/compute/jetson_vpi.html).
 
-### Desktop setup for VPI
+#### Desktop setup for VPI
 
-We recomemend to install the VPI library from the NVIDIA package repository, as described in the [VPI installation guide](https://docs.nvidia.com/vpi/installation.html).
+We recommend to install the VPI library from the NVIDIA package repository, as described in the [VPI installation guide](https://docs.nvidia.com/vpi/installation.html).
+
+```bash
+COPY FROM HERE: https://nvidia-isaac-ros.github.io/getting_started/isaac_apt_repository.html#setting-up-isaac-apt-repository
+```
+
+## Examples and Tutorials
+
+Examples and tutorials are provided to better understand how to use the ZED wrapper and how to integrate it into the ROS 2 framework.
+See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples)
+
+### RVIZ2 visualization examples
+
+- Example launch files to start a preconfigured instance of Rviz displaying all the ZED Wrapper node information: [zed_display_rviz2](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
+- ROS 2 plugin for ZED2 to visualize the results of the Object Detection and Body Tracking modules (bounding boxes and skeletons): [rviz-plugin-zed-od](https://github.com/stereolabs/zed-ros2-examples/tree/master/rviz-plugin-zed-od)
 
 ### Tutorials
 

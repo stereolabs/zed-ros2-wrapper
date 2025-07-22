@@ -1974,7 +1974,12 @@ void ZedCamera::publishImageWithInfo(
     size_t dpitch = img.getWidthBytes();
     size_t spitch = img.getStepBytes(sl::MEM::GPU); // SL Mat can be padded
 
-    size_t dbuffer_size{dpitch * img.getHeight()};
+    // RCLCPP_INFO_STREAM(
+    //   get_logger(),
+    //   " * dpitch: " << dpitch << " - spitch: " << spitch);
+
+
+    size_t dbuffer_size{spitch * img.getHeight()};
     void * dbuffer;
     cudaMalloc(&dbuffer, dbuffer_size);
 

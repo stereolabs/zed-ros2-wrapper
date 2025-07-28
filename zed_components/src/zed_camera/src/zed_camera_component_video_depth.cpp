@@ -789,6 +789,15 @@ void ZedCamera::applyZEDXExposureSettings()
 
 void ZedCamera::applyZEDXAutoExposureTimeRange()
 {
+  // ----> TODO(Walter) Remove this check when fixed in ZED SDK
+  if (mCamRealModel == sl::MODEL::VIRTUAL_ZED_X) {
+    DEBUG_VD(
+      "Auto Digital Gain Range not supported for VIRTUAL_ZED_X model. "
+      "Skipping setting.");
+    return;
+  }
+  // <---- TODO(Walter) Remove this check when fixed in ZED SDK
+
   sl::ERROR_CODE err;
   int value_min, value_max;
   err = mZed->getCameraSettings(
@@ -883,6 +892,15 @@ void ZedCamera::applyZEDXAnalogDigitalGain()
 
 void ZedCamera::applyZEDXAutoAnalogGainRange()
 {
+  // ----> TODO(Walter) Remove this check when fixed in ZED SDK
+  if (mCamRealModel == sl::MODEL::VIRTUAL_ZED_X) {
+    DEBUG_VD(
+      "Auto Analog Gain Range not supported for VIRTUAL_ZED_X model. "
+      "Skipping setting.");
+    return;
+  }
+  // <---- TODO(Walter) Remove this check when fixed in ZED SDK
+
   sl::ERROR_CODE err;
   int value_min, value_max;
   err =
@@ -917,6 +935,15 @@ void ZedCamera::applyZEDXAutoAnalogGainRange()
 
 void ZedCamera::applyZEDXAutoDigitalGainRange()
 {
+  // ----> TODO(Walter) Remove this check when fixed in ZED SDK
+  if (mCamRealModel == sl::MODEL::VIRTUAL_ZED_X) {
+    DEBUG_VD(
+      "Auto Digital Gain Range not supported for VIRTUAL_ZED_X model. "
+      "Skipping setting.");
+    return;
+  }
+  // <---- TODO(Walter) Remove this check when fixed in ZED SDK
+
   sl::ERROR_CODE err;
   int value_min, value_max;
   err =

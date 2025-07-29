@@ -3198,6 +3198,10 @@ bool ZedCamera::startCamera()
   if (!mSvoMode && !mSimMode) {
     mZed->setCameraSettings(sl::VIDEO_SETTINGS::AEC_AGC, 0);
     mZed->setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, 0);
+
+    // Lock on Positional Tracking mutex to avoid race conditions
+    std::lock_guard<std::mutex> lock(mPtMutex);
+
     // Force parameters with a dummy grab
     mZed->grab();
   }
@@ -3467,12 +3471,25 @@ void ZedCamera::startPathPubTimer(double pathTimerRate)
 
 bool ZedCamera::startPosTracking()
 {
+  // Lock on Positional Tracking mutex to avoid race conditions
+  std::lock_guard<std::mutex> lock(mPtMutex);
+
   if (mDepthDisabled) {
     RCLCPP_WARN(
       get_logger(),
       "Cannot start Positional Tracking if "
       "`depth.depth_mode` is set to `0` [NONE]");
     return false;
+  }
+
+  if (mZed && mZed->isPositionalTrackingEnabled()) {
+    if (!mAreaMemoryFilePath.empty() && mSaveAreaMemoryOnClosing) {
+      mZed->disablePositionalTracking(mAreaMemoryFilePath.c_str());
+      RCLCPP_INFO(
+        get_logger(), "Area memory updated before restarting the Positional Tracking module.");
+    } else {
+      mZed->disablePositionalTracking();
+    }
   }
 
   RCLCPP_INFO(get_logger(), "=== Starting Positional Tracking ===");
@@ -4353,6 +4370,9 @@ void ZedCamera::threadFunc_zedGrab()
         if (!mGrabOnce) {
           rclcpp::sleep_for(100ms);
   #ifdef USE_SVO_REALTIME_PAUSE
+          // Lock on Positional Tracking mutex to avoid race conditions
+          std::lock_guard<std::mutex> lock(mPtMutex);
+          
           // Dummy grab
           mZed->grab();
   #endif
@@ -4458,6 +4478,8 @@ void ZedCamera::threadFunc_zedGrab()
       }
       // <---- Publish SVO Status information
 
+      // Lock on Positional Tracking mutex to avoid race conditions
+      std::lock_guard<std::mutex> lock(mPtMutex);
 
       // Start processing timer for diagnostic
       grabElabTimer.tic();

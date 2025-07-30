@@ -28,6 +28,7 @@ ARG POINTCLOUD_TRANSPORT_VERSION=1.0.18
 ARG POINTCLOUD_TRANSPORT_PLUGINS_VERSION=1.0.11
 ARG RMW_CYCLONEDDS_VERSION=1.3.4
 ARG BACKWARD_ROS_VERSION=1.0.7
+ENV PYPI_URL=https://pypi.jetson-ai-lab.io/jp6/cu126
 
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -60,6 +61,7 @@ RUN echo "# R${L4T_MAJOR} (release), REVISION: ${L4T_MINOR}" > /etc/nv_tegra_rel
   apt-get install -y --no-install-recommends zstd wget less cmake curl gnupg2 \
   build-essential python3 python3-pip python3-dev python3-setuptools libusb-1.0-0-dev \ 
   libgeographic-dev libdraco-dev zlib1g-dev -y && \
+  export PIP_INDEX_URL="${PYPI_URL}" && \
   pip install protobuf && \
   wget -q --no-check-certificate -O ZED_SDK_Linux_JP.run \
   ${ZED_SDK_URL} && \

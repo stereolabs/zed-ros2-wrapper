@@ -39,6 +39,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #elif defined FOUND_JAZZY
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#elif defined FOUND_KILTED
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #elif defined FOUND_ROLLING
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #elif defined FOUND_FOXY
@@ -4372,7 +4374,7 @@ void ZedCamera::threadFunc_zedGrab()
   #ifdef USE_SVO_REALTIME_PAUSE
           // Lock on Positional Tracking mutex to avoid race conditions
           std::lock_guard<std::mutex> lock(mPtMutex);
-          
+
           // Dummy grab
           mZed->grab();
   #endif

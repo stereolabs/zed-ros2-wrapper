@@ -2231,13 +2231,13 @@ bool ZedCamera::startCamera()
 
   // ----> ZED configuration
 
-  if (primary_cuda_context) {
-    mInitParams.sdk_cuda_ctx = *primary_cuda_context;
-  } else {
-    RCLCPP_WARN(
-      get_logger(),
-      "No CUDA context found, using default ZED SDK context.");
-  }
+  // if (primary_cuda_context) {
+  //   mInitParams.sdk_cuda_ctx = *primary_cuda_context;
+  // } else {
+  //   RCLCPP_INFO(
+  //     get_logger(),
+  //     "No ready CUDA context found, using default ZED SDK context.");
+  // }
 
   if (mSimMode) {  // Simulation?
     RCLCPP_INFO_STREAM(
@@ -2954,7 +2954,6 @@ bool ZedCamera::startCamera()
   mLeftCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   mRightCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   mRightCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-  mLeftCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
 
   setTFCoordFrameNames();  // Requires mZedRealCamModel available only after
                            // camera opening

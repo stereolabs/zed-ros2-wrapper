@@ -69,7 +69,7 @@ protected:
 
   // ----> Utility functions
   void fillCamInfo(
-    const sensor_msgs::msg::CameraInfo::SharedPtr & camInfoMsg,
+    sensor_msgs::msg::CameraInfo::SharedPtr & camInfoMsg,
     const std::string & frameId, bool rawParam = false);
 
   void applyDynamicSettings();

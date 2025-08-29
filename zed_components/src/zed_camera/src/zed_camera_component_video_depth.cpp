@@ -26,11 +26,14 @@
 #ifdef FOUND_ISAAC_ROS_NITROS
   #include "isaac_ros_nitros_image_type/nitros_image_builder.hpp"
 
-  #define CUDA_CHECK(status)                           \
-    if (static_cast<int>(status) != 0)  \
-    {                                           \
-        RCLCPP_ERROR(get_logger(), "Internal CUDA ERROR encountered: {} {}", cudaGetErrorName(status), cudaGetErrorString(status)); \
-    }
+  #define CUDA_CHECK(status) \
+  if (status != cudaSuccess) \
+  { \
+    RCLCPP_ERROR_STREAM( \
+      get_logger(), "Internal CUDA ERROR encountered: {" << std::string( \
+        cudaGetErrorName( \
+          status)) << "} {" << std::string(cudaGetErrorString(status)) << "}"); \
+  }
 #endif
 
 namespace stereolabs
@@ -1990,13 +1993,14 @@ void ZedCamera::publishImageWithInfo(
     CUDA_CHECK(cudaMalloc(&dbuffer, dbuffer_size));
 
     // Copy data bytes to CUDA buffer
-    CUDA_CHECK(cudaMemcpy2D(
-      dbuffer,
-      dpitch,
-      img.getPtr<sl::uchar1>(sl::MEM::GPU),
-      spitch,
-      img.getWidth() * img.getPixelBytes(), img.getHeight(),
-      cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(
+      cudaMemcpy2D(
+        dbuffer,
+        dpitch,
+        img.getPtr<sl::uchar1>(sl::MEM::GPU),
+        spitch,
+        img.getWidth() * img.getPixelBytes(), img.getHeight(),
+        cudaMemcpyDeviceToDevice));
 
     // Adding header data
     std_msgs::msg::Header header;
@@ -2097,16 +2101,17 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 
     size_t dbuffer_size{dpitch * depth.getHeight()};
     void * dbuffer;
-   CUDA_CHECK(cudaMalloc(&dbuffer, dbuffer_size));
+    CUDA_CHECK(cudaMalloc(&dbuffer, dbuffer_size));
 
     // Copy data bytes to CUDA buffer
-    CUDA_CHECK(cudaMemcpy2D(
-      dbuffer,
-      dpitch,
-      depth.getPtr<sl::uchar1>(sl::MEM::GPU),
-      spitch,
-      depth.getWidth() * depth.getPixelBytes(), depth.getHeight(),
-      cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(
+      cudaMemcpy2D(
+        dbuffer,
+        dpitch,
+        depth.getPtr<sl::uchar1>(sl::MEM::GPU),
+        spitch,
+        depth.getWidth() * depth.getPixelBytes(), depth.getHeight(),
+        cudaMemcpyDeviceToDevice));
 
     // Adding header data
     std_msgs::msg::Header header;

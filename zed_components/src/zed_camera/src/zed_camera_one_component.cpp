@@ -1532,7 +1532,7 @@ void ZedCameraOne::initTFCoordFrameNames()
 }
 
 void ZedCameraOne::fillCamInfo(
-  const sensor_msgs::msg::CameraInfo::SharedPtr & camInfoMsg,
+  sensor_msgs::msg::CameraInfo::SharedPtr & camInfoMsg,
   const std::string & frameId, bool rawParam)
 {
   sl::CameraParameters zedParam;

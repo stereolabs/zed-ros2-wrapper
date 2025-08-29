@@ -719,10 +719,6 @@ bool ZedCamera::areVideoDepthSubscribed()
       mStereoTopic + "/nitros");
     mStereoRawSubCount = count_subscribers(mStereoRawTopic) + count_subscribers(
       mStereoRawTopic + "/nitros");
-    mDepthSubCount = count_subscribers(mDepthTopic) + count_subscribers(
-      mDepthTopic + "/nitros");
-    mConfMapSubCount = count_subscribers(mConfMapTopic) + count_subscribers(
-      mConfMapTopic + "/nitros");
 
     if (!mDepthDisabled) {
       mDepthSubCount = count_subscribers(mDepthTopic) + count_subscribers(
@@ -1960,11 +1956,6 @@ void ZedCamera::publishImageWithInfo(
     size_t dpitch = img.getWidthBytes();
     size_t spitch = img.getStepBytes(sl::MEM::GPU); // SL Mat can be padded
 
-    // RCLCPP_INFO_STREAM(
-    //   get_logger(),
-    //   " * dpitch: " << dpitch << " - spitch: " << spitch);
-
-
     size_t dbuffer_size{spitch * img.getHeight()};
     void * dbuffer;
     CUDA_CHECK(cudaMalloc(&dbuffer, dbuffer_size));
@@ -2000,7 +1991,7 @@ void ZedCamera::publishImageWithInfo(
       .WithEncoding(encoding)
       .WithDimensions(img.getHeight(), img.getWidth())
       .WithGpuData(dbuffer)
-      //.WithGpuData(img.getPtr<sl::uchar4>(sl::MEM::GPU)) // Direct GPU memory sharing not working
+      //.WithGpuData(img.getPtr<sl::uchar4>(sl::MEM::GPU)) // TODO: Enable direct GPU memory sharing when supported by Isaac ROS.
       .Build();
 
     nitrosPubImg->publish(nitros_image);
@@ -2102,7 +2093,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
       .WithEncoding(img_encodings::TYPE_32FC1)
       .WithDimensions(depth.getHeight(), depth.getWidth())
       .WithGpuData(dbuffer)
-      //.WithGpuData(depth.getPtr<sl::float1>(sl::MEM::GPU)) // Direct GPU memory sharing not working
+      //.WithGpuData(depth.getPtr<sl::float1>(sl::MEM::GPU)) // TODO: Enable direct GPU memory sharing when supported by Isaac ROS.
       .Build();
 
     mNitrosPubDepth->publish(nitros_image);

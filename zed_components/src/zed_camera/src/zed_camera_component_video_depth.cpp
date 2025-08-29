@@ -671,23 +671,6 @@ bool ZedCamera::areVideoDepthSubscribed()
   mDisparitySubCount = 0;
   mDepthInfoSubCount = 0;
 
-  mRgbSubCount = 0;
-  mRgbRawSubCount = 0;
-  mRgbGraySubCount = 0;
-  mRgbGrayRawSubCount = 0;
-  mLeftSubCount = 0;
-  mLeftRawSubCount = 0;
-  mLeftGraySubCount = 0;
-  mLeftGrayRawSubCount = 0;
-  mRightSubCount = 0;
-  mRightRawSubCount = 0;
-  mRightGraySubCount = 0;
-  mRightGrayRawSubCount = 0;
-  mStereoSubCount = 0;
-  mStereoRawSubCount = 0;
-  mDepthSubCount = 0;
-  mConfMapSubCount = 0;
-
   try {
 #ifndef FOUND_ISAAC_ROS_NITROS
     mRgbSubCount = mPubRgb.getNumSubscribers();
@@ -757,19 +740,13 @@ bool ZedCamera::areVideoDepthSubscribed()
     return false;
   }
 
-  return (mRgbSubCount + mRgbRawSubCount + mRgbGraySubCount +
-         mRgbGrayRawSubCount + mLeftSubCount + mLeftRawSubCount +
-         mLeftGraySubCount + mLeftGrayRawSubCount + mRightSubCount +
-         mRightRawSubCount + mRightGraySubCount + mRightGrayRawSubCount +
-         mStereoSubCount + mStereoRawSubCount + mDepthSubCount +
-         mConfMapSubCount + mDisparitySubCount + mDepthInfoSubCount +
-         mRgbGraySubCount + mRgbGrayRawSubCount +
-         mLeftSubCount + mLeftRawSubCount +
-         mLeftGraySubCount + mLeftGrayRawSubCount +
-         mRightSubCount + mRightRawSubCount +
-         mRightGraySubCount + mRightGrayRawSubCount +
-         mStereoSubCount + mStereoRawSubCount +
-         mDepthSubCount + mConfMapSubCount) > 0;
+  return (
+    mRgbSubCount + mRgbRawSubCount + mRgbGraySubCount + mRgbGrayRawSubCount +
+    mLeftSubCount + mLeftRawSubCount + mLeftGraySubCount + mLeftGrayRawSubCount +
+    mRightSubCount + mRightRawSubCount + mRightGraySubCount + mRightGrayRawSubCount +
+    mStereoSubCount + mStereoRawSubCount +
+    mDepthSubCount + mConfMapSubCount + mDisparitySubCount + mDepthInfoSubCount
+  ) > 0;
 }
 
 bool ZedCamera::isDepthRequired()
@@ -1776,7 +1753,7 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
 #ifndef FOUND_ISAAC_ROS_NITROS
     publishImageWithInfo(
       mMatLeftRawGray, mPubRawRgbGray, mPubRawRgbGrayCamInfo,
-      mLeftCamInfoRawMsg, mDepthOptFrameId, t);
+      mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #else
     publishImageWithInfo(
       mMatLeftRawGray, mNitrosPubRawRgbGray, mPubRawRgbGrayCamInfo,

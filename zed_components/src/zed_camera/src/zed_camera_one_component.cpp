@@ -951,8 +951,8 @@ bool ZedCameraOne::startCamera()
   // <---- Camera information
 
   // ----> Camera Info messages
-  _camInfoMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
-  _camInfoRawMsg = std::make_unique<sensor_msgs::msg::CameraInfo>();
+  _camInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+  _camInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
 
   initTFCoordFrameNames();
 

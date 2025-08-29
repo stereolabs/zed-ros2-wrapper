@@ -33,6 +33,7 @@
       get_logger(), "Internal CUDA ERROR encountered: {" << std::string( \
         cudaGetErrorName( \
           status)) << "} {" << std::string(cudaGetErrorString(status)) << "}"); \
+    std::abort(); \
   }
 #endif
 

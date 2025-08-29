@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-08-28
+----------
+- Enable Isaac ROS integration and automatic NITROS usage
+
 2025-07-22
 ----------
 - Added `enable_ipc` launch argument to enable intra-process communication (IPC) when using ROS 2 Composition. 

@@ -249,41 +249,13 @@ For robots moving on a planar surface, activating the "2D mode" (parameter `pos_
 The value of the coordinate Z for odometry and pose will have a fixed value (parameter `pos_tracking/fixed_z_value` in `common_stereo.yaml`). 
 Roll, Pitch, and the relative velocities will be fixed to zero.
 
-## ISAAC ROS integration
+## NVIDIA® Isaac ROS integration
 
-The ZED ROS 2 Wrapper is compatible with the [ISAAC ROS](https://nvidia-isaac-ros.github.io/) framework, which provides a set of tools and libraries for building robotics applications on NVIDIA platforms.
+The ZED ROS 2 Wrapper is compatible with the [NVIDIA® Isaac ROS](https://nvidia-isaac-ros.github.io/) framework, which provides a set of tools and libraries for building robotics applications on NVIDIA® platforms.
 
-The ZED ROS 2 Wrapper leverages [NITROS](https://nvidia-isaac-ros.github.io/concepts/nitros/index.html) (NVIDIA Isaac Transport for ROS) a technology to enable data streaming through NVIDIA-accelerated ROS graphs.
+The ZED ROS 2 Wrapper leverages [NITROS](https://nvidia-isaac-ros.github.io/concepts/nitros/index.html) (NVIDIA® Isaac Transport for ROS) a technology to enable data streaming through NVIDIA-accelerated ROS graphs.
 
-### Use ISAAC ROS precompiled binaries
-
-From the ISAAC ROS documentation:
-
-```bash
-COPY FROM HERE: https://nvidia-isaac-ros.github.io/getting_started/isaac_apt_repository.html#setting-up-isaac-apt-repository
-```
-
-Dependencies for ISAAC ROS can be installed by running the following command:
-
-```bash
-sudo apt install ros-humble-isaac-ros-managed-nitros ros-humble-isaac-ros-nitros-image-type
-```
-
-### VPI dependency
-
-In case of building errors related to VPI, you may need to install the VPI library.
-
-#### Jetson setup for VPI
-
-We recommend to follow the official configuration guide on the ISAAC ROS documentation: [Jetson setup for VPI](https://nvidia-isaac-ros.github.io/getting_started/hardware_setup/compute/jetson_vpi.html).
-
-#### Desktop setup for VPI
-
-We recommend to install the VPI library from the NVIDIA package repository, as described in the [VPI installation guide](https://docs.nvidia.com/vpi/installation.html).
-
-```bash
-COPY FROM HERE: https://nvidia-isaac-ros.github.io/getting_started/isaac_apt_repository.html#setting-up-isaac-apt-repository
-```
+Read the full [Isaac ROS integration guide](https://docs.stereolabs.com/isaac-ros/) and learn how to setup your development environment to use the ZED ROS2 Wrapper with Isaac ROS.
 
 ## Examples and Tutorials
 

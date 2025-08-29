@@ -2206,10 +2206,11 @@ bool ZedCamera::startCamera()
 {
   RCLCPP_INFO(get_logger(), "=== STARTING CAMERA ===");
 
-  CUcontext * primary_cuda_context;
-  cuCtxGetCurrent(primary_cuda_context);
-  int ctx_gpu_id;
-  cudaGetDevice(&ctx_gpu_id);
+  // // CUDA context check
+  // CUcontext * primary_cuda_context;
+  // cuCtxGetCurrent(primary_cuda_context);
+  // int ctx_gpu_id;
+  // cudaGetDevice(&ctx_gpu_id);
 
   // Create a ZED object
   mZed = std::make_shared<sl::Camera>();

@@ -707,74 +707,76 @@ void ZedCamera::getTopicEnableParams()
 
   // General topics
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_status", mPublishStatus,
+    shared_from_this(), "general.publish_status", mPublishStatus,
     mPublishStatus, " * Publish Status: ");
 
   // Image topics
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_img_left_right", mPublishImgLeftRight,
+    shared_from_this(), "video.publish_left_right", mPublishImgLeftRight,
     mPublishImgLeftRight, " * Publish Left/Right images: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_img_raw", mPublishImgRaw,
+    shared_from_this(), "video.publish_raw", mPublishImgRaw,
     mPublishImgRaw, " * Publish Raw images: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_img_gray", mPublishImgGray,
+    shared_from_this(), "video.publish_gray", mPublishImgGray,
     mPublishImgGray, " * Publish Gray images: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_img_rgb", mPublishImgRgb,
+    shared_from_this(), "video.publish_rgb", mPublishImgRgb,
     mPublishImgRgb, " * Publish RGB image: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_img_stereo", mPublishImgStereo,
+    shared_from_this(), "video.publish_stereo", mPublishImgStereo,
     mPublishImgStereo, " * Publish Stereo image: ");
+
+  // Region of Interest topics
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_img_roi_mask", mPublishImgRoiMask,
+    shared_from_this(), "region_of_interest.publish_roi_mask", mPublishImgRoiMask,
     mPublishImgRoiMask, " * Publish ROI Mask image: ");
 
   // Depth topics
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_depth_map", mPublishDepthMap,
+    shared_from_this(), "depth.publish_depth_map", mPublishDepthMap,
     mPublishDepthMap, " * Publish Depth Map: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_point_cloud", mPublishPointcloud,
+    shared_from_this(), "depth.publish_point_cloud", mPublishPointcloud,
     mPublishPointcloud, " * Publish Point Cloud: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_depth_confidence", mPublishConfidence,
+    shared_from_this(), "depth.publish_depth_confidence", mPublishConfidence,
     mPublishConfidence, " * Publish Depth Confidence: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_disparity", mPublishDisparity,
+    shared_from_this(), "depth.publish_disparity", mPublishDisparity,
     mPublishDisparity, " * Publish Disparity: ");
 
   // Sensor topics
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_sens_imu", mPublishSensImu,
+    shared_from_this(), "sensors.publish_imu", mPublishSensImu,
     mPublishSensImu, " * Publish IMU: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_sens_imu_raw", mPublishSensImuRaw,
+    shared_from_this(), "sensors.publish_imu_raw", mPublishSensImuRaw,
     mPublishSensImuRaw, " * Publish IMU Raw: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_sens_imu_transf", mPublishSensImuTransf,
+    shared_from_this(), "sensors.publish_imu_transf", mPublishSensImuTransf,
     mPublishSensImuTransf, " * Publish LeftCam/IMU Transf.: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_sens_mag", mPublishSensMag,
+    shared_from_this(), "sensors.publish_mag", mPublishSensMag,
     mPublishSensMag, " * Publish Magnetometer: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_sens_baro", mPublishSensBaro,
+    shared_from_this(), "sensors.publish_baro", mPublishSensBaro,
     mPublishSensBaro, " * Publish Barometer: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_sens_temp", mPublishSensTemp,
+    shared_from_this(), "sensors.publish_temp", mPublishSensTemp,
     mPublishSensTemp, " * Publish Temperature: ");
 
   // Localization topics
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_odom_pose", mPublishOdomPose,
+    shared_from_this(), "pos_tracking.publish_odom_pose", mPublishOdomPose,
     mPublishOdomPose, " * Publish Odometry/Pose: ");
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_cam_path", mPublishPath,
+    shared_from_this(), "pos_tracking.publish_cam_path", mPublishPath,
     mPublishPath, " * Publish Camera Path: ");
 
   // Mapping topics
   sl_tools::getParam(
-    shared_from_this(), "topics.publish_det_plane", mPublishDetPlane,
+    shared_from_this(), "mapping.publish_det_plane", mPublishDetPlane,
     mPublishDetPlane, " * Publish Detection Plane: ");
 }
 
@@ -1993,11 +1995,13 @@ void ZedCamera::initPublishers()
 
   // ----> SVO Status publisher
   if (mSvoMode) {
-    mPubSvoStatus = create_publisher<zed_msgs::msg::SvoStatus>(
-      svo_status_topic, mQos, mPubOpt);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Advertised on topic: " << mPubSvoStatus->get_topic_name());
+    if (mPublishStatus) {
+      mPubSvoStatus = create_publisher<zed_msgs::msg::SvoStatus>(
+        svo_status_topic, mQos, mPubOpt);
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "Advertised on topic: " << mPubSvoStatus->get_topic_name());
+    }
     if (mUseSvoTimestamp && mPublishSvoClock) {
       auto clock_qos = rclcpp::ClockQoS();
       clock_qos.reliability(rclcpp::ReliabilityPolicy::Reliable); // REQUIRED
@@ -4369,10 +4373,12 @@ void ZedCamera::threadFunc_zedGrab()
               RCLCPP_WARN(get_logger(), "Node stopped. Press Ctrl+C to exit.");
               break;
             } else {
-              RCLCPP_WARN_STREAM(
-                get_logger(),
-                "Waiting for SVO status subscribers to unsubscribe. Active subscribers: " <<
-                  mPubSvoStatus->get_subscription_count());
+              if (mPubSvoStatus) {
+                RCLCPP_WARN_STREAM(
+                  get_logger(),
+                  "Waiting for SVO status subscribers to unsubscribe. Active subscribers: " <<
+                    mPubSvoStatus->get_subscription_count());
+              }
               mDiagUpdater.force_update();
               rclcpp::sleep_for(1s);
               continue;
@@ -8417,7 +8423,7 @@ void ZedCamera::publishHealthStatus()
 
 bool ZedCamera::publishSvoStatus(uint64_t frame_ts)
 {
-  if (!mSvoMode) {
+  if (!mSvoMode || !mPubSvoStatus) {
     return false;
   }
 

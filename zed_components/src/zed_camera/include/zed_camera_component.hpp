@@ -459,6 +459,7 @@ private:
   bool mPublishConfidence = false;
   bool mPublishDisparity = false;
   bool mPublishStatus = true;
+  bool mPublishSvoClock = false;
 
   // General
   int mCamSerialNumber = 0;
@@ -488,7 +489,6 @@ private:
   double mSvoRate = 1.0;
   double mSvoExpectedPeriod = 0.0;
   bool mUseSvoTimestamp = false;
-  bool mPublishSvoClock = false;
   bool mGrabOnce = false;
   bool mGrabImuOnce = false;
   int mVerbose = 1;

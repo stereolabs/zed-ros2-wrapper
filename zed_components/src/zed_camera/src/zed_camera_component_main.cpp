@@ -4622,14 +4622,14 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   size_t pressSubCount = 0;
 
   try {
-    imu_SubCount = count_subscribers(mPubImu->get_topic_name());
-    imu_RawSubCount = count_subscribers(mPubImuRaw->get_topic_name());
+    if (mPubImu) {imu_SubCount = count_subscribers(mPubImu->get_topic_name());}
+    if (mPubImuRaw) {imu_RawSubCount = count_subscribers(mPubImuRaw->get_topic_name());}
     imu_MagSubCount = 0;
     pressSubCount = 0;
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-      imu_MagSubCount = count_subscribers(mPubImuMag->get_topic_name());
-      pressSubCount = count_subscribers(mPubPressure->get_topic_name());
+      if (mPubImuMag) {imu_MagSubCount = count_subscribers(mPubImuMag->get_topic_name());}
+      if (mPubPressure) {pressSubCount = count_subscribers(mPubPressure->get_topic_name());}
     }
   } catch (...) {
     rcutils_reset_error();
@@ -6079,11 +6079,11 @@ bool ZedCamera::isPosTrackingRequired()
 
   size_t topics_sub = 0;
   try {
-    topics_sub = count_subscribers(mPubPose->get_topic_name()) +
-      count_subscribers(mPubPoseCov->get_topic_name()) +
-      count_subscribers(mPubPosePath->get_topic_name()) +
-      count_subscribers(mPubOdom->get_topic_name()) +
-      count_subscribers(mPubOdomPath->get_topic_name());
+    if (mPubPose) {topics_sub += count_subscribers(mPubPose->get_topic_name());}
+    if (mPubPoseCov) {topics_sub += count_subscribers(mPubPoseCov->get_topic_name());}
+    if (mPubPosePath) {topics_sub += count_subscribers(mPubPosePath->get_topic_name());}
+    if (mPubOdom) {topics_sub += count_subscribers(mPubOdom->get_topic_name());}
+    if (mPubOdomPath) {topics_sub += count_subscribers(mPubOdomPath->get_topic_name());}
   } catch (...) {
     rcutils_reset_error();
     RCLCPP_WARN(
@@ -6169,10 +6169,10 @@ void ZedCamera::callback_pubTemp()
     tempImuSubCount = 0;
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-      tempLeftSubCount = count_subscribers(mPubTempL->get_topic_name());
-      tempRightSubCount = count_subscribers(mPubTempR->get_topic_name());
+      if (mPubTempL) {tempLeftSubCount = count_subscribers(mPubTempL->get_topic_name());}
+      if (mPubTempR) {tempRightSubCount = count_subscribers(mPubTempR->get_topic_name());}
     }
-    tempImuSubCount = count_subscribers(mPubImuTemp->get_topic_name());
+    if (mPubImuTemp) {tempImuSubCount = count_subscribers(mPubImuTemp->get_topic_name());}
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_SENS(
@@ -6251,7 +6251,7 @@ void ZedCamera::callback_pubFusedPc()
 #ifndef FOUND_FOXY
     fusedCloudSubCount = mPubFusedCloud.getNumSubscribers();
 #else
-    fusedCloudSubCount = count_subscribers(mPubFusedCloud->get_topic_name());
+    if (mPubFusedCloud) {fusedCloudSubCount = count_subscribers(mPubFusedCloud->get_topic_name());}
 #endif
   } catch (...) {
     rcutils_reset_error();
@@ -7678,8 +7678,8 @@ void ZedCamera::callback_clickedPoint(
   size_t markerSubCount = 0;
   size_t planeSubCount = 0;
   try {
-    markerSubCount = count_subscribers(mPubMarker->get_topic_name());
-    planeSubCount = count_subscribers(mPubPlane->get_topic_name());
+    if (mPubMarker) {markerSubCount = count_subscribers(mPubMarker->get_topic_name());}
+    if (mPubPlane) {planeSubCount = count_subscribers(mPubPlane->get_topic_name());}
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_MAP(

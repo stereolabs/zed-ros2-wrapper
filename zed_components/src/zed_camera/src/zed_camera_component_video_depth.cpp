@@ -190,14 +190,14 @@ void ZedCamera::initVideoDepthPublishers()
 #else
   // Nitros publishers lambda
   auto make_nitros_img_pub = [&](const std::string & topic) {
-    auto ret = std::make_shared<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
-          nvidia::isaac_ros::nitros::NitrosImage>>(
-      this, topic, nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name,
-      nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic);
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic + "/nitros");
-    return ret;
-  };
+      auto ret = std::make_shared<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
+            nvidia::isaac_ros::nitros::NitrosImage>>(
+        this, topic, nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name,
+        nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic + "/nitros");
+      return ret;
+    };
 
   if (mPublishImgRgb) {
     mNitrosPubRgb = make_nitros_img_pub(mRgbTopic);
@@ -797,8 +797,8 @@ bool ZedCamera::areVideoDepthSubscribed()
         mConfMapTopic + "/nitros");
 #endif
 
-      mDepthInfoSubCount = count_subscribers(mPubDepthInfo->get_topic_name());
-      mDisparitySubCount = count_subscribers(mPubDisparity->get_topic_name());
+      if (mPubDepthInfo) {mDepthInfoSubCount = count_subscribers(mPubDepthInfo->get_topic_name());}
+      if (mPubDisparity) {mDisparitySubCount = count_subscribers(mPubDisparity->get_topic_name());}
     }
   } catch (...) {
     rcutils_reset_error();
@@ -839,13 +839,13 @@ bool ZedCamera::isDepthRequired()
 #else
     nitrosDepthSub = count_subscribers(mDepthTopic) + count_subscribers(mDepthTopic + "/nitros");
 #endif
-    dispSub = count_subscribers(mPubDisparity->get_topic_name());
+    if (mPubDisparity) {dispSub = count_subscribers(mPubDisparity->get_topic_name());}
 #ifndef FOUND_FOXY
     pcSub = mPubCloud.getNumSubscribers();
 #else
-    pcSub = count_subscribers(mPubCloud->get_topic_name());
+    if (mPubCloud) {pcSub = count_subscribers(mPubCloud->get_topic_name());}
 #endif
-    depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
+    if (mPubDepthInfo) {depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());}
 
     tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub + nitrosDepthSub;
   } catch (...) {
@@ -2255,7 +2255,7 @@ bool ZedCamera::isPointCloudSubscribed()
 #ifndef FOUND_FOXY
     cloudSubCount = mPubCloud.getNumSubscribers();
 #else
-    cloudSubCount = count_subscribers(mPubCloud->get_topic_name());
+    if (mPubCloud) {cloudSubCount = count_subscribers(mPubCloud->get_topic_name());}
 #endif
   } catch (...) {
     rcutils_reset_error();

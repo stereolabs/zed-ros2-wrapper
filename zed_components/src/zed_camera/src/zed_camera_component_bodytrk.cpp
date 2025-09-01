@@ -359,7 +359,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
   size_t bt_sub_count = 0;
 
   try {
-    bt_sub_count = count_subscribers(mPubBodyTrk->get_topic_name());
+    if (mPubBodyTrk) {bt_sub_count = count_subscribers(mPubBodyTrk->get_topic_name());}
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_OD("processBodies: Exception while counting subscribers");

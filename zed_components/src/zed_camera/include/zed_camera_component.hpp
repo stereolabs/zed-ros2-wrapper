@@ -769,7 +769,7 @@ private:
   nitrosImgPub mNitrosPubConfMap;
 #endif
 
-  // Image publishers without camera info
+  // Image publishers without camera info (no NITROS)
   image_transport::Publisher mPubStereo;
   image_transport::Publisher mPubRawStereo;
 

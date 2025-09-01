@@ -486,6 +486,9 @@ void ZedCamera::initParameters()
   // DEBUG parameters
   getDebugParams();
 
+  // TOPIC parameters
+  getTopicEnableParams();
+
   // SIMULATION parameters
   getSimParams();
 
@@ -696,6 +699,83 @@ void ZedCamera::getDebugParams()
   DEBUG_STREAM_COMM(
     "[ROS2] Using RMW_IMPLEMENTATION "
       << rmw_get_implementation_identifier());
+}
+
+void ZedCamera::getTopicEnableParams()
+{
+  RCLCPP_INFO(get_logger(), "=== TOPIC selection parameters ===");
+
+  // General topics
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_status", mPublishStatus,
+    mPublishStatus, " * Publish Status: ");
+
+  // Image topics
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_img_left_right", mPublishImgLeftRight,
+    mPublishImgLeftRight, " * Publish Left/Right images: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_img_raw", mPublishImgRaw,
+    mPublishImgRaw, " * Publish Raw images: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_img_gray", mPublishImgGray,
+    mPublishImgGray, " * Publish Gray images: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_img_rgb", mPublishImgRgb,
+    mPublishImgRgb, " * Publish RGB image: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_img_stereo", mPublishImgStereo,
+    mPublishImgStereo, " * Publish Stereo image: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_img_roi_mask", mPublishImgRoiMask,
+    mPublishImgRoiMask, " * Publish ROI Mask image: ");
+
+  // Depth topics
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_depth_map", mPublishDepthMap,
+    mPublishDepthMap, " * Publish Depth Map: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_point_cloud", mPublishPointcloud,
+    mPublishPointcloud, " * Publish Point Cloud: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_depth_confidence", mPublishConfidence,
+    mPublishConfidence, " * Publish Depth Confidence: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_disparity", mPublishDisparity,
+    mPublishDisparity, " * Publish Disparity: ");
+
+  // Sensor topics
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_sens_imu", mPublishSensImu,
+    mPublishSensImu, " * Publish IMU: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_sens_imu_raw", mPublishSensImuRaw,
+    mPublishSensImuRaw, " * Publish IMU Raw: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_sens_imu_transf", mPublishSensImuTransf,
+    mPublishSensImuTransf, " * Publish LeftCam/IMU Transf.: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_sens_mag", mPublishSensMag,
+    mPublishSensMag, " * Publish Magnetometer: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_sens_baro", mPublishSensBaro,
+    mPublishSensBaro, " * Publish Barometer: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_sens_temp", mPublishSensTemp,
+    mPublishSensTemp, " * Publish Temperature: ");
+
+  // Localization topics
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_odom_pose", mPublishOdomPose,
+    mPublishOdomPose, " * Publish Odometry/Pose: ");
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_cam_path", mPublishPath,
+    mPublishPath, " * Publish Camera Path: ");
+
+  // Mapping topics
+  sl_tools::getParam(
+    shared_from_this(), "topics.publish_det_plane", mPublishDetPlane,
+    mPublishDetPlane, " * Publish Detection Plane: ");
 }
 
 void ZedCamera::getSimParams()

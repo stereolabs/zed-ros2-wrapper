@@ -45,6 +45,7 @@ protected:
   void close();
 
   void getDebugParams();
+  void getTopicEnableParams();
   void getSimParams();
   void getGeneralParams();
   void getVideoParams();
@@ -421,6 +422,7 @@ private:
   // <---- Topics
 
   // ----> Parameter variables
+  // Debug
   bool _debugCommon = false;
   bool _debugSim = false;
   bool _debugVideoDepth = false;
@@ -436,6 +438,29 @@ private:
   bool _debugRoi = false;
   bool _debugStreaming = false;
 
+  // Topic Enablers
+  bool mPublishSensImu = true;
+  bool mPublishSensImuRaw = false;
+  bool mPublishSensMag = false;
+  bool mPublishSensBaro = false;
+  bool mPublishSensTemp = false;
+  bool mPublishSensImuTransf = false;
+  bool mPublishImgLeftRight = false;
+  bool mPublishImgRaw = false;
+  bool mPublishImgGray = false;
+  bool mPublishImgRgb = true;
+  bool mPublishImgStereo = false;
+  bool mPublishImgRoiMask = false;
+  bool mPublishOdomPose = true;
+  bool mPublishPath = false;
+  bool mPublishDetPlane = false;
+  bool mPublishDepthMap = true;
+  bool mPublishPointcloud = true;
+  bool mPublishConfidence = false;
+  bool mPublishDisparity = false;
+  bool mPublishStatus = true;
+
+  // General
   int mCamSerialNumber = 0;
   int mCamId = -1;
   bool mSimMode = false;     // Expecting simulation data?

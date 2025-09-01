@@ -89,6 +89,7 @@
             depth_texture_conf: 100 # [DYNAMIC]
             remove_saturated_areas: true # [DYNAMIC]
             publish_depth_map: true # Advertise the depth map topics that are published only if a node subscribes to them
+            publish_depth_info: false # Advertise the depth info topic that is published only if a node subscribes to it
             publish_point_cloud: true # Advertise the point cloud topic that is published only if a node subscribes to it
             publish_depth_confidence: false # Advertise the depth confidence topic that is published only if a node subscribes to it
             publish_disparity: false # Advertise the disparity topic that is published only if a node subscribes to it

@@ -114,92 +114,133 @@ void ZedCamera::initVideoDepthPublishers()
 
   // Camera publishers
 #ifndef FOUND_ISAAC_ROS_NITROS
-  mPubRgb = image_transport::create_publisher(this, mRgbTopic, qos);
-  mPubRgbGray = image_transport::create_publisher(this, mRgbGrayTopic, qos);
-  mPubRawRgb = image_transport::create_publisher(this, mRgbRawTopic, qos);
-  mPubRawRgbGray = image_transport::create_publisher(this, mRgbRawGrayTopic, qos);
-  mPubLeft = image_transport::create_publisher(this, mLeftTopic, qos);
-  mPubLeftGray = image_transport::create_publisher(this, mLeftGrayTopic, qos);
-  mPubRawLeft = image_transport::create_publisher(this, mLeftRawTopic, qos);
-  mPubRawLeftGray = image_transport::create_publisher(this, mLeftRawGrayTopic, qos);
-  mPubRight = image_transport::create_publisher(this, mRightTopic, qos);
-  mPubRightGray = image_transport::create_publisher(this, mRightGrayTopic, qos);
-  mPubRawRight = image_transport::create_publisher(this, mRightRawTopic, qos);
-  mPubRawRightGray = image_transport::create_publisher(this, mRightRawGrayTopic, qos);
-
-  if (!mDepthDisabled) {
-    if (mAutoRoiEnabled || mManualRoiEnabled) {
-      mPubRoiMask = image_transport::create_publisher(this, mRoiMaskTopic, qos);
-    }
-    mPubDepth = image_transport::create_publisher(this, mDepthTopic, qos);
-    mPubConfMap = image_transport::create_publisher(this, mConfMapTopic, qos);
-  }
-
-  mPubStereo = image_transport::create_publisher(this, mStereoTopic, qos);
-  mPubRawStereo = image_transport::create_publisher(this, mStereoRawTopic, qos);
-
   // Publishers logging
   auto log_cam_pub = [&](const auto & pub) {
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub.getTopic());
     };
 
-  log_cam_pub(mPubRgb);
-  log_cam_pub(mPubRgbGray);
-  log_cam_pub(mPubRawRgb);
-  log_cam_pub(mPubRawRgbGray);
-  log_cam_pub(mPubLeft);
-  log_cam_pub(mPubLeftGray);
-  log_cam_pub(mPubRawLeft);
-  log_cam_pub(mPubRawLeftGray);
-  log_cam_pub(mPubRight);
-  log_cam_pub(mPubRightGray);
-  log_cam_pub(mPubRawRight);
-  log_cam_pub(mPubRawRightGray);
-
-  if (!mDepthDisabled) {
-    if (mAutoRoiEnabled || mManualRoiEnabled) {
-      log_cam_pub(mPubRoiMask);
+  if (mPublishImgRgb) {
+    mPubRgb = image_transport::create_publisher(this, mRgbTopic, qos);
+    log_cam_pub(mPubRgb);
+    if (mPublishImgGray) {
+      mPubRgbGray = image_transport::create_publisher(this, mRgbGrayTopic, qos);
+      log_cam_pub(mPubRgbGray);
     }
-    log_cam_pub(mPubDepth);
-    log_cam_pub(mPubConfMap);
+    if (mPublishImgRaw) {
+      mPubRawRgb = image_transport::create_publisher(this, mRgbRawTopic, qos);
+      log_cam_pub(mPubRawRgb);
+    }
+    if (mPublishImgRaw && mPublishImgGray) {
+      mPubRawRgbGray = image_transport::create_publisher(this, mRgbRawGrayTopic, qos);
+      log_cam_pub(mPubRawRgbGray);
+    }
+  }
+  if (mPublishImgLeftRight) {
+    mPubLeft = image_transport::create_publisher(this, mLeftTopic, qos);
+    log_cam_pub(mPubLeft);
+    mPubRight = image_transport::create_publisher(this, mRightTopic, qos);
+    log_cam_pub(mPubRight);
+    if (mPublishImgGray) {
+      mPubLeftGray = image_transport::create_publisher(this, mLeftGrayTopic, qos);
+      log_cam_pub(mPubLeftGray);
+
+      mPubRightGray = image_transport::create_publisher(this, mRightGrayTopic, qos);
+      log_cam_pub(mPubRightGray);
+    }
+    if (mPublishImgRaw) {
+      mPubRawLeft = image_transport::create_publisher(this, mLeftRawTopic, qos);
+      log_cam_pub(mPubRawLeft);
+      mPubRawRight = image_transport::create_publisher(this, mRightRawTopic, qos);
+      log_cam_pub(mPubRawRight);
+    }
+
+    if (mPublishImgRaw && mPublishImgGray) {
+      mPubRawLeftGray = image_transport::create_publisher(this, mLeftRawGrayTopic, qos);
+      log_cam_pub(mPubRawLeftGray);
+      mPubRawRightGray = image_transport::create_publisher(this, mRightRawGrayTopic, qos);
+      log_cam_pub(mPubRawRightGray);
+    }
   }
 
-  log_cam_pub(mPubStereo);
-  log_cam_pub(mPubRawStereo);
+  if (!mDepthDisabled) {
+    if (mPublishImgRoiMask && (mAutoRoiEnabled || mManualRoiEnabled)) {
+      mPubRoiMask = image_transport::create_publisher(this, mRoiMaskTopic, qos);
+      log_cam_pub(mPubRoiMask);
+    }
+    if (mPublishDepthMap) {
+      mPubDepth = image_transport::create_publisher(this, mDepthTopic, qos);
+      log_cam_pub(mPubDepth);
+    }
+    if (mPublishConfidence) {
+      mPubConfMap = image_transport::create_publisher(this, mConfMapTopic, qos);
+      log_cam_pub(mPubConfMap);
+    }
+  }
+
+  if (mPublishImgStereo) {
+    mPubStereo = image_transport::create_publisher(this, mStereoTopic, qos);
+    log_cam_pub(mPubStereo);
+
+    if (mPublishImgRaw) {
+      mPubRawStereo = image_transport::create_publisher(this, mStereoRawTopic, qos);
+      log_cam_pub(mPubRawStereo);
+    }
+  }
   // <---- Camera publishers
 #else
   // Nitros publishers lambda
   auto make_nitros_img_pub = [&](const std::string & topic) {
-      auto ret = std::make_shared<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
-            nvidia::isaac_ros::nitros::NitrosImage>>(
-        this, topic, nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name,
-        nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
-      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic);
-      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic + "/nitros");
-      return ret;
-    };
+    auto ret = std::make_shared<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
+          nvidia::isaac_ros::nitros::NitrosImage>>(
+      this, topic, nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name,
+      nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic);
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic + "/nitros");
+    return ret;
+  };
 
-  mNitrosPubRgb = make_nitros_img_pub(mRgbTopic);
-  mNitrosPubRgbGray = make_nitros_img_pub(mRgbGrayTopic);
-  mNitrosPubRawRgb = make_nitros_img_pub(mRgbRawTopic);
-  mNitrosPubRawRgbGray = make_nitros_img_pub(mRgbRawGrayTopic);
-  mNitrosPubLeft = make_nitros_img_pub(mLeftTopic);
-  mNitrosPubLeftGray = make_nitros_img_pub(mLeftGrayTopic);
-  mNitrosPubRawLeft = make_nitros_img_pub(mLeftRawTopic);
-  mNitrosPubRawLeftGray = make_nitros_img_pub(mLeftRawGrayTopic);
-  mNitrosPubRight = make_nitros_img_pub(mRightTopic);
-  mNitrosPubRightGray = make_nitros_img_pub(mRightGrayTopic);
-  mNitrosPubRawRight = make_nitros_img_pub(mRightRawTopic);
-  mNitrosPubRawRightGray = make_nitros_img_pub(mRightRawGrayTopic);
-  mNitrosPubRoiMask = make_nitros_img_pub(mRoiMaskTopic);
-  mNitrosPubConfMap = make_nitros_img_pub(mConfMapTopic);
-
-  mNitrosPubDepth = std::make_shared<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
-        nvidia::isaac_ros::nitros::NitrosImage>>(
-    this, mDepthTopic, nvidia::isaac_ros::nitros::nitros_image_32FC1_t::supported_type_name,
-    nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mDepthTopic);
-  RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mDepthTopic + "/nitros");
+  if (mPublishImgRgb) {
+    mNitrosPubRgb = make_nitros_img_pub(mRgbTopic);
+    if (mPublishImgGray) {
+      mNitrosPubRgbGray = make_nitros_img_pub(mRgbGrayTopic);
+    }
+    if (mPublishImgRaw) {
+      mNitrosPubRawRgb = make_nitros_img_pub(mRgbRawTopic);
+    }
+    if (mPublishImgGray && mPublishImgRaw) {
+      mNitrosPubRawRgbGray = make_nitros_img_pub(mRgbRawGrayTopic);
+    }
+  }
+  if (mPublishImgLeftRight) {
+    mNitrosPubLeft = make_nitros_img_pub(mLeftTopic);
+    mNitrosPubRight = make_nitros_img_pub(mRightTopic);
+    if (mPublishImgGray) {
+      mNitrosPubLeftGray = make_nitros_img_pub(mLeftGrayTopic);
+      mNitrosPubRightGray = make_nitros_img_pub(mRightGrayTopic);
+    }
+    if (mPublishImgRaw) {
+      mNitrosPubRawLeft = make_nitros_img_pub(mLeftRawTopic);
+      mNitrosPubRawRight = make_nitros_img_pub(mRightRawTopic);
+    }
+    if (mPublishImgGray && mPublishImgRaw) {
+      mNitrosPubRawLeftGray = make_nitros_img_pub(mLeftRawGrayTopic);
+      mNitrosPubRawRightGray = make_nitros_img_pub(mRightRawGrayTopic);
+    }
+  }
+  if (mPublishImgRoiMask && (mAutoRoiEnabled || mManualRoiEnabled)) {
+    mNitrosPubRoiMask = make_nitros_img_pub(mRoiMaskTopic);
+  }
+  if (mPublishDepthMap) {
+    mNitrosPubDepth = std::make_shared<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
+          nvidia::isaac_ros::nitros::NitrosImage>>(
+      this, mDepthTopic, nvidia::isaac_ros::nitros::nitros_image_32FC1_t::supported_type_name,
+      nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mDepthTopic);
+    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mDepthTopic + "/nitros");
+  }
+  if (mPublishConfidence) {
+    mNitrosPubConfMap = make_nitros_img_pub(mConfMapTopic);
+  }
 
 #endif
 
@@ -212,42 +253,70 @@ void ZedCamera::initVideoDepthPublishers()
       return pub;
     };
 
-  mPubRgbCamInfo = make_cam_info_pub(mRgbTopic);
-  mPubRawRgbCamInfo = make_cam_info_pub(mRgbRawTopic);
-  mPubLeftCamInfo = make_cam_info_pub(mLeftTopic);
-  mPubRawLeftCamInfo = make_cam_info_pub(mLeftRawTopic);
-  mPubRightCamInfo = make_cam_info_pub(mRightTopic);
-  mPubRawRightCamInfo = make_cam_info_pub(mRightRawTopic);
-  mPubRgbGrayCamInfo = make_cam_info_pub(mRgbGrayTopic);
-  mPubRawRgbGrayCamInfo = make_cam_info_pub(mRgbRawGrayTopic);
-  mPubLeftGrayCamInfo = make_cam_info_pub(mLeftGrayTopic);
-  mPubRawLeftGrayCamInfo = make_cam_info_pub(mLeftRawGrayTopic);
-  mPubRightGrayCamInfo = make_cam_info_pub(mRightGrayTopic);
-  mPubRawRightGrayCamInfo = make_cam_info_pub(mRightRawGrayTopic);
-  mPubRoiMaskCamInfo = make_cam_info_pub(mRoiMaskTopic);
-  mPubDepthCamInfo = make_cam_info_pub(mDepthTopic);
-  mPubConfMapCamInfo = make_cam_info_pub(mConfMapTopic);
+  if (mPublishImgRgb) {
+    mPubRgbCamInfo = make_cam_info_pub(mRgbTopic);
+    if (mPublishImgGray) {
+      mPubRgbGrayCamInfo = make_cam_info_pub(mRgbGrayTopic);
+    }
+    if (mPublishImgRaw) {
+      mPubRawRgbCamInfo = make_cam_info_pub(mRgbRawTopic);
+    }
+    if (mPublishImgGray && mPublishImgRaw) {
+      mPubRawRgbGrayCamInfo = make_cam_info_pub(mRgbRawGrayTopic);
+    }
+  }
+  if (mPublishImgLeftRight) {
+    mPubLeftCamInfo = make_cam_info_pub(mLeftTopic);
+    mPubRightCamInfo = make_cam_info_pub(mRightTopic);
+    if (mPublishImgGray) {
+      mPubLeftGrayCamInfo = make_cam_info_pub(mLeftGrayTopic);
+      mPubRightGrayCamInfo = make_cam_info_pub(mRightGrayTopic);
+    }
+    if (mPublishImgRaw) {
+      mPubRawLeftCamInfo = make_cam_info_pub(mLeftRawTopic);
+      mPubRawRightCamInfo = make_cam_info_pub(mRightRawTopic);
+    }
+    if (mPublishImgGray && mPublishImgRaw) {
+      mPubRawLeftGrayCamInfo = make_cam_info_pub(mLeftRawGrayTopic);
+      mPubRawRightGrayCamInfo = make_cam_info_pub(mRightRawGrayTopic);
+    }
+  }
+  if (mPublishImgRoiMask && (mAutoRoiEnabled || mManualRoiEnabled)) {
+    mPubRoiMaskCamInfo = make_cam_info_pub(mRoiMaskTopic);
+  }
+  if (mPublishDepthMap) {
+    mPubDepthCamInfo = make_cam_info_pub(mDepthTopic);
+  }
+  if (mPublishConfidence) {
+    mPubConfMapCamInfo = make_cam_info_pub(mConfMapTopic);
+  }
   // <---- Camera Info publishers
 
   // ----> Other depth-related publishers
   if (!mDepthDisabled) {
-    mPubDepthInfo = create_publisher<zed_msgs::msg::DepthInfoStamped>(
-      mDepthInfoTopic, mQos, mPubOpt);
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDepthInfo->get_topic_name());
+    if (mPublishDepthInfo) {
+      mPubDepthInfo = create_publisher<zed_msgs::msg::DepthInfoStamped>(
+        mDepthInfoTopic, mQos, mPubOpt);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDepthInfo->get_topic_name());
+    }
 
     // Point cloud and disparity publishers
-    mPubDisparity = create_publisher<stereo_msgs::msg::DisparityImage>(
-      mDisparityTopic, mQos, mPubOpt);
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDisparity->get_topic_name());
+    if (mPublishDisparity) {
+      mPubDisparity = create_publisher<stereo_msgs::msg::DisparityImage>(
+        mDisparityTopic, mQos, mPubOpt);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDisparity->get_topic_name());
+    }
 
+    if (mPublishPointcloud) {
 #ifndef FOUND_FOXY
-    mPubCloud = point_cloud_transport::create_publisher(
-      shared_from_this(), mPointcloudTopic, qos, mPubOpt);
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCloud.getTopic());
+      mPubCloud = point_cloud_transport::create_publisher(
+        shared_from_this(), mPointcloudTopic, qos, mPubOpt);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCloud.getTopic());
 #else
-    mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudTopic, mQos, mPubOpt);
-    RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCloud->get_topic_name());
+      mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>(mPointcloudTopic, mQos, mPubOpt);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCloud->get_topic_name());
 #endif
+    }
   }
   // <---- Other depth-related publishers
 }

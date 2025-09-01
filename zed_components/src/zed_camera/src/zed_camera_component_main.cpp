@@ -737,6 +737,9 @@ void ZedCamera::getTopicEnableParams()
     shared_from_this(), "depth.publish_depth_map", mPublishDepthMap,
     mPublishDepthMap, " * Publish Depth Map: ");
   sl_tools::getParam(
+    shared_from_this(), "depth.publish_depth_info", mPublishDepthInfo,
+    mPublishDepthInfo, " * Publish Depth Info: ");
+  sl_tools::getParam(
     shared_from_this(), "depth.publish_point_cloud", mPublishPointcloud,
     mPublishPointcloud, " * Publish Point Cloud: ");
   sl_tools::getParam(
@@ -2014,23 +2017,25 @@ void ZedCamera::initPublishers()
   }
   // <---- SVO Status publisher
 
-  // ----> Health Status publisher
-  mPubHealthStatus = create_publisher<zed_msgs::msg::HealthStatusStamped>(
-    health_status_topic,
-    mQos, mPubOpt);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubHealthStatus->get_topic_name());
-  // <---- Health Status publisher
+  if (mPublishStatus) {
+    // ----> Health Status publisher
+    mPubHealthStatus = create_publisher<zed_msgs::msg::HealthStatusStamped>(
+      health_status_topic,
+      mQos, mPubOpt);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Advertised on topic: " << mPubHealthStatus->get_topic_name());
+    // <---- Health Status publisher
 
-  // ----> Heartbeat Status publisher
-  mPubHeartbeatStatus = create_publisher<zed_msgs::msg::Heartbeat>(
-    heartbeat_topic,
-    mQos, mPubOpt);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubHeartbeatStatus->get_topic_name());
-  // <---- Heartbeat Status publisher
+    // ----> Heartbeat Status publisher
+    mPubHeartbeatStatus = create_publisher<zed_msgs::msg::Heartbeat>(
+      heartbeat_topic,
+      mQos, mPubOpt);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Advertised on topic: " << mPubHeartbeatStatus->get_topic_name());
+    // <---- Heartbeat Status publisher
+  }
 
   initVideoDepthPublishers();
 
@@ -8388,7 +8393,7 @@ void ZedCamera::stopStreamingServer()
 
 void ZedCamera::publishHealthStatus()
 {
-  if (mImageValidityCheck <= 0) {
+  if (mImageValidityCheck <= 0 || !mPublishStatus) {
     return;
   }
 
@@ -8418,7 +8423,6 @@ void ZedCamera::publishHealthStatus()
     status.low_motion_sensors_reliability;
 
   mPubHealthStatus->publish(std::move(msg));
-
 }
 
 bool ZedCamera::publishSvoStatus(uint64_t frame_ts)
@@ -8468,6 +8472,10 @@ bool ZedCamera::publishSvoStatus(uint64_t frame_ts)
 
 void ZedCamera::callback_pubHeartbeat()
 {
+  if (!mPublishStatus) {
+    return;
+  }
+
   if (mThreadStop) {
     return;
   }

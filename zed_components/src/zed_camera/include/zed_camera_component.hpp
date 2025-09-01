@@ -455,6 +455,7 @@ private:
   bool mPublishPath = false;
   bool mPublishDetPlane = false;
   bool mPublishDepthMap = true;
+  bool mPublishDepthInfo = false;
   bool mPublishPointcloud = true;
   bool mPublishConfidence = false;
   bool mPublishDisparity = false;

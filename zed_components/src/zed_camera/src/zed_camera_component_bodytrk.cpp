@@ -341,7 +341,7 @@ void ZedCamera::stopBodyTracking()
       "Publishing EMPTY OBJ message "
         << mPubBodyTrk->get_topic_name());
     try {
-      mPubBodyTrk->publish(std::move(objMsg));
+      if (mPubBodyTrk) {mPubBodyTrk->publish(std::move(objMsg));}
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
     } catch (...) {
@@ -500,7 +500,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
 
   DEBUG_STREAM_OD("Publishing BODY TRK message");
   try {
-    mPubBodyTrk->publish(std::move(bodyMsg));
+    if (mPubBodyTrk) {mPubBodyTrk->publish(std::move(bodyMsg));}
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
   } catch (...) {

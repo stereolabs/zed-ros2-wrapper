@@ -32,7 +32,7 @@
             gpu_id: -1
             optional_opencv_calibration_file: '' # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
             async_image_retrieval: false # If set to true will camera image retrieve at a framerate different from \ref grab() application framerate. This is useful for recording SVO or sending camera stream at different rate than application.
-            publish_status: false # Advertise the status topics that are published only if a node subscribes to them
+            publish_status: true # Advertise the status topics that are published only if a node subscribes to them
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
             # 'zedx.yaml', 'zedxmini.yaml', 'virtual.yaml' files
 
@@ -45,7 +45,7 @@
             gain: 80 # [DYNAMIC]
             auto_whitebalance: true # [DYNAMIC]
             whitebalance_temperature: 42 # [DYNAMIC] - [28,65] x100 - works only if `auto_whitebalance` is false            
-            publish_rgb: false # Advertise the RGB image topics that are published only if a node subscribes to them
+            publish_rgb: true # Advertise the RGB image topics that are published only if a node subscribes to them
             publish_left_right: false # Advertise the left and right image topics that are published only if a node subscribes to them
             publish_raw: false # Advertise the raw image topics publish_depth_map
             publish_gray: false # Advertise the gray image topics that are published only if a node subscribes to them
@@ -57,7 +57,7 @@
             publish_imu_tf: false # [overwritten by launch file options] enable/disable the IMU TF broadcasting
             sensors_image_sync: false # Synchronize Sensors messages with latest published video/depth message
             sensors_pub_rate: 100. # frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
-            publish_imu: false # Advertise the IMU topic that is published only if a node subscribes to it
+            publish_imu: true # Advertise the IMU topic that is published only if a node subscribes to it
             publish_imu_raw: false # Advertise the raw IMU topic that is published only if a node subscribes to it
             publish_imu_transf: false # Advertise the IMU transformation topic that is published only if a node subscribes to it
             publish_mag: false # Advertise the magnetometer topic that is published only if a node subscribes to it
@@ -88,9 +88,9 @@
             depth_confidence: 95 # [DYNAMIC]
             depth_texture_conf: 100 # [DYNAMIC]
             remove_saturated_areas: true # [DYNAMIC]
-            publish_depth_map: false # Advertise the depth map topics that are published only if a node subscribes to them
+            publish_depth_map: true # Advertise the depth map topics that are published only if a node subscribes to them
             publish_depth_info: false # Advertise the depth info topic that is published only if a node subscribes to it
-            publish_point_cloud: false # Advertise the point cloud topic that is published only if a node subscribes to it
+            publish_point_cloud: true # Advertise the point cloud topic that is published only if a node subscribes to it
             publish_depth_confidence: false # Advertise the depth confidence topic that is published only if a node subscribes to it
             publish_disparity: false # Advertise the disparity topic that is published only if a node subscribes to it
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
@@ -120,7 +120,8 @@
             fixed_z_value: 0.0 # Value to be used for Z coordinate if `two_d_mode` is true
             transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->camera_link` transform being generated
             reset_pose_with_svo_loop: true # Reset the camera pose the `initial_base_pose` when the SVO loop is enabled and the SVO playback reaches the end of the file.
-            publish_odom_pose: false # Advertise the odometry and pose topics that are published only if a node subscribes to them
+            publish_odom_pose: true # Advertise the odometry and pose topics that are published only if a node subscribes to them
+            publish_pose_cov: false # Advertise the pose with covariance topic that is published only if a node subscribes to it
             publish_cam_path: false # Advertise the camera odometry and pose path topics that are published only if a node subscribes to them
 
         gnss_fusion:

@@ -452,6 +452,7 @@ private:
   bool mPublishImgStereo = false;
   bool mPublishImgRoiMask = false;
   bool mPublishOdomPose = true;
+  bool mPublishPoseCov = true;
   bool mPublishPath = false;
   bool mPublishDetPlane = false;
   bool mPublishDepthMap = true;
@@ -548,7 +549,6 @@ private:
   bool mSetAsStatic = false;
   bool mSetGravityAsOrigin = false;
   int mPathMaxCount = -1;
-  bool mPublishPoseCov = true;
 
   bool mGnssFusionEnabled = false;
   std::string mGnssTopic = "/gps/fix";

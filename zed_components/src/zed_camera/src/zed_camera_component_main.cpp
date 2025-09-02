@@ -774,6 +774,9 @@ void ZedCamera::getTopicEnableParams()
     shared_from_this(), "pos_tracking.publish_odom_pose", mPublishOdomPose,
     mPublishOdomPose, " * Publish Odometry/Pose: ");
   sl_tools::getParam(
+    shared_from_this(), "pos_tracking.publish_pose_cov", mPublishPoseCov,
+    mPublishPoseCov, " * Publish Pose with Covariance: ");
+  sl_tools::getParam(
     shared_from_this(), "pos_tracking.publish_cam_path", mPublishPath,
     mPublishPath, " * Publish Camera Path: ");
 
@@ -2048,39 +2051,38 @@ void ZedCamera::initPublishers()
       RCLCPP_INFO_STREAM(
         get_logger(),
         "Advertised on topic: " << mPubPose->get_topic_name());
-    }
-    if (mPublishStatus) {
-      mPubPoseStatus = create_publisher<zed_msgs::msg::PosTrackStatus>(
-        mPoseStatusTopic, mQos, mPubOpt);
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Advertised on topic: "
-          << mPubPoseStatus->get_topic_name());
-    }
-    if (mPublishPoseCov) {
-      mPubPoseCov =
-        create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
-        mPoseCovTopic, mQos, mPubOpt);
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Advertised on topic: " << mPubPoseCov->get_topic_name());
-    }
-    if (mPublishOdomPose) {
+      if (mPublishPoseCov) {
+        mPubPoseCov =
+          create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
+          mPoseCovTopic, mQos, mPubOpt);
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Advertised on topic: " << mPubPoseCov->get_topic_name());
+      }
+      if (mPublishStatus) {
+        mPubPoseStatus = create_publisher<zed_msgs::msg::PosTrackStatus>(
+          mPoseStatusTopic, mQos, mPubOpt);
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Advertised on topic: "
+            << mPubPoseStatus->get_topic_name());
+      }
       mPubOdom =
         create_publisher<nav_msgs::msg::Odometry>(mOdomTopic, mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(),
         "Advertised on topic: " << mPubOdom->get_topic_name());
-    }
-    if (mPublishPath) {
-      mPubPosePath =
-        create_publisher<nav_msgs::msg::Path>(mPosePathTopic, mQos, mPubOpt);
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Advertised on topic: "
-          << mPubPosePath->get_topic_name());
-      mPubOdomPath =
-        create_publisher<nav_msgs::msg::Path>(mOdomPathTopic, mQos, mPubOpt);
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Advertised on topic: "
-          << mPubOdomPath->get_topic_name());
+
+      if (mPublishPath) {
+        mPubPosePath =
+          create_publisher<nav_msgs::msg::Path>(mPosePathTopic, mQos, mPubOpt);
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Advertised on topic: "
+            << mPubPosePath->get_topic_name());
+        mPubOdomPath =
+          create_publisher<nav_msgs::msg::Path>(mOdomPathTopic, mQos, mPubOpt);
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Advertised on topic: "
+            << mPubOdomPath->get_topic_name());
+      }
     }
     if (mGnssFusionEnabled) {
       mPubGnssPose = create_publisher<nav_msgs::msg::Odometry>(
@@ -2141,21 +2143,23 @@ void ZedCamera::initPublishers()
 #endif
     }
 
-    std::string marker_topic = mTopicRoot + "plane_marker";
-    std::string plane_topic = mTopicRoot + "plane";
-    // Rviz markers publisher
-    mPubMarker = create_publisher<visualization_msgs::msg::Marker>(
-      marker_topic, mQos, mPubOpt);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Advertised on topic: " << mPubMarker->get_topic_name());
-    // Detected planes publisher
-    mPubPlane = create_publisher<zed_msgs::msg::PlaneStamped>(
-      plane_topic, mQos,
-      mPubOpt);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Advertised on topic: " << mPubPlane->get_topic_name());
+    if (mPublishDetPlane) {
+      std::string marker_topic = mTopicRoot + "plane_marker";
+      std::string plane_topic = mTopicRoot + "plane";
+      // Rviz markers publisher
+      mPubMarker = create_publisher<visualization_msgs::msg::Marker>(
+        marker_topic, mQos, mPubOpt);
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "Advertised on topic: " << mPubMarker->get_topic_name());
+      // Detected planes publisher
+      mPubPlane = create_publisher<zed_msgs::msg::PlaneStamped>(
+        plane_topic, mQos,
+        mPubOpt);
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "Advertised on topic: " << mPubPlane->get_topic_name());
+    }
     // <---- Mapping
   }
 

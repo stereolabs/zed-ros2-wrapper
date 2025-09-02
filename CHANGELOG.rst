@@ -23,6 +23,7 @@ LATEST CHANGES
   - `depth.publish_depth_confidence`: Advertise the depth confidence topic that is published only if a node subscribes to it
   - `depth.publish_disparity`: Advertise the disparity topic that is published only if a node subscribes to it
   - `pos_tracking.publish_odom_pose`: Advertise the odometry and pose topics that are published only if a node subscribes to them
+  - `pos_tracking.publish_pose_cov`: Advertise the pose with covariance topic that is published only if a node subscribes to it
   - `pos_tracking.publish_cam_path`: Advertise the camera odometry and pose path topics that are published only if a node subscribes to them
   - `mapping.publish_det_plane`: Advertise the plane detection topics that is published only if a node subscribes to it
   

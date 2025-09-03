@@ -772,14 +772,15 @@ bool ZedCamera::isDepthRequired()
 
     size_t nitrosDepthSub = 0;
     size_t nitrosConfSub = 0;
-    
-    if(_nitrosDisabled) {
+
+    if (_nitrosDisabled) {
       depthSub = mPubDepth.getNumSubscribers();
       confMapSub = mPubConfMap.getNumSubscribers();
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       nitrosDepthSub = count_subscribers(mDepthTopic) + count_subscribers(mDepthTopic + "/nitros");
-      nitrosConfSub = count_subscribers(mConfMapTopic) + count_subscribers(mConfMapTopic + "/nitros");
+      nitrosConfSub = count_subscribers(mConfMapTopic) +
+        count_subscribers(mConfMapTopic + "/nitros");
 #endif
     }
     dispSub = count_subscribers(mPubDisparity->get_topic_name());
@@ -790,7 +791,8 @@ bool ZedCamera::isDepthRequired()
 #endif
     depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
 
-    tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub + nitrosDepthSub + nitrosConfSub;
+    tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub + nitrosDepthSub +
+      nitrosConfSub;
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_VD(" * [isDepthRequired] Exception while counting subscribers");
@@ -1295,7 +1297,9 @@ void ZedCamera::processVideoDepth()
 
       bool gpu = false;
 #ifdef FOUND_ISAAC_ROS_NITROS
-      gpu = true;
+      if (!_nitrosDisabled) {
+        gpu = true;
+      }
 #endif
       retrieveVideoDepth(gpu);
 
@@ -1661,28 +1665,34 @@ void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
 {
   if (mLeftSubCount > 0) {
     DEBUG_STREAM_VD(" * mLeftSubCount: " << mLeftSubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatLeft, mPubLeft, mPubLeftCamInfo, mLeftCamInfoMsg,
-      mLeftCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatLeft, mNitrosPubLeft, mPubLeftCamInfo, mLeftCamInfoMsg,
-      mLeftCamOptFrameId, t);
+
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatLeft, mPubLeft, mPubLeftCamInfo, mLeftCamInfoMsg,
+        mLeftCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatLeft, mNitrosPubLeft, mPubLeftCamInfo, mLeftCamInfoMsg,
+        mLeftCamOptFrameId, t);
 #endif
+    }
   }
 
   if (mRgbSubCount > 0) {
     DEBUG_STREAM_VD(" * mRgbSubCount: " << mRgbSubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatLeft, mPubRgb, mPubRgbCamInfo, mLeftCamInfoMsg,
-      mLeftCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatLeft, mNitrosPubRgb, mPubRgbCamInfo, mLeftCamInfoMsg,
-      mLeftCamOptFrameId, t);
+
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatLeft, mPubRgb, mPubRgbCamInfo, mLeftCamInfoMsg,
+        mLeftCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatLeft, mNitrosPubRgb, mPubRgbCamInfo, mLeftCamInfoMsg,
+        mLeftCamOptFrameId, t);
 #endif
+    }
   }
 }
 
@@ -2020,102 +2030,104 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 {
   mLeftCamInfoMsg->header.stamp = t;
 
-#ifndef FOUND_ISAAC_ROS_NITROS
-  if (!mOpenniDepthMode) {
-    auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t);
-    DEBUG_STREAM_VD(
-      " * Publishing DEPTH message: " << t.nanoseconds()
-                                      << " nsec");
+  if (_nitrosDisabled) {
+    if (!mOpenniDepthMode) {
+      auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t);
+      DEBUG_STREAM_VD(
+        " * Publishing DEPTH message: " << t.nanoseconds()
+                                        << " nsec");
+      try {
+        mPubDepth.publish(std::move(depth_img));
+        publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
+      } catch (std::system_error & e) {
+        DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
+      } catch (...) {
+        DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
+      }
+      return;
+    }
+
+    // OPENNI CONVERSION (meter -> millimeters - float32 -> uint16)
+    auto openniDepthMsg = std::make_unique<sensor_msgs::msg::Image>();
+
+    openniDepthMsg->header.stamp = t;
+    openniDepthMsg->header.frame_id = mDepthOptFrameId;
+    openniDepthMsg->height = depth.getHeight();
+    openniDepthMsg->width = depth.getWidth();
+
+    int num = 1;  // for endianness detection
+    openniDepthMsg->is_bigendian = !(*reinterpret_cast<char *>(&num) == 1);
+
+    openniDepthMsg->step = openniDepthMsg->width * sizeof(uint16_t);
+    openniDepthMsg->encoding = sensor_msgs::image_encodings::MONO16;
+
+    size_t size = openniDepthMsg->step * openniDepthMsg->height;
+    openniDepthMsg->data.resize(size);
+
+    uint16_t * data = reinterpret_cast<uint16_t *>(&openniDepthMsg->data[0]);
+
+    int dataSize = openniDepthMsg->width * openniDepthMsg->height;
+    sl::float1 * depthDataPtr = depth.getPtr<sl::float1>();
+
+    for (int i = 0; i < dataSize; i++) {
+      *(data++) = static_cast<uint16_t>(
+        std::round(*(depthDataPtr++) * 1000));    // in mm, rounded
+    }
+
+    DEBUG_STREAM_VD(" * Publishing OPENNI DEPTH message");
     try {
-      mPubDepth.publish(std::move(depth_img));
+      mPubDepth.publish(std::move(openniDepthMsg));
       publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
     } catch (...) {
       DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
     }
-    return;
-  }
+  } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+    DEBUG_STREAM_VD(" * Publishing NITROS DEPTH IMAGE message: " << t.nanoseconds() << " nsec");
+    try {
+      size_t dpitch = depth.getWidthBytes();
+      size_t spitch = depth.getStepBytes(sl::MEM::GPU); // SL Mat can be padded
 
-  // OPENNI CONVERSION (meter -> millimeters - float32 -> uint16)
-  auto openniDepthMsg = std::make_unique<sensor_msgs::msg::Image>();
+      size_t dbuffer_size{dpitch * depth.getHeight()};
+      void * dbuffer;
+      CUDA_CHECK(cudaMalloc(&dbuffer, dbuffer_size));
 
-  openniDepthMsg->header.stamp = t;
-  openniDepthMsg->header.frame_id = mDepthOptFrameId;
-  openniDepthMsg->height = depth.getHeight();
-  openniDepthMsg->width = depth.getWidth();
+      // Copy data bytes to CUDA buffer
+      CUDA_CHECK(
+        cudaMemcpy2D(
+          dbuffer,
+          dpitch,
+          depth.getPtr<sl::uchar1>(sl::MEM::GPU),
+          spitch,
+          depth.getWidth() * depth.getPixelBytes(), depth.getHeight(),
+          cudaMemcpyDeviceToDevice));
 
-  int num = 1;    // for endianness detection
-  openniDepthMsg->is_bigendian = !(*reinterpret_cast<char *>(&num) == 1);
+      // Adding header data
+      std_msgs::msg::Header header;
+      header.stamp = t;
+      header.frame_id = mDepthOptFrameId;
 
-  openniDepthMsg->step = openniDepthMsg->width * sizeof(uint16_t);
-  openniDepthMsg->encoding = sensor_msgs::image_encodings::MONO16;
+      // Create NitrosImage wrapping CUDA buffer
+      nvidia::isaac_ros::nitros::NitrosImage nitros_image =
+        nvidia::isaac_ros::nitros::NitrosImageBuilder()
+        .WithHeader(header)
+        .WithEncoding(img_encodings::TYPE_32FC1)
+        .WithDimensions(depth.getHeight(), depth.getWidth())
+        .WithGpuData(dbuffer)
+        //.WithGpuData(depth.getPtr<sl::float1>(sl::MEM::GPU)) // TODO: Enable direct GPU memory sharing when supported by Isaac ROS.
+        .Build();
 
-  size_t size = openniDepthMsg->step * openniDepthMsg->height;
-  openniDepthMsg->data.resize(size);
-
-  uint16_t * data = reinterpret_cast<uint16_t *>(&openniDepthMsg->data[0]);
-
-  int dataSize = openniDepthMsg->width * openniDepthMsg->height;
-  sl::float1 * depthDataPtr = depth.getPtr<sl::float1>();
-
-  for (int i = 0; i < dataSize; i++) {
-    *(data++) = static_cast<uint16_t>(
-      std::round(*(depthDataPtr++) * 1000));      // in mm, rounded
-  }
-
-  DEBUG_STREAM_VD(" * Publishing OPENNI DEPTH message");
-  try {
-    mPubDepth.publish(std::move(openniDepthMsg));
-    publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
-  } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
-  } catch (...) {
-    DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
-  }
-#else
-  DEBUG_STREAM_VD(" * Publishing NITROS DEPTH IMAGE message: " << t.nanoseconds() << " nsec");
-  try {
-    size_t dpitch = depth.getWidthBytes();
-    size_t spitch = depth.getStepBytes(sl::MEM::GPU); // SL Mat can be padded
-
-    size_t dbuffer_size{dpitch * depth.getHeight()};
-    void * dbuffer;
-    CUDA_CHECK(cudaMalloc(&dbuffer, dbuffer_size));
-
-    // Copy data bytes to CUDA buffer
-    CUDA_CHECK(
-      cudaMemcpy2D(
-        dbuffer,
-        dpitch,
-        depth.getPtr<sl::uchar1>(sl::MEM::GPU),
-        spitch,
-        depth.getWidth() * depth.getPixelBytes(), depth.getHeight(),
-        cudaMemcpyDeviceToDevice));
-
-    // Adding header data
-    std_msgs::msg::Header header;
-    header.stamp = t;
-    header.frame_id = mDepthOptFrameId;
-
-    // Create NitrosImage wrapping CUDA buffer
-    nvidia::isaac_ros::nitros::NitrosImage nitros_image =
-      nvidia::isaac_ros::nitros::NitrosImageBuilder()
-      .WithHeader(header)
-      .WithEncoding(img_encodings::TYPE_32FC1)
-      .WithDimensions(depth.getHeight(), depth.getWidth())
-      .WithGpuData(dbuffer)
-      //.WithGpuData(depth.getPtr<sl::float1>(sl::MEM::GPU)) // TODO: Enable direct GPU memory sharing when supported by Isaac ROS.
-      .Build();
-
-    mNitrosPubDepth->publish(nitros_image);
-    publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
-  } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
-  } catch (...) {
-    DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
-  }
+      mNitrosPubDepth->publish(nitros_image);
+      publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
+    }
 #endif
+  }
 }
 
 void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)

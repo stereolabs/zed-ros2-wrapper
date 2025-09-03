@@ -698,12 +698,14 @@ void ZedCamera::getDebugParams()
       << rmw_get_implementation_identifier());
 
 #ifdef FOUND_ISAAC_ROS_NITROS
-  sl_tools::getParam(shared_from_this(), "debug.debug_advanced",
-                     _nitrosDisabled, _nitrosDisabled);
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_advanced",
+    _nitrosDisabled, _nitrosDisabled);
 
   if (_nitrosDisabled) {
-    RCLCPP_WARN(get_logger(),
-                "NITROS usage is disabled by 'debug.disable_nitros'");
+    RCLCPP_WARN(
+      get_logger(),
+      "NITROS usage is disabled by 'debug.disable_nitros'");
   }
 #else
   _nitrosDisabled = true;  // Force disable NITROS if not available
@@ -8018,23 +8020,26 @@ void ZedCamera::callback_setRoi(
         if (_nitrosDisabled) {
           if (mPubRoiMask.getTopic().empty()) {
             mPubRoiMask = image_transport::create_publisher(
-                this, mRoiMaskTopic, mQos.get_rmw_qos_profile());
-            RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: "
-                                                 << mPubRoiMask.getTopic());
+              this, mRoiMaskTopic, mQos.get_rmw_qos_profile());
+            RCLCPP_INFO_STREAM(
+              get_logger(), "Advertised on topic: "
+                << mPubRoiMask.getTopic());
           }
         } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
           mNitrosPubRoiMask = std::make_shared<
-              nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
-                  nvidia::isaac_ros::nitros::NitrosImage>>(
-              this, mRoiMaskTopic,
-              nvidia::isaac_ros::nitros::nitros_image_bgra8_t::
-                  supported_type_name,
-              nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
-          RCLCPP_INFO_STREAM(get_logger(),
-                             "Advertised on topic: " << mRoiMaskTopic);
-          RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: "
-                                               << mRoiMaskTopic + "/nitros");
+            nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
+              nvidia::isaac_ros::nitros::NitrosImage>>(
+            this, mRoiMaskTopic,
+            nvidia::isaac_ros::nitros::nitros_image_bgra8_t::
+            supported_type_name,
+            nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
+          RCLCPP_INFO_STREAM(
+            get_logger(),
+            "Advertised on topic: " << mRoiMaskTopic);
+          RCLCPP_INFO_STREAM(
+            get_logger(), "Advertised on topic: "
+              << mRoiMaskTopic + "/nitros");
 #endif
         }
       }
@@ -8260,15 +8265,18 @@ void ZedCamera::processRtRoi(rclcpp::Time ts)
       mZed->getRegionOfInterest(roi_mask);
 
       DEBUG_ROI("Publish ROI Mask");
-#ifndef FOUND_ISAAC_ROS_NITROS
-      publishImageWithInfo(
-        roi_mask, mPubRoiMask, mPubRoiMaskCamInfo, mLeftCamInfoMsg,
-        mLeftCamOptFrameId, ts);
-#else
-      publishImageWithInfo(
-        roi_mask, mNitrosPubRoiMask, mPubRoiMaskCamInfo, mLeftCamInfoMsg,
-        mLeftCamOptFrameId, ts);
+
+      if (_nitrosDisabled) {
+        publishImageWithInfo(
+          roi_mask, mPubRoiMask, mPubRoiMaskCamInfo, mLeftCamInfoMsg,
+          mLeftCamOptFrameId, ts);
+      } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+        publishImageWithInfo(
+          roi_mask, mNitrosPubRoiMask, mPubRoiMaskCamInfo, mLeftCamInfoMsg,
+          mLeftCamOptFrameId, ts);
 #endif
+      }
     }
   }
 }

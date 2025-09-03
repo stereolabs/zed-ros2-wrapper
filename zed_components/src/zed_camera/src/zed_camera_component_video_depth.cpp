@@ -1923,7 +1923,6 @@ void ZedCamera::publishCameraInfo(
   camInfoPub->publish(*camInfoMsg);
 }
 
-#ifndef FOUND_ISAAC_ROS_NITROS
 void ZedCamera::publishImageWithInfo(
   const sl::Mat & img,
   const image_transport::Publisher & pubImg,
@@ -1943,7 +1942,7 @@ void ZedCamera::publishImageWithInfo(
     DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
   }
 }
-#else
+#ifdef FOUND_ISAAC_ROS_NITROS
 void ZedCamera::publishImageWithInfo(
   const sl::Mat & img,
   const nitrosImgPub & nitrosPubImg,

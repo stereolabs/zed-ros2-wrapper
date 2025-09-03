@@ -184,4 +184,5 @@
             debug_roi: false
             debug_streaming: false
             debug_advanced: false
+            disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes
 

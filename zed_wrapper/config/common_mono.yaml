@@ -53,7 +53,7 @@
             thread_sensor_priority: 70 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
 
         debug:
-            sdk_verbose: 1 # Set the verbose level of the ZED SDK
+            sdk_verbose: 0 # Set the verbose level of the ZED SDK
             sdk_verbose_log_file: '' # Path to the file where the ZED SDK will log its messages. If empty, no file will be created. The log level can be set using the `sdk_verbose` parameter.
             debug_common: false
             debug_video_depth: false

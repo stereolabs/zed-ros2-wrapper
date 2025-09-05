@@ -224,7 +224,7 @@ protected:
   // <---- Thread functions
 
   // ----> Publishing functions
-#ifndef FOUND_ISAAC_ROS_NITROS
+
   void publishImageWithInfo(
     const sl::Mat & img,
     const image_transport::Publisher & pubImg,
@@ -232,7 +232,7 @@ protected:
     camInfoMsgPtr & camInfoMsg,
     const std::string & imgFrameId,
     const rclcpp::Time & t);
-#else
+#ifdef FOUND_ISAAC_ROS_NITROS
   void publishImageWithInfo(
     const sl::Mat & img,
     const nitrosImgPub & nitrosPubImg,
@@ -437,6 +437,9 @@ private:
   bool _debugAdvanced = false;
   bool _debugRoi = false;
   bool _debugStreaming = false;
+  // If available, force disable NITROS usage for debugging and testing
+  // purposes; otherwise, this is always true.
+  bool _nitrosDisabled = false;
 
   // Topic Enablers
   bool mPublishSensImu = true;
@@ -759,7 +762,6 @@ private:
   // ----> Publishers
   clockPub mPubClock;
 
-#ifndef FOUND_ISAAC_ROS_NITROS
   // Image publishers with camera info
   image_transport::Publisher mPubRgb;
   image_transport::Publisher mPubRawRgb;
@@ -776,7 +778,7 @@ private:
   image_transport::Publisher mPubRoiMask;
   image_transport::Publisher mPubDepth;
   image_transport::Publisher mPubConfMap;
-#else
+#ifdef FOUND_ISAAC_ROS_NITROS
   // Nitros image publishers with camera info
   nitrosImgPub mNitrosPubRgb;
   nitrosImgPub mNitrosPubRawRgb;

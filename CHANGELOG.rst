@@ -75,7 +75,8 @@ v5.0.0
   - Note: NITROS requires IPC to be disabled to work properly.
 - Fixed plane topic names, adding missing node name prefix
 - Added camera_info to Confidence Map topic
-- Enable Isaac ROS integration and automatic NITROS usage: https://docs.stereolabs.com/isaac-ros/
+- Enabled Isaac ROS integration and automatic NITROS usage: https://docs.stereolabs.com/isaac-ros/
+  - Added the parameter `debug.disable_nitros` to disable NITROS usage. This is useful for debugging and testing purposes.
 
 v4.2.5
 ------

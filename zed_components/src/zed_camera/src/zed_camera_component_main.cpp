@@ -8016,17 +8016,18 @@ void ZedCamera::callback_setRoi(
 
       mManualRoiEnabled = false;
 
-      if (!mNitrosPubRoiMask) {
-        if (_nitrosDisabled) {
-          if (mPubRoiMask.getTopic().empty()) {
-            mPubRoiMask = image_transport::create_publisher(
-              this, mRoiMaskTopic, mQos.get_rmw_qos_profile());
-            RCLCPP_INFO_STREAM(
-              get_logger(), "Advertised on topic: "
-                << mPubRoiMask.getTopic());
-          }
-        } else {
+      
+      if (_nitrosDisabled) {
+        if (mPubRoiMask.getTopic().empty()) {
+          mPubRoiMask = image_transport::create_publisher(
+            this, mRoiMaskTopic, mQos.get_rmw_qos_profile());
+          RCLCPP_INFO_STREAM(
+            get_logger(), "Advertised on topic: "
+              << mPubRoiMask.getTopic());
+        }
+      } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
+        if (!mNitrosPubRoiMask) {
           mNitrosPubRoiMask = std::make_shared<
             nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
               nvidia::isaac_ros::nitros::NitrosImage>>(
@@ -8040,8 +8041,8 @@ void ZedCamera::callback_setRoi(
           RCLCPP_INFO_STREAM(
             get_logger(), "Advertised on topic: "
               << mRoiMaskTopic + "/nitros");
-#endif
         }
+#endif
       }
 
       res->message = err_msg;

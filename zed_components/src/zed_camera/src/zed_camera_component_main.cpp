@@ -4449,7 +4449,7 @@ void ZedCamera::threadFunc_zedGrab()
         } else if (mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
           RCLCPP_WARN_STREAM(
             get_logger(),
-            "Corrupted frame detected: "
+            "Grab status degraded: "
               << sl::toString(mGrabStatus).c_str());
           static const int frame_grab_period =
             static_cast<int>(std::round(1000. / mCamGrabFrameRate));
@@ -4647,7 +4647,7 @@ void ZedCamera::threadFunc_zedGrab()
 bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 {
   if (mGrabStatus != sl::ERROR_CODE::SUCCESS && mGrabStatus != sl::ERROR_CODE::CORRUPTED_FRAME) {
-    DEBUG_SENS("Camera not ready");
+    DEBUG_SENS("Camera not ready. Sensor data not published");
     rclcpp::sleep_for(1s);
     return false;
   }
@@ -6157,7 +6157,7 @@ void ZedCamera::callback_pubTemp()
   DEBUG_STREAM_ONCE_SENS("Temperatures callback called");
 
   if (mGrabStatus != sl::ERROR_CODE::SUCCESS && mGrabStatus != sl::ERROR_CODE::CORRUPTED_FRAME) {
-    DEBUG_SENS("Camera not ready");
+    DEBUG_SENS("Camera not ready. Temperature data not published");
     rclcpp::sleep_for(1s);
     return;
   }
@@ -8133,7 +8133,7 @@ void ZedCamera::callback_setRoi(
 
       mManualRoiEnabled = false;
 
-      
+
       if (_nitrosDisabled) {
         if (mPubRoiMask.getTopic().empty()) {
           mPubRoiMask = image_transport::create_publisher(
@@ -8446,6 +8446,10 @@ void ZedCamera::stopStreamingServer()
 
 void ZedCamera::publishHealthStatus()
 {
+  if (!mPubHealthStatus) {
+    return;
+  }
+
   if (mImageValidityCheck <= 0 || !mPublishStatus) {
     return;
   }
@@ -8480,6 +8484,10 @@ void ZedCamera::publishHealthStatus()
 
 bool ZedCamera::publishSvoStatus(uint64_t frame_ts)
 {
+  if (!mPubSvoStatus) {
+    return false;
+  }
+
   if (!mSvoMode || !mPubSvoStatus) {
     return false;
   }
@@ -8525,6 +8533,10 @@ bool ZedCamera::publishSvoStatus(uint64_t frame_ts)
 
 void ZedCamera::callback_pubHeartbeat()
 {
+  if (!mPubHeartbeatStatus) {
+    return;
+  }
+
   if (!mPublishStatus) {
     return;
   }
@@ -8566,6 +8578,10 @@ void ZedCamera::callback_pubHeartbeat()
 void ZedCamera::publishClock(const sl::Timestamp & ts)
 {
   DEBUG_COMM("Publishing clock");
+
+  if (!mPubClock) {
+    return;
+  }
 
   size_t subCount = 0;
   try {

@@ -1700,27 +1700,31 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
 {
   if (mLeftRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mLeftRawSubCount: " << mLeftRawSubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatLeftRaw, mPubRawLeft, mPubRawLeftCamInfo,
-      mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatLeftRaw, mNitrosPubRawLeft, mPubRawLeftCamInfo,
-      mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatLeftRaw, mPubRawLeft, mPubRawLeftCamInfo,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatLeftRaw, mNitrosPubRawLeft, mPubRawLeftCamInfo,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
+    }
   }
   if (mRgbRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mRgbRawSubCount: " << mRgbRawSubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatLeftRaw, mPubRawRgb, mPubRawRgbCamInfo,
-      mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatLeftRaw, mNitrosPubRawRgb, mPubRawRgbCamInfo,
-      mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatLeftRaw, mPubRawRgb, mPubRawRgbCamInfo,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatLeftRaw, mNitrosPubRawRgb, mPubRawRgbCamInfo,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
+    }
   }
 }
 
@@ -1728,27 +1732,32 @@ void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
 {
   if (mLeftGraySubCount > 0) {
     DEBUG_STREAM_VD(" * mLeftGraySubCount: " << mLeftGraySubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatLeftGray, mPubLeftGray, mPubLeftGrayCamInfo,
-      mLeftCamInfoMsg, mLeftCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatLeftGray, mNitrosPubLeftGray, mPubLeftGrayCamInfo,
-      mLeftCamInfoMsg, mLeftCamOptFrameId, t);
+
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatLeftGray, mPubLeftGray, mPubLeftGrayCamInfo,
+        mLeftCamInfoMsg, mLeftCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatLeftGray, mNitrosPubLeftGray, mPubLeftGrayCamInfo,
+        mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
+    }
   }
   if (mRgbGraySubCount > 0) {
     DEBUG_STREAM_VD(" * mRgbGraySubCount: " << mRgbGraySubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatLeftGray, mPubRgbGray, mPubRgbGrayCamInfo,
-      mLeftCamInfoMsg, mLeftCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatLeftGray, mNitrosPubRgbGray, mPubRgbGrayCamInfo,
-      mLeftCamInfoMsg, mLeftCamOptFrameId, t);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatLeftGray, mPubRgbGray, mPubRgbGrayCamInfo,
+        mLeftCamInfoMsg, mLeftCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatLeftGray, mNitrosPubRgbGray, mPubRgbGrayCamInfo,
+        mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
+    }
   }
 }
 
@@ -1756,28 +1765,32 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
 {
   if (mLeftGrayRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mLeftGrayRawSubCount: " << mLeftGrayRawSubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatLeftRawGray, mPubRawLeftGray,
-      mPubRawLeftGrayCamInfo, mLeftCamInfoRawMsg,
-      mLeftCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatLeftRawGray, mNitrosPubRawLeftGray, mPubRawLeftGrayCamInfo,
-      mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatLeftRawGray, mPubRawLeftGray,
+        mPubRawLeftGrayCamInfo, mLeftCamInfoRawMsg,
+        mLeftCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatLeftRawGray, mNitrosPubRawLeftGray, mPubRawLeftGrayCamInfo,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
+    }
   }
   if (mRgbGrayRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mRgbGrayRawSubCount: " << mRgbGrayRawSubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatLeftRawGray, mPubRawRgbGray, mPubRawRgbGrayCamInfo,
-      mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatLeftRawGray, mNitrosPubRawRgbGray, mPubRawRgbGrayCamInfo,
-      mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatLeftRawGray, mPubRawRgbGray, mPubRawRgbGrayCamInfo,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatLeftRawGray, mNitrosPubRawRgbGray, mPubRawRgbGrayCamInfo,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
+    }
   }
 }
 
@@ -1785,15 +1798,17 @@ void ZedCamera::publishRightImages(const rclcpp::Time & t)
 {
   if (mRightSubCount > 0) {
     DEBUG_STREAM_VD(" * mRightSubCount: " << mRightSubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatRight, mPubRight, mPubRightCamInfo,
-      mRightCamInfoMsg, mRightCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatRight, mNitrosPubRight, mPubRightCamInfo,
-      mRightCamInfoMsg, mRightCamOptFrameId, t);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatRight, mPubRight, mPubRightCamInfo,
+        mRightCamInfoMsg, mRightCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatRight, mNitrosPubRight, mPubRightCamInfo,
+        mRightCamInfoMsg, mRightCamOptFrameId, t);
 #endif
+    }
   }
 }
 
@@ -1801,15 +1816,17 @@ void ZedCamera::publishRightRawImages(const rclcpp::Time & t)
 {
   if (mRightRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mRightRawSubCount: " << mRightRawSubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatRightRaw, mPubRawRight, mPubRawRightCamInfo,
-      mRightCamInfoRawMsg, mRightCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatRightRaw, mNitrosPubRawRight, mPubRawRightCamInfo,
-      mRightCamInfoRawMsg, mRightCamOptFrameId, t);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatRightRaw, mPubRawRight, mPubRawRightCamInfo,
+        mRightCamInfoRawMsg, mRightCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatRightRaw, mNitrosPubRawRight, mPubRawRightCamInfo,
+        mRightCamInfoRawMsg, mRightCamOptFrameId, t);
 #endif
+    }
   }
 }
 
@@ -1817,15 +1834,17 @@ void ZedCamera::publishRightGrayImages(const rclcpp::Time & t)
 {
   if (mRightGraySubCount > 0) {
     DEBUG_STREAM_VD(" * mRightGraySubCount: " << mRightGraySubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatRightGray, mPubRightGray, mPubRightGrayCamInfo,
-      mRightCamInfoMsg, mRightCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatRightGray, mNitrosPubRightGray, mPubRightGrayCamInfo,
-      mRightCamInfoMsg, mRightCamOptFrameId, t);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatRightGray, mPubRightGray, mPubRightGrayCamInfo,
+        mRightCamInfoMsg, mRightCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatRightGray, mNitrosPubRightGray, mPubRightGrayCamInfo,
+        mRightCamInfoMsg, mRightCamOptFrameId, t);
 #endif
+    }
   }
 }
 
@@ -1833,16 +1852,18 @@ void ZedCamera::publishRightRawGrayImages(const rclcpp::Time & t)
 {
   if (mRightGrayRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mRightGrayRawSubCount: " << mRightGrayRawSubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatRightRawGray, mPubRawRightGray,
-      mPubRawRightGrayCamInfo, mRightCamInfoRawMsg,
-      mRightCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatRightRawGray, mNitrosPubRawRightGray, mPubRawRightGrayCamInfo,
-      mRightCamInfoRawMsg, mRightCamOptFrameId, t);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatRightRawGray, mPubRawRightGray,
+        mPubRawRightGrayCamInfo, mRightCamInfoRawMsg,
+        mRightCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatRightRawGray, mNitrosPubRawRightGray, mPubRawRightGrayCamInfo,
+        mRightCamInfoRawMsg, mRightCamOptFrameId, t);
 #endif
+    }
   }
 }
 
@@ -1893,15 +1914,17 @@ void ZedCamera::publishConfidenceMap(const rclcpp::Time & t)
 {
   if (mConfMapSubCount > 0) {
     DEBUG_STREAM_VD(" * mConfMapSubCount: " << mConfMapSubCount);
-#ifndef FOUND_ISAAC_ROS_NITROS
-    publishImageWithInfo(
-      mMatConf, mPubConfMap, mPubConfMapCamInfo, mLeftCamInfoMsg,
-      mLeftCamOptFrameId, t);
-#else
-    publishImageWithInfo(
-      mMatConf, mNitrosPubConfMap, mPubConfMapCamInfo,
-      mLeftCamInfoMsg, mLeftCamOptFrameId, t);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatConf, mPubConfMap, mPubConfMapCamInfo, mLeftCamInfoMsg,
+        mLeftCamOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatConf, mNitrosPubConfMap, mPubConfMapCamInfo,
+        mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
+    }
   }
 }
 

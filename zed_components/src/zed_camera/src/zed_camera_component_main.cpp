@@ -699,13 +699,13 @@ void ZedCamera::getDebugParams()
 
 #ifdef FOUND_ISAAC_ROS_NITROS
   sl_tools::getParam(
-    shared_from_this(), "debug.debug_advanced",
+    shared_from_this(), "debug.disable_nitros",
     _nitrosDisabled, _nitrosDisabled);
 
   if (_nitrosDisabled) {
     RCLCPP_WARN(
       get_logger(),
-      "NITROS usage is disabled by 'debug.disable_nitros'");
+      "NITROS is available, but is disabled by 'debug.disable_nitros'");
   }
 #else
   _nitrosDisabled = true;  // Force disable NITROS if not available

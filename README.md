@@ -245,8 +245,8 @@ The services `toLL` and `fromLL` can be used to convert Latitude/Longitude coord
 
 > :pushpin: **Note:** This feature is incompatible with the ZED X One camera.
 
-For robots moving on a planar surface, activating the "2D mode" (parameter `pos_tracking/two_d_mode` in `common_stereo.yaml`) is possible. 
-The value of the coordinate Z for odometry and pose will have a fixed value (parameter `pos_tracking/fixed_z_value` in `common_stereo.yaml`). 
+For robots moving on a planar surface, activating the "2D mode" (parameter `pos_tracking/two_d_mode` in `common_stereo.yaml`) is possible.
+The value of the coordinate Z for odometry and pose will have a fixed value (parameter `pos_tracking/fixed_z_value` in `common_stereo.yaml`).
 Roll, Pitch, and the relative velocities will be fixed to zero.
 
 ## NVIDIA® Isaac ROS integration
@@ -255,7 +255,9 @@ The ZED ROS 2 Wrapper is compatible with the [NVIDIA® Isaac ROS](https://nvidia
 
 The ZED ROS 2 Wrapper leverages [NITROS](https://nvidia-isaac-ros.github.io/concepts/nitros/index.html) (NVIDIA® Isaac Transport for ROS) a technology to enable data streaming through NVIDIA-accelerated ROS graphs.
 
-Read the full [Isaac ROS integration guide](https://docs.stereolabs.com/isaac-ros/) and learn how to setup your development environment to use the ZED ROS2 Wrapper with Isaac ROS.
+![NITROS communication](./images/nitros-graph.gif)
+
+Read the full [Isaac ROS integration guide](https://docs.stereolabs.com/isaac-ros/) and learn how to setup your development environment to use the ZED ROS2 Wrapper with Isaac ROS and NITROS.
 
 ## Examples and Tutorials
 
@@ -306,3 +308,6 @@ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --paralle
 
 ## Known issues
 
+- Nothindg to report yet.
+
+If you find a bug or want to request a new feature, please open an issue on the [GitHub issues page](https://github.com/stereolabs/zed-ros2-wrapper/issues).

@@ -103,6 +103,9 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), " * namespace: %s", get_namespace());
   RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
+  RCLCPP_INFO(
+    get_logger(), " * IPC: %s",
+    options.use_intra_process_comms() ? "enabled" : "disabled");
   RCLCPP_INFO(get_logger(), "================================");
 
   const size_t SDK_MAJOR_REQ = 4;
@@ -693,6 +696,20 @@ void ZedCamera::getDebugParams()
   DEBUG_STREAM_COMM(
     "[ROS2] Using RMW_IMPLEMENTATION "
       << rmw_get_implementation_identifier());
+
+#ifdef FOUND_ISAAC_ROS_NITROS
+  sl_tools::getParam(
+    shared_from_this(), "debug.disable_nitros",
+    _nitrosDisabled, _nitrosDisabled);
+
+  if (_nitrosDisabled) {
+    RCLCPP_WARN(
+      get_logger(),
+      "NITROS is available, but is disabled by 'debug.disable_nitros'");
+  }
+#else
+  _nitrosDisabled = true;  // Force disable NITROS if not available
+#endif
 }
 
 void ZedCamera::getSimParams()
@@ -1811,15 +1828,6 @@ void ZedCamera::setTFCoordFrameNames()
   mDepthOptFrameId = mLeftCamOptFrameId;
   mPointCloudFrameId = mDepthFrameId;
 
-  // Note: Depth image frame id must match color image frame id
-  mCloudFrameId = mDepthOptFrameId;
-  mRgbFrameId = mDepthFrameId;
-  mRgbOptFrameId = mDepthOptFrameId;
-  mDisparityFrameId = mDepthFrameId;
-  mDisparityOptFrameId = mDepthOptFrameId;
-  mConfidenceFrameId = mDepthFrameId;
-  mConfidenceOptFrameId = mDepthOptFrameId;
-
   // Print TF frames
   RCLCPP_INFO_STREAM(get_logger(), "=== TF FRAMES ===");
   RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
@@ -1830,8 +1838,6 @@ void ZedCamera::setTFCoordFrameNames()
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Left Optical\t\t-> " << mLeftCamOptFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * RGB\t\t\t-> " << mRgbFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * RGB Optical\t\t-> " << mRgbOptFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Right\t\t\t-> " << mRightCamFrameId);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -1841,19 +1847,7 @@ void ZedCamera::setTFCoordFrameNames()
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Depth Optical\t\t-> " << mDepthOptFrameId);
-    RCLCPP_INFO_STREAM(get_logger(), " * Point Cloud\t\t-> " << mCloudFrameId);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Disparity\t\t-> " << mDisparityFrameId);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Disparity Optical\t-> " << mDisparityOptFrameId);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Confidence\t\t-> " << mConfidenceFrameId);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      " * Confidence Optical\t-> " << mConfidenceOptFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Point Cloud\t\t-> " << mPointCloudFrameId);
   }
 
   if (!sl_tools::isZED(mCamRealModel)) {
@@ -1878,54 +1872,6 @@ void ZedCamera::initPublishers()
   RCLCPP_INFO(get_logger(), "=== PUBLISHED TOPICS ===");
 
   // ----> Topics names definition
-  std::string rgbTopicRoot = "rgb";
-  std::string rightTopicRoot = "right";
-  std::string leftTopicRoot = "left";
-  std::string stereoTopicRoot = "stereo";
-  std::string img_topic = "/image_rect_color";
-  std::string img_raw_topic = "/image_raw_color";
-  std::string img_gray_topic = "_gray/image_rect_gray";
-  std::string img_raw_gray_topic_ = "_gray/image_raw_gray";
-  std::string raw_suffix = "_raw";
-  std::string left_topic = mTopicRoot + leftTopicRoot + img_topic;
-  std::string left_raw_topic =
-    mTopicRoot + leftTopicRoot + raw_suffix + img_raw_topic;
-  std::string right_topic = mTopicRoot + rightTopicRoot + img_topic;
-  std::string right_raw_topic =
-    mTopicRoot + rightTopicRoot + raw_suffix + img_raw_topic;
-  std::string rgb_topic = mTopicRoot + rgbTopicRoot + img_topic;
-  std::string rgb_raw_topic =
-    mTopicRoot + rgbTopicRoot + raw_suffix + img_raw_topic;
-  std::string stereo_topic = mTopicRoot + stereoTopicRoot + img_topic;
-  std::string stereo_raw_topic =
-    mTopicRoot + stereoTopicRoot + raw_suffix + img_raw_topic;
-  std::string left_gray_topic = mTopicRoot + leftTopicRoot + img_gray_topic;
-  std::string left_raw_gray_topic =
-    mTopicRoot + leftTopicRoot + raw_suffix + img_raw_gray_topic_;
-  std::string right_gray_topic = mTopicRoot + rightTopicRoot + img_gray_topic;
-  std::string right_raw_gray_topic =
-    mTopicRoot + rightTopicRoot + raw_suffix + img_raw_gray_topic_;
-  std::string rgb_gray_topic = mTopicRoot + rgbTopicRoot + img_gray_topic;
-  std::string rgb_raw_gray_topic =
-    mTopicRoot + rgbTopicRoot + raw_suffix + img_raw_gray_topic_;
-
-  // Set the disparity topic name
-  std::string disparity_topic = mTopicRoot + "disparity/disparity_image";
-
-  // Set the depth topic names
-  std::string depth_topic_root = "depth";
-
-  if (mOpenniDepthMode) {
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Openni depth mode activated -> Units: mm, Encoding: MONO16");
-  }
-  std::string depth_topic = mTopicRoot + depth_topic_root + "/depth_registered";
-  std::string depth_info_topic = mTopicRoot + depth_topic_root + "/depth_info";
-
-  mRoiMaskTopic = mTopicRoot + "roi_mask";
-
-  std::string pointcloud_topic = mTopicRoot + "point_cloud/cloud_registered";
   mPointcloudFusedTopic = mTopicRoot + "mapping/fused_cloud";
 
   std::string object_det_topic_root = "obj_det";
@@ -1933,11 +1879,6 @@ void ZedCamera::initPublishers()
 
   std::string body_trk_topic_root = "body_trk";
   mBodyTrkTopic = mTopicRoot + body_trk_topic_root + "/skeletons";
-
-  std::string confImgRoot = "confidence";
-  std::string conf_map_topic_name = "confidence_map";
-  std::string conf_map_topic =
-    mTopicRoot + confImgRoot + "/" + conf_map_topic_name;
 
   // Set the positional tracking topic names
   mPoseTopic = mTopicRoot + "pose";
@@ -2021,168 +1962,9 @@ void ZedCamera::initPublishers()
     "Advertised on topic: " << mPubHeartbeatStatus->get_topic_name());
   // <---- Heartbeat Status publisher
 
-  // ----> Camera publishers
-  mPubRgb = image_transport::create_camera_publisher(
-    this, rgb_topic, mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRgb.getTopic());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRgb.getInfoTopic());
-  mPubRgbGray = image_transport::create_camera_publisher(
-    this, rgb_gray_topic, mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRgbGray.getTopic());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRgbGray.getInfoTopic());
-  mPubRawRgb = image_transport::create_camera_publisher(
-    this, rgb_raw_topic, mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRawRgb.getTopic());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRawRgb.getInfoTopic());
-  mPubRawRgbGray = image_transport::create_camera_publisher(
-    this, rgb_raw_gray_topic, mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRawRgbGray.getTopic());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRawRgbGray.getInfoTopic());
-  mPubLeft = image_transport::create_camera_publisher(
-    this, left_topic, mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubLeft.getTopic());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubLeft.getInfoTopic());
-  mPubLeftGray = image_transport::create_camera_publisher(
-    this, left_gray_topic, mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubLeftGray.getTopic());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubLeftGray.getInfoTopic());
-  mPubRawLeft = image_transport::create_camera_publisher(
-    this, left_raw_topic, mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRawLeft.getTopic());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRawLeft.getInfoTopic());
-  mPubRawLeftGray = image_transport::create_camera_publisher(
-    this, left_raw_gray_topic, mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRawLeftGray.getTopic());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRawLeftGray.getInfoTopic());
-  mPubRight = image_transport::create_camera_publisher(
-    this, right_topic, mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRight.getTopic());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRight.getInfoTopic());
-  mPubRightGray = image_transport::create_camera_publisher(
-    this, right_gray_topic, mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRightGray.getTopic());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRightGray.getInfoTopic());
-  mPubRawRight = image_transport::create_camera_publisher(
-    this, right_raw_topic, mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRawRight.getTopic());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRawRight.getInfoTopic());
-  mPubRawRightGray = image_transport::create_camera_publisher(
-    this, right_raw_gray_topic, mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRawRightGray.getTopic());
-  RCLCPP_INFO_STREAM(
-    get_logger(), "Advertised on topic: " << mPubRawRightGray.getInfoTopic());
+  initVideoDepthPublishers();
 
   if (!mDepthDisabled) {
-    mPubDepth = image_transport::create_camera_publisher(
-      this, depth_topic, mQos.get_rmw_qos_profile());
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Advertised on topic: " << mPubDepth.getTopic());
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Advertised on topic: " << mPubDepth.getInfoTopic());
-    mPubDepthInfo = create_publisher<zed_msgs::msg::DepthInfoStamped>(
-      depth_info_topic, mQos, mPubOpt);
-    RCLCPP_INFO_STREAM(
-      get_logger(), "Advertised on topic: "
-        << mPubDepthInfo->get_topic_name());
-
-    if (mAutoRoiEnabled || mManualRoiEnabled) {
-      mPubRoiMask = image_transport::create_camera_publisher(
-        this, mRoiMaskTopic, mQos.get_rmw_qos_profile());
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "Advertised on topic: " << mPubRoiMask.getTopic());
-    }
-  }
-
-  mPubStereo = image_transport::create_publisher(
-    this, stereo_topic,
-    mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubStereo.getTopic());
-  mPubRawStereo = image_transport::create_publisher(
-    this, stereo_raw_topic,
-    mQos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "Advertised on topic: " << mPubRawStereo.getTopic());
-  // <---- Camera publishers
-
-  if (!mDepthDisabled) {
-    // ----> Depth publishers
-    mPubConfMap =
-      create_publisher<sensor_msgs::msg::Image>(conf_map_topic, mQos);
-    RCLCPP_INFO_STREAM(
-      get_logger(), "Advertised on topic: " << mPubConfMap->get_topic_name());
-    mPubDisparity = create_publisher<stereo_msgs::msg::DisparityImage>(
-      disparity_topic, mQos, mPubOpt);
-    RCLCPP_INFO_STREAM(
-      get_logger(), "Advertised on topic: "
-        << mPubDisparity->get_topic_name());
-#ifndef FOUND_FOXY
-    mPubCloud = point_cloud_transport::create_publisher(
-      shared_from_this(), pointcloud_topic, mQos.get_rmw_qos_profile(),
-      mPubOpt);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Advertised on topic: " << mPubCloud.getTopic());
-#else
-    mPubCloud = create_publisher<sensor_msgs::msg::PointCloud2>(
-      pointcloud_topic, mQos, mPubOpt);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Advertised on topic: " << mPubCloud->get_topic_name());
-#endif
-    // <---- Depth publishers
-
     // ----> Pos Tracking
     mPubPose = create_publisher<geometry_msgs::msg::PoseStamped>(
       mPoseTopic,
@@ -2274,8 +2056,8 @@ void ZedCamera::initPublishers()
 #endif
     }
 
-    std::string marker_topic = "plane_marker";
-    std::string plane_topic = "plane";
+    std::string marker_topic = mTopicRoot + "plane_marker";
+    std::string plane_topic = mTopicRoot + "plane";
     // Rviz markers publisher
     mPubMarker = create_publisher<visualization_msgs::msg::Marker>(
       marker_topic, mQos, mPubOpt);
@@ -2438,6 +2220,12 @@ bool ZedCamera::startCamera()
 {
   RCLCPP_INFO(get_logger(), "=== STARTING CAMERA ===");
 
+  // // CUDA context check
+  // CUcontext * primary_cuda_context;
+  // cuCtxGetCurrent(primary_cuda_context);
+  // int ctx_gpu_id;
+  // cudaGetDevice(&ctx_gpu_id);
+
   // Create a ZED object
   mZed = std::make_shared<sl::Camera>();
 
@@ -2456,6 +2244,15 @@ bool ZedCamera::startCamera()
   // <---- TF2 Transform
 
   // ----> ZED configuration
+
+  // if (primary_cuda_context) {
+  //   mInitParams.sdk_cuda_ctx = *primary_cuda_context;
+  // } else {
+  //   RCLCPP_INFO(
+  //     get_logger(),
+  //     "No ready CUDA context found, using default ZED SDK context.");
+  // }
+
   if (mSimMode) {  // Simulation?
     RCLCPP_INFO_STREAM(
       get_logger(), "=== CONNECTING TO THE SIMULATION SERVER ["
@@ -3167,13 +2964,10 @@ bool ZedCamera::startCamera()
   // <----> Check default camera settings
 
   // ----> Camera Info messages
-  mRgbCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-  mRgbCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   mLeftCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   mLeftCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   mRightCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   mRightCamInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
-  mDepthCamInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
 
   setTFCoordFrameNames();  // Requires mZedRealCamModel available only after
                            // camera opening
@@ -3184,9 +2978,6 @@ bool ZedCamera::startCamera()
   fillCamInfo(
     mZed, mLeftCamInfoRawMsg, mRightCamInfoRawMsg, mLeftCamOptFrameId,
     mRightCamOptFrameId, true);
-  mRgbCamInfoMsg = mLeftCamInfoMsg;
-  mRgbCamInfoRawMsg = mLeftCamInfoRawMsg;
-  mDepthCamInfoMsg = mLeftCamInfoMsg;
   // <---- Camera Info messages
 
   initPublishers();  // Requires mZedRealCamModel available only after camera
@@ -8251,12 +8042,33 @@ void ZedCamera::callback_setRoi(
 
       mManualRoiEnabled = false;
 
-      if (mPubRoiMask.getTopic().empty()) {
-        mPubRoiMask = image_transport::create_camera_publisher(
-          this, mRoiMaskTopic, mQos.get_rmw_qos_profile());
-        RCLCPP_INFO_STREAM(
-          get_logger(),
-          "Advertised on topic: " << mPubRoiMask.getTopic());
+      
+      if (_nitrosDisabled) {
+        if (mPubRoiMask.getTopic().empty()) {
+          mPubRoiMask = image_transport::create_publisher(
+            this, mRoiMaskTopic, mQos.get_rmw_qos_profile());
+          RCLCPP_INFO_STREAM(
+            get_logger(), "Advertised on topic: "
+              << mPubRoiMask.getTopic());
+        }
+      } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+        if (!mNitrosPubRoiMask) {
+          mNitrosPubRoiMask = std::make_shared<
+            nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
+              nvidia::isaac_ros::nitros::NitrosImage>>(
+            this, mRoiMaskTopic,
+            nvidia::isaac_ros::nitros::nitros_image_bgra8_t::
+            supported_type_name,
+            nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
+          RCLCPP_INFO_STREAM(
+            get_logger(),
+            "Advertised on topic: " << mRoiMaskTopic);
+          RCLCPP_INFO_STREAM(
+            get_logger(), "Advertised on topic: "
+              << mRoiMaskTopic + "/nitros");
+        }
+#endif
       }
 
       res->message = err_msg;
@@ -8461,7 +8273,13 @@ void ZedCamera::processRtRoi(rclcpp::Time ts)
     uint8_t subCount = 0;
 
     try {
-      subCount = mPubRoiMask.getNumSubscribers();
+      if (_nitrosDisabled) {
+        subCount = mPubRoiMask.getNumSubscribers();
+      } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+        subCount = count_subscribers(mRoiMaskTopic);
+#endif
+      }
     } catch (...) {
       rcutils_reset_error();
       DEBUG_STREAM_COMM("processRtRoi: Exception while counting subscribers");
@@ -8474,9 +8292,18 @@ void ZedCamera::processRtRoi(rclcpp::Time ts)
       mZed->getRegionOfInterest(roi_mask);
 
       DEBUG_ROI("Publish ROI Mask");
-      publishImageWithInfo(
-        roi_mask, mPubRoiMask, mLeftCamInfoMsg,
-        mLeftCamOptFrameId, ts);
+
+      if (_nitrosDisabled) {
+        publishImageWithInfo(
+          roi_mask, mPubRoiMask, mPubRoiMaskCamInfo, mLeftCamInfoMsg,
+          mLeftCamOptFrameId, ts);
+      } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+        publishImageWithInfo(
+          roi_mask, mNitrosPubRoiMask, mPubRoiMaskCamInfo, mLeftCamInfoMsg,
+          mLeftCamOptFrameId, ts);
+#endif
+      }
     }
   }
 }

@@ -1,96 +1,55 @@
 LATEST CHANGES
 ==============
 
-2025-07-08
------------
-- Change `pos_tracking.area_memory_db_path` to `pos_tracking.area_file_path` to match the ZED SDK parameter name
-- Add parameter `pos_tracking.save_area_memory_on_closing` to save the Area Memory before closing the camera
-- Fix Area Mapping file handling according to the ZED SDK policies.
-  - The Area Memory file is now saved only if the Area Memory is enabled, if the `pos_tracking.save_area_memory_on_closing` 
-  parameter is set to `true`, if the `pos_tracking.area_file_path` is set and if the `pos_tracking.area_file_path` is valid.
-- Add `save_area_memory` service
-  - Set the filename as a parameter. If the filename is empty, it uses the value of the parameter `pos_tracking.area_file_path` if not empty.
-
-2025-06-18
-----------
-- Added a new launch option 'node_log_type' to set the type of log to be used by the ZED Node.
-  - The available options are `screen`, `log`, and `both`.
-
-2025-05-29
-----------
-- Separated Video/Depth data publishing into its own thread for more precise control over the publishing rate, 
-  independent of the camera grab rate. This enables recording SVO files or processing positional tracking at 
-  full grab rate, while publishing data at a reduced rate to optimize bandwidth usage.
-
-2025-05-20
-----------
+v5.0.0
+------
+- Backward compatible with SDK v4.2
+- Added official support for ROS 2 Jazzy Jalisco
+- Note: requires the latest `zed_msgs` package v5.0.0
+- Added SVO Status topic to monitor the current SVO status of type `zed_msgs::SvoStatus`
+- Added fully integrated Health Status topic of type `zed_msgs::HealthStatusStamped`
+  - Remove the single health status topics to simplicy health monitoring
+- Remove `cob_srvs` dependency to use the custom `zed_msgs::SetSvoFrame` service
+- Added Heartbeat status message at 1 Hz: `~/status/heartbeat`
+- Improve performance with the default stereo configuration
+- Fix Positional Tracking enabling when required by ZED SDK modules
+- Fix realtime IMU data publishing when using SVO2
+- Added parameter 'debug.sdk_verbose_log_file' to Stereo and Mono components to set the path of the SDK verbose log file
+- Clean shutdown of ZED components using `pre_shutdown_callback`
+- Added new parameter `svo.replay_rate` to set the replay rate for the SVO when not used in realtime mode (range [0.10-5.0])
+- Improved diagnostic information for SVO playback
+- Default SVO Recording Compression mode [`0`] is forced to `H265` replacing the old `LOSSLESS` mode
+  - H265 is far superior as it uses hardware encoder, resulting in faster, lighter encoding, and dramatically smaller SVO2 files
+- Added `/clock` publisher to be used in SVO Mode to synchronize other nodes with the SVO timestamp
+- Added parameter `svo.publish_svo_clock` to enable the `/clock` publisher
+  - The parameter 'svo.publish_svo_clock' is normally overridden by the `publish_svo_clock` launch option
+- Moved `brightness`, `contrast`, and `hue` from `common_stereo.yaml` to `zed.yaml`, `zed2.yaml`, `zed2i.yaml`, and `zedm.yaml` files
 - Add advanced handling of the Object Detection and Tracking module of the ZED SDK
-
   - Move the multi-box native object detection parameters to the `object_detection.yaml` file
   - Add specific parameters to set the confidence threshold for each of the includes object detection classes of the ZED SDK
   - Move the Custom Object Detection parameters to the `custom_object_detection.yaml` file
   - Support all the new parameters of the ZED SDK v5 separately for each of the custom object detection classes
-
 - The usage of the new Object Detection support is fully described on the ZED ROS 2 online documentation:
-  - Object Detection: https://www.stereolabs.com/docs/ros2/object-detection/
-  - Custom Object Detection: https://www.stereolabs.com/docs/ros2/custom-object-detection/
-
-2025-05-19
------------
-- Move `brightness`, `contrast`, and `hue` from `common_stereo.yaml` to `zed.yaml`, `zed2.yaml`, `zed2i.yaml`, and `zedm.yaml` files
-
-2025-05-14
-----------
-- Add `/clock` publisher to be used in SVO Mode to synchronize other nodes with the SVO timestamp
-- Add parameter `svo.publish_svo_clock` to enable the `/clock` publisher
-  - The parameter 'svo.publish_svo_clock' is normally overridden by the `publish_svo_clock` launch option
-
-2025-04-30
-----------
-- Default SVO Recording Compression mode [`0`] is forced to `H265` replacing the old `LOSSLESS` mode
-  - H265 is far superior as it uses hardware encoder, resulting in faster, lighter encoding, and dramatically smaller SVO2 files
-
-2025-04-28
-----------
-- Add new parameter `svo.replay_rate` to set the replay rate for the SVO when not used in realtime mode (range [0.10-5.0])
-- Improved diagnostic information for SVO playback
-
-2025-04-23
-----------
-- Clean shutdown of ZED components using `pre_shutdown_callback`
-
-2025-04-22
-----------
-- Add backward compatibility with SDK v4.2
-
-2025-04-18
-----------
-- Add parameter 'debug.sdk_verbose_log_file' to Stereo and Mono components to set the path of the SDK verbose log file
-
-2025-04-16
-----------
-- Fix realtime IMU data publishing when using SVO2
-
-2025-04-15
-----------
-- Improve performance with the default stereo configuration
-- Fix Positional Tracking enabling when required by ZED SDK modules
-
-2025-04-01
-----------
-- Add Heartbeat status message at 1 Hz: `~/status/heartbeat`
-
-2025-03-28
-----------
-- Note: requires the latest `zed_msgs` package v5.0.0
-- Add SVO Status topic to monitor the current SVO status of type `zed_msgs::SvoStatus`
-- Add fully integrated Health Status topic of type `zed_msgs::HealthStatusStamped`
-  - Remove the single health status topics to simplicy health monitoring
-- Remove `cob_srvs` dependency to use the custom `zed_msgs::SetSvoFrame` service
-
-2025-03-26
-----------
-- Add official support for ROS 2 Jazzy Jalisco
+  - Object Detection: https://docs.stereolabs.com/ros2/object-detection/
+  - Custom Object Detection: https://docs.stereolabs.com/ros2/custom-object-detection/
+- Separated Video/Depth data publishing into its own thread for more precise control over the publishing rate, 
+  independent of the camera grab rate. This enables recording SVO files or processing positional tracking at 
+  full grab rate, while publishing data at a reduced rate to optimize bandwidth usage.
+- Added a new launch option 'node_log_type' to set the type of log to be used by the ZED Node.
+  - The available options are `screen`, `log`, and `both`.
+- Changed `pos_tracking.area_memory_db_path` to `pos_tracking.area_file_path` to match the ZED SDK parameter name
+- Added parameter `pos_tracking.save_area_memory_on_closing` to save the Area Memory before closing the camera
+- Fixed Area Mapping file handling according to the ZED SDK policies.
+  - The Area Memory file is now saved only if the Area Memory is enabled, if the `pos_tracking.save_area_memory_on_closing` 
+  parameter is set to `true`, if the `pos_tracking.area_file_path` is set and if the `pos_tracking.area_file_path` is valid.
+- Added `save_area_memory` service
+  - Set the filename as a parameter. If the filename is empty, it uses the value of the parameter `pos_tracking.area_file_path` if not empty.
+- Added `enable_ipc` launch argument to enable intra-process communication (IPC) when using ROS 2 Composition. 
+  - Note: NITROS requires IPC to be disabled to work properly.
+- Fixed plane topic names, adding missing node name prefix
+- Added camera_info to Confidence Map topic
+- Enabled Isaac ROS integration and automatic NITROS usage: https://docs.stereolabs.com/isaac-ros/
+  - Added the parameter `debug.disable_nitros` to disable NITROS usage. This is useful for debugging and testing purposes.
 
 v4.2.5
 ------

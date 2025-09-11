@@ -1532,9 +1532,8 @@ void ZedCameraOne::initTFCoordFrameNames()
 }
 
 void ZedCameraOne::fillCamInfo(
-  const std::shared_ptr<sensor_msgs::msg::CameraInfo> & camInfoMsg,
-  const std::string & frameId,
-  bool rawParam)
+  sensor_msgs::msg::CameraInfo::SharedPtr camInfoMsg,
+  const std::string & frameId, bool rawParam)
 {
   sl::CameraParameters zedParam;
 
@@ -2885,14 +2884,14 @@ void ZedCameraOne::publishImages()
 
 void ZedCameraOne::publishImageWithInfo(
   const sl::Mat & img, const image_transport::CameraPublisher & pubImg,
-  const camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
+  camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
   const rclcpp::Time & t)
 {
   auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
   camInfoMsg->header.stamp = t;
   DEBUG_STREAM_VD("Publishing IMAGE message: " << t.nanoseconds() << " nsec");
   try {
-    pubImg.publish(std::move(image), camInfoMsg);
+    pubImg.publish(std::move(image), std::move(camInfoMsg));
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
   } catch (...) {

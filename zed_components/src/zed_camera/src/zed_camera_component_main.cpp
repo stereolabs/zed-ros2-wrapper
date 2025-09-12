@@ -4163,7 +4163,7 @@ void ZedCamera::threadFunc_zedGrab()
   #ifdef USE_SVO_REALTIME_PAUSE
           // Lock on Positional Tracking mutex to avoid race conditions
           std::lock_guard<std::mutex> lock(mPtMutex);
-          
+
           // Dummy grab
           mZed->grab();
   #endif
@@ -8042,7 +8042,7 @@ void ZedCamera::callback_setRoi(
 
       mManualRoiEnabled = false;
 
-      
+
       if (_nitrosDisabled) {
         if (mPubRoiMask.getTopic().empty()) {
           mPubRoiMask = image_transport::create_publisher(

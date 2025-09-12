@@ -1,4 +1,4 @@
-// Copyright 2024 Stereolabs
+// Copyright 2025 Stereolabs
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,7 +66,8 @@
 #include <zed_msgs/srv/set_pose.hpp>
 #include <zed_msgs/srv/set_roi.hpp>
 #include <zed_msgs/srv/start_svo_rec.hpp>
-// #include <zed_msgs/srv/save_area_memory.hpp> TODO(Walter): Uncomment when available in `zed_msgs` package from APT
+// #include <zed_msgs/srv/save_area_memory.hpp> TODO(Walter): Uncomment when
+// available in `zed_msgs` package from APT
 
 #ifdef FOUND_ISAAC_ROS_NITROS
   #include "isaac_ros_managed_nitros/managed_nitros_publisher.hpp"

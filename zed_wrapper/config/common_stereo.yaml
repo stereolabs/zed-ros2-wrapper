@@ -55,14 +55,14 @@
         region_of_interest:
             automatic_roi: true # Enable the automatic ROI generation to automatically detect part of the robot in the FoV and remove them from the processing. Note: if enabled the value of `manual_polygon` is ignored
             depth_far_threshold_meters: 5.0 # Filtering how far object in the ROI should be considered, this is useful for a vehicle for instance
-            image_height_ratio_cutoff: 0.5 # By default consider only the lower half of the image, can be useful to filter out the sky
+            # image_height_ratio_cutoff: 0.5 # By default consider only the lower half of the image, can be useful to filter out the sky
             #manual_polygon: '[]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
             #manual_polygon: '[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
             #manual_polygon: '[[0.25,0.25],[0.75,0.25],[0.75,0.75],[0.25,0.75]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
             #manual_polygon: '[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
             apply_to_depth: true # Apply ROI to depth processing
             apply_to_positional_tracking: true # Apply ROI to positional tracking processing
-            apply_to_object_detection: true # Apply ROI to object detection processing
+            apply_to_object_detection: false # Apply ROI to object detection processing
             apply_to_body_tracking: true # Apply ROI to body tracking processing
             apply_to_spatial_mapping: true # Apply ROI to spatial mapping processing
 
@@ -103,7 +103,7 @@
             reset_pose_with_svo_loop: true # Reset the camera pose the `initial_base_pose` when the SVO loop is enabled and the SVO playback reaches the end of the file.
 
         gnss_fusion:
-            gnss_fusion_enabled: false # fuse 'sensor_msg/NavSatFix' message information into pose data
+            gnss_fusion_enabled: true # fuse 'sensor_msg/NavSatFix' message information into pose data
             gnss_fix_topic: '/fix' # Name of the GNSS topic of type NavSatFix to subscribe [Default: '/gps/fix']
             gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
             h_covariance_mul: 1.0 # Multiplier factor to be applied to horizontal covariance of the received fix (plane X/Y)
@@ -127,7 +127,7 @@
             pd_normal_similarity_threshold: 15.0 # Plane detection: controls the spread of plane by checking the angle difference.
 
         object_detection:
-            od_enabled: false # True to enable Object Detection
+            od_enabled: true # True to enable Object Detection
             enable_tracking: true # Whether the object detection system includes object tracking capabilities across a sequence of images.
             detection_model: 'MULTI_CLASS_BOX_FAST' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE', 'CUSTOM_YOLOLIKE_BOX_OBJECTS'
             max_range: 20.0 # [m] Upper depth range for detections.The value cannot be greater than 'depth.max_depth'
@@ -153,9 +153,9 @@
             stream_enabled: false # enable the streaming server when the camera is open
             codec: 'H264' # different encoding types for image streaming: 'H264', 'H265'
             port: 30000 # Port used for streaming. Port must be an even number. Any odd number will be rejected.
-            bitrate: 12500 # [1000 - 60000] Streaming bitrate (in Kbits/s) used for streaming. See https://www.stereolabs.com/docs/api/structsl_1_1StreamingParameters.html#a873ba9440e3e9786eb1476a3bfa536d0
+            bitrate: 7000 # [1000 - 60000] Streaming bitrate (in Kbits/s) used for streaming. See https://www.stereolabs.com/docs/api/structsl_1_1StreamingParameters.html#a873ba9440e3e9786eb1476a3bfa536d0
             gop_size: -1 # [max 256] The GOP size determines the maximum distance between IDR/I-frames. Very high GOP size will result in slightly more efficient compression, especially on static scenes. But latency will increase.
-            adaptative_bitrate: false # Bitrate will be adjusted depending the number of packet dropped during streaming. If activated, the bitrate can vary between [bitrate/4, bitrate].
+            adaptative_bitrate: true # Bitrate will be adjusted depending the number of packet dropped during streaming. If activated, the bitrate can vary between [bitrate/4, bitrate].
             chunk_size: 16084 # [1024 - 65000] Stream buffers are divided into X number of chunks where each chunk is chunk_size bytes long. You can lower chunk_size value if network generates a lot of packet lost: this will generates more chunk for a single image, but each chunk sent will be lighter to avoid inside-chunk corruption. Increasing this value can decrease latency.
             target_framerate: 0 # Framerate for the streaming output. This framerate must be below or equal to the camera framerate. Allowed framerates are 15, 30, 60 or 100 if possible. Any other values will be discarded and camera FPS will be taken.
 

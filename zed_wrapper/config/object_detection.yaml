@@ -9,18 +9,18 @@
             enabled: true # [DYNAMIC] - Enable/disable the detection of vehicles
             confidence_threshold: 60.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
           bag:
-            enabled: true # [DYNAMIC] - Enable/disable the detection of bags
+            enabled: false # [DYNAMIC] - Enable/disable the detection of bags
             confidence_threshold: 40.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
           animal:
-            enabled: true # [DYNAMIC] - Enable/disable the detection of animals
+            enabled: false # [DYNAMIC] - Enable/disable the detection of animals
             confidence_threshold: 40.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
           electronics:
-            enabled: true # [DYNAMIC] - Enable/disable the detection of electronic devices
+            enabled: false # [DYNAMIC] - Enable/disable the detection of electronic devices
             confidence_threshold: 45.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
           fruit_vegetable:
-            enabled: true # [DYNAMIC] - Enable/disable the detection of fruits and vegetables
+            enabled: false # [DYNAMIC] - Enable/disable the detection of fruits and vegetables
             confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
           sport:
-            enabled: true # [DYNAMIC] - Enable/disable the detection of sport-related objects
+            enabled: false # [DYNAMIC] - Enable/disable the detection of sport-related objects
             confidence_threshold: 30.0 # [DYNAMIC] - Minimum value of the detection confidence of an object [0,99]
 

@@ -20,14 +20,14 @@
             replay_rate: 1.0 # Replay rate for the SVO when not used in realtime mode (between [0.10-5.0])
 
         general:
-            camera_timeout_sec: 5
-            camera_max_reconnect: 5
+            camera_timeout_sec: 15
+            camera_max_reconnect: 10
             camera_flip: false
             self_calib: true # Enable the self-calibration process at camera opening. See https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#affeaa06cfc1d849e311e484ceb8edcc5
             serial_number: 0 # overwritten by launch file
             pub_resolution: 'CUSTOM' # The resolution used for image and depth map publishing. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
-            pub_frame_rate: 30.0 # [DYNAMIC] Frequency of publishing of visual images and depth data (not the Point Cloud, see 'depth.point_cloud_freq'). This value must be equal or less than the camera framerate.
+            pub_frame_rate: 60.0 # [DYNAMIC] Frequency of publishing of visual images and depth data (not the Point Cloud, see 'depth.point_cloud_freq'). This value must be equal or less than the camera framerate.
             enable_image_validity_check: 1 # [SDK5 required] Sets the image validity check. If set to 1, the SDK will check if the frames are valid before processing.
             gpu_id: -1
             optional_opencv_calibration_file: '' # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
@@ -150,14 +150,14 @@
             minimum_keypoints_threshold: 5 # [DYNAMIC] - Minimum number of skeleton key points to be detected for a valid skeleton
 
         stream_server:
-            stream_enabled: false # enable the streaming server when the camera is open
+            stream_enabled: true # enable the streaming server when the camera is open
             codec: 'H264' # different encoding types for image streaming: 'H264', 'H265'
             port: 30000 # Port used for streaming. Port must be an even number. Any odd number will be rejected.
             bitrate: 7000 # [1000 - 60000] Streaming bitrate (in Kbits/s) used for streaming. See https://www.stereolabs.com/docs/api/structsl_1_1StreamingParameters.html#a873ba9440e3e9786eb1476a3bfa536d0
             gop_size: -1 # [max 256] The GOP size determines the maximum distance between IDR/I-frames. Very high GOP size will result in slightly more efficient compression, especially on static scenes. But latency will increase.
             adaptative_bitrate: true # Bitrate will be adjusted depending the number of packet dropped during streaming. If activated, the bitrate can vary between [bitrate/4, bitrate].
             chunk_size: 16084 # [1024 - 65000] Stream buffers are divided into X number of chunks where each chunk is chunk_size bytes long. You can lower chunk_size value if network generates a lot of packet lost: this will generates more chunk for a single image, but each chunk sent will be lighter to avoid inside-chunk corruption. Increasing this value can decrease latency.
-            target_framerate: 0 # Framerate for the streaming output. This framerate must be below or equal to the camera framerate. Allowed framerates are 15, 30, 60 or 100 if possible. Any other values will be discarded and camera FPS will be taken.
+            target_framerate: 60 # Framerate for the streaming output. This framerate must be below or equal to the camera framerate. Allowed framerates are 15, 30, 60 or 100 if possible. Any other values will be discarded and camera FPS will be taken.
 
         advanced: # WARNING: do not modify unless you are confident of what you are doing
             # Reference documentation: https://man7.org/linux/man-pages/man7/sched.7.html

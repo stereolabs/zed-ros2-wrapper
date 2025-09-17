@@ -27,7 +27,7 @@
             serial_number: 0 # overwritten by launch file
             pub_resolution: 'CUSTOM' # The resolution used for image and depth map publishing. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
-            pub_frame_rate: 60.0 # [DYNAMIC] Frequency of publishing of visual images and depth data (not the Point Cloud, see 'depth.point_cloud_freq'). This value must be equal or less than the camera framerate.
+            pub_frame_rate: 30.0 # [DYNAMIC] Frequency of publishing of visual images and depth data (not the Point Cloud, see 'depth.point_cloud_freq'). This value must be equal or less than the camera framerate.
             enable_image_validity_check: 1 # [SDK5 required] Sets the image validity check. If set to 1, the SDK will check if the frames are valid before processing.
             gpu_id: -1
             optional_opencv_calibration_file: '' # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
@@ -67,7 +67,7 @@
             apply_to_spatial_mapping: true # Apply ROI to spatial mapping processing
 
         depth:
-            depth_mode: 'NEURAL' # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            depth_mode: 'NONE' # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             depth_stabilization: 20 # Forces positional tracking to start if major than 0 - Range: [0,100]
             openni_depth_mode: true # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
             point_cloud_freq: 15.0 # [DYNAMIC] Frequency of the pointcloud publishing. This value must be equal or less than the camera framerate.
@@ -127,7 +127,7 @@
             pd_normal_similarity_threshold: 15.0 # Plane detection: controls the spread of plane by checking the angle difference.
 
         object_detection:
-            od_enabled: true # True to enable Object Detection
+            od_enabled: false # True to enable Object Detection
             enable_tracking: true # Whether the object detection system includes object tracking capabilities across a sequence of images.
             detection_model: 'MULTI_CLASS_BOX_FAST' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE', 'CUSTOM_YOLOLIKE_BOX_OBJECTS'
             max_range: 20.0 # [m] Upper depth range for detections.The value cannot be greater than 'depth.max_depth'
@@ -150,7 +150,7 @@
             minimum_keypoints_threshold: 5 # [DYNAMIC] - Minimum number of skeleton key points to be detected for a valid skeleton
 
         stream_server:
-            stream_enabled: true # enable the streaming server when the camera is open
+            stream_enabled: false # enable the streaming server when the camera is open
             codec: 'H264' # different encoding types for image streaming: 'H264', 'H265'
             port: 30000 # Port used for streaming. Port must be an even number. Any odd number will be rejected.
             bitrate: 7000 # [1000 - 60000] Streaming bitrate (in Kbits/s) used for streaming. See https://www.stereolabs.com/docs/api/structsl_1_1StreamingParameters.html#a873ba9440e3e9786eb1476a3bfa536d0

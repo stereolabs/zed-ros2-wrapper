@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+
+<!--
+// Copyright 2024 Stereolabs
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+-->
+
+<!-- *** THIS IS AN EXAMPLE FILE FOR A MULTI-CAMERA CONFIGURATION *** -->
+<!-- 
+  This xacro file allows to configure a multi-camera system with two cameras
+  mounted on a plate, distant 12 cm and looking at opposite directions.
+  It demonstrates how to configure the URDF/xacro file to create a working
+  multi-camera rig.
+-->
+
+<!--
+    ___                        ___
+    | |                        | |
+    |_|                        |_|
+    _|____________*_____________|_
+    ______________*_______________
+                  |
+    +6cm          0            -6cm
+ zed_front  zed_multi_link    zed_back
+-->
+
+
+<robot name="zed_multi_camera" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:property name="M_PI"     value="3.1415926535897931" />
+  
+  <!-- Define the required parameters -->
+  <xacro:arg name="multi_link" default="zed_multi_link" />
+  <xacro:arg name="camera_name_0" default="zed_front" />
+  <xacro:arg name="camera_name_1" default="zed_rear" />
+
+  <!-- Define the reference links -->
+  <link name="$(arg multi_link)" />
+  <link name="$(arg camera_name_0)_camera_link" />
+  <link name="$(arg camera_name_1)_camera_link" />
+
+  <!-- Note the URDF of the cameras are loaded by the respective launch files.
+       We must only provide the position of each of them with respect to the reference link -->
+
+  <!-- Define the position of the front camera with respect to the reference link -->
+  <joint name="$(arg camera_name_0)_camera_joint" type="fixed">
+      <parent link="$(arg camera_name_0)_camera_link"/>
+      <child link="$(arg multi_link)"/>
+      <origin xyz="-0.06 0.0 0.0" rpy="0 0 0" />
+  </joint>
+
+  <!-- Define the position of the rear camera with respect to the reference link -->
+  <joint name="$(arg camera_name_1)_camera_joint" type="fixed">
+      <parent link="$(arg multi_link)"/>
+      <child link="$(arg camera_name_1)_camera_link"/>
+      <origin xyz="-0.06 0.0 0.0" rpy="0 0 ${M_PI}" />
+  </joint>
+
+  <!-- NOTE: Replicate the same XML code above for all the cameras of the multi-camera system if more cameras are used -->
+  
+</robot>

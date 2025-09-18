@@ -620,6 +620,10 @@ void ZedCamera::getDebugParams()
     shared_from_this(), "debug.sdk_verbose", mVerbose,
     mVerbose, " * SDK Verbose: ", false, 0, 9999);
   sl_tools::getParam(
+    shared_from_this(), "debug.use_pub_timestamps",
+    mUsePubTimestamps, mUsePubTimestamps,
+    " * Use Pub Timestamps: ");
+  sl_tools::getParam(
     shared_from_this(), "debug.sdk_verbose_log_file",
     mVerboseLogFile, mVerboseLogFile, " * SDK Verbose File: ");
   sl_tools::getParam(
@@ -639,7 +643,7 @@ void ZedCamera::getDebugParams()
   sl_tools::getParam(
     shared_from_this(), "debug.debug_point_cloud",
     _debugPointCloud, _debugPointCloud,
-    " * Debug Point Cloud: %s");
+    " * Debug Point Cloud: ");
   sl_tools::getParam(
     shared_from_this(), "debug.debug_gnss", _debugGnss,
     _debugGnss, " * Debug GNSS: ");
@@ -667,13 +671,16 @@ void ZedCamera::getDebugParams()
     shared_from_this(), "debug.debug_roi", _debugRoi,
     _debugRoi, " * Debug ROI: ");
   sl_tools::getParam(
+    shared_from_this(), "debug.debug_nitros", _debugNitros,
+    _debugNitros, " * Debug Nitros: ");
+  sl_tools::getParam(
     shared_from_this(), "debug.debug_advanced", _debugAdvanced,
     _debugAdvanced, " * Debug Advanced: ");
 
   mDebugMode = _debugCommon || _debugSim || _debugVideoDepth || _debugCamCtrl ||
     _debugPointCloud || _debugPosTracking || _debugGnss ||
     _debugSensors || _debugMapping || _debugObjectDet ||
-    _debugBodyTrk || _debugAdvanced || _debugRoi || _debugStreaming;
+    _debugBodyTrk || _debugAdvanced || _debugRoi || _debugStreaming || _debugNitros;
 
   if (mDebugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(
@@ -4701,7 +4708,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
       auto imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
-      imuMsg->header.stamp = ts_imu;
+      imuMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_imu;
       imuMsg->header.frame_id = mImuFrameId;
 
       imuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
@@ -4774,7 +4781,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
       auto imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
-      imuRawMsg->header.stamp = ts_imu;
+      imuRawMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_imu;
       imuRawMsg->header.frame_id = mImuFrameId;
 
       imuRawMsg->angular_velocity.x =
@@ -4838,7 +4845,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
       auto pressMsg = std::make_unique<sensor_msgs::msg::FluidPressure>();
 
-      pressMsg->header.stamp = ts_baro;
+      pressMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_baro;
       pressMsg->header.frame_id = mBaroFrameId;
       pressMsg->fluid_pressure =
         sens_data.barometer.pressure;    // Pascals -> see
@@ -4864,7 +4871,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
       auto magMsg = std::make_unique<sensor_msgs::msg::MagneticField>();
 
-      magMsg->header.stamp = ts_mag;
+      magMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_mag;
       magMsg->header.frame_id = mMagFrameId;
       magMsg->magnetic_field.x =
         sens_data.magnetometer.magnetic_field_calibrated.x * 1e-6;    // Tesla
@@ -4950,7 +4957,9 @@ void ZedCamera::publishOdomTF(rclcpp::Time t)
 
   geometry_msgs::msg::TransformStamped transformStamped;
 
-  transformStamped.header.stamp = t + rclcpp::Duration(0, mTfOffset * 1e9);
+  transformStamped.header.stamp =
+    mUsePubTimestamps ? get_clock()->now() :
+    (t + rclcpp::Duration(0, mTfOffset * 1e9));
 
   // RCLCPP_INFO_STREAM(get_logger(), "Odom TS: " <<
   // transformStamped.header.stamp);
@@ -5002,7 +5011,9 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
 
   geometry_msgs::msg::TransformStamped transformStamped;
 
-  transformStamped.header.stamp = t + rclcpp::Duration(0, mTfOffset * 1e9);
+  transformStamped.header.stamp =
+    mUsePubTimestamps ? get_clock()->now() :
+    (t + rclcpp::Duration(0, mTfOffset * 1e9));
   transformStamped.header.frame_id = mMapFrameId;
   transformStamped.child_frame_id = mOdomFrameId;
   // conversion from Tranform to message
@@ -5310,7 +5321,7 @@ void ZedCamera::publishOdom(
   if (odomSub) {
     auto odomMsg = std::make_unique<nav_msgs::msg::Odometry>();
 
-    odomMsg->header.stamp = t;
+    odomMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
     odomMsg->header.frame_id = mOdomFrameId;  // frame
     odomMsg->child_frame_id = mBaseFrameId;   // camera_frame
 
@@ -5564,7 +5575,7 @@ void ZedCamera::publishPose()
   base_pose = mMap2BaseTransf;
 
   std_msgs::msg::Header header;
-  header.stamp = mFrameTimestamp;
+  header.stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
   header.frame_id = mMapFrameId;   // frame
 
   geometry_msgs::msg::Pose pose;
@@ -5767,7 +5778,9 @@ void ZedCamera::processGeoPose()
     geometry_msgs::msg::TransformStamped transformStamped;
 
     transformStamped.header.stamp =
-      mFrameTimestamp + rclcpp::Duration(0, mTfOffset * 1e9);
+      mUsePubTimestamps ?
+      get_clock()->now() :
+      (mFrameTimestamp + rclcpp::Duration(0, mTfOffset * 1e9));
     transformStamped.header.frame_id = mUtmAsParent ? mUtmFrameId : mMapFrameId;
     transformStamped.child_frame_id = mUtmAsParent ? mMapFrameId : mUtmFrameId;
 
@@ -5805,7 +5818,8 @@ void ZedCamera::publishGnssPose()
   if (gnssSub > 0) {
     auto msg = std::make_unique<nav_msgs::msg::Odometry>();
 
-    msg->header.stamp = mFrameTimestamp;
+    msg->header.stamp =
+      mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
     msg->header.frame_id = mMapFrameId;
     msg->child_frame_id = mBaseFrameId;
 
@@ -5849,7 +5863,8 @@ void ZedCamera::publishGnssPose()
   if (geoPoseSub > 0) {
     auto msg = std::make_unique<geographic_msgs::msg::GeoPoseStamped>();
 
-    msg->header.stamp = mFrameTimestamp;
+    msg->header.stamp =
+      mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
     msg->header.frame_id = mMapFrameId;
 
     // Latest Lat Long data
@@ -5877,7 +5892,9 @@ void ZedCamera::publishGnssPose()
   if (fusedFixSub > 0) {
     auto msg = std::make_unique<sensor_msgs::msg::NavSatFix>();
 
-    msg->header.stamp = mFrameTimestamp;
+    msg->header.stamp =
+      mUsePubTimestamps ? get_clock()->now() :
+      mFrameTimestamp;
     msg->header.frame_id = mMapFrameId;
 
     msg->status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
@@ -5920,8 +5937,11 @@ void ZedCamera::publishGnssPose()
   if (originFixSub > 0) {
     auto msg = std::make_unique<sensor_msgs::msg::NavSatFix>();
 
-    msg->header.stamp = mFrameTimestamp;
-    msg->header.frame_id = mGnssOriginFrameId;
+    msg->header.stamp = mUsePubTimestamps ?
+      get_clock()->now() :
+      mFrameTimestamp;
+    msg->header.frame_id =
+      mGnssOriginFrameId;
 
     msg->status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
     msg->status.service = mGnssService;
@@ -6271,16 +6291,18 @@ void ZedCamera::callback_pubFusedPc()
         memcpy(ptCloudPtr, cloud_pts, 4 * chunkSize * sizeof(float));
         ptCloudPtr += 4 * chunkSize;
         if (mSvoMode) {
-          pointcloudFusedMsg->header.stamp = mFrameTimestamp;
+          pointcloudFusedMsg->header.stamp =
+            mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
         } else if (mSimMode) {
           if (mUseSimTime) {
-            pointcloudFusedMsg->header.stamp = mFrameTimestamp;
-          } else {
             pointcloudFusedMsg->header.stamp =
+              mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
+          } else {
+            pointcloudFusedMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() :
               sl_tools::slTime2Ros(mFusedPC.chunks[c].timestamp);
           }
         } else {
-          pointcloudFusedMsg->header.stamp =
+          pointcloudFusedMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() :
             sl_tools::slTime2Ros(mFusedPC.chunks[c].timestamp);
         }
       }
@@ -6393,7 +6415,9 @@ void ZedCamera::callback_pubPaths()
   if (mapPathSub > 0) {
     auto mapPathMsg = std::make_unique<nav_msgs::msg::Path>();
     mapPathMsg->header.frame_id = mMapFrameId;
-    mapPathMsg->header.stamp = mFrameTimestamp;
+    mapPathMsg->header.stamp =
+      mUsePubTimestamps ? get_clock()->now() :
+      mFrameTimestamp;
     mapPathMsg->poses = mPosePath;
 
     DEBUG_STREAM_PT("Publishing MAP PATH message");
@@ -6409,7 +6433,9 @@ void ZedCamera::callback_pubPaths()
   if (odomPathSub > 0) {
     auto odomPathMsg = std::make_unique<nav_msgs::msg::Path>();
     odomPathMsg->header.frame_id = mOdomFrameId;
-    odomPathMsg->header.stamp = mFrameTimestamp;
+    odomPathMsg->header.stamp =
+      mUsePubTimestamps ? get_clock()->now() :
+      mFrameTimestamp;
     odomPathMsg->poses = mOdomPath;
 
     DEBUG_STREAM_PT("Publishing ODOM PATH message");
@@ -7756,7 +7782,7 @@ void ZedCamera::callback_clickedPoint(
     static int hit_pt_id =
       0;      // This ID must be unique in the same process. Thus it is good to
               // keep it as a static variable
-    pt_marker->header.stamp = ts;
+    pt_marker->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts;
     // Set the marker action.  Options are ADD and DELETE
     pt_marker->action = visualization_msgs::msg::Marker::ADD;
     pt_marker->lifetime = rclcpp::Duration(0, 0);
@@ -7811,7 +7837,7 @@ void ZedCamera::callback_clickedPoint(
     static int plane_mesh_id =
       0;      // This ID must be unique in the same process. Thus it is good to
               // keep it as a static variable
-    plane_marker->header.stamp = ts;
+    plane_marker->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts;
     // Set the marker action.  Options are ADD and DELETE
     plane_marker->action = visualization_msgs::msg::Marker::ADD;
     plane_marker->lifetime = rclcpp::Duration(0, 0);
@@ -7880,7 +7906,7 @@ void ZedCamera::callback_clickedPoint(
     // ----> Publish the plane as custom message
 
     auto planeMsg = std::make_unique<zed_msgs::msg::PlaneStamped>();
-    planeMsg->header.stamp = ts;
+    planeMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts;
     planeMsg->header.frame_id = mLeftCamFrameId;
 
     // Plane equation
@@ -8374,7 +8400,9 @@ void ZedCamera::publishHealthStatus()
 
   sl::HealthStatus status = mZed->getHealthStatus();
   auto msg = std::make_unique<zed_msgs::msg::HealthStatusStamped>();
-  msg->header.stamp = mFrameTimestamp;
+  msg->header.stamp = mUsePubTimestamps ?
+    get_clock()->now() :
+    mFrameTimestamp;
   msg->header.frame_id = mBaseFrameId;
   msg->serial_number = mCamSerialNumber;
   msg->camera_name = mCameraName;

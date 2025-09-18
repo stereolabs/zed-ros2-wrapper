@@ -435,6 +435,7 @@ private:
   bool _debugAdvanced = false;
   bool _debugRoi = false;
   bool _debugStreaming = false;
+  bool _debugNitros = false;
   // If available, force disable NITROS usage for debugging and testing
   // purposes; otherwise, this is always true.
   bool _nitrosDisabled = false;
@@ -466,6 +467,7 @@ private:
   double mSvoRate = 1.0;
   double mSvoExpectedPeriod = 0.0;
   bool mUseSvoTimestamp = false;
+  bool mUsePubTimestamps = false;
   bool mPublishSvoClock = false;
   bool mGrabOnce = false;
   bool mGrabImuOnce = false;

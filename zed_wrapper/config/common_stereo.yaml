@@ -87,8 +87,8 @@
             map_frame: 'map'
             odometry_frame: 'odom'
             area_memory: true # Enable to detect loop closure
-            area_file_path: '~/test_area_memory.area' # Path to the area memory file for relocalization and loop closure in a previously explored environment. 
-            save_area_memory_on_closing: true # Save Area memory before closing the camera if `area_file_path` is not empty. You can also use the `save_area_memory` service to save the area memory at any time.
+            area_file_path: '' # Path to the area memory file for relocalization and loop closure in a previously explored environment. 
+            save_area_memory_on_closing: false # Save Area memory before closing the camera if `area_file_path` is not empty. You can also use the `save_area_memory` service to save the area memory at any time.
             reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
             set_as_static: false # If 'true' the camera will be static and not move in the environment
@@ -168,6 +168,7 @@
 
         debug:
             sdk_verbose: 1 # Set the verbose level of the ZED SDK
+            use_pub_timestamps: false # Use the current ROS time for the message timestamp instead of the camera timestamp. Tis is useful to test data communication latency.
             sdk_verbose_log_file: '' # Path to the file where the ZED SDK will log its messages. If empty, no file will be created. The log level can be set using the `sdk_verbose` parameter.
             debug_common: false
             debug_sim: false
@@ -184,5 +185,6 @@
             debug_roi: false
             debug_streaming: false
             debug_advanced: false
+            debug_nitros: false
             disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes
 

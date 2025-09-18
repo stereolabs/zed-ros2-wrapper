@@ -332,7 +332,7 @@ void ZedCamera::stopBodyTracking()
     // (e.g clean RVIZ2)
     auto objMsg = std::make_unique<zed_msgs::msg::ObjectsStamped>();
 
-    objMsg->header.stamp = mFrameTimestamp;
+    objMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
     objMsg->header.frame_id = mLeftCamFrameId;
 
     objMsg->objects.clear();
@@ -404,7 +404,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
 
   auto bodyMsg = std::make_unique<zed_msgs::msg::ObjectsStamped>();
 
-  bodyMsg->header.stamp = t;
+  bodyMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
   bodyMsg->header.frame_id = mLeftCamFrameId;
 
   bodyMsg->objects.resize(bodyCount);

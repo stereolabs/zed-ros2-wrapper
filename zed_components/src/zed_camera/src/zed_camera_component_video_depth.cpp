@@ -1321,31 +1321,38 @@ void ZedCamera::retrieveVideoDepth(bool gpu)
 {
   DEBUG_VD(" *** Retrieving Video/Depth Data ***");
   mRgbSubscribed = false;
-  bool retrieved = false;
+  bool retrieved_video = false;
+  bool retrieved_depth = false;
 
   DEBUG_STREAM_VD(" *** Retrieving Video Data ***");
-  retrieved |= retrieveLeftImage(gpu);
-  retrieved |= retrieveLeftRawImage(gpu);
-  retrieved |= retrieveRightImage(gpu);
-  retrieved |= retrieveRightRawImage(gpu);
-  retrieved |= retrieveLeftGrayImage(gpu);
-  retrieved |= retrieveLeftRawGrayImage(gpu);
-  retrieved |= retrieveRightGrayImage(gpu);
-  retrieved |= retrieveRightRawGrayImage(gpu);
+  retrieved_video |= retrieveLeftImage(gpu);
+  retrieved_video |= retrieveLeftRawImage(gpu);
+  retrieved_video |= retrieveRightImage(gpu);
+  retrieved_video |= retrieveRightRawImage(gpu);
+  retrieved_video |= retrieveLeftGrayImage(gpu);
+  retrieved_video |= retrieveLeftRawGrayImage(gpu);
+  retrieved_video |= retrieveRightGrayImage(gpu);
+  retrieved_video |= retrieveRightRawGrayImage(gpu);
 
-  if (retrieved) {
+  if (retrieved_video) {
     DEBUG_STREAM_VD(" *** Video Data retrieved ***");
   }
 
-  retrieved = false;
   DEBUG_STREAM_VD(" *** Retrieving Depth Data ***");
-  retrieved |= retrieveDepthMap(gpu);
-  retrieved |= retrieveConfidence(gpu);
-  retrieved |= retrieveDisparity();
-  retrieved |= retrieveDepthInfo();
+  retrieved_depth |= retrieveDepthMap(gpu);
+  retrieved_depth |= retrieveConfidence(gpu);
+  retrieved_depth |= retrieveDisparity();
+  retrieved_depth |= retrieveDepthInfo();
 
-  if (retrieved) {
+  if (retrieved_depth) {
     DEBUG_STREAM_VD(" *** Depth Data retrieved ***");
+  }
+
+  if (retrieved_video || retrieved_depth) {
+    mSdkGrabTS = mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE);
+    auto now = mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT);
+    DEBUG_STREAM_VD(
+      " * Video/Depth Latency: " << static_cast<double>(now - mSdkGrabTS) * 1e-9 << " sec");
   }
 
   DEBUG_VD(" *** Retrieving Video/Depth Data DONE ***");
@@ -1360,7 +1367,6 @@ bool ZedCamera::retrieveLeftImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(mMatLeft, sl::VIEW::LEFT, gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatLeft.timestamp;
       mRgbSubscribed = true;
       DEBUG_STREAM_VD(" * Left image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
@@ -1378,7 +1384,6 @@ bool ZedCamera::retrieveLeftRawImage(bool gpu)
       mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatLeftRaw.timestamp;
       DEBUG_STREAM_VD(" * Left raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1393,7 +1398,6 @@ bool ZedCamera::retrieveRightImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(mMatRight, sl::VIEW::RIGHT, gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatRight.timestamp;
       DEBUG_STREAM_VD(" * Right image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1410,7 +1414,6 @@ bool ZedCamera::retrieveRightRawImage(bool gpu)
       mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatRightRaw.timestamp;
       DEBUG_STREAM_VD(" * Right raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1427,7 +1430,6 @@ bool ZedCamera::retrieveLeftGrayImage(bool gpu)
       mMatLeftGray, sl::VIEW::LEFT_GRAY,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatLeftGray.timestamp;
       DEBUG_STREAM_VD(" * Left gray image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1444,7 +1446,6 @@ bool ZedCamera::retrieveLeftRawGrayImage(bool gpu)
       mMatLeftRawGray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatLeftRawGray.timestamp;
       DEBUG_STREAM_VD(
         " * Left gray raw image retrieved into " << (gpu ? "GPU" : "CPU") <<
           " memory");
@@ -1463,7 +1464,6 @@ bool ZedCamera::retrieveRightGrayImage(bool gpu)
       mMatRightGray, sl::VIEW::RIGHT_GRAY,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatRightGray.timestamp;
       DEBUG_STREAM_VD(" * Right gray image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1480,7 +1480,6 @@ bool ZedCamera::retrieveRightRawGrayImage(bool gpu)
       mMatRightRawGray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatRightRawGray.timestamp;
       DEBUG_STREAM_VD(
         " * Right gray raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
@@ -1498,7 +1497,6 @@ bool ZedCamera::retrieveDepthMap(bool gpu)
       mMatDepth, sl::MEASURE::DEPTH,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatDepth.timestamp;
       DEBUG_STREAM_VD(" * Depth map retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1515,7 +1513,6 @@ bool ZedCamera::retrieveDisparity()
       mMatDisp, sl::MEASURE::DISPARITY,
       sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatDisp.timestamp;
       DEBUG_VD(" * Disparity map retrieved");
     }
     return ok;
@@ -1532,7 +1529,6 @@ bool ZedCamera::retrieveConfidence(bool gpu)
       mMatConf, sl::MEASURE::CONFIDENCE,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatConf.timestamp;
       DEBUG_STREAM_VD(" * Confidence map retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1546,7 +1542,6 @@ bool ZedCamera::retrieveDepthInfo()
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->getCurrentMinMaxDepth(mMinDepth, mMaxDepth);
     if (ok) {
-      mSdkGrabTS = mMatConf.timestamp;
       DEBUG_VD(" * Depth info retrieved");
     }
     return ok;
@@ -1562,12 +1557,11 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   checkRgbDepthSync();
 
   vdElabTimer.tic();
+  rclcpp::Time timeStamp;
 
-  if (!checkGrabAndUpdateTimestamp(out_pub_ts)) {
+  if (!checkGrabAndUpdateTimestamp(timeStamp)) {
     return;
   }
-
-  rclcpp::Time timeStamp = out_pub_ts;
 
   publishLeftAndRgbImages(timeStamp);
   publishLeftRawAndRgbRawImages(timeStamp);
@@ -1585,6 +1579,8 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   publishDepthInfo(timeStamp);
 
   mVideoDepthElabMean_sec->addValue(vdElabTimer.toc());
+
+  out_pub_ts = timeStamp;
 
   DEBUG_VD("=== Video and Depth topics published === ");
 }
@@ -1647,16 +1643,18 @@ bool ZedCamera::checkGrabAndUpdateTimestamp(rclcpp::Time & out_pub_ts)
   }
 
   if (mSvoMode) {
-    out_pub_ts = mFrameTimestamp;
+    out_pub_ts = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
   } else if (mSimMode) {
     if (mUseSimTime) {
       out_pub_ts = get_clock()->now();
     } else {
-      out_pub_ts =
+      out_pub_ts = mUsePubTimestamps ? get_clock()->now() :
         sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
     }
   } else {
-    out_pub_ts = sl_tools::slTime2Ros(mSdkGrabTS, get_clock()->get_clock_type());
+    out_pub_ts = mUsePubTimestamps ? get_clock()->now() : sl_tools::slTime2Ros(
+      mSdkGrabTS,
+      get_clock()->get_clock_type());
   }
   return true;
 }
@@ -1873,7 +1871,7 @@ void ZedCamera::publishStereoImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mStereoSubCount: " << mStereoSubCount);
     auto combined = sl_tools::imagesToROSmsg(
       mMatLeft, mMatRight,
-      mCameraFrameId, t);
+      mCameraFrameId, t, mUsePubTimestamps);
     DEBUG_STREAM_VD(" * Publishing SIDE-BY-SIDE message");
     try {
       mPubStereo.publish(std::move(combined));
@@ -1891,7 +1889,7 @@ void ZedCamera::publishStereoRawImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mStereoRawSubCount: " << mStereoRawSubCount);
     auto combined = sl_tools::imagesToROSmsg(
       mMatLeftRaw, mMatRightRaw,
-      mCameraFrameId, t);
+      mCameraFrameId, t, mUsePubTimestamps);
     DEBUG_STREAM_VD(" * Publishing SIDE-BY-SIDE RAW message");
     try {
       mPubRawStereo.publish(std::move(combined));
@@ -1939,7 +1937,7 @@ void ZedCamera::publishDepthInfo(const rclcpp::Time & t)
 {
   if (mDepthInfoSubCount > 0) {
     auto depthInfoMsg = std::make_unique<zed_msgs::msg::DepthInfoStamped>();
-    depthInfoMsg->header.stamp = t;
+    depthInfoMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
     depthInfoMsg->header.frame_id = mDepthOptFrameId;
     depthInfoMsg->min_depth = mMinDepth;
     depthInfoMsg->max_depth = mMaxDepth;
@@ -1960,9 +1958,9 @@ void ZedCamera::publishCameraInfo(
   camInfoMsgPtr & camInfoMsg,
   const rclcpp::Time & t)
 {
-  camInfoMsg->header.stamp = t;
+  camInfoMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
   DEBUG_STREAM_VD(
-    " * Publishing Camera Info message: " << t.nanoseconds()
+    " * Publishing Camera Info message: " << camInfoMsg->header.stamp.nanosec
                                           << " nsec");
 
   camInfoPub->publish(*camInfoMsg);
@@ -1976,8 +1974,10 @@ void ZedCamera::publishImageWithInfo(
   const std::string & imgFrameId,
   const rclcpp::Time & t)
 {
-  auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
-  DEBUG_STREAM_VD(" * Publishing IMAGE message: " << t.nanoseconds() << " nsec");
+  auto image = sl_tools::imageToROSmsg(img, imgFrameId, t, mUsePubTimestamps);
+  DEBUG_STREAM_VD(
+    " * Publishing IMAGE message: " << (mUsePubTimestamps ? get_clock()->now() : t).nanoseconds() <<
+      " nsec");
   try {
     pubImg.publish(std::move(image));
     publishCameraInfo(camInfoPub, camInfoMsg, t);
@@ -2005,6 +2005,8 @@ void ZedCamera::publishImageWithInfo(
     void * dbuffer;
     CUDA_CHECK(cudaMalloc(&dbuffer, dbuffer_size));
 
+    DEBUG_NITROS("Sent CUDA Image buffer with memory at: %p", dbuffer);
+
     // Copy data bytes to CUDA buffer
     CUDA_CHECK(
       cudaMemcpy2D(
@@ -2017,7 +2019,7 @@ void ZedCamera::publishImageWithInfo(
 
     // Adding header data
     std_msgs::msg::Header header;
-    header.stamp = t;
+    header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
     header.frame_id = imgFrameId;
 
     auto encoding = img_encodings::BGRA8; // Default encoding
@@ -2051,11 +2053,11 @@ void ZedCamera::publishImageWithInfo(
 
 void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 {
-  mLeftCamInfoMsg->header.stamp = t;
+  mLeftCamInfoMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
 
   if (_nitrosDisabled) {
     if (!mOpenniDepthMode) {
-      auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t);
+      auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t, mUsePubTimestamps);
       DEBUG_STREAM_VD(
         " * Publishing DEPTH message: " << t.nanoseconds()
                                         << " nsec");
@@ -2073,7 +2075,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
     // OPENNI CONVERSION (meter -> millimeters - float32 -> uint16)
     auto openniDepthMsg = std::make_unique<sensor_msgs::msg::Image>();
 
-    openniDepthMsg->header.stamp = t;
+    openniDepthMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
     openniDepthMsg->header.frame_id = mDepthOptFrameId;
     openniDepthMsg->height = depth.getHeight();
     openniDepthMsg->width = depth.getWidth();
@@ -2117,6 +2119,8 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
       void * dbuffer;
       CUDA_CHECK(cudaMalloc(&dbuffer, dbuffer_size));
 
+      RCLCPP_INFO(this->get_logger(), "Sent Depth CUDA buffer with memory at: %p", dbuffer);
+
       // Copy data bytes to CUDA buffer
       CUDA_CHECK(
         cudaMemcpy2D(
@@ -2129,7 +2133,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 
       // Adding header data
       std_msgs::msg::Header header;
-      header.stamp = t;
+      header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
       header.frame_id = mDepthOptFrameId;
 
       // Create NitrosImage wrapping CUDA buffer
@@ -2158,7 +2162,7 @@ void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
   sl::CameraInformation zedParam = mZed->getCameraInformation(mMatResol);
 
   std::unique_ptr<sensor_msgs::msg::Image> disparity_image =
-    sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, t);
+    sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, t, mUsePubTimestamps);
 
   auto disparityMsg = std::make_unique<stereo_msgs::msg::DisparityImage>();
   disparityMsg->image = *disparity_image.get();
@@ -2260,15 +2264,17 @@ void ZedCamera::publishPointCloud()
   int ptsCount = width * height;
 
   if (mSvoMode) {
-    pcMsg->header.stamp = mFrameTimestamp;
+    pcMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
   } else if (mSimMode) {
     if (mUseSimTime) {
-      pcMsg->header.stamp = mFrameTimestamp;
+      pcMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
     } else {
-      pcMsg->header.stamp = sl_tools::slTime2Ros(mMatCloud.timestamp);
+      pcMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : sl_tools::slTime2Ros(
+        mMatCloud.timestamp);
     }
   } else {
-    pcMsg->header.stamp = sl_tools::slTime2Ros(mMatCloud.timestamp);
+    pcMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : sl_tools::slTime2Ros(
+      mMatCloud.timestamp);
   }
 
   // ---> Check that `pcMsg->header.stamp` is not the same of the latest

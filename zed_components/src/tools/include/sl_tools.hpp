@@ -106,19 +106,21 @@ bool isObjDetAvailable(sl::MODEL camModel);
  * \param img : the image to publish
  * \param frameId : the id of the reference frame of the image
  * \param t : rclcpp ros::Time to stamp the image
+ * \param use_pub_timestamp : if true use the current time as timestamp instead of \ref t
  */
 std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
-  const sl::Mat & img, const std::string & frameId, const rclcpp::Time & t);
+  const sl::Mat & img, const std::string & frameId, const rclcpp::Time & t, bool use_pub_timestamp);
 
 /*! \brief sl::Mat to ros message conversion
  * \param left : the left image to convert and stitch
  * \param right : the right image to convert and stitch
  * \param frameId : the id of the reference frame of the image
  * \param t : rclcpp rclcpp::Time to stamp the image
+ * \param use_pub_timestamp : if true use the current time as timestamp instead of \ref t
  */
 std::unique_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
   const sl::Mat & left, const sl::Mat & right, const std::string & frameId,
-  const rclcpp::Time & t);
+  const rclcpp::Time & t, bool use_pub_timestamp);
 
 /*! \brief qos value to string
  * \param qos the value to convert

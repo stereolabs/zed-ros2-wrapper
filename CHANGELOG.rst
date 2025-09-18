@@ -1,6 +1,12 @@
 LATEST CHANGES
 ==============
 
+2025-09-17
+----------
+- Added debug parameter `debug.debug_nitros` to enable debug logs for NITROS-related operations.
+- Added debug parameter `debug.use_pub_timestamps` to use the current ROS time for the message timestamp instead of the camera timestamp.
+  This is useful to test data communication latency.
+
 v5.0.0
 ------
 - Backward compatible with SDK v4.2

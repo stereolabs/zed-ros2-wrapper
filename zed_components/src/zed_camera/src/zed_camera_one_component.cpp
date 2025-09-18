@@ -2887,7 +2887,7 @@ void ZedCameraOne::publishImageWithInfo(
   camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
   const rclcpp::Time & t)
 {
-  auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
+  auto image = sl_tools::imageToROSmsg(img, imgFrameId, t, false);
   camInfoMsg->header.stamp = t;
   DEBUG_STREAM_VD("Publishing IMAGE message: " << t.nanoseconds() << " nsec");
   try {

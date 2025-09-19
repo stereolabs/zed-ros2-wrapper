@@ -1074,7 +1074,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     objDetRes = mZed->retrieveObjects(
       objects, objectTracker_parameters_rt, mObjDetInstID);
   }
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) == 50
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
   else {
     // ----> Process realtime dynamic parameters
     sl::CustomObjectDetectionRuntimeParameters custom_objectTracker_parameters_rt;

@@ -2888,10 +2888,14 @@ void ZedCameraOne::publishImageWithInfo(
   const rclcpp::Time & t)
 {
   auto image = sl_tools::imageToROSmsg(img, imgFrameId, t, false);
-  camInfoMsg->header.stamp = t;
+  if (camInfoMsg) {
+    camInfoMsg->header.stamp = t;
+  } else {
+    DEBUG_STREAM_COMM("Camera info message is not valid");
+  }
   DEBUG_STREAM_VD("Publishing IMAGE message: " << t.nanoseconds() << " nsec");
   try {
-    pubImg.publish(std::move(image), std::move(camInfoMsg));
+    pubImg.publish(std::move(image), camInfoMsg);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
   } catch (...) {

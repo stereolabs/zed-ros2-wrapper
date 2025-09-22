@@ -413,4 +413,402 @@ void ZedCameraOne::publishImageWithInfo(
   }
 }
 
+void ZedCameraOne::applyDynamicSettings()
+{
+  DEBUG_STREAM_COMM("=== Applying dynamic settings ===");
+
+  if (_debugCommon) {
+    DEBUG_COMM("Settings to apply: ");
+    for (auto & param: _camDynParMapChanged) {
+      if (param.second) {DEBUG_STREAM_COMM(" * " << param.first);}
+    }
+  }
+
+  applySaturationSharpnessGamma();
+  applyWhiteBalance();
+  applyExposure();
+  applyAnalogGain();
+  applyDigitalGain();
+  applyExposureCompensationAndDenoising();
+
+  DEBUG_COMM("Settings yet to apply: ");
+  int count = 0;
+  for (auto & param: _camDynParMapChanged) {
+    if (param.second) {
+      count++;
+      DEBUG_STREAM_COMM(" * " << param.first);
+    }
+  }
+  if (count == 0) {
+    DEBUG_COMM(" * NONE");
+  }
+
+  _triggerUpdateDynParams = (count > 0);
+
+  DEBUG_STREAM_COMM("=== Dynamic settings applied ===");
+}
+
+// Helper function for saturation, sharpness, gamma
+void ZedCameraOne::applySaturationSharpnessGamma()
+{
+  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
+      const std::string & settingName) {
+      if (this->_camDynParMapChanged[settingName]) {
+        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
+        if (ret_code != sl::ERROR_CODE::SUCCESS) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "Error setting "
+              << settingName << ": "
+              << sl::toString(ret_code));
+        } else {
+          this->_camDynParMapChanged[settingName] = false;
+          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
+        }
+      }
+    };
+
+  setVideoSetting(sl::VIDEO_SETTINGS::SATURATION, _camSaturation, "video.saturation");
+  setVideoSetting(sl::VIDEO_SETTINGS::SHARPNESS, _camSharpness, "video.sharpness");
+  setVideoSetting(sl::VIDEO_SETTINGS::GAMMA, _camGamma, "video.gamma");
+}
+
+// Helper function for white balance
+void ZedCameraOne::applyWhiteBalance()
+{
+  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
+      const std::string & settingName) {
+      if (this->_camDynParMapChanged[settingName]) {
+        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
+        if (ret_code != sl::ERROR_CODE::SUCCESS) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "Error setting "
+              << settingName << ": "
+              << sl::toString(ret_code));
+        } else {
+          this->_camDynParMapChanged[settingName] = false;
+          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
+        }
+      }
+    };
+
+  setVideoSetting(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, _camAutoWB, "video.auto_whitebalance");
+  if (!_camAutoWB) {
+    setVideoSetting(
+      sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, _camWBTemp * 100,
+      "video.whitebalance_temperature");
+    set_parameter(rclcpp::Parameter("video.auto_whitebalance", false));
+  } else {
+    _camDynParMapChanged["video.whitebalance_temperature"] = false;
+  }
+}
+
+// Helper function for exposure
+void ZedCameraOne::applyExposure()
+{
+  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
+      const std::string & settingName) {
+      if (this->_camDynParMapChanged[settingName]) {
+        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
+        if (ret_code != sl::ERROR_CODE::SUCCESS) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "Error setting "
+              << settingName << ": "
+              << sl::toString(ret_code));
+        } else {
+          this->_camDynParMapChanged[settingName] = false;
+          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
+        }
+      }
+    };
+
+  auto setVideoSettingRange = [this](sl::VIDEO_SETTINGS setting, int value_min,
+      int value_max, const std::string & settingName_min, const std::string & settingName_max) {
+      if (this->_camDynParMapChanged[settingName_min] ||
+        this->_camDynParMapChanged[settingName_max])
+      {
+        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value_min, value_max);
+        if (ret_code != sl::ERROR_CODE::SUCCESS) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "Error setting the range of ["
+              << settingName_min << "," << settingName_max << ": "
+              << sl::toString(ret_code));
+          return false;
+        } else {
+          this->_camDynParMapChanged[settingName_min] = false;
+          this->_camDynParMapChanged[settingName_max] = false;
+          DEBUG_STREAM_COMM("Set " << settingName_min << " to " << value_min);
+          DEBUG_STREAM_COMM("Set " << settingName_max << " to " << value_max);
+          return true;
+        }
+        return false;
+      }
+      return true;
+    };
+
+  if (_camAutoExposure) {
+    if (_camDynParMapChanged["video.auto_exposure"]) {
+      set_parameters(
+        {
+          rclcpp::Parameter("video.auto_exposure_time_range_min", 28),
+          rclcpp::Parameter("video.auto_exposure_time_range_max", 30000)
+        });
+      DEBUG_STREAM_COMM("Forced exposure range to [" << 28 << "," << 30000 << "]");
+    }
+    DEBUG_STREAM_COMM(
+      "Set video.auto_exposure to "
+        << (_camAutoExposure ? "TRUE" : "FALSE"));
+  } else {
+    setVideoSetting(
+      sl::VIDEO_SETTINGS::EXPOSURE_TIME, _camExpTime,
+      "video.exposure_time");
+    set_parameters(
+      {
+        rclcpp::Parameter("video.auto_exposure", false),
+        rclcpp::Parameter("video.auto_exposure_time_range_min", _camExpTime),
+        rclcpp::Parameter("video.auto_exposure_time_range_max", _camExpTime)
+      });
+    DEBUG_STREAM_COMM(
+      "Forced video.auto_exposure to false and exposure range to [" << _camExpTime << "," <<
+        _camExpTime <<
+        "]");
+  }
+  _camDynParMapChanged["video.auto_exposure"] = false;
+  _camDynParMapChanged["video.exposure_time"] = false;
+
+  if (setVideoSettingRange(
+      sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE,
+      _camAutoExpTimeRangeMin, _camAutoExpTimeRangeMax,
+      "video.auto_exposure_time_range_min",
+      "video.auto_exposure_time_range_max"))
+  {
+    if (_camAutoExpTimeRangeMin == _camAutoExpTimeRangeMax) {
+      set_parameters(
+        {
+          rclcpp::Parameter("video.auto_exposure", false),
+          rclcpp::Parameter("video.exposure_time", _camAutoExpTimeRangeMin)
+        });
+      DEBUG_STREAM_COMM(
+        "Forced video.auto_exposure to false and video.exposure_time to " <<
+          _camAutoExpTimeRangeMin);
+    } else {
+      set_parameter(rclcpp::Parameter("video.auto_exposure", true));
+      DEBUG_STREAM_COMM("Forced video.auto_exposure to true");
+    }
+  }
+}
+
+// Helper function for analog gain
+void ZedCameraOne::applyAnalogGain()
+{
+  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
+      const std::string & settingName) {
+      if (this->_camDynParMapChanged[settingName]) {
+        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
+        if (ret_code != sl::ERROR_CODE::SUCCESS) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "Error setting "
+              << settingName << ": "
+              << sl::toString(ret_code));
+        } else {
+          this->_camDynParMapChanged[settingName] = false;
+          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
+        }
+      }
+    };
+
+  auto setVideoSettingRange = [this](sl::VIDEO_SETTINGS setting, int value_min,
+      int value_max, const std::string & settingName_min, const std::string & settingName_max) {
+      if (this->_camDynParMapChanged[settingName_min] ||
+        this->_camDynParMapChanged[settingName_max])
+      {
+        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value_min, value_max);
+        if (ret_code != sl::ERROR_CODE::SUCCESS) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "Error setting the range of ["
+              << settingName_min << "," << settingName_max << ": "
+              << sl::toString(ret_code));
+          return false;
+        } else {
+          this->_camDynParMapChanged[settingName_min] = false;
+          this->_camDynParMapChanged[settingName_max] = false;
+          DEBUG_STREAM_COMM("Set " << settingName_min << " to " << value_min);
+          DEBUG_STREAM_COMM("Set " << settingName_max << " to " << value_max);
+          return true;
+        }
+        return false;
+      }
+      return true;
+    };
+
+  if (_camAutoAnalogGain) {
+    if (_camDynParMapChanged["video.auto_analog_gain"]) {
+      set_parameters(
+        {
+          rclcpp::Parameter("video.auto_analog_gain_range_min", 1000),
+          rclcpp::Parameter("video.auto_analog_gain_range_max", 16000)
+        });
+      DEBUG_STREAM_COMM("Forced analog gain range to [" << 1000 << "," << 16000 << "]");
+    }
+    DEBUG_STREAM_COMM(
+      "Set video.auto_analog_gain to "
+        << (_camAutoAnalogGain ? "TRUE" : "FALSE"));
+  } else {
+    setVideoSetting(
+      sl::VIDEO_SETTINGS::ANALOG_GAIN, _camAnalogGain, "video.analog_gain");
+    set_parameters(
+      {
+        rclcpp::Parameter("video.auto_analog_gain", false),
+        rclcpp::Parameter("video.auto_analog_gain_range_min", _camAnalogGain),
+        rclcpp::Parameter("video.auto_analog_gain_range_max", _camAnalogGain)
+      });
+    DEBUG_STREAM_COMM(
+      "Forced video.auto_analog_gain to false and analog gain range to [" << _camAnalogGain <<
+        "," << _camAnalogGain <<
+        "]");
+  }
+  _camDynParMapChanged["video.auto_analog_gain"] = false;
+  _camDynParMapChanged["video.analog_gain"] = false;
+
+  if (setVideoSettingRange(
+      sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE,
+      _camAutoAnalogGainRangeMin, _camAutoAnalogGainRangeMax,
+      "video.auto_analog_gain_range_min",
+      "video.auto_analog_gain_range_max"))
+  {
+    if (_camAutoAnalogGainRangeMin == _camAutoAnalogGainRangeMax) {
+      set_parameters(
+        {
+          rclcpp::Parameter("video.auto_analog_gain", false),
+          rclcpp::Parameter("video.analog_gain", _camAutoAnalogGainRangeMin)
+        });
+      DEBUG_STREAM_COMM(
+        "Forced video.auto_analog_gain to false and video.analog_gain to " <<
+          _camAutoAnalogGainRangeMin);
+    } else {
+      set_parameter(rclcpp::Parameter("video.auto_analog_gain", true));
+      DEBUG_STREAM_COMM("Forced video.auto_analog_gain to true");
+    }
+  }
+}
+
+// Helper function for digital gain
+void ZedCameraOne::applyDigitalGain()
+{
+  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
+      const std::string & settingName) {
+      if (this->_camDynParMapChanged[settingName]) {
+        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
+        if (ret_code != sl::ERROR_CODE::SUCCESS) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "Error setting "
+              << settingName << ": "
+              << sl::toString(ret_code));
+        } else {
+          this->_camDynParMapChanged[settingName] = false;
+          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
+        }
+      }
+    };
+
+  auto setVideoSettingRange = [this](sl::VIDEO_SETTINGS setting, int value_min,
+      int value_max, const std::string & settingName_min, const std::string & settingName_max) {
+      if (this->_camDynParMapChanged[settingName_min] ||
+        this->_camDynParMapChanged[settingName_max])
+      {
+        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value_min, value_max);
+        if (ret_code != sl::ERROR_CODE::SUCCESS) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "Error setting the range of ["
+              << settingName_min << "," << settingName_max << ": "
+              << sl::toString(ret_code));
+          return false;
+        } else {
+          this->_camDynParMapChanged[settingName_min] = false;
+          this->_camDynParMapChanged[settingName_max] = false;
+          DEBUG_STREAM_COMM("Set " << settingName_min << " to " << value_min);
+          DEBUG_STREAM_COMM("Set " << settingName_max << " to " << value_max);
+          return true;
+        }
+        return false;
+      }
+      return true;
+    };
+
+  if (_camAutoDigitalGain) {
+    if (_camDynParMapChanged["video.auto_digital_gain"]) {
+      set_parameters(
+        {
+          rclcpp::Parameter("video.auto_digital_gain_range_min", 1),
+          rclcpp::Parameter("video.auto_digital_gain_range_max", 256)
+        });
+      DEBUG_STREAM_COMM("Forced digital gain range to [" << 1 << "," << 256 << "]");
+    }
+    DEBUG_STREAM_COMM(
+      "Set video.auto_digital_gain to "
+        << (_camAutoDigitalGain ? "TRUE" : "FALSE"));
+  } else {
+    setVideoSetting(
+      sl::VIDEO_SETTINGS::DIGITAL_GAIN, _camDigitalGain, "video.digital_gain");
+    set_parameters(
+      {
+        rclcpp::Parameter("video.auto_digital_gain", false),
+        rclcpp::Parameter("video.auto_digital_gain_range_min", _camDigitalGain),
+        rclcpp::Parameter("video.auto_digital_gain_range_max", _camDigitalGain)
+      });
+    DEBUG_STREAM_COMM(
+      "Forced video.auto_digital_gain to false and digital gain range to [" << _camDigitalGain <<
+        "," << _camDigitalGain <<
+        "]");
+  }
+  _camDynParMapChanged["video.auto_digital_gain"] = false;
+  _camDynParMapChanged["video.digital_gain"] = false;
+
+  if (setVideoSettingRange(
+      sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE,
+      _camAutoDigitalGainRangeMin, _camAutoDigitalGainRangeMax,
+      "video.auto_digital_gain_range_min",
+      "video.auto_digital_gain_range_max"))
+  {
+    if (_camAutoDigitalGainRangeMin == _camAutoDigitalGainRangeMax) {
+      set_parameters(
+        {
+          rclcpp::Parameter("video.auto_digital_gain", false),
+          rclcpp::Parameter("video.digital_gain", _camAutoDigitalGainRangeMin)
+        });
+      DEBUG_STREAM_COMM(
+        "Forced video.auto_digital_gain to false and video.digital_gain to " <<
+          _camAutoDigitalGainRangeMin);
+    } else {
+      set_parameter(rclcpp::Parameter("video.auto_digital_gain", true));
+      DEBUG_STREAM_COMM("Forced video.auto_digital_gain to true");
+    }
+  }
+}
+
+// Helper function for exposure compensation and denoising
+void ZedCameraOne::applyExposureCompensationAndDenoising()
+{
+  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
+      const std::string & settingName) {
+      if (this->_camDynParMapChanged[settingName]) {
+        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
+        if (ret_code != sl::ERROR_CODE::SUCCESS) {
+          RCLCPP_WARN_STREAM(
+            get_logger(), "Error setting "
+              << settingName << ": "
+              << sl::toString(ret_code));
+        } else {
+          this->_camDynParMapChanged[settingName] = false;
+          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
+        }
+      }
+    };
+
+  setVideoSetting(
+    sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION, _camExposureComp,
+    "video.exposure_compensation");
+
+  setVideoSetting(sl::VIDEO_SETTINGS::DENOISING, _camDenoising, "video.denoising");
+}
+
 }

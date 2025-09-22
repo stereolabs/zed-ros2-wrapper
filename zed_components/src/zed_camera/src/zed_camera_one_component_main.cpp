@@ -1909,277 +1909,6 @@ void ZedCameraOne::threadFunc_pubSensorsData()
   // <---- Infinite sensor loop
 
   DEBUG_STREAM_SENS("Sensors thread finished");
-
-}
-
-void ZedCameraOne::applyDynamicSettings()
-{
-  DEBUG_STREAM_COMM("=== Applying dynamic settings ===");
-
-  if (_debugCommon) {
-    DEBUG_COMM("Settings to apply: ");
-    for (auto & param: _camDynParMapChanged) {
-      if (param.second) {DEBUG_STREAM_COMM(" * " << param.first);}
-    }
-  }
-
-  // ----> Set video settings lambda function
-  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
-      const std::string & settingName) {
-      if (this->_camDynParMapChanged[settingName]) {
-        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
-        if (ret_code != sl::ERROR_CODE::SUCCESS) {
-          RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting "
-              << settingName << ": "
-              << sl::toString(ret_code));
-        } else {
-          this->_camDynParMapChanged[settingName] = false;
-          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
-        }
-      }
-    };
-  // <---- Set video settings lambda function
-
-  // ----> Set video settings range lambda function
-  auto setVideoSettingRange = [this](sl::VIDEO_SETTINGS setting, int value_min,
-      int value_max, const std::string & settingName_min, const std::string & settingName_max) {
-      if (this->_camDynParMapChanged[settingName_min] ||
-        this->_camDynParMapChanged[settingName_max])
-      {
-        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value_min, value_max);
-        if (ret_code != sl::ERROR_CODE::SUCCESS) {
-          RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting the range of ["
-              << settingName_min << "," << settingName_max << ": "
-              << sl::toString(ret_code));
-          return false;
-        } else {
-          this->_camDynParMapChanged[settingName_min] = false;
-          this->_camDynParMapChanged[settingName_max] = false;
-          DEBUG_STREAM_COMM("Set " << settingName_min << " to " << value_min);
-          DEBUG_STREAM_COMM("Set " << settingName_max << " to " << value_max);
-          return true;
-        }
-        return false;
-      }
-      return true;
-    };
-  // <---- Set video settings range lambda function
-
-  // Saturation
-  setVideoSetting(
-    sl::VIDEO_SETTINGS::SATURATION, _camSaturation, "video.saturation");
-  // Sharpness
-  setVideoSetting(
-    sl::VIDEO_SETTINGS::SHARPNESS, _camSharpness, "video.sharpness");
-  // Gamma
-  setVideoSetting(
-    sl::VIDEO_SETTINGS::GAMMA, _camGamma, "video.gamma");
-
-  // ----> White Balance
-  setVideoSetting(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, _camAutoWB, "video.auto_whitebalance");
-  if (!_camAutoWB) {
-    setVideoSetting(
-      sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE, _camWBTemp * 100,
-      "video.whitebalance_temperature");
-
-    // Force the WB Auto to disable
-    set_parameter(rclcpp::Parameter("video.auto_whitebalance", false));
-  } else {
-    // Report the WB temperature as to not be updated
-    _camDynParMapChanged["video.whitebalance_temperature"] = false;
-  }
-  // <---- White Balance
-
-  // ----> Exposure
-  if (_camAutoExposure) {
-    if (_camDynParMapChanged["video.auto_exposure"]) {
-      // Force new
-      set_parameters(
-        {
-          rclcpp::Parameter("video.auto_exposure_time_range_min", 28),
-          rclcpp::Parameter("video.auto_exposure_time_range_max", 30000)
-        });
-      DEBUG_STREAM_COMM("Forced exposure range to [" << 28 << "," << 30000 << "]");
-    }
-    DEBUG_STREAM_COMM(
-      "Set video.auto_exposure to "
-        << (_camAutoExposure ? "TRUE" : "FALSE"));
-  } else {
-    setVideoSetting(
-      sl::VIDEO_SETTINGS::EXPOSURE_TIME, _camExpTime,
-      "video.exposure_time");
-    // Force new
-    set_parameters(
-      {
-        rclcpp::Parameter("video.auto_exposure", false),
-        rclcpp::Parameter("video.auto_exposure_time_range_min", _camExpTime),
-        rclcpp::Parameter("video.auto_exposure_time_range_max", _camExpTime)
-      });
-    DEBUG_STREAM_COMM(
-      "Forced video.auto_exposure to false and exposure range to [" << _camExpTime << "," <<
-        _camExpTime <<
-        "]");
-  }
-  _camDynParMapChanged["video.auto_exposure"] = false;
-  _camDynParMapChanged["video.exposure_time"] = false;
-
-  if (setVideoSettingRange(
-      sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE,
-      _camAutoExpTimeRangeMin, _camAutoExpTimeRangeMax,
-      "video.auto_exposure_time_range_min",
-      "video.auto_exposure_time_range_max"))
-  {
-    if (_camAutoExpTimeRangeMin == _camAutoExpTimeRangeMax) {
-      // Force new
-      set_parameters(
-        {
-          rclcpp::Parameter("video.auto_exposure", false),
-          rclcpp::Parameter("video.exposure_time", _camAutoExpTimeRangeMin)
-        });
-      DEBUG_STREAM_COMM(
-        "Forced video.auto_exposure to false and video.exposure_time to " <<
-          _camAutoExpTimeRangeMin);
-    } else {
-      set_parameter(rclcpp::Parameter("video.auto_exposure", true));
-      DEBUG_STREAM_COMM("Forced video.auto_exposure to true");
-    }
-  }
-  // <---- Exposure
-
-  // ----> Analog Gain
-  if (_camAutoAnalogGain) {
-    if (_camDynParMapChanged["video.auto_analog_gain"]) {
-      // Force new
-      set_parameters(
-        {
-          rclcpp::Parameter("video.auto_analog_gain_range_min", 1000),
-          rclcpp::Parameter("video.auto_analog_gain_range_max", 16000)
-        });
-      DEBUG_STREAM_COMM("Forced analog gain range to [" << 1000 << "," << 16000 << "]");
-    }
-    DEBUG_STREAM_COMM(
-      "Set video.auto_analog_gain to "
-        << (_camAutoAnalogGain ? "TRUE" : "FALSE"));
-  } else {
-    setVideoSetting(
-      sl::VIDEO_SETTINGS::ANALOG_GAIN, _camAnalogGain, "video.analog_gain");
-    // Force new
-    set_parameters(
-      {
-        rclcpp::Parameter("video.auto_analog_gain", false),
-        rclcpp::Parameter("video.auto_analog_gain_range_min", _camAnalogGain),
-        rclcpp::Parameter("video.auto_analog_gain_range_max", _camAnalogGain)
-      });
-    DEBUG_STREAM_COMM(
-      "Forced video.auto_analog_gain to false and analog gain range to [" << _camAnalogGain <<
-        "," << _camAnalogGain <<
-        "]");
-  }
-  _camDynParMapChanged["video.auto_analog_gain"] = false;
-  _camDynParMapChanged["video.analog_gain"] = false;
-
-  if (setVideoSettingRange(
-      sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE,
-      _camAutoAnalogGainRangeMin, _camAutoAnalogGainRangeMax,
-      "video.auto_analog_gain_range_min",
-      "video.auto_analog_gain_range_max"))
-  {
-    if (_camAutoAnalogGainRangeMin == _camAutoAnalogGainRangeMax) {
-      // Force new
-      set_parameters(
-        {
-          rclcpp::Parameter("video.auto_analog_gain", false),
-          rclcpp::Parameter("video.analog_gain", _camAutoAnalogGainRangeMin)
-        });
-      DEBUG_STREAM_COMM(
-        "Forced video.auto_analog_gain to false and video.analog_gain to " <<
-          _camAutoAnalogGainRangeMin);
-    } else {
-      set_parameter(rclcpp::Parameter("video.auto_analog_gain", true));
-      DEBUG_STREAM_COMM("Forced video.auto_analog_gain to true");
-    }
-  }
-  // <---- Analog Gain
-
-  // ----> Digital Gain
-  if (_camAutoDigitalGain) {
-    if (_camDynParMapChanged["video.auto_digital_gain"]) {
-      // Force new
-      set_parameters(
-        {
-          rclcpp::Parameter("video.auto_digital_gain_range_min", 1),
-          rclcpp::Parameter("video.auto_digital_gain_range_max", 256)
-        });
-      DEBUG_STREAM_COMM("Forced digital gain range to [" << 1 << "," << 256 << "]");
-    }
-    DEBUG_STREAM_COMM(
-      "Set video.auto_digital_gain to "
-        << (_camAutoDigitalGain ? "TRUE" : "FALSE"));
-  } else {
-    setVideoSetting(
-      sl::VIDEO_SETTINGS::DIGITAL_GAIN, _camDigitalGain, "video.digital_gain");
-    // Force new
-    set_parameters(
-      {
-        rclcpp::Parameter("video.auto_digital_gain", false),
-        rclcpp::Parameter("video.auto_digital_gain_range_min", _camDigitalGain),
-        rclcpp::Parameter("video.auto_digital_gain_range_max", _camDigitalGain)
-      });
-    DEBUG_STREAM_COMM(
-      "Forced video.auto_digital_gain to false and digital gain range to [" << _camDigitalGain <<
-        "," << _camDigitalGain <<
-        "]");
-  }
-  _camDynParMapChanged["video.auto_digital_gain"] = false;
-  _camDynParMapChanged["video.digital_gain"] = false;
-
-  if (setVideoSettingRange(
-      sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE,
-      _camAutoDigitalGainRangeMin, _camAutoDigitalGainRangeMax,
-      "video.auto_digital_gain_range_min",
-      "video.auto_digital_gain_range_max"))
-  {
-    if (_camAutoDigitalGainRangeMin == _camAutoDigitalGainRangeMax) {
-      // Force new
-      set_parameters(
-        {
-          rclcpp::Parameter("video.auto_digital_gain", false),
-          rclcpp::Parameter("video.digital_gain", _camAutoDigitalGainRangeMin)
-        });
-      DEBUG_STREAM_COMM(
-        "Forced video.auto_digital_gain to false and video.digital_gain to " <<
-          _camAutoDigitalGainRangeMin);
-    } else {
-      set_parameter(rclcpp::Parameter("video.auto_digital_gain", true));
-      DEBUG_STREAM_COMM("Forced video.auto_digital_gain to true");
-    }
-  }
-  // <---- Digital Gain
-
-  // Exposure compensation
-  setVideoSetting(
-    sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION, _camExposureComp,
-    "video.exposure_compensation");
-
-  setVideoSetting(sl::VIDEO_SETTINGS::DENOISING, _camDenoising, "video.denoising");
-
-  DEBUG_COMM("Settings yet to apply: ");
-  int count = 0;
-  for (auto & param: _camDynParMapChanged) {
-    if (param.second) {
-      count++;
-      DEBUG_STREAM_COMM(" * " << param.first);
-    }
-  }
-  if (count == 0) {
-    DEBUG_COMM(" * NONE");
-  }
-
-  _triggerUpdateDynParams = (count > 0);
-
-  DEBUG_STREAM_COMM("=== Dynamic settings applied ===");
 }
 
 bool ZedCameraOne::startStreamingServer()
@@ -2237,7 +1966,9 @@ bool ZedCameraOne::publishSensorsData()
   sl::SensorsData sens_data;
   sl::ERROR_CODE err = _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    RCLCPP_WARN_STREAM(get_logger(), "[publishSensorsData] sl::getSensorsData error: " << sl::toString(err).c_str());
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "[publishSensorsData] sl::getSensorsData error: " << sl::toString(err).c_str());
     return false;
   }
 
@@ -2276,7 +2007,7 @@ void ZedCameraOne::updateImuDiagnostics(double dT)
   DEBUG_STREAM_SENS("IMU MEAN freq: " << 1. / mean);
 }
 
-void ZedCameraOne::publishImuMsg(const rclcpp::Time& ts_imu, const sl::SensorsData& sens_data)
+void ZedCameraOne::publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data)
 {
   DEBUG_STREAM_SENS("[publishSensorsData] IMU subscribers: " << static_cast<int>(_imuSubCount));
   auto imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
@@ -2298,17 +2029,26 @@ void ZedCameraOne::publishImuMsg(const rclcpp::Time& ts_imu, const sl::SensorsDa
 
   for (int i = 0; i < 3; ++i) {
     int r = i;
-    imuMsg->orientation_covariance[i * 3 + 0] = sens_data.imu.pose_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
-    imuMsg->orientation_covariance[i * 3 + 1] = sens_data.imu.pose_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
-    imuMsg->orientation_covariance[i * 3 + 2] = sens_data.imu.pose_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
+    imuMsg->orientation_covariance[i * 3 + 0] = sens_data.imu.pose_covariance.r[r * 3 + 0] *
+      DEG2RAD * DEG2RAD;
+    imuMsg->orientation_covariance[i * 3 + 1] = sens_data.imu.pose_covariance.r[r * 3 + 1] *
+      DEG2RAD * DEG2RAD;
+    imuMsg->orientation_covariance[i * 3 + 2] = sens_data.imu.pose_covariance.r[r * 3 + 2] *
+      DEG2RAD * DEG2RAD;
 
-    imuMsg->linear_acceleration_covariance[i * 3 + 0] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
-    imuMsg->linear_acceleration_covariance[i * 3 + 1] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
-    imuMsg->linear_acceleration_covariance[i * 3 + 2] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
+    imuMsg->linear_acceleration_covariance[i * 3 +
+      0] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
+    imuMsg->linear_acceleration_covariance[i * 3 +
+      1] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
+    imuMsg->linear_acceleration_covariance[i * 3 +
+      2] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
 
-    imuMsg->angular_velocity_covariance[i * 3 + 0] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
-    imuMsg->angular_velocity_covariance[i * 3 + 1] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
-    imuMsg->angular_velocity_covariance[i * 3 + 2] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
+    imuMsg->angular_velocity_covariance[i * 3 +
+      0] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
+    imuMsg->angular_velocity_covariance[i * 3 +
+      1] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
+    imuMsg->angular_velocity_covariance[i * 3 +
+      2] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
   }
 
   try {
@@ -2320,9 +2060,10 @@ void ZedCameraOne::publishImuMsg(const rclcpp::Time& ts_imu, const sl::SensorsDa
   }
 }
 
-void ZedCameraOne::publishImuRawMsg(const rclcpp::Time& ts_imu, const sl::SensorsData& sens_data)
+void ZedCameraOne::publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data)
 {
-  DEBUG_STREAM_SENS("[publishSensorsData] IMU RAW subscribers: " << static_cast<int>(_imuRawSubCount));
+  DEBUG_STREAM_SENS(
+    "[publishSensorsData] IMU RAW subscribers: " << static_cast<int>(_imuRawSubCount));
   auto imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
   imuRawMsg->header.stamp = ts_imu;
   imuRawMsg->header.frame_id = _imuFrameId;
@@ -2337,13 +2078,19 @@ void ZedCameraOne::publishImuRawMsg(const rclcpp::Time& ts_imu, const sl::Sensor
 
   for (int i = 0; i < 3; ++i) {
     int r = i;
-    imuRawMsg->linear_acceleration_covariance[i * 3 + 0] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
-    imuRawMsg->linear_acceleration_covariance[i * 3 + 1] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
-    imuRawMsg->linear_acceleration_covariance[i * 3 + 2] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
+    imuRawMsg->linear_acceleration_covariance[i * 3 +
+      0] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
+    imuRawMsg->linear_acceleration_covariance[i * 3 +
+      1] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
+    imuRawMsg->linear_acceleration_covariance[i * 3 +
+      2] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
 
-    imuRawMsg->angular_velocity_covariance[i * 3 + 0] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
-    imuRawMsg->angular_velocity_covariance[i * 3 + 1] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
-    imuRawMsg->angular_velocity_covariance[i * 3 + 2] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
+    imuRawMsg->angular_velocity_covariance[i * 3 +
+      0] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
+    imuRawMsg->angular_velocity_covariance[i * 3 +
+      1] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
+    imuRawMsg->angular_velocity_covariance[i * 3 +
+      2] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
   }
 
   try {

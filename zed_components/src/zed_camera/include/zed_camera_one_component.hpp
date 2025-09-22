@@ -26,7 +26,6 @@
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
 
-
 namespace stereolabs
 {
 
@@ -91,6 +90,13 @@ protected:
     const std::string & frameId, bool rawParam = false);
 
   void applyDynamicSettings();
+  void applySaturationSharpnessGamma();
+  void applyWhiteBalance();
+  void applyExposure();
+  void applyAnalogGain();
+  void applyDigitalGain();
+  void applyExposureCompensationAndDenoising();
+
   bool areImageTopicsSubscribed();
   bool areSensorsTopicsSubscribed();
   void retrieveImages();
@@ -105,8 +111,8 @@ protected:
   void publishImuFrameAndTopic();
 
   void updateImuDiagnostics(double dT);
-  void publishImuMsg(const rclcpp::Time& ts_imu, const sl::SensorsData& sens_data);
-  void publishImuRawMsg(const rclcpp::Time& ts_imu, const sl::SensorsData& sens_data);
+  void publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
+  void publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
   // <---- Utility functions
 
   // ----> Callbacks functions

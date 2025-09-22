@@ -93,7 +93,6 @@ void ZedCameraOne::setupSensorThreadScheduling()
 
   if (_debugAdvanced) {
     int policy;
-    sched_param par;
     if (pthread_getschedparam(pthread_self(), &policy, &par)) {
       RCLCPP_WARN_STREAM(
         get_logger(),

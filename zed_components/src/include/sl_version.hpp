@@ -28,6 +28,6 @@ const size_t SDK_MINOR_MIN_SUPP = 2;
 
 const size_t SDK_MAJOR_MAX_SUPP = 5;
 const size_t SDK_MINOR_MAX_SUPP = 1;
-}  // namespace sl
+}  // namespace stereolabs
 
 #endif  // VERSION_HPP_

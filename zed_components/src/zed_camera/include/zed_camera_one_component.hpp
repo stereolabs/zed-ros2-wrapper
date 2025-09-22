@@ -113,6 +113,13 @@ protected:
   void updateImuDiagnostics(double dT);
   void publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
   void publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
+
+  void setupSensorThreadScheduling();
+  bool handleSensorThreadInterruption();
+  bool waitForCameraOpen();
+  bool waitForSensorSubscribers();
+  bool handleSensorPublishing();
+  void adjustSensorPublishingFrequency();
   // <---- Utility functions
 
   // ----> Callbacks functions

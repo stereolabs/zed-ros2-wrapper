@@ -207,6 +207,15 @@ void ZedCameraOne::fillCamInfo(
   camInfoMsg->header.frame_id = frameId;
 }
 
+void ZedCameraOne::setupCameraInfoMessages()
+{
+  _camInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+  _camInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
+
+  fillCamInfo(_camInfoMsg, _camOptFrameId, false);
+  fillCamInfo(_camInfoRawMsg, _camOptFrameId, true);
+}
+
 bool ZedCameraOne::areImageTopicsSubscribed()
 {
   _colorSubCount = 0;

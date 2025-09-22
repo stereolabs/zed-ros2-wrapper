@@ -241,6 +241,7 @@ set(ZED_CAMERA_ONE_INC
 
 set(ZED_CAMERA_ONE_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_one_component_main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_one_component_sensors.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_one_component_video.cpp
 )
 ###############################################################################

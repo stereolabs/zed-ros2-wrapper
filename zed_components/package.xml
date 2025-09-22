@@ -3,7 +3,7 @@
 <package format="3">
     <name>zed_components</name>
     <version>5.0.0</version>
-    <description>Contains the main ROS2 components to use a camera of the Ztereolabs ZED family</description>
+    <description>Contains the main ROS 2 components to use a camera of the Stereolabs ZED family</description>
     <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
     <license>Apache License 2.0</license>
     <url type="website">https://www.stereolabs.com/</url>

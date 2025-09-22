@@ -126,7 +126,7 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
         << ZED_SDK_PATCH_VERSION << "-"
         << ZED_SDK_BUILD_ID);
     RCLCPP_INFO(get_logger(), "Node stopped. Press Ctrl+C to exit.");
-    rclcpp::shutdown();
+    exit(EXIT_FAILURE);
   }
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50

@@ -43,20 +43,38 @@ protected:
   void init();
   void initParameters();
   void initServices();
-  void initThreadsAndTimers();
   void initTFCoordFrameNames();
   void initPublishers();
+  void initializeTimestamp();
+  void initializeDiagnosticStatistics();
+  void initThreadsAndTimers();
 
   void getSensorsParams();
   void getDebugParams();
   void getVideoParams();
   void getGeneralParams();
+  void getSvoParams();
+  void getStreamParams();
+  void getCameraModelParams();
+  void getCameraInfoParams();
+  void getResolutionParams();
+  void getOpencvCalibrationParam();
+
   void getStreamingServerParams();
   void getAdvancedParams();
 
   void close();
 
   bool startCamera();
+  void createZedObject();
+  void logSdkVersion();
+  void setupTf2();
+  void configureZedInput();
+  void setZedInitParams();
+  bool openZedCamera();
+  void processCameraInformation();
+  void setupCameraInfoMessages();
+
   void closeCamera();
   void startTempPubTimer();
   bool startStreamingServer();
@@ -85,6 +103,10 @@ protected:
     const rclcpp::Time & t);
   bool publishSensorsData();
   void publishImuFrameAndTopic();
+
+  void updateImuDiagnostics(double dT);
+  void publishImuMsg(const rclcpp::Time& ts_imu, const sl::SensorsData& sens_data);
+  void publishImuRawMsg(const rclcpp::Time& ts_imu, const sl::SensorsData& sens_data);
   // <---- Utility functions
 
   // ----> Callbacks functions

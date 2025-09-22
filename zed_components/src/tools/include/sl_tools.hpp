@@ -30,6 +30,21 @@
 
 #include <rcutils/logging_macros.h>
 
+// CUDA includes and macros
+#ifdef FOUND_ISAAC_ROS_NITROS
+  #include "isaac_ros_nitros_image_type/nitros_image_builder.hpp"
+
+  #define CUDA_CHECK(status) \
+  if (status != cudaSuccess) \
+  { \
+    RCLCPP_ERROR_STREAM( \
+      get_logger(), "Internal CUDA ERROR encountered: {" << std::string( \
+        cudaGetErrorName( \
+          status)) << "} {" << std::string(cudaGetErrorString(status)) << "}"); \
+    std::abort(); \
+  }
+#endif
+
 namespace sl_tools
 {
 

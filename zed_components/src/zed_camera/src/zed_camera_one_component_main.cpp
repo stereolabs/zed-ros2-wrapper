@@ -16,8 +16,7 @@
 
 #include <rclcpp/time.hpp>
 #include <rclcpp/utilities.hpp>
-#include <sensor_msgs/distortion_models.hpp>
-#include <sensor_msgs/image_encodings.hpp>
+
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
 
 #include "sl_logging.hpp"
@@ -178,16 +177,22 @@ void ZedCameraOne::initParameters()
 void ZedCameraOne::getGeneralParams()
 {
   rclcpp::Parameter paramVal;
-
   RCLCPP_INFO(get_logger(), "=== GENERAL parameters ===");
 
-  sl_tools::getParam(
-    shared_from_this(), "svo.svo_path", std::string(),
-    _svoFilepath);
+  getSvoParams();
+  getStreamParams();
+  getCameraModelParams();
+  getCameraInfoParams();
+  getResolutionParams();
+  getOpencvCalibrationParam();
+}
+
+void ZedCameraOne::getSvoParams()
+{
+  sl_tools::getParam(shared_from_this(), "svo.svo_path", std::string(), _svoFilepath);
   if (_svoFilepath.compare("live") == 0) {
     _svoFilepath = "";
   }
-
 #if !ENABLE_SVO
   if (_svoFilepath != "") {
     RCLCPP_ERROR_STREAM(
@@ -196,36 +201,31 @@ void ZedCameraOne::getGeneralParams()
     exit(EXIT_FAILURE);
   }
 #endif
-
 #if ENABLE_SVO
   if (_svoFilepath == "") {
     _svoMode = false;
   } else {
     RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << _svoFilepath.c_str() << "'");
     _svoMode = true;
+    sl_tools::getParam(shared_from_this(), "svo.svo_loop", _svoLoop, _svoLoop, " * SVO Loop: ");
     sl_tools::getParam(
-      shared_from_this(), "svo.svo_loop", _svoLoop, _svoLoop,
-      " * SVO Loop: ");
-    sl_tools::getParam(
-      shared_from_this(), "svo.svo_realtime", _svoRealtime,
-      _svoRealtime, " * SVO Real Time: ");
+      shared_from_this(), "svo.svo_realtime", _svoRealtime, _svoRealtime, " * SVO Real Time: ");
     sl_tools::getParam(
       "svo.use_svo_timestamps", _useSvoTimestamp, _useSvoTimestamp,
       " * Use SVO timestamp: ");
   }
 #endif
+}
 
+void ZedCameraOne::getStreamParams()
+{
   _streamMode = false;
   if (!_svoMode) {
-    sl_tools::getParam(
-      shared_from_this(), "stream.stream_address",
-      std::string(), _streamAddr);
+    sl_tools::getParam(shared_from_this(), "stream.stream_address", std::string(), _streamAddr);
     if (_streamAddr != "") {
 #if ENABLE_STREAM_INPUT
       _streamMode = true;
-      sl_tools::getParam(
-        shared_from_this(), "stream.stream_port", _streamPort,
-        _streamPort);
+      sl_tools::getParam(shared_from_this(), "stream.stream_port", _streamPort, _streamPort);
       RCLCPP_INFO_STREAM(
         get_logger(), " * Local stream input: " << _streamAddr << ":" << _streamPort);
 #else
@@ -236,47 +236,42 @@ void ZedCameraOne::getGeneralParams()
 #endif
     }
   }
+}
 
+void ZedCameraOne::getCameraModelParams()
+{
   std::string camera_model = "zed";
-  sl_tools::getParam(
-    shared_from_this(), "general.camera_model", camera_model,
-    camera_model);
+  sl_tools::getParam(shared_from_this(), "general.camera_model", camera_model, camera_model);
   if (camera_model == "zedxonegs") {
     _camUserModel = sl::MODEL::ZED_XONE_GS;
     if (_svoMode) {
       RCLCPP_INFO_STREAM(
-        get_logger(), " + Playing an SVO for "
-          << sl::toString(_camUserModel)
-          << " camera model.");
+        get_logger(), " + Playing an SVO for " << sl::toString(
+          _camUserModel) << " camera model.");
     } else if (_streamMode) {
       RCLCPP_INFO_STREAM(
-        get_logger(), " + Playing a network stream from a "
-          << sl::toString(_camUserModel)
-          << " camera model.");
+        get_logger(),
+        " + Playing a network stream from a " << sl::toString(_camUserModel) << " camera model.");
     } else if (!IS_JETSON) {
       RCLCPP_ERROR_STREAM(
-        get_logger(),
-        "Camera model " << sl::toString(_camUserModel).c_str()
-                        << " is available only with NVIDIA Jetson devices.");
+        get_logger(), "Camera model " << sl::toString(
+          _camUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
   } else if (camera_model == "zedxone4k") {
     _camUserModel = sl::MODEL::ZED_XONE_UHD;
     if (_svoMode) {
       RCLCPP_INFO_STREAM(
-        get_logger(), " + Playing an SVO for "
-          << sl::toString(_camUserModel)
-          << " camera model.");
+        get_logger(), " + Playing an SVO for " << sl::toString(
+          _camUserModel) << " camera model.");
     } else if (_streamMode) {
       RCLCPP_INFO_STREAM(
-        get_logger(), " + Playing a network stream from a "
-          << sl::toString(_camUserModel)
-          << " camera model.");
+        get_logger(),
+        " + Playing a network stream from a " << sl::toString(_camUserModel) << " camera model.");
     } else if (!IS_JETSON) {
       RCLCPP_ERROR_STREAM(
-        get_logger(),
-        "Camera model " << sl::toString(_camUserModel).c_str()
-                        << " is available only with NVIDIA Jetson devices.");
+        get_logger(), "Camera model " << sl::toString(
+          _camUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
   } else {
@@ -284,31 +279,28 @@ void ZedCameraOne::getGeneralParams()
       get_logger(),
       "Camera model not valid in parameter values: " << camera_model);
   }
-  RCLCPP_INFO_STREAM(
-    get_logger(), " * Camera model: " << camera_model << " - " << _camUserModel);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera model: " << camera_model << " - " << _camUserModel);
+}
 
+void ZedCameraOne::getCameraInfoParams()
+{
   sl_tools::getParam(
-    shared_from_this(), "general.camera_name", _cameraName,
-    _cameraName, " * Camera name: ");
+    shared_from_this(), "general.camera_name", _cameraName, _cameraName, " * Camera name: ");
+  sl_tools::getParam(
+    shared_from_this(), "general.serial_number", _camSerialNumber, _camSerialNumber,
+    " * Camera SN: ");
+  sl_tools::getParam(shared_from_this(), "general.camera_id", _camId, _camId, " * Camera ID: ");
+  sl_tools::getParam(
+    shared_from_this(), "general.grab_frame_rate", _camGrabFrameRate, _camGrabFrameRate, " * Camera framerate: ", false, 15,
+    120);
+  sl_tools::getParam(
+    shared_from_this(), "general.gpu_id", _gpuId, _gpuId, " * GPU ID: ", false, -1, 256);
+}
 
-  sl_tools::getParam(
-    shared_from_this(), "general.serial_number",
-    _camSerialNumber, _camSerialNumber, " * Camera SN: ");
-  sl_tools::getParam(
-    shared_from_this(), "general.camera_id", _camId, _camId,
-    " * Camera ID: ");
-  sl_tools::getParam(
-    shared_from_this(), "general.grab_frame_rate",
-    _camGrabFrameRate, _camGrabFrameRate,
-    " * Camera framerate: ", false, 15, 120);
-  sl_tools::getParam(
-    shared_from_this(), "general.gpu_id", _gpuId, _gpuId,
-    " * GPU ID: ", false, -1, 256);
-
+void ZedCameraOne::getResolutionParams()
+{
   std::string resol = "AUTO";
-  sl_tools::getParam(
-    shared_from_this(), "general.grab_resolution", resol,
-    resol);
+  sl_tools::getParam(shared_from_this(), "general.grab_resolution", resol, resol);
   if (resol == "AUTO") {
     _camResol = sl::RESOLUTION::AUTO;
   } else if (resol == "HD4K" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
@@ -323,50 +315,41 @@ void ZedCameraOne::getGeneralParams()
     _camResol = sl::RESOLUTION::SVGA;
   } else {
     RCLCPP_WARN(
-      get_logger(),
-      "Not valid 'general.grab_resolution' value: '%s'. Using "
-      "'AUTO' setting.",
+      get_logger(), "Not valid 'general.grab_resolution' value: '%s'. Using 'AUTO' setting.",
       resol.c_str());
     _camResol = sl::RESOLUTION::AUTO;
   }
-  RCLCPP_INFO_STREAM(
-    get_logger(), " * Camera resolution: "
-      << sl::toString(_camResol).c_str());
-
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera resolution: " << sl::toString(_camResol).c_str());
 
   std::string out_resol = "NATIVE";
-  sl_tools::getParam(
-    shared_from_this(), "general.pub_resolution", out_resol,
-    out_resol);
+  sl_tools::getParam(shared_from_this(), "general.pub_resolution", out_resol, out_resol);
   if (out_resol == "NATIVE") {
     _pubResolution = PubRes::NATIVE;
   } else if (out_resol == "CUSTOM") {
     _pubResolution = PubRes::CUSTOM;
   } else {
     RCLCPP_WARN(
-      get_logger(),
-      "Not valid 'general.pub_resolution' value: '%s'. Using default "
-      "setting instead.",
+      get_logger(), "Not valid 'general.pub_resolution' value: '%s'. Using default setting instead.",
       out_resol.c_str());
     out_resol = "NATIVE";
     _pubResolution = PubRes::NATIVE;
   }
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Publishing resolution: " << out_resol.c_str());
+  RCLCPP_INFO_STREAM(get_logger(), " * Publishing resolution: " << out_resol.c_str());
 
   if (_pubResolution == PubRes::CUSTOM) {
     sl_tools::getParam(
-      shared_from_this(), "general.pub_downscale_factor",
-      _customDownscaleFactor, _customDownscaleFactor,
-      " * Publishing downscale factor: ", false, 1.0, 5.0);
+      shared_from_this(), "general.pub_downscale_factor", _customDownscaleFactor, _customDownscaleFactor, " * Publishing downscale factor: ", false, 1.0,
+      5.0);
   } else {
     _customDownscaleFactor = 1.0;
   }
+}
 
+void ZedCameraOne::getOpencvCalibrationParam()
+{
   sl_tools::getParam(
-    shared_from_this(), "general.optional_opencv_calibration_file",
-    _opencvCalibFile, _opencvCalibFile, " * OpenCV custom calibration: ");
+    shared_from_this(), "general.optional_opencv_calibration_file", _opencvCalibFile, _opencvCalibFile,
+    " * OpenCV custom calibration: ");
 }
 
 void ZedCameraOne::getSensorsParams()
@@ -543,108 +526,6 @@ void ZedCameraOne::getDebugParams()
       << rmw_get_implementation_identifier());
 }
 
-void ZedCameraOne::getVideoParams()
-{
-  rclcpp::Parameter paramVal;
-
-  RCLCPP_INFO(get_logger(), "=== CAMERA CONTROL parameters ===");
-
-  sl_tools::getParam(
-    shared_from_this(), "video.enable_hdr", _enableHDR,
-    _enableHDR, " * Enable HDR: ");
-
-  sl_tools::getParam(
-    shared_from_this(), "video.saturation", _camSaturation,
-    _camSaturation, " * Saturation: ", true, 0, 8);
-  _camDynParMapChanged["video.saturation"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.sharpness", _camSharpness,
-    _camSharpness, " * Sharpness: ", true, 0, 8);
-  _camDynParMapChanged["video.sharpness"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.gamma", _camGamma, _camGamma,
-    " * Gamma: ", true, 1, 9);
-  _camDynParMapChanged["video.gamma"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_whitebalance", _camAutoWB,
-    _camAutoWB, " * Auto White Balance: ", true);
-  _camDynParMapChanged["video.auto_whitebalance"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.whitebalance_temperature",
-    _camWBTemp, _camWBTemp,
-    " * White Balance Temp (x100): ", true, 28, 65);
-  _camDynParMapChanged["video.whitebalance_temperature"] = true;
-
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_exposure",
-    _camAutoExposure, _camAutoExposure,
-    " * Auto Exposure: ", true);
-  _camDynParMapChanged["video.auto_exposure"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.exposure_time", _camExpTime,
-    _camExpTime, " * Exposure (us): ", true, 28, 30000);
-  _camDynParMapChanged["video.exposure_time"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_exposure_time_range_min",
-    _camAutoExpTimeRangeMin, _camAutoExpTimeRangeMin,
-    " * Auto Exp Time Min (us): ", true, 28, 30000);
-  _camDynParMapChanged["video.auto_exposure_time_range_min"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_exposure_time_range_max",
-    _camAutoExpTimeRangeMax, _camAutoExpTimeRangeMax,
-    " * Auto Exp Time Max (us): ", true, 28, 30000);
-  _camDynParMapChanged["video.auto_exposure_time_range_max"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.exposure_compensation",
-    _camExposureComp, _camExposureComp,
-    " * Exposure Compensation: ", true, 0, 100);
-  _camDynParMapChanged["video.exposure_compensation"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_analog_gain",
-    _camAutoAnalogGain, _camAutoAnalogGain,
-    " * Auto Analog Gain: ", true);
-  _camDynParMapChanged["video.auto_analog_gain"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.analog_gain", _camAnalogGain,
-    _camAnalogGain, " * Analog Gain: ", true, 1000, 16000);
-  _camDynParMapChanged["video.analog_gain"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_analog_gain_range_min",
-    _camAutoAnalogGainRangeMin, _camAutoAnalogGainRangeMin,
-    " * Analog Gain Min: ", true, 1000, 16000);
-  _camDynParMapChanged["video.auto_analog_gain_range_min"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_analog_gain_range_max",
-    _camAutoAnalogGainRangeMax, _camAutoAnalogGainRangeMax,
-    " * Analog Gain Max: ", true, 1000, 16000);
-  _camDynParMapChanged["video.auto_analog_gain_range_max"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_digital_gain",
-    _camAutoDigitalGain, _camAutoDigitalGain,
-    " * Auto Digital Gain: ", true);
-  _camDynParMapChanged["video.auto_digital_gain"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.digital_gain", _camDigitalGain,
-    _camDigitalGain, " * Digital Gain: ", true, 1, 256);
-  _camDynParMapChanged["video.digital_gain"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_digital_gain_range_min",
-    _camAutoDigitalGainRangeMin, _camAutoDigitalGainRangeMin,
-    " * Digital Gain Min: ", true, 1, 256);
-  _camDynParMapChanged["video.auto_digital_gain_range_min"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_digital_gain_range_max",
-    _camAutoDigitalGainRangeMax, _camAutoDigitalGainRangeMax,
-    " * Digital Gain Max: ", true, 1, 256);
-  _camDynParMapChanged["video.auto_digital_gain_range_max"] = true;
-  sl_tools::getParam(
-    shared_from_this(), "video.denoising", _camDenoising,
-    _camDenoising, " * Denoising: ", true, 0, 100);
-  _camDynParMapChanged["video.denoising"] = true;
-
-  _triggerUpdateDynParams = true;
-}
-
 void ZedCameraOne::init()
 {
   // Stop the timer for "one shot" initialization
@@ -732,60 +613,84 @@ bool ZedCameraOne::startCamera()
 {
   RCLCPP_INFO(get_logger(), "=== STARTING CAMERA ===");
 
-  // Create a ZED object
-  _zed = std::make_shared<sl::CameraOne>();
+  createZedObject();
+  logSdkVersion();
+  setupTf2();
+  configureZedInput();
+  setZedInitParams();
 
-  // ----> SDK version
+  if (!openZedCamera()) {
+    return false;
+  }
+
+  _uptimer.tic();
+
+  processCameraInformation();
+  setupCameraInfoMessages();
+  initPublishers();
+  initializeTimestamp();
+  initializeDiagnosticStatistics();
+  initThreadsAndTimers();
+
+  return true;
+}
+
+// Helper functions for startCamera()
+
+void ZedCameraOne::createZedObject()
+{
+  _zed = std::make_shared<sl::CameraOne>();
+}
+
+void ZedCameraOne::logSdkVersion()
+{
   RCLCPP_INFO(
     get_logger(), "ZED SDK Version: %d.%d.%d - Build %s",
     ZED_SDK_MAJOR_VERSION, ZED_SDK_MINOR_VERSION,
     ZED_SDK_PATCH_VERSION, ZED_SDK_BUILD_ID);
-  // <---- SDK version
+}
 
-  // ----> TF2 Transform
+void ZedCameraOne::setupTf2()
+{
   _tfBuffer = std::make_unique<tf2_ros::Buffer>(get_clock());
-  // Start TF Listener thread
   _tfListener = std::make_unique<tf2_ros::TransformListener>(*_tfBuffer);
   _tfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-  // <---- TF2 Transform
+}
 
-  // ----> ZED configuration
+void ZedCameraOne::configureZedInput()
+{
 #if ENABLE_SVO
   if (!_svoFilepath.empty()) {
     RCLCPP_INFO(get_logger(), "=== SVO OPENING ===");
-
     _initParams.input.setFromSVOFile(_svoFilepath.c_str());
     _initParams.svo_real_time_mode = _svoRealtime;
-
     _svoMode = true;
-  } else
+    return;
+  }
 #endif
   if (!_streamAddr.empty()) {
     RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING OPENING ===");
-
     _initParams.input.setFromStream(
       _streamAddr.c_str(),
       static_cast<unsigned short>(_streamPort));
-
     _streamMode = true;
-  } else {
-    RCLCPP_INFO(get_logger(), "=== CAMERA OPENING ===");
-
-    _initParams.camera_fps = _camGrabFrameRate;
-    _initParams.camera_resolution = static_cast<sl::RESOLUTION>(_camResol);
-
-    if (_camSerialNumber > 0) {
-      _initParams.input.setFromSerialNumber(_camSerialNumber, sl::BUS_TYPE::GMSL);
-    } else if (_camId >= 0) {
-      _initParams.input.setFromCameraID(_camId, sl::BUS_TYPE::GMSL, sl::CAMERA_TYPE::MONO);
-    }
+    return;
   }
+  RCLCPP_INFO(get_logger(), "=== CAMERA OPENING ===");
+  _initParams.camera_fps = _camGrabFrameRate;
+  _initParams.camera_resolution = static_cast<sl::RESOLUTION>(_camResol);
 
-  _initParams.async_grab_camera_recovery =
-    true;    // Camera recovery is handled asynchronously to provide
-             // information about this status
-  _initParams.camera_image_flip =
-    (_cameraFlip ? sl::FLIP_MODE::ON : sl::FLIP_MODE::OFF);
+  if (_camSerialNumber > 0) {
+    _initParams.input.setFromSerialNumber(_camSerialNumber, sl::BUS_TYPE::GMSL);
+  } else if (_camId >= 0) {
+    _initParams.input.setFromCameraID(_camId, sl::BUS_TYPE::GMSL, sl::CAMERA_TYPE::MONO);
+  }
+}
+
+void ZedCameraOne::setZedInitParams()
+{
+  _initParams.async_grab_camera_recovery = true;
+  _initParams.camera_image_flip = (_cameraFlip ? sl::FLIP_MODE::ON : sl::FLIP_MODE::OFF);
   _initParams.coordinate_system = ROS_COORDINATE_SYSTEM;
   _initParams.coordinate_units = ROS_MEAS_UNITS;
   _initParams.enable_hdr = _enableHDR;
@@ -794,11 +699,11 @@ bool ZedCameraOne::startCamera()
   }
   _initParams.sdk_verbose = _sdkVerbose;
   _initParams.sdk_verbose_log_file = _sdkVerboseLogFile.c_str();
-  // <---- ZED configuration
+}
 
-  // ----> Try to connect to a camera, to a stream, or to load an SVO
+bool ZedCameraOne::openZedCamera()
+{
   _grabStatus = sl::ERROR_CODE::LAST;
-
   _connStatus = _zed->open(_initParams);
 
   if (_connStatus != sl::ERROR_CODE::SUCCESS) {
@@ -839,12 +744,11 @@ bool ZedCameraOne::startCamera()
   } else {
     DEBUG_STREAM_COMM("Opening successfull");
   }
-  // ----> Try to connect to a camera, to a stream, or to load an SVO
+  return true;
+}
 
-  // Initialize Up timer
-  _uptimer.tic();
-
-  // ----> Camera information
+void ZedCameraOne::processCameraInformation()
+{
   sl::CameraOneInformation camInfo = _zed->getCameraInformation();
 
   float realFps = camInfo.camera_configuration.fps;
@@ -858,11 +762,9 @@ bool ZedCameraOne::startCamera()
     _camGrabFrameRate = realFps;
   }
 
-  // CUdevice devid;
   cuCtxGetDevice(&_gpuId);
   RCLCPP_INFO_STREAM(get_logger(), "ZED SDK running on GPU #" << _gpuId);
 
-  // Camera model
   _camRealModel = camInfo.camera_model;
 
   if (_camRealModel != _camUserModel) {
@@ -904,10 +806,8 @@ bool ZedCameraOne::startCamera()
   }
 #endif
 
-  // Firmwares
   if (!_svoMode) {
     _camFwVersion = camInfo.camera_configuration.firmware_version;
-
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Camera FW Version  -> " << _camFwVersion);
@@ -917,7 +817,6 @@ bool ZedCameraOne::startCamera()
       " * Sensors FW Version -> " << _sensFwVersion);
   }
 
-  // Camera/IMU transform
   _slCamImuTransf = camInfo.sensors_configuration.camera_imu_transform;
   DEBUG_SENS("Camera-IMU Transform:\n%s", _slCamImuTransf.getInfos().c_str());
 
@@ -948,25 +847,21 @@ bool ZedCameraOne::startCamera()
     get_logger(), " * Publishing frame size  -> "
       << _matResol.width << "x"
       << _matResol.height);
-  // <---- Camera information
+}
 
-  // ----> Camera Info messages
+void ZedCameraOne::setupCameraInfoMessages()
+{
   _camInfoMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
   _camInfoRawMsg = std::make_shared<sensor_msgs::msg::CameraInfo>();
 
   initTFCoordFrameNames();
 
-  // Rectified image
   fillCamInfo(_camInfoMsg, _camOptFrameId, false);
-  // Raw image
   fillCamInfo(_camInfoRawMsg, _camOptFrameId, true);
-  // <---- Camera Info messages
+}
 
-  // Initialize publishers
-  initPublishers();
-
-  // Initialized timestamp to avoid wrong initial data
-  // ----> Timestamp
+void ZedCameraOne::initializeTimestamp()
+{
   if (_svoMode) {
     if (_useSvoTimestamp) {
       _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
@@ -978,9 +873,10 @@ bool ZedCameraOne::startCamera()
     _frameTimestamp =
       sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
   }
-  // <---- Timestamp
+}
 
-  // ----> Initialize Diagnostic statistics
+void ZedCameraOne::initializeDiagnosticStatistics()
+{
   _elabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(_camGrabFrameRate);
   _grabPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(_camGrabFrameRate);
   _imagePeriodMean_sec = std::make_unique<sl_tools::WinAvg>(_camGrabFrameRate);
@@ -988,12 +884,6 @@ bool ZedCameraOne::startCamera()
   _imuPeriodMean_sec = std::make_unique<sl_tools::WinAvg>(20);
   _pubImuTF_sec = std::make_unique<sl_tools::WinAvg>(_sensPubRate);
   _pubImu_sec = std::make_unique<sl_tools::WinAvg>(_sensPubRate);
-  // <---- Initialize Diagnostic statistics
-
-  // Init and start threads
-  initThreadsAndTimers();
-
-  return true;
 }
 
 void ZedCameraOne::initThreadsAndTimers()
@@ -1529,90 +1419,6 @@ void ZedCameraOne::initTFCoordFrameNames()
   RCLCPP_INFO_STREAM(get_logger(), " * Optical\t-> " << _camOptFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t-> " << _imuFrameId);
   // <---- Coordinate frames
-}
-
-void ZedCameraOne::fillCamInfo(
-  sensor_msgs::msg::CameraInfo::SharedPtr camInfoMsg,
-  const std::string & frameId, bool rawParam)
-{
-  sl::CameraParameters zedParam;
-
-  if (rawParam) {
-    zedParam =
-      _zed->getCameraInformation(_matResol).camera_configuration.calibration_parameters_raw;
-  } else {
-    zedParam = _zed->getCameraInformation(_matResol).camera_configuration.calibration_parameters;
-  }
-
-  // https://docs.ros2.org/latest/api/sensor_msgs/msg/CameraInfo.html
-
-  // ----> Distortion models
-  // ZED SDK params order: [ k1, k2, p1, p2, k3, k4, k5, k6, s1, s2, s3, s4]
-  // Radial (k1, k2, k3, k4, k5, k6), Tangential (p1,p2) and Prism (s1, s2, s3,
-  // s4) distortion. Prism not currently used.
-
-  // ROS2 order (OpenCV) -> k1,k2,p1,p2,k3,k4,k5,k6,s1,s2,s3,s4
-  switch (_camRealModel) {
-    case sl::MODEL::ZED_XONE_GS: // RATIONAL_POLYNOMIAL
-
-      camInfoMsg->distortion_model =
-        sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
-
-      camInfoMsg->d.resize(8);
-      camInfoMsg->d[0] = zedParam.disto[0];    // k1
-      camInfoMsg->d[1] = zedParam.disto[1];    // k2
-      camInfoMsg->d[2] = zedParam.disto[2];    // p1
-      camInfoMsg->d[3] = zedParam.disto[3];    // p2
-      camInfoMsg->d[4] = zedParam.disto[4];    // k3
-      camInfoMsg->d[5] = zedParam.disto[5];    // k4
-      camInfoMsg->d[6] = zedParam.disto[6];    // k5
-      camInfoMsg->d[7] = zedParam.disto[7];    // k6
-      break;
-
-    case sl::MODEL::ZED_XONE_UHD: // RATIONAL_POLYNOMIAL
-
-      camInfoMsg->distortion_model =
-        sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
-
-      camInfoMsg->d.resize(8);
-      camInfoMsg->d[0] = zedParam.disto[0];    // k1
-      camInfoMsg->d[1] = zedParam.disto[1];    // k2
-      camInfoMsg->d[2] = zedParam.disto[2];    // p1
-      camInfoMsg->d[3] = zedParam.disto[3];    // p2
-      camInfoMsg->d[4] = zedParam.disto[4];    // k3
-      camInfoMsg->d[5] = zedParam.disto[5];    // k4
-      camInfoMsg->d[6] = zedParam.disto[6];    // k5
-      camInfoMsg->d[7] = zedParam.disto[7];    // k6
-      break;
-  }
-
-  // Intrinsic
-  camInfoMsg->k.fill(0.0);
-  camInfoMsg->k[0] = static_cast<double>(zedParam.fx);
-  camInfoMsg->k[2] = static_cast<double>(zedParam.cx);
-  camInfoMsg->k[4] = static_cast<double>(zedParam.fy);
-  camInfoMsg->k[5] = static_cast<double>(zedParam.cy);
-  camInfoMsg->k[8] = 1.0;
-
-  // Rectification
-  camInfoMsg->r.fill(0.0);
-  for (size_t i = 0; i < 3; i++) {
-    // identity
-    camInfoMsg->r[i + i * 3] = 1.0;
-  }
-
-  // Projection/camera matrix
-  camInfoMsg->p.fill(0.0);
-  camInfoMsg->p[0] = static_cast<double>(zedParam.fx);
-  camInfoMsg->p[2] = static_cast<double>(zedParam.cx);
-  camInfoMsg->p[5] = static_cast<double>(zedParam.fy);
-  camInfoMsg->p[6] = static_cast<double>(zedParam.cy);
-  camInfoMsg->p[10] = 1.0;
-
-  // Image size
-  camInfoMsg->width = static_cast<uint32_t>(_matResol.width);
-  camInfoMsg->height = static_cast<uint32_t>(_matResol.height);
-  camInfoMsg->header.frame_id = frameId;
 }
 
 void ZedCameraOne::initPublishers()
@@ -2428,195 +2234,125 @@ bool ZedCameraOne::publishSensorsData()
     return false;
   }
 
-  // ----> Grab data and setup timestamps
-  DEBUG_STREAM_SENS("[publishSensorsData] Grab data and setup timestamps");
-  rclcpp::Time ts_imu;
-
-  rclcpp::Time now = get_clock()->now();
-
   sl::SensorsData sens_data;
-
-  sl::ERROR_CODE err =
-    _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+  sl::ERROR_CODE err = _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    RCLCPP_WARN_STREAM(
-      get_logger(), "[publishSensorsData] sl::getSensorsData error: "
-        << sl::toString(err).c_str());
+    RCLCPP_WARN_STREAM(get_logger(), "[publishSensorsData] sl::getSensorsData error: " << sl::toString(err).c_str());
     return false;
   }
 
-  DEBUG_STREAM_SENS("[publishSensorsData] Sensors data grabbed");
-
-  ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
-  DEBUG_STREAM_SENS("[publishSensorsData] ts_imu: " << ts_imu.nanoseconds() << " nsec");
-  // <---- Grab data and setup timestamps
-
-  // ----> Check for not updated data
+  rclcpp::Time ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
   double dT = ts_imu.seconds() - _lastTs_imu.seconds();
   _lastTs_imu = ts_imu;
-  DEBUG_STREAM_SENS("[publishSensorsData] dT: " << dT << " sec");
   bool new_imu_data = (dT > 0.0);
 
   if (!new_imu_data) {
     DEBUG_STREAM_SENS("[publishSensorsData] No new sensors data");
     return false;
   }
-  // <---- Check for not updated data
 
-  DEBUG_STREAM_SENS(
-    "SENSOR LAST PERIOD: " << dT << " sec @" << 1. / dT
-                           << " Hz");
+  updateImuDiagnostics(dT);
 
-  // ----> Sensors freq for diagnostic
+  publishImuFrameAndTopic();
+
+  if (_imuSubCount > 0) {
+    publishImuMsg(ts_imu, sens_data);
+  }
+
+  if (_imuRawSubCount > 0) {
+    publishImuRawMsg(ts_imu, sens_data);
+  }
+
+  return true;
+}
+
+void ZedCameraOne::updateImuDiagnostics(double dT)
+{
+  DEBUG_STREAM_SENS("SENSOR LAST PERIOD: " << dT << " sec @" << 1. / dT << " Hz");
   auto elapsed = _imuFreqTimer.toc();
   _imuFreqTimer.tic();
   double mean = _imuPeriodMean_sec->addValue(elapsed);
   _pubImu_sec->addValue(mean);
   DEBUG_STREAM_SENS("IMU MEAN freq: " << 1. / mean);
-  // <---- Sensors freq for diagnostic
+}
 
-  // ----> Sensors data publishing
-  publishImuFrameAndTopic();
+void ZedCameraOne::publishImuMsg(const rclcpp::Time& ts_imu, const sl::SensorsData& sens_data)
+{
+  DEBUG_STREAM_SENS("[publishSensorsData] IMU subscribers: " << static_cast<int>(_imuSubCount));
+  auto imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
+  imuMsg->header.stamp = ts_imu;
+  imuMsg->header.frame_id = _imuFrameId;
 
-  if (_imuSubCount > 0) {
-    DEBUG_STREAM_SENS(
-      "[publishSensorsData] IMU subscribers: "
-        << static_cast<int>(_imuSubCount));
+  imuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
+  imuMsg->orientation.y = sens_data.imu.pose.getOrientation()[1];
+  imuMsg->orientation.z = sens_data.imu.pose.getOrientation()[2];
+  imuMsg->orientation.w = sens_data.imu.pose.getOrientation()[3];
 
-    auto imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
+  imuMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
+  imuMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
+  imuMsg->angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
 
-    imuMsg->header.stamp = ts_imu;
-    imuMsg->header.frame_id = _imuFrameId;
+  imuMsg->linear_acceleration.x = sens_data.imu.linear_acceleration[0];
+  imuMsg->linear_acceleration.y = sens_data.imu.linear_acceleration[1];
+  imuMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
 
-    imuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
-    imuMsg->orientation.y = sens_data.imu.pose.getOrientation()[1];
-    imuMsg->orientation.z = sens_data.imu.pose.getOrientation()[2];
-    imuMsg->orientation.w = sens_data.imu.pose.getOrientation()[3];
+  for (int i = 0; i < 3; ++i) {
+    int r = i;
+    imuMsg->orientation_covariance[i * 3 + 0] = sens_data.imu.pose_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
+    imuMsg->orientation_covariance[i * 3 + 1] = sens_data.imu.pose_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
+    imuMsg->orientation_covariance[i * 3 + 2] = sens_data.imu.pose_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
 
-    imuMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
-    imuMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
-    imuMsg->angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
+    imuMsg->linear_acceleration_covariance[i * 3 + 0] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
+    imuMsg->linear_acceleration_covariance[i * 3 + 1] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
+    imuMsg->linear_acceleration_covariance[i * 3 + 2] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
 
-    imuMsg->linear_acceleration.x = sens_data.imu.linear_acceleration[0];
-    imuMsg->linear_acceleration.y = sens_data.imu.linear_acceleration[1];
-    imuMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
-
-    // ----> Covariances copy
-    // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses
-    // float
-    for (int i = 0; i < 3; ++i) {
-      int r = 0;
-
-      if (i == 0) {
-        r = 0;
-      } else if (i == 1) {
-        r = 1;
-      } else {
-        r = 2;
-      }
-
-      imuMsg->orientation_covariance[i * 3 + 0] =
-        sens_data.imu.pose_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
-      imuMsg->orientation_covariance[i * 3 + 1] =
-        sens_data.imu.pose_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
-      imuMsg->orientation_covariance[i * 3 + 2] =
-        sens_data.imu.pose_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
-
-      imuMsg->linear_acceleration_covariance[i * 3 + 0] =
-        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
-      imuMsg->linear_acceleration_covariance[i * 3 + 1] =
-        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
-      imuMsg->linear_acceleration_covariance[i * 3 + 2] =
-        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
-
-      imuMsg->angular_velocity_covariance[i * 3 + 0] =
-        sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD *
-        DEG2RAD;
-      imuMsg->angular_velocity_covariance[i * 3 + 1] =
-        sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD *
-        DEG2RAD;
-      imuMsg->angular_velocity_covariance[i * 3 + 2] =
-        sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD *
-        DEG2RAD;
-    }
-    // <---- Covariances copy
-
-    DEBUG_STREAM_SENS("[publishSensorsData] Publishing IMU message");
-    try {
-      _pubImu->publish(std::move(imuMsg));
-    } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
-    }
+    imuMsg->angular_velocity_covariance[i * 3 + 0] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
+    imuMsg->angular_velocity_covariance[i * 3 + 1] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
+    imuMsg->angular_velocity_covariance[i * 3 + 2] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
   }
 
-  if (_imuRawSubCount > 0) {
-    DEBUG_STREAM_SENS(
-      "[publishSensorsData] IMU subscribers: "
-        << static_cast<int>(_imuRawSubCount));
-
-    auto imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
-
-    imuRawMsg->header.stamp = ts_imu;
-    imuRawMsg->header.frame_id = _imuFrameId;
-
-    imuRawMsg->angular_velocity.x =
-      sens_data.imu.angular_velocity_uncalibrated[0] * DEG2RAD;
-    imuRawMsg->angular_velocity.y =
-      sens_data.imu.angular_velocity_uncalibrated[1] * DEG2RAD;
-    imuRawMsg->angular_velocity.z =
-      sens_data.imu.angular_velocity_uncalibrated[2] * DEG2RAD;
-
-    imuRawMsg->linear_acceleration.x = sens_data.imu.linear_acceleration_uncalibrated[0];
-    imuRawMsg->linear_acceleration.y = sens_data.imu.linear_acceleration_uncalibrated[1];
-    imuRawMsg->linear_acceleration.z = sens_data.imu.linear_acceleration_uncalibrated[2];
-
-    // ----> Covariances copy
-    // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses
-    // float
-    for (int i = 0; i < 3; ++i) {
-      int r = 0;
-
-      if (i == 0) {
-        r = 0;
-      } else if (i == 1) {
-        r = 1;
-      } else {
-        r = 2;
-      }
-
-      imuRawMsg->linear_acceleration_covariance[i * 3 + 0] =
-        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
-      imuRawMsg->linear_acceleration_covariance[i * 3 + 1] =
-        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
-      imuRawMsg->linear_acceleration_covariance[i * 3 + 2] =
-        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
-
-      imuRawMsg->angular_velocity_covariance[i * 3 + 0] =
-        sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD *
-        DEG2RAD;
-      imuRawMsg->angular_velocity_covariance[i * 3 + 1] =
-        sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD *
-        DEG2RAD;
-      imuRawMsg->angular_velocity_covariance[i * 3 + 2] =
-        sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD *
-        DEG2RAD;
-    }
-    // <---- Covariances copy
-
-    DEBUG_STREAM_SENS("[publishSensorsData] Publishing IMU RAW message");
-    try {
-      _pubImuRaw->publish(std::move(imuRawMsg));
-    } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-    } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
-    }
+  try {
+    _pubImu->publish(std::move(imuMsg));
+  } catch (std::system_error & e) {
+    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+  } catch (...) {
+    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
   }
-  // <---- Sensors data publishing
+}
 
-  return true;
+void ZedCameraOne::publishImuRawMsg(const rclcpp::Time& ts_imu, const sl::SensorsData& sens_data)
+{
+  DEBUG_STREAM_SENS("[publishSensorsData] IMU RAW subscribers: " << static_cast<int>(_imuRawSubCount));
+  auto imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
+  imuRawMsg->header.stamp = ts_imu;
+  imuRawMsg->header.frame_id = _imuFrameId;
+
+  imuRawMsg->angular_velocity.x = sens_data.imu.angular_velocity_uncalibrated[0] * DEG2RAD;
+  imuRawMsg->angular_velocity.y = sens_data.imu.angular_velocity_uncalibrated[1] * DEG2RAD;
+  imuRawMsg->angular_velocity.z = sens_data.imu.angular_velocity_uncalibrated[2] * DEG2RAD;
+
+  imuRawMsg->linear_acceleration.x = sens_data.imu.linear_acceleration_uncalibrated[0];
+  imuRawMsg->linear_acceleration.y = sens_data.imu.linear_acceleration_uncalibrated[1];
+  imuRawMsg->linear_acceleration.z = sens_data.imu.linear_acceleration_uncalibrated[2];
+
+  for (int i = 0; i < 3; ++i) {
+    int r = i;
+    imuRawMsg->linear_acceleration_covariance[i * 3 + 0] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
+    imuRawMsg->linear_acceleration_covariance[i * 3 + 1] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
+    imuRawMsg->linear_acceleration_covariance[i * 3 + 2] = sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
+
+    imuRawMsg->angular_velocity_covariance[i * 3 + 0] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
+    imuRawMsg->angular_velocity_covariance[i * 3 + 1] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
+    imuRawMsg->angular_velocity_covariance[i * 3 + 2] = sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
+  }
+
+  try {
+    _pubImuRaw->publish(std::move(imuRawMsg));
+  } catch (std::system_error & e) {
+    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+  } catch (...) {
+    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+  }
 }
 
 void ZedCameraOne::publishImuFrameAndTopic()
@@ -2673,35 +2409,6 @@ void ZedCameraOne::publishImuFrameAndTopic()
   _imuTfFreqTimer.tic();
 }
 
-bool ZedCameraOne::areImageTopicsSubscribed()
-{
-  _colorSubCount = 0;
-  _colorRawSubCount = 0;
-#if ENABLE_GRAY_IMAGE
-  _graySubCount = 0;
-  _grayRawSubCount = 0;
-#endif
-
-  try {
-    _colorSubCount = _pubColorImg.getNumSubscribers();
-    _colorRawSubCount = _pubColorRawImg.getNumSubscribers();
-#if ENABLE_GRAY_IMAGE
-    _graySubCount = _pubGrayImg.getNumSubscribers();
-    _grayRawSubCount = _pubGrayRawImg.getNumSubscribers();
-#endif
-  } catch (...) {
-    rcutils_reset_error();
-    DEBUG_STREAM_VD("publishImages: Exception while counting subscribers");
-    return false;
-  }
-
-  return (_colorSubCount + _colorRawSubCount
-#if ENABLE_GRAY_IMAGE
-         + _graySubCount + _grayRawSubCount
-#endif
-  ) > 0;
-}
-
 bool ZedCameraOne::areSensorsTopicsSubscribed()
 {
   try {
@@ -2720,183 +2427,6 @@ bool ZedCameraOne::areSensorsTopicsSubscribed()
     "[areSensorsTopicsSubscribed] IMU RAW subscribers: " << _imuRawSubCount);
 
   return (_imuSubCount + _imuRawSubCount) > 0;
-}
-
-void ZedCameraOne::retrieveImages()
-{
-  bool retrieved = false;
-
-  // ----> Retrieve all required data
-  DEBUG_VD("Retrieving Image Data");
-  if (_colorSubCount > 0) {
-    retrieved |=
-      (sl::ERROR_CODE::SUCCESS ==
-      _zed->retrieveImage(_matColor, sl::VIEW::LEFT, sl::MEM::CPU, _matResol));
-    _sdkGrabTS = _matColor.timestamp;
-    DEBUG_STREAM_VD(
-      "Color image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " <<
-        _sdkGrabTS.getNanoseconds() <<
-        " nsec");
-  }
-  if (_colorRawSubCount > 0) {
-    retrieved |= (sl::ERROR_CODE::SUCCESS ==
-      _zed->retrieveImage(
-        _matColorRaw, sl::VIEW::LEFT_UNRECTIFIED,
-        sl::MEM::CPU, _matResol));
-    _sdkGrabTS = _matColorRaw.timestamp;
-    DEBUG_STREAM_VD(
-      "Color raw image " << _matResol.width << "x" << _matResol.height <<
-        " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
-        " nsec");
-  }
-#if ENABLE_GRAY_IMAGE
-  if (_graySubCount > 0) {
-    retrieved |= (sl::ERROR_CODE::SUCCESS ==
-      _zed->retrieveImage(
-        _matGray, sl::VIEW::LEFT_GRAY,
-        sl::MEM::CPU, _matResol));
-    _sdkGrabTS = _matGray.timestamp;
-    DEBUG_STREAM_VD(
-      "Gray image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " <<
-        _sdkGrabTS.getNanoseconds() <<
-        " nsec");
-  }
-  if (_grayRawSubCount > 0) {
-    retrieved |=
-      (sl::ERROR_CODE::SUCCESS ==
-      _zed->retrieveImage(
-        _matGrayRaw, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
-        sl::MEM::CPU, _matResol));
-    _sdkGrabTS = _matGrayRaw.timestamp;
-    DEBUG_STREAM_VD(
-      "Gray raw image " << _matResol.width << "x" << _matResol.height <<
-        " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
-        " nsec");
-  }
-#endif
-  if (retrieved) {
-    DEBUG_VD("Image Data retrieved");
-  }
-  // <---- Retrieve all required data
-}
-
-void ZedCameraOne::publishImages()
-{
-  DEBUG_VD("=== Publish Image topics === ");
-  sl_tools::StopWatch vdElabTimer(get_clock());
-
-  // Start processing timer for diagnostic
-  vdElabTimer.tic();
-
-  // ----> Check if a grab has been done before publishing the same images
-  if (_sdkGrabTS.getNanoseconds() == _lastTs_grab.getNanoseconds()) {
-    // Data not updated by a grab calling in the grab thread
-    DEBUG_VD("publishImages: ignoring not update data");
-    DEBUG_STREAM_VD(
-      "Latest Ts: " << _lastTs_grab.getNanoseconds()
-                    << " - New Ts: "
-                    << _sdkGrabTS.getNanoseconds());
-    return;
-  }
-
-  if (_sdkGrabTS.data_ns != 0) {
-    double period_sec =
-      static_cast<double>(_sdkGrabTS.data_ns - _lastTs_grab.data_ns) / 1e9;
-    DEBUG_STREAM_VD(
-      "IMAGE PUB LAST PERIOD: " << period_sec << " sec @"
-                                << 1. / period_sec << " Hz");
-
-    _imagePeriodMean_sec->addValue(period_sec);
-    DEBUG_STREAM_VD(
-      "IMAGE PUB MEAN PERIOD: "
-        << _imagePeriodMean_sec->getAvg() << " sec @"
-        << 1. / _imagePeriodMean_sec->getAvg() << " Hz");
-  }
-  _lastTs_grab = _sdkGrabTS;
-  // <---- Check if a grab has been done before publishing the same images
-
-  // ----> Timestamp
-  rclcpp::Time timeStamp;
-  if (_svoMode) {
-    timeStamp = _frameTimestamp;
-  } else {
-    timeStamp = sl_tools::slTime2Ros(_sdkGrabTS, get_clock()->get_clock_type());
-  }
-  // <---- Timestamp
-
-  // ----> Publish the COLOR image if someone has subscribed to
-  if (_colorSubCount > 0) {
-    DEBUG_STREAM_VD("_colorSubCount: " << _colorSubCount);
-    publishImageWithInfo(
-      _matColor, _pubColorImg, _camInfoMsg, _camOptFrameId,
-      timeStamp);
-  }
-  // <---- Publish the COLOR image if someone has subscribed to
-
-  // ----> Publish the COLOR RAW image if someone has subscribed to
-  if (_colorRawSubCount > 0) {
-    DEBUG_STREAM_VD("_colorRawSubCount: " << _colorRawSubCount);
-    publishImageWithInfo(
-      _matColorRaw, _pubColorRawImg, _camInfoRawMsg,
-      _camOptFrameId, timeStamp);
-  }
-  // <---- Publish the COLOR RAW image if someone has subscribed to
-
-#if ENABLE_GRAY_IMAGE
-  // ----> Publish the GRAY image if someone has subscribed to
-  if (_graySubCount > 0) {
-    DEBUG_STREAM_VD("_graySubCount: " << _graySubCount);
-    publishImageWithInfo(
-      _matGray, _pubGrayImg, _camInfoMsg, _camOptFrameId,
-      timeStamp);
-  }
-  // <---- Publish the GRAY image if someone has subscribed to
-
-  // ----> Publish the GRAY RAW image if someone has subscribed to
-  if (_grayRawSubCount > 0) {
-    DEBUG_STREAM_VD("_grayRawSubCount: " << _grayRawSubCount);
-    publishImageWithInfo(
-      _matGrayRaw, _pubGrayRawImg, _camInfoRawMsg,
-      _camOptFrameId, timeStamp);
-  }
-  // <---- Publish the GRAY RAW image if someone has subscribed to
-#endif
-
-  // Diagnostic statistic
-  _imageElabMean_sec->addValue(vdElabTimer.toc());
-
-  // ----> Check publishing frequency
-  double vd_period_usec = 1e6 / _camGrabFrameRate;
-
-  double elapsed_usec = _imgPubFreqTimer.toc() * 1e6;
-
-  if (elapsed_usec < vd_period_usec) {
-    rclcpp::sleep_for(
-      std::chrono::microseconds(
-        static_cast<int>(vd_period_usec - elapsed_usec)));
-  }
-
-  _imgPubFreqTimer.tic();
-  // <---- Check publishing frequency
-
-  DEBUG_VD("=== Video and Depth topics published === ");
-}
-
-void ZedCameraOne::publishImageWithInfo(
-  const sl::Mat & img, const image_transport::CameraPublisher & pubImg,
-  camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
-  const rclcpp::Time & t)
-{
-  auto image = sl_tools::imageToROSmsg(img, imgFrameId, t, false);
-  camInfoMsg->header.stamp = t;
-  DEBUG_STREAM_VD("Publishing IMAGE message: " << t.nanoseconds() << " nsec");
-  try {
-    pubImg.publish(std::move(image), std::move(camInfoMsg));
-  } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
-  } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
-  }
 }
 
 void ZedCameraOne::callback_enableStreaming(

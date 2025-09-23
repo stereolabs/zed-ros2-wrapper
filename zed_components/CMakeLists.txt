@@ -236,13 +236,13 @@ set(ZED_CAMERA_SRC
 
 set(ZED_CAMERA_ONE_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_one_component.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera_one/include/zed_camera_one_component.hpp
 )
 
 set(ZED_CAMERA_ONE_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_one_component_main.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_one_component_sensors.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/src/zed_camera_one_component_video.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera_one/src/zed_camera_one_component_main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera_one/src/zed_camera_one_component_sensors.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera_one/src/zed_camera_one_component_video.cpp
 )
 ###############################################################################
 # Bin and Install
@@ -258,7 +258,7 @@ target_include_directories(zed_camera_component PUBLIC
     ${CUDA_INCLUDE_DIRS}
     ${ZED_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include    
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
 )
 target_compile_definitions(zed_camera_component
@@ -285,7 +285,7 @@ target_include_directories(zed_camera_one_component PUBLIC
     ${CUDA_INCLUDE_DIRS}
     ${ZED_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera_one/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include
 )
 target_compile_definitions(zed_camera_one_component

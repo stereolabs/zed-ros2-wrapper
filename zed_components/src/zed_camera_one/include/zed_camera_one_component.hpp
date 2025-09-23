@@ -114,6 +114,18 @@ protected:
   void publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
   void publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
 
+  void setupGrabThreadPolicy();
+  void initializeGrabThreadStatus();
+  bool checkGrabThreadInterruption();
+  void handleDynamicSettings();
+  void updateGrabFrequency();
+  bool performCameraGrab();
+  void updateFrameTimestamp();
+  void handleStreamingServer();
+  void handleSvoRecordingStatus();
+  void handleImageRetrievalAndPublishing();
+
+
   void setupSensorThreadScheduling();
   bool handleSensorThreadInterruption();
   bool waitForCameraOpen();

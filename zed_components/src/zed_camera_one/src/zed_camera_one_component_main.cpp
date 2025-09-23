@@ -1410,239 +1410,36 @@ void ZedCameraOne::threadFunc_zedGrab()
 {
   DEBUG_STREAM_COMM("Grab thread started");
 
-  // ----> Advanced thread settings
-  DEBUG_STREAM_ADV("Grab thread settings");
-  if (_debugAdvanced) {
-    int policy;
-    sched_param par;
-    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), " ! Failed to get thread policy! - "
-          << std::strerror(errno));
-    } else {
-      DEBUG_STREAM_ADV(
-        " * Default GRAB thread (#"
-          << pthread_self() << ") settings - Policy: "
-          << sl_tools::threadSched2Str(policy).c_str()
-          << " - Priority: " << par.sched_priority);
-    }
-  }
+  setupGrabThreadPolicy();
 
-  if (_threadSchedPolicy == "SCHED_OTHER") {
-    sched_param par;
-    par.sched_priority = 0;
-    if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), " ! Failed to set thread params! - "
-          << std::strerror(errno));
-    }
-  } else if (_threadSchedPolicy == "SCHED_BATCH") {
-    sched_param par;
-    par.sched_priority = 0;
-    if (pthread_setschedparam(pthread_self(), SCHED_BATCH, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), " ! Failed to set thread params! - "
-          << std::strerror(errno));
-    }
-  } else if (_threadSchedPolicy == "SCHED_FIFO") {
-    sched_param par;
-    par.sched_priority = _threadPrioGrab;
-    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), " ! Failed to set thread params! - "
-          << std::strerror(errno));
-    }
-  } else if (_threadSchedPolicy == "SCHED_RR") {
-    sched_param par;
-    par.sched_priority = _threadPrioGrab;
-    if (pthread_setschedparam(pthread_self(), SCHED_RR, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), " ! Failed to set thread params! - "
-          << std::strerror(errno));
-    }
-  } else {
-    RCLCPP_WARN_STREAM(
-      get_logger(), " ! Failed to set thread params! - Policy not supported");
-  }
+  initializeGrabThreadStatus();
 
-  if (_debugAdvanced) {
-    int policy;
-    sched_param par;
-    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), " ! Failed to get thread policy! - "
-          << std::strerror(errno));
-    } else {
-      DEBUG_STREAM_ADV(
-        " * New GRAB thread (#"
-          << pthread_self() << ") settings - Policy: "
-          << sl_tools::threadSched2Str(policy).c_str()
-          << " - Priority: " << par.sched_priority);
-    }
-  }
-  // <---- Advanced thread settings
-
-  // ----> Init status variables
-  _frameCount = 0;
-  _threadStop = false;
-  // <---- Init status variables
-
-  // ----> Infinite grab thread
   while (1) {
     try {
-      RCLCPP_INFO_STREAM_ONCE(
-        get_logger(),
-        "=== " << _cameraName << " started ===");
+      RCLCPP_INFO_STREAM_ONCE(get_logger(), "=== " << _cameraName << " started ===");
 
-      // Start grab timer for diagnostic
       sl_tools::StopWatch grabElabTimer(get_clock());
 
-      // ----> Interruption check
-      if (!rclcpp::ok()) {
-        DEBUG_STREAM_COMM("Ctrl+C received: stopping grab thread");
-        _threadStop = true;
-        break;
-      }
+      if (checkGrabThreadInterruption()) {break;}
 
-      if (_threadStop) {
-        DEBUG_STREAM_COMM("Grab thread stopped");
-        break;
-      }
-      // <---- Interruption check
+      handleDynamicSettings();
 
-      // ----> Apply video dynamic parameters
-      if (!_svoMode && _triggerUpdateDynParams) {
-        applyDynamicSettings();
-      }
-      // <---- Apply video dynamic parameters
-
-      // ----> Grab freq calculation
-      double elapsed_sec = _grabFreqTimer.toc();
-      _grabPeriodMean_sec->addValue(elapsed_sec);
-      _grabFreqTimer.tic();
-      // <---- Grab freq calculation
+      updateGrabFrequency();
 
       if (!_svoPause) {
-        // Start processing timer for diagnostic
         grabElabTimer.tic();
-
-        // ZED grab
-        _grabStatus = _zed->grab();
-
-        // ----> Grab errors?
-        // Note: disconnection are automatically handled by the ZED SDK
-        if (_grabStatus != sl::ERROR_CODE::SUCCESS) {
-#if ENABLE_SVO
-          if (_svoMode && _grabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
-            // ----> Check SVO status
-            if (_svoLoop) {
-              _zed->setSVOPosition(0);
-              RCLCPP_WARN(
-                get_logger(),
-                "SVO reached the end and it has been restarted.");
-              rclcpp::sleep_for(
-                std::chrono::microseconds(
-                  static_cast<int>(_grabPeriodMean_sec->getAvg() * 1e6)));
-              continue;
-            } else {
-              RCLCPP_WARN(
-                get_logger(),
-                "SVO reached the end. The node has been stopped.");
-              break;
-            }
-            // <---- Check SVO status
-          } else
-#endif
-          if (_grabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
-            RCLCPP_ERROR_STREAM(
-              get_logger(),
-              "Connection issue detected: "
-                << sl::toString(_grabStatus).c_str());
-            rclcpp::sleep_for(1s);
-            continue;
-          } else if (_grabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED ||
-            _grabStatus == sl::ERROR_CODE::FAILURE)
-          {
-            RCLCPP_ERROR_STREAM(
-              get_logger(),
-              "Camera issue detected: "
-                << sl::toString(_grabStatus).c_str() << ". " << sl::toVerbose(
-                _grabStatus).c_str() << ". Trying to recover the connection...");
-            rclcpp::sleep_for(1s);
-            continue;
-          } else {
-            RCLCPP_ERROR_STREAM(
-              get_logger(),
-              "Critical camera error: " << sl::toString(
-                _grabStatus).c_str() << ". " << sl::toVerbose(
-                _grabStatus).c_str() << ". NODE KILLED.");
-            _zed.reset();
-            exit(EXIT_FAILURE);
-          }
-        }
-        // <---- Grab errors?
-
-        // Update frame count
-        _frameCount++;
-
-        // ----> Timestamp
-        if (_svoMode) {
-          if (_useSvoTimestamp) {
-            _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
-          } else {
-            _frameTimestamp =
-              sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
-          }
-        } else {
-          _frameTimestamp =
-            sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
-        }
-        //DEBUG_STREAM_COMM("Grab timestamp: " << _frameTimestamp.nanoseconds() << " nsec");
-        // <---- Timestamp
-
-        if (_streamingServerRequired && !_streamingServerRunning) {
-          DEBUG_STR("Streaming server required, but not running");
-          startStreamingServer();
-        }
+        if (!performCameraGrab()) {break;}
+        updateFrameTimestamp();
+        handleStreamingServer();
       }
 
-#if ENABLE_SVO
-      // ----> Check recording status
-      _recMutex.lock();
-      if (_recording) {
-        _recStatus = _zed->getRecordingStatus();
+      handleSvoRecordingStatus();
 
-        if (!_recStatus.status) {
-          rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-          RCLCPP_WARN_THROTTLE(
-            get_logger(), steady_clock, 1000.0,
-            "Error saving frame to SVO");
-        }
-      }
-      _recMutex.unlock();
-      // <---- Check recording status
-#endif
+      handleImageRetrievalAndPublishing();
 
-      // ----> Retrieve Image/Depth data if someone has subscribed to
-      // Retrieve data if there are subscriber to topics
-      _imageSubscribed = areImageTopicsSubscribed();
-      if (_imageSubscribed) {
-        DEBUG_STREAM_VD("Retrieving video data");
-        retrieveImages();
-        publishImages();
-
-        _videoPublishing = true;
-      } else {
-        _videoPublishing = false;
-      }
-      // <---- Retrieve Image/Depth data if someone has subscribed to
-
-      // Diagnostic statistics update
-      double mean_elab_sec = _elabPeriodMean_sec->addValue(grabElabTimer.toc());
+      _elabPeriodMean_sec->addValue(grabElabTimer.toc());
     } catch (rclcpp::exceptions::ParameterNotDeclaredException & ex) {
-      RCLCPP_ERROR_STREAM(
-        get_logger(),
-        "ParameterNotDeclaredException: " << ex.what());
+      RCLCPP_ERROR_STREAM(get_logger(), "ParameterNotDeclaredException: " << ex.what());
       continue;
     } catch (const std::exception & e) {
       RCLCPP_ERROR_STREAM(get_logger(), "Exception: " << e.what());
@@ -1653,12 +1450,192 @@ void ZedCameraOne::threadFunc_zedGrab()
       continue;
     }
   }
-  // <---- Infinite grab thread
 
   _diagUpdater.broadcast(diagnostic_msgs::msg::DiagnosticStatus::STALE, "Grab thread stopped");
   _diagUpdater.force_update();
 
   DEBUG_STREAM_COMM("Grab thread finished");
+}
+
+// Helper functions for threadFunc_zedGrab
+
+void ZedCameraOne::setupGrabThreadPolicy()
+{
+  DEBUG_STREAM_ADV("Grab thread settings");
+  if (_debugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno));
+    } else {
+      DEBUG_STREAM_ADV(
+        " * Default GRAB thread (#" << pthread_self() << ") settings - Policy: "
+                                    << sl_tools::threadSched2Str(
+          policy).c_str() << " - Priority: " << par.sched_priority);
+    }
+  }
+
+  sched_param par;
+  par.sched_priority =
+    (_threadSchedPolicy == "SCHED_FIFO" ||
+    _threadSchedPolicy == "SCHED_RR") ? _threadPrioGrab : 0;
+  int policy = SCHED_OTHER;
+  if (_threadSchedPolicy == "SCHED_BATCH") {
+    policy = SCHED_BATCH;
+  } else if (_threadSchedPolicy == "SCHED_FIFO") {
+    policy = SCHED_FIFO;
+  } else if (_threadSchedPolicy == "SCHED_RR") {policy = SCHED_RR;}
+  if (pthread_setschedparam(pthread_self(), policy, &par)) {
+    RCLCPP_WARN_STREAM(get_logger(), " ! Failed to set thread params! - " << std::strerror(errno));
+  }
+
+  if (_debugAdvanced) {
+    int policy;
+    sched_param par;
+    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        " ! Failed to get thread policy! - " << std::strerror(errno));
+    } else {
+      DEBUG_STREAM_ADV(
+        " * New GRAB thread (#" << pthread_self() << ") settings - Policy: "
+                                << sl_tools::threadSched2Str(
+          policy).c_str() << " - Priority: " << par.sched_priority);
+    }
+  }
+}
+
+void ZedCameraOne::initializeGrabThreadStatus()
+{
+  _frameCount = 0;
+  _threadStop = false;
+}
+
+bool ZedCameraOne::checkGrabThreadInterruption()
+{
+  if (!rclcpp::ok()) {
+    DEBUG_STREAM_COMM("Ctrl+C received: stopping grab thread");
+    _threadStop = true;
+    return true;
+  }
+  if (_threadStop) {
+    DEBUG_STREAM_COMM("Grab thread stopped");
+    return true;
+  }
+  return false;
+}
+
+void ZedCameraOne::handleDynamicSettings()
+{
+  if (!_svoMode && _triggerUpdateDynParams) {
+    applyDynamicSettings();
+  }
+}
+
+void ZedCameraOne::updateGrabFrequency()
+{
+  double elapsed_sec = _grabFreqTimer.toc();
+  _grabPeriodMean_sec->addValue(elapsed_sec);
+  _grabFreqTimer.tic();
+}
+
+bool ZedCameraOne::performCameraGrab()
+{
+  _grabStatus = _zed->grab();
+  if (_grabStatus != sl::ERROR_CODE::SUCCESS) {
+#if ENABLE_SVO
+    if (_svoMode && _grabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
+      if (_svoLoop) {
+        _zed->setSVOPosition(0);
+        RCLCPP_WARN(get_logger(), "SVO reached the end and it has been restarted.");
+        rclcpp::sleep_for(
+          std::chrono::microseconds(
+            static_cast<int>(_grabPeriodMean_sec->getAvg() *
+            1e6)));
+        return true;
+      } else {
+        RCLCPP_WARN(get_logger(), "SVO reached the end. The node has been stopped.");
+        return false;
+      }
+    } else
+#endif
+    if (_grabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(), "Connection issue detected: " << sl::toString(
+          _grabStatus).c_str());
+      rclcpp::sleep_for(1s);
+      return true;
+    } else if (_grabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED ||
+      _grabStatus == sl::ERROR_CODE::FAILURE)
+    {
+      RCLCPP_ERROR_STREAM(
+        get_logger(), "Camera issue detected: "
+          << sl::toString(_grabStatus).c_str() << ". " << sl::toVerbose(_grabStatus).c_str()
+          << ". Trying to recover the connection...");
+      rclcpp::sleep_for(1s);
+      return true;
+    } else {
+      RCLCPP_ERROR_STREAM(
+        get_logger(), "Critical camera error: "
+          << sl::toString(_grabStatus).c_str() << ". " << sl::toVerbose(_grabStatus).c_str()
+          << ". NODE KILLED.");
+      _zed.reset();
+      exit(EXIT_FAILURE);
+    }
+  }
+  _frameCount++;
+  return true;
+}
+
+void ZedCameraOne::updateFrameTimestamp()
+{
+  if (_svoMode) {
+    if (_useSvoTimestamp) {
+      _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+    } else {
+      _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
+    }
+  } else {
+    _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+  }
+}
+
+void ZedCameraOne::handleStreamingServer()
+{
+  if (_streamingServerRequired && !_streamingServerRunning) {
+    DEBUG_STR("Streaming server required, but not running");
+    startStreamingServer();
+  }
+}
+
+void ZedCameraOne::handleSvoRecordingStatus()
+{
+#if ENABLE_SVO
+  _recMutex.lock();
+  if (_recording) {
+    _recStatus = _zed->getRecordingStatus();
+    if (!_recStatus.status) {
+      rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+      RCLCPP_WARN_THROTTLE(get_logger(), steady_clock, 1000.0, "Error saving frame to SVO");
+    }
+  }
+  _recMutex.unlock();
+#endif
+}
+
+void ZedCameraOne::handleImageRetrievalAndPublishing()
+{
+  _imageSubscribed = areImageTopicsSubscribed();
+  if (_imageSubscribed) {
+    DEBUG_STREAM_VD("Retrieving video data");
+    retrieveImages();
+    publishImages();
+    _videoPublishing = true;
+  } else {
+    _videoPublishing = false;
+  }
 }
 
 bool ZedCameraOne::startStreamingServer()

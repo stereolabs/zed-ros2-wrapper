@@ -886,83 +886,11 @@ void ZedCameraOne::callback_updateDiagnostic(
   stat.addf("Uptime", "%s", sl_tools::seconds2str(_uptimer.toc()).c_str());
 
   if (_grabStatus == sl::ERROR_CODE::SUCCESS) {
-    double freq = 1. / _grabPeriodMean_sec->getAvg();
-    double freq_perc = 100. * freq / _camGrabFrameRate;
-    stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
-
-    double frame_proc_sec = _elabPeriodMean_sec->getAvg();
-    double frame_grab_period = 1. / _camGrabFrameRate;
-    stat.addf(
-      "Capture", "Tot. Processing Time: %.6f sec (Max. %.3f sec)",
-      frame_proc_sec, frame_grab_period);
-
-    if (frame_proc_sec > frame_grab_period) {
-      _sysOverloadCount++;
-    }
-
-    if (_sysOverloadCount >= 10) {
-      stat.summary(
-        diagnostic_msgs::msg::DiagnosticStatus::WARN,
-        "System overloaded. Consider reducing "
-        "'general.pub_frame_rate' or 'general.grab_resolution'");
-    } else {
-      _sysOverloadCount = 0;
-      stat.summary(
-        diagnostic_msgs::msg::DiagnosticStatus::OK,
-        "Camera grabbing");
-    }
-
-    // ----> Frame drop count
-    auto dropped = _zed->getFrameDroppedCount();
-    uint64_t total = dropped + _frameCount;
-    auto perc_drop = 100. * static_cast<double>(dropped) / total;
-    stat.addf(
-      "Frame Drop rate", "%u/%lu (%g%%)",
-      dropped, total, perc_drop);
-    // <---- Frame drop count
-
-#if ENABLE_SVO
-    if (_svoMode) {
-      stat.add("Input mode", "SVO");
-      stat.addf("SVO file", "%s", _svoFilepath.c_str());
-    } else
-#endif
-    if (_streamMode) {
-      stat.add("Input mode", "LOCAL STREAM");
-    } else {
-      stat.add("Input mode", "Live Camera");
-    }
-
-    if (_videoPublishing) {
-      freq = 1. / _imagePeriodMean_sec->getAvg();
-      freq_perc = 100. * freq / _camGrabFrameRate;
-      frame_grab_period = 1. / _camGrabFrameRate;
-      stat.addf("Image", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
-      stat.addf(
-        "Image", "Processing Time: %.6f sec (Max. %.3f sec)",
-        _imagePeriodMean_sec->getAvg(), frame_grab_period);
-    } else {
-      stat.add("Image", "Topic not subscribed");
-    }
-
-#if ENABLE_SVO
-    if (_svoMode) {
-      int frame = _zed->getSVOPosition();
-      int totFrames = _zed->getSVONumberOfFrames();
-      double svo_perc = 100. * (static_cast<double>(frame) / totFrames);
-
-      stat.addf(
-        "Playing SVO", "Frame: %d/%d (%.1f%%)", frame, totFrames,
-        svo_perc);
-    }
-#endif
-
-    if (_publishImuTF) {
-      freq = 1. / _pubImuTF_sec->getAvg();
-      stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
-    } else {
-      stat.add("TF IMU", "DISABLED");
-    }
+    updateCaptureDiagnostics(stat);
+    updateInputModeDiagnostics(stat);
+    updateImageDiagnostics(stat);
+    updateSvoDiagnostics(stat);
+    updateTfImuDiagnostics(stat);
   } else if (_grabStatus == sl::ERROR_CODE::LAST) {
     stat.summary(
       diagnostic_msgs::msg::DiagnosticStatus::OK,
@@ -973,14 +901,120 @@ void ZedCameraOne::callback_updateDiagnostic(
       "%s", sl::toString(_grabStatus).c_str());
   }
 
+  updateImuDiagnostics(stat);
+  updateTemperatureDiagnostics(stat);
+  updateSvoRecordingDiagnostics(stat);
+  updateStreamingServerDiagnostics(stat);
+}
+
+// --- Helper functions for diagnostics ---
+
+void ZedCameraOne::updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
+{
+  double freq = 1. / _grabPeriodMean_sec->getAvg();
+  double freq_perc = 100. * freq / _camGrabFrameRate;
+  stat.addf("Capture", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+
+  double frame_proc_sec = _elabPeriodMean_sec->getAvg();
+  double frame_grab_period = 1. / _camGrabFrameRate;
+  stat.addf(
+    "Capture", "Tot. Processing Time: %.6f sec (Max. %.3f sec)",
+    frame_proc_sec, frame_grab_period);
+
+  if (frame_proc_sec > frame_grab_period) {
+    _sysOverloadCount++;
+  }
+
+  if (_sysOverloadCount >= 10) {
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::WARN,
+      "System overloaded. Consider reducing "
+      "'general.pub_frame_rate' or 'general.grab_resolution'");
+  } else {
+    _sysOverloadCount = 0;
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::OK,
+      "Camera grabbing");
+  }
+
+  // ----> Frame drop count
+  auto dropped = _zed->getFrameDroppedCount();
+  uint64_t total = dropped + _frameCount;
+  auto perc_drop = 100. * static_cast<double>(dropped) / total;
+  stat.addf(
+    "Frame Drop rate", "%u/%lu (%g%%)",
+    dropped, total, perc_drop);
+  // <---- Frame drop count
+}
+
+void ZedCameraOne::updateInputModeDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
+{
+#if ENABLE_SVO
+  if (_svoMode) {
+    stat.add("Input mode", "SVO");
+    stat.addf("SVO file", "%s", _svoFilepath.c_str());
+    return;
+  }
+#endif
+  if (_streamMode) {
+    stat.add("Input mode", "LOCAL STREAM");
+  } else {
+    stat.add("Input mode", "Live Camera");
+  }
+}
+
+void ZedCameraOne::updateImageDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
+{
+  if (_videoPublishing) {
+    double freq = 1. / _imagePeriodMean_sec->getAvg();
+    double freq_perc = 100. * freq / _camGrabFrameRate;
+    double frame_grab_period = 1. / _camGrabFrameRate;
+    stat.addf("Image", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+    stat.addf(
+      "Image", "Processing Time: %.6f sec (Max. %.3f sec)",
+      _imagePeriodMean_sec->getAvg(), frame_grab_period);
+  } else {
+    stat.add("Image", "Topic not subscribed");
+  }
+}
+
+void ZedCameraOne::updateSvoDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
+{
+#if ENABLE_SVO
+  if (_svoMode) {
+    int frame = _zed->getSVOPosition();
+    int totFrames = _zed->getSVONumberOfFrames();
+    double svo_perc = 100. * (static_cast<double>(frame) / totFrames);
+
+    stat.addf(
+      "Playing SVO", "Frame: %d/%d (%.1f%%)", frame, totFrames,
+      svo_perc);
+  }
+#endif
+}
+
+void ZedCameraOne::updateTfImuDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
+{
+  if (_publishImuTF) {
+    double freq = 1. / _pubImuTF_sec->getAvg();
+    stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
+  } else {
+    stat.add("TF IMU", "DISABLED");
+  }
+}
+
+void ZedCameraOne::updateImuDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
+{
   if (_imuPublishing) {
     double freq = 1. / _pubImu_sec->getAvg();
     stat.addf("IMU", "Mean Frequency: %.1f Hz", freq);
   } else {
     stat.add("IMU Sensor", "Topics not subscribed");
   }
+}
 
-
+void ZedCameraOne::updateTemperatureDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
+{
   stat.addf("Camera Temp.", "%.1f °C", _tempImu);
 
   if (_tempImu > 70.f) {
@@ -988,19 +1022,19 @@ void ZedCameraOne::callback_updateDiagnostic(
       diagnostic_msgs::msg::DiagnosticStatus::WARN,
       "High Camera temperature");
   }
+}
 
+void ZedCameraOne::updateSvoRecordingDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
+{
 #if ENABLE_SVO
   if (_recording) {
     if (!_recStatus.status) {
-      // if (mGrabActive)
-      {
-        stat.add("SVO Recording", "ERROR");
-        stat.summary(
-          diagnostic_msgs::msg::DiagnosticStatus::WARN,
-          "Error adding frames to SVO file while recording. "
-          "Check "
-          "free disk space");
-      }
+      stat.add("SVO Recording", "ERROR");
+      stat.summary(
+        diagnostic_msgs::msg::DiagnosticStatus::WARN,
+        "Error adding frames to SVO file while recording. "
+        "Check "
+        "free disk space");
     } else {
       stat.add("SVO Recording", "ACTIVE");
       stat.addf(
@@ -1016,7 +1050,11 @@ void ZedCameraOne::callback_updateDiagnostic(
     stat.add("SVO Recording", "NOT ACTIVE");
   }
 #endif
+}
 
+void ZedCameraOne::updateStreamingServerDiagnostics(
+  diagnostic_updater::DiagnosticStatusWrapper & stat)
+{
   if (_streamingServerRunning) {
     stat.add("Streaming Server", "ACTIVE");
 

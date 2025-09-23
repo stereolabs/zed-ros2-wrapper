@@ -110,9 +110,19 @@ protected:
   bool publishSensorsData();
   void publishImuFrameAndTopic();
 
-  void updateImuDiagnostics(double dT);
+  void updateImuFreqDiagnostics(double dT);
   void publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
   void publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
+
+  void updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateInputModeDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateImageDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateSvoDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateTfImuDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateImuDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateTemperatureDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateSvoRecordingDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateStreamingServerDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
 
   void setupGrabThreadPolicy();
   void initializeGrabThreadStatus();
@@ -124,7 +134,6 @@ protected:
   void handleStreamingServer();
   void handleSvoRecordingStatus();
   void handleImageRetrievalAndPublishing();
-
 
   void setupSensorThreadScheduling();
   bool handleSensorThreadInterruption();

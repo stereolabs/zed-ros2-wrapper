@@ -277,7 +277,7 @@ bool ZedCameraOne::publishSensorsData()
     return false;
   }
 
-  updateImuDiagnostics(dT);
+  updateImuFreqDiagnostics(dT);
 
   publishImuFrameAndTopic();
 
@@ -292,7 +292,7 @@ bool ZedCameraOne::publishSensorsData()
   return true;
 }
 
-void ZedCameraOne::updateImuDiagnostics(double dT)
+void ZedCameraOne::updateImuFreqDiagnostics(double dT)
 {
   DEBUG_STREAM_SENS("SENSOR LAST PERIOD: " << dT << " sec @" << 1. / dT << " Hz");
   auto elapsed = _imuFreqTimer.toc();

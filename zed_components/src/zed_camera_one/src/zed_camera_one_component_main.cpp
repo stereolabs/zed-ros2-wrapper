@@ -1087,37 +1087,8 @@ ZedCameraOne::callback_dynamicParamChange(
 
   DEBUG_STREAM_COMM("Modifying " << parameters.size() << " parameters");
 
-  // ----> Lambda function: Update dynamic int parameters
-  auto updateIntParam = [this](const std::string & paramName, const int value, int & paramVal) {
-      if (value != paramVal) {
-        paramVal = value;
-        _camDynParMapChanged[paramName] = true;
-        DEBUG_STREAM_COMM(" * " << paramName << " changed to " << value);
-      } else {
-        _camDynParMapChanged[paramName] = false;
-        DEBUG_STREAM_COMM(" * " << paramName << " not changed: " << value);
-      }
-      return _camDynParMapChanged[paramName];
-    };
-  // <---- Lambda function: Update dynamic int parameters
-
-  // ----> Lambda function: Update dynamic bool parameters
-  auto updateBoolParam = [this](const std::string & paramName, const bool value, bool & paramVal) {
-      if (value != paramVal) {
-        paramVal = value;
-        _camDynParMapChanged[paramName] = true;
-        DEBUG_STREAM_COMM(" * " << paramName << " changed to " << value);
-      } else {
-        _camDynParMapChanged[paramName] = false;
-        DEBUG_STREAM_COMM(" * " << paramName << " not changed: " << value);
-      }
-      return _camDynParMapChanged[paramName];
-    };
-  // <---- Lambda function: Update dynamic bool parameters
-
   for (const auto & param : parameters) {
     DEBUG_STREAM_COMM("Param #" << count << ": " << param.get_name());
-
     count++;
 
     std::string param_name = param.get_name();
@@ -1132,196 +1103,24 @@ ZedCameraOne::callback_dynamicParamChange(
       } else {
         DEBUG_STREAM_COMM(" * " << param_name << " not changed: " << value);
       }
-    } else {
-      auto found = _camDynParMapChanged.find(param_name);
-      if (found != _camDynParMapChanged.end()) {
-        if (param_name == "video.saturation") { // Saturation
-          if (updateIntParam(param_name, param.as_int(), _camSaturation)) {
-            count_ok++;
-          }
-        } else if (param_name == "video.sharpness") { // Sharpness
-          if (updateIntParam(param_name, param.as_int(), _camSharpness)) {
-            count_ok++;
-          }
-        } else if (param_name == "video.gamma") { // Gamma
-          if (updateIntParam(param_name, param.as_int(), _camGamma)) {
-            count_ok++;
-          }
-        } else if (param_name ==
-          "video.auto_whitebalance")           // Auto White Balance
-        {
-          if (updateBoolParam(param_name, param.as_bool(), _camAutoWB)) {
-            count_ok++;
-          }
-        } else if (param_name ==
-          "video.whitebalance_temperature")           // White Balance Temp
-        {
-          if (updateIntParam(param_name, param.as_int(), _camWBTemp)) {
-            count_ok++;
+      continue;
+    }
 
-            // Force disable auto white balance
-            updateBoolParam("video.auto_whitebalance", false, _camAutoWB);
-          }
-        } else if (param_name == "video.auto_exposure") { // Auto Exposure
-          if (updateBoolParam(param_name, param.as_bool(), _camAutoExposure)) {
-            count_ok++;
-          }
-        } else if (param_name ==
-          "video.exposure_compensation")           // Exposure Compensation
-        {
-          if (updateIntParam(param_name, param.as_int(), _camExposureComp)) {
-            count_ok++;
-          }
-        } else if (param_name == "video.exposure_time") { // Exposure Time
-          if (updateIntParam(param_name, param.as_int(), _camExpTime)) {
-            count_ok++;
-
-            // Force disable auto exposure
-            updateBoolParam("video.auto_exposure", false, _camAutoExposure);
-
-            // Force exposure range min and max values
-            updateIntParam(
-              "video.auto_exposure_time_range_min", _camExpTime,
-              _camAutoExpTimeRangeMin);
-            updateIntParam(
-              "video.auto_exposure_time_range_max", _camExpTime,
-              _camAutoExpTimeRangeMax);
-          }
-        } else if (param_name == "video.auto_exposure_time_range_min") { // Auto Exp Time Min
-          if (updateIntParam(param_name, param.as_int(), _camAutoExpTimeRangeMin)) {
-            count_ok++;
-
-            // Force exposure
-            if (_camAutoExpTimeRangeMin != _camAutoExpTimeRangeMax) {
-              updateBoolParam("video.auto_exposure", true, _camAutoExposure);
-            } else {
-              updateBoolParam("video.auto_exposure", false, _camAutoExposure);
-              updateIntParam(
-                "video.exposure_time", _camAutoExpTimeRangeMin,
-                _camExpTime);
-            }
-          }
-        } else if (param_name == "video.auto_exposure_time_range_max") { // Auto Exp Time Max
-          if (updateIntParam(param_name, param.as_int(), _camAutoExpTimeRangeMax)) {
-            count_ok++;
-
-            // Force exposure
-            if (_camAutoExpTimeRangeMin != _camAutoExpTimeRangeMax) {
-              updateBoolParam("video.auto_exposure", true, _camAutoExposure);
-            } else {
-              updateBoolParam("video.auto_exposure", false, _camAutoExposure);
-              updateIntParam(
-                "video.exposure_time", _camAutoExpTimeRangeMax,
-                _camExpTime);
-            }
-          }
-        } else if (param_name == "video.auto_analog_gain") { // Auto Analog Gain
-          if (updateBoolParam(param_name, param.as_bool(), _camAutoAnalogGain)) {
-            count_ok++;
-          }
-        } else if (param_name == "video.analog_gain") { // Analog Gain
-          if (updateIntParam(param_name, param.as_int(), _camAnalogGain)) {
-            count_ok++;
-
-            // Force disable auto analog gain
-            updateBoolParam("video.auto_analog_gain", false, _camAutoAnalogGain);
-
-            // Force analog gain range min and max values
-            updateIntParam(
-              "video.auto_analog_gain_range_min", _camAnalogGain,
-              _camAutoAnalogGainRangeMin);
-            updateIntParam(
-              "video.auto_analog_gain_range_max", _camAnalogGain,
-              _camAutoAnalogGainRangeMax);
-          }
-        } else if (param_name == "video.auto_analog_gain_range_min") { // Auto Analog Gain Min
-          if (updateIntParam(param_name, param.as_int(), _camAutoAnalogGainRangeMin)) {
-            count_ok++;
-
-            // Force analog gain
-            if (_camAutoAnalogGainRangeMin != _camAutoAnalogGainRangeMax) {
-              updateBoolParam("video.auto_analog_gain", true, _camAutoAnalogGain);
-            } else {
-              updateBoolParam("video.auto_analog_gain", false, _camAutoAnalogGain);
-              updateIntParam(
-                "video.analog_gain", _camAutoAnalogGainRangeMin,
-                _camAnalogGain);
-            }
-          }
-        } else if (param_name == "video.auto_analog_gain_range_max") { // Auto Analog Gain Max
-          if (updateIntParam(param_name, param.as_int(), _camAutoAnalogGainRangeMax)) {
-            count_ok++;
-
-            // Force analog gain
-            if (_camAutoAnalogGainRangeMin != _camAutoAnalogGainRangeMax) {
-              updateBoolParam("video.auto_analog_gain", true, _camAutoAnalogGain);
-            } else {
-              updateBoolParam("video.auto_analog_gain", false, _camAutoAnalogGain);
-              updateIntParam(
-                "video.analog_gain", _camAutoAnalogGainRangeMax,
-                _camAnalogGain);
-            }
-          }
-        } else if (param_name == "video.auto_digital_gain") { // Auto Digital Gain
-          if (updateBoolParam(param_name, param.as_bool(), _camAutoDigitalGain)) {
-            count_ok++;
-          }
-        } else if (param_name == "video.digital_gain") { // Digital Gain
-          if (updateIntParam(param_name, param.as_int(), _camDigitalGain)) {
-            count_ok++;
-
-            // Force disable auto digital gain
-            updateBoolParam("video.auto_digital_gain", false, _camAutoDigitalGain);
-
-            // Force digital gain range min and max values
-            updateIntParam(
-              "video.auto_digital_gain_range_min", _camDigitalGain,
-              _camAutoDigitalGainRangeMin);
-            updateIntParam(
-              "video.auto_digital_gain_range_max", _camDigitalGain,
-              _camAutoDigitalGainRangeMax);
-          }
-        } else if (param_name == "video.auto_digital_gain_range_min") { // Auto Digital Gain Min
-          if (updateIntParam(param_name, param.as_int(), _camAutoDigitalGainRangeMin)) {
-            count_ok++;
-
-            // Force digital gain
-            if (_camAutoDigitalGainRangeMin != _camAutoDigitalGainRangeMax) {
-              updateBoolParam("video.auto_digital_gain", true, _camAutoDigitalGain);
-            } else {
-              updateBoolParam("video.auto_digital_gain", false, _camAutoDigitalGain);
-              updateIntParam(
-                "video.digital_gain", _camAutoDigitalGainRangeMin,
-                _camDigitalGain);
-            }
-          }
-        } else if (param_name == "video.auto_digital_gain_range_max") { // Auto Digital Gain Max
-          if (updateIntParam(param_name, param.as_int(), _camAutoDigitalGainRangeMax)) {
-            count_ok++;
-
-            // Force digital gain
-            if (_camAutoDigitalGainRangeMin != _camAutoDigitalGainRangeMax) {
-              updateBoolParam("video.auto_digital_gain", true, _camAutoDigitalGain);
-            } else {
-              updateBoolParam("video.auto_digital_gain", false, _camAutoDigitalGain);
-              updateIntParam(
-                "video.digital_gain", _camAutoDigitalGainRangeMax,
-                _camDigitalGain);
-            }
-          }
-        } else {
-          result.successful = false;
-          result.reason = "Parameter " + param_name + " not mapped";
-          DEBUG_COMM(result.reason.c_str());
-          break;
-        }
-        result.successful = true;
+    auto found = _camDynParMapChanged.find(param_name);
+    if (found != _camDynParMapChanged.end()) {
+      if (handleDynamicVideoParam(param, param_name, count_ok, result)) {
+        continue;
       } else {
         result.successful = false;
-        result.reason = "Parameter " + param_name + " not recognized";
+        result.reason = "Parameter " + param_name + " not mapped";
         DEBUG_COMM(result.reason.c_str());
         break;
       }
+    } else {
+      result.successful = false;
+      result.reason = "Parameter " + param_name + " not recognized";
+      DEBUG_COMM(result.reason.c_str());
+      break;
     }
   }
 
@@ -1339,6 +1138,308 @@ ZedCameraOne::callback_dynamicParamChange(
   }
 
   return result;
+}
+
+// Helper function for handling dynamic video parameters
+bool ZedCameraOne::handleDynamicVideoParam(
+  const rclcpp::Parameter & param,
+  const std::string & param_name,
+  int & count_ok,
+  rcl_interfaces::msg::SetParametersResult & result)
+{
+  if (handleSaturationSharpnessGamma(param, param_name, count_ok)) {
+    result.successful = true;
+    return true;
+  }
+  if (handleWhiteBalance(param, param_name, count_ok)) {
+    result.successful = true;
+    return true;
+  }
+  if (handleExposure(param, param_name, count_ok)) {
+    result.successful = true;
+    return true;
+  }
+  if (handleAnalogGain(param, param_name, count_ok)) {
+    result.successful = true;
+    return true;
+  }
+  if (handleDigitalGain(param, param_name, count_ok)) {
+    result.successful = true;
+    return true;
+  }
+  return false;
+}
+
+// Helper for saturation, sharpness, gamma
+bool ZedCameraOne::handleSaturationSharpnessGamma(
+  const rclcpp::Parameter & param, const std::string & param_name, int & count_ok)
+{
+  auto updateIntParam = [this](const std::string & paramName, const int value, int & paramVal) {
+      if (value != paramVal) {
+        paramVal = value;
+        _camDynParMapChanged[paramName] = true;
+        DEBUG_STREAM_COMM(" * " << paramName << " changed to " << value);
+      } else {
+        _camDynParMapChanged[paramName] = false;
+        DEBUG_STREAM_COMM(" * " << paramName << " not changed: " << value);
+      }
+      return _camDynParMapChanged[paramName];
+    };
+
+  if (param_name == "video.saturation") {
+    if (updateIntParam(param_name, param.as_int(), _camSaturation)) {count_ok++;}
+    return true;
+  } else if (param_name == "video.sharpness") {
+    if (updateIntParam(param_name, param.as_int(), _camSharpness)) {count_ok++;}
+    return true;
+  } else if (param_name == "video.gamma") {
+    if (updateIntParam(param_name, param.as_int(), _camGamma)) {count_ok++;}
+    return true;
+  }
+  return false;
+}
+
+// Helper for white balance
+bool ZedCameraOne::handleWhiteBalance(
+  const rclcpp::Parameter & param, const std::string & param_name, int & count_ok)
+{
+  auto updateIntParam = [this](const std::string & paramName, const int value, int & paramVal) {
+      if (value != paramVal) {
+        paramVal = value;
+        _camDynParMapChanged[paramName] = true;
+        DEBUG_STREAM_COMM(" * " << paramName << " changed to " << value);
+      } else {
+        _camDynParMapChanged[paramName] = false;
+        DEBUG_STREAM_COMM(" * " << paramName << " not changed: " << value);
+      }
+      return _camDynParMapChanged[paramName];
+    };
+  auto updateBoolParam = [this](const std::string & paramName, const bool value, bool & paramVal) {
+      if (value != paramVal) {
+        paramVal = value;
+        _camDynParMapChanged[paramName] = true;
+        DEBUG_STREAM_COMM(" * " << paramName << " changed to " << value);
+      } else {
+        _camDynParMapChanged[paramName] = false;
+        DEBUG_STREAM_COMM(" * " << paramName << " not changed: " << value);
+      }
+      return _camDynParMapChanged[paramName];
+    };
+
+  if (param_name == "video.auto_whitebalance") {
+    if (updateBoolParam(param_name, param.as_bool(), _camAutoWB)) {count_ok++;}
+    return true;
+  } else if (param_name == "video.whitebalance_temperature") {
+    if (updateIntParam(param_name, param.as_int(), _camWBTemp)) {
+      count_ok++;
+      updateBoolParam("video.auto_whitebalance", false, _camAutoWB);
+    }
+    return true;
+  }
+  return false;
+}
+
+// Helper for exposure
+bool ZedCameraOne::handleExposure(
+  const rclcpp::Parameter & param, const std::string & param_name, int & count_ok)
+{
+  auto updateIntParam = [this](const std::string & paramName, const int value, int & paramVal) {
+      if (value != paramVal) {
+        paramVal = value;
+        _camDynParMapChanged[paramName] = true;
+        DEBUG_STREAM_COMM(" * " << paramName << " changed to " << value);
+      } else {
+        _camDynParMapChanged[paramName] = false;
+        DEBUG_STREAM_COMM(" * " << paramName << " not changed: " << value);
+      }
+      return _camDynParMapChanged[paramName];
+    };
+  auto updateBoolParam = [this](const std::string & paramName, const bool value, bool & paramVal) {
+      if (value != paramVal) {
+        paramVal = value;
+        _camDynParMapChanged[paramName] = true;
+        DEBUG_STREAM_COMM(" * " << paramName << " changed to " << value);
+      } else {
+        _camDynParMapChanged[paramName] = false;
+        DEBUG_STREAM_COMM(" * " << paramName << " not changed: " << value);
+      }
+      return _camDynParMapChanged[paramName];
+    };
+
+  if (param_name == "video.auto_exposure") {
+    if (updateBoolParam(param_name, param.as_bool(), _camAutoExposure)) {count_ok++;}
+    return true;
+  } else if (param_name == "video.exposure_compensation") {
+    if (updateIntParam(param_name, param.as_int(), _camExposureComp)) {count_ok++;}
+    return true;
+  } else if (param_name == "video.exposure_time") {
+    if (updateIntParam(param_name, param.as_int(), _camExpTime)) {
+      count_ok++;
+      updateBoolParam("video.auto_exposure", false, _camAutoExposure);
+      updateIntParam("video.auto_exposure_time_range_min", _camExpTime, _camAutoExpTimeRangeMin);
+      updateIntParam("video.auto_exposure_time_range_max", _camExpTime, _camAutoExpTimeRangeMax);
+    }
+    return true;
+  } else if (param_name == "video.auto_exposure_time_range_min") {
+    if (updateIntParam(param_name, param.as_int(), _camAutoExpTimeRangeMin)) {
+      count_ok++;
+      if (_camAutoExpTimeRangeMin != _camAutoExpTimeRangeMax) {
+        updateBoolParam("video.auto_exposure", true, _camAutoExposure);
+      } else {
+        updateBoolParam("video.auto_exposure", false, _camAutoExposure);
+        updateIntParam("video.exposure_time", _camAutoExpTimeRangeMin, _camExpTime);
+      }
+    }
+    return true;
+  } else if (param_name == "video.auto_exposure_time_range_max") {
+    if (updateIntParam(param_name, param.as_int(), _camAutoExpTimeRangeMax)) {
+      count_ok++;
+      if (_camAutoExpTimeRangeMin != _camAutoExpTimeRangeMax) {
+        updateBoolParam("video.auto_exposure", true, _camAutoExposure);
+      } else {
+        updateBoolParam("video.auto_exposure", false, _camAutoExposure);
+        updateIntParam("video.exposure_time", _camAutoExpTimeRangeMax, _camExpTime);
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+// Helper for analog gain
+bool ZedCameraOne::handleAnalogGain(
+  const rclcpp::Parameter & param, const std::string & param_name, int & count_ok)
+{
+  auto updateIntParam = [this](const std::string & paramName, const int value, int & paramVal) {
+      if (value != paramVal) {
+        paramVal = value;
+        _camDynParMapChanged[paramName] = true;
+        DEBUG_STREAM_COMM(" * " << paramName << " changed to " << value);
+      } else {
+        _camDynParMapChanged[paramName] = false;
+        DEBUG_STREAM_COMM(" * " << paramName << " not changed: " << value);
+      }
+      return _camDynParMapChanged[paramName];
+    };
+  auto updateBoolParam = [this](const std::string & paramName, const bool value, bool & paramVal) {
+      if (value != paramVal) {
+        paramVal = value;
+        _camDynParMapChanged[paramName] = true;
+        DEBUG_STREAM_COMM(" * " << paramName << " changed to " << value);
+      } else {
+        _camDynParMapChanged[paramName] = false;
+        DEBUG_STREAM_COMM(" * " << paramName << " not changed: " << value);
+      }
+      return _camDynParMapChanged[paramName];
+    };
+
+  if (param_name == "video.auto_analog_gain") {
+    if (updateBoolParam(param_name, param.as_bool(), _camAutoAnalogGain)) {count_ok++;}
+    return true;
+  } else if (param_name == "video.analog_gain") {
+    if (updateIntParam(param_name, param.as_int(), _camAnalogGain)) {
+      count_ok++;
+      updateBoolParam("video.auto_analog_gain", false, _camAutoAnalogGain);
+      updateIntParam(
+        "video.auto_analog_gain_range_min", _camAnalogGain,
+        _camAutoAnalogGainRangeMin);
+      updateIntParam(
+        "video.auto_analog_gain_range_max", _camAnalogGain,
+        _camAutoAnalogGainRangeMax);
+    }
+    return true;
+  } else if (param_name == "video.auto_analog_gain_range_min") {
+    if (updateIntParam(param_name, param.as_int(), _camAutoAnalogGainRangeMin)) {
+      count_ok++;
+      if (_camAutoAnalogGainRangeMin != _camAutoAnalogGainRangeMax) {
+        updateBoolParam("video.auto_analog_gain", true, _camAutoAnalogGain);
+      } else {
+        updateBoolParam("video.auto_analog_gain", false, _camAutoAnalogGain);
+        updateIntParam("video.analog_gain", _camAutoAnalogGainRangeMin, _camAnalogGain);
+      }
+    }
+    return true;
+  } else if (param_name == "video.auto_analog_gain_range_max") {
+    if (updateIntParam(param_name, param.as_int(), _camAutoAnalogGainRangeMax)) {
+      count_ok++;
+      if (_camAutoAnalogGainRangeMin != _camAutoAnalogGainRangeMax) {
+        updateBoolParam("video.auto_analog_gain", true, _camAutoAnalogGain);
+      } else {
+        updateBoolParam("video.auto_analog_gain", false, _camAutoAnalogGain);
+        updateIntParam("video.analog_gain", _camAutoAnalogGainRangeMax, _camAnalogGain);
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+// Helper for digital gain
+bool ZedCameraOne::handleDigitalGain(
+  const rclcpp::Parameter & param, const std::string & param_name, int & count_ok)
+{
+  auto updateIntParam = [this](const std::string & paramName, const int value, int & paramVal) {
+      if (value != paramVal) {
+        paramVal = value;
+        _camDynParMapChanged[paramName] = true;
+        DEBUG_STREAM_COMM(" * " << paramName << " changed to " << value);
+      } else {
+        _camDynParMapChanged[paramName] = false;
+        DEBUG_STREAM_COMM(" * " << paramName << " not changed: " << value);
+      }
+      return _camDynParMapChanged[paramName];
+    };
+  auto updateBoolParam = [this](const std::string & paramName, const bool value, bool & paramVal) {
+      if (value != paramVal) {
+        paramVal = value;
+        _camDynParMapChanged[paramName] = true;
+        DEBUG_STREAM_COMM(" * " << paramName << " changed to " << value);
+      } else {
+        _camDynParMapChanged[paramName] = false;
+        DEBUG_STREAM_COMM(" * " << paramName << " not changed: " << value);
+      }
+      return _camDynParMapChanged[paramName];
+    };
+
+  if (param_name == "video.auto_digital_gain") {
+    if (updateBoolParam(param_name, param.as_bool(), _camAutoDigitalGain)) {count_ok++;}
+    return true;
+  } else if (param_name == "video.digital_gain") {
+    if (updateIntParam(param_name, param.as_int(), _camDigitalGain)) {
+      count_ok++;
+      updateBoolParam("video.auto_digital_gain", false, _camAutoDigitalGain);
+      updateIntParam(
+        "video.auto_digital_gain_range_min", _camDigitalGain,
+        _camAutoDigitalGainRangeMin);
+      updateIntParam(
+        "video.auto_digital_gain_range_max", _camDigitalGain,
+        _camAutoDigitalGainRangeMax);
+    }
+    return true;
+  } else if (param_name == "video.auto_digital_gain_range_min") {
+    if (updateIntParam(param_name, param.as_int(), _camAutoDigitalGainRangeMin)) {
+      count_ok++;
+      if (_camAutoDigitalGainRangeMin != _camAutoDigitalGainRangeMax) {
+        updateBoolParam("video.auto_digital_gain", true, _camAutoDigitalGain);
+      } else {
+        updateBoolParam("video.auto_digital_gain", false, _camAutoDigitalGain);
+        updateIntParam("video.digital_gain", _camAutoDigitalGainRangeMin, _camDigitalGain);
+      }
+    }
+    return true;
+  } else if (param_name == "video.auto_digital_gain_range_max") {
+    if (updateIntParam(param_name, param.as_int(), _camAutoDigitalGainRangeMax)) {
+      count_ok++;
+      if (_camAutoDigitalGainRangeMin != _camAutoDigitalGainRangeMax) {
+        updateBoolParam("video.auto_digital_gain", true, _camAutoDigitalGain);
+      } else {
+        updateBoolParam("video.auto_digital_gain", false, _camAutoDigitalGain);
+        updateIntParam("video.digital_gain", _camAutoDigitalGainRangeMax, _camDigitalGain);
+      }
+    }
+    return true;
+  }
+  return false;
 }
 
 void ZedCameraOne::initTFCoordFrameNames()
@@ -1530,8 +1631,6 @@ void ZedCameraOne::setupGrabThreadPolicy()
   }
 
   if (_debugAdvanced) {
-    int policy;
-    sched_param par;
     if (pthread_getschedparam(pthread_self(), &policy, &par)) {
       RCLCPP_WARN_STREAM(
         get_logger(),

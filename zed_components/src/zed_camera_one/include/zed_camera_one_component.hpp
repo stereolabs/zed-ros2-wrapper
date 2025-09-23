@@ -141,6 +141,26 @@ protected:
   bool waitForSensorSubscribers();
   bool handleSensorPublishing();
   void adjustSensorPublishingFrequency();
+
+  bool handleDynamicVideoParam(
+    const rclcpp::Parameter & param, const std::string & param_name,
+    int & count_ok, rcl_interfaces::msg::SetParametersResult & result);
+  bool handleSaturationSharpnessGamma(
+    const rclcpp::Parameter & param,
+    const std::string & param_name, int & count_ok);
+  bool handleWhiteBalance(
+    const rclcpp::Parameter & param, const std::string & param_name,
+    int & count_ok);
+  bool handleExposure(
+    const rclcpp::Parameter & param, const std::string & param_name,
+    int & count_ok);
+  bool handleAnalogGain(
+    const rclcpp::Parameter & param, const std::string & param_name,
+    int & count_ok);
+  bool handleDigitalGain(
+    const rclcpp::Parameter & param, const std::string & param_name,
+    int & count_ok);
+
   // <---- Utility functions
 
   // ----> Callbacks functions

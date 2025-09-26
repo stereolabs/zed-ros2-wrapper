@@ -26,7 +26,7 @@
             self_calib: true # Enable the self-calibration process at camera opening. See https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#affeaa06cfc1d849e311e484ceb8edcc5
             serial_number: 0 # overwritten by launch file
             pub_resolution: 'CUSTOM' # The resolution used for image and depth map publishing. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
-            pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
+            pub_downscale_factor: 3.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
             pub_frame_rate: 30.0 # [DYNAMIC] Frequency of publishing of visual images and depth data (not the Point Cloud, see 'depth.point_cloud_freq'). This value must be equal or less than the camera framerate.
             enable_image_validity_check: 1 # [SDK5 required] Sets the image validity check. If set to 1, the SDK will check if the frames are valid before processing.
             gpu_id: -1
@@ -62,7 +62,7 @@
             #manual_polygon: '[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
             apply_to_depth: true # Apply ROI to depth processing
             apply_to_positional_tracking: true # Apply ROI to positional tracking processing
-            apply_to_object_detection: false # Apply ROI to object detection processing
+            apply_to_object_detection: true # Apply ROI to object detection processing
             apply_to_body_tracking: true # Apply ROI to body tracking processing
             apply_to_spatial_mapping: true # Apply ROI to spatial mapping processing
 
@@ -70,10 +70,10 @@
             depth_mode: 'NONE' # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
             depth_stabilization: 20 # Forces positional tracking to start if major than 0 - Range: [0,100]
             openni_depth_mode: true # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
-            point_cloud_freq: 15.0 # [DYNAMIC] Frequency of the pointcloud publishing. This value must be equal or less than the camera framerate.
-            point_cloud_res: 'COMPACT' # The resolution used for point cloud publishing - 'COMPACT'-Standard resolution. Optimizes processing and bandwidth, 'REDUCED'-Half resolution. Low processing and bandwidth requirements
-            depth_confidence: 100 # [DYNAMIC] - Balanced for good quality vs coverage
-            depth_texture_conf: 100 # [DYNAMIC] - Balanced for textured areas
+            point_cloud_freq: 1.0 # [DYNAMIC] Frequency of the pointcloud publishing. This value must be equal or less than the camera framerate.
+            point_cloud_res: 'REDUCED' # The resolution used for point cloud publishing - 'COMPACT'-Standard resolution. Optimizes processing and bandwidth, 'REDUCED'-Half resolution. Low processing and bandwidth requirements
+            depth_confidence: 50 # [DYNAMIC] - Balanced for good quality vs coverage
+            depth_texture_conf: 50 # [DYNAMIC] - Balanced for textured areas
             remove_saturated_areas: false # [DYNAMIC] - Re-enabled to filter bright areas
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
             # 'zedx.yaml', 'zedxmini.yaml', 'virtual.yaml' files
@@ -127,10 +127,10 @@
             pd_normal_similarity_threshold: 15.0 # Plane detection: controls the spread of plane by checking the angle difference.
 
         object_detection:
-            od_enabled: false # True to enable Object Detection
-            enable_tracking: true # Whether the object detection system includes object tracking capabilities across a sequence of images.
+            od_enabled: true # True to enable Object Detection
+            enable_tracking: false # Whether the object detection system includes object tracking capabilities across a sequence of images.
             detection_model: 'MULTI_CLASS_BOX_FAST' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE', 'CUSTOM_YOLOLIKE_BOX_OBJECTS'
-            max_range: 20.0 # [m] Upper depth range for detections.The value cannot be greater than 'depth.max_depth'
+            max_range: 10.0 # [m] Upper depth range for detections.The value cannot be greater than 'depth.max_depth'
             filtering_mode: 'NMS3D' # Filtering mode that should be applied to raw detections: 'NONE', 'NMS3D', 'NMS3D_PER_CLASS'
             prediction_timeout: 2.0 # During this time [sec], the object will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
             allow_reduced_precision_inference: true # Allow inference to run at a lower precision to improve runtime and memory usage

@@ -457,6 +457,10 @@ void ZedCameraOne::getDebugParams()
     shared_from_this(), "debug.sdk_verbose_log_file",
     _sdkVerboseLogFile, _sdkVerboseLogFile,
     " * SDK Verbose File: ");
+  sl_tools::getParam(
+    shared_from_this(), "debug.use_pub_timestamps",
+    _usePubTimestamps, _usePubTimestamps,
+    " * Use Pub Timestamps: ");
 
   sl_tools::getParam(
     shared_from_this(), "debug.debug_common", _debugCommon,
@@ -478,10 +482,13 @@ void ZedCameraOne::getDebugParams()
   sl_tools::getParam(
     shared_from_this(), "debug.debug_advanced", _debugAdvanced,
     _debugAdvanced, " * Debug Advanced: ");
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_nitros", _debugNitros,
+    _debugNitros, " * Debug Nitros: ");
 
   // Set debug mode
   _debugMode = _debugCommon || _debugVideoDepth || _debugCamCtrl ||
-    _debugSensors || _debugStreaming || _debugAdvanced;
+    _debugSensors || _debugStreaming || _debugAdvanced || _debugNitros;
 
   if (_debugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(
@@ -504,6 +511,20 @@ void ZedCameraOne::getDebugParams()
   DEBUG_STREAM_COMM(
     "[ROS2] Using RMW_IMPLEMENTATION "
       << rmw_get_implementation_identifier());
+
+#ifdef FOUND_ISAAC_ROS_NITROS
+  sl_tools::getParam(
+    shared_from_this(), "debug.disable_nitros",
+    _nitrosDisabled, _nitrosDisabled);
+
+  if (_nitrosDisabled) {
+    RCLCPP_WARN(
+      get_logger(),
+      "NITROS is available, but is disabled by 'debug.disable_nitros'");
+  }
+#else
+  _nitrosDisabled = true;  // Force disable NITROS if not available
+#endif
 }
 
 void ZedCameraOne::init()

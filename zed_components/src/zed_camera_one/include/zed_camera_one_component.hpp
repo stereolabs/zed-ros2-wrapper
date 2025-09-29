@@ -108,6 +108,15 @@ protected:
     camInfoMsgPtr & camInfoMsg,
     const std::string & imgFrameId,
     const rclcpp::Time & t);
+  #ifdef FOUND_ISAAC_ROS_NITROS
+  void publishImageWithInfo(
+    const sl::Mat & img,
+    const nitrosImgPub & nitrosPubImg,
+    const camInfoPub & camInfoPub,
+    camInfoMsgPtr & camInfoMsg,
+    const std::string & imgFrameId,
+    const rclcpp::Time & t);
+#endif
   void publishCameraInfo(
     const camInfoPub & camInfoPub,
     camInfoMsgPtr & camInfoMsg, const rclcpp::Time & t);
@@ -225,6 +234,10 @@ private:
   bool _debugCamCtrl = false;
   bool _debugStreaming = false;
   bool _debugAdvanced = false;
+  bool _debugNitros = false;
+  // If available, force disable NITROS usage for debugging and testing
+  // purposes; otherwise, this is always true.
+  bool _nitrosDisabled = false;
   // <---- Debug variables
 
   // ----> QoS
@@ -245,19 +258,33 @@ private:
   // <---- Topics
 
   // ----> Publishers
+// Image publishers
   image_transport::Publisher _pubColorImg;
-  camInfoPub _pubColorImgInfo;
   image_transport::Publisher _pubColorRawImg;
-  camInfoPub _pubColorRawImgInfo; 
   image_transport::Publisher _pubGrayImg;
-  camInfoPub _pubGrayImgInfo;
   image_transport::Publisher _pubGrayRawImg;
+
+#ifdef FOUND_ISAAC_ROS_NITROS
+  // Nitros image publishers with camera info
+  nitrosImgPub _nitrosPubColorImg;
+  nitrosImgPub _nitrosPubColorRawImg;
+  nitrosImgPub _nitrosPubGrayImg;
+  nitrosImgPub _nitrosPubGrayRawImg;
+#endif
+
+
+  // Camera Info publishers
+  camInfoPub _pubColorImgInfo;
+  camInfoPub _pubColorRawImgInfo;
+  camInfoPub _pubGrayImgInfo;
   camInfoPub _pubGrayRawImgInfo;
 
+  // Sensor publishers
   imuPub _pubImu;
   imuPub _pubImuRaw;
   tempPub _pubTemp;
 
+  // Camera-IMU Transform publisher
   transfPub _pubCamImuTransf;
   // <---- Publishers
 

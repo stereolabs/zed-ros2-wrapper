@@ -164,7 +164,7 @@ void ZedCameraOne::initVideoPublishers()
 
   // Publishers logging
   auto log_cam_pub = [&](const auto & pub) {
-      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub.getTopic());
+      RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << pub.getTopic());
     };
 
   log_cam_pub(_pubColorImg);
@@ -466,7 +466,7 @@ void ZedCameraOne::publishImages()
 }
 
 void ZedCameraOne::publishCameraInfo(
-  const camInfoPub & camInfoPub,
+  const camInfoPub & infoPub,
   camInfoMsgPtr & camInfoMsg,
   const rclcpp::Time & t)
 {
@@ -475,14 +475,14 @@ void ZedCameraOne::publishCameraInfo(
     " * Publishing Camera Info message: " << camInfoMsg->header.stamp.nanosec
                                           << " nsec");
 
-  camInfoPub->publish(*camInfoMsg);
+  infoPub->publish(*camInfoMsg);
 }
 
 void ZedCameraOne::publishImageWithInfo(
     const sl::Mat & img,
     const image_transport::Publisher & pubImg,
-    const camInfoPub & camInfoPub,
-    const camInfoPub & camInfoPubTrans,
+    const camInfoPub & infoPub,
+    const camInfoPub & infoPubTrans,
     camInfoMsgPtr & camInfoMsg,
     const std::string & imgFrameId,
     const rclcpp::Time & t)
@@ -491,8 +491,8 @@ void ZedCameraOne::publishImageWithInfo(
   DEBUG_STREAM_VD("Publishing IMAGE message: " << t.nanoseconds() << " nsec");
   try {
     pubImg.publish(std::move(image));
-    publishCameraInfo(camInfoPub, camInfoMsg, t);
-    publishCameraInfo(camInfoPubTrans, camInfoMsg, t);
+    publishCameraInfo(infoPub, camInfoMsg, t);
+    publishCameraInfo(infoPubTrans, camInfoMsg, t);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
   } catch (...) {

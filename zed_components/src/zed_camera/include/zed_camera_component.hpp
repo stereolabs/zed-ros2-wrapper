@@ -227,7 +227,8 @@ protected:
   void publishImageWithInfo(
     const sl::Mat & img,
     const image_transport::Publisher & pubImg,
-    const camInfoPub & camInfoPub,
+    const camInfoPub & infoPub,
+    const camInfoPub & infoPubTrans,
     camInfoMsgPtr & camInfoMsg,
     const std::string & imgFrameId,
     const rclcpp::Time & t);
@@ -235,13 +236,14 @@ protected:
   void publishImageWithInfo(
     const sl::Mat & img,
     const nitrosImgPub & nitrosPubImg,
-    const camInfoPub & camInfoPub,
+    const camInfoPub & infoPub,
+    const camInfoPub & infoPubTrans,
     camInfoMsgPtr & camInfoMsg,
     const std::string & imgFrameId,
     const rclcpp::Time & t);
 #endif
   void publishCameraInfo(
-    const camInfoPub & camInfoPub,
+    const camInfoPub & infoPub,
     camInfoMsgPtr & camInfoMsg, const rclcpp::Time & t);
 
   void publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t);
@@ -793,6 +795,21 @@ private:
   camInfoPub mPubRoiMaskCamInfo;
   camInfoPub mPubDepthCamInfo;
   camInfoPub mPubConfMapCamInfo;
+  camInfoPub mPubRgbCamInfoTrans;
+  camInfoPub mPubRawRgbCamInfoTrans;
+  camInfoPub mPubLeftCamInfoTrans;
+  camInfoPub mPubRawLeftCamInfoTrans;
+  camInfoPub mPubRightCamInfoTrans;
+  camInfoPub mPubRawRightCamInfoTrans;
+  camInfoPub mPubRgbGrayCamInfoTrans;
+  camInfoPub mPubRawRgbGrayCamInfoTrans;
+  camInfoPub mPubLeftGrayCamInfoTrans;
+  camInfoPub mPubRawLeftGrayCamInfoTrans;
+  camInfoPub mPubRightGrayCamInfoTrans;
+  camInfoPub mPubRawRightGrayCamInfoTrans;
+  camInfoPub mPubRoiMaskCamInfoTrans;
+  camInfoPub mPubDepthCamInfoTrans;
+  camInfoPub mPubConfMapCamInfoTrans;
 
 #ifndef FOUND_FOXY
   point_cloud_transport::Publisher mPubCloud;

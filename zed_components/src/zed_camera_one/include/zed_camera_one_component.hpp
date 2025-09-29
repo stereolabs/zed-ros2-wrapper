@@ -104,8 +104,8 @@ protected:
   void publishImageWithInfo(
     const sl::Mat & img,
     const image_transport::Publisher & pubImg,
-    const camInfoPub & camInfoPub,
-    const camInfoPub & camInfoPubTrans,
+    const camInfoPub & infoPub,
+    const camInfoPub & infoPubTrans,
     camInfoMsgPtr & camInfoMsg,
     const std::string & imgFrameId,
     const rclcpp::Time & t);
@@ -113,14 +113,14 @@ protected:
   void publishImageWithInfo(
     const sl::Mat & img,
     const nitrosImgPub & nitrosPubImg,
-    const camInfoPub & camInfoPub,
-    const camInfoPub & camInfoPubTrans,
+    const camInfoPub & infoPub,
+    const camInfoPub & infoPubTrans,
     camInfoMsgPtr & camInfoMsg,
     const std::string & imgFrameId,
     const rclcpp::Time & t);
 #endif
   void publishCameraInfo(
-    const camInfoPub & camInfoPub,
+    const camInfoPub & infoPub,
     camInfoMsgPtr & camInfoMsg, const rclcpp::Time & t);
   bool publishSensorsData();
   void publishImuFrameAndTopic();

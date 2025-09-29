@@ -200,6 +200,29 @@ void ZedCamera::initVideoDepthPublishers()
   mPubRoiMaskCamInfo = make_cam_info_pub(mRoiMaskTopic);
   mPubDepthCamInfo = make_cam_info_pub(mDepthTopic);
   mPubConfMapCamInfo = make_cam_info_pub(mConfMapTopic);
+
+  auto make_cam_info_trans_pub = [&](const std::string & topic) {
+      std::string info_topic = topic + "/camera_info";
+      auto pub = create_publisher<sensor_msgs::msg::CameraInfo>(info_topic, mQos);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub->get_topic_name());
+      return pub;
+    };
+
+  mPubRgbCamInfoTrans = make_cam_info_trans_pub(mRgbTopic);
+  mPubRawRgbCamInfoTrans = make_cam_info_trans_pub(mRgbRawTopic);
+  mPubLeftCamInfoTrans = make_cam_info_trans_pub(mLeftTopic);
+  mPubRawLeftCamInfoTrans = make_cam_info_trans_pub(mLeftRawTopic);
+  mPubRightCamInfoTrans = make_cam_info_trans_pub(mRightTopic);
+  mPubRawRightCamInfoTrans = make_cam_info_trans_pub(mRightRawTopic);
+  mPubRgbGrayCamInfoTrans = make_cam_info_trans_pub(mRgbGrayTopic);
+  mPubRawRgbGrayCamInfoTrans = make_cam_info_trans_pub(mRgbRawGrayTopic);
+  mPubLeftGrayCamInfoTrans = make_cam_info_trans_pub(mLeftGrayTopic);
+  mPubRawLeftGrayCamInfoTrans = make_cam_info_trans_pub(mLeftRawGrayTopic);
+  mPubRightGrayCamInfoTrans = make_cam_info_trans_pub(mRightGrayTopic);
+  mPubRawRightGrayCamInfoTrans = make_cam_info_trans_pub(mRightRawGrayTopic);
+  mPubRoiMaskCamInfoTrans = make_cam_info_trans_pub(mRoiMaskTopic);
+  mPubDepthCamInfoTrans = make_cam_info_trans_pub(mDepthTopic);
+  mPubConfMapCamInfoTrans = make_cam_info_trans_pub(mConfMapTopic);
   // <---- Camera Info publishers
 
   // ----> Other depth-related publishers
@@ -1638,12 +1661,12 @@ void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeft, mPubLeft, mPubLeftCamInfo, mLeftCamInfoMsg,
+        mMatLeft, mPubLeft, mPubLeftCamInfo, mPubLeftCamInfoTrans, mLeftCamInfoMsg,
         mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeft, mNitrosPubLeft, mPubLeftCamInfo, mLeftCamInfoMsg,
+        mMatLeft, mNitrosPubLeft, mPubLeftCamInfo, mPubLeftCamInfoTrans, mLeftCamInfoMsg,
         mLeftCamOptFrameId, t);
 #endif
     }
@@ -1654,12 +1677,12 @@ void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeft, mPubRgb, mPubRgbCamInfo, mLeftCamInfoMsg,
+        mMatLeft, mPubRgb, mPubRgbCamInfo, mPubRgbCamInfoTrans, mLeftCamInfoMsg,
         mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeft, mNitrosPubRgb, mPubRgbCamInfo, mLeftCamInfoMsg,
+        mMatLeft, mNitrosPubRgb, mPubRgbCamInfo, mPubRgbCamInfoTrans, mLeftCamInfoMsg,
         mLeftCamOptFrameId, t);
 #endif
     }
@@ -1672,12 +1695,13 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mLeftRawSubCount: " << mLeftRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftRaw, mPubRawLeft, mPubRawLeftCamInfo,
+        mMatLeftRaw, mPubRawLeft, mPubRawLeftCamInfo, mPubRawLeftCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeftRaw, mNitrosPubRawLeft, mPubRawLeftCamInfo,
+        mMatLeftRaw, mNitrosPubRawLeft, mPubRawLeftCamInfo, mPubRawLeftCamInfoTrans,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1686,12 +1710,12 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRgbRawSubCount: " << mRgbRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftRaw, mPubRawRgb, mPubRawRgbCamInfo,
+        mMatLeftRaw, mPubRawRgb, mPubRawRgbCamInfo, mPubRawRgbCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeftRaw, mNitrosPubRawRgb, mPubRawRgbCamInfo,
+        mMatLeftRaw, mNitrosPubRawRgb, mPubRawRgbCamInfo, mPubRawRgbCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1705,12 +1729,12 @@ void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftGray, mPubLeftGray, mPubLeftGrayCamInfo,
+        mMatLeftGray, mPubLeftGray, mPubLeftGrayCamInfo, mPubLeftGrayCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeftGray, mNitrosPubLeftGray, mPubLeftGrayCamInfo,
+        mMatLeftGray, mNitrosPubLeftGray, mPubLeftGrayCamInfo, mPubLeftGrayCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1719,12 +1743,12 @@ void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRgbGraySubCount: " << mRgbGraySubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftGray, mPubRgbGray, mPubRgbGrayCamInfo,
+        mMatLeftGray, mPubRgbGray, mPubRgbGrayCamInfo, mPubRgbGrayCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeftGray, mNitrosPubRgbGray, mPubRgbGrayCamInfo,
+        mMatLeftGray, mNitrosPubRgbGray, mPubRgbGrayCamInfo, mPubRgbGrayCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1738,12 +1762,12 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatLeftRawGray, mPubRawLeftGray,
-        mPubRawLeftGrayCamInfo, mLeftCamInfoRawMsg,
-        mLeftCamOptFrameId, t);
+        mPubRawLeftGrayCamInfo, mPubRawLeftGrayCamInfoTrans,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeftRawGray, mNitrosPubRawLeftGray, mPubRawLeftGrayCamInfo,
+        mMatLeftRawGray, mNitrosPubRawLeftGray, mPubRawLeftGrayCamInfo, mPubRawLeftGrayCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1752,12 +1776,12 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRgbGrayRawSubCount: " << mRgbGrayRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftRawGray, mPubRawRgbGray, mPubRawRgbGrayCamInfo,
+        mMatLeftRawGray, mPubRawRgbGray, mPubRawRgbGrayCamInfo, mPubRawRgbGrayCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeftRawGray, mNitrosPubRawRgbGray, mPubRawRgbGrayCamInfo,
+        mMatLeftRawGray, mNitrosPubRawRgbGray, mPubRawRgbGrayCamInfo, mPubRawRgbGrayCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1770,12 +1794,12 @@ void ZedCamera::publishRightImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRightSubCount: " << mRightSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatRight, mPubRight, mPubRightCamInfo,
+        mMatRight, mPubRight, mPubRightCamInfo, mPubRightCamInfoTrans,
         mRightCamInfoMsg, mRightCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatRight, mNitrosPubRight, mPubRightCamInfo,
+        mMatRight, mNitrosPubRight, mPubRightCamInfo, mPubRightCamInfoTrans,
         mRightCamInfoMsg, mRightCamOptFrameId, t);
 #endif
     }
@@ -1788,12 +1812,12 @@ void ZedCamera::publishRightRawImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRightRawSubCount: " << mRightRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatRightRaw, mPubRawRight, mPubRawRightCamInfo,
+        mMatRightRaw, mPubRawRight, mPubRawRightCamInfo, mPubRawRightCamInfoTrans,
         mRightCamInfoRawMsg, mRightCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatRightRaw, mNitrosPubRawRight, mPubRawRightCamInfo,
+        mMatRightRaw, mNitrosPubRawRight, mPubRawRightCamInfo, mPubRawRightCamInfoTrans,
         mRightCamInfoRawMsg, mRightCamOptFrameId, t);
 #endif
     }
@@ -1806,12 +1830,12 @@ void ZedCamera::publishRightGrayImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRightGraySubCount: " << mRightGraySubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatRightGray, mPubRightGray, mPubRightGrayCamInfo,
+        mMatRightGray, mPubRightGray, mPubRightGrayCamInfo, mPubRightGrayCamInfoTrans,
         mRightCamInfoMsg, mRightCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatRightGray, mNitrosPubRightGray, mPubRightGrayCamInfo,
+        mMatRightGray, mNitrosPubRightGray, mPubRightGrayCamInfo, mPubRightGrayCamInfoTrans,
         mRightCamInfoMsg, mRightCamOptFrameId, t);
 #endif
     }
@@ -1825,12 +1849,12 @@ void ZedCamera::publishRightRawGrayImages(const rclcpp::Time & t)
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatRightRawGray, mPubRawRightGray,
-        mPubRawRightGrayCamInfo, mRightCamInfoRawMsg,
-        mRightCamOptFrameId, t);
+        mPubRawRightGrayCamInfo, mPubRawRightGrayCamInfoTrans,
+        mRightCamInfoRawMsg, mRightCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatRightRawGray, mNitrosPubRawRightGray, mPubRawRightGrayCamInfo,
+        mMatRightRawGray, mNitrosPubRawRightGray, mPubRawRightGrayCamInfo, mPubRawRightGrayCamInfoTrans,
         mRightCamInfoRawMsg, mRightCamOptFrameId, t);
 #endif
     }
@@ -1886,12 +1910,12 @@ void ZedCamera::publishConfidenceMap(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mConfMapSubCount: " << mConfMapSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatConf, mPubConfMap, mPubConfMapCamInfo, mLeftCamInfoMsg,
+        mMatConf, mPubConfMap, mPubConfMapCamInfo, mPubConfMapCamInfoTrans, mLeftCamInfoMsg,
         mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatConf, mNitrosPubConfMap, mPubConfMapCamInfo,
+        mMatConf, mNitrosPubConfMap, mPubConfMapCamInfo, mPubConfMapCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1926,7 +1950,7 @@ void ZedCamera::publishDepthInfo(const rclcpp::Time & t)
 }
 
 void ZedCamera::publishCameraInfo(
-  const camInfoPub & camInfoPub,
+  const camInfoPub & infoPub,
   camInfoMsgPtr & camInfoMsg,
   const rclcpp::Time & t)
 {
@@ -1935,13 +1959,14 @@ void ZedCamera::publishCameraInfo(
     " * Publishing Camera Info message: " << camInfoMsg->header.stamp.nanosec
                                           << " nsec");
 
-  camInfoPub->publish(*camInfoMsg);
+  infoPub->publish(*camInfoMsg);
 }
 
 void ZedCamera::publishImageWithInfo(
   const sl::Mat & img,
   const image_transport::Publisher & pubImg,
-  const camInfoPub & camInfoPub,
+  const camInfoPub & infoPub,
+  const camInfoPub & infoPubTrans,
   camInfoMsgPtr & camInfoMsg,
   const std::string & imgFrameId,
   const rclcpp::Time & t)
@@ -1952,7 +1977,8 @@ void ZedCamera::publishImageWithInfo(
       " nsec");
   try {
     pubImg.publish(std::move(image));
-    publishCameraInfo(camInfoPub, camInfoMsg, t);
+    publishCameraInfo(infoPub, camInfoMsg, t);
+    publishCameraInfo(infoPubTrans, camInfoMsg, t);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
   } catch (...) {
@@ -1963,7 +1989,8 @@ void ZedCamera::publishImageWithInfo(
 void ZedCamera::publishImageWithInfo(
   const sl::Mat & img,
   const nitrosImgPub & nitrosPubImg,
-  const camInfoPub & camInfoPub,
+  const camInfoPub & infoPub,
+  const camInfoPub & infoPubTrans,
   camInfoMsgPtr & camInfoMsg,
   const std::string & imgFrameId,
   const rclcpp::Time & t)
@@ -2015,6 +2042,7 @@ void ZedCamera::publishImageWithInfo(
 
     nitrosPubImg->publish(nitros_image);
     publishCameraInfo(camInfoPub, camInfoMsg, t);
+    publishCameraInfo(infoPubTrans, camInfoMsg, t);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
   } catch (...) {
@@ -2036,6 +2064,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
       try {
         mPubDepth.publish(std::move(depth_img));
         publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
+        publishCameraInfo(mPubDepthCamInfoTrans, mLeftCamInfoMsg, t);
       } catch (std::system_error & e) {
         DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
       } catch (...) {

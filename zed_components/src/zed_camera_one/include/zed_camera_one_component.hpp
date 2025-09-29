@@ -105,14 +105,16 @@ protected:
     const sl::Mat & img,
     const image_transport::Publisher & pubImg,
     const camInfoPub & camInfoPub,
+    const camInfoPub & camInfoPubTrans,
     camInfoMsgPtr & camInfoMsg,
     const std::string & imgFrameId,
     const rclcpp::Time & t);
-  #ifdef FOUND_ISAAC_ROS_NITROS
+#ifdef FOUND_ISAAC_ROS_NITROS
   void publishImageWithInfo(
     const sl::Mat & img,
     const nitrosImgPub & nitrosPubImg,
     const camInfoPub & camInfoPub,
+    const camInfoPub & camInfoPubTrans,
     camInfoMsgPtr & camInfoMsg,
     const std::string & imgFrameId,
     const rclcpp::Time & t);
@@ -278,6 +280,10 @@ private:
   camInfoPub _pubColorRawImgInfo;
   camInfoPub _pubGrayImgInfo;
   camInfoPub _pubGrayRawImgInfo;
+  camInfoPub _pubColorImgInfoTrans; // `camera_info` topic for the transported image (compressed, theora, nitros, etc)
+  camInfoPub _pubColorRawImgInfoTrans; // `camera_info` topic for the transported image (compressed, theora, nitros, etc)
+  camInfoPub _pubGrayImgInfoTrans; // `camera_info` topic for the transported image (compressed, theora, nitros, etc)
+  camInfoPub _pubGrayRawImgInfoTrans; // `camera_info` topic for the transported image (compressed, theora, nitros, etc)
 
   // Sensor publishers
   imuPub _pubImu;

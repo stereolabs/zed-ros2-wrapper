@@ -186,6 +186,18 @@ void ZedCameraOne::initVideoPublishers()
   _pubColorRawImgInfo = make_cam_info_pub(_imgColorRawTopic);
   _pubGrayImgInfo = make_cam_info_pub(_imgGrayTopic);
   _pubGrayRawImgInfo = make_cam_info_pub(_imgRawGrayTopic);
+
+  auto make_cam_info_trans_pub = [&](const std::string & topic) {
+      std::string info_topic = topic + "/camera_info";
+      auto pub = create_publisher<sensor_msgs::msg::CameraInfo>(info_topic, _qos);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub->get_topic_name());
+      return pub;
+    };
+
+  _pubColorImgInfoTrans = make_cam_info_trans_pub(_imgColorTopic);
+  _pubColorRawImgInfoTrans = make_cam_info_trans_pub(_imgColorRawTopic);
+  _pubGrayImgInfoTrans = make_cam_info_trans_pub(_imgGrayTopic);
+  _pubGrayRawImgInfoTrans = make_cam_info_trans_pub(_imgRawGrayTopic);
   // <---- Camera Info publishers
 }
 
@@ -408,28 +420,28 @@ void ZedCameraOne::publishImages()
   // ----> Publish the COLOR image if someone has subscribed to
   if (_colorSubCount > 0) {
     DEBUG_STREAM_VD("_colorSubCount: " << _colorSubCount);
-    publishImageWithInfo(_matColor, _pubColorImg, _pubColorImgInfo, _camInfoMsg, _camOptFrameId, timeStamp);
+    publishImageWithInfo(_matColor, _pubColorImg, _pubColorImgInfo, _pubColorImgInfoTrans, _camInfoMsg, _camOptFrameId, timeStamp);
   }
   // <---- Publish the COLOR image if someone has subscribed to
 
   // ----> Publish the COLOR RAW image if someone has subscribed to
   if (_colorRawSubCount > 0) {
     DEBUG_STREAM_VD("_colorRawSubCount: " << _colorRawSubCount);
-    publishImageWithInfo(_matColorRaw, _pubColorRawImg, _pubColorRawImgInfo, _camInfoRawMsg, _camOptFrameId, timeStamp);
+    publishImageWithInfo(_matColorRaw, _pubColorRawImg, _pubColorRawImgInfo, _pubColorRawImgInfoTrans, _camInfoRawMsg, _camOptFrameId, timeStamp);
   }
   // <---- Publish the COLOR RAW image if someone has subscribed to
 
   // ----> Publish the GRAY image if someone has subscribed to
   if (_graySubCount > 0) {
     DEBUG_STREAM_VD("_graySubCount: " << _graySubCount);
-    publishImageWithInfo(_matGray, _pubGrayImg, _pubGrayImgInfo, _camInfoMsg, _camOptFrameId, timeStamp);
+    publishImageWithInfo(_matGray, _pubGrayImg, _pubGrayImgInfo, _pubGrayImgInfoTrans, _camInfoMsg, _camOptFrameId, timeStamp);
   }
   // <---- Publish the GRAY image if someone has subscribed to
 
   // ----> Publish the GRAY RAW image if someone has subscribed to
   if (_grayRawSubCount > 0) {
     DEBUG_STREAM_VD("_grayRawSubCount: " << _grayRawSubCount);
-    publishImageWithInfo(_matGrayRaw, _pubGrayRawImg, _pubGrayRawImgInfo, _camInfoRawMsg, _camOptFrameId, timeStamp);
+    publishImageWithInfo(_matGrayRaw, _pubGrayRawImg, _pubGrayRawImgInfo, _pubGrayRawImgInfoTrans, _camInfoRawMsg, _camOptFrameId, timeStamp);
   }
   // <---- Publish the GRAY RAW image if someone has subscribed to
 
@@ -470,6 +482,7 @@ void ZedCameraOne::publishImageWithInfo(
     const sl::Mat & img,
     const image_transport::Publisher & pubImg,
     const camInfoPub & camInfoPub,
+    const camInfoPub & camInfoPubTrans,
     camInfoMsgPtr & camInfoMsg,
     const std::string & imgFrameId,
     const rclcpp::Time & t)
@@ -479,6 +492,7 @@ void ZedCameraOne::publishImageWithInfo(
   try {
     pubImg.publish(std::move(image));
     publishCameraInfo(camInfoPub, camInfoMsg, t);
+    publishCameraInfo(camInfoPubTrans, camInfoMsg, t);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
   } catch (...) {

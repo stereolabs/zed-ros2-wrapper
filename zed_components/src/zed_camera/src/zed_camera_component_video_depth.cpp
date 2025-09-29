@@ -71,6 +71,11 @@ void ZedCamera::initVideoDepthPublishers()
   if (mOpenniDepthMode) {
     RCLCPP_INFO(get_logger(), "OpenNI depth mode activated -> Units: mm, Encoding: MONO16");
   }
+  mDisparityTopic = get_node_topics_interface()->resolve_topic_name(mDisparityTopic);
+  mDepthTopic = get_node_topics_interface()->resolve_topic_name(mDepthTopic);
+  mDepthInfoTopic = get_node_topics_interface()->resolve_topic_name(mDepthInfoTopic);
+  mConfMapTopic = get_node_topics_interface()->resolve_topic_name(mConfMapTopic);
+  mPointcloudTopic = get_node_topics_interface()->resolve_topic_name(mPointcloudTopic);
 
   // ROI mask topic
   mRoiMaskTopic = mTopicRoot + "roi_mask/image";

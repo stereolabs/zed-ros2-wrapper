@@ -38,10 +38,8 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   _lastTs_imu(_frameTimestamp),
   _colorSubCount(0),
   _colorRawSubCount(0),
-#if ENABLE_GRAY_IMAGE
   _graySubCount(0),
   _grayRawSubCount(0),
-#endif
   _imuSubCount(0),
   _imuRawSubCount(0),
   _streamingServerRequired(false),
@@ -1465,43 +1463,8 @@ void ZedCameraOne::initPublishers()
 {
   RCLCPP_INFO(get_logger(), "=== PUBLISHED TOPICS ===");
 
-  // ----> Images
-  RCLCPP_INFO(get_logger(), " +++ IMAGE TOPICS +++");
-  std::string rect_prefix = "rect/";
-  std::string raw_prefix = "raw/";
-  std::string color_prefix = "rgb/";
-#if ENABLE_GRAY_IMAGE
-  std::string gray_prefix = "gray/";
-#endif
-  std::string image_topic = "image";
-
-
-  _imgTopic = _topicRoot + color_prefix + rect_prefix + image_topic;
-  _pubColorImg = image_transport::create_camera_publisher(
-    this, _imgTopic, _qos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubColorImg.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubColorImg.getInfoTopic());
-
-  _imgRawTopic = _topicRoot + color_prefix + raw_prefix + image_topic;
-  _pubColorRawImg = image_transport::create_camera_publisher(
-    this, _imgRawTopic, _qos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubColorRawImg.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubColorRawImg.getInfoTopic());
-
-#if ENABLE_GRAY_IMAGE
-  _imgGrayTopic = _topicRoot + gray_prefix + rect_prefix + image_topic;
-  _pubGrayImg = image_transport::create_camera_publisher(
-    this, _imgGrayTopic, _qos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubGrayImg.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubGrayImg.getInfoTopic());
-
-  _imgRawGrayTopic = _topicRoot + gray_prefix + raw_prefix + image_topic;
-  _pubGrayRawImg = image_transport::create_camera_publisher(
-    this, _imgRawGrayTopic, _qos.get_rmw_qos_profile());
-  RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubGrayRawImg.getTopic());
-  RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubGrayRawImg.getInfoTopic());
-#endif
-  // <---- Images
+  // Video
+  initVideoPublishers();
 
   // ----> Sensors
   RCLCPP_INFO(get_logger(), " +++ SENSOR TOPICS +++");

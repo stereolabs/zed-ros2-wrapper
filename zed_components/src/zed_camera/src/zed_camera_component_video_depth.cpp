@@ -42,7 +42,8 @@ void ZedCamera::initVideoDepthPublishers()
   // Helper to build topic names
   auto make_topic =
     [&](const std::string & root, const std::string & suffix, const std::string & type) {
-      return mTopicRoot + root + suffix + type;
+      std::string topic = mTopicRoot + root + suffix + type;
+      return get_node_topics_interface()->resolve_topic_name(topic);
     };
 
   // Image topics
@@ -61,21 +62,6 @@ void ZedCamera::initVideoDepthPublishers()
   mRgbGrayTopic = make_topic(rgbRoot, "", imgRectGray);
   mRgbRawGrayTopic = make_topic(rgbRoot, rawSuffix, imgRawGray);
 
-  mLeftTopic = get_node_topics_interface()->resolve_topic_name(mLeftTopic);
-  mLeftRawTopic = get_node_topics_interface()->resolve_topic_name(mLeftRawTopic);
-  mRightTopic = get_node_topics_interface()->resolve_topic_name(mRightTopic);
-  mRightRawTopic = get_node_topics_interface()->resolve_topic_name(mRightRawTopic);
-  mRgbTopic = get_node_topics_interface()->resolve_topic_name(mRgbTopic);
-  mRgbRawTopic = get_node_topics_interface()->resolve_topic_name(mRgbRawTopic);
-  mStereoTopic = get_node_topics_interface()->resolve_topic_name(mStereoTopic);
-  mStereoRawTopic = get_node_topics_interface()->resolve_topic_name(mStereoRawTopic);
-  mLeftGrayTopic = get_node_topics_interface()->resolve_topic_name(mLeftGrayTopic);
-  mLeftRawGrayTopic = get_node_topics_interface()->resolve_topic_name(mLeftRawGrayTopic);
-  mRightGrayTopic = get_node_topics_interface()->resolve_topic_name(mRightGrayTopic);
-  mRightRawGrayTopic = get_node_topics_interface()->resolve_topic_name(mRightRawGrayTopic);
-  mRgbGrayTopic = get_node_topics_interface()->resolve_topic_name(mRgbGrayTopic);
-  mRgbRawGrayTopic = get_node_topics_interface()->resolve_topic_name(mRgbRawGrayTopic);
-
   // Depth topics
   mDisparityTopic = mTopicRoot + "disparity/disparity_image";
   mDepthTopic = mTopicRoot + "depth/depth_registered";
@@ -85,11 +71,6 @@ void ZedCamera::initVideoDepthPublishers()
   if (mOpenniDepthMode) {
     RCLCPP_INFO(get_logger(), "OpenNI depth mode activated -> Units: mm, Encoding: MONO16");
   }
-  mDisparityTopic = get_node_topics_interface()->resolve_topic_name(mDisparityTopic);
-  mDepthTopic = get_node_topics_interface()->resolve_topic_name(mDepthTopic);
-  mDepthInfoTopic = get_node_topics_interface()->resolve_topic_name(mDepthInfoTopic);
-  mConfMapTopic = get_node_topics_interface()->resolve_topic_name(mConfMapTopic);
-  mPointcloudTopic = get_node_topics_interface()->resolve_topic_name(mPointcloudTopic);
 
   // ROI mask topic
   mRoiMaskTopic = mTopicRoot + "roi_mask/image";

@@ -15,6 +15,8 @@
 #include "zed_camera_one_component.hpp"
 #include "sl_logging.hpp"
 
+#include <image_transport/camera_common.hpp>
+
 #include <sensor_msgs/distortion_models.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 
@@ -123,6 +125,70 @@ void ZedCameraOne::getVideoParams()
   _triggerUpdateDynParams = true;
 }
 
+void ZedCameraOne::initVideoPublishers()
+{
+  RCLCPP_INFO(get_logger(), " +++ IMAGE TOPICS +++");
+
+  // ----> Advertised topics  
+  std::string rect_prefix = "rect/";
+  std::string raw_prefix = "raw/";
+  std::string color_prefix = "rgb/";
+  std::string gray_prefix = "gray/";
+  std::string image_topic = "image";
+
+  // _imgColorTopic = _topicRoot + color_prefix + rect_prefix + image_topic;
+  // _imgColorRawTopic = _topicRoot + color_prefix + raw_prefix + image_topic;
+  // _imgGrayTopic = _topicRoot + gray_prefix + rect_prefix + image_topic;
+  // _imgRawGrayTopic = _topicRoot + gray_prefix + raw_prefix + image_topic;
+
+  // Helper to build topic names
+  auto make_topic =
+    [&](const std::string & root, const std::string & suffix, const std::string & type) {
+      std::string topic = _topicRoot + root + suffix + type;
+      return get_node_topics_interface()->resolve_topic_name(topic);
+    };
+
+  _imgColorTopic = make_topic(color_prefix, rect_prefix, image_topic);
+  _imgColorRawTopic = make_topic(color_prefix, raw_prefix, image_topic);
+  _imgGrayTopic = make_topic(gray_prefix, rect_prefix, image_topic);
+  _imgRawGrayTopic = make_topic(gray_prefix, raw_prefix, image_topic); 
+  // <---- Advertised topics
+
+  // ----> Create publishers
+  auto qos = _qos.get_rmw_qos_profile();
+  
+  _pubColorImg = image_transport::create_publisher(this, _imgColorTopic, qos);
+  _pubColorRawImg = image_transport::create_publisher(this, _imgColorRawTopic, qos);
+  _pubGrayImg = image_transport::create_publisher(this, _imgGrayTopic, qos);
+  _pubGrayRawImg = image_transport::create_publisher(this, _imgRawGrayTopic, qos);
+
+  // Publishers logging
+  auto log_cam_pub = [&](const auto & pub) {
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub.getTopic());
+    };
+
+  log_cam_pub(_pubColorImg);
+  log_cam_pub(_pubColorRawImg);
+  log_cam_pub(_pubGrayImg);
+  log_cam_pub(_pubGrayRawImg);
+  // <---- Create publishers
+
+  // ----> Camera Info publishers
+  // Lambda to create and log CameraInfo publishers
+  auto make_cam_info_pub = [&](const std::string & topic) {
+      std::string info_topic = image_transport::getCameraInfoTopic(topic);
+      auto pub = create_publisher<sensor_msgs::msg::CameraInfo>(info_topic, _qos);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub->get_topic_name());
+      return pub;
+    };
+
+  _pubColorImgInfo = make_cam_info_pub(_imgColorTopic);
+  _pubColorRawImgInfo = make_cam_info_pub(_imgColorRawTopic);
+  _pubGrayImgInfo = make_cam_info_pub(_imgGrayTopic);
+  _pubGrayRawImgInfo = make_cam_info_pub(_imgRawGrayTopic);
+  // <---- Camera Info publishers
+}
+
 void ZedCameraOne::fillCamInfo(
   sensor_msgs::msg::CameraInfo::SharedPtr camInfoMsg,
   const std::string & frameId, bool rawParam)
@@ -220,18 +286,14 @@ bool ZedCameraOne::areImageTopicsSubscribed()
 {
   _colorSubCount = 0;
   _colorRawSubCount = 0;
-#if ENABLE_GRAY_IMAGE
   _graySubCount = 0;
   _grayRawSubCount = 0;
-#endif
 
   try {
     _colorSubCount = _pubColorImg.getNumSubscribers();
     _colorRawSubCount = _pubColorRawImg.getNumSubscribers();
-#if ENABLE_GRAY_IMAGE
     _graySubCount = _pubGrayImg.getNumSubscribers();
     _grayRawSubCount = _pubGrayRawImg.getNumSubscribers();
-#endif
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_VD("publishImages: Exception while counting subscribers");
@@ -239,9 +301,7 @@ bool ZedCameraOne::areImageTopicsSubscribed()
   }
 
   return (_colorSubCount + _colorRawSubCount
-#if ENABLE_GRAY_IMAGE
          + _graySubCount + _grayRawSubCount
-#endif
   ) > 0;
 }
 
@@ -272,7 +332,6 @@ void ZedCameraOne::retrieveImages()
         " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
         " nsec");
   }
-#if ENABLE_GRAY_IMAGE
   if (_graySubCount > 0) {
     retrieved |= (sl::ERROR_CODE::SUCCESS ==
       _zed->retrieveImage(
@@ -296,7 +355,6 @@ void ZedCameraOne::retrieveImages()
         " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
         " nsec");
   }
-#endif
   if (retrieved) {
     DEBUG_VD("Image Data retrieved");
   }
@@ -350,40 +408,30 @@ void ZedCameraOne::publishImages()
   // ----> Publish the COLOR image if someone has subscribed to
   if (_colorSubCount > 0) {
     DEBUG_STREAM_VD("_colorSubCount: " << _colorSubCount);
-    publishImageWithInfo(
-      _matColor, _pubColorImg, _camInfoMsg, _camOptFrameId,
-      timeStamp);
+    publishImageWithInfo(_matColor, _pubColorImg, _pubColorImgInfo, _camInfoMsg, _camOptFrameId, timeStamp);
   }
   // <---- Publish the COLOR image if someone has subscribed to
 
   // ----> Publish the COLOR RAW image if someone has subscribed to
   if (_colorRawSubCount > 0) {
     DEBUG_STREAM_VD("_colorRawSubCount: " << _colorRawSubCount);
-    publishImageWithInfo(
-      _matColorRaw, _pubColorRawImg, _camInfoRawMsg,
-      _camOptFrameId, timeStamp);
+    publishImageWithInfo(_matColorRaw, _pubColorRawImg, _pubColorRawImgInfo, _camInfoRawMsg, _camOptFrameId, timeStamp);
   }
   // <---- Publish the COLOR RAW image if someone has subscribed to
 
-#if ENABLE_GRAY_IMAGE
   // ----> Publish the GRAY image if someone has subscribed to
   if (_graySubCount > 0) {
     DEBUG_STREAM_VD("_graySubCount: " << _graySubCount);
-    publishImageWithInfo(
-      _matGray, _pubGrayImg, _camInfoMsg, _camOptFrameId,
-      timeStamp);
+    publishImageWithInfo(_matGray, _pubGrayImg, _pubGrayImgInfo, _camInfoMsg, _camOptFrameId, timeStamp);
   }
   // <---- Publish the GRAY image if someone has subscribed to
 
   // ----> Publish the GRAY RAW image if someone has subscribed to
   if (_grayRawSubCount > 0) {
     DEBUG_STREAM_VD("_grayRawSubCount: " << _grayRawSubCount);
-    publishImageWithInfo(
-      _matGrayRaw, _pubGrayRawImg, _camInfoRawMsg,
-      _camOptFrameId, timeStamp);
+    publishImageWithInfo(_matGrayRaw, _pubGrayRawImg, _pubGrayRawImgInfo, _camInfoRawMsg, _camOptFrameId, timeStamp);
   }
   // <---- Publish the GRAY RAW image if someone has subscribed to
-#endif
 
   // Diagnostic statistic
   _imageElabMean_sec->addValue(vdElabTimer.toc());
@@ -405,16 +453,32 @@ void ZedCameraOne::publishImages()
   DEBUG_VD("=== Video and Depth topics published === ");
 }
 
-void ZedCameraOne::publishImageWithInfo(
-  const sl::Mat & img, const image_transport::CameraPublisher & pubImg,
-  camInfoMsgPtr & camInfoMsg, const std::string & imgFrameId,
+void ZedCameraOne::publishCameraInfo(
+  const camInfoPub & camInfoPub,
+  camInfoMsgPtr & camInfoMsg,
   const rclcpp::Time & t)
 {
-  auto image = sl_tools::imageToROSmsg(img, imgFrameId, t, false);
-  camInfoMsg->header.stamp = t;
+  camInfoMsg->header.stamp = _usePubTimestamps ? get_clock()->now() : t;
+  DEBUG_STREAM_VD(
+    " * Publishing Camera Info message: " << camInfoMsg->header.stamp.nanosec
+                                          << " nsec");
+
+  camInfoPub->publish(*camInfoMsg);
+}
+
+void ZedCameraOne::publishImageWithInfo(
+    const sl::Mat & img,
+    const image_transport::Publisher & pubImg,
+    const camInfoPub & camInfoPub,
+    camInfoMsgPtr & camInfoMsg,
+    const std::string & imgFrameId,
+    const rclcpp::Time & t)
+{
+  auto image = sl_tools::imageToROSmsg(img, imgFrameId, t, _usePubTimestamps);
   DEBUG_STREAM_VD("Publishing IMAGE message: " << t.nanoseconds() << " nsec");
   try {
-    pubImg.publish(std::move(image), std::move(camInfoMsg));
+    pubImg.publish(std::move(image));
+    publishCameraInfo(camInfoPub, camInfoMsg, t);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
   } catch (...) {

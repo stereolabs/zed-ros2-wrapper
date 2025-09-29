@@ -15,7 +15,6 @@
 #ifndef ZED_CAMERA_ONE_COMPONENT_HPP_
 #define ZED_CAMERA_ONE_COMPONENT_HPP_
 
-#define ENABLE_GRAY_IMAGE 1
 #define ENABLE_STREAM_INPUT 1
 #define ENABLE_SVO 0
 
@@ -44,6 +43,7 @@ protected:
   void initServices();
   void initTFCoordFrameNames();
   void initPublishers();
+  void initVideoPublishers();
   void initializeTimestamp();
   void initializeDiagnosticStatistics();
   void initThreadsAndTimers();
@@ -103,10 +103,14 @@ protected:
   void publishImages();
   void publishImageWithInfo(
     const sl::Mat & img,
-    const image_transport::CameraPublisher & pubImg,
+    const image_transport::Publisher & pubImg,
+    const camInfoPub & camInfoPub,
     camInfoMsgPtr & camInfoMsg,
     const std::string & imgFrameId,
     const rclcpp::Time & t);
+  void publishCameraInfo(
+    const camInfoPub & camInfoPub,
+    camInfoMsgPtr & camInfoMsg, const rclcpp::Time & t);
   bool publishSensorsData();
   void publishImuFrameAndTopic();
 
@@ -232,23 +236,23 @@ private:
 
   // ----> Topics
   std::string _topicRoot = "~/";
-  std::string _imgTopic;
-  std::string _imgRawTopic;
-#if ENABLE_GRAY_IMAGE
+  std::string _imgColorTopic;
+  std::string _imgColorRawTopic;
   std::string _imgGrayTopic;
   std::string _imgRawGrayTopic;
-#endif
 
   std::string _tempTopic;
   // <---- Topics
 
   // ----> Publishers
-  image_transport::CameraPublisher _pubColorImg;
-  image_transport::CameraPublisher _pubColorRawImg;
-#if ENABLE_GRAY_IMAGE
-  image_transport::CameraPublisher _pubGrayImg;
-  image_transport::CameraPublisher _pubGrayRawImg;
-#endif
+  image_transport::Publisher _pubColorImg;
+  camInfoPub _pubColorImgInfo;
+  image_transport::Publisher _pubColorRawImg;
+  camInfoPub _pubColorRawImgInfo; 
+  image_transport::Publisher _pubGrayImg;
+  camInfoPub _pubGrayImgInfo;
+  image_transport::Publisher _pubGrayRawImg;
+  camInfoPub _pubGrayRawImgInfo;
 
   imuPub _pubImu;
   imuPub _pubImuRaw;
@@ -262,19 +266,15 @@ private:
   sl::Timestamp _sdkGrabTS = 0;
   std::atomic<size_t> _colorSubCount;
   std::atomic<size_t> _colorRawSubCount;
-#if ENABLE_GRAY_IMAGE
   std::atomic<size_t> _graySubCount = 0;
   std::atomic<size_t> _grayRawSubCount = 0;
-#endif
 
   std::atomic<size_t> _imuSubCount;
   std::atomic<size_t> _imuRawSubCount;
   double _sensRateComp = 1.0;
 
   sl::Mat _matColor, _matColorRaw;
-#if ENABLE_GRAY_IMAGE
   sl::Mat _matGray, _matGrayRaw;
-#endif
   // <---- Publisher variables
 
   // ----> Parameters
@@ -289,6 +289,8 @@ private:
   int _sdkVerbose = 0; // SDK verbose level
   std::string _sdkVerboseLogFile = ""; // SDK Verbose Log file
   int _gpuId = -1; // GPU ID
+  bool _useSvoTimestamp = false; // Use SVO timestamp
+  bool _usePubTimestamps = false; // Use publishing timestamp instead of grab timestamp
 
   int _camSerialNumber = 0; // Camera serial number
   int _camId = -1; // Camera ID
@@ -350,8 +352,7 @@ private:
   // ----> Running status
   bool _debugMode = false;  // Debug mode active?
   bool _svoMode = false;        // Input from SVO?
-  bool _svoPause = false;       // SVO pause status
-  bool _useSvoTimestamp = false; // Use SVO timestamp
+  bool _svoPause = false;       // SVO pause status  
   bool _streamMode = false;     // Expecting local streaming data?
 
   std::atomic<bool> _triggerUpdateDynParams;  // Trigger auto exposure/gain

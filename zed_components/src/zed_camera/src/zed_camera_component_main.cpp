@@ -2315,6 +2315,13 @@ bool ZedCamera::startCamera()
   mInitParams.async_grab_camera_recovery =
     true;    // Camera recovery is handled asynchronously to provide information
              // about this status
+
+  // Set the maximum working resolution between video and point cloud to boost the pipeline processing
+  if (mMatResol.width > mPcResol.width) {
+    mInitParams.maximum_working_resolution = mMatResol;
+  } else {
+    mInitParams.maximum_working_resolution = mPcResol;
+  }
   // <---- ZED configuration
 
   // ----> Try to connect to a camera, to a stream, or to load an SVO

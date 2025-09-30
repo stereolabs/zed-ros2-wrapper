@@ -136,11 +136,6 @@ void ZedCameraOne::initVideoPublishers()
   std::string gray_prefix = "gray/";
   std::string image_topic = "image";
 
-  // _imgColorTopic = _topicRoot + color_prefix + rect_prefix + image_topic;
-  // _imgColorRawTopic = _topicRoot + color_prefix + raw_prefix + image_topic;
-  // _imgGrayTopic = _topicRoot + gray_prefix + rect_prefix + image_topic;
-  // _imgRawGrayTopic = _topicRoot + gray_prefix + raw_prefix + image_topic;
-
   // Helper to build topic names
   auto make_topic =
     [&](const std::string & root, const std::string & suffix, const std::string & type) {
@@ -156,6 +151,7 @@ void ZedCameraOne::initVideoPublishers()
 
   // ----> Create publishers
   auto qos = _qos.get_rmw_qos_profile();
+  
   
   _pubColorImg = image_transport::create_publisher(this, _imgColorTopic, qos);
   _pubColorRawImg = image_transport::create_publisher(this, _imgColorRawTopic, qos);
@@ -499,6 +495,71 @@ void ZedCameraOne::publishImageWithInfo(
     DEBUG_STREAM_COMM("Message publishing generic exception: ");
   }
 }
+#ifdef FOUND_ISAAC_ROS_NITROS
+void ZedCamera::publishImageWithInfo(
+  const sl::Mat & img,
+  const nitrosImgPub & nitrosPubImg,
+  const camInfoPub & infoPub,
+  const camInfoPub & infoPubTrans,
+  camInfoMsgPtr & camInfoMsg,
+  const std::string & imgFrameId,
+  const rclcpp::Time & t)
+{
+  DEBUG_STREAM_VD(" * Publishing NITROS IMAGE message: " << t.nanoseconds() << " nsec");
+  try {
+    size_t dpitch = img.getWidthBytes();
+    size_t spitch = img.getStepBytes(sl::MEM::GPU); // SL Mat can be padded
+
+    size_t dbuffer_size{spitch * img.getHeight()};
+    void * dbuffer;
+    CUDA_CHECK(cudaMalloc(&dbuffer, dbuffer_size));
+
+    DEBUG_NITROS("Sent CUDA Image buffer with memory at: %p", dbuffer);
+
+    // Copy data bytes to CUDA buffer
+    CUDA_CHECK(
+      cudaMemcpy2D(
+        dbuffer,
+        dpitch,
+        img.getPtr<sl::uchar1>(sl::MEM::GPU),
+        spitch,
+        img.getWidth() * img.getPixelBytes(), img.getHeight(),
+        cudaMemcpyDeviceToDevice));
+
+    // Adding header data
+    std_msgs::msg::Header header;
+    header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
+    header.frame_id = imgFrameId;
+
+    auto encoding = img_encodings::BGRA8; // Default encoding
+    if (img.getDataType() == sl::MAT_TYPE::U8_C1) {
+      encoding = img_encodings::MONO8; // Mono image
+    } else if (img.getDataType() == sl::MAT_TYPE::U8_C3) {
+      encoding = img_encodings::BGR8; // BGR image
+    } else if (img.getDataType() == sl::MAT_TYPE::F32_C1) {
+      encoding = img_encodings::TYPE_32FC1; // Float image
+    }
+
+    // Create NitrosImage wrapping CUDA buffer
+    nvidia::isaac_ros::nitros::NitrosImage nitros_image =
+      nvidia::isaac_ros::nitros::NitrosImageBuilder()
+      .WithHeader(header)
+      .WithEncoding(encoding)
+      .WithDimensions(img.getHeight(), img.getWidth())
+      .WithGpuData(dbuffer)
+      //.WithGpuData(img.getPtr<sl::uchar4>(sl::MEM::GPU)) // TODO: Enable direct GPU memory sharing when supported by Isaac ROS.
+      .Build();
+
+    nitrosPubImg->publish(nitros_image);
+    publishCameraInfo(camInfoPub, camInfoMsg, t);
+    publishCameraInfo(infoPubTrans, camInfoMsg, t);
+  } catch (std::system_error & e) {
+    DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
+  } catch (...) {
+    DEBUG_STREAM_COMM(" * Message publishing generic exception: ");
+  }
+}
+#endif
 
 void ZedCameraOne::applyDynamicSettings()
 {

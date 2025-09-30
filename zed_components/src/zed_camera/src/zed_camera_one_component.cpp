@@ -1074,7 +1074,7 @@ void ZedCameraOne::callback_pubTemp()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
   // <---- Publish temperature
@@ -2547,7 +2547,7 @@ bool ZedCameraOne::publishSensorsData()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
@@ -2611,7 +2611,7 @@ bool ZedCameraOne::publishSensorsData()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
   // <---- Sensors data publishing
@@ -2895,7 +2895,7 @@ void ZedCameraOne::publishImageWithInfo(
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM("Message publishing generic exception: ");
   }
 }
 

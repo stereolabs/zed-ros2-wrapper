@@ -4026,7 +4026,7 @@ void ZedCamera::publishImuFrameAndTopic()
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM("Message publishing generic exception: ");
   }
 
   // Publish IMU TF as static TF
@@ -4770,7 +4770,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       } catch (std::system_error & e) {
         DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
       } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+        DEBUG_STREAM_COMM("Message publishing generic exception: ");
       }
     } else {
       mImuPublishing = false;
@@ -4834,7 +4834,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       } catch (std::system_error & e) {
         DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
       } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+        DEBUG_STREAM_COMM("Message publishing generic exception: ");
       }
     }
   }
@@ -4858,7 +4858,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       } catch (std::system_error & e) {
         DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
       } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+        DEBUG_STREAM_COMM("Message publishing generic exception: ");
       }
     } else {
       mBaroPublishing = false;
@@ -4895,7 +4895,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       } catch (std::system_error & e) {
         DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
       } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+        DEBUG_STREAM_COMM("Message publishing generic exception: ");
       }
     } else {
       mMagPublishing = false;
@@ -5358,7 +5358,7 @@ void ZedCamera::publishOdom(
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -5493,7 +5493,7 @@ void ZedCamera::publishPoseStatus()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -5521,7 +5521,7 @@ void ZedCamera::publishGnssPoseStatus()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -5550,7 +5550,7 @@ void ZedCamera::publishGeoPoseStatus()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -5602,7 +5602,7 @@ void ZedCamera::publishPose()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
@@ -5636,7 +5636,7 @@ void ZedCamera::publishPose()
       } catch (std::system_error & e) {
         DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
       } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+        DEBUG_STREAM_COMM("Message publishing generic exception: ");
       }
     }
   }
@@ -5856,7 +5856,7 @@ void ZedCamera::publishGnssPose()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
@@ -5885,7 +5885,7 @@ void ZedCamera::publishGnssPose()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
@@ -5930,7 +5930,7 @@ void ZedCamera::publishGnssPose()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
@@ -5964,7 +5964,7 @@ void ZedCamera::publishGnssPose()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -6166,7 +6166,7 @@ void ZedCamera::callback_pubTemp()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
@@ -6185,7 +6185,7 @@ void ZedCamera::callback_pubTemp()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
@@ -6204,7 +6204,7 @@ void ZedCamera::callback_pubTemp()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -6324,7 +6324,7 @@ void ZedCamera::callback_pubFusedPc()
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM("Message publishing generic exception: ");
   }
 #else
   try {
@@ -6332,7 +6332,7 @@ void ZedCamera::callback_pubFusedPc()
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM("Message publishing generic exception: ");
   }
 #endif
 }
@@ -6426,7 +6426,7 @@ void ZedCamera::callback_pubPaths()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
@@ -6444,7 +6444,7 @@ void ZedCamera::callback_pubPaths()
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -7826,7 +7826,7 @@ void ZedCamera::callback_clickedPoint(
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
     // ----> Publish a blue sphere in the clicked point
 
@@ -7897,7 +7897,7 @@ void ZedCamera::callback_clickedPoint(
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
     // <---- Publish the plane as green mesh
   }
@@ -7981,7 +7981,7 @@ void ZedCamera::callback_clickedPoint(
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
     // <---- Publish the plane as custom message
   }

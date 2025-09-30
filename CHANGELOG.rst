@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-09-30
+----------
+- Enabled Isaac ROS NITROS integration for ZED X One cameras
+
 2025-09-29
 ----------
 - Added `camera_info` in transport namespace to reflect `rviz2` requirements with the Camera plugin.

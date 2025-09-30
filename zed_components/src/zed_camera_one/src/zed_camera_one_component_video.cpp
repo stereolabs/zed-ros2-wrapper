@@ -325,7 +325,8 @@ bool ZedCameraOne::areImageTopicsSubscribed()
       _grayRawSubCount = _pubGrayRawImg.getNumSubscribers();
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
-      _colorSubCount = count_subscribers(_imgColorTopic) + count_subscribers(_imgColorTopic + "/nitros");
+      _colorSubCount = count_subscribers(_imgColorTopic) + count_subscribers(
+        _imgColorTopic + "/nitros");
       _colorRawSubCount = count_subscribers(_imgColorRawTopic) + count_subscribers(
         _imgColorRawTopic + "/nitros");
       _graySubCount = count_subscribers(_imgGrayTopic) +
@@ -425,13 +426,9 @@ void ZedCameraOne::publishImages()
 {
   DEBUG_VD("=== Publish Image topics === ");
   sl_tools::StopWatch vdElabTimer(get_clock());
-
-  // Start processing timer for diagnostic
   vdElabTimer.tic();
 
-  // ----> Check if a grab has been done before publishing the same images
   if (_sdkGrabTS.getNanoseconds() == _lastTs_grab.getNanoseconds()) {
-    // Data not updated by a grab calling in the grab thread
     DEBUG_VD("publishImages: ignoring not update data");
     DEBUG_STREAM_VD(
       "Latest Ts: " << _lastTs_grab.getNanoseconds()
@@ -454,18 +451,37 @@ void ZedCameraOne::publishImages()
         << 1. / _imagePeriodMean_sec->getAvg() << " Hz");
   }
   _lastTs_grab = _sdkGrabTS;
-  // <---- Check if a grab has been done before publishing the same images
 
-  // ----> Timestamp
   rclcpp::Time timeStamp;
   if (_svoMode) {
     timeStamp = _frameTimestamp;
   } else {
     timeStamp = sl_tools::slTime2Ros(_sdkGrabTS, get_clock()->get_clock_type());
   }
-  // <---- Timestamp
 
-  // ----> Publish the COLOR image if someone has subscribed to
+  publishColorImage(timeStamp);
+  publishColorRawImage(timeStamp);
+  publishGrayImage(timeStamp);
+  publishGrayRawImage(timeStamp);
+
+  _imageElabMean_sec->addValue(vdElabTimer.toc());
+
+  double vd_period_usec = 1e6 / _camGrabFrameRate;
+  double elapsed_usec = _imgPubFreqTimer.toc() * 1e6;
+
+  if (elapsed_usec < vd_period_usec) {
+    rclcpp::sleep_for(
+      std::chrono::microseconds(
+        static_cast<int>(vd_period_usec - elapsed_usec)));
+  }
+
+  _imgPubFreqTimer.tic();
+
+  DEBUG_VD("=== Video and Depth topics published === ");
+}
+
+void ZedCameraOne::publishColorImage(const rclcpp::Time& timeStamp)
+{
   if (_colorSubCount > 0) {
     DEBUG_STREAM_VD("_colorSubCount: " << _colorSubCount);
     if (_nitrosDisabled) {
@@ -480,9 +496,10 @@ void ZedCameraOne::publishImages()
 #endif
     }
   }
-  // <---- Publish the COLOR image if someone has subscribed to
+}
 
-  // ----> Publish the COLOR RAW image if someone has subscribed to
+void ZedCameraOne::publishColorRawImage(const rclcpp::Time& timeStamp)
+{
   if (_colorRawSubCount > 0) {
     DEBUG_STREAM_VD("_colorRawSubCount: " << _colorRawSubCount);
     if (_nitrosDisabled) {
@@ -497,9 +514,10 @@ void ZedCameraOne::publishImages()
 #endif
     }
   }
-  // <---- Publish the COLOR RAW image if someone has subscribed to
+}
 
-  // ----> Publish the GRAY image if someone has subscribed to
+void ZedCameraOne::publishGrayImage(const rclcpp::Time& timeStamp)
+{
   if (_graySubCount > 0) {
     DEBUG_STREAM_VD("_graySubCount: " << _graySubCount);
     if (_nitrosDisabled) {
@@ -514,9 +532,10 @@ void ZedCameraOne::publishImages()
 #endif
     }
   }
-  // <---- Publish the GRAY image if someone has subscribed to
+}
 
-  // ----> Publish the GRAY RAW image if someone has subscribed to
+void ZedCameraOne::publishGrayRawImage(const rclcpp::Time& timeStamp)
+{
   if (_grayRawSubCount > 0) {
     DEBUG_STREAM_VD("_grayRawSubCount: " << _grayRawSubCount);
     if (_nitrosDisabled) {
@@ -531,26 +550,6 @@ void ZedCameraOne::publishImages()
 #endif
     }
   }
-  // <---- Publish the GRAY RAW image if someone has subscribed to
-
-  // Diagnostic statistic
-  _imageElabMean_sec->addValue(vdElabTimer.toc());
-
-  // ----> Check publishing frequency
-  double vd_period_usec = 1e6 / _camGrabFrameRate;
-
-  double elapsed_usec = _imgPubFreqTimer.toc() * 1e6;
-
-  if (elapsed_usec < vd_period_usec) {
-    rclcpp::sleep_for(
-      std::chrono::microseconds(
-        static_cast<int>(vd_period_usec - elapsed_usec)));
-  }
-
-  _imgPubFreqTimer.tic();
-  // <---- Check publishing frequency
-
-  DEBUG_VD("=== Video and Depth topics published === ");
 }
 
 void ZedCameraOne::publishCameraInfo(
@@ -577,10 +576,10 @@ void ZedCameraOne::publishImageWithInfo(
 {
   auto image = sl_tools::imageToROSmsg(img, imgFrameId, t, _usePubTimestamps);
   DEBUG_STREAM_VD("Publishing IMAGE message: " << t.nanoseconds() << " nsec");
-  try {
+  try {    
+    publishCameraInfo(infoPub, camInfoMsg, image->header.stamp);
+    publishCameraInfo(infoPubTrans, camInfoMsg, image->header.stamp);
     pubImg.publish(std::move(image));
-    publishCameraInfo(infoPub, camInfoMsg, t);
-    publishCameraInfo(infoPubTrans, camInfoMsg, t);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {
@@ -643,8 +642,8 @@ void ZedCameraOne::publishImageWithInfo(
       .Build();
 
     nitrosPubImg->publish(nitros_image);
-    publishCameraInfo(infoPub, camInfoMsg, t);
-    publishCameraInfo(infoPubTrans, camInfoMsg, t);
+    publishCameraInfo(infoPub, camInfoMsg, header.stamp);
+    publishCameraInfo(infoPubTrans, camInfoMsg, header.stamp);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
   } catch (...) {

@@ -101,6 +101,10 @@ protected:
   bool areSensorsTopicsSubscribed();
   void retrieveImages(bool gpu);
   void publishImages();
+  void publishColorImage(const rclcpp::Time& timeStamp);
+  void publishColorRawImage(const rclcpp::Time& timeStamp);
+  void publishGrayImage(const rclcpp::Time& timeStamp);
+  void publishGrayRawImage(const rclcpp::Time& timeStamp);
   void publishImageWithInfo(
     const sl::Mat & img,
     const image_transport::Publisher & pubImg,

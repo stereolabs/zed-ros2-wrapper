@@ -1975,10 +1975,10 @@ void ZedCamera::publishImageWithInfo(
   DEBUG_STREAM_VD(
     " * Publishing IMAGE message: " << (mUsePubTimestamps ? get_clock()->now() : t).nanoseconds() <<
       " nsec");
-  try {
+  try {    
+    publishCameraInfo(infoPub, camInfoMsg, image->header.stamp);
+    publishCameraInfo(infoPubTrans, camInfoMsg, image->header.stamp);
     pubImg.publish(std::move(image));
-    publishCameraInfo(infoPub, camInfoMsg, t);
-    publishCameraInfo(infoPubTrans, camInfoMsg, t);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
   } catch (...) {
@@ -2041,8 +2041,8 @@ void ZedCamera::publishImageWithInfo(
       .Build();
 
     nitrosPubImg->publish(nitros_image);
-    publishCameraInfo(infoPub, camInfoMsg, t);
-    publishCameraInfo(infoPubTrans, camInfoMsg, t);
+    publishCameraInfo(infoPub, camInfoMsg, header.stamp);
+    publishCameraInfo(infoPubTrans, camInfoMsg, header.stamp);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
   } catch (...) {

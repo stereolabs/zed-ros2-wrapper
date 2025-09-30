@@ -997,7 +997,7 @@ void ZedCamera::stopObjDetect()
     try {
       mPubObjDet->publish(std::move(objMsg));
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what() );
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what() );
     } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic ecception: ");
     }
@@ -1184,7 +1184,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   try {
     mPubObjDet->publish(std::move(objMsg));
   } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+    DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {
     DEBUG_STREAM_COMM("Message publishing generic ecception: ");
   }

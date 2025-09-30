@@ -1746,19 +1746,6 @@ void ZedCameraOne::handleSvoRecordingStatus()
 #endif
 }
 
-void ZedCameraOne::handleImageRetrievalAndPublishing()
-{
-  _imageSubscribed = areImageTopicsSubscribed();
-  if (_imageSubscribed) {
-    DEBUG_STREAM_VD("Retrieving video data");
-    retrieveImages();
-    publishImages();
-    _videoPublishing = true;
-  } else {
-    _videoPublishing = false;
-  }
-}
-
 bool ZedCameraOne::startStreamingServer()
 {
   DEBUG_STR("Starting streaming server");

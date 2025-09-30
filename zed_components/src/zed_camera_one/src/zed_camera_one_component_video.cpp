@@ -152,21 +152,41 @@ void ZedCameraOne::initVideoPublishers()
   // ----> Create publishers
   auto qos = _qos.get_rmw_qos_profile();
 
+  // Camera publishers
+  if (_nitrosDisabled) {
+    _pubColorImg = image_transport::create_publisher(this, _imgColorTopic, qos);
+    _pubColorRawImg = image_transport::create_publisher(this, _imgColorRawTopic, qos);
+    _pubGrayImg = image_transport::create_publisher(this, _imgGrayTopic, qos);
+    _pubGrayRawImg = image_transport::create_publisher(this, _imgRawGrayTopic, qos);
 
-  _pubColorImg = image_transport::create_publisher(this, _imgColorTopic, qos);
-  _pubColorRawImg = image_transport::create_publisher(this, _imgColorRawTopic, qos);
-  _pubGrayImg = image_transport::create_publisher(this, _imgGrayTopic, qos);
-  _pubGrayRawImg = image_transport::create_publisher(this, _imgRawGrayTopic, qos);
+    // Publishers logging
+    auto log_cam_pub = [&](const auto & pub) {
+        RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << pub.getTopic());
+      };
 
-  // Publishers logging
-  auto log_cam_pub = [&](const auto & pub) {
-      RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << pub.getTopic());
-    };
+    log_cam_pub(_pubColorImg);
+    log_cam_pub(_pubColorRawImg);
+    log_cam_pub(_pubGrayImg);
+    log_cam_pub(_pubGrayRawImg);
+  } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+    // Nitros publishers lambda
+    auto make_nitros_img_pub = [&](const std::string & topic) {
+        auto ret = std::make_shared<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
+              nvidia::isaac_ros::nitros::NitrosImage>>(
+          this, topic, nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name,
+          nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), _qos);
+        RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic);
+        RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << topic + "/nitros");
+        return ret;
+      };
 
-  log_cam_pub(_pubColorImg);
-  log_cam_pub(_pubColorRawImg);
-  log_cam_pub(_pubGrayImg);
-  log_cam_pub(_pubGrayRawImg);
+    _nitrosPubColorImg = make_nitros_img_pub(_imgColorTopic);
+    _nitrosPubColorRawImg = make_nitros_img_pub(_imgColorRawTopic);
+    _nitrosPubGrayImg = make_nitros_img_pub(_imgGrayTopic);
+    _nitrosPubGrayRawImg = make_nitros_img_pub(_imgRawGrayTopic);
+#endif
+  }
   // <---- Create publishers
 
   // ----> Camera Info publishers
@@ -298,10 +318,23 @@ bool ZedCameraOne::areImageTopicsSubscribed()
   _grayRawSubCount = 0;
 
   try {
-    _colorSubCount = _pubColorImg.getNumSubscribers();
-    _colorRawSubCount = _pubColorRawImg.getNumSubscribers();
-    _graySubCount = _pubGrayImg.getNumSubscribers();
-    _grayRawSubCount = _pubGrayRawImg.getNumSubscribers();
+    if (_nitrosDisabled) {
+      _colorSubCount = _pubColorImg.getNumSubscribers();
+      _colorRawSubCount = _pubColorRawImg.getNumSubscribers();
+      _graySubCount = _pubGrayImg.getNumSubscribers();
+      _grayRawSubCount = _pubGrayRawImg.getNumSubscribers();
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      _colorSubCount = count_subscribers(_imgColorTopic); +count_subscribers(
+        _imgColorTopic + "/nitros");
+      _colorRawSubCount = count_subscribers(_imgColorRawTopic) + count_subscribers(
+        _imgColorRawTopic + "/nitros");
+      _graySubCount = count_subscribers(_imgGrayTopic) +
+        count_subscribers(_imgGrayTopic + "/nitros");
+      _grayRawSubCount = count_subscribers(_imgRawGrayTopic) + count_subscribers(
+        _imgRawGrayTopic + "/nitros");
+#endif
+    }
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_VD("publishImages: Exception while counting subscribers");
@@ -313,7 +346,27 @@ bool ZedCameraOne::areImageTopicsSubscribed()
   ) > 0;
 }
 
-void ZedCameraOne::retrieveImages()
+void ZedCameraOne::handleImageRetrievalAndPublishing()
+{
+  _imageSubscribed = areImageTopicsSubscribed();
+  if (_imageSubscribed) {
+    DEBUG_STREAM_VD("Retrieving video data");
+
+    bool gpu = false;
+#ifdef FOUND_ISAAC_ROS_NITROS
+    if (!_nitrosDisabled) {
+      gpu = true;
+    }
+#endif
+    retrieveImages(gpu);
+    publishImages();
+    _videoPublishing = true;
+  } else {
+    _videoPublishing = false;
+  }
+}
+
+void ZedCameraOne::retrieveImages(bool gpu)
 {
   bool retrieved = false;
 
@@ -322,7 +375,7 @@ void ZedCameraOne::retrieveImages()
   if (_colorSubCount > 0) {
     retrieved |=
       (sl::ERROR_CODE::SUCCESS ==
-      _zed->retrieveImage(_matColor, sl::VIEW::LEFT, sl::MEM::CPU, _matResol));
+      _zed->retrieveImage(_matColor, sl::VIEW::LEFT, gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
     _sdkGrabTS = _matColor.timestamp;
     DEBUG_STREAM_VD(
       "Color image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " <<
@@ -333,7 +386,7 @@ void ZedCameraOne::retrieveImages()
     retrieved |= (sl::ERROR_CODE::SUCCESS ==
       _zed->retrieveImage(
         _matColorRaw, sl::VIEW::LEFT_UNRECTIFIED,
-        sl::MEM::CPU, _matResol));
+        gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
     _sdkGrabTS = _matColorRaw.timestamp;
     DEBUG_STREAM_VD(
       "Color raw image " << _matResol.width << "x" << _matResol.height <<
@@ -344,7 +397,7 @@ void ZedCameraOne::retrieveImages()
     retrieved |= (sl::ERROR_CODE::SUCCESS ==
       _zed->retrieveImage(
         _matGray, sl::VIEW::LEFT_GRAY,
-        sl::MEM::CPU, _matResol));
+        gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
     _sdkGrabTS = _matGray.timestamp;
     DEBUG_STREAM_VD(
       "Gray image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " <<
@@ -356,7 +409,7 @@ void ZedCameraOne::retrieveImages()
       (sl::ERROR_CODE::SUCCESS ==
       _zed->retrieveImage(
         _matGrayRaw, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
-        sl::MEM::CPU, _matResol));
+        gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
     _sdkGrabTS = _matGrayRaw.timestamp;
     DEBUG_STREAM_VD(
       "Gray raw image " << _matResol.width << "x" << _matResol.height <<
@@ -416,36 +469,68 @@ void ZedCameraOne::publishImages()
   // ----> Publish the COLOR image if someone has subscribed to
   if (_colorSubCount > 0) {
     DEBUG_STREAM_VD("_colorSubCount: " << _colorSubCount);
-    publishImageWithInfo(
-      _matColor, _pubColorImg, _pubColorImgInfo, _pubColorImgInfoTrans,
-      _camInfoMsg, _camOptFrameId, timeStamp);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        _matColor, _pubColorImg, _pubColorImgInfo, _pubColorImgInfoTrans,
+        _camInfoMsg, _camOptFrameId, timeStamp);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        _matColor, _nitrosPubColorImg, _pubColorImgInfo, _pubColorImgInfoTrans,
+        _camInfoMsg, _camOptFrameId, timeStamp);
+#endif
+    }
   }
   // <---- Publish the COLOR image if someone has subscribed to
 
   // ----> Publish the COLOR RAW image if someone has subscribed to
   if (_colorRawSubCount > 0) {
     DEBUG_STREAM_VD("_colorRawSubCount: " << _colorRawSubCount);
-    publishImageWithInfo(
-      _matColorRaw, _pubColorRawImg, _pubColorRawImgInfo,
-      _pubColorRawImgInfoTrans, _camInfoRawMsg, _camOptFrameId, timeStamp);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        _matColorRaw, _pubColorRawImg, _pubColorRawImgInfo,
+        _pubColorRawImgInfoTrans, _camInfoRawMsg, _camOptFrameId, timeStamp);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        _matColorRaw, _nitrosPubColorRawImg, _pubColorRawImgInfo, _pubColorRawImgInfoTrans,
+        _camInfoRawMsg, _camOptFrameId, timeStamp);
+#endif
+    }
   }
   // <---- Publish the COLOR RAW image if someone has subscribed to
 
   // ----> Publish the GRAY image if someone has subscribed to
   if (_graySubCount > 0) {
     DEBUG_STREAM_VD("_graySubCount: " << _graySubCount);
-    publishImageWithInfo(
-      _matGray, _pubGrayImg, _pubGrayImgInfo, _pubGrayImgInfoTrans, _camInfoMsg,
-      _camOptFrameId, timeStamp);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        _matGray, _pubGrayImg, _pubGrayImgInfo, _pubGrayImgInfoTrans,
+        _camInfoMsg, _camOptFrameId, timeStamp);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        _matGray, _nitrosPubGrayImg, _pubGrayImgInfo, _pubGrayImgInfoTrans,
+        _camInfoMsg, _camOptFrameId, timeStamp);
+#endif
+    }
   }
   // <---- Publish the GRAY image if someone has subscribed to
 
   // ----> Publish the GRAY RAW image if someone has subscribed to
   if (_grayRawSubCount > 0) {
     DEBUG_STREAM_VD("_grayRawSubCount: " << _grayRawSubCount);
-    publishImageWithInfo(
-      _matGrayRaw, _pubGrayRawImg, _pubGrayRawImgInfo, _pubGrayRawImgInfoTrans,
-      _camInfoRawMsg, _camOptFrameId, timeStamp);
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        _matGrayRaw, _pubGrayRawImg, _pubGrayRawImgInfo,
+        _pubGrayRawImgInfoTrans, _camInfoRawMsg, _camOptFrameId, timeStamp);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        _matGrayRaw, _nitrosPubGrayRawImg, _pubGrayRawImgInfo, _pubGrayRawImgInfoTrans,
+        _camInfoRawMsg, _camOptFrameId, timeStamp);
+#endif
+    }
   }
   // <---- Publish the GRAY RAW image if someone has subscribed to
 

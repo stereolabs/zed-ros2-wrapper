@@ -99,7 +99,7 @@ protected:
 
   bool areImageTopicsSubscribed();
   bool areSensorsTopicsSubscribed();
-  void retrieveImages();
+  void retrieveImages(bool gpu);
   void publishImages();
   void publishImageWithInfo(
     const sl::Mat & img,

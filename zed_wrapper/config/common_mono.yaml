@@ -55,7 +55,7 @@
         debug:
             sdk_verbose: 1 # Set the verbose level of the ZED SDK
             sdk_verbose_log_file: '' # Path to the file where the ZED SDK will log its messages. If empty, no file will be created. The log level can be set using the `sdk_verbose` parameter.
-            use_pub_timestamps: false # Use the current ROS time for the message timestamp instead of the camera timestamp. Tis is useful to test data communication latency.
+            use_pub_timestamps: false # Use the current ROS time for the message timestamp instead of the camera timestamp. This is useful to test data communication latency.
             debug_common: false
             debug_video_depth: false
             debug_camera_controls: false

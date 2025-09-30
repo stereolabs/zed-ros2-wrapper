@@ -1072,9 +1072,9 @@ void ZedCameraOne::callback_pubTemp()
     try {
       _pubTemp->publish(std::move(imuTempMsg));
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
   // <---- Publish temperature
@@ -2545,9 +2545,9 @@ bool ZedCameraOne::publishSensorsData()
     try {
       _pubImu->publish(std::move(imuMsg));
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
@@ -2609,9 +2609,9 @@ bool ZedCameraOne::publishSensorsData()
     try {
       _pubImuRaw->publish(std::move(imuRawMsg));
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
   // <---- Sensors data publishing
@@ -2891,11 +2891,11 @@ void ZedCameraOne::publishImageWithInfo(
   camInfoMsg->header.stamp = t;
   DEBUG_STREAM_VD("Publishing IMAGE message: " << t.nanoseconds() << " nsec");
   try {
-    pubImg.publish(std::move(image), std::move(camInfoMsg));
+    pubImg.publish(std::move(image), camInfoMsg);
   } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+    DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM("Message publishing generic exception: ");
   }
 }
 

@@ -325,8 +325,7 @@ bool ZedCameraOne::areImageTopicsSubscribed()
       _grayRawSubCount = _pubGrayRawImg.getNumSubscribers();
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
-      _colorSubCount = count_subscribers(_imgColorTopic); +count_subscribers(
-        _imgColorTopic + "/nitros");
+      _colorSubCount = count_subscribers(_imgColorTopic) + count_subscribers(_imgColorTopic + "/nitros");
       _colorRawSubCount = count_subscribers(_imgColorRawTopic) + count_subscribers(
         _imgColorRawTopic + "/nitros");
       _graySubCount = count_subscribers(_imgGrayTopic) +

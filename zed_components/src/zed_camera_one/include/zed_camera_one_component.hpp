@@ -385,7 +385,7 @@ private:
   // ----> Running status
   bool _debugMode = false;  // Debug mode active?
   bool _svoMode = false;        // Input from SVO?
-  bool _svoPause = false;       // SVO pause status  
+  bool _svoPause = false;       // SVO pause status
   bool _streamMode = false;     // Expecting local streaming data?
 
   std::atomic<bool> _triggerUpdateDynParams;  // Trigger auto exposure/gain

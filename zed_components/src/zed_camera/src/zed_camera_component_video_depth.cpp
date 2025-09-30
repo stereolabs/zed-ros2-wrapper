@@ -1702,7 +1702,6 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
       publishImageWithInfo(
         mMatLeftRaw, mNitrosPubRawLeft, mPubRawLeftCamInfo, mPubRawLeftCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
-        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
   }
@@ -1854,7 +1853,8 @@ void ZedCamera::publishRightRawGrayImages(const rclcpp::Time & t)
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatRightRawGray, mNitrosPubRawRightGray, mPubRawRightGrayCamInfo, mPubRawRightGrayCamInfoTrans,
+        mMatRightRawGray, mNitrosPubRawRightGray, mPubRawRightGrayCamInfo,
+        mPubRawRightGrayCamInfoTrans,
         mRightCamInfoRawMsg, mRightCamOptFrameId, t);
 #endif
     }
@@ -2041,7 +2041,7 @@ void ZedCamera::publishImageWithInfo(
       .Build();
 
     nitrosPubImg->publish(nitros_image);
-    publishCameraInfo(camInfoPub, camInfoMsg, t);
+    publishCameraInfo(infoPub, camInfoMsg, t);
     publishCameraInfo(infoPubTrans, camInfoMsg, t);
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());

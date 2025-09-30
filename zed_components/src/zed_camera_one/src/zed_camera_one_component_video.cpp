@@ -494,9 +494,9 @@ void ZedCameraOne::publishImageWithInfo(
     publishCameraInfo(infoPub, camInfoMsg, t);
     publishCameraInfo(infoPubTrans, camInfoMsg, t);
   } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+    DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM("Message publishing generic exception: ");
   }
 }
 

@@ -703,7 +703,7 @@ void ZedCamera::getDebugParams()
   }
 
   DEBUG_STREAM_COMM(
-    "[ROS2] Using RMW_IMPLEMENTATION "
+    "[ROS 2] Using RMW_IMPLEMENTATION "
       << rmw_get_implementation_identifier());
 
 #ifdef FOUND_ISAAC_ROS_NITROS

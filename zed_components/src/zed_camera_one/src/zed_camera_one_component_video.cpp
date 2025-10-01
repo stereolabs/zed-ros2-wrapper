@@ -480,7 +480,7 @@ void ZedCameraOne::publishImages()
   DEBUG_VD("=== Video and Depth topics published === ");
 }
 
-void ZedCameraOne::publishColorImage(const rclcpp::Time& timeStamp)
+void ZedCameraOne::publishColorImage(const rclcpp::Time & timeStamp)
 {
   if (_colorSubCount > 0) {
     DEBUG_STREAM_VD("_colorSubCount: " << _colorSubCount);
@@ -498,7 +498,7 @@ void ZedCameraOne::publishColorImage(const rclcpp::Time& timeStamp)
   }
 }
 
-void ZedCameraOne::publishColorRawImage(const rclcpp::Time& timeStamp)
+void ZedCameraOne::publishColorRawImage(const rclcpp::Time & timeStamp)
 {
   if (_colorRawSubCount > 0) {
     DEBUG_STREAM_VD("_colorRawSubCount: " << _colorRawSubCount);
@@ -516,7 +516,7 @@ void ZedCameraOne::publishColorRawImage(const rclcpp::Time& timeStamp)
   }
 }
 
-void ZedCameraOne::publishGrayImage(const rclcpp::Time& timeStamp)
+void ZedCameraOne::publishGrayImage(const rclcpp::Time & timeStamp)
 {
   if (_graySubCount > 0) {
     DEBUG_STREAM_VD("_graySubCount: " << _graySubCount);
@@ -534,7 +534,7 @@ void ZedCameraOne::publishGrayImage(const rclcpp::Time& timeStamp)
   }
 }
 
-void ZedCameraOne::publishGrayRawImage(const rclcpp::Time& timeStamp)
+void ZedCameraOne::publishGrayRawImage(const rclcpp::Time & timeStamp)
 {
   if (_grayRawSubCount > 0) {
     DEBUG_STREAM_VD("_grayRawSubCount: " << _grayRawSubCount);
@@ -576,7 +576,7 @@ void ZedCameraOne::publishImageWithInfo(
 {
   auto image = sl_tools::imageToROSmsg(img, imgFrameId, t, _usePubTimestamps);
   DEBUG_STREAM_VD("Publishing IMAGE message: " << t.nanoseconds() << " nsec");
-  try {    
+  try {
     publishCameraInfo(infoPub, camInfoMsg, image->header.stamp);
     publishCameraInfo(infoPubTrans, camInfoMsg, image->header.stamp);
     pubImg.publish(std::move(image));

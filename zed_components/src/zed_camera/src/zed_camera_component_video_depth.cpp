@@ -1975,7 +1975,7 @@ void ZedCamera::publishImageWithInfo(
   DEBUG_STREAM_VD(
     " * Publishing IMAGE message: " << (mUsePubTimestamps ? get_clock()->now() : t).nanoseconds() <<
       " nsec");
-  try {    
+  try {
     publishCameraInfo(infoPub, camInfoMsg, image->header.stamp);
     publishCameraInfo(infoPubTrans, camInfoMsg, image->header.stamp);
     pubImg.publish(std::move(image));

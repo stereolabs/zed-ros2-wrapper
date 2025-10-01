@@ -15,13 +15,13 @@ ls -lah ../ros2_ws/install
 #ls -lah /builds/sl/ros2_ws/install/zed_wrapper/share/zed_wrapper/
 #ls -lah /builds/sl/ros2_ws/install/zed_ros2/share/zed_ros2/
 
-echo "${ttk} Initialize local ROS2 environment"
+echo "${ttk} Initialize local ROS 2 environment"
 cd ${WORKDIR}
 source ../ros2_ws/install/local_setup.bash
 env | grep COLCON
 env | grep ROS
 
-echo "${ttk} Check ROS2 installation"
+echo "${ttk} Check ROS 2 installation"
 ros2 doctor -r
 
 echo "${ttk} Check ZED ROS2 packages presence"

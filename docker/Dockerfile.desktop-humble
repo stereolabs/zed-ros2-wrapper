@@ -22,7 +22,7 @@ ARG ZED_SDK_PATCH=3
 # Optional: Override ZED SDK URL
 ARG CUSTOM_ZED_SDK_URL=""
 
-ARG ROS2_DIST=humble       # ROS2 distribution
+ARG ROS2_DIST=humble       # ROS 2 distribution
 
 ARG DEBIAN_FRONTEND=noninteractive
 

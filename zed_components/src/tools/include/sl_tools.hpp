@@ -88,7 +88,7 @@ std::string getSDKVersion(int & major, int & minor, int & sub_minor);
 
 /*! \brief Convert StereoLabs timestamp to ROS timestamp
  *  \param t : Stereolabs timestamp to be converted
- *  \param t : ROS2 clock type
+ *  \param t : ROS 2 clock type
  */
 rclcpp::Time slTime2Ros(sl::Timestamp t, rcl_clock_type_t clock_type = RCL_ROS_TIME);
 

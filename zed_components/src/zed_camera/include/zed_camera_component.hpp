@@ -20,6 +20,7 @@
 #include <sl/Fusion.hpp>
 #include <unordered_set>
 
+#include "sl_version.hpp"
 #include "sl_tools.hpp"
 #include "sl_types.hpp"
 #include "visibility_control.hpp"

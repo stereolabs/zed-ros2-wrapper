@@ -10,12 +10,12 @@ echo "${ttk} Root repository folder: ${WORKDIR}"
 echo "${ttk} Repository name: ${PROJ_NAME}"
 
 # Create the ROS 2 workspace
-echo "${ttk} Create ROS2 workspace"
+echo "${ttk} Create ROS 2 workspace"
 cd ..
 WS_DIR="$(pwd)"/ros2_ws
 rm -rf ${WS_DIR} # clean residual cache files
 mkdir -p ${WS_DIR}/src 
-echo "${ttk} ROS2 Workspace: ${WS_DIR}"
+echo "${ttk} ROS 2 Workspace: ${WS_DIR}"
 cd ${WORKDIR}
 cd ..
 echo "cp -a ./${PROJ_NAME} ${WS_DIR}/src/"

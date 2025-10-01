@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
     <name>zed_wrapper</name>
-    <version>5.0.0</version>
+    <version>5.1.0</version>
     <description>zed_wrapper loading zed_components in a single process</description>
     <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
     <license>Apache License 2.0</license>

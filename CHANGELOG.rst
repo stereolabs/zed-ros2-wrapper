@@ -96,7 +96,7 @@ v4.2.x
 - Renamed `common.yaml` to `common_stereo.yaml`
 - Added `common_mono.yaml` for monocular cameras
 - Added `video.enable_hdr` to `zedxone4k.yaml` for monocular 4K cameras
-- Changed the name of the package `zed_interfaces` to `zed_msgs` to match the ROS2 naming convention
+- Changed the name of the package `zed_interfaces` to `zed_msgs` to match the ROS 2 naming convention
 - Added the new `stereolabs::ZedCameraOne` component to handle ZED X One cameras
 - Removed the ZED Wrapper executable node.
 
@@ -326,7 +326,7 @@ v4.0.0
   - Added a check on timestamp to not publish already published point cloud messages in the point cloud thread
   - Improve thread synchronization when the frequency of the `grab` SDK function is minor of the expected camera frame rate setting because of a leaking of elaboration power.
   - Added diagnostic warning if the frequency of the camera grabbing thread is minor than the selected `general.grab_frame_rate` value.
-  - Removed annoying build log messages. Only warning regarding unsupported ROS2 distributions will be displayed when required.
+  - Removed annoying build log messages. Only warning regarding unsupported ROS 2 distributions will be displayed when required.
   - Convert `shared_ptr` to `unique_ptr` for IPC support
   - Improve the `zed_camera.launch.py`
 
@@ -336,7 +336,7 @@ v4.0.0
     - Modify the "display" launch files in [zed-ros2-examples](https://github.com/stereolabs/zed-ros2-examples) to match the new configuration.
     - Added `publish_tf` and `publish_map_tf` launch parameters useful for multi-camera configuretion or external odometry fusion.
   
-  - Change LICENSE to Apache 2.0 to match ROS2 license.
+  - Change LICENSE to Apache 2.0 to match ROS 2 license.
 
 v3.8.x
 ------
@@ -344,8 +344,8 @@ v3.8.x
 - Added Plane Detection.
 - Fixed "NO DEPTH" mode. By setting `depth/quality` to `0` now the depth extraction and all the sub-modules depending on it are correctly disabled.
 - Added `debug` sub-set of parameters with new parameters `debug_mode` and `debug_sensors`.
-- Added support for ROS2 Humble. Thx @nakai-omer.
-  The two ROS2 LTS releases are now supported simoultaneously.
+- Added support for ROS 2 Humble. Thx @nakai-omer.
+  The two ROS 2 LTS releases are now supported simoultaneously.
 - Set `read_only` flag in parameter descriptors for non-dynamic parameters. Thx @bjsowa.
 - Enabled Intra Process Communication. The ZED node no longer publishes topics with `TRANSIENT LOCAL` durability.
 - Improved TF broadcasting at grabbing frequency
@@ -403,10 +403,10 @@ v3.6.x (2021-12-03)
 - Improved diagnostic time and frequencies calculation
 - Added StopWatch to sl_tools
 - Enabled Diagnostic status publishing
-- Changed the default values of the QoS parameter reliability for all topics from BEST_EFFORT to RELIABLE to guarantee compatibility with all ROS2 tools
+- Changed the default values of the QoS parameter reliability for all topics from BEST_EFFORT to RELIABLE to guarantee compatibility with all ROS 2 tools
 - Fixed tab error in `zedm.yaml`
 - Fixed compatibility issue with ZED SDK older than v3.5 - Thanks @PhilippPolterauer
-- Migration to ROS2 Foxy Fitzroy
+- Migration to ROS 2 Foxy Fitzroy
 
 v3.5.x (2021-07-05)
 -------------------

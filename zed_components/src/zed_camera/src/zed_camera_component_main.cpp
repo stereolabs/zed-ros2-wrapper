@@ -44,7 +44,7 @@
 #elif defined FOUND_FOXY
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #else
-#error Unsupported ROS2 distro
+#error Unsupported ROS 2 distro
 #endif
 
 #include <sl/Camera.hpp>
@@ -108,15 +108,17 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
     options.use_intra_process_comms() ? "enabled" : "disabled");
   RCLCPP_INFO(get_logger(), "================================");
 
-  const size_t SDK_MAJOR_REQ = 4;
-  const size_t SDK_MINOR_REQ = 2;
-
-  if ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < (SDK_MAJOR_REQ * 10 + SDK_MINOR_REQ)) {
+  if (((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) <
+    (SDK_MAJOR_MIN_SUPP * 10 + SDK_MINOR_MIN_SUPP)) ||
+    ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >
+    (SDK_MAJOR_MAX_SUPP * 10 + SDK_MINOR_MAX_SUPP)))
+  {
     RCLCPP_ERROR_STREAM(
       get_logger(),
       "This version of the ZED ROS2 wrapper is designed to work with ZED SDK "
-      "v" << static_cast<int>(SDK_MAJOR_REQ)
-          << "." << static_cast<int>(SDK_MINOR_REQ) << " or newer.");
+      "v" << static_cast<int>(SDK_MAJOR_MIN_SUPP)
+          << "." << static_cast<int>(SDK_MINOR_MIN_SUPP) << " or newer up to v" <<
+        static_cast<int>(SDK_MAJOR_MAX_SUPP) << "." << static_cast<int>(SDK_MINOR_MAX_SUPP) << ".");
     RCLCPP_INFO_STREAM(
       get_logger(), "* Detected SDK v"
         << ZED_SDK_MAJOR_VERSION << "."
@@ -890,14 +892,6 @@ void ZedCamera::getGeneralParams()
     }
   } else if (camera_model == "virtual") {
     mCamUserModel = sl::MODEL::VIRTUAL_ZED_X;
-
-    if (ZED_SDK_MAJOR_VERSION == 4 && ZED_SDK_MINOR_VERSION == 1 && ZED_SDK_PATCH_VERSION == 0) {
-      RCLCPP_ERROR_STREAM(
-        get_logger(),
-        "Camera model '" << sl::toString(mCamUserModel).c_str()
-                         << "' is available only with ZED SDK 4.1.1 or newer");
-      exit(EXIT_FAILURE);
-    }
 
     if (mSvoMode) {
       RCLCPP_INFO_STREAM(
@@ -4732,7 +4726,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       imuMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
 
       // ----> Covariances copy
-      // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses
+      // Note: memcpy not allowed because ROS 2 uses double and ZED SDK uses
       // float
       for (int i = 0; i < 3; ++i) {
         int r = 0;
@@ -4803,7 +4797,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       imuRawMsg->linear_acceleration.z = sens_data.imu.linear_acceleration_uncalibrated[2];
 
       // ----> Covariances copy
-      // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses
+      // Note: memcpy not allowed because ROS 2 uses double and ZED SDK uses
       // float
       for (int i = 0; i < 3; ++i) {
         int r = 0;

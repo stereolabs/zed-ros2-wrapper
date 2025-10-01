@@ -12,7 +12,7 @@ ARG L4T_MINOR=3
 # Optional: Override ZED SDK URL
 ARG CUSTOM_ZED_SDK_URL=""
 
-# ROS2 distribution
+# ROS 2 distribution
 ARG ROS2_DIST=humble
 
 # ZED ROS2 Wrapper dependencies version

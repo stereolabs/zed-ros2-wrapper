@@ -169,8 +169,8 @@ if(isaac_ros_common_FOUND)
   else()
     message(WARNING " * 'isaac_ros_nitros' not found, ISAAC ROS NITROS transport will not be available.")
   endif()
-else()
-  message(" * 'isaac_ros_common' not found, ISAAC ROS NITROS transport will not be available.")
+#else()
+#  message(" * 'isaac_ros_common' not found, ISAAC ROS NITROS transport will not be available.")
 endif()
 
 if(NOT ${FOUND_ROS2_DISTRO} STREQUAL "foxy")
@@ -224,6 +224,7 @@ set(SL_TOOLS_SRC
 
 set(ZED_CAMERA_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/include/sl_version.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_component.hpp
 )
 
@@ -236,6 +237,7 @@ set(ZED_CAMERA_SRC
 
 set(ZED_CAMERA_ONE_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/include/sl_version.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_one_component.hpp
 )
 

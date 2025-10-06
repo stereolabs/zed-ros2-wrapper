@@ -1,6 +1,16 @@
 LATEST CHANGES
 ==============
 
+2025-09-30
+----------
+- Enabled Isaac ROS NITROS integration for ZED X One cameras
+
+2025-09-29
+----------
+- Added `camera_info` in transport namespace to reflect `rviz2` requirements with the Camera plugin.
+  - Added new `camInfoPubTrans` publisher for each image topic to publish the `camera_info` in the transport namespace.
+  - Updated `publishImageWithInfo` method to handle the new `camInfoPubTrans` publisher.
+
 2025-09-17
 ----------
 - Added debug parameter `debug.debug_nitros` to enable debug logs for NITROS-related operations.

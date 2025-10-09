@@ -1443,6 +1443,18 @@ void ZedCamera::getPosTrackingParams()
     " * Reset Odometry with Loop Closure: ");
 
   sl_tools::getParam(
+    shared_from_this(),
+    "pos_tracking.publish_3d_landmarks",
+    mPublish3DLandmarks, mPublish3DLandmarks,
+    " * Publish 3D Landmarks: ");
+
+  sl_tools::getParam(
+    shared_from_this(),
+    "pos_tracking.publish_lm_skip_frame",
+    mPublishLandmarkSkipFrame, mPublishLandmarkSkipFrame,
+    " * Publish Landmark Skip Frame: ");
+
+  sl_tools::getParam(
     shared_from_this(), "pos_tracking.two_d_mode", mTwoDMode,
     mTwoDMode, " * 2D mode: ");
 
@@ -1892,6 +1904,8 @@ void ZedCamera::initPublishers()
   mFusedFixTopic = mPoseTopic + "/fused_fix";
   mOriginFixTopic = mPoseTopic + "/origin_fix";
 
+  mPointcloud3DLandmarksTopic = mPoseTopic + "/landmarks";
+
   mOdomTopic = mTopicRoot + "odom";
   mOdomPathTopic = mTopicRoot + "path_odom";
   mPosePathTopic = mTopicRoot + "path_map";
@@ -1998,6 +2012,22 @@ void ZedCamera::initPublishers()
     RCLCPP_INFO_STREAM(
       get_logger(), "Advertised on topic: "
         << mPubOdomPath->get_topic_name());
+    if (mPublish3DLandmarks) {
+#ifndef FOUND_FOXY
+      mPub3DLandmarks = point_cloud_transport::create_publisher(
+        shared_from_this(), mPointcloud3DLandmarksTopic, mQos.get_rmw_qos_profile(),
+        mPubOpt);
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Advertised on topic "
+          << mPub3DLandmarks.getTopic());
+#else
+      mPub3DLandmarks = create_publisher<sensor_msgs::msg::PointCloud2>(
+        mPointcloud3DLandmarksTopic, mQos, mPubOpt);
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Advertised on topic "
+          << mPub3DLandmarks->get_topic_name());
+#endif
+    }
     if (mGnssFusionEnabled) {
       mPubGnssPose = create_publisher<nav_msgs::msg::Odometry>(
         mGnssPoseTopic,
@@ -2032,6 +2062,8 @@ void ZedCamera::initPublishers()
       RCLCPP_INFO_STREAM(
         get_logger(), "Advertised on topic (GNSS origin): "
           << mPubOriginFix->get_topic_name());
+
+
     }
     // <---- Pos Tracking
 
@@ -5467,6 +5499,14 @@ void ZedCamera::processPose()
 
     // Publish Pose message
     publishPose();
+    if (mPublish3DLandmarks) {
+      if (mFrameSkipCountLandmarks == 0) {
+        publishPoseLandmarks();
+        mFrameSkipCountLandmarks = mPublishLandmarkSkipFrame;
+      } else {
+        mFrameSkipCountLandmarks--;
+      }
+    }
     mPosTrackingReady = true;
   }
 }
@@ -5553,6 +5593,168 @@ void ZedCamera::publishGeoPoseStatus()
     } catch (...) {
       DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
+  }
+}
+
+void ZedCamera::publishPoseLandmarks()
+{
+  size_t landmarksSub = 0;
+
+  try {
+    landmarksSub =
+      count_subscribers(mPointcloud3DLandmarksTopic);    // mPubPoseLandmarks subscribers
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
+    return;
+  }
+
+  DEBUG_STREAM_PT(
+    " * [publishPoseLandmarks] Subscribers to topic '" << mPointcloud3DLandmarksTopic << "': " <<
+      landmarksSub);
+
+  if (landmarksSub > 0) {
+
+    auto bgraToFloat = [](uint8_t b, uint8_t g, uint8_t r, uint8_t a) -> float {
+        uint32_t bgra = (static_cast<uint32_t>(b) << 24) |
+          (static_cast<uint32_t>(g) << 16) |
+          (static_cast<uint32_t>(r) << 8) |
+          (static_cast<uint32_t>(a));
+        float f;
+        std::memcpy(&f, &bgra, sizeof(float));
+        return f;
+      };
+
+    const float tracked_col = bgraToFloat(0, 255, 0, 255);
+    const float untracked_col = bgraToFloat(0, 0, 255, 255);
+
+    std::map<uint64_t, sl::Landmark> map_lm3d;
+    std::vector<sl::Landmark2D> map_lm2d;
+    auto res1 = mZed->getPositionalTrackingLandmarks(map_lm3d);
+    auto res2 = mZed->getPositionalTrackingLandmarks2D(map_lm2d);
+
+    if (res1 != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        " * [publishPoseLandmarks] getPositionalTrackingLandmarks error: " <<
+          sl::toString(res1));
+      return;
+    }
+    if (res2 != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        " * [publishPoseLandmarks] getPositionalTrackingLandmarks2D error: " <<
+          sl::toString(res2));
+      return;
+    }
+
+    auto msg = std::make_unique<sensor_msgs::msg::PointCloud2>();
+
+    // Initialize Point Cloud message
+    // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
+
+    int ptsCount = map_lm3d.size();
+
+    DEBUG_STREAM_PT(" * [publishPoseLandmarks] " << ptsCount << " landmarks to publish");
+
+    if (mSvoMode) {
+      msg->header.stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
+    } else if (mSimMode) {
+      if (mUseSimTime) {
+        msg->header.stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
+      } else {
+        msg->header.stamp = mUsePubTimestamps ? get_clock()->now() : sl_tools::slTime2Ros(
+          mMatCloud.timestamp);
+      }
+    } else {
+      msg->header.stamp = mUsePubTimestamps ? get_clock()->now() : sl_tools::slTime2Ros(
+        mMatCloud.timestamp);
+    }
+
+    msg->header.frame_id = mMapFrameId;      // Set the header values of the ROS message
+
+    int val = 1;
+    msg->is_bigendian = !(*reinterpret_cast<char *>(&val) == 1);
+    msg->is_dense = true;
+
+    msg->width = ptsCount;
+    msg->height = 1;
+
+    sensor_msgs::PointCloud2Modifier modifier(*(msg.get()));
+    modifier.setPointCloud2Fields(
+      4,
+      "x", 1, sensor_msgs::msg::PointField::FLOAT32,
+      "y", 1, sensor_msgs::msg::PointField::FLOAT32,
+      "z", 1, sensor_msgs::msg::PointField::FLOAT32,
+      "rgb", 1, sensor_msgs::msg::PointField::FLOAT32);
+
+    DEBUG_STREAM_PT(
+      " * [publishPoseLandmarks] PointCloud2 msg - Width: " << msg->width <<
+        " - Height: " << msg->height <<
+        " - PointStep: " << msg->point_step <<
+        " - RowStep: " << msg->row_step <<
+        " - Data size: " << msg->data.size());
+
+    sensor_msgs::PointCloud2Iterator<float> iter_x(*msg, "x");
+    sensor_msgs::PointCloud2Iterator<float> iter_y(*msg, "y");
+    sensor_msgs::PointCloud2Iterator<float> iter_z(*msg, "z");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iter_r(*msg, "r");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iter_g(*msg, "g");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iter_b(*msg, "b");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iter_a(*msg, "a");
+
+    for (const auto & landmark : map_lm3d) {
+      // ----> Set the point coordinates
+      *iter_x = landmark.second.position.x;
+      *iter_y = landmark.second.position.y;
+      *iter_z = landmark.second.position.z;
+      // <---- Set the point coordinates
+      // ----> Set the point color (green if tracked in 2D, red if not)
+      if (std::any_of(
+          map_lm2d.begin(), map_lm2d.end(),
+          [&landmark](const sl::Landmark2D & lm2d) {return lm2d.id == landmark.first;}))
+      {
+        *iter_r = 20;
+        *iter_g = 200;
+        *iter_b = 20;
+        *iter_a = 150;
+      } else {
+        *iter_r = 200;
+        *iter_g = 20;
+        *iter_b = 20;
+        *iter_a = 150;
+      }
+      // <---- Set the point color (green if tracked in 2D, red if not)
+
+      ++iter_x;
+      ++iter_y;
+      ++iter_z;
+      ++iter_r;
+      ++iter_g;
+      ++iter_b;
+      ++iter_a;
+    }
+
+    // Pointcloud publishing
+    DEBUG_PT(" * [publishPoseLandmarks] Publishing LANDMARK 3D POINT CLOUD message");
+
+#ifndef FOUND_FOXY
+    try {
+      mPub3DLandmarks.publish(std::move(msg));
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_PC(" * [publishPoseLandmarks] Message publishing exception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_PC(" * [publishPoseLandmarks] Message publishing generic exception");
+    }
+#else
+    try {
+      mPub3DLandmarks->publish(std::move(msg));
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_PC(" * [publishPoseLandmarks] Message publishing exception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_PC(" * [publishPoseLandmarks] Message publishing generic exception");
+    }
+#endif
   }
 }
 

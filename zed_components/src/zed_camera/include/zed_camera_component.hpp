@@ -294,6 +294,7 @@ protected:
     tf2::Transform & odom2baseTransf, sl::Pose & slPose,
     rclcpp::Time t);
   void publishPose();
+  void publishPoseLandmarks();
   void publishGnssPose();
   void publishPoseStatus();
   void publishGnssPoseStatus();
@@ -415,6 +416,7 @@ private:
   std::string mFusedFixTopic;
   std::string mOriginFixTopic;
   std::string mPointcloudFusedTopic;
+  std::string mPointcloud3DLandmarksTopic;
   std::string mObjectDetTopic;
   std::string mBodyTrkTopic;
   std::string mOdomPathTopic;
@@ -524,6 +526,8 @@ private:
   std::vector<double> mInitialBasePose = std::vector<double>(6, 0.0);
   bool mResetOdomWhenLoopClosure = true;
   bool mResetPoseWithSvoLoop = true;
+  bool mPublish3DLandmarks = false;
+  uint8_t mPublishLandmarkSkipFrame = 15;
   double mPathPubRate = 2.0;
   double mTfOffset = 0.0;
   float mPosTrackDepthMinRange = 0.0f;
@@ -815,9 +819,11 @@ private:
 #ifndef FOUND_FOXY
   point_cloud_transport::Publisher mPubCloud;
   point_cloud_transport::Publisher mPubFusedCloud;
+  point_cloud_transport::Publisher mPub3DLandmarks;
 #else
   pointcloudPub mPubCloud;
   pointcloudPub mPubFusedCloud;
+  pointcloudPub mPub3DLandmarks;
 #endif
 
   svoStatusPub mPubSvoStatus;
@@ -829,6 +835,7 @@ private:
   poseCovPub mPubPoseCov;
   odomPub mPubOdom;
   odomPub mPubGnssPose;
+  int mFrameSkipCountLandmarks = 0;
   gnssFusionStatusPub mPubGnssPoseStatus;
   pathPub mPubOdomPath;
   pathPub mPubPosePath;

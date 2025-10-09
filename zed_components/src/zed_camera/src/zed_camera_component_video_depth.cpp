@@ -2120,7 +2120,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
       void * dbuffer;
       CUDA_CHECK(cudaMalloc(&dbuffer, dbuffer_size));
 
-      RCLCPP_INFO(this->get_logger(), "Sent Depth CUDA buffer with memory at: %p", dbuffer);
+      DEBUG_NITROS("Sent Depth CUDA buffer with memory at: %p", dbuffer);
 
       // Copy data bytes to CUDA buffer
       CUDA_CHECK(
@@ -2293,7 +2293,8 @@ void ZedCamera::publishPointCloud()
     pcMsg->header.frame_id =
       mPointCloudFrameId;      // Set the header values of the ROS message
 
-    pcMsg->is_bigendian = false;
+    int val = 1;
+    pcMsg->is_bigendian = !(*reinterpret_cast<char *>(&val) == 1);
     pcMsg->is_dense = false;
 
     pcMsg->width = width;

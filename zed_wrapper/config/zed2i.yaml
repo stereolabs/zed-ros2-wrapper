@@ -1,5 +1,6 @@
 # config/zed2i_yaml
 # Parameters for Stereolabs zed2i camera
+
 ---
 /**:
     ros__parameters:

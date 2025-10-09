@@ -3,9 +3,10 @@ LATEST CHANGES
 
 2025-10-09
 ----------
-- New feature: 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks`
+- New feature: 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):
   - Added parameter `pos_tracking.publish_3d_landmarks` to enable/disable landmarks publishing
   - Added parameter `pos_tracking.publish_lm_skip_frame` to set the frequency of landmarks publishing (0 to publish every frame)
+- Changed the default positional tracking mode from `GEN_1` to `GEN_3`
 
 2025-09-30
 ----------

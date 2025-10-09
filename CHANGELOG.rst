@@ -7,7 +7,9 @@ LATEST CHANGES
   - Added parameter `pos_tracking.publish_3d_landmarks` to enable/disable landmarks publishing
   - Added parameter `pos_tracking.publish_lm_skip_frame` to set the frequency of landmarks publishing (0 to publish every frame)
 - Changed the default positional tracking mode from `GEN_1` to `GEN_3`
-- Remove Point Cloud Transport as a required dependency. Point Cloud Transport is now only automatically enabled if the `point_cloud_transport` package is installed on the system.
+- Removed Point Cloud Transport as a required dependency. Point Cloud Transport is now only automatically enabled if the `point_cloud_transport` package is installed on the system.
+- Removed FFMPEG Image Transport support because of a problem with the Humble distribution not allowing to set the transport parameters, and the lack of compatibility with NVIDIA® Jetson.
+
 2025-09-30
 ----------
 - Enabled Isaac ROS NITROS integration for ZED X One cameras

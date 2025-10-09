@@ -816,7 +816,7 @@ private:
   camInfoPub mPubDepthCamInfoTrans;
   camInfoPub mPubConfMapCamInfoTrans;
 
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
   point_cloud_transport::Publisher mPubCloud;
   point_cloud_transport::Publisher mPubFusedCloud;
   point_cloud_transport::Publisher mPub3DLandmarks;

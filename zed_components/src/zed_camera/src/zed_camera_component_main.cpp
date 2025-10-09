@@ -2013,7 +2013,7 @@ void ZedCamera::initPublishers()
       get_logger(), "Advertised on topic: "
         << mPubOdomPath->get_topic_name());
     if (mPublish3DLandmarks) {
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
       mPub3DLandmarks = point_cloud_transport::create_publisher(
         shared_from_this(), mPointcloud3DLandmarksTopic, mQos.get_rmw_qos_profile(),
         mPubOpt);
@@ -2068,7 +2068,7 @@ void ZedCamera::initPublishers()
 
     // ----> Mapping
     if (mMappingEnabled) {
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
       mPubFusedCloud = point_cloud_transport::create_publisher(
         shared_from_this(), mPointcloudFusedTopic, mQos.get_rmw_qos_profile(),
         mPubOpt);
@@ -3586,7 +3586,7 @@ bool ZedCamera::start3dMapping()
 
   if (err == sl::ERROR_CODE::SUCCESS) {
     if (mPubFusedCloud == nullptr) {
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
       mPubFusedCloud = point_cloud_transport::create_publisher(
         shared_from_this(), mPointcloudFusedTopic, mQos.get_rmw_qos_profile(),
         mPubOpt);
@@ -5725,7 +5725,7 @@ void ZedCamera::publishPoseLandmarks()
     // Pointcloud publishing
     DEBUG_PT(" * [publishPoseLandmarks] Publishing LANDMARK 3D POINT CLOUD message");
 
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
     try {
       mPub3DLandmarks.publish(std::move(msg));
     } catch (std::system_error & e) {
@@ -6407,7 +6407,7 @@ void ZedCamera::callback_pubFusedPc()
 
   uint32_t fusedCloudSubCount = 0;
   try {
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
     fusedCloudSubCount = mPubFusedCloud.getNumSubscribers();
 #else
     fusedCloudSubCount = count_subscribers(mPubFusedCloud->get_topic_name());
@@ -6508,7 +6508,7 @@ void ZedCamera::callback_pubFusedPc()
 
   // Pointcloud publishing
   DEBUG_STREAM_MAP("Publishing FUSED POINT CLOUD message");
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
   try {
     mPubFusedCloud.publish(std::move(pointcloudFusedMsg));
   } catch (std::system_error & e) {

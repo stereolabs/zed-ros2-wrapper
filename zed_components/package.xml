@@ -29,7 +29,6 @@
     <build_depend>tf2_ros</build_depend>
     <build_depend>tf2_geometry_msgs</build_depend>
     <build_depend>image_transport</build_depend>
-    <build_depend>point_cloud_transport</build_depend>
     <build_depend>std_srvs</build_depend>
     <build_depend>diagnostic_msgs</build_depend>
     <build_depend>diagnostic_updater</build_depend>
@@ -62,10 +61,6 @@
     <exec_depend>compressed_image_transport</exec_depend>
     <exec_depend>compressed_depth_image_transport</exec_depend>
     <exec_depend>theora_image_transport</exec_depend>
-    <exec_depend>point_cloud_transport_plugins</exec_depend>
-    <exec_depend>draco_point_cloud_transport</exec_depend>
-    <exec_depend>zlib_point_cloud_transport</exec_depend>
-    <exec_depend>zstd_point_cloud_transport</exec_depend>
     <exec_depend>backward_ros</exec_depend>
     <test_depend>ament_lint_auto</test_depend>
     <test_depend>ament_cmake_copyright</test_depend>

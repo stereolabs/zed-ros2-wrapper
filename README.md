@@ -152,6 +152,20 @@ Supported simulation environments:
 
 ## More features
 
+### Point Cloud Transport
+
+The ZED ROS 2 Wrapper supports [Point Cloud Transport](http://wiki.ros.org/point_cloud_transport) to publish point clouds using different compression methods.
+
+This feature is available only if the package `point_cloud_transport` is installed in your ROS 2 environment, otherwise it will be disabled automatically.
+
+To install the packages, use the command:
+
+```bash
+sudo apt install ros-$ROS_DISTRO-point-cloud-transport ros-$ROS_DISTRO-point-cloud-transport-plugins
+```
+
+:pushpin: **Note:** We removed the `point_cloud_transport` package as a required dependency of the ZED ROS 2 Wrapper to avoid forcing its installation in all the environments where the ZED ROS2 Wrapper is used. If you want to use this feature, you must install the package manually.
+
 ### SVO recording
 
 [SVO recording](https://www.stereolabs.com/docs/video/recording/) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.

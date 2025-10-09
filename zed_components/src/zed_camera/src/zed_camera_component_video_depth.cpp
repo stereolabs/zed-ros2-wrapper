@@ -236,7 +236,7 @@ void ZedCamera::initVideoDepthPublishers()
       mDisparityTopic, mQos, mPubOpt);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubDisparity->get_topic_name());
 
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
     mPubCloud = point_cloud_transport::create_publisher(
       shared_from_this(), mPointcloudTopic, qos, mPubOpt);
     RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCloud.getTopic());
@@ -779,7 +779,7 @@ bool ZedCamera::isDepthRequired()
 #endif
     }
     dispSub = count_subscribers(mPubDisparity->get_topic_name());
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
     pcSub = mPubCloud.getNumSubscribers();
 #else
     pcSub = count_subscribers(mPubCloud->get_topic_name());
@@ -2234,7 +2234,7 @@ bool ZedCamera::isPointCloudSubscribed()
 {
   size_t cloudSubCount = 0;
   try {
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
     cloudSubCount = mPubCloud.getNumSubscribers();
 #else
     cloudSubCount = count_subscribers(mPubCloud->get_topic_name());
@@ -2318,7 +2318,7 @@ void ZedCamera::publishPointCloud()
 
   // Pointcloud publishing
   DEBUG_PC(" * [publishPointCloud] Publishing POINT CLOUD message");
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
   try {
     mPubCloud.publish(std::move(pcMsg));
   } catch (std::system_error & e) {

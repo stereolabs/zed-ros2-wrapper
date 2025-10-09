@@ -74,7 +74,7 @@
   #include "isaac_ros_nitros_image_type/nitros_image.hpp"
 #endif
 
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
   #include <point_cloud_transport/point_cloud_transport.hpp>
 #endif
 

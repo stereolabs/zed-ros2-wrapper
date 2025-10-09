@@ -136,7 +136,6 @@ find_package(geographic_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
 find_package(backward_ros REQUIRED)
-
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
@@ -147,7 +146,7 @@ find_package(robot_localization REQUIRED)
 
 # Check ISAAC ROS Nitros availability
 find_package(isaac_ros_common QUIET)
-if(isaac_ros_common_FOUND)  
+if(isaac_ros_common_FOUND)
   find_package(isaac_ros_nitros)
   if(isaac_ros_nitros_FOUND)
       find_package(isaac_ros_managed_nitros QUIET)
@@ -173,9 +172,12 @@ if(isaac_ros_common_FOUND)
 #  message(" * 'isaac_ros_common' not found, ISAAC ROS NITROS transport will not be available.")
 endif()
 
-if(NOT ${FOUND_ROS2_DISTRO} STREQUAL "foxy")
-  find_package(point_cloud_transport REQUIRED)
+# Check Point Cloud Transport availability
+find_package(point_cloud_transport QUIET)
+if(point_cloud_transport_FOUND)
   list(APPEND DEPENDENCIES point_cloud_transport)
+  message(" * Point Cloud Transport is available")
+  add_definitions(-DFOUND_POINT_CLOUD_TRANSPORT)
 endif()
 
 if(BUILD_TESTING)

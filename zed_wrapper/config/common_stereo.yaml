@@ -80,7 +80,7 @@
 
         pos_tracking:
             pos_tracking_enabled: true # True to enable positional tracking from start
-            pos_tracking_mode: 'GEN_1' # Matches the ZED SDK setting: 'GEN_1', 'GEN_2', 'GEN_3'
+            pos_tracking_mode: 'GEN_3' # Matches the ZED SDK setting: 'GEN_1', 'GEN_2', 'GEN_3'
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [overwritten by launch file options] publish `odom -> camera_link` TF
             publish_map_tf: true # [overwritten by launch file options] publish `map -> odom` TF
@@ -90,6 +90,8 @@
             area_file_path: '' # Path to the area memory file for relocalization and loop closure in a previously explored environment. 
             save_area_memory_on_closing: false # Save Area memory before closing the camera if `area_file_path` is not empty. You can also use the `save_area_memory` service to save the area memory at any time.
             reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
+            publish_3d_landmarks: true # Publish 3D landmarks used by the positional tracking algorithm
+            publish_lm_skip_frame: 5 # Publish the landmarks every X frames to reduce bandwidth. Set to 0 to publish all landmarks
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
             set_as_static: false # If 'true' the camera will be static and not move in the environment
             set_gravity_as_origin: true # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.

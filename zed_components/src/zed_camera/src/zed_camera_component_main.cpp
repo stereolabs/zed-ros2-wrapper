@@ -2063,7 +2063,6 @@ void ZedCamera::initPublishers()
         get_logger(), "Advertised on topic (GNSS origin): "
           << mPubOriginFix->get_topic_name());
 
-
     }
     // <---- Pos Tracking
 

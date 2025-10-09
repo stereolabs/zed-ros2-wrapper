@@ -5614,24 +5614,10 @@ void ZedCamera::publishPoseLandmarks()
       landmarksSub);
 
   if (landmarksSub > 0) {
-
-    auto bgraToFloat = [](uint8_t b, uint8_t g, uint8_t r, uint8_t a) -> float {
-        uint32_t bgra = (static_cast<uint32_t>(b) << 24) |
-          (static_cast<uint32_t>(g) << 16) |
-          (static_cast<uint32_t>(r) << 8) |
-          (static_cast<uint32_t>(a));
-        float f;
-        std::memcpy(&f, &bgra, sizeof(float));
-        return f;
-      };
-
-    const float tracked_col = bgraToFloat(0, 255, 0, 255);
-    const float untracked_col = bgraToFloat(0, 0, 255, 255);
-
     std::map<uint64_t, sl::Landmark> map_lm3d;
     std::vector<sl::Landmark2D> map_lm2d;
-    auto res1 = mZed->getPositionalTrackingLandmarks(map_lm3d);
-    auto res2 = mZed->getPositionalTrackingLandmarks2D(map_lm2d);
+    auto res1 = mZed->getPositionalTrackingLandmarks(map_lm3d); // 3D landmarks (all the landmarks in world coords)
+    auto res2 = mZed->getPositionalTrackingLandmarks2D(map_lm2d); // 2D landmarks (currently tracked in image)
 
     if (res1 != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_ERROR_STREAM(
@@ -5704,12 +5690,13 @@ void ZedCamera::publishPoseLandmarks()
     sensor_msgs::PointCloud2Iterator<uint8_t> iter_a(*msg, "a");
 
     for (const auto & landmark : map_lm3d) {
-      // ----> Set the point coordinates
+      // ----> Set the landmark coordinates
       *iter_x = landmark.second.position.x;
       *iter_y = landmark.second.position.y;
       *iter_z = landmark.second.position.z;
-      // <---- Set the point coordinates
-      // ----> Set the point color (green if tracked in 2D, red if not)
+      // <---- Set the landmark coordinates
+      // ----> Set the landmark color (green if tracked in 2D, red if not)
+      // If a landmark is listed in the 2D landmarks, it means that it is currently tracked, so that we can color it in green
       if (std::any_of(
           map_lm2d.begin(), map_lm2d.end(),
           [&landmark](const sl::Landmark2D & lm2d) {return lm2d.id == landmark.first;}))
@@ -5724,8 +5711,9 @@ void ZedCamera::publishPoseLandmarks()
         *iter_b = 20;
         *iter_a = 150;
       }
-      // <---- Set the point color (green if tracked in 2D, red if not)
+      // <---- Set the landmark color (green if tracked in 2D, red if not)
 
+      // Increment iterators
       ++iter_x;
       ++iter_y;
       ++iter_z;
@@ -5742,17 +5730,17 @@ void ZedCamera::publishPoseLandmarks()
     try {
       mPub3DLandmarks.publish(std::move(msg));
     } catch (std::system_error & e) {
-      DEBUG_STREAM_PC(" * [publishPoseLandmarks] Message publishing exception: " << e.what());
+      DEBUG_STREAM_PT(" * [publishPoseLandmarks] Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_PC(" * [publishPoseLandmarks] Message publishing generic exception");
+      DEBUG_STREAM_PT(" * [publishPoseLandmarks] Message publishing generic exception");
     }
 #else
     try {
       mPub3DLandmarks->publish(std::move(msg));
     } catch (std::system_error & e) {
-      DEBUG_STREAM_PC(" * [publishPoseLandmarks] Message publishing exception: " << e.what());
+      DEBUG_STREAM_PT(" * [publishPoseLandmarks] Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_PC(" * [publishPoseLandmarks] Message publishing generic exception");
+      DEBUG_STREAM_PT(" * [publishPoseLandmarks] Message publishing generic exception");
     }
 #endif
   }

@@ -27,10 +27,6 @@
     <exec_depend>theora_image_transport</exec_depend>
     <exec_depend>ffmpeg_image_transport</exec_depend>
     <exec_depend>ffmpeg_encoder_decoder</exec_depend>
-    <exec_depend>point_cloud_transport_plugins</exec_depend>
-    <exec_depend>draco_point_cloud_transport</exec_depend>
-    <exec_depend>zlib_point_cloud_transport</exec_depend>
-    <exec_depend>zstd_point_cloud_transport</exec_depend>
     <test_depend>ament_lint_auto</test_depend>
     <test_depend>ament_cmake_copyright</test_depend>
     <test_depend>ament_cmake_cppcheck</test_depend>

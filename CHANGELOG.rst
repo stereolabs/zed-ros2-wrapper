@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2025-10-10
+----------
+- Improved diagnostic information for 3D Mapping status IN DIAGNOSTIC
+- Fixed random crash when stopping 3D Mapping
+
 2025-10-09
 ----------
 - New feature: 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):

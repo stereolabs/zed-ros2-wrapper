@@ -6945,8 +6945,7 @@ void ZedCamera::callback_enableMapping(
       return;
     }
 
-    mMappingEnabled = false;
-    mSpatialMappingRunning = false;
+    stop3dMapping();
 
     res->message = "Spatial Mapping stopped";
     res->success = true;

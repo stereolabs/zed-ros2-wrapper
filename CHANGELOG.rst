@@ -3,7 +3,7 @@ LATEST CHANGES
 
 2025-10-10
 ----------
-- Improved diagnostic information for 3D Mapping status IN DIAGNOSTIC
+- Improved diagnostic information for 3D Mapping status in diagnostics
 - Fixed random crash when stopping 3D Mapping
 
 2025-10-09

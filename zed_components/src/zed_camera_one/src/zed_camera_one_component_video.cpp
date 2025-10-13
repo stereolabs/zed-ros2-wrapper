@@ -130,23 +130,25 @@ void ZedCameraOne::initVideoPublishers()
   RCLCPP_INFO(get_logger(), " +++ IMAGE TOPICS +++");
 
   // ----> Advertised topics
-  std::string rect_prefix = "rect/";
-  std::string raw_prefix = "raw/";
-  std::string color_prefix = "rgb/";
-  std::string gray_prefix = "gray/";
-  std::string image_topic = "image";
+  const std::string sensor = "video/";
+  const std::string rect_prefix = "rect/";
+  const std::string raw_prefix = "raw/";
+  const std::string color_prefix = "color/";
+  const std::string gray_prefix = "gray/";
+  const std::string image_topic = "image";
 
   // Helper to build topic names
   auto make_topic =
-    [&](const std::string & root, const std::string & suffix, const std::string & type) {
-      std::string topic = _topicRoot + root + suffix + type;
+    [&](const std::string & sensor, const std::string & color_mode, const std::string & rect_raw,
+      const std::string & type) {
+      std::string topic = _topicRoot + sensor + color_mode + rect_raw + type;
       return get_node_topics_interface()->resolve_topic_name(topic);
     };
 
-  _imgColorTopic = make_topic(color_prefix, rect_prefix, image_topic);
-  _imgColorRawTopic = make_topic(color_prefix, raw_prefix, image_topic);
-  _imgGrayTopic = make_topic(gray_prefix, rect_prefix, image_topic);
-  _imgRawGrayTopic = make_topic(gray_prefix, raw_prefix, image_topic);
+  _imgColorTopic = make_topic(sensor, color_prefix, rect_prefix, image_topic);
+  _imgColorRawTopic = make_topic(sensor, color_prefix, raw_prefix, image_topic);
+  _imgGrayTopic = make_topic(sensor, gray_prefix, rect_prefix, image_topic);
+  _imgRawGrayTopic = make_topic(sensor, gray_prefix, raw_prefix, image_topic);
   // <---- Advertised topics
 
   // ----> Create publishers

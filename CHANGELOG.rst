@@ -1,6 +1,24 @@
 LATEST CHANGES
 ==============
 
+2025-10-13
+- Changed ZED Camera image topic names to match the cleaner convention used by ZED X One cameras:
+  - Left image topics:
+    - From `~/left/image_rect_color` to `~/left/color/rect/image`
+    - From `~/left_raw/image_raw_color` to `~/left/color/raw/image`
+    - From `~/left_gray/image_rect_gray` to `~/left/gray/rect/image`
+    - From `~/left_raw_gray/image_raw_gray` to `~/left/gray/raw/image`
+  - Right image topics:
+    - From `~/right/image_rect_color` to `~/right/color/rect/image`
+    - From `~/right_raw/image_raw_color` to `~/right/color/raw/image`
+    - From `~/right_gray/image_rect_gray` to `~/right/gray/rect/image`
+    - From `~/right_raw_gray/image_raw_gray` to `~/right/gray/raw/image`
+  - RGB image topics:
+    - From `~/rgb/image_rect_color` to `~/rgb/color/rect/image`
+    - From `~/rgb_raw/image_raw_color` to `~/rgb/color/raw/image`
+    - From `~/rgb_gray/image_rect_gray` to `~/rgb/gray/rect/image`
+    - From `~/rgb_raw_gray/image_raw_gray` to `~/rgb/gray/raw/image`
+
 2025-10-09
 ----------
 - New feature: 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):

@@ -29,38 +29,39 @@ namespace stereolabs
 void ZedCamera::initVideoDepthPublishers()
 {
   // ----> Topic name roots and suffixes
-  const std::string rgbRoot = "rgb";
-  const std::string rightRoot = "right";
-  const std::string leftRoot = "left";
-  const std::string stereoRoot = "stereo";
-  const std::string imgRectColor = "/image_rect_color";
-  const std::string imgRawColor = "/image_raw_color";
-  const std::string imgRectGray = "_gray/image_rect_gray";
-  const std::string imgRawGray = "_gray/image_raw_gray";
-  const std::string rawSuffix = "_raw";
+  const std::string sens_rgb = "rgb/";
+  const std::string sens_left = "left/";
+  const std::string sens_right = "right/";
+  const std::string sens_stereo = "stereo/";
+  const std::string rectified = "rect/";
+  const std::string raw = "raw/";
+  const std::string color = "color/";
+  const std::string gray = "gray/";
+  const std::string type_image = "image";
 
   // Helper to build topic names
   auto make_topic =
-    [&](const std::string & root, const std::string & suffix, const std::string & type) {
-      std::string topic = mTopicRoot + root + suffix + type;
+    [&](const std::string & sensor, const std::string & color_mode, const std::string & rect_raw,
+      const std::string & type) {
+      std::string topic = mTopicRoot + sensor + color_mode + rect_raw + type;
       return get_node_topics_interface()->resolve_topic_name(topic);
     };
 
   // Image topics
-  mLeftTopic = make_topic(leftRoot, "", imgRectColor);
-  mLeftRawTopic = make_topic(leftRoot, rawSuffix, imgRawColor);
-  mRightTopic = make_topic(rightRoot, "", imgRectColor);
-  mRightRawTopic = make_topic(rightRoot, rawSuffix, imgRawColor);
-  mRgbTopic = make_topic(rgbRoot, "", imgRectColor);
-  mRgbRawTopic = make_topic(rgbRoot, rawSuffix, imgRawColor);
-  mStereoTopic = make_topic(stereoRoot, "", imgRectColor);
-  mStereoRawTopic = make_topic(stereoRoot, rawSuffix, imgRawColor);
-  mLeftGrayTopic = make_topic(leftRoot, "", imgRectGray);
-  mLeftRawGrayTopic = make_topic(leftRoot, rawSuffix, imgRawGray);
-  mRightGrayTopic = make_topic(rightRoot, "", imgRectGray);
-  mRightRawGrayTopic = make_topic(rightRoot, rawSuffix, imgRawGray);
-  mRgbGrayTopic = make_topic(rgbRoot, "", imgRectGray);
-  mRgbRawGrayTopic = make_topic(rgbRoot, rawSuffix, imgRawGray);
+  mLeftTopic = make_topic(sens_left, color, rectified, type_image);
+  mLeftRawTopic = make_topic(sens_left, color, raw, type_image);
+  mRightTopic = make_topic(sens_right, color, rectified, type_image);
+  mRightRawTopic = make_topic(sens_right, color, raw, type_image);
+  mRgbTopic = make_topic(sens_rgb, color, rectified, type_image);
+  mRgbRawTopic = make_topic(sens_rgb, color, raw, type_image);
+  mStereoTopic = make_topic(sens_stereo, color, rectified, type_image);
+  mStereoRawTopic = make_topic(sens_stereo, color, raw, type_image);
+  mLeftGrayTopic = make_topic(sens_left, gray, rectified, type_image);
+  mLeftRawGrayTopic = make_topic(sens_left, gray, raw, type_image);
+  mRightGrayTopic = make_topic(sens_right, gray, rectified, type_image);
+  mRightRawGrayTopic = make_topic(sens_right, gray, raw, type_image);
+  mRgbGrayTopic = make_topic(sens_rgb, gray, rectified, type_image);
+  mRgbRawGrayTopic = make_topic(sens_rgb, gray, raw, type_image);
 
   // Depth topics
   mDisparityTopic = mTopicRoot + "disparity/disparity_image";

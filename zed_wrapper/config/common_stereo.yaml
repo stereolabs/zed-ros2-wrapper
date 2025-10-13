@@ -47,7 +47,7 @@
             whitebalance_temperature: 42 # [DYNAMIC] - [28,65] x100 - works only if `auto_whitebalance` is false            
             publish_rgb: true # Advertise the RGB image topics that are published only if a node subscribes to them
             publish_left_right: false # Advertise the left and right image topics that are published only if a node subscribes to them
-            publish_raw: false # Advertise the raw image topics publish_depth_map
+            publish_raw: false # Advertise the raw image topics that are published only if a node subscribes to them
             publish_gray: false # Advertise the gray image topics that are published only if a node subscribes to them
             publish_stereo: false # Advertise the stereo image topic that is published only if a node subscribes to it
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'

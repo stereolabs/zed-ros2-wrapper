@@ -501,7 +501,6 @@ private:
   double mSvoExpectedPeriod = 0.0;
   bool mUseSvoTimestamp = false;
   bool mUsePubTimestamps = false;
-  bool mPublishSvoClock = false;
   bool mGrabOnce = false;
   bool mGrabImuOnce = false;
   int mVerbose = 1;

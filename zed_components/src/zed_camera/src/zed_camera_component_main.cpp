@@ -2109,22 +2109,22 @@ void ZedCamera::initPublishers()
         RCLCPP_INFO_STREAM(
           get_logger(), "Advertised on topic: "
             << mPubOdomPath->get_topic_name());
-    if (mPublish3DLandmarks) {
+        if (mPublish3DLandmarks) {
 #ifdef FOUND_POINT_CLOUD_TRANSPORT
-      mPub3DLandmarks = point_cloud_transport::create_publisher(
-        shared_from_this(), mPointcloud3DLandmarksTopic, mQos.get_rmw_qos_profile(),
-        mPubOpt);
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Advertised on topic "
-          << mPub3DLandmarks.getTopic());
+          mPub3DLandmarks = point_cloud_transport::create_publisher(
+            shared_from_this(), mPointcloud3DLandmarksTopic, mQos.get_rmw_qos_profile(),
+            mPubOpt);
+          RCLCPP_INFO_STREAM(
+            get_logger(), "Advertised on topic "
+              << mPub3DLandmarks.getTopic());
 #else
-      mPub3DLandmarks = create_publisher<sensor_msgs::msg::PointCloud2>(
-        mPointcloud3DLandmarksTopic, mQos, mPubOpt);
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Advertised on topic "
-          << mPub3DLandmarks->get_topic_name());
+          mPub3DLandmarks = create_publisher<sensor_msgs::msg::PointCloud2>(
+            mPointcloud3DLandmarksTopic, mQos, mPubOpt);
+          RCLCPP_INFO_STREAM(
+            get_logger(), "Advertised on topic "
+              << mPub3DLandmarks->get_topic_name());
 #endif
-    }
+        }
       }
     }
     if (mGnssFusionEnabled) {

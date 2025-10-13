@@ -18,34 +18,6 @@ LATEST CHANGES
     - From `~/rgb_raw/image_raw_color` to `~/rgb/color/raw/image`
     - From `~/rgb_gray/image_rect_gray` to `~/rgb/gray/rect/image`
     - From `~/rgb_raw_gray/image_raw_gray` to `~/rgb/gray/raw/image`
-
-2025-10-09
-----------
-- New feature: 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):
-  - Added parameter `pos_tracking.publish_3d_landmarks` to enable/disable landmarks publishing
-  - Added parameter `pos_tracking.publish_lm_skip_frame` to set the frequency of landmarks publishing (0 to publish every frame)
-- Changed the default positional tracking mode from `GEN_1` to `GEN_3`
-- Removed Point Cloud Transport as a required dependency. Point Cloud Transport is now only automatically enabled if the `point_cloud_transport` package is installed on the system.
-- Removed FFMPEG Image Transport support because of a problem with the Humble distribution not allowing to set the transport parameters, and the lack of compatibility with NVIDIA® Jetson.
-
-2025-09-30
-----------
-- Enabled Isaac ROS NITROS integration for ZED X One cameras
-
-2025-09-29
-----------
-- Added `camera_info` in transport namespace to reflect `rviz2` requirements with the Camera plugin.
-  - Added new `camInfoPubTrans` publisher for each image topic to publish the `camera_info` in the transport namespace.
-  - Updated `publishImageWithInfo` method to handle the new `camInfoPubTrans` publisher.
-
-2025-09-17
-----------
-- Added debug parameter `debug.debug_nitros` to enable debug logs for NITROS-related operations.
-- Added debug parameter `debug.use_pub_timestamps` to use the current ROS time for the message timestamp instead of the camera timestamp.
-  This is useful to test data communication latency.
-
-2025-09-02
-----------
 - Added parameters to select what topics will be advertised when the node starts:
   - `general.publish_status`: Advertise the status topics that are published only if a node subscribes to them
   - `video.publish_rgb`: Advertise the RGB image topics that are published only if a node subscribes to them
@@ -71,6 +43,31 @@ LATEST CHANGES
   - `mapping.publish_det_plane`: Advertise the plane detection topics that is published only if a node subscribes to it
 **NOTE** THIS IS A BREAKING CHANGE. TOPICS MAYBE NO LONGER AVAILABLE IF NOT ENABLED IN THE DEFAULT CONFIGURATION. Please check what topic you use and set the relative parameter to `true`.
   
+2025-10-09
+----------
+- New feature: 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):
+  - Added parameter `pos_tracking.publish_3d_landmarks` to enable/disable landmarks publishing
+  - Added parameter `pos_tracking.publish_lm_skip_frame` to set the frequency of landmarks publishing (0 to publish every frame)
+- Changed the default positional tracking mode from `GEN_1` to `GEN_3`
+- Removed Point Cloud Transport as a required dependency. Point Cloud Transport is now only automatically enabled if the `point_cloud_transport` package is installed on the system.
+- Removed FFMPEG Image Transport support because of a problem with the Humble distribution not allowing to set the transport parameters, and the lack of compatibility with NVIDIA® Jetson.
+
+2025-09-30
+----------
+- Enabled Isaac ROS NITROS integration for ZED X One cameras
+
+2025-09-29
+----------
+- Added `camera_info` in transport namespace to reflect `rviz2` requirements with the Camera plugin.
+  - Added new `camInfoPubTrans` publisher for each image topic to publish the `camera_info` in the transport namespace.
+  - Updated `publishImageWithInfo` method to handle the new `camInfoPubTrans` publisher.
+
+2025-09-17
+----------
+- Added debug parameter `debug.debug_nitros` to enable debug logs for NITROS-related operations.
+- Added debug parameter `debug.use_pub_timestamps` to use the current ROS time for the message timestamp instead of the camera timestamp.
+  This is useful to test data communication latency.
+
 v5.0.0
 ------
 - Backward compatible with SDK v4.2

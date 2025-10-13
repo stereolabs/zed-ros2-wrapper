@@ -41,7 +41,7 @@ LATEST CHANGES
   - `pos_tracking.publish_pose_cov`: Advertise the pose with covariance topic that is published only if a node subscribes to it
   - `pos_tracking.publish_cam_path`: Advertise the camera odometry and pose path topics that are published only if a node subscribes to them
   - `mapping.publish_det_plane`: Advertise the plane detection topics that is published only if a node subscribes to it
-**NOTE** THIS IS A BREAKING CHANGE. TOPICS MAYBE NO LONGER AVAILABLE IF NOT ENABLED IN THE DEFAULT CONFIGURATION. Please check what topic you use and set the relative parameter to `true`.
+**NOTE** THIS IS A BREAKING CHANGE. TOPICS MAY NO LONGER BE AVAILABLE IF NOT ENABLED IN THE DEFAULT CONFIGURATION. Please check what topic you use and set the relevant parameter to `true`.
   
 2025-10-09
 ----------

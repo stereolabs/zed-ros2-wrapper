@@ -461,7 +461,7 @@ private:
   bool mPublishImgStereo = false;
   bool mPublishImgRoiMask = false;
   bool mPublishOdomPose = true;
-  bool mPublishPoseCov = true;
+  bool mPublishPoseCov = false;
   bool mPublishPath = false;
   bool mPublishDetPlane = false;
   bool mPublishDepthMap = true;

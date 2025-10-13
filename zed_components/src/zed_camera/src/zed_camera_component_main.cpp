@@ -8726,7 +8726,7 @@ void ZedCamera::publishHealthStatus()
 
 bool ZedCamera::publishSvoStatus(uint64_t frame_ts)
 {
-    if (!mSvoMode) {
+  if (!mSvoMode) {
     return false;
   }
 

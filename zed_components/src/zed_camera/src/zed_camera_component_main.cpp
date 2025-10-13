@@ -159,14 +159,12 @@ void ZedCamera::init()
   initParameters();
 
   // ----> Diagnostic initialization
+  std::string info = sl::toString(mCamUserModel).c_str();
   mDiagUpdater.add(
-    mCameraName, this,
+    info, this,
     &ZedCamera::callback_updateDiagnostic);
-  std::string hw_id = std::string("Stereolabs ");
-  hw_id += sl::toString(mCamUserModel).c_str();
-  hw_id += " - '" + mCameraName + "'";
+  std::string hw_id = std::string("Stereolabs camera: ") + mCameraName;
   mDiagUpdater.setHardwareID(hw_id);
-  //mDiagUpdater.force_update();
   // <---- Diagnostic initialization
 
   // Services initialization

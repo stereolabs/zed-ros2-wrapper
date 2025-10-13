@@ -533,8 +533,9 @@ void ZedCameraOne::init()
   _initTimer->cancel();
 
   // ----> Diagnostic initialization
+  std::string info = sl::toString(_camUserModel).c_str();
   _diagUpdater.add(
-    "ZED X One Diagnostic", this,
+    info, this,
     &ZedCameraOne::callback_updateDiagnostic);
   std::string hw_id = std::string("Stereolabs camera: ") + _cameraName;
   _diagUpdater.setHardwareID(hw_id);
@@ -784,6 +785,14 @@ void ZedCameraOne::processCameraInformation()
       << sl::toString(_camRealModel).c_str());
   _camSerialNumber = camInfo.serial_number;
   RCLCPP_INFO_STREAM(get_logger(), " * Serial Number -> " << _camSerialNumber);
+
+  // ----> Update HW ID
+  std::string hw_id = std::string("Stereolabs ");
+  hw_id += sl::toString(_camRealModel).c_str();
+  hw_id += " - '" + _cameraName + "'" + " - S/N: " + std::to_string(_camSerialNumber);
+  _diagUpdater.setHardwareID(hw_id);
+  _diagUpdater.force_update();
+  // <---- Update HW ID
 
   RCLCPP_INFO_STREAM(
     get_logger(),

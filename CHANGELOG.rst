@@ -18,7 +18,31 @@ LATEST CHANGES
     - From `~/rgb_raw/image_raw_color` to `~/rgb/color/raw/image`
     - From `~/rgb_gray/image_rect_gray` to `~/rgb/gray/rect/image`
     - From `~/rgb_raw_gray/image_raw_gray` to `~/rgb/gray/raw/image`
-
+- Added parameters to select what topics will be advertised when the node starts:
+  - `general.publish_status`: Advertise the status topics that are published only if a node subscribes to them
+  - `video.publish_rgb`: Advertise the RGB image topics that are published only if a node subscribes to them
+  - `video.publish_left_right`:  Advertise the left and right image topics that are published only if a node subscribes to them
+  - `video.publish_raw`: Advertise the raw image topics that are published only if a node subscribes to them
+  - `video.publish_gray`: Advertise the gray image topics that are published only if a node subscribes to them
+  - `video.publish_stereo`: Advertise the stereo image topic that is published only if a node subscribes to it
+  - `sensors.publish_imu`: Advertise the IMU topic that is published only if a node subscribes to it
+  - `sensors.publish_imu_raw`: Advertise the raw IMU topic that is published only if a node subscribes to it
+  - `sensors.publish_imu_transf`: Advertise the IMU transformation topic that is published only if a node subscribes to it
+  - `sensors.publish_mag`: Advertise the magnetometer topic that is published only if a node subscribes to it
+  - `sensors.publish_baro`: Advertise the barometer topic that is published only if a node subscribes to it
+  - `sensors.publish_temp`: Advertise the temperature topics that are published only if a node subscribes to them
+  - `region_of_interest.publish_roi_mask`: Advertise the ROI mask image topic that is published only if a node subscribes to it
+  - `depth.publish_depth_map`: Advertise the depth map topics that are published only if a node subscribes to them
+  - `depth.publish_depth_info`: Advertise the depth info topic that is published only if a node subscribes to it
+  - `depth.publish_point_cloud`: Advertise the point cloud topic that is published only if a node subscribes to it
+  - `depth.publish_depth_confidence`: Advertise the depth confidence topic that is published only if a node subscribes to it
+  - `depth.publish_disparity`: Advertise the disparity topic that is published only if a node subscribes to it
+  - `pos_tracking.publish_odom_pose`: Advertise the odometry and pose topics that are published only if a node subscribes to them
+  - `pos_tracking.publish_pose_cov`: Advertise the pose with covariance topic that is published only if a node subscribes to it
+  - `pos_tracking.publish_cam_path`: Advertise the camera odometry and pose path topics that are published only if a node subscribes to them
+  - `mapping.publish_det_plane`: Advertise the plane detection topics that is published only if a node subscribes to it
+**NOTE** THIS IS A BREAKING CHANGE. TOPICS MAY NO LONGER BE AVAILABLE IF NOT ENABLED IN THE DEFAULT CONFIGURATION. Please check what topic you use and set the relevant parameter to `true`.
+  
 2025-10-09
 ----------
 - New feature: 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):

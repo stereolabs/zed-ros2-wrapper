@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
     <name>zed_wrapper</name>
-    <version>5.0.0</version>
+    <version>5.1.0</version>
     <description>zed_wrapper loading zed_components in a single process</description>
     <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
     <license>Apache License 2.0</license>
@@ -25,12 +25,6 @@
     <exec_depend>compressed_image_transport</exec_depend>
     <exec_depend>compressed_depth_image_transport</exec_depend>
     <exec_depend>theora_image_transport</exec_depend>
-    <exec_depend>ffmpeg_image_transport</exec_depend>
-    <exec_depend>ffmpeg_encoder_decoder</exec_depend>
-    <exec_depend>point_cloud_transport_plugins</exec_depend>
-    <exec_depend>draco_point_cloud_transport</exec_depend>
-    <exec_depend>zlib_point_cloud_transport</exec_depend>
-    <exec_depend>zstd_point_cloud_transport</exec_depend>
     <test_depend>ament_lint_auto</test_depend>
     <test_depend>ament_cmake_copyright</test_depend>
     <test_depend>ament_cmake_cppcheck</test_depend>

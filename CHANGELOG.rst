@@ -1,6 +1,49 @@
 LATEST CHANGES
 ==============
 
+2025-10-13
+- Changed ZED Camera image topic names to match the cleaner convention used by ZED X One cameras:
+  - Left image topics:
+    - From `~/left/image_rect_color` to `~/left/color/rect/image`
+    - From `~/left_raw/image_raw_color` to `~/left/color/raw/image`
+    - From `~/left_gray/image_rect_gray` to `~/left/gray/rect/image`
+    - From `~/left_raw_gray/image_raw_gray` to `~/left/gray/raw/image`
+  - Right image topics:
+    - From `~/right/image_rect_color` to `~/right/color/rect/image`
+    - From `~/right_raw/image_raw_color` to `~/right/color/raw/image`
+    - From `~/right_gray/image_rect_gray` to `~/right/gray/rect/image`
+    - From `~/right_raw_gray/image_raw_gray` to `~/right/gray/raw/image`
+  - RGB image topics:
+    - From `~/rgb/image_rect_color` to `~/rgb/color/rect/image`
+    - From `~/rgb_raw/image_raw_color` to `~/rgb/color/raw/image`
+    - From `~/rgb_gray/image_rect_gray` to `~/rgb/gray/rect/image`
+    - From `~/rgb_raw_gray/image_raw_gray` to `~/rgb/gray/raw/image`
+
+2025-10-09
+----------
+- New feature: 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):
+  - Added parameter `pos_tracking.publish_3d_landmarks` to enable/disable landmarks publishing
+  - Added parameter `pos_tracking.publish_lm_skip_frame` to set the frequency of landmarks publishing (0 to publish every frame)
+- Changed the default positional tracking mode from `GEN_1` to `GEN_3`
+- Removed Point Cloud Transport as a required dependency. Point Cloud Transport is now only automatically enabled if the `point_cloud_transport` package is installed on the system.
+- Removed FFMPEG Image Transport support because of a problem with the Humble distribution not allowing to set the transport parameters, and the lack of compatibility with NVIDIA® Jetson.
+
+2025-09-30
+----------
+- Enabled Isaac ROS NITROS integration for ZED X One cameras
+
+2025-09-29
+----------
+- Added `camera_info` in transport namespace to reflect `rviz2` requirements with the Camera plugin.
+  - Added new `camInfoPubTrans` publisher for each image topic to publish the `camera_info` in the transport namespace.
+  - Updated `publishImageWithInfo` method to handle the new `camInfoPubTrans` publisher.
+
+2025-09-17
+----------
+- Added debug parameter `debug.debug_nitros` to enable debug logs for NITROS-related operations.
+- Added debug parameter `debug.use_pub_timestamps` to use the current ROS time for the message timestamp instead of the camera timestamp.
+  This is useful to test data communication latency.
+
 2025-09-02
 ----------
 - Added parameters to select what topics will be advertised when the node starts:
@@ -117,7 +160,7 @@ v4.2.x
 - Renamed `common.yaml` to `common_stereo.yaml`
 - Added `common_mono.yaml` for monocular cameras
 - Added `video.enable_hdr` to `zedxone4k.yaml` for monocular 4K cameras
-- Changed the name of the package `zed_interfaces` to `zed_msgs` to match the ROS2 naming convention
+- Changed the name of the package `zed_interfaces` to `zed_msgs` to match the ROS 2 naming convention
 - Added the new `stereolabs::ZedCameraOne` component to handle ZED X One cameras
 - Removed the ZED Wrapper executable node.
 
@@ -347,7 +390,7 @@ v4.0.0
   - Added a check on timestamp to not publish already published point cloud messages in the point cloud thread
   - Improve thread synchronization when the frequency of the `grab` SDK function is minor of the expected camera frame rate setting because of a leaking of elaboration power.
   - Added diagnostic warning if the frequency of the camera grabbing thread is minor than the selected `general.grab_frame_rate` value.
-  - Removed annoying build log messages. Only warning regarding unsupported ROS2 distributions will be displayed when required.
+  - Removed annoying build log messages. Only warning regarding unsupported ROS 2 distributions will be displayed when required.
   - Convert `shared_ptr` to `unique_ptr` for IPC support
   - Improve the `zed_camera.launch.py`
 
@@ -357,7 +400,7 @@ v4.0.0
     - Modify the "display" launch files in [zed-ros2-examples](https://github.com/stereolabs/zed-ros2-examples) to match the new configuration.
     - Added `publish_tf` and `publish_map_tf` launch parameters useful for multi-camera configuretion or external odometry fusion.
   
-  - Change LICENSE to Apache 2.0 to match ROS2 license.
+  - Change LICENSE to Apache 2.0 to match ROS 2 license.
 
 v3.8.x
 ------
@@ -365,8 +408,8 @@ v3.8.x
 - Added Plane Detection.
 - Fixed "NO DEPTH" mode. By setting `depth/quality` to `0` now the depth extraction and all the sub-modules depending on it are correctly disabled.
 - Added `debug` sub-set of parameters with new parameters `debug_mode` and `debug_sensors`.
-- Added support for ROS2 Humble. Thx @nakai-omer.
-  The two ROS2 LTS releases are now supported simoultaneously.
+- Added support for ROS 2 Humble. Thx @nakai-omer.
+  The two ROS 2 LTS releases are now supported simoultaneously.
 - Set `read_only` flag in parameter descriptors for non-dynamic parameters. Thx @bjsowa.
 - Enabled Intra Process Communication. The ZED node no longer publishes topics with `TRANSIENT LOCAL` durability.
 - Improved TF broadcasting at grabbing frequency
@@ -424,10 +467,10 @@ v3.6.x (2021-12-03)
 - Improved diagnostic time and frequencies calculation
 - Added StopWatch to sl_tools
 - Enabled Diagnostic status publishing
-- Changed the default values of the QoS parameter reliability for all topics from BEST_EFFORT to RELIABLE to guarantee compatibility with all ROS2 tools
+- Changed the default values of the QoS parameter reliability for all topics from BEST_EFFORT to RELIABLE to guarantee compatibility with all ROS 2 tools
 - Fixed tab error in `zedm.yaml`
 - Fixed compatibility issue with ZED SDK older than v3.5 - Thanks @PhilippPolterauer
-- Migration to ROS2 Foxy Fitzroy
+- Migration to ROS 2 Foxy Fitzroy
 
 v3.5.x (2021-07-05)
 -------------------

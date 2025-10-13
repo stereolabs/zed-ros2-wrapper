@@ -44,7 +44,7 @@
 #elif defined FOUND_FOXY
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #else
-#error Unsupported ROS2 distro
+#error Unsupported ROS 2 distro
 #endif
 
 #include <sl/Camera.hpp>
@@ -108,15 +108,17 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
     options.use_intra_process_comms() ? "enabled" : "disabled");
   RCLCPP_INFO(get_logger(), "================================");
 
-  const size_t SDK_MAJOR_REQ = 4;
-  const size_t SDK_MINOR_REQ = 2;
-
-  if ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < (SDK_MAJOR_REQ * 10 + SDK_MINOR_REQ)) {
+  if (((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) <
+    (SDK_MAJOR_MIN_SUPP * 10 + SDK_MINOR_MIN_SUPP)) ||
+    ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >
+    (SDK_MAJOR_MAX_SUPP * 10 + SDK_MINOR_MAX_SUPP)))
+  {
     RCLCPP_ERROR_STREAM(
       get_logger(),
       "This version of the ZED ROS2 wrapper is designed to work with ZED SDK "
-      "v" << static_cast<int>(SDK_MAJOR_REQ)
-          << "." << static_cast<int>(SDK_MINOR_REQ) << " or newer.");
+      "v" << static_cast<int>(SDK_MAJOR_MIN_SUPP)
+          << "." << static_cast<int>(SDK_MINOR_MIN_SUPP) << " or newer up to v" <<
+        static_cast<int>(SDK_MAJOR_MAX_SUPP) << "." << static_cast<int>(SDK_MINOR_MAX_SUPP) << ".");
     RCLCPP_INFO_STREAM(
       get_logger(), "* Detected SDK v"
         << ZED_SDK_MAJOR_VERSION << "."
@@ -157,14 +159,12 @@ void ZedCamera::init()
   initParameters();
 
   // ----> Diagnostic initialization
+  std::string info = sl::toString(mCamUserModel).c_str();
   mDiagUpdater.add(
-    mCameraName, this,
+    info, this,
     &ZedCamera::callback_updateDiagnostic);
-  std::string hw_id = std::string("Stereolabs ");
-  hw_id += sl::toString(mCamUserModel).c_str();
-  hw_id += " - '" + mCameraName + "'";
+  std::string hw_id = std::string("Stereolabs camera: ") + mCameraName;
   mDiagUpdater.setHardwareID(hw_id);
-  //mDiagUpdater.force_update();
   // <---- Diagnostic initialization
 
   // Services initialization
@@ -623,6 +623,10 @@ void ZedCamera::getDebugParams()
     shared_from_this(), "debug.sdk_verbose", mVerbose,
     mVerbose, " * SDK Verbose: ", false, 0, 9999);
   sl_tools::getParam(
+    shared_from_this(), "debug.use_pub_timestamps",
+    mUsePubTimestamps, mUsePubTimestamps,
+    " * Use Pub Timestamps: ");
+  sl_tools::getParam(
     shared_from_this(), "debug.sdk_verbose_log_file",
     mVerboseLogFile, mVerboseLogFile, " * SDK Verbose File: ");
   sl_tools::getParam(
@@ -642,7 +646,7 @@ void ZedCamera::getDebugParams()
   sl_tools::getParam(
     shared_from_this(), "debug.debug_point_cloud",
     _debugPointCloud, _debugPointCloud,
-    " * Debug Point Cloud: %s");
+    " * Debug Point Cloud: ");
   sl_tools::getParam(
     shared_from_this(), "debug.debug_gnss", _debugGnss,
     _debugGnss, " * Debug GNSS: ");
@@ -670,13 +674,16 @@ void ZedCamera::getDebugParams()
     shared_from_this(), "debug.debug_roi", _debugRoi,
     _debugRoi, " * Debug ROI: ");
   sl_tools::getParam(
+    shared_from_this(), "debug.debug_nitros", _debugNitros,
+    _debugNitros, " * Debug Nitros: ");
+  sl_tools::getParam(
     shared_from_this(), "debug.debug_advanced", _debugAdvanced,
     _debugAdvanced, " * Debug Advanced: ");
 
   mDebugMode = _debugCommon || _debugSim || _debugVideoDepth || _debugCamCtrl ||
     _debugPointCloud || _debugPosTracking || _debugGnss ||
     _debugSensors || _debugMapping || _debugObjectDet ||
-    _debugBodyTrk || _debugAdvanced || _debugRoi || _debugStreaming;
+    _debugBodyTrk || _debugAdvanced || _debugRoi || _debugStreaming || _debugNitros;
 
   if (mDebugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(
@@ -697,7 +704,7 @@ void ZedCamera::getDebugParams()
   }
 
   DEBUG_STREAM_COMM(
-    "[ROS2] Using RMW_IMPLEMENTATION "
+    "[ROS 2] Using RMW_IMPLEMENTATION "
       << rmw_get_implementation_identifier());
 
 #ifdef FOUND_ISAAC_ROS_NITROS
@@ -971,14 +978,6 @@ void ZedCamera::getGeneralParams()
     }
   } else if (camera_model == "virtual") {
     mCamUserModel = sl::MODEL::VIRTUAL_ZED_X;
-
-    if (ZED_SDK_MAJOR_VERSION == 4 && ZED_SDK_MINOR_VERSION == 1 && ZED_SDK_PATCH_VERSION == 0) {
-      RCLCPP_ERROR_STREAM(
-        get_logger(),
-        "Camera model '" << sl::toString(mCamUserModel).c_str()
-                         << "' is available only with ZED SDK 4.1.1 or newer");
-      exit(EXIT_FAILURE);
-    }
 
     if (mSvoMode) {
       RCLCPP_INFO_STREAM(
@@ -1530,6 +1529,18 @@ void ZedCamera::getPosTrackingParams()
     " * Reset Odometry with Loop Closure: ");
 
   sl_tools::getParam(
+    shared_from_this(),
+    "pos_tracking.publish_3d_landmarks",
+    mPublish3DLandmarks, mPublish3DLandmarks,
+    " * Publish 3D Landmarks: ");
+
+  sl_tools::getParam(
+    shared_from_this(),
+    "pos_tracking.publish_lm_skip_frame",
+    mPublishLandmarkSkipFrame, mPublishLandmarkSkipFrame,
+    " * Publish Landmark Skip Frame: ");
+
+  sl_tools::getParam(
     shared_from_this(), "pos_tracking.two_d_mode", mTwoDMode,
     mTwoDMode, " * 2D mode: ");
 
@@ -1979,6 +1990,8 @@ void ZedCamera::initPublishers()
   mFusedFixTopic = mPoseTopic + "/fused_fix";
   mOriginFixTopic = mPoseTopic + "/origin_fix";
 
+  mPointcloud3DLandmarksTopic = mPoseTopic + "/landmarks";
+
   mOdomTopic = mTopicRoot + "odom";
   mOdomPathTopic = mTopicRoot + "path_odom";
   mPosePathTopic = mTopicRoot + "path_map";
@@ -2096,6 +2109,22 @@ void ZedCamera::initPublishers()
         RCLCPP_INFO_STREAM(
           get_logger(), "Advertised on topic: "
             << mPubOdomPath->get_topic_name());
+    if (mPublish3DLandmarks) {
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
+      mPub3DLandmarks = point_cloud_transport::create_publisher(
+        shared_from_this(), mPointcloud3DLandmarksTopic, mQos.get_rmw_qos_profile(),
+        mPubOpt);
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Advertised on topic "
+          << mPub3DLandmarks.getTopic());
+#else
+      mPub3DLandmarks = create_publisher<sensor_msgs::msg::PointCloud2>(
+        mPointcloud3DLandmarksTopic, mQos, mPubOpt);
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Advertised on topic "
+          << mPub3DLandmarks->get_topic_name());
+#endif
+    }
       }
     }
     if (mGnssFusionEnabled) {
@@ -2132,12 +2161,13 @@ void ZedCamera::initPublishers()
       RCLCPP_INFO_STREAM(
         get_logger(), "Advertised on topic (GNSS origin): "
           << mPubOriginFix->get_topic_name());
+
     }
     // <---- Pos Tracking
 
     // ----> Mapping
     if (mMappingEnabled) {
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
       mPubFusedCloud = point_cloud_transport::create_publisher(
         shared_from_this(), mPointcloudFusedTopic, mQos.get_rmw_qos_profile(),
         mPubOpt);
@@ -2423,6 +2453,13 @@ bool ZedCamera::startCamera()
   mInitParams.async_grab_camera_recovery =
     true;    // Camera recovery is handled asynchronously to provide information
              // about this status
+
+  // Set the maximum working resolution between video and point cloud to boost the pipeline processing
+  if (mMatResol.width > mPcResol.width) {
+    mInitParams.maximum_working_resolution = mMatResol;
+  } else {
+    mInitParams.maximum_working_resolution = mPcResol;
+  }
   // <---- ZED configuration
 
   // ----> Try to connect to a camera, to a stream, or to load an SVO
@@ -3104,6 +3141,10 @@ bool ZedCamera::startCamera()
   if (!mSvoMode && !mSimMode) {
     mZed->setCameraSettings(sl::VIDEO_SETTINGS::AEC_AGC, 0);
     mZed->setCameraSettings(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, 0);
+
+    // Lock on Positional Tracking mutex to avoid race conditions
+    std::lock_guard<std::mutex> lock(mPtMutex);
+
     // Force parameters with a dummy grab
     mZed->grab();
   }
@@ -3373,12 +3414,25 @@ void ZedCamera::startPathPubTimer(double pathTimerRate)
 
 bool ZedCamera::startPosTracking()
 {
+  // Lock on Positional Tracking mutex to avoid race conditions
+  std::lock_guard<std::mutex> lock(mPtMutex);
+
   if (mDepthDisabled) {
     RCLCPP_WARN(
       get_logger(),
       "Cannot start Positional Tracking if "
       "`depth.depth_mode` is set to `0` [NONE]");
     return false;
+  }
+
+  if (mZed && mZed->isPositionalTrackingEnabled()) {
+    if (!mAreaMemoryFilePath.empty() && mSaveAreaMemoryOnClosing) {
+      mZed->disablePositionalTracking(mAreaMemoryFilePath.c_str());
+      RCLCPP_INFO(
+        get_logger(), "Area memory updated before restarting the Positional Tracking module.");
+    } else {
+      mZed->disablePositionalTracking();
+    }
   }
 
   RCLCPP_INFO(get_logger(), "=== Starting Positional Tracking ===");
@@ -3645,7 +3699,7 @@ bool ZedCamera::start3dMapping()
 
   if (err == sl::ERROR_CODE::SUCCESS) {
     if (mPubFusedCloud == nullptr) {
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
       mPubFusedCloud = point_cloud_transport::create_publisher(
         shared_from_this(), mPointcloudFusedTopic, mQos.get_rmw_qos_profile(),
         mPubOpt);
@@ -4115,9 +4169,9 @@ void ZedCamera::publishImuFrameAndTopic()
   try {
     if (mPubCamImuTransf) {mPubCamImuTransf->publish(std::move(cameraImuTransfMgs));}
   } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+    DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM("Message publishing generic exception: ");
   }
 
   // Publish IMU TF as static TF
@@ -4259,6 +4313,9 @@ void ZedCamera::threadFunc_zedGrab()
         if (!mGrabOnce) {
           rclcpp::sleep_for(100ms);
   #ifdef USE_SVO_REALTIME_PAUSE
+          // Lock on Positional Tracking mutex to avoid race conditions
+          std::lock_guard<std::mutex> lock(mPtMutex);
+
           // Dummy grab
           mZed->grab();
   #endif
@@ -4364,6 +4421,8 @@ void ZedCamera::threadFunc_zedGrab()
       }
       // <---- Publish SVO Status information
 
+      // Lock on Positional Tracking mutex to avoid race conditions
+      std::lock_guard<std::mutex> lock(mPtMutex);
 
       // Start processing timer for diagnostic
       grabElabTimer.tic();
@@ -4708,9 +4767,13 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
     ts_imu = force_ts;
     ts_baro = force_ts;
     ts_mag = force_ts;
+  } else if (mSvoMode && !mUseSvoTimestamp) {
+    ts_imu = now;
+    ts_baro = now;
+    ts_mag = now;
   } else if (mSimMode) {
     if (mUseSimTime) {
-      ts_imu = get_clock()->now();
+      ts_imu = now;
     } else {
       ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
     }
@@ -4792,7 +4855,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
       auto imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
-      imuMsg->header.stamp = ts_imu;
+      imuMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_imu;
       imuMsg->header.frame_id = mImuFrameId;
 
       imuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
@@ -4809,7 +4872,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       imuMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
 
       // ----> Covariances copy
-      // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses
+      // Note: memcpy not allowed because ROS 2 uses double and ZED SDK uses
       // float
       for (int i = 0; i < 3; ++i) {
         int r = 0;
@@ -4852,9 +4915,9 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       try {
         if (mPubImu) {mPubImu->publish(std::move(imuMsg));}
       } catch (std::system_error & e) {
-        DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+        DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
       } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+        DEBUG_STREAM_COMM("Message publishing generic exception: ");
       }
     } else {
       mImuPublishing = false;
@@ -4865,7 +4928,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
       auto imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
 
-      imuRawMsg->header.stamp = ts_imu;
+      imuRawMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_imu;
       imuRawMsg->header.frame_id = mImuFrameId;
 
       imuRawMsg->angular_velocity.x =
@@ -4880,7 +4943,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       imuRawMsg->linear_acceleration.z = sens_data.imu.linear_acceleration_uncalibrated[2];
 
       // ----> Covariances copy
-      // Note: memcpy not allowed because ROS2 uses double and ZED SDK uses
+      // Note: memcpy not allowed because ROS 2 uses double and ZED SDK uses
       // float
       for (int i = 0; i < 3; ++i) {
         int r = 0;
@@ -4916,9 +4979,9 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       try {
         if (mPubImuRaw) {mPubImuRaw->publish(std::move(imuRawMsg));}
       } catch (std::system_error & e) {
-        DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+        DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
       } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+        DEBUG_STREAM_COMM("Message publishing generic exception: ");
       }
     }
   }
@@ -4929,7 +4992,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
       auto pressMsg = std::make_unique<sensor_msgs::msg::FluidPressure>();
 
-      pressMsg->header.stamp = ts_baro;
+      pressMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_baro;
       pressMsg->header.frame_id = mBaroFrameId;
       pressMsg->fluid_pressure =
         sens_data.barometer.pressure;    // Pascals -> see
@@ -4940,9 +5003,9 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       try {
         if (mPubPressure) {mPubPressure->publish(std::move(pressMsg));}
       } catch (std::system_error & e) {
-        DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+        DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
       } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+        DEBUG_STREAM_COMM("Message publishing generic exception: ");
       }
     } else {
       mBaroPublishing = false;
@@ -4955,7 +5018,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
       auto magMsg = std::make_unique<sensor_msgs::msg::MagneticField>();
 
-      magMsg->header.stamp = ts_mag;
+      magMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_mag;
       magMsg->header.frame_id = mMagFrameId;
       magMsg->magnetic_field.x =
         sens_data.magnetometer.magnetic_field_calibrated.x * 1e-6;    // Tesla
@@ -4977,9 +5040,9 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       try {
         if (mPubImuMag) {mPubImuMag->publish(std::move(magMsg));}
       } catch (std::system_error & e) {
-        DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+        DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
       } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+        DEBUG_STREAM_COMM("Message publishing generic exception: ");
       }
     } else {
       mMagPublishing = false;
@@ -5041,7 +5104,9 @@ void ZedCamera::publishOdomTF(rclcpp::Time t)
 
   geometry_msgs::msg::TransformStamped transformStamped;
 
-  transformStamped.header.stamp = t + rclcpp::Duration(0, mTfOffset * 1e9);
+  transformStamped.header.stamp =
+    mUsePubTimestamps ? get_clock()->now() :
+    (t + rclcpp::Duration(0, mTfOffset * 1e9));
 
   // RCLCPP_INFO_STREAM(get_logger(), "Odom TS: " <<
   // transformStamped.header.stamp);
@@ -5093,7 +5158,9 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
 
   geometry_msgs::msg::TransformStamped transformStamped;
 
-  transformStamped.header.stamp = t + rclcpp::Duration(0, mTfOffset * 1e9);
+  transformStamped.header.stamp =
+    mUsePubTimestamps ? get_clock()->now() :
+    (t + rclcpp::Duration(0, mTfOffset * 1e9));
   transformStamped.header.frame_id = mMapFrameId;
   transformStamped.child_frame_id = mOdomFrameId;
   // conversion from Tranform to message
@@ -5401,7 +5468,7 @@ void ZedCamera::publishOdom(
   if (odomSub) {
     auto odomMsg = std::make_unique<nav_msgs::msg::Odometry>();
 
-    odomMsg->header.stamp = t;
+    odomMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
     odomMsg->header.frame_id = mOdomFrameId;  // frame
     odomMsg->child_frame_id = mBaseFrameId;   // camera_frame
 
@@ -5436,9 +5503,9 @@ void ZedCamera::publishOdom(
     try {
       if (mPubOdom) {mPubOdom->publish(std::move(odomMsg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -5546,6 +5613,14 @@ void ZedCamera::processPose()
 
     // Publish Pose message
     publishPose();
+    if (mPublish3DLandmarks) {
+      if (mFrameSkipCountLandmarks == 0) {
+        publishPoseLandmarks();
+        mFrameSkipCountLandmarks = mPublishLandmarkSkipFrame;
+      } else {
+        mFrameSkipCountLandmarks--;
+      }
+    }
     mPosTrackingReady = true;
   }
 }
@@ -5571,9 +5646,9 @@ void ZedCamera::publishPoseStatus()
     try {
       if (mPubPoseStatus) {mPubPoseStatus->publish(std::move(msg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -5599,9 +5674,9 @@ void ZedCamera::publishGnssPoseStatus()
     try {
       if (mPubGnssPoseStatus) {mPubGnssPoseStatus->publish(std::move(msg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -5628,10 +5703,160 @@ void ZedCamera::publishGeoPoseStatus()
     try {
       if (mPubGeoPoseStatus) {mPubGeoPoseStatus->publish(std::move(msg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
+  }
+}
+
+void ZedCamera::publishPoseLandmarks()
+{
+  size_t landmarksSub = 0;
+
+  try {
+    landmarksSub =
+      count_subscribers(mPointcloud3DLandmarksTopic);    // mPubPoseLandmarks subscribers
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
+    return;
+  }
+
+  DEBUG_STREAM_PT(
+    " * [publishPoseLandmarks] Subscribers to topic '" << mPointcloud3DLandmarksTopic << "': " <<
+      landmarksSub);
+
+  if (landmarksSub > 0) {
+    std::map<uint64_t, sl::Landmark> map_lm3d;
+    std::vector<sl::Landmark2D> map_lm2d;
+    auto res1 = mZed->getPositionalTrackingLandmarks(map_lm3d); // 3D landmarks (all the landmarks in world coords)
+    auto res2 = mZed->getPositionalTrackingLandmarks2D(map_lm2d); // 2D landmarks (currently tracked in image)
+
+    if (res1 != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        " * [publishPoseLandmarks] getPositionalTrackingLandmarks error: " <<
+          sl::toString(res1));
+      return;
+    }
+    if (res2 != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        " * [publishPoseLandmarks] getPositionalTrackingLandmarks2D error: " <<
+          sl::toString(res2));
+      return;
+    }
+
+    auto msg = std::make_unique<sensor_msgs::msg::PointCloud2>();
+
+    // Initialize Point Cloud message
+    // https://github.com/ros/common_msgs/blob/jade-devel/sensor_msgs/include/sensor_msgs/point_cloud2_iterator.h
+
+    int ptsCount = map_lm3d.size();
+
+    DEBUG_STREAM_PT(" * [publishPoseLandmarks] " << ptsCount << " landmarks to publish");
+
+    if (mSvoMode) {
+      msg->header.stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
+    } else if (mSimMode) {
+      if (mUseSimTime) {
+        msg->header.stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
+      } else {
+        msg->header.stamp = mUsePubTimestamps ? get_clock()->now() : sl_tools::slTime2Ros(
+          mMatCloud.timestamp);
+      }
+    } else {
+      msg->header.stamp = mUsePubTimestamps ? get_clock()->now() : sl_tools::slTime2Ros(
+        mMatCloud.timestamp);
+    }
+
+    msg->header.frame_id = mMapFrameId;      // Set the header values of the ROS message
+
+    int val = 1;
+    msg->is_bigendian = !(*reinterpret_cast<char *>(&val) == 1);
+    msg->is_dense = true;
+
+    msg->width = ptsCount;
+    msg->height = 1;
+
+    sensor_msgs::PointCloud2Modifier modifier(*(msg.get()));
+    modifier.setPointCloud2Fields(
+      4,
+      "x", 1, sensor_msgs::msg::PointField::FLOAT32,
+      "y", 1, sensor_msgs::msg::PointField::FLOAT32,
+      "z", 1, sensor_msgs::msg::PointField::FLOAT32,
+      "rgb", 1, sensor_msgs::msg::PointField::FLOAT32);
+
+    DEBUG_STREAM_PT(
+      " * [publishPoseLandmarks] PointCloud2 msg - Width: " << msg->width <<
+        " - Height: " << msg->height <<
+        " - PointStep: " << msg->point_step <<
+        " - RowStep: " << msg->row_step <<
+        " - Data size: " << msg->data.size());
+
+    sensor_msgs::PointCloud2Iterator<float> iter_x(*msg, "x");
+    sensor_msgs::PointCloud2Iterator<float> iter_y(*msg, "y");
+    sensor_msgs::PointCloud2Iterator<float> iter_z(*msg, "z");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iter_r(*msg, "r");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iter_g(*msg, "g");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iter_b(*msg, "b");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iter_a(*msg, "a");
+
+    for (const auto & landmark : map_lm3d) {
+      // ----> Set the landmark coordinates
+      *iter_x = landmark.second.position.x;
+      *iter_y = landmark.second.position.y;
+      *iter_z = landmark.second.position.z;
+      // <---- Set the landmark coordinates
+      // ----> Set the landmark color (green if tracked in 2D, red if not)
+      // If a landmark is listed in the 2D landmarks, it means that it is currently tracked, so that we can color it in green
+      if (std::any_of(
+          map_lm2d.begin(), map_lm2d.end(),
+          [&landmark](const sl::Landmark2D & lm2d) {return lm2d.id == landmark.first;}))
+      {
+        *iter_r = 20;
+        *iter_g = 200;
+        *iter_b = 20;
+        *iter_a = 150;
+      } else {
+        *iter_r = 200;
+        *iter_g = 20;
+        *iter_b = 20;
+        *iter_a = 150;
+      }
+      // <---- Set the landmark color (green if tracked in 2D, red if not)
+
+      // Increment iterators
+      ++iter_x;
+      ++iter_y;
+      ++iter_z;
+      ++iter_r;
+      ++iter_g;
+      ++iter_b;
+      ++iter_a;
+    }
+
+    // Pointcloud publishing
+    DEBUG_PT(" * [publishPoseLandmarks] Publishing LANDMARK 3D POINT CLOUD message");
+
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
+    try {
+      mPub3DLandmarks.publish(std::move(msg));
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_PT(" * [publishPoseLandmarks] Message publishing exception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_PT(" * [publishPoseLandmarks] Message publishing generic exception");
+    }
+#else
+    try {
+      mPub3DLandmarks->publish(std::move(msg));
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_PT(" * [publishPoseLandmarks] Message publishing exception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_PT(" * [publishPoseLandmarks] Message publishing generic exception");
+    }
+#endif
   }
 }
 
@@ -5655,7 +5880,7 @@ void ZedCamera::publishPose()
   base_pose = mMap2BaseTransf;
 
   std_msgs::msg::Header header;
-  header.stamp = mFrameTimestamp;
+  header.stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
   header.frame_id = mMapFrameId;   // frame
 
   geometry_msgs::msg::Pose pose;
@@ -5680,9 +5905,9 @@ void ZedCamera::publishPose()
     try {
       if (mPubPose) {mPubPose->publish(std::move(poseNoCov));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
@@ -5714,9 +5939,9 @@ void ZedCamera::publishPose()
       try {
         if (mPubPoseCov) {mPubPoseCov->publish(std::move(poseCov));}
       } catch (std::system_error & e) {
-        DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+        DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
       } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+        DEBUG_STREAM_COMM("Message publishing generic exception: ");
       }
     }
   }
@@ -5858,7 +6083,9 @@ void ZedCamera::processGeoPose()
     geometry_msgs::msg::TransformStamped transformStamped;
 
     transformStamped.header.stamp =
-      mFrameTimestamp + rclcpp::Duration(0, mTfOffset * 1e9);
+      mUsePubTimestamps ?
+      get_clock()->now() :
+      (mFrameTimestamp + rclcpp::Duration(0, mTfOffset * 1e9));
     transformStamped.header.frame_id = mUtmAsParent ? mUtmFrameId : mMapFrameId;
     transformStamped.child_frame_id = mUtmAsParent ? mMapFrameId : mUtmFrameId;
 
@@ -5896,7 +6123,8 @@ void ZedCamera::publishGnssPose()
   if (gnssSub > 0) {
     auto msg = std::make_unique<nav_msgs::msg::Odometry>();
 
-    msg->header.stamp = mFrameTimestamp;
+    msg->header.stamp =
+      mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
     msg->header.frame_id = mMapFrameId;
     msg->child_frame_id = mBaseFrameId;
 
@@ -5931,16 +6159,17 @@ void ZedCamera::publishGnssPose()
     try {
       if (mPubGnssPose) {mPubGnssPose->publish(std::move(msg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
   if (geoPoseSub > 0) {
     auto msg = std::make_unique<geographic_msgs::msg::GeoPoseStamped>();
 
-    msg->header.stamp = mFrameTimestamp;
+    msg->header.stamp =
+      mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
     msg->header.frame_id = mMapFrameId;
 
     // Latest Lat Long data
@@ -5959,16 +6188,18 @@ void ZedCamera::publishGnssPose()
     try {
       if (mPubGeoPose) {mPubGeoPose->publish(std::move(msg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
   if (fusedFixSub > 0) {
     auto msg = std::make_unique<sensor_msgs::msg::NavSatFix>();
 
-    msg->header.stamp = mFrameTimestamp;
+    msg->header.stamp =
+      mUsePubTimestamps ? get_clock()->now() :
+      mFrameTimestamp;
     msg->header.frame_id = mMapFrameId;
 
     msg->status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
@@ -6002,17 +6233,20 @@ void ZedCamera::publishGnssPose()
     try {
       if (mPubFusedFix) {mPubFusedFix->publish(std::move(msg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
   if (originFixSub > 0) {
     auto msg = std::make_unique<sensor_msgs::msg::NavSatFix>();
 
-    msg->header.stamp = mFrameTimestamp;
-    msg->header.frame_id = mGnssOriginFrameId;
+    msg->header.stamp = mUsePubTimestamps ?
+      get_clock()->now() :
+      mFrameTimestamp;
+    msg->header.frame_id =
+      mGnssOriginFrameId;
 
     msg->status.status = sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
     msg->status.service = mGnssService;
@@ -6033,9 +6267,9 @@ void ZedCamera::publishGnssPose()
     try {
       if (mPubOriginFix) {mPubOriginFix->publish(std::move(msg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -6235,9 +6469,9 @@ void ZedCamera::callback_pubTemp()
     try {
       if (mPubTempL) {mPubTempL->publish(std::move(leftTempMsg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
@@ -6254,9 +6488,9 @@ void ZedCamera::callback_pubTemp()
     try {
       if (mPubTempR) {mPubTempR->publish(std::move(rightTempMsg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
@@ -6273,9 +6507,9 @@ void ZedCamera::callback_pubTemp()
     try {
       if (mPubImuTemp) {mPubImuTemp->publish(std::move(imuTempMsg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -6288,7 +6522,7 @@ void ZedCamera::callback_pubFusedPc()
 
   uint32_t fusedCloudSubCount = 0;
   try {
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
     fusedCloudSubCount = mPubFusedCloud.getNumSubscribers();
 #else
     if (mPubFusedCloud) {fusedCloudSubCount = count_subscribers(mPubFusedCloud->get_topic_name());}
@@ -6362,16 +6596,18 @@ void ZedCamera::callback_pubFusedPc()
         memcpy(ptCloudPtr, cloud_pts, 4 * chunkSize * sizeof(float));
         ptCloudPtr += 4 * chunkSize;
         if (mSvoMode) {
-          pointcloudFusedMsg->header.stamp = mFrameTimestamp;
+          pointcloudFusedMsg->header.stamp =
+            mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
         } else if (mSimMode) {
           if (mUseSimTime) {
-            pointcloudFusedMsg->header.stamp = mFrameTimestamp;
-          } else {
             pointcloudFusedMsg->header.stamp =
+              mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
+          } else {
+            pointcloudFusedMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() :
               sl_tools::slTime2Ros(mFusedPC.chunks[c].timestamp);
           }
         } else {
-          pointcloudFusedMsg->header.stamp =
+          pointcloudFusedMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() :
             sl_tools::slTime2Ros(mFusedPC.chunks[c].timestamp);
         }
       }
@@ -6387,21 +6623,21 @@ void ZedCamera::callback_pubFusedPc()
 
   // Pointcloud publishing
   DEBUG_STREAM_MAP("Publishing FUSED POINT CLOUD message");
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
   try {
     mPubFusedCloud.publish(std::move(pointcloudFusedMsg));
   } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+    DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM("Message publishing generic exception: ");
   }
 #else
   try {
     if (mPubFusedCloud) {mPubFusedCloud->publish(std::move(pointcloudFusedMsg));}
   } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+    DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM("Message publishing generic exception: ");
   }
 #endif
 }
@@ -6484,32 +6720,36 @@ void ZedCamera::callback_pubPaths()
   if (mapPathSub > 0) {
     auto mapPathMsg = std::make_unique<nav_msgs::msg::Path>();
     mapPathMsg->header.frame_id = mMapFrameId;
-    mapPathMsg->header.stamp = mFrameTimestamp;
+    mapPathMsg->header.stamp =
+      mUsePubTimestamps ? get_clock()->now() :
+      mFrameTimestamp;
     mapPathMsg->poses = mPosePath;
 
     DEBUG_STREAM_PT("Publishing MAP PATH message");
     try {
       if (mPubPosePath) {mPubPosePath->publish(std::move(mapPathMsg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 
   if (odomPathSub > 0) {
     auto odomPathMsg = std::make_unique<nav_msgs::msg::Path>();
     odomPathMsg->header.frame_id = mOdomFrameId;
-    odomPathMsg->header.stamp = mFrameTimestamp;
+    odomPathMsg->header.stamp =
+      mUsePubTimestamps ? get_clock()->now() :
+      mFrameTimestamp;
     odomPathMsg->poses = mOdomPath;
 
     DEBUG_STREAM_PT("Publishing ODOM PATH message");
     try {
       if (mPubOdomPath) {mPubOdomPath->publish(std::move(odomPathMsg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
   }
 }
@@ -7847,7 +8087,7 @@ void ZedCamera::callback_clickedPoint(
     static int hit_pt_id =
       0;      // This ID must be unique in the same process. Thus it is good to
               // keep it as a static variable
-    pt_marker->header.stamp = ts;
+    pt_marker->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts;
     // Set the marker action.  Options are ADD and DELETE
     pt_marker->action = visualization_msgs::msg::Marker::ADD;
     pt_marker->lifetime = rclcpp::Duration(0, 0);
@@ -7889,9 +8129,9 @@ void ZedCamera::callback_clickedPoint(
     try {
       if (mPubMarker) {mPubMarker->publish(std::move(pt_marker));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
     // ----> Publish a blue sphere in the clicked point
 
@@ -7902,7 +8142,7 @@ void ZedCamera::callback_clickedPoint(
     static int plane_mesh_id =
       0;      // This ID must be unique in the same process. Thus it is good to
               // keep it as a static variable
-    plane_marker->header.stamp = ts;
+    plane_marker->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts;
     // Set the marker action.  Options are ADD and DELETE
     plane_marker->action = visualization_msgs::msg::Marker::ADD;
     plane_marker->lifetime = rclcpp::Duration(0, 0);
@@ -7960,9 +8200,9 @@ void ZedCamera::callback_clickedPoint(
     try {
       if (mPubMarker) {mPubMarker->publish(std::move(plane_marker));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
     // <---- Publish the plane as green mesh
   }
@@ -7971,7 +8211,7 @@ void ZedCamera::callback_clickedPoint(
     // ----> Publish the plane as custom message
 
     auto planeMsg = std::make_unique<zed_msgs::msg::PlaneStamped>();
-    planeMsg->header.stamp = ts;
+    planeMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts;
     planeMsg->header.frame_id = mLeftCamFrameId;
 
     // Plane equation
@@ -8044,9 +8284,9 @@ void ZedCamera::callback_clickedPoint(
     try {
       if (mPubPlane) {mPubPlane->publish(std::move(planeMsg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM("Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM("Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
     }
     // <---- Publish the plane as custom message
   }
@@ -8386,12 +8626,12 @@ void ZedCamera::processRtRoi(rclcpp::Time ts)
 
       if (_nitrosDisabled) {
         publishImageWithInfo(
-          roi_mask, mPubRoiMask, mPubRoiMaskCamInfo, mLeftCamInfoMsg,
+          roi_mask, mPubRoiMask, mPubRoiMaskCamInfo, mPubRoiMaskCamInfoTrans, mLeftCamInfoMsg,
           mLeftCamOptFrameId, ts);
       } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
         publishImageWithInfo(
-          roi_mask, mNitrosPubRoiMask, mPubRoiMaskCamInfo, mLeftCamInfoMsg,
+          roi_mask, mNitrosPubRoiMask, mPubRoiMaskCamInfo, mPubRoiMaskCamInfoTrans, mLeftCamInfoMsg,
           mLeftCamOptFrameId, ts);
 #endif
       }
@@ -8469,7 +8709,9 @@ void ZedCamera::publishHealthStatus()
 
   sl::HealthStatus status = mZed->getHealthStatus();
   auto msg = std::make_unique<zed_msgs::msg::HealthStatusStamped>();
-  msg->header.stamp = mFrameTimestamp;
+  msg->header.stamp = mUsePubTimestamps ?
+    get_clock()->now() :
+    mFrameTimestamp;
   msg->header.frame_id = mBaseFrameId;
   msg->serial_number = mCamSerialNumber;
   msg->camera_name = mCameraName;

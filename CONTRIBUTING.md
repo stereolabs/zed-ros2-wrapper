@@ -6,9 +6,9 @@ Code contributions should be made via pull requests to the appropriate repositor
 * [zed-ros2-interfaces](https://github.com/stereolabs/zed-ros2-interfaces/pulls)
 * [zed-ros2-examples](https://github.com/stereolabs/zed-ros2-examples/pulls)
 
-We ask all contributors to follow the practices explained in [ROS2 documentation](https://docs.ros.org/en/humble/The-ROS2-Project/Contributing/Code-Style-Language-Versions.html).
+We ask all contributors to follow the practices explained in [ROS 2 documentation](https://docs.ros.org/en/humble/The-ROS2-Project/Contributing/Code-Style-Language-Versions.html).
 
-Before submitting a pull request please perform this list of tasks from the root of your ROS2 workspace:
+Before submitting a pull request please perform this list of tasks from the root of your ROS 2 workspace:
 1. Automatic code formatting: 
    
    `$ ament_uncrustify --reformat src`

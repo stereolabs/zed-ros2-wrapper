@@ -1,4 +1,4 @@
-# Copyright 2024 Stereolabs
+# Copyright 2025 Stereolabs
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -44,13 +44,6 @@ default_config_common = os.path.join(
     get_package_share_directory('zed_wrapper'),
     'config',
     'common'
-)
-    
-# FFMPEG Configuration to be loaded by ZED Node
-default_config_ffmpeg = os.path.join(
-    get_package_share_directory('zed_wrapper'),
-    'config',
-    'ffmpeg.yaml'
 )
 
 # Object Detection Configuration to be loaded by ZED Node
@@ -110,7 +103,6 @@ def launch_setup(context, *args, **kwargs):
     node_name = LaunchConfiguration('node_name')
 
     ros_params_override_path = LaunchConfiguration('ros_params_override_path')
-    config_ffmpeg = LaunchConfiguration('ffmpeg_config_path')
     object_detection_config_path = LaunchConfiguration('object_detection_config_path')
     custom_object_detection_config_path = LaunchConfiguration('custom_object_detection_config_path')
 
@@ -182,10 +174,6 @@ def launch_setup(context, *args, **kwargs):
     )
 
     info = 'Using camera configuration file: ' + config_camera_path
-    return_array.append(LogInfo(msg=TextSubstitution(text=info)))
-
-    # FFMPEG configuration file
-    info = 'Using FFMPEG configuration file: ' + config_ffmpeg.perform(context)
     return_array.append(LogInfo(msg=TextSubstitution(text=info)))
 
     # Object Detection configuration file
@@ -273,7 +261,6 @@ def launch_setup(context, *args, **kwargs):
             # YAML files
             config_common_path_val,  # Common parameters
             config_camera_path,  # Camera related parameters
-            config_ffmpeg, # FFMPEG parameters
             object_detection_config_path, # Object detection parameters
             custom_object_detection_config_path # Custom object detection parameters
     ]
@@ -375,10 +362,6 @@ def generate_launch_description():
                 'ros_params_override_path',
                 default_value='',
                 description='The path to an additional parameters file to override the default values.'),
-            DeclareLaunchArgument(
-                'ffmpeg_config_path',
-                default_value=TextSubstitution(text=default_config_ffmpeg),
-                description='Path to the YAML configuration file for the FFMPEG parameters when using FFMPEG image transport plugin.'),
             DeclareLaunchArgument(
                 'object_detection_config_path',
                 default_value=TextSubstitution(text=default_object_detection_config_path),

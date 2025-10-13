@@ -1,4 +1,4 @@
-// Copyright 2024 Stereolabs
+// Copyright 2025 Stereolabs
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,6 +29,21 @@
 #include "sl_win_avg.hpp"
 
 #include <rcutils/logging_macros.h>
+
+// CUDA includes and macros
+#ifdef FOUND_ISAAC_ROS_NITROS
+  #include "isaac_ros_nitros_image_type/nitros_image_builder.hpp"
+
+  #define CUDA_CHECK(status) \
+  if (status != cudaSuccess) \
+  { \
+    RCLCPP_ERROR_STREAM( \
+      get_logger(), "Internal CUDA ERROR encountered: {" << std::string( \
+        cudaGetErrorName( \
+          status)) << "} {" << std::string(cudaGetErrorString(status)) << "}"); \
+    std::abort(); \
+  }
+#endif
 
 namespace sl_tools
 {
@@ -73,7 +88,7 @@ std::string getSDKVersion(int & major, int & minor, int & sub_minor);
 
 /*! \brief Convert StereoLabs timestamp to ROS timestamp
  *  \param t : Stereolabs timestamp to be converted
- *  \param t : ROS2 clock type
+ *  \param t : ROS 2 clock type
  */
 rclcpp::Time slTime2Ros(sl::Timestamp t, rcl_clock_type_t clock_type = RCL_ROS_TIME);
 
@@ -106,19 +121,21 @@ bool isObjDetAvailable(sl::MODEL camModel);
  * \param img : the image to publish
  * \param frameId : the id of the reference frame of the image
  * \param t : rclcpp ros::Time to stamp the image
+ * \param use_pub_timestamp : if true use the current time as timestamp instead of \ref t
  */
 std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
-  const sl::Mat & img, const std::string & frameId, const rclcpp::Time & t);
+  const sl::Mat & img, const std::string & frameId, const rclcpp::Time & t, bool use_pub_timestamp);
 
 /*! \brief sl::Mat to ros message conversion
  * \param left : the left image to convert and stitch
  * \param right : the right image to convert and stitch
  * \param frameId : the id of the reference frame of the image
  * \param t : rclcpp rclcpp::Time to stamp the image
+ * \param use_pub_timestamp : if true use the current time as timestamp instead of \ref t
  */
 std::unique_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
   const sl::Mat & left, const sl::Mat & right, const std::string & frameId,
-  const rclcpp::Time & t);
+  const rclcpp::Time & t, bool use_pub_timestamp);
 
 /*! \brief qos value to string
  * \param qos the value to convert

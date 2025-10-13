@@ -15,12 +15,12 @@ TZ=Europe/Paris
 ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && echo ${TZ} > /etc/timezone
 
 # Create the ROS 2 workspace
-echo "${ttk} Create ROS2 workspace"
+echo "${ttk} Create ROS 2 workspace"
 cd ..
 WS_DIR="$(pwd)"/ros2_ws
 rm -rf ${WS_DIR} # clean residual cached files
 mkdir -p ${WS_DIR}/src 
-echo "${ttk} ROS2 Workspace: ${WS_DIR}"
+echo "${ttk} ROS 2 Workspace: ${WS_DIR}"
 
 echo "${ttk} Check environment variables"
 env | grep ROS

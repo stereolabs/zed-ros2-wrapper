@@ -23,72 +23,45 @@
 
 #include <image_transport/camera_common.hpp>
 
-#ifdef FOUND_ISAAC_ROS_NITROS
-  #include "isaac_ros_nitros_image_type/nitros_image_builder.hpp"
-
-  #define CUDA_CHECK(status) \
-  if (status != cudaSuccess) \
-  { \
-    RCLCPP_ERROR_STREAM( \
-      get_logger(), "Internal CUDA ERROR encountered: {" << std::string( \
-        cudaGetErrorName( \
-          status)) << "} {" << std::string(cudaGetErrorString(status)) << "}"); \
-    std::abort(); \
-  }
-#endif
-
 namespace stereolabs
 {
 
 void ZedCamera::initVideoDepthPublishers()
 {
   // ----> Topic name roots and suffixes
-  const std::string rgbRoot = "rgb";
-  const std::string rightRoot = "right";
-  const std::string leftRoot = "left";
-  const std::string stereoRoot = "stereo";
-  const std::string imgRectColor = "/image_rect_color";
-  const std::string imgRawColor = "/image_raw_color";
-  const std::string imgRectGray = "_gray/image_rect_gray";
-  const std::string imgRawGray = "_gray/image_raw_gray";
-  const std::string rawSuffix = "_raw";
+  const std::string sens_rgb = "rgb/";
+  const std::string sens_left = "left/";
+  const std::string sens_right = "right/";
+  const std::string sens_stereo = "stereo/";
+  const std::string rectified = "rect/";
+  const std::string raw = "raw/";
+  const std::string color = "color/";
+  const std::string gray = "gray/";
+  const std::string type_image = "image";
 
   // Helper to build topic names
   auto make_topic =
-    [&](const std::string & root, const std::string & suffix, const std::string & type) {
-      return mTopicRoot + root + suffix + type;
+    [&](const std::string & sensor, const std::string & color_mode, const std::string & rect_raw,
+      const std::string & type) {
+      std::string topic = mTopicRoot + sensor + color_mode + rect_raw + type;
+      return get_node_topics_interface()->resolve_topic_name(topic);
     };
 
   // Image topics
-  mLeftTopic = make_topic(leftRoot, "", imgRectColor);
-  mLeftRawTopic = make_topic(leftRoot, rawSuffix, imgRawColor);
-  mRightTopic = make_topic(rightRoot, "", imgRectColor);
-  mRightRawTopic = make_topic(rightRoot, rawSuffix, imgRawColor);
-  mRgbTopic = make_topic(rgbRoot, "", imgRectColor);
-  mRgbRawTopic = make_topic(rgbRoot, rawSuffix, imgRawColor);
-  mStereoTopic = make_topic(stereoRoot, "", imgRectColor);
-  mStereoRawTopic = make_topic(stereoRoot, rawSuffix, imgRawColor);
-  mLeftGrayTopic = make_topic(leftRoot, "", imgRectGray);
-  mLeftRawGrayTopic = make_topic(leftRoot, rawSuffix, imgRawGray);
-  mRightGrayTopic = make_topic(rightRoot, "", imgRectGray);
-  mRightRawGrayTopic = make_topic(rightRoot, rawSuffix, imgRawGray);
-  mRgbGrayTopic = make_topic(rgbRoot, "", imgRectGray);
-  mRgbRawGrayTopic = make_topic(rgbRoot, rawSuffix, imgRawGray);
-
-  mLeftTopic = get_node_topics_interface()->resolve_topic_name(mLeftTopic);
-  mLeftRawTopic = get_node_topics_interface()->resolve_topic_name(mLeftRawTopic);
-  mRightTopic = get_node_topics_interface()->resolve_topic_name(mRightTopic);
-  mRightRawTopic = get_node_topics_interface()->resolve_topic_name(mRightRawTopic);
-  mRgbTopic = get_node_topics_interface()->resolve_topic_name(mRgbTopic);
-  mRgbRawTopic = get_node_topics_interface()->resolve_topic_name(mRgbRawTopic);
-  mStereoTopic = get_node_topics_interface()->resolve_topic_name(mStereoTopic);
-  mStereoRawTopic = get_node_topics_interface()->resolve_topic_name(mStereoRawTopic);
-  mLeftGrayTopic = get_node_topics_interface()->resolve_topic_name(mLeftGrayTopic);
-  mLeftRawGrayTopic = get_node_topics_interface()->resolve_topic_name(mLeftRawGrayTopic);
-  mRightGrayTopic = get_node_topics_interface()->resolve_topic_name(mRightGrayTopic);
-  mRightRawGrayTopic = get_node_topics_interface()->resolve_topic_name(mRightRawGrayTopic);
-  mRgbGrayTopic = get_node_topics_interface()->resolve_topic_name(mRgbGrayTopic);
-  mRgbRawGrayTopic = get_node_topics_interface()->resolve_topic_name(mRgbRawGrayTopic);
+  mLeftTopic = make_topic(sens_left, color, rectified, type_image);
+  mLeftRawTopic = make_topic(sens_left, color, raw, type_image);
+  mRightTopic = make_topic(sens_right, color, rectified, type_image);
+  mRightRawTopic = make_topic(sens_right, color, raw, type_image);
+  mRgbTopic = make_topic(sens_rgb, color, rectified, type_image);
+  mRgbRawTopic = make_topic(sens_rgb, color, raw, type_image);
+  mStereoTopic = make_topic(sens_stereo, color, rectified, type_image);
+  mStereoRawTopic = make_topic(sens_stereo, color, raw, type_image);
+  mLeftGrayTopic = make_topic(sens_left, gray, rectified, type_image);
+  mLeftRawGrayTopic = make_topic(sens_left, gray, raw, type_image);
+  mRightGrayTopic = make_topic(sens_right, gray, rectified, type_image);
+  mRightRawGrayTopic = make_topic(sens_right, gray, raw, type_image);
+  mRgbGrayTopic = make_topic(sens_rgb, gray, rectified, type_image);
+  mRgbRawGrayTopic = make_topic(sens_rgb, gray, raw, type_image);
 
   // Depth topics
   mDisparityTopic = mTopicRoot + "disparity/disparity_image";
@@ -291,6 +264,29 @@ void ZedCamera::initVideoDepthPublishers()
   if (mPublishConfidence) {
     mPubConfMapCamInfo = make_cam_info_pub(mConfMapTopic);
   }
+
+  auto make_cam_info_trans_pub = [&](const std::string & topic) {
+      std::string info_topic = topic + "/camera_info";
+      auto pub = create_publisher<sensor_msgs::msg::CameraInfo>(info_topic, mQos);
+      RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << pub->get_topic_name());
+      return pub;
+    };
+
+  mPubRgbCamInfoTrans = make_cam_info_trans_pub(mRgbTopic);
+  mPubRawRgbCamInfoTrans = make_cam_info_trans_pub(mRgbRawTopic);
+  mPubLeftCamInfoTrans = make_cam_info_trans_pub(mLeftTopic);
+  mPubRawLeftCamInfoTrans = make_cam_info_trans_pub(mLeftRawTopic);
+  mPubRightCamInfoTrans = make_cam_info_trans_pub(mRightTopic);
+  mPubRawRightCamInfoTrans = make_cam_info_trans_pub(mRightRawTopic);
+  mPubRgbGrayCamInfoTrans = make_cam_info_trans_pub(mRgbGrayTopic);
+  mPubRawRgbGrayCamInfoTrans = make_cam_info_trans_pub(mRgbRawGrayTopic);
+  mPubLeftGrayCamInfoTrans = make_cam_info_trans_pub(mLeftGrayTopic);
+  mPubRawLeftGrayCamInfoTrans = make_cam_info_trans_pub(mLeftRawGrayTopic);
+  mPubRightGrayCamInfoTrans = make_cam_info_trans_pub(mRightGrayTopic);
+  mPubRawRightGrayCamInfoTrans = make_cam_info_trans_pub(mRightRawGrayTopic);
+  mPubRoiMaskCamInfoTrans = make_cam_info_trans_pub(mRoiMaskTopic);
+  mPubDepthCamInfoTrans = make_cam_info_trans_pub(mDepthTopic);
+  mPubConfMapCamInfoTrans = make_cam_info_trans_pub(mConfMapTopic);
   // <---- Camera Info publishers
 
   // ----> Other depth-related publishers
@@ -309,7 +305,7 @@ void ZedCamera::initVideoDepthPublishers()
     }
 
     if (mPublishPointcloud) {
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
       mPubCloud = point_cloud_transport::create_publisher(
         shared_from_this(), mPointcloudTopic, qos, mPubOpt);
       RCLCPP_INFO_STREAM(get_logger(), "Advertised on topic: " << mPubCloud.getTopic());
@@ -879,7 +875,7 @@ bool ZedCamera::isDepthRequired()
 #endif
     }
     if (mPubDisparity) {dispSub = count_subscribers(mPubDisparity->get_topic_name());}
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
     pcSub = mPubCloud.getNumSubscribers();
 #else
     if (mPubCloud) {pcSub = count_subscribers(mPubCloud->get_topic_name());}
@@ -1416,31 +1412,38 @@ void ZedCamera::retrieveVideoDepth(bool gpu)
 {
   DEBUG_VD(" *** Retrieving Video/Depth Data ***");
   mRgbSubscribed = false;
-  bool retrieved = false;
+  bool retrieved_video = false;
+  bool retrieved_depth = false;
 
   DEBUG_STREAM_VD(" *** Retrieving Video Data ***");
-  retrieved |= retrieveLeftImage(gpu);
-  retrieved |= retrieveLeftRawImage(gpu);
-  retrieved |= retrieveRightImage(gpu);
-  retrieved |= retrieveRightRawImage(gpu);
-  retrieved |= retrieveLeftGrayImage(gpu);
-  retrieved |= retrieveLeftRawGrayImage(gpu);
-  retrieved |= retrieveRightGrayImage(gpu);
-  retrieved |= retrieveRightRawGrayImage(gpu);
+  retrieved_video |= retrieveLeftImage(gpu);
+  retrieved_video |= retrieveLeftRawImage(gpu);
+  retrieved_video |= retrieveRightImage(gpu);
+  retrieved_video |= retrieveRightRawImage(gpu);
+  retrieved_video |= retrieveLeftGrayImage(gpu);
+  retrieved_video |= retrieveLeftRawGrayImage(gpu);
+  retrieved_video |= retrieveRightGrayImage(gpu);
+  retrieved_video |= retrieveRightRawGrayImage(gpu);
 
-  if (retrieved) {
+  if (retrieved_video) {
     DEBUG_STREAM_VD(" *** Video Data retrieved ***");
   }
 
-  retrieved = false;
   DEBUG_STREAM_VD(" *** Retrieving Depth Data ***");
-  retrieved |= retrieveDepthMap(gpu);
-  retrieved |= retrieveConfidence(gpu);
-  retrieved |= retrieveDisparity();
-  retrieved |= retrieveDepthInfo();
+  retrieved_depth |= retrieveDepthMap(gpu);
+  retrieved_depth |= retrieveConfidence(gpu);
+  retrieved_depth |= retrieveDisparity();
+  retrieved_depth |= retrieveDepthInfo();
 
-  if (retrieved) {
+  if (retrieved_depth) {
     DEBUG_STREAM_VD(" *** Depth Data retrieved ***");
+  }
+
+  if (retrieved_video || retrieved_depth) {
+    mSdkGrabTS = mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE);
+    auto now = mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT);
+    DEBUG_STREAM_VD(
+      " * Video/Depth Latency: " << static_cast<double>(now - mSdkGrabTS) * 1e-9 << " sec");
   }
 
   DEBUG_VD(" *** Retrieving Video/Depth Data DONE ***");
@@ -1455,7 +1458,6 @@ bool ZedCamera::retrieveLeftImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(mMatLeft, sl::VIEW::LEFT, gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatLeft.timestamp;
       mRgbSubscribed = true;
       DEBUG_STREAM_VD(" * Left image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
@@ -1473,7 +1475,6 @@ bool ZedCamera::retrieveLeftRawImage(bool gpu)
       mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatLeftRaw.timestamp;
       DEBUG_STREAM_VD(" * Left raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1488,7 +1489,6 @@ bool ZedCamera::retrieveRightImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(mMatRight, sl::VIEW::RIGHT, gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatRight.timestamp;
       DEBUG_STREAM_VD(" * Right image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1505,7 +1505,6 @@ bool ZedCamera::retrieveRightRawImage(bool gpu)
       mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatRightRaw.timestamp;
       DEBUG_STREAM_VD(" * Right raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1522,7 +1521,6 @@ bool ZedCamera::retrieveLeftGrayImage(bool gpu)
       mMatLeftGray, sl::VIEW::LEFT_GRAY,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatLeftGray.timestamp;
       DEBUG_STREAM_VD(" * Left gray image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1539,7 +1537,6 @@ bool ZedCamera::retrieveLeftRawGrayImage(bool gpu)
       mMatLeftRawGray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatLeftRawGray.timestamp;
       DEBUG_STREAM_VD(
         " * Left gray raw image retrieved into " << (gpu ? "GPU" : "CPU") <<
           " memory");
@@ -1558,7 +1555,6 @@ bool ZedCamera::retrieveRightGrayImage(bool gpu)
       mMatRightGray, sl::VIEW::RIGHT_GRAY,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatRightGray.timestamp;
       DEBUG_STREAM_VD(" * Right gray image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1575,7 +1571,6 @@ bool ZedCamera::retrieveRightRawGrayImage(bool gpu)
       mMatRightRawGray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatRightRawGray.timestamp;
       DEBUG_STREAM_VD(
         " * Right gray raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
@@ -1593,7 +1588,6 @@ bool ZedCamera::retrieveDepthMap(bool gpu)
       mMatDepth, sl::MEASURE::DEPTH,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatDepth.timestamp;
       DEBUG_STREAM_VD(" * Depth map retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1610,7 +1604,6 @@ bool ZedCamera::retrieveDisparity()
       mMatDisp, sl::MEASURE::DISPARITY,
       sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatDisp.timestamp;
       DEBUG_VD(" * Disparity map retrieved");
     }
     return ok;
@@ -1627,7 +1620,6 @@ bool ZedCamera::retrieveConfidence(bool gpu)
       mMatConf, sl::MEASURE::CONFIDENCE,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
-      mSdkGrabTS = mMatConf.timestamp;
       DEBUG_STREAM_VD(" * Confidence map retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
     return ok;
@@ -1641,7 +1633,6 @@ bool ZedCamera::retrieveDepthInfo()
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->getCurrentMinMaxDepth(mMinDepth, mMaxDepth);
     if (ok) {
-      mSdkGrabTS = mMatConf.timestamp;
       DEBUG_VD(" * Depth info retrieved");
     }
     return ok;
@@ -1657,12 +1648,11 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   checkRgbDepthSync();
 
   vdElabTimer.tic();
+  rclcpp::Time timeStamp;
 
-  if (!checkGrabAndUpdateTimestamp(out_pub_ts)) {
+  if (!checkGrabAndUpdateTimestamp(timeStamp)) {
     return;
   }
-
-  rclcpp::Time timeStamp = out_pub_ts;
 
   publishLeftAndRgbImages(timeStamp);
   publishLeftRawAndRgbRawImages(timeStamp);
@@ -1680,6 +1670,8 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   publishDepthInfo(timeStamp);
 
   mVideoDepthElabMean_sec->addValue(vdElabTimer.toc());
+
+  out_pub_ts = timeStamp;
 
   DEBUG_VD("=== Video and Depth topics published === ");
 }
@@ -1742,16 +1734,18 @@ bool ZedCamera::checkGrabAndUpdateTimestamp(rclcpp::Time & out_pub_ts)
   }
 
   if (mSvoMode) {
-    out_pub_ts = mFrameTimestamp;
+    out_pub_ts = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
   } else if (mSimMode) {
     if (mUseSimTime) {
       out_pub_ts = get_clock()->now();
     } else {
-      out_pub_ts =
+      out_pub_ts = mUsePubTimestamps ? get_clock()->now() :
         sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
     }
   } else {
-    out_pub_ts = sl_tools::slTime2Ros(mSdkGrabTS, get_clock()->get_clock_type());
+    out_pub_ts = mUsePubTimestamps ? get_clock()->now() : sl_tools::slTime2Ros(
+      mSdkGrabTS,
+      get_clock()->get_clock_type());
   }
   return true;
 }
@@ -1763,12 +1757,12 @@ void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeft, mPubLeft, mPubLeftCamInfo, mLeftCamInfoMsg,
+        mMatLeft, mPubLeft, mPubLeftCamInfo, mPubLeftCamInfoTrans, mLeftCamInfoMsg,
         mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeft, mNitrosPubLeft, mPubLeftCamInfo, mLeftCamInfoMsg,
+        mMatLeft, mNitrosPubLeft, mPubLeftCamInfo, mPubLeftCamInfoTrans, mLeftCamInfoMsg,
         mLeftCamOptFrameId, t);
 #endif
     }
@@ -1779,12 +1773,12 @@ void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeft, mPubRgb, mPubRgbCamInfo, mLeftCamInfoMsg,
+        mMatLeft, mPubRgb, mPubRgbCamInfo, mPubRgbCamInfoTrans, mLeftCamInfoMsg,
         mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeft, mNitrosPubRgb, mPubRgbCamInfo, mLeftCamInfoMsg,
+        mMatLeft, mNitrosPubRgb, mPubRgbCamInfo, mPubRgbCamInfoTrans, mLeftCamInfoMsg,
         mLeftCamOptFrameId, t);
 #endif
     }
@@ -1797,12 +1791,12 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mLeftRawSubCount: " << mLeftRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftRaw, mPubRawLeft, mPubRawLeftCamInfo,
+        mMatLeftRaw, mPubRawLeft, mPubRawLeftCamInfo, mPubRawLeftCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeftRaw, mNitrosPubRawLeft, mPubRawLeftCamInfo,
+        mMatLeftRaw, mNitrosPubRawLeft, mPubRawLeftCamInfo, mPubRawLeftCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1811,12 +1805,12 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRgbRawSubCount: " << mRgbRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftRaw, mPubRawRgb, mPubRawRgbCamInfo,
+        mMatLeftRaw, mPubRawRgb, mPubRawRgbCamInfo, mPubRawRgbCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeftRaw, mNitrosPubRawRgb, mPubRawRgbCamInfo,
+        mMatLeftRaw, mNitrosPubRawRgb, mPubRawRgbCamInfo, mPubRawRgbCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1830,12 +1824,12 @@ void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftGray, mPubLeftGray, mPubLeftGrayCamInfo,
+        mMatLeftGray, mPubLeftGray, mPubLeftGrayCamInfo, mPubLeftGrayCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeftGray, mNitrosPubLeftGray, mPubLeftGrayCamInfo,
+        mMatLeftGray, mNitrosPubLeftGray, mPubLeftGrayCamInfo, mPubLeftGrayCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1844,12 +1838,12 @@ void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRgbGraySubCount: " << mRgbGraySubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftGray, mPubRgbGray, mPubRgbGrayCamInfo,
+        mMatLeftGray, mPubRgbGray, mPubRgbGrayCamInfo, mPubRgbGrayCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeftGray, mNitrosPubRgbGray, mPubRgbGrayCamInfo,
+        mMatLeftGray, mNitrosPubRgbGray, mPubRgbGrayCamInfo, mPubRgbGrayCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1863,12 +1857,12 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatLeftRawGray, mPubRawLeftGray,
-        mPubRawLeftGrayCamInfo, mLeftCamInfoRawMsg,
-        mLeftCamOptFrameId, t);
+        mPubRawLeftGrayCamInfo, mPubRawLeftGrayCamInfoTrans,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeftRawGray, mNitrosPubRawLeftGray, mPubRawLeftGrayCamInfo,
+        mMatLeftRawGray, mNitrosPubRawLeftGray, mPubRawLeftGrayCamInfo, mPubRawLeftGrayCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1877,12 +1871,12 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRgbGrayRawSubCount: " << mRgbGrayRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftRawGray, mPubRawRgbGray, mPubRawRgbGrayCamInfo,
+        mMatLeftRawGray, mPubRawRgbGray, mPubRawRgbGrayCamInfo, mPubRawRgbGrayCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatLeftRawGray, mNitrosPubRawRgbGray, mPubRawRgbGrayCamInfo,
+        mMatLeftRawGray, mNitrosPubRawRgbGray, mPubRawRgbGrayCamInfo, mPubRawRgbGrayCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -1895,12 +1889,12 @@ void ZedCamera::publishRightImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRightSubCount: " << mRightSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatRight, mPubRight, mPubRightCamInfo,
+        mMatRight, mPubRight, mPubRightCamInfo, mPubRightCamInfoTrans,
         mRightCamInfoMsg, mRightCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatRight, mNitrosPubRight, mPubRightCamInfo,
+        mMatRight, mNitrosPubRight, mPubRightCamInfo, mPubRightCamInfoTrans,
         mRightCamInfoMsg, mRightCamOptFrameId, t);
 #endif
     }
@@ -1913,12 +1907,12 @@ void ZedCamera::publishRightRawImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRightRawSubCount: " << mRightRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatRightRaw, mPubRawRight, mPubRawRightCamInfo,
+        mMatRightRaw, mPubRawRight, mPubRawRightCamInfo, mPubRawRightCamInfoTrans,
         mRightCamInfoRawMsg, mRightCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatRightRaw, mNitrosPubRawRight, mPubRawRightCamInfo,
+        mMatRightRaw, mNitrosPubRawRight, mPubRawRightCamInfo, mPubRawRightCamInfoTrans,
         mRightCamInfoRawMsg, mRightCamOptFrameId, t);
 #endif
     }
@@ -1931,12 +1925,12 @@ void ZedCamera::publishRightGrayImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRightGraySubCount: " << mRightGraySubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatRightGray, mPubRightGray, mPubRightGrayCamInfo,
+        mMatRightGray, mPubRightGray, mPubRightGrayCamInfo, mPubRightGrayCamInfoTrans,
         mRightCamInfoMsg, mRightCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatRightGray, mNitrosPubRightGray, mPubRightGrayCamInfo,
+        mMatRightGray, mNitrosPubRightGray, mPubRightGrayCamInfo, mPubRightGrayCamInfoTrans,
         mRightCamInfoMsg, mRightCamOptFrameId, t);
 #endif
     }
@@ -1950,12 +1944,13 @@ void ZedCamera::publishRightRawGrayImages(const rclcpp::Time & t)
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatRightRawGray, mPubRawRightGray,
-        mPubRawRightGrayCamInfo, mRightCamInfoRawMsg,
-        mRightCamOptFrameId, t);
+        mPubRawRightGrayCamInfo, mPubRawRightGrayCamInfoTrans,
+        mRightCamInfoRawMsg, mRightCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
         mMatRightRawGray, mNitrosPubRawRightGray, mPubRawRightGrayCamInfo,
+        mPubRawRightGrayCamInfoTrans,
         mRightCamInfoRawMsg, mRightCamOptFrameId, t);
 #endif
     }
@@ -1968,14 +1963,14 @@ void ZedCamera::publishStereoImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mStereoSubCount: " << mStereoSubCount);
     auto combined = sl_tools::imagesToROSmsg(
       mMatLeft, mMatRight,
-      mCameraFrameId, t);
+      mCameraFrameId, t, mUsePubTimestamps);
     DEBUG_STREAM_VD(" * Publishing SIDE-BY-SIDE message");
     try {
       mPubStereo.publish(std::move(combined));
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM(" * Message publishing generic exception: ");
     }
   }
 }
@@ -1986,14 +1981,14 @@ void ZedCamera::publishStereoRawImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mStereoRawSubCount: " << mStereoRawSubCount);
     auto combined = sl_tools::imagesToROSmsg(
       mMatLeftRaw, mMatRightRaw,
-      mCameraFrameId, t);
+      mCameraFrameId, t, mUsePubTimestamps);
     DEBUG_STREAM_VD(" * Publishing SIDE-BY-SIDE RAW message");
     try {
       mPubRawStereo.publish(std::move(combined));
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM(" * Message publishing generic exception: ");
     }
   }
 }
@@ -2011,12 +2006,12 @@ void ZedCamera::publishConfidenceMap(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mConfMapSubCount: " << mConfMapSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatConf, mPubConfMap, mPubConfMapCamInfo, mLeftCamInfoMsg,
+        mMatConf, mPubConfMap, mPubConfMapCamInfo, mPubConfMapCamInfoTrans, mLeftCamInfoMsg,
         mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatConf, mNitrosPubConfMap, mPubConfMapCamInfo,
+        mMatConf, mNitrosPubConfMap, mPubConfMapCamInfo, mPubConfMapCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -2034,7 +2029,7 @@ void ZedCamera::publishDepthInfo(const rclcpp::Time & t)
 {
   if (mDepthInfoSubCount > 0) {
     auto depthInfoMsg = std::make_unique<zed_msgs::msg::DepthInfoStamped>();
-    depthInfoMsg->header.stamp = t;
+    depthInfoMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
     depthInfoMsg->header.frame_id = mDepthOptFrameId;
     depthInfoMsg->min_depth = mMinDepth;
     depthInfoMsg->max_depth = mMaxDepth;
@@ -2043,50 +2038,55 @@ void ZedCamera::publishDepthInfo(const rclcpp::Time & t)
     try {
       if (mPubDepthInfo) {mPubDepthInfo->publish(std::move(depthInfoMsg));}
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM(" * Message publishing generic exception: ");
     }
   }
 }
 
 void ZedCamera::publishCameraInfo(
-  const camInfoPub & camInfoPub,
+  const camInfoPub & infoPub,
   camInfoMsgPtr & camInfoMsg,
   const rclcpp::Time & t)
 {
-  camInfoMsg->header.stamp = t;
+  camInfoMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
   DEBUG_STREAM_VD(
-    " * Publishing Camera Info message: " << t.nanoseconds()
+    " * Publishing Camera Info message: " << camInfoMsg->header.stamp.nanosec
                                           << " nsec");
 
-  if (camInfoPub) {camInfoPub->publish(*camInfoMsg);}
+  if (camInfoPub) {infoPub->publish(*camInfoMsg);}
 }
 
 void ZedCamera::publishImageWithInfo(
   const sl::Mat & img,
   const image_transport::Publisher & pubImg,
-  const camInfoPub & camInfoPub,
+  const camInfoPub & infoPub,
+  const camInfoPub & infoPubTrans,
   camInfoMsgPtr & camInfoMsg,
   const std::string & imgFrameId,
   const rclcpp::Time & t)
 {
-  auto image = sl_tools::imageToROSmsg(img, imgFrameId, t);
-  DEBUG_STREAM_VD(" * Publishing IMAGE message: " << t.nanoseconds() << " nsec");
+  auto image = sl_tools::imageToROSmsg(img, imgFrameId, t, mUsePubTimestamps);
+  DEBUG_STREAM_VD(
+    " * Publishing IMAGE message: " << (mUsePubTimestamps ? get_clock()->now() : t).nanoseconds() <<
+      " nsec");
   try {
+    publishCameraInfo(infoPub, camInfoMsg, image->header.stamp);
+    publishCameraInfo(infoPubTrans, camInfoMsg, image->header.stamp);
     pubImg.publish(std::move(image));
-    publishCameraInfo(camInfoPub, camInfoMsg, t);
   } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
+    DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM(" * Message publishing generic exception: ");
   }
 }
 #ifdef FOUND_ISAAC_ROS_NITROS
 void ZedCamera::publishImageWithInfo(
   const sl::Mat & img,
   const nitrosImgPub & nitrosPubImg,
-  const camInfoPub & camInfoPub,
+  const camInfoPub & infoPub,
+  const camInfoPub & infoPubTrans,
   camInfoMsgPtr & camInfoMsg,
   const std::string & imgFrameId,
   const rclcpp::Time & t)
@@ -2100,6 +2100,8 @@ void ZedCamera::publishImageWithInfo(
     void * dbuffer;
     CUDA_CHECK(cudaMalloc(&dbuffer, dbuffer_size));
 
+    DEBUG_NITROS("Sent CUDA Image buffer with memory at: %p", dbuffer);
+
     // Copy data bytes to CUDA buffer
     CUDA_CHECK(
       cudaMemcpy2D(
@@ -2112,7 +2114,7 @@ void ZedCamera::publishImageWithInfo(
 
     // Adding header data
     std_msgs::msg::Header header;
-    header.stamp = t;
+    header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
     header.frame_id = imgFrameId;
 
     auto encoding = img_encodings::BGRA8; // Default encoding
@@ -2135,32 +2137,34 @@ void ZedCamera::publishImageWithInfo(
       .Build();
 
     if (nitrosPubImg) {nitrosPubImg->publish(nitros_image);}
-    publishCameraInfo(camInfoPub, camInfoMsg, t);
+    publishCameraInfo(infoPub, camInfoMsg, header.stamp);
+    publishCameraInfo(infoPubTrans, camInfoMsg, header.stamp);
   } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
+    DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM(" * Message publishing generic exception: ");
   }
 }
 #endif
 
 void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 {
-  mLeftCamInfoMsg->header.stamp = t;
+  mLeftCamInfoMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
 
   if (_nitrosDisabled) {
     if (!mOpenniDepthMode) {
-      auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t);
+      auto depth_img = sl_tools::imageToROSmsg(depth, mDepthOptFrameId, t, mUsePubTimestamps);
       DEBUG_STREAM_VD(
         " * Publishing DEPTH message: " << t.nanoseconds()
                                         << " nsec");
       try {
         mPubDepth.publish(std::move(depth_img));
         publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
+        publishCameraInfo(mPubDepthCamInfoTrans, mLeftCamInfoMsg, t);
       } catch (std::system_error & e) {
-        DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
+        DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
       } catch (...) {
-        DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
+        DEBUG_STREAM_COMM(" * Message publishing generic exception: ");
       }
       return;
     }
@@ -2168,7 +2172,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
     // OPENNI CONVERSION (meter -> millimeters - float32 -> uint16)
     auto openniDepthMsg = std::make_unique<sensor_msgs::msg::Image>();
 
-    openniDepthMsg->header.stamp = t;
+    openniDepthMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
     openniDepthMsg->header.frame_id = mDepthOptFrameId;
     openniDepthMsg->height = depth.getHeight();
     openniDepthMsg->width = depth.getWidth();
@@ -2197,9 +2201,9 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
       mPubDepth.publish(std::move(openniDepthMsg));
       publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM(" * Message publishing generic exception: ");
     }
   } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
@@ -2211,6 +2215,8 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
       size_t dbuffer_size{dpitch * depth.getHeight()};
       void * dbuffer;
       CUDA_CHECK(cudaMalloc(&dbuffer, dbuffer_size));
+
+      DEBUG_NITROS("Sent Depth CUDA buffer with memory at: %p", dbuffer);
 
       // Copy data bytes to CUDA buffer
       CUDA_CHECK(
@@ -2224,7 +2230,7 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
 
       // Adding header data
       std_msgs::msg::Header header;
-      header.stamp = t;
+      header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
       header.frame_id = mDepthOptFrameId;
 
       // Create NitrosImage wrapping CUDA buffer
@@ -2240,9 +2246,9 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
       if (mNitrosPubDepth) {mNitrosPubDepth->publish(nitros_image);}
       publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
     } catch (std::system_error & e) {
-      DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
+      DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
     } catch (...) {
-      DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
+      DEBUG_STREAM_COMM(" * Message publishing generic exception: ");
     }
 #endif
   }
@@ -2253,7 +2259,7 @@ void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
   sl::CameraInformation zedParam = mZed->getCameraInformation(mMatResol);
 
   std::unique_ptr<sensor_msgs::msg::Image> disparity_image =
-    sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, t);
+    sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, t, mUsePubTimestamps);
 
   auto disparityMsg = std::make_unique<stereo_msgs::msg::DisparityImage>();
   disparityMsg->image = *disparity_image.get();
@@ -2273,9 +2279,9 @@ void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
   try {
     if (mPubDisparity) {mPubDisparity->publish(std::move(disparityMsg));}
   } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM(" * Message publishing ecception: " << e.what());
+    DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_COMM(" * Message publishing generic ecception: ");
+    DEBUG_STREAM_COMM(" * Message publishing generic exception: ");
   }
 }
 
@@ -2324,7 +2330,7 @@ bool ZedCamera::isPointCloudSubscribed()
 {
   size_t cloudSubCount = 0;
   try {
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
     cloudSubCount = mPubCloud.getNumSubscribers();
 #else
     if (mPubCloud) {cloudSubCount = count_subscribers(mPubCloud->get_topic_name());}
@@ -2355,15 +2361,17 @@ void ZedCamera::publishPointCloud()
   int ptsCount = width * height;
 
   if (mSvoMode) {
-    pcMsg->header.stamp = mFrameTimestamp;
+    pcMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
   } else if (mSimMode) {
     if (mUseSimTime) {
-      pcMsg->header.stamp = mFrameTimestamp;
+      pcMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
     } else {
-      pcMsg->header.stamp = sl_tools::slTime2Ros(mMatCloud.timestamp);
+      pcMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : sl_tools::slTime2Ros(
+        mMatCloud.timestamp);
     }
   } else {
-    pcMsg->header.stamp = sl_tools::slTime2Ros(mMatCloud.timestamp);
+    pcMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : sl_tools::slTime2Ros(
+      mMatCloud.timestamp);
   }
 
   // ---> Check that `pcMsg->header.stamp` is not the same of the latest
@@ -2381,7 +2389,8 @@ void ZedCamera::publishPointCloud()
     pcMsg->header.frame_id =
       mPointCloudFrameId;      // Set the header values of the ROS message
 
-    pcMsg->is_bigendian = false;
+    int val = 1;
+    pcMsg->is_bigendian = !(*reinterpret_cast<char *>(&val) == 1);
     pcMsg->is_dense = false;
 
     pcMsg->width = width;
@@ -2405,21 +2414,21 @@ void ZedCamera::publishPointCloud()
 
   // Pointcloud publishing
   DEBUG_PC(" * [publishPointCloud] Publishing POINT CLOUD message");
-#ifndef FOUND_FOXY
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
   try {
     mPubCloud.publish(std::move(pcMsg));
   } catch (std::system_error & e) {
-    DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing ecception: " << e.what());
+    DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing generic ecception");
+    DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing generic exception");
   }
 #else
   try {
     if (mPubCloud) {mPubCloud->publish(std::move(pcMsg));}
   } catch (std::system_error & e) {
-    DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing ecception: " << e.what());
+    DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing exception: " << e.what());
   } catch (...) {
-    DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing generic ecception");
+    DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing generic exception");
   }
 #endif
 
@@ -2559,13 +2568,15 @@ void ZedCamera::handleVideoDepthPublishing()
   rclcpp::Time pub_ts;
   publishVideoDepth(pub_ts);
 
-  if (!sl_tools::isZED(mCamRealModel) && mVdPublishing &&
-    pub_ts != TIMEZERO_ROS)
-  {
-    if (mSensCameraSync) {
+  // ----> Publish sync sensors data if needed
+  if (mSensCameraSync) {
+    if (!sl_tools::isZED(mCamRealModel) && mVdPublishing &&
+      pub_ts != TIMEZERO_ROS)
+    {
       publishSensorsData(pub_ts);
     }
   }
+  // <---- Publish sync sensors data if needed
 
   // ----> Check publishing frequency
   double vd_period_usec = 1e6 / mVdPubRate;

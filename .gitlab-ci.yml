@@ -273,7 +273,7 @@ unit_test_ros2_humble_u22_cu117:
 # Docker Deploy #
 #####################
 
-# ROS2 Humble U22 Docker Image DEVEL - use the current branch source to build the wrapper
+# ROS 2 Humble U22 Docker Image DEVEL - use the current branch source to build the wrapper
 ros2_humble_u22_docker_image_dev:
   needs: 
   - job: humble_u22_cu117_build
@@ -294,7 +294,7 @@ ros2_humble_u22_docker_image_dev:
     - master
   allow_failure: true
 
-# ROS2 Humble L4T Docker Image DEVEL - use the current branch source to build the wrapper
+# ROS 2 Humble L4T Docker Image DEVEL - use the current branch source to build the wrapper
 ros2_humble_l4t_docker_image_dev:
   needs: 
   - job: humble_l4t35_1_build

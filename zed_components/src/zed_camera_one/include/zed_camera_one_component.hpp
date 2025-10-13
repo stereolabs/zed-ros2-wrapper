@@ -1,4 +1,4 @@
-// Copyright 2024 Stereolabs
+// Copyright 2025 Stereolabs
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,17 +15,16 @@
 #ifndef ZED_CAMERA_ONE_COMPONENT_HPP_
 #define ZED_CAMERA_ONE_COMPONENT_HPP_
 
-#define ENABLE_GRAY_IMAGE 1
 #define ENABLE_STREAM_INPUT 1
 #define ENABLE_SVO 0
 
 #include <atomic>
 #include <sl/CameraOne.hpp>
 
+#include "sl_version.hpp"
 #include "sl_tools.hpp"
 #include "sl_types.hpp"
 #include "visibility_control.hpp"
-
 
 namespace stereolabs
 {
@@ -43,20 +42,39 @@ protected:
   void init();
   void initParameters();
   void initServices();
-  void initThreadsAndTimers();
   void initTFCoordFrameNames();
   void initPublishers();
+  void initVideoPublishers();
+  void initializeTimestamp();
+  void initializeDiagnosticStatistics();
+  void initThreadsAndTimers();
 
   void getSensorsParams();
   void getDebugParams();
   void getVideoParams();
   void getGeneralParams();
+  void getSvoParams();
+  void getStreamParams();
+  void getCameraModelParams();
+  void getCameraInfoParams();
+  void getResolutionParams();
+  void getOpencvCalibrationParam();
+
   void getStreamingServerParams();
   void getAdvancedParams();
 
   void close();
 
   bool startCamera();
+  void createZedObject();
+  void logSdkVersion();
+  void setupTf2();
+  void configureZedInput();
+  void setZedInitParams();
+  bool openZedCamera();
+  void processCameraInformation();
+  void setupCameraInfoMessages();
+
   void closeCamera();
   void startTempPubTimer();
   bool startStreamingServer();
@@ -73,18 +91,96 @@ protected:
     const std::string & frameId, bool rawParam = false);
 
   void applyDynamicSettings();
+  void applySaturationSharpnessGamma();
+  void applyWhiteBalance();
+  void applyExposure();
+  void applyAnalogGain();
+  void applyDigitalGain();
+  void applyExposureCompensationAndDenoising();
+
   bool areImageTopicsSubscribed();
   bool areSensorsTopicsSubscribed();
-  void retrieveImages();
+  void retrieveImages(bool gpu);
   void publishImages();
+  void publishColorImage(const rclcpp::Time & timeStamp);
+  void publishColorRawImage(const rclcpp::Time & timeStamp);
+  void publishGrayImage(const rclcpp::Time & timeStamp);
+  void publishGrayRawImage(const rclcpp::Time & timeStamp);
   void publishImageWithInfo(
     const sl::Mat & img,
-    const image_transport::CameraPublisher & pubImg,
+    const image_transport::Publisher & pubImg,
+    const camInfoPub & infoPub,
+    const camInfoPub & infoPubTrans,
     camInfoMsgPtr & camInfoMsg,
     const std::string & imgFrameId,
     const rclcpp::Time & t);
+#ifdef FOUND_ISAAC_ROS_NITROS
+  void publishImageWithInfo(
+    const sl::Mat & img,
+    const nitrosImgPub & nitrosPubImg,
+    const camInfoPub & infoPub,
+    const camInfoPub & infoPubTrans,
+    camInfoMsgPtr & camInfoMsg,
+    const std::string & imgFrameId,
+    const rclcpp::Time & t);
+#endif
+  void publishCameraInfo(
+    const camInfoPub & infoPub,
+    camInfoMsgPtr & camInfoMsg, const rclcpp::Time & t);
   bool publishSensorsData();
   void publishImuFrameAndTopic();
+
+  void updateImuFreqDiagnostics(double dT);
+  void publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
+  void publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
+
+  void updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateInputModeDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateImageDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateSvoDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateTfImuDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateImuDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateTemperatureDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateSvoRecordingDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+  void updateStreamingServerDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
+
+  void setupGrabThreadPolicy();
+  void initializeGrabThreadStatus();
+  bool checkGrabThreadInterruption();
+  void handleDynamicSettings();
+  void updateGrabFrequency();
+  bool performCameraGrab();
+  void updateFrameTimestamp();
+  void handleStreamingServer();
+  void handleSvoRecordingStatus();
+  void handleImageRetrievalAndPublishing();
+
+  void setupSensorThreadScheduling();
+  bool handleSensorThreadInterruption();
+  bool waitForCameraOpen();
+  bool waitForSensorSubscribers();
+  bool handleSensorPublishing();
+  void adjustSensorPublishingFrequency();
+
+  bool handleDynamicVideoParam(
+    const rclcpp::Parameter & param, const std::string & param_name,
+    int & count_ok, rcl_interfaces::msg::SetParametersResult & result);
+  bool handleSaturationSharpnessGamma(
+    const rclcpp::Parameter & param,
+    const std::string & param_name, int & count_ok);
+  bool handleWhiteBalance(
+    const rclcpp::Parameter & param, const std::string & param_name,
+    int & count_ok);
+  bool handleExposure(
+    const rclcpp::Parameter & param, const std::string & param_name,
+    int & count_ok);
+  bool handleAnalogGain(
+    const rclcpp::Parameter & param, const std::string & param_name,
+    int & count_ok);
+  bool handleDigitalGain(
+    const rclcpp::Parameter & param, const std::string & param_name,
+    int & count_ok);
+
   // <---- Utility functions
 
   // ----> Callbacks functions
@@ -145,6 +241,10 @@ private:
   bool _debugCamCtrl = false;
   bool _debugStreaming = false;
   bool _debugAdvanced = false;
+  bool _debugNitros = false;
+  // If available, force disable NITROS usage for debugging and testing
+  // purposes; otherwise, this is always true.
+  bool _nitrosDisabled = false;
   // <---- Debug variables
 
   // ----> QoS
@@ -156,28 +256,46 @@ private:
 
   // ----> Topics
   std::string _topicRoot = "~/";
-  std::string _imgTopic;
-  std::string _imgRawTopic;
-#if ENABLE_GRAY_IMAGE
+  std::string _imgColorTopic;
+  std::string _imgColorRawTopic;
   std::string _imgGrayTopic;
   std::string _imgRawGrayTopic;
-#endif
 
   std::string _tempTopic;
   // <---- Topics
 
   // ----> Publishers
-  image_transport::CameraPublisher _pubColorImg;
-  image_transport::CameraPublisher _pubColorRawImg;
-#if ENABLE_GRAY_IMAGE
-  image_transport::CameraPublisher _pubGrayImg;
-  image_transport::CameraPublisher _pubGrayRawImg;
+// Image publishers
+  image_transport::Publisher _pubColorImg;
+  image_transport::Publisher _pubColorRawImg;
+  image_transport::Publisher _pubGrayImg;
+  image_transport::Publisher _pubGrayRawImg;
+
+#ifdef FOUND_ISAAC_ROS_NITROS
+  // Nitros image publishers with camera info
+  nitrosImgPub _nitrosPubColorImg;
+  nitrosImgPub _nitrosPubColorRawImg;
+  nitrosImgPub _nitrosPubGrayImg;
+  nitrosImgPub _nitrosPubGrayRawImg;
 #endif
 
+
+  // Camera Info publishers
+  camInfoPub _pubColorImgInfo;
+  camInfoPub _pubColorRawImgInfo;
+  camInfoPub _pubGrayImgInfo;
+  camInfoPub _pubGrayRawImgInfo;
+  camInfoPub _pubColorImgInfoTrans; // `camera_info` topic for the transported image (compressed, theora, nitros, etc)
+  camInfoPub _pubColorRawImgInfoTrans; // `camera_info` topic for the transported image (compressed, theora, nitros, etc)
+  camInfoPub _pubGrayImgInfoTrans; // `camera_info` topic for the transported image (compressed, theora, nitros, etc)
+  camInfoPub _pubGrayRawImgInfoTrans; // `camera_info` topic for the transported image (compressed, theora, nitros, etc)
+
+  // Sensor publishers
   imuPub _pubImu;
   imuPub _pubImuRaw;
   tempPub _pubTemp;
 
+  // Camera-IMU Transform publisher
   transfPub _pubCamImuTransf;
   // <---- Publishers
 
@@ -186,19 +304,15 @@ private:
   sl::Timestamp _sdkGrabTS = 0;
   std::atomic<size_t> _colorSubCount;
   std::atomic<size_t> _colorRawSubCount;
-#if ENABLE_GRAY_IMAGE
   std::atomic<size_t> _graySubCount = 0;
   std::atomic<size_t> _grayRawSubCount = 0;
-#endif
 
   std::atomic<size_t> _imuSubCount;
   std::atomic<size_t> _imuRawSubCount;
   double _sensRateComp = 1.0;
 
   sl::Mat _matColor, _matColorRaw;
-#if ENABLE_GRAY_IMAGE
   sl::Mat _matGray, _matGrayRaw;
-#endif
   // <---- Publisher variables
 
   // ----> Parameters
@@ -213,6 +327,8 @@ private:
   int _sdkVerbose = 0; // SDK verbose level
   std::string _sdkVerboseLogFile = ""; // SDK Verbose Log file
   int _gpuId = -1; // GPU ID
+  bool _useSvoTimestamp = false; // Use SVO timestamp
+  bool _usePubTimestamps = false; // Use publishing timestamp instead of grab timestamp
 
   int _camSerialNumber = 0; // Camera serial number
   int _camId = -1; // Camera ID
@@ -275,7 +391,6 @@ private:
   bool _debugMode = false;  // Debug mode active?
   bool _svoMode = false;        // Input from SVO?
   bool _svoPause = false;       // SVO pause status
-  bool _useSvoTimestamp = false; // Use SVO timestamp
   bool _streamMode = false;     // Expecting local streaming data?
 
   std::atomic<bool> _triggerUpdateDynParams;  // Trigger auto exposure/gain

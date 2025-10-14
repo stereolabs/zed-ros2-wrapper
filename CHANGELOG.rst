@@ -38,7 +38,7 @@ LATEST CHANGES
   - `video.publish_stereo`: Advertise the stereo image topic that is published only if a node subscribes to it
   - `sensors.publish_imu`: Advertise the IMU topic that is published only if a node subscribes to it
   - `sensors.publish_imu_raw`: Advertise the raw IMU topic that is published only if a node subscribes to it
-  - `sensors.publish_imu_transf`: Advertise the IMU transformation topic that is published only if a node subscribes to it
+  - `sensors.publish_cam_imu_transf`: Advertise the IMU transformation topic that is published only if a node subscribes to it
   - `sensors.publish_mag`: Advertise the magnetometer topic that is published only if a node subscribes to it
   - `sensors.publish_baro`: Advertise the barometer topic that is published only if a node subscribes to it
   - `sensors.publish_temp`: Advertise the temperature topics that are published only if a node subscribes to them

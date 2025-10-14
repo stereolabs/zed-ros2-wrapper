@@ -778,7 +778,7 @@ void ZedCamera::getTopicEnableParams()
     shared_from_this(), "sensors.publish_imu_raw", mPublishSensImuRaw,
     mPublishSensImuRaw, " * Publish IMU Raw: ");
   sl_tools::getParam(
-    shared_from_this(), "sensors.publish_imu_transf", mPublishSensImuTransf,
+    shared_from_this(), "sensors.publish_cam_imu_transf", mPublishSensImuTransf,
     mPublishSensImuTransf, " * Publish LeftCam/IMU Transf.: ");
   sl_tools::getParam(
     shared_from_this(), "sensors.publish_mag", mPublishSensMag,

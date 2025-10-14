@@ -45,6 +45,7 @@ protected:
   void initTFCoordFrameNames();
   void initPublishers();
   void initVideoPublishers();
+  void initSensorPublishers();
   void initializeTimestamp();
   void initializeDiagnosticStatistics();
   void initThreadsAndTimers();
@@ -53,6 +54,7 @@ protected:
   void getDebugParams();
   void getVideoParams();
   void getGeneralParams();
+  void getTopicEnableParams();
   void getSvoParams();
   void getStreamParams();
   void getCameraModelParams();
@@ -246,15 +248,6 @@ private:
   bool _nitrosDisabled = false;
   // <---- Debug variables
 
-  // ----> Topic enabler parameters
-  bool _publishRgb = true;
-  bool _publishRaw = false;
-  bool _publishGray = false;
-  bool _publishImu = true;
-  bool _publishImuRaw = false;
-  bool _publishTemp = false;
-  // <---- Topic enabler parameters
-
   // ----> QoS
   // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings
   rclcpp::QoS _qos;
@@ -269,7 +262,9 @@ private:
   std::string _imgGrayTopic;
   std::string _imgRawGrayTopic;
 
-  std::string _tempTopic;
+  std::string _sensImuTopic;
+  std::string _sensImuRawTopic;
+  std::string _sensTempTopic;
   // <---- Topics
 
   // ----> Publishers
@@ -343,6 +338,16 @@ private:
 
   sl::MODEL _camUserModel = sl::MODEL::ZED_XONE_GS;  // Default camera model
 
+  //Topic enabler parameters
+  bool _publishImgRgb = true;
+  bool _publishImgRaw = false;
+  bool _publishImgGray = false;
+  bool _publishSensImu = true;
+  bool _publishSensImuRaw = false;
+  bool _publishSensImuTransf = false;
+  bool _publishSensImuTF = false;
+  bool _publishSensTemp = false;
+
   std::string _svoFilepath = ""; // SVO input
 #if ENABLE_SVO
   bool _svoRealtime = true; // SVO playback with real time
@@ -364,8 +369,7 @@ private:
   bool _streamingServerAdaptiveBitrate = false;
   int _streamingServerChunckSize = 16084;
   int _streamingServerTargetFramerate = 0;
-
-  bool _publishImuTF = false;
+  
   double _sensPubRate = 200.;
   // <---- Parameters
 

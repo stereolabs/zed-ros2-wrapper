@@ -198,7 +198,7 @@ void ZedCameraOne::getTopicEnableParams()
     _publishImgRgb, " * Publish RGB image: ");
   sl_tools::getParam(
     shared_from_this(), "video.publish_raw", _publishImgRaw,
-    _publishImgRaw, " * Publish Raw images: ");
+    _publishImgRaw, " * Publish Raw images: ");  
   sl_tools::getParam(
     shared_from_this(), "video.publish_gray", _publishImgGray,
     _publishImgGray, " * Publish Gray images: ");
@@ -210,6 +210,9 @@ void ZedCameraOne::getTopicEnableParams()
   sl_tools::getParam(
     shared_from_this(), "sensors.publish_imu_raw", _publishSensImuRaw,
     _publishSensImuRaw, " * Publish IMU Raw: ");
+  sl_tools::getParam(
+    shared_from_this(), "sensors.publish_cam_imu_transf", _publishSensImuTransf,
+    _publishSensImuTransf, " * Publish Camera/IMU Transf.: ");
   sl_tools::getParam(
     shared_from_this(), "sensors.publish_temp", _publishSensTemp,
     _publishSensTemp, " * Publish Temperature: ");
@@ -997,12 +1000,14 @@ void ZedCameraOne::updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatus
   }
 
   // ----> Frame drop count
-  auto dropped = _zed->getFrameDroppedCount();
-  uint64_t total = dropped + _frameCount;
-  auto perc_drop = 100. * static_cast<double>(dropped) / total;
-  stat.addf(
-    "Frame Drop rate", "%u/%lu (%g%%)",
-    dropped, total, perc_drop);
+  if(_zed && _zed->isOpened()) {
+    auto dropped = _zed->getFrameDroppedCount();
+    uint64_t total = dropped + _frameCount;
+    auto perc_drop = 100. * static_cast<double>(dropped) / total;
+    stat.addf(
+      "Frame Drop rate", "%u/%lu (%g%%)",
+      dropped, total, perc_drop);
+  }
   // <---- Frame drop count
 }
 
@@ -1054,7 +1059,7 @@ void ZedCameraOne::updateSvoDiagnostics(diagnostic_updater::DiagnosticStatusWrap
 
 void ZedCameraOne::updateTfImuDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
-  if (_publishImuTF) {
+  if (_publishSensImuTF) {
     double freq = 1. / _pubImuTF_sec->getAvg();
     stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
   } else {
@@ -1527,45 +1532,28 @@ void ZedCameraOne::initPublishers()
   // Video
   initVideoPublishers();
 
-  // ----> Sensors
-  RCLCPP_INFO(get_logger(), " +++ SENSOR TOPICS +++");
-  _tempTopic = _topicRoot + "temperature";
-  _pubTemp = create_publisher<sensor_msgs::msg::Temperature>(_tempTopic, _qos, _pubOpt);
-  RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubTemp->get_topic_name());
-
-  std::string imuTopicRoot = "imu";
-  std::string imu_topic_name = "data";
-  std::string imu_topic_raw_name = "data_raw";
-  std::string imu_topic = _topicRoot + imuTopicRoot + "/" + imu_topic_name;
-  std::string imu_topic_raw = _topicRoot + imuTopicRoot + "/" + imu_topic_raw_name;
-  _pubImu = create_publisher<sensor_msgs::msg::Imu>(imu_topic, _qos, _pubOpt);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "  * Advertised on topic: " << _pubImu->get_topic_name());
-  _pubImuRaw =
-    create_publisher<sensor_msgs::msg::Imu>(imu_topic_raw, _qos, _pubOpt);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "  * Advertised on topic: " << _pubImuRaw->get_topic_name());
-  // <---- Sensors
+  // Sensors
+  initSensorPublishers();  
 
   // ----> Camera/imu transform message
-  std::string cam_imu_tr_topic = _topicRoot + "left_cam_imu_transform";
-  _pubCamImuTransf = create_publisher<geometry_msgs::msg::TransformStamped>(
-    cam_imu_tr_topic, _qos, _pubOpt);
+  if(_publishSensImuTransf) {
+    std::string cam_imu_tr_topic = _topicRoot + "left_cam_imu_transform";
+    _pubCamImuTransf = create_publisher<geometry_msgs::msg::TransformStamped>(
+      cam_imu_tr_topic, _qos, _pubOpt);
 
-  RCLCPP_INFO_STREAM(
-    get_logger(), "  * Advertised on topic: "
-      << _pubCamImuTransf->get_topic_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(), "  * Advertised on topic: "
+        << _pubCamImuTransf->get_topic_name());
 
-  sl::Orientation sl_rot = _slCamImuTransf.getOrientation();
-  sl::Translation sl_tr = _slCamImuTransf.getTranslation();
-  RCLCPP_INFO(
-    get_logger(), "  * Camera-IMU Translation: \n %g %g %g", sl_tr.x,
-    sl_tr.y, sl_tr.z);
-  RCLCPP_INFO(
-    get_logger(), "  * Camera-IMU Rotation:\n%s",
-    sl_rot.getRotationMatrix().getInfos().c_str());
+    sl::Orientation sl_rot = _slCamImuTransf.getOrientation();
+    sl::Translation sl_tr = _slCamImuTransf.getTranslation();
+    RCLCPP_INFO(
+      get_logger(), "  * Camera-IMU Translation: \n %g %g %g", sl_tr.x,
+      sl_tr.y, sl_tr.z);
+    RCLCPP_INFO(
+      get_logger(), "  * Camera-IMU Rotation:\n%s",
+      sl_rot.getRotationMatrix().getInfos().c_str());
+  }
   // <---- Camera/imu transform message
 }
 

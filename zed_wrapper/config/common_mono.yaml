@@ -40,6 +40,7 @@
             sensors_pub_rate: 100. # [DYNAMIC] - frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
             publish_imu: true # Advertise the IMU topic that is published only if a node subscribes to it
             publish_imu_raw: false # Advertise the raw IMU topic that is published only if a node subscribes to it
+            publish_cam_imu_transf: false # Advertise the CAMERA-IMU transformation topic that is published only if a node subscribes to it
             publish_temp: false # Advertise the temperature topics that are published only if a node subscribes to them
 
         stream_server:

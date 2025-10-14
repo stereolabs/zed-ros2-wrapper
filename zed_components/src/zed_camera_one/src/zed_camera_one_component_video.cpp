@@ -154,22 +154,35 @@ void ZedCameraOne::initVideoPublishers()
   // ----> Create publishers
   auto qos = _qos.get_rmw_qos_profile();
 
+  // Publishers logging
+  auto log_cam_pub = [&](const auto& pub) {
+    RCLCPP_INFO_STREAM(get_logger(),
+                       "  * Advertised on topic: " << pub.getTopic());
+  };
+
   // Camera publishers
   if (_nitrosDisabled) {
-    _pubColorImg = image_transport::create_publisher(this, _imgColorTopic, qos);
-    _pubColorRawImg = image_transport::create_publisher(this, _imgColorRawTopic, qos);
-    _pubGrayImg = image_transport::create_publisher(this, _imgGrayTopic, qos);
-    _pubGrayRawImg = image_transport::create_publisher(this, _imgRawGrayTopic, qos);
+    if (_publishImgRgb) {
+      _pubColorImg = image_transport::create_publisher(this, _imgColorTopic, qos);
+      log_cam_pub(_pubColorImg);
 
-    // Publishers logging
-    auto log_cam_pub = [&](const auto & pub) {
-        RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << pub.getTopic());
-      };
+      if (_publishImgRaw) {
+        _pubColorRawImg = image_transport::create_publisher(this, _imgColorRawTopic, qos);
+        log_cam_pub(_pubColorRawImg);
+      }
+    }
 
-    log_cam_pub(_pubColorImg);
-    log_cam_pub(_pubColorRawImg);
-    log_cam_pub(_pubGrayImg);
-    log_cam_pub(_pubGrayRawImg);
+    if (_publishImgGray) {
+      _pubGrayImg = image_transport::create_publisher(this, _imgGrayTopic, qos);
+      log_cam_pub(_pubGrayImg);
+
+      if (_publishImgRaw) {
+        _pubGrayRawImg = image_transport::create_publisher(this, _imgRawGrayTopic, qos);
+        log_cam_pub(_pubGrayRawImg);
+      }
+    }
+
+    
   } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
     // Nitros publishers lambda
@@ -182,11 +195,20 @@ void ZedCameraOne::initVideoPublishers()
         RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << topic + "/nitros");
         return ret;
       };
+    if (_publishImgRgb) {
+      _nitrosPubColorImg = make_nitros_img_pub(_imgColorTopic);
 
-    _nitrosPubColorImg = make_nitros_img_pub(_imgColorTopic);
-    _nitrosPubColorRawImg = make_nitros_img_pub(_imgColorRawTopic);
-    _nitrosPubGrayImg = make_nitros_img_pub(_imgGrayTopic);
-    _nitrosPubGrayRawImg = make_nitros_img_pub(_imgRawGrayTopic);
+      if (_publishImgRaw) {
+        _nitrosPubColorRawImg = make_nitros_img_pub(_imgColorRawTopic);
+      }
+    }
+
+    if (_publishImgGray) {
+      _nitrosPubGrayImg = make_nitros_img_pub(_imgGrayTopic);
+      if (_publishImgRaw) {
+      _nitrosPubGrayRawImg = make_nitros_img_pub(_imgRawGrayTopic);
+      }
+    }
 #endif
   }
   // <---- Create publishers
@@ -200,22 +222,34 @@ void ZedCameraOne::initVideoPublishers()
       return pub;
     };
 
-  _pubColorImgInfo = make_cam_info_pub(_imgColorTopic);
-  _pubColorRawImgInfo = make_cam_info_pub(_imgColorRawTopic);
-  _pubGrayImgInfo = make_cam_info_pub(_imgGrayTopic);
-  _pubGrayRawImgInfo = make_cam_info_pub(_imgRawGrayTopic);
+  // Lambda to create and log CameraInfo publishers for image_transport or nitros
+  auto make_cam_info_trans_pub = [&](const std::string& topic) {
+    std::string info_topic = topic + "/camera_info";
+    auto pub = create_publisher<sensor_msgs::msg::CameraInfo>(info_topic, _qos);
+    RCLCPP_INFO_STREAM(get_logger(),
+                       "  * Advertised on topic: " << pub->get_topic_name());
+    return pub;
+  };
 
-  auto make_cam_info_trans_pub = [&](const std::string & topic) {
-      std::string info_topic = topic + "/camera_info";
-      auto pub = create_publisher<sensor_msgs::msg::CameraInfo>(info_topic, _qos);
-      RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << pub->get_topic_name());
-      return pub;
-    };
+  if (_publishImgRgb) {
+    _pubColorImgInfo = make_cam_info_pub(_imgColorTopic);
+    _pubColorImgInfoTrans = make_cam_info_trans_pub(_imgColorTopic);
 
-  _pubColorImgInfoTrans = make_cam_info_trans_pub(_imgColorTopic);
-  _pubColorRawImgInfoTrans = make_cam_info_trans_pub(_imgColorRawTopic);
-  _pubGrayImgInfoTrans = make_cam_info_trans_pub(_imgGrayTopic);
-  _pubGrayRawImgInfoTrans = make_cam_info_trans_pub(_imgRawGrayTopic);
+    if (_publishImgRaw) {
+      _pubColorRawImgInfo = make_cam_info_pub(_imgColorRawTopic);
+      _pubColorRawImgInfoTrans = make_cam_info_trans_pub(_imgColorRawTopic);
+    } 
+  }
+
+  if (_publishImgGray) {
+    _pubGrayImgInfo = make_cam_info_pub(_imgGrayTopic);
+    _pubGrayImgInfoTrans = make_cam_info_trans_pub(_imgGrayTopic);
+
+    if (_publishImgRaw) {
+      _pubGrayRawImgInfo = make_cam_info_pub(_imgRawGrayTopic);
+      _pubGrayRawImgInfoTrans = make_cam_info_trans_pub(_imgRawGrayTopic);
+    }
+  }
   // <---- Camera Info publishers
 }
 

@@ -2033,7 +2033,7 @@ void ZedCamera::initPublishers()
         svo_status_topic, mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(),
-        "Advertised on topic: " << mPubSvoStatus->get_topic_name());
+        " * Advertised on topic: " << mPubSvoStatus->get_topic_name());
     }
     if (mUseSvoTimestamp && mPublishSvoClock) {
       auto clock_qos = rclcpp::ClockQoS();
@@ -2042,7 +2042,7 @@ void ZedCamera::initPublishers()
         create_publisher<rosgraph_msgs::msg::Clock>("/clock", clock_qos, mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(),
-        "Advertised on topic: " << mPubClock->get_topic_name());
+        " * Advertised on topic: " << mPubClock->get_topic_name());
     }
   }
   // <---- SVO Status publisher
@@ -2054,7 +2054,7 @@ void ZedCamera::initPublishers()
       mQos, mPubOpt);
     RCLCPP_INFO_STREAM(
       get_logger(),
-      "Advertised on topic: " << mPubHealthStatus->get_topic_name());
+      " * Advertised on topic: " << mPubHealthStatus->get_topic_name());
     // <---- Health Status publisher
 
     // ----> Heartbeat Status publisher
@@ -2063,7 +2063,7 @@ void ZedCamera::initPublishers()
       mQos, mPubOpt);
     RCLCPP_INFO_STREAM(
       get_logger(),
-      "Advertised on topic: " << mPubHeartbeatStatus->get_topic_name());
+      " * Advertised on topic: " << mPubHeartbeatStatus->get_topic_name());
     // <---- Heartbeat Status publisher
   }
 
@@ -2077,37 +2077,37 @@ void ZedCamera::initPublishers()
         mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(),
-        "Advertised on topic: " << mPubPose->get_topic_name());
+        " * Advertised on topic: " << mPubPose->get_topic_name());
       if (mPublishPoseCov) {
         mPubPoseCov =
           create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
           mPoseCovTopic, mQos, mPubOpt);
         RCLCPP_INFO_STREAM(
-          get_logger(), "Advertised on topic: " << mPubPoseCov->get_topic_name());
+          get_logger(), " * Advertised on topic: " << mPubPoseCov->get_topic_name());
       }
       if (mPublishStatus) {
         mPubPoseStatus = create_publisher<zed_msgs::msg::PosTrackStatus>(
           mPoseStatusTopic, mQos, mPubOpt);
         RCLCPP_INFO_STREAM(
-          get_logger(), "Advertised on topic: "
+          get_logger(), " * Advertised on topic: "
             << mPubPoseStatus->get_topic_name());
       }
       mPubOdom =
         create_publisher<nav_msgs::msg::Odometry>(mOdomTopic, mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(),
-        "Advertised on topic: " << mPubOdom->get_topic_name());
+        " * Advertised on topic: " << mPubOdom->get_topic_name());
 
       if (mPublishPath) {
         mPubPosePath =
           create_publisher<nav_msgs::msg::Path>(mPosePathTopic, mQos, mPubOpt);
         RCLCPP_INFO_STREAM(
-          get_logger(), "Advertised on topic: "
+          get_logger(), " * Advertised on topic: "
             << mPubPosePath->get_topic_name());
         mPubOdomPath =
           create_publisher<nav_msgs::msg::Path>(mOdomPathTopic, mQos, mPubOpt);
         RCLCPP_INFO_STREAM(
-          get_logger(), "Advertised on topic: "
+          get_logger(), " * Advertised on topic: "
             << mPubOdomPath->get_topic_name());
         if (mPublish3DLandmarks) {
 #ifdef FOUND_POINT_CLOUD_TRANSPORT
@@ -2138,7 +2138,7 @@ void ZedCamera::initPublishers()
         mGnssPoseStatusTopic, mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(),
-        "Advertised on topic: " << mPubGnssPoseStatus->get_topic_name());
+        " * Advertised on topic: " << mPubGnssPoseStatus->get_topic_name());
       mPubGeoPose = create_publisher<geographic_msgs::msg::GeoPoseStamped>(
         mGeoPoseTopic, mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
@@ -2195,14 +2195,14 @@ void ZedCamera::initPublishers()
         marker_topic, mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(),
-        "Advertised on topic: " << mPubMarker->get_topic_name());
+        " * Advertised on topic: " << mPubMarker->get_topic_name());
       // Detected planes publisher
       mPubPlane = create_publisher<zed_msgs::msg::PlaneStamped>(
         plane_topic, mQos,
         mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(),
-        "Advertised on topic: " << mPubPlane->get_topic_name());
+        " * Advertised on topic: " << mPubPlane->get_topic_name());
     }
     // <---- Mapping
   }
@@ -2213,14 +2213,14 @@ void ZedCamera::initPublishers()
       mPubImu = create_publisher<sensor_msgs::msg::Imu>(imu_topic, mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(),
-        "Advertised on topic: " << mPubImu->get_topic_name());
+        " * Advertised on topic: " << mPubImu->get_topic_name());
     }
     if (mPublishSensImuRaw) {
       mPubImuRaw =
         create_publisher<sensor_msgs::msg::Imu>(imu_topic_raw, mQos, mPubOpt);
       RCLCPP_INFO_STREAM(
         get_logger(),
-        "Advertised on topic: " << mPubImuRaw->get_topic_name());
+        " * Advertised on topic: " << mPubImuRaw->get_topic_name());
     }
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel) ||
@@ -2230,7 +2230,7 @@ void ZedCamera::initPublishers()
         mPubImuTemp = create_publisher<sensor_msgs::msg::Temperature>(
           imu_temp_topic, mQos, mPubOpt);
         RCLCPP_INFO_STREAM(
-          get_logger(), "Advertised on topic: "
+          get_logger(), " * Advertised on topic: "
             << mPubImuTemp->get_topic_name());
       }
     }
@@ -2240,25 +2240,25 @@ void ZedCamera::initPublishers()
         mPubImuMag = create_publisher<sensor_msgs::msg::MagneticField>(
           imu_mag_topic, mQos, mPubOpt);
         RCLCPP_INFO_STREAM(
-          get_logger(), "Advertised on topic: "
+          get_logger(), " * Advertised on topic: "
             << mPubImuMag->get_topic_name());
       }
       if (mPublishSensBaro) {
         mPubPressure = create_publisher<sensor_msgs::msg::FluidPressure>(
           pressure_topic, mQos, mPubOpt);
         RCLCPP_INFO_STREAM(
-          get_logger(), "Advertised on topic: "
+          get_logger(), " * Advertised on topic: "
             << mPubPressure->get_topic_name());
       }
       if (mPublishSensTemp) {
         mPubTempL = create_publisher<sensor_msgs::msg::Temperature>(
           temp_topic_left, mQos, mPubOpt);
         RCLCPP_INFO_STREAM(
-          get_logger(), "Advertised on topic: " << mPubTempL->get_topic_name());
+          get_logger(), " * Advertised on topic: " << mPubTempL->get_topic_name());
         mPubTempR = create_publisher<sensor_msgs::msg::Temperature>(
           temp_topic_right, mQos, mPubOpt);
         RCLCPP_INFO_STREAM(
-          get_logger(), "Advertised on topic: " << mPubTempR->get_topic_name());
+          get_logger(), " * Advertised on topic: " << mPubTempR->get_topic_name());
       }
     }
 
@@ -2269,7 +2269,7 @@ void ZedCamera::initPublishers()
         cam_imu_tr_topic, mQos, mPubOpt);
 
       RCLCPP_INFO_STREAM(
-        get_logger(), "Advertised on topic: "
+        get_logger(), " * Advertised on topic: "
           << mPubCamImuTransf->get_topic_name());
     }
 
@@ -8379,7 +8379,7 @@ void ZedCamera::callback_setRoi(
           mPubRoiMask = image_transport::create_publisher(
             this, mRoiMaskTopic, mQos.get_rmw_qos_profile());
           RCLCPP_INFO_STREAM(
-            get_logger(), "Advertised on topic: "
+            get_logger(), " * Advertised on topic: "
               << mPubRoiMask.getTopic());
         }
       } else {
@@ -8394,9 +8394,9 @@ void ZedCamera::callback_setRoi(
             nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
           RCLCPP_INFO_STREAM(
             get_logger(),
-            "Advertised on topic: " << mRoiMaskTopic);
+            " * Advertised on topic: " << mRoiMaskTopic);
           RCLCPP_INFO_STREAM(
-            get_logger(), "Advertised on topic: "
+            get_logger(), " * Advertised on topic: "
               << mRoiMaskTopic + "/nitros");
         }
 #endif

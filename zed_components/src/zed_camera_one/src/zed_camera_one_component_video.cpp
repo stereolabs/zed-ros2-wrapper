@@ -130,7 +130,7 @@ void ZedCameraOne::initVideoPublishers()
   RCLCPP_INFO(get_logger(), " +++ IMAGE TOPICS +++");
 
   // ----> Advertised topics
-  const std::string sensor = "video/";
+  const std::string sensor = "rgb/";
   const std::string rect_prefix = "rect/";
   const std::string raw_prefix = "raw/";
   const std::string color_prefix = "color/";

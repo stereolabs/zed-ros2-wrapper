@@ -44,7 +44,7 @@
             exposure: 80 # [DYNAMIC]
             gain: 80 # [DYNAMIC]
             auto_whitebalance: true # [DYNAMIC]
-            whitebalance_temperature: 42 # [DYNAMIC] - [28,65] x100 - works only if `auto_whitebalance` is false            
+            whitebalance_temperature: 42 # [DYNAMIC] - [28,65] x100 - works only if `auto_whitebalance` is false
             publish_rgb: true # Advertise the RGB image topics that are published only if a node subscribes to them
             publish_left_right: false # Advertise the left and right image topics that are published only if a node subscribes to them
             publish_raw: false # Advertise the raw image topics that are published only if a node subscribes to them

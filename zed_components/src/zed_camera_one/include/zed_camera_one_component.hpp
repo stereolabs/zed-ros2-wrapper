@@ -180,7 +180,6 @@ protected:
   bool handleDigitalGain(
     const rclcpp::Parameter & param, const std::string & param_name,
     int & count_ok);
-
   // <---- Utility functions
 
   // ----> Callbacks functions
@@ -246,6 +245,15 @@ private:
   // purposes; otherwise, this is always true.
   bool _nitrosDisabled = false;
   // <---- Debug variables
+
+  // ----> Topic enabler parameters
+  bool _publishRgb = true;
+  bool _publishRaw = false;
+  bool _publishGray = false;
+  bool _publishImu = true;
+  bool _publishImuRaw = false;
+  bool _publishTemp = false;
+  // <---- Topic enabler parameters
 
   // ----> QoS
   // https://github.com/ros2/ros2/wiki/About-Quality-of-Service-Settings

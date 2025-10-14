@@ -1,7 +1,18 @@
 LATEST CHANGES
 ==============
 
+2025-10-14
+----------
+- Added topic enabler feature to `sl::CameraOne`
+  - Added parameter `video.publish_rgb` to enable/disable RGB image publishing
+  - Added parameter `video.publish_raw` to enable/disable raw image publishing
+  - Added parameter `video.publish_gray` to enable/disable gray image publishing
+  - Added parameter `sensors.publish_imu`: Advertise the IMU topic that is published only if a node subscribes to it
+  - Added parameter `sensors.publish_imu_raw`: Advertise the raw IMU topic that is published only if a node subscribes to it
+  - Added parameter `sensors.publish_temp`: Advertise the temperature topics that are published only if a node subscribes to them
+
 2025-10-13
+----------
 - Changed ZED Camera image topic names to match the cleaner convention used by ZED X One cameras:
   - Left sensor topics:
     - From `~/left/image_rect_color` to `~/left/color/rect/image`

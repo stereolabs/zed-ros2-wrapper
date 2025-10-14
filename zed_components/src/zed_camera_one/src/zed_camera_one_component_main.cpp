@@ -159,6 +159,9 @@ void ZedCameraOne::initParameters()
   // GENERAL parameters
   getGeneralParams();
 
+  // TOPIC selection parameters
+  getTopicEnableParams();
+
   // Image Parameters
   getVideoParams();
 
@@ -176,7 +179,7 @@ void ZedCameraOne::getGeneralParams()
 {
   rclcpp::Parameter paramVal;
   RCLCPP_INFO(get_logger(), "=== GENERAL parameters ===");
-
+  
   getSvoParams();
   getStreamParams();
   getCameraModelParams();
@@ -184,6 +187,34 @@ void ZedCameraOne::getGeneralParams()
   getResolutionParams();
   getOpencvCalibrationParam();
 }
+
+void ZedCameraOne::getTopicEnableParams()
+{
+  RCLCPP_INFO(get_logger(), "=== TOPIC selection parameters ===");
+  
+  // Image topics
+  sl_tools::getParam(
+    shared_from_this(), "video.publish_rgb", _publishImgRgb,
+    _publishImgRgb, " * Publish RGB image: ");
+  sl_tools::getParam(
+    shared_from_this(), "video.publish_raw", _publishImgRaw,
+    _publishImgRaw, " * Publish Raw images: ");
+  sl_tools::getParam(
+    shared_from_this(), "video.publish_gray", _publishImgGray,
+    _publishImgGray, " * Publish Gray images: ");
+
+  // Sensor topics
+  sl_tools::getParam(
+    shared_from_this(), "sensors.publish_imu", _publishSensImu,
+    _publishSensImu, " * Publish IMU: ");
+  sl_tools::getParam(
+    shared_from_this(), "sensors.publish_imu_raw", _publishSensImuRaw,
+    _publishSensImuRaw, " * Publish IMU Raw: ");
+  sl_tools::getParam(
+    shared_from_this(), "sensors.publish_temp", _publishSensTemp,
+    _publishSensTemp, " * Publish Temperature: ");
+
+} 
 
 void ZedCameraOne::getSvoParams()
 {

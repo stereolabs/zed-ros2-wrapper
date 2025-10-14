@@ -91,16 +91,16 @@ void ZedCamera::initVideoDepthPublishers()
     // Publishers logging
     auto log_cam_pub = [&](const auto &pub) {
       RCLCPP_INFO_STREAM(get_logger(),
-                         "  * Advertised on topic: " << pub.getTopic());
+                         " * Advertised on topic: " << pub.getTopic());
       auto transports = image_transport::getLoadableTransports();
       for (auto transport : transports) {
         auto pos = transport.find('/');
         if (pos != std::string::npos) {
           transport.erase(0, pos);
         }
-        RCLCPP_INFO_STREAM(get_logger(),
-                           "  * Advertised on topic (image_transport): "
-                               << pub.getTopic() << transport);
+        RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: "
+                                             << pub.getTopic() << transport
+                                             << " [image_transport]");
       }
     };
 

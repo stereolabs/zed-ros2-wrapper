@@ -157,7 +157,7 @@ void ZedCameraOne::initVideoPublishers()
   // Publishers logging
   auto log_cam_pub = [&](const auto& pub) {
     RCLCPP_INFO_STREAM(get_logger(),
-                       " * Advertised on topic: " << pub.getTopic());
+                       "  * Advertised on topic: " << pub.getTopic());
     auto transports = image_transport::getLoadableTransports();
     for(auto transport: transports) {
       auto pos = transport.find('/');
@@ -165,7 +165,7 @@ void ZedCameraOne::initVideoPublishers()
         transport.erase(0, pos);
       }
       RCLCPP_INFO_STREAM(get_logger(),
-                         " * Advertised on topic: " << pub.getTopic() << transport << " [image_transport]");
+                         "  * Advertised on topic: " << pub.getTopic() << transport << " [image_transport]");
     } 
   };
 
@@ -200,8 +200,8 @@ void ZedCameraOne::initVideoPublishers()
               nvidia::isaac_ros::nitros::NitrosImage>>(
           this, topic, nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name,
           nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), _qos);
-        RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << topic);
-        RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << topic + "/nitros");
+        RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << topic);
+        RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << topic + "/nitros [isaac_ros_nitros]");
         return ret;
       };
     if (_publishImgRgb) {
@@ -227,7 +227,7 @@ void ZedCameraOne::initVideoPublishers()
   auto make_cam_info_pub = [&](const std::string & topic) {
       std::string info_topic = image_transport::getCameraInfoTopic(topic);
       auto pub = create_publisher<sensor_msgs::msg::CameraInfo>(info_topic, _qos);
-      RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << pub->get_topic_name());
+      RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << pub->get_topic_name());
       return pub;
     };
 
@@ -236,7 +236,7 @@ void ZedCameraOne::initVideoPublishers()
     std::string info_topic = topic + "/camera_info";
     auto pub = create_publisher<sensor_msgs::msg::CameraInfo>(info_topic, _qos);
     RCLCPP_INFO_STREAM(get_logger(),
-                       " * Advertised on topic: " << pub->get_topic_name());
+                       "  * Advertised on topic: " << pub->get_topic_name());
     return pub;
   };
 

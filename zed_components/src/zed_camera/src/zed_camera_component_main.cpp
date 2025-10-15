@@ -278,7 +278,10 @@ void ZedCamera::deInitNode() {
   closeCamera();
 }
 
-ZedCamera::~ZedCamera() { deInitNode(); }
+ZedCamera::~ZedCamera() { 
+  deInitNode(); 
+  DEBUG_STREAM_COMM("ZED Component destroyed:" << this->get_fully_qualified_name());
+}
 
 void ZedCamera::initServices()
 {
@@ -1926,21 +1929,21 @@ void ZedCamera::setTFCoordFrameNames()
   RCLCPP_INFO_STREAM(get_logger(), "=== TF FRAMES ===");
   RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t-> " << mOdomFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t\t-> " << mBaseFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t-> " << mBaseFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t-> " << mCameraFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t\t-> " << mLeftCamFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t-> " << mLeftCamFrameId);
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Left Optical\t\t-> " << mLeftCamOptFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Right\t\t\t-> " << mRightCamFrameId);
+    " * Left Optical\t-> " << mLeftCamOptFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Right\t\t-> " << mRightCamFrameId);
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Right Optical\t\t-> " << mRightCamOptFrameId);
+    " * Right Optical\t-> " << mRightCamOptFrameId);
   if (!mDepthDisabled) {
-    RCLCPP_INFO_STREAM(get_logger(), " * Depth\t\t\t-> " << mDepthFrameId);
+    RCLCPP_INFO_STREAM(get_logger(), " * Depth\t\t-> " << mDepthFrameId);
     RCLCPP_INFO_STREAM(
       get_logger(),
-      " * Depth Optical\t\t-> " << mDepthOptFrameId);
+      " * Depth Optical\t-> " << mDepthOptFrameId);
     RCLCPP_INFO_STREAM(get_logger(), " * Point Cloud\t\t-> " << mPointCloudFrameId);
   }
 
@@ -2670,14 +2673,14 @@ bool ZedCamera::startCamera()
 
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Focal Lenght\t-> "
+    " * Focal Length\t-> "
       << camInfo.camera_configuration.calibration_parameters
       .left_cam.focal_length_metric
       << " mm");
 
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Input\t\t-> "
+    " * Input\t-> "
       << sl::toString(mZed->getCameraInformation().input_type).c_str());
   if (mSvoMode) {
   #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
@@ -3291,10 +3294,12 @@ void ZedCamera::closeCamera()
   if (mPosTrackingStarted && !mAreaMemoryFilePath.empty() &&
     mSaveAreaMemoryOnClosing)
   {
+    DEBUG_STREAM_COMM("Saving area memory on: " << mAreaMemoryFilePath);
     saveAreaMemoryFile(mAreaMemoryFilePath);
+    DEBUG_STREAM_COMM("Saved area memory on: " << mAreaMemoryFilePath);
   }
 
-  mZed->deInitNode();
+  mZed->close();
   mZed.reset();
   RCLCPP_INFO(get_logger(), "=== CAMERA CLOSED ===");
 }

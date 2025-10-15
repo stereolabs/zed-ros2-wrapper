@@ -89,18 +89,14 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   // This is required to make `shared_from_this` available
   std::chrono::milliseconds init_msec(static_cast<int>(50.0));
   _initTimer = create_wall_timer(
-    std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
-    std::bind(&ZedCameraOne::init, this));
+      std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
+      std::bind(&ZedCameraOne::initNode, this));
   // <---- Start a "one shot timer" to initialize the node
 }
 
-ZedCameraOne::~ZedCameraOne()
-{
-  close();
-}
+ZedCameraOne::~ZedCameraOne() { deInitNode(); }
 
-void ZedCameraOne::close()
-{
+void ZedCameraOne::deInitNode() {
   DEBUG_STREAM_SENS("Stopping temperatures timer");
   if (_tempPubTimer) {
     _tempPubTimer->cancel();
@@ -146,9 +142,9 @@ void ZedCameraOne::closeCamera()
 
   RCLCPP_INFO(get_logger(), "=== CLOSING CAMERA ===");
 
-  _zed->close();
+  _zed->deInitNode();
   _zed.reset();
-  DEBUG_COMM("Camera closed");
+  RCLCPP_INFO(get_logger(), "=== CAMERA CLOSED ===");
 }
 
 void ZedCameraOne::initParameters()
@@ -561,8 +557,7 @@ void ZedCameraOne::getDebugParams()
 #endif
 }
 
-void ZedCameraOne::init()
-{
+void ZedCameraOne::initNode() {
   // Stop the timer for "one shot" initialization
   _initTimer->cancel();
 
@@ -597,7 +592,7 @@ void ZedCameraOne::init()
   get_global_default_context()->add_pre_shutdown_callback(
     [this]() {
       DEBUG_COMM("ZED X One Component is shutting down");
-      close();
+      deInitNode();
       DEBUG_COMM("ZED X One Component is shutting down - done");
     });
 

@@ -145,13 +145,12 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   // ----> Start a "one shot timer" to initialize the node and make `shared_from_this` available
   std::chrono::milliseconds init_msec(static_cast<int>(50.0));
   mInitTimer = create_wall_timer(
-    std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
-    std::bind(&ZedCamera::init, this));
+      std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
+      std::bind(&ZedCamera::initNode, this));
   // <---- Start a "one shot timer" to initialize the node and make `shared_from_this` available
 }
 
-void ZedCamera::init()
-{
+void ZedCamera::initNode() {
   // Stop the timer for "one shot" initialization
   mInitTimer->cancel();
 
@@ -185,7 +184,7 @@ void ZedCamera::init()
   get_global_default_context()->add_pre_shutdown_callback(
     [this]() {
       DEBUG_COMM("ZED Component is shutting down");
-      close();
+      deInitNode();
       DEBUG_COMM("ZED Component is shutting down - done");
     });
 
@@ -194,8 +193,7 @@ void ZedCamera::init()
     std::bind(&ZedCamera::callback_dynamicParamChange, this, _1));
 }
 
-void ZedCamera::close()
-{
+void ZedCamera::deInitNode() {
   // ----> Stop subscribers
   mClickedPtSub.reset();
   mGnssFixSub.reset();
@@ -280,10 +278,7 @@ void ZedCamera::close()
   closeCamera();
 }
 
-ZedCamera::~ZedCamera()
-{
-  close();
-}
+ZedCamera::~ZedCamera() { deInitNode(); }
 
 void ZedCamera::initServices()
 {
@@ -3299,9 +3294,9 @@ void ZedCamera::closeCamera()
     saveAreaMemoryFile(mAreaMemoryFilePath);
   }
 
-  mZed->close();
+  mZed->deInitNode();
   mZed.reset();
-  DEBUG_COMM("Camera closed");
+  RCLCPP_INFO(get_logger(), "=== CAMERA CLOSED ===");
 }
 
 void ZedCamera::initThreads()

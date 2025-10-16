@@ -89,20 +89,22 @@ void ZedCamera::initVideoDepthPublishers()
   if (_nitrosDisabled) {
 
     // Publishers logging
-    auto log_cam_pub = [&](const auto &pub) {
-      RCLCPP_INFO_STREAM(get_logger(),
-                         " * Advertised on topic: " << pub.getTopic());
-      auto transports = image_transport::getLoadableTransports();
-      for (auto transport : transports) {
-        auto pos = transport.find('/');
-        if (pos != std::string::npos) {
-          transport.erase(0, pos);
+    auto log_cam_pub = [&](const auto & pub) {
+        RCLCPP_INFO_STREAM(
+          get_logger(),
+          " * Advertised on topic: " << pub.getTopic());
+        auto transports = image_transport::getLoadableTransports();
+        for (auto transport : transports) {
+          auto pos = transport.find('/');
+          if (pos != std::string::npos) {
+            transport.erase(0, pos);
+          }
+          RCLCPP_INFO_STREAM(
+            get_logger(), " * Advertised on topic: "
+              << pub.getTopic() << transport
+              << " [image_transport]");
         }
-        RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: "
-                                             << pub.getTopic() << transport
-                                             << " [image_transport]");
-      }
-    };
+      };
 
     if (mPublishImgRgb) {
       mPubRgb = image_transport::create_publisher(this, mRgbTopic, qos);
@@ -305,14 +307,18 @@ void ZedCamera::initVideoDepthPublishers()
     if (mPublishDepthInfo) {
       mPubDepthInfo = create_publisher<zed_msgs::msg::DepthInfoStamped>(
         mDepthInfoTopic, mQos, mPubOpt);
-      RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << mPubDepthInfo->get_topic_name());
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " * Advertised on topic: " << mPubDepthInfo->get_topic_name());
     }
 
     // Point cloud and disparity publishers
     if (mPublishDisparity) {
       mPubDisparity = create_publisher<stereo_msgs::msg::DisparityImage>(
         mDisparityTopic, mQos, mPubOpt);
-      RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << mPubDisparity->get_topic_name());
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " * Advertised on topic: " << mPubDisparity->get_topic_name());
     }
 
     if (mPublishPointcloud) {

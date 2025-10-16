@@ -155,19 +155,21 @@ void ZedCameraOne::initVideoPublishers()
   auto qos = _qos.get_rmw_qos_profile();
 
   // Publishers logging
-  auto log_cam_pub = [&](const auto& pub) {
-    RCLCPP_INFO_STREAM(get_logger(),
-                       "  * Advertised on topic: " << pub.getTopic());
-    auto transports = image_transport::getLoadableTransports();
-    for(auto transport: transports) {
-      auto pos = transport.find('/');
-      if (pos != std::string::npos) {
-        transport.erase(0, pos);
+  auto log_cam_pub = [&](const auto & pub) {
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "  * Advertised on topic: " << pub.getTopic());
+      auto transports = image_transport::getLoadableTransports();
+      for (auto transport: transports) {
+        auto pos = transport.find('/');
+        if (pos != std::string::npos) {
+          transport.erase(0, pos);
+        }
+        RCLCPP_INFO_STREAM(
+          get_logger(),
+          "  * Advertised on topic: " << pub.getTopic() << transport << " [image_transport]");
       }
-      RCLCPP_INFO_STREAM(get_logger(),
-                         "  * Advertised on topic: " << pub.getTopic() << transport << " [image_transport]");
-    } 
-  };
+    };
 
   // Camera publishers
   if (_nitrosDisabled) {
@@ -191,7 +193,7 @@ void ZedCameraOne::initVideoPublishers()
       }
     }
 
-    
+
   } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
     // Nitros publishers lambda
@@ -201,7 +203,8 @@ void ZedCameraOne::initVideoPublishers()
           this, topic, nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name,
           nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), _qos);
         RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << topic);
-        RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << topic + "/nitros [isaac_ros_nitros]");
+        RCLCPP_INFO_STREAM(
+          get_logger(), "  * Advertised on topic: " << topic + "/nitros [isaac_ros_nitros]");
         return ret;
       };
     if (_publishImgRgb) {
@@ -215,7 +218,7 @@ void ZedCameraOne::initVideoPublishers()
     if (_publishImgGray) {
       _nitrosPubGrayImg = make_nitros_img_pub(_imgGrayTopic);
       if (_publishImgRaw) {
-      _nitrosPubGrayRawImg = make_nitros_img_pub(_imgRawGrayTopic);
+        _nitrosPubGrayRawImg = make_nitros_img_pub(_imgRawGrayTopic);
       }
     }
 #endif
@@ -232,13 +235,14 @@ void ZedCameraOne::initVideoPublishers()
     };
 
   // Lambda to create and log CameraInfo publishers for image_transport or nitros
-  auto make_cam_info_trans_pub = [&](const std::string& topic) {
-    std::string info_topic = topic + "/camera_info";
-    auto pub = create_publisher<sensor_msgs::msg::CameraInfo>(info_topic, _qos);
-    RCLCPP_INFO_STREAM(get_logger(),
-                       "  * Advertised on topic: " << pub->get_topic_name());
-    return pub;
-  };
+  auto make_cam_info_trans_pub = [&](const std::string & topic) {
+      std::string info_topic = topic + "/camera_info";
+      auto pub = create_publisher<sensor_msgs::msg::CameraInfo>(info_topic, _qos);
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "  * Advertised on topic: " << pub->get_topic_name());
+      return pub;
+    };
 
   if (_publishImgRgb) {
     _pubColorImgInfo = make_cam_info_pub(_imgColorTopic);
@@ -247,7 +251,7 @@ void ZedCameraOne::initVideoPublishers()
     if (_publishImgRaw) {
       _pubColorRawImgInfo = make_cam_info_pub(_imgColorRawTopic);
       _pubColorRawImgInfoTrans = make_cam_info_trans_pub(_imgColorRawTopic);
-    } 
+    }
   }
 
   if (_publishImgGray) {

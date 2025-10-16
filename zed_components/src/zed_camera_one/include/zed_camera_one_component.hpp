@@ -369,7 +369,7 @@ private:
   bool _streamingServerAdaptiveBitrate = false;
   int _streamingServerChunckSize = 16084;
   int _streamingServerTargetFramerate = 0;
-  
+
   double _sensPubRate = 200.;
   // <---- Parameters
 

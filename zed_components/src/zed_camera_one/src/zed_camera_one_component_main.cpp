@@ -179,7 +179,7 @@ void ZedCameraOne::getGeneralParams()
 {
   rclcpp::Parameter paramVal;
   RCLCPP_INFO(get_logger(), "=== GENERAL parameters ===");
-  
+
   getSvoParams();
   getStreamParams();
   getCameraModelParams();
@@ -191,14 +191,14 @@ void ZedCameraOne::getGeneralParams()
 void ZedCameraOne::getTopicEnableParams()
 {
   RCLCPP_INFO(get_logger(), "=== TOPIC selection parameters ===");
-  
+
   // Image topics
   sl_tools::getParam(
     shared_from_this(), "video.publish_rgb", _publishImgRgb,
     _publishImgRgb, " * Publish RGB image: ");
   sl_tools::getParam(
     shared_from_this(), "video.publish_raw", _publishImgRaw,
-    _publishImgRaw, " * Publish Raw images: ");  
+    _publishImgRaw, " * Publish Raw images: ");
   sl_tools::getParam(
     shared_from_this(), "video.publish_gray", _publishImgGray,
     _publishImgGray, " * Publish Gray images: ");
@@ -217,7 +217,7 @@ void ZedCameraOne::getTopicEnableParams()
     shared_from_this(), "sensors.publish_temp", _publishSensTemp,
     _publishSensTemp, " * Publish Temperature: ");
 
-} 
+}
 
 void ZedCameraOne::getSvoParams()
 {
@@ -718,9 +718,17 @@ void ZedCameraOne::configureZedInput()
   _initParams.camera_resolution = static_cast<sl::RESOLUTION>(_camResol);
 
   if (_camSerialNumber > 0) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
     _initParams.input.setFromSerialNumber(_camSerialNumber, sl::BUS_TYPE::GMSL);
+#else
+    _initParams.input.setFromSerialNumber(_camSerialNumber);
+#endif
   } else if (_camId >= 0) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
     _initParams.input.setFromCameraID(_camId, sl::BUS_TYPE::GMSL, sl::CAMERA_TYPE::MONO);
+#else
+    _initParams.input.setFromCameraID(_camId, sl::BUS_TYPE::GMSL);
+#endif
   }
 }
 
@@ -1000,7 +1008,7 @@ void ZedCameraOne::updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatus
   }
 
   // ----> Frame drop count
-  if(_zed && _zed->isOpened()) {
+  if (_zed && _zed->isOpened()) {
     auto dropped = _zed->getFrameDroppedCount();
     uint64_t total = dropped + _frameCount;
     auto perc_drop = 100. * static_cast<double>(dropped) / total;
@@ -1533,10 +1541,10 @@ void ZedCameraOne::initPublishers()
   initVideoPublishers();
 
   // Sensors
-  initSensorPublishers();  
+  initSensorPublishers();
 
   // ----> Camera/imu transform message
-  if(_publishSensImuTransf) {
+  if (_publishSensImuTransf) {
     std::string cam_imu_tr_topic = _topicRoot + "left_cam_imu_transform";
     _pubCamImuTransf = create_publisher<geometry_msgs::msg::TransformStamped>(
       cam_imu_tr_topic, _qos, _pubOpt);

@@ -39,7 +39,9 @@ public:
 
 protected:
   // ----> Initialization functions
-  void init();
+  void initNode();
+  void deInitNode();
+
   void initParameters();
   void initServices();
   void initTFCoordFrameNames();
@@ -65,9 +67,8 @@ protected:
   void getStreamingServerParams();
   void getAdvancedParams();
 
-  void close();
-
   bool startCamera();
+  void closeCamera();
   void createZedObject();
   void logSdkVersion();
   void setupTf2();
@@ -77,7 +78,6 @@ protected:
   void processCameraInformation();
   void setupCameraInfoMessages();
 
-  void closeCamera();
   void startTempPubTimer();
   bool startStreamingServer();
   void stopStreamingServer();
@@ -268,7 +268,7 @@ private:
   // <---- Topics
 
   // ----> Publishers
-// Image publishers
+  // Image publishers
   image_transport::Publisher _pubColorImg;
   image_transport::Publisher _pubColorRawImg;
   image_transport::Publisher _pubGrayImg;

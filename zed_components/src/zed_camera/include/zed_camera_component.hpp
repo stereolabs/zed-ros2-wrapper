@@ -38,12 +38,12 @@ public:
 
 protected:
   // ----> Initialization functions
-  void init();
+  void initNode();
+  void deInitNode();
+
   void initParameters();
   void initServices();
   void initThreads();
-
-  void close();
 
   void getDebugParams();
   void getTopicEnableParams();

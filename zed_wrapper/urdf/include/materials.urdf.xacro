@@ -44,4 +44,7 @@
     <material name="zedxone4k_mat">
         <color rgba="0.25 0.25 0.25 1.0"/>
     </material>
+    <material name="zedxonehdr_mat">
+        <color rgba="0.25 0.25 0.25 1.0"/>
+    </material>
 </robot>

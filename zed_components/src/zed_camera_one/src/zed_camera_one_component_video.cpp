@@ -319,6 +319,22 @@ void ZedCameraOne::fillCamInfo(
       camInfoMsg->d[6] = zedParam.disto[6];    // k5
       camInfoMsg->d[7] = zedParam.disto[7];    // k6
       break;
+
+    case sl::MODEL::ZED_XONE_HDR:  // RATIONAL_POLYNOMIAL
+
+      camInfoMsg->distortion_model =
+          sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
+
+      camInfoMsg->d.resize(8);
+      camInfoMsg->d[0] = zedParam.disto[0];  // k1
+      camInfoMsg->d[1] = zedParam.disto[1];  // k2
+      camInfoMsg->d[2] = zedParam.disto[2];  // p1
+      camInfoMsg->d[3] = zedParam.disto[3];  // p2
+      camInfoMsg->d[4] = zedParam.disto[4];  // k3
+      camInfoMsg->d[5] = zedParam.disto[5];  // k4
+      camInfoMsg->d[6] = zedParam.disto[6];  // k5
+      camInfoMsg->d[7] = zedParam.disto[7];  // k6
+      break;
   }
 
   // Intrinsic

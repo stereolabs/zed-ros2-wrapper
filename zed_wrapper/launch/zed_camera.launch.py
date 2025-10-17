@@ -307,7 +307,7 @@ def launch_setup(context, *args, **kwargs):
             parameters=node_parameters,
             extra_arguments=[{'use_intra_process_comms': enable_ipc}]
         )
-    else: # 'zedxonegs' or 'zedxone4k')
+    else: # 'zedxonegs','zedxone4k','zedxonehdr')
         zed_wrapper_component = ComposableNode(
             package='zed_components',
             namespace=namespace_val,
@@ -345,7 +345,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'camera_model',
                 description='[REQUIRED] The model of the camera. Using a wrong camera model can disable camera features.',
-                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'virtual', 'zedxonegs', 'zedxone4k']),
+                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'virtual', 'zedxonegs', 'zedxone4k', 'zedxonehdr']),
             DeclareLaunchArgument(
                 'container_name',
                 default_value='',

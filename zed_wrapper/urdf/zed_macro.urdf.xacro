@@ -72,8 +72,35 @@
       <xacro:property name="optical_offset_x" value="-0.01" />
       <xacro:property name="mono" value="false" />
     </xacro:if>
+    <xacro:if value="${model == 'zedxhdr'}">
+      <xacro:property name="baseline" value="0.12" />
+      <xacro:property name="height" value="0.032" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="-0.016" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+      <xacro:property name="mono" value="false" />
+    </xacro:if>
     <xacro:if value="${model == 'zedxm'}">
       <xacro:property name="baseline" value="0.05" />
+      <xacro:property name="height" value="0.032" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="-0.016" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+      <xacro:property name="mono" value="false" />
+    </xacro:if>
+    <xacro:if value="${model == 'zedxhdrmini'}">
+      <xacro:property name="baseline" value="0.05" />
+      <xacro:property name="height" value="0.032" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="-0.016" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+      <xacro:property name="mono" value="false" />
+    </xacro:if>
+    <xacro:if value="${model == 'zedxhdrmax'}">
+      <xacro:property name="baseline" value="0.170" />
       <xacro:property name="height" value="0.032" />
       <xacro:property name="bottom_slope" value="0.0" />
       <xacro:property name="screw_offset_x" value="0.0" />

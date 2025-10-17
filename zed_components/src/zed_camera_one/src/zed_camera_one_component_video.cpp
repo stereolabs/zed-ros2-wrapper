@@ -323,7 +323,7 @@ void ZedCameraOne::fillCamInfo(
     case sl::MODEL::ZED_XONE_HDR:  // RATIONAL_POLYNOMIAL
 
       camInfoMsg->distortion_model =
-          sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
+        sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
 
       camInfoMsg->d.resize(8);
       camInfoMsg->d[0] = zedParam.disto[0];  // k1

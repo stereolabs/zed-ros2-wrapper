@@ -145,12 +145,13 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   // ----> Start a "one shot timer" to initialize the node and make `shared_from_this` available
   std::chrono::milliseconds init_msec(static_cast<int>(50.0));
   mInitTimer = create_wall_timer(
-      std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
-      std::bind(&ZedCamera::initNode, this));
+    std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
+    std::bind(&ZedCamera::initNode, this));
   // <---- Start a "one shot timer" to initialize the node and make `shared_from_this` available
 }
 
-void ZedCamera::initNode() {
+void ZedCamera::initNode()
+{
   // Stop the timer for "one shot" initialization
   mInitTimer->cancel();
 
@@ -193,7 +194,8 @@ void ZedCamera::initNode() {
     std::bind(&ZedCamera::callback_dynamicParamChange, this, _1));
 }
 
-void ZedCamera::deInitNode() {
+void ZedCamera::deInitNode()
+{
   // ----> Stop subscribers
   mClickedPtSub.reset();
   mGnssFixSub.reset();
@@ -278,8 +280,9 @@ void ZedCamera::deInitNode() {
   closeCamera();
 }
 
-ZedCamera::~ZedCamera() { 
-  deInitNode(); 
+ZedCamera::~ZedCamera()
+{
+  deInitNode();
   DEBUG_STREAM_COMM("ZED Component destroyed:" << this->get_fully_qualified_name());
 }
 
@@ -2653,7 +2656,28 @@ bool ZedCamera::startCamera()
       RCLCPP_WARN(
         get_logger(),
         "Camera model does not match user parameter. Please modify "
-        "the value of the parameter 'general.camera_model' to 'zedxm'");
+        "the value of the parameter 'general.camera_model' to 'virtual'");
+    }
+  } else if (mCamRealModel == sl::MODEL::ZED_X_HDR) {
+    if (mCamUserModel != sl::MODEL::ZED_X_HDR) {
+      RCLCPP_WARN(
+        get_logger(),
+        "Camera model does not match user parameter. Please modify "
+        "the value of the parameter 'general.camera_model' to 'zedxhdr'");
+    }
+  } else if (mCamRealModel == sl::MODEL::ZED_X_HDR_MINI) {
+    if (mCamUserModel != sl::MODEL::ZED_X_HDR_MINI) {
+      RCLCPP_WARN(
+        get_logger(),
+        "Camera model does not match user parameter. Please modify "
+        "the value of the parameter 'general.camera_model' to 'zedxhdrmini'");
+    }
+  } else if (mCamRealModel == sl::MODEL::ZED_X_HDR_MAX) {
+    if (mCamUserModel != sl::MODEL::ZED_X_HDR_MAX) {
+      RCLCPP_WARN(
+        get_logger(),
+        "Camera model does not match user parameter. Please modify "
+        "the value of the parameter 'general.camera_model' to 'zedxhdrmax'");
     }
   }
 

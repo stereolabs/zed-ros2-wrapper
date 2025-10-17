@@ -89,18 +89,20 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   // This is required to make `shared_from_this` available
   std::chrono::milliseconds init_msec(static_cast<int>(50.0));
   _initTimer = create_wall_timer(
-      std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
-      std::bind(&ZedCameraOne::initNode, this));
+    std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
+    std::bind(&ZedCameraOne::initNode, this));
   // <---- Start a "one shot timer" to initialize the node
 }
 
-ZedCameraOne::~ZedCameraOne() { 
+ZedCameraOne::~ZedCameraOne()
+{
   deInitNode();
   DEBUG_STREAM_COMM(
-      "ZED Component destroyed:" << this->get_fully_qualified_name());
+    "ZED Component destroyed:" << this->get_fully_qualified_name());
 }
 
-void ZedCameraOne::deInitNode() {
+void ZedCameraOne::deInitNode()
+{
   DEBUG_STREAM_SENS("Stopping temperatures timer");
   if (_tempPubTimer) {
     _tempPubTimer->cancel();
@@ -308,18 +310,20 @@ void ZedCameraOne::getCameraModelParams()
   } else if (camera_model == "zedxonehdr") {
     _camUserModel = sl::MODEL::ZED_XONE_HDR;
     if (_svoMode) {
-      RCLCPP_INFO_STREAM(get_logger(), " + Playing an SVO for "
-                                           << sl::toString(_camUserModel)
-                                           << " camera model.");
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Playing an SVO for "
+          << sl::toString(_camUserModel)
+          << " camera model.");
     } else if (_streamMode) {
-      RCLCPP_INFO_STREAM(get_logger(), " + Playing a network stream from a "
-                                           << sl::toString(_camUserModel)
-                                           << " camera model.");
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Playing a network stream from a "
+          << sl::toString(_camUserModel)
+          << " camera model.");
     } else if (!IS_JETSON) {
       RCLCPP_ERROR_STREAM(
-          get_logger(),
-          "Camera model " << sl::toString(_camUserModel).c_str()
-                          << " is available only with NVIDIA Jetson devices.");
+        get_logger(),
+        "Camera model " << sl::toString(_camUserModel).c_str()
+                        << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
   } else {
@@ -351,7 +355,7 @@ void ZedCameraOne::getResolutionParams()
   sl_tools::getParam(shared_from_this(), "general.grab_resolution", resol, resol);
   if (resol == "AUTO") {
     _camResol = sl::RESOLUTION::AUTO;
-  } else if (resol == "HD4K" && _camUserModel == sl::MODEL::ZED_XONE_UHD ) {
+  } else if (resol == "HD4K" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
     _camResol = sl::RESOLUTION::HD4K;
   } else if (resol == "QHDPLUS" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
     _camResol = sl::RESOLUTION::QHDPLUS;
@@ -579,7 +583,8 @@ void ZedCameraOne::getDebugParams()
 #endif
 }
 
-void ZedCameraOne::initNode() {
+void ZedCameraOne::initNode()
+{
   // Stop the timer for "one shot" initialization
   _initTimer->cancel();
 
@@ -855,11 +860,12 @@ void ZedCameraOne::processCameraInformation()
   _diagUpdater.force_update();
   // <---- Update HW ID
 
-  RCLCPP_INFO_STREAM(get_logger(),
-                     " * Focal Lenght -> "
-                         << camInfo.camera_configuration.calibration_parameters
-                                .focal_length_metric
-                         << " mm");
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Focal Lenght -> "
+      << camInfo.camera_configuration.calibration_parameters
+      .focal_length_metric
+      << " mm");
 
   RCLCPP_INFO_STREAM(
     get_logger(),

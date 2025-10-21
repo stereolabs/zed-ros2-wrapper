@@ -1,4 +1,4 @@
-// Copyright 2024 Stereolabs
+// Copyright 2025 Stereolabs
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -94,10 +94,22 @@ std::vector<float> convertRodrigues(sl::float3 r)
   return R;
 }
 
-bool file_exist(const std::string & name)
+std::string getFullFilePath(const std::string & file_name)
 {
-  struct stat buffer;
-  return stat(name.c_str(), &buffer) == 0;
+  std::string new_filename;
+  if (file_name.front() == '~') {
+    std::string home_path = std::getenv("HOME");
+    if (!home_path.empty()) {
+      new_filename = home_path;
+      new_filename += file_name.substr(1, file_name.size() - 1);
+    }
+  } else {
+    new_filename = file_name;
+  }
+
+  std::filesystem::path path(new_filename);
+  auto abs_path = std::filesystem::absolute(path);
+  return abs_path.string();
 }
 
 std::string getSDKVersion(int & major, int & minor, int & sub_minor)
@@ -138,11 +150,11 @@ rclcpp::Time slTime2Ros(sl::Timestamp t, rcl_clock_type_t clock_type)
 }
 
 std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
-  const sl::Mat & img, const std::string & frameId, const rclcpp::Time & t)
+  const sl::Mat & img, const std::string & frameId, const rclcpp::Time & t, bool use_pub_timestamp)
 {
   std::unique_ptr<sensor_msgs::msg::Image> imgMessage = std::make_unique<sensor_msgs::msg::Image>();
 
-  imgMessage->header.stamp = t;
+  imgMessage->header.stamp = use_pub_timestamp ? rclcpp::Clock().now() : t;
   imgMessage->header.frame_id = frameId;
   imgMessage->height = img.getHeight();
   imgMessage->width = img.getWidth();
@@ -213,7 +225,7 @@ std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
 
 std::unique_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
   const sl::Mat & left, const sl::Mat & right, const std::string & frameId,
-  const rclcpp::Time & t)
+  const rclcpp::Time & t, bool use_pub_timestamp)
 {
   std::unique_ptr<sensor_msgs::msg::Image> imgMsgPtr = std::make_unique<sensor_msgs::msg::Image>();
 
@@ -224,7 +236,7 @@ std::unique_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
     return imgMsgPtr;
   }
 
-  imgMsgPtr->header.stamp = t;
+  imgMsgPtr->header.stamp = use_pub_timestamp ? rclcpp::Clock().now() : t;
   imgMsgPtr->header.frame_id = frameId;
   imgMsgPtr->height = left.getHeight();
   imgMsgPtr->width = 2 * left.getWidth();

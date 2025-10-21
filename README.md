@@ -6,7 +6,6 @@
 <p align="center">
   ROS 2 packages for using Stereolabs ZED Camera cameras.<br>
   ROS 2 Foxy Fitzroy (Ubuntu 20.04) - ROS 2 Humble Hawksbill (Ubuntu 22.04) - ROS 2 Jazzy Jalisco (Ubuntu 24.04)
-  ROS 2 Foxy Fitzroy (Ubuntu 20.04) - ROS 2 Humble Hawksbill (Ubuntu 22.04) - ROS 2 Jazzy Jalisco (Ubuntu 24.04)
 </p>
 
 <hr>
@@ -153,6 +152,20 @@ Supported simulation environments:
 
 ## More features
 
+### Point Cloud Transport
+
+The ZED ROS 2 Wrapper supports [Point Cloud Transport](http://wiki.ros.org/point_cloud_transport) to publish point clouds using different compression methods.
+
+This feature is available only if the package `point_cloud_transport` is installed in your ROS 2 environment, otherwise it will be disabled automatically.
+
+To install the packages, use the command:
+
+```bash
+sudo apt install ros-$ROS_DISTRO-point-cloud-transport ros-$ROS_DISTRO-point-cloud-transport-plugins
+```
+
+:pushpin: **Note:** We removed the `point_cloud_transport` package as a required dependency of the ZED ROS 2 Wrapper to avoid forcing its installation in all the environments where the ZED ROS2 Wrapper is used. If you want to use this feature, you must install the package manually.
+
 ### SVO recording
 
 [SVO recording](https://www.stereolabs.com/docs/video/recording/) can be started and stopped while the ZED node is running using the service `start_svo_recording` and the service `stop_svo_recording`.
@@ -164,6 +177,8 @@ Supported simulation environments:
 
 Object Detection can be enabled *automatically* when the node starts by setting the parameter `object_detection/od_enabled` to `true` in the file `common_stereo.yaml`.
 The Object Detection can be enabled/disabled *manually* by calling the services `enable_obj_det`.
+
+You can find a detailed explanation of the Object Detection module in the [ZED ROS 2 documentation](https://www.stereolabs.com/docs/ros2/object-detection).
 
 ### Custom Object Detection with YOLO-like ONNX model file
 
@@ -202,19 +217,20 @@ Please refer to the [Ultralytics documentation](https://github.com/ultralytics/u
 Modify the `common_stereo.yaml` parameters to match your configuration:
 
 - Set `object_detection.model` to `CUSTOM_YOLOLIKE_BOX_OBJECTS`
-- Set `object_detection.custom_onnx_file` to the full path of your custom ONNX file
-- Set `object_detection.onnx_input_size` to the size of the YOLO input tensor, e.g. 640
-- Set `object_detection.custom_label_yaml` to the full path of your YAML file storing class labels in [COCO format](https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml)
+
+Modify the `custom_object_detection.yaml` parameters to match your configuration.
 
 > :pushpin: **Note:** The first time the custom model is used, the ZED SDK optimizes it to get the best performance from the GPU installed on the host. Please wait for the optimization to complete. When using Docker, we recommend using a shared volume to store the optimized file on the host and perform the optimization only once.
 
 Console log while optimization is running:
 
 ```bash
-[zed_wrapper-3] [INFO] [1729184874.634985183] [zed.zed_node]: *** Starting Object Detection ***
+[zed_wrapper-3] [INFO] [1729184874.634985183] [zed.zed_node]: === Starting Object Detection ===
 [zed_wrapper-3] [2024-10-17 17:07:55 UTC][ZED][INFO] Please wait while the AI model is being optimized for your graphics card
 [zed_wrapper-3]  This operation will be run only once and may take a few minutes 
 ```
+
+You can find a detailed explanation of the Custom Object Detection module in the [ZED ROS 2 documentation](https://www.stereolabs.com/docs/ros2/custom-object-detection).
 
 ### Body Tracking
 
@@ -243,9 +259,19 @@ The services `toLL` and `fromLL` can be used to convert Latitude/Longitude coord
 
 > :pushpin: **Note:** This feature is incompatible with the ZED X One camera.
 
-For robots moving on a planar surface, activating the "2D mode" (parameter `pos_tracking/two_d_mode` in `common_stereo.yaml`) is possible. 
-The value of the coordinate Z for odometry and pose will have a fixed value (parameter `pos_tracking/fixed_z_value` in `common_stereo.yaml`). 
+For robots moving on a planar surface, activating the "2D mode" (parameter `pos_tracking/two_d_mode` in `common_stereo.yaml`) is possible.
+The value of the coordinate Z for odometry and pose will have a fixed value (parameter `pos_tracking/fixed_z_value` in `common_stereo.yaml`).
 Roll, Pitch, and the relative velocities will be fixed to zero.
+
+## NVIDIA® Isaac ROS integration
+
+The ZED ROS 2 Wrapper is compatible with the [NVIDIA® Isaac ROS](https://nvidia-isaac-ros.github.io/) framework, which provides a set of tools and libraries for building robotics applications on NVIDIA® platforms.
+
+The ZED ROS 2 Wrapper leverages [NITROS](https://nvidia-isaac-ros.github.io/concepts/nitros/index.html) (NVIDIA® Isaac Transport for ROS) a technology to enable data streaming through NVIDIA-accelerated ROS graphs.
+
+![NITROS communication](./images/nitros-graph.gif)
+
+Read the full [Isaac ROS integration guide](https://docs.stereolabs.com/isaac-ros/) and learn how to setup your development environment to use the ZED ROS2 Wrapper with Isaac ROS and NITROS.
 
 ## Examples and Tutorials
 
@@ -259,13 +285,13 @@ See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-
 
 ### Tutorials
 
-A series of tutorials are provided to better understand how to use the ZED nodes in the ROS2 environment :
+A series of tutorials are provided to better understand how to use the ZED nodes in the ROS 2 environment :
 
 - [Video subscribing](./zed_video_tutorial): `zed_video_tutorial` - In this tutorial, you will learn how to write a simple node that subscribes to messages of type `sensor_msgs/Image` to retrieve the left and right rectified images published by the ZED node.
 - [Depth subscribing](./zed_depth_tutorial): `zed_depth_tutorial` - In this tutorial, you will learn how to write a simple node that subscribes to messages of type `sensor_msgs/Image` to retrieve the depth images published by the ZED node and to get the measured distance at the center of the image.
 - [Pose/Odometry subscribing](./zed_pose_tutorial): `zed_pose_tutorial` - In this tutorial, you will learn how to write a simple node that subscribes to messages of type `geometry_msgs/PoseStamped` and `nav_msgs/Odometry` to retrieve the position and the odometry of the camera while moving in the world.
-- [ROS2 Composition + BGRA2BGR conversion](./zed_rgb_convert): `zed_rgb_convert` - In this tutorial, you will learn how to use the concept of "ROS2 Composition" and "Intra Process Communication" to write a ROS2 component that gets a 4 channel BGRA image as input and re-publishes it as 3 channels BGR image.
-- [ROS2 Multi-Camera](./zed_multi_camera): `zed_multi_camera` - In this tutorial, you will learn how to use the provided launch file to start a multi-camera robot configuration.
+- [ROS 2 Composition + BGRA2BGR conversion](./zed_rgb_convert): `zed_rgb_convert` - In this tutorial, you will learn how to use the concept of "ROS 2 Composition" and "Intra Process Communication" to write a ROS 2 component that gets a 4 channel BGRA image as input and re-publishes it as 3 channels BGR image.
+- [ROS 2 Multi-Camera](./zed_multi_camera): `zed_multi_camera` - In this tutorial, you will learn how to use the provided launch file to start a multi-camera robot configuration.
 - [Robot integration](./zed_robot_integration): `zed_robot_integration` - In this tutorial, you will learn how to add one or more ZED cameras to a robot configuration.
 
 ### Examples
@@ -296,3 +322,6 @@ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --paralle
 
 ## Known issues
 
+- Nothindg to report yet.
+
+If you find a bug or want to request a new feature, please open an issue on the [GitHub issues page](https://github.com/stereolabs/zed-ros2-wrapper/issues).

@@ -8,7 +8,7 @@ L4T_MINOR=$4
 ZED_SDK_MAJOR=$5
 ZED_SDK_MINOR=$6
 
-ttk="***>"
+ttk="===>"
 
 echo "Europe/Paris" > /etc/timezone
 echo "# R${L4T_MAJOR} (release), REVISION: ${L4T_MINOR}" > /etc/nv_tegra_release

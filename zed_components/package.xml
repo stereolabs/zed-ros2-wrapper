@@ -2,8 +2,8 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
     <name>zed_components</name>
-    <version>5.0.0</version>
-    <description>Contains the main ROS2 components to use a camera of the Ztereolabs ZED family</description>
+    <version>5.1.0</version>
+    <description>Contains the main ROS 2 components to use a camera of the Stereolabs ZED family</description>
     <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
     <license>Apache License 2.0</license>
     <url type="website">https://www.stereolabs.com/</url>
@@ -18,6 +18,7 @@
     <build_depend>rcutils</build_depend>
     <build_depend>builtin_interfaces</build_depend>
     <build_depend>std_msgs</build_depend>
+    <build_depend>rosgraph_msgs</build_depend>
     <build_depend>stereo_msgs</build_depend>
     <build_depend>sensor_msgs</build_depend>
     <build_depend>geometry_msgs</build_depend>
@@ -28,12 +29,12 @@
     <build_depend>tf2_ros</build_depend>
     <build_depend>tf2_geometry_msgs</build_depend>
     <build_depend>image_transport</build_depend>
-    <build_depend>point_cloud_transport</build_depend>
     <build_depend>std_srvs</build_depend>
     <build_depend>diagnostic_msgs</build_depend>
     <build_depend>diagnostic_updater</build_depend>
     <build_depend>visualization_msgs</build_depend>
     <build_depend>robot_localization</build_depend>
+    <build_depend>backward_ros</build_depend>
     <exec_depend>launch_ros</exec_depend>
     <exec_depend>zed_msgs</exec_depend>
     <exec_depend>rclcpp</exec_depend>
@@ -41,6 +42,7 @@
     <exec_depend>rcutils</exec_depend>
     <exec_depend>builtin_interfaces</exec_depend>
     <exec_depend>std_msgs</exec_depend>
+    <exec_depend>rosgraph_msgs</exec_depend>
     <exec_depend>stereo_msgs</exec_depend>
     <exec_depend>sensor_msgs</exec_depend>
     <exec_depend>geometry_msgs</exec_depend>
@@ -59,10 +61,7 @@
     <exec_depend>compressed_image_transport</exec_depend>
     <exec_depend>compressed_depth_image_transport</exec_depend>
     <exec_depend>theora_image_transport</exec_depend>
-    <exec_depend>point_cloud_transport_plugins</exec_depend>
-    <exec_depend>draco_point_cloud_transport</exec_depend>
-    <exec_depend>zlib_point_cloud_transport</exec_depend>
-    <exec_depend>zstd_point_cloud_transport</exec_depend>
+    <exec_depend>backward_ros</exec_depend>
     <test_depend>ament_lint_auto</test_depend>
     <test_depend>ament_cmake_copyright</test_depend>
     <test_depend>ament_cmake_cppcheck</test_depend>

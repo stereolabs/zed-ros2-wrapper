@@ -1,4 +1,4 @@
-# Copyright 2024 Stereolabs
+# Copyright 2025 Stereolabs
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -45,12 +45,18 @@ default_config_common = os.path.join(
     'config',
     'common'
 )
-    
-# FFMPEG Configuration to be loaded by ZED Node
-default_config_ffmpeg = os.path.join(
+
+# Object Detection Configuration to be loaded by ZED Node
+default_object_detection_config_path = os.path.join(
     get_package_share_directory('zed_wrapper'),
     'config',
-    'ffmpeg.yaml'
+    'object_detection.yaml'
+)
+# Custom Object Detection Configuration to be loaded by ZED Node
+default_custom_object_detection_config_path = os.path.join(
+    get_package_share_directory('zed_wrapper'),
+    'config',
+    'custom_object_detection.yaml'
 )
 
 # URDF/xacro file to be loaded by the Robot State Publisher node
@@ -75,8 +81,12 @@ def launch_setup(context, *args, **kwargs):
     wrapper_dir = get_package_share_directory('zed_wrapper')    
 
     # Launch configuration variables
-    svo_path = LaunchConfiguration('svo_path')
+    node_log_type = LaunchConfiguration('node_log_type')
 
+    svo_path = LaunchConfiguration('svo_path')
+    publish_svo_clock = LaunchConfiguration('publish_svo_clock')
+
+    enable_ipc = LaunchConfiguration('enable_ipc')
     use_sim_time = LaunchConfiguration('use_sim_time')
     sim_mode = LaunchConfiguration('sim_mode')
     sim_address = LaunchConfiguration('sim_address')
@@ -93,7 +103,8 @@ def launch_setup(context, *args, **kwargs):
     node_name = LaunchConfiguration('node_name')
 
     ros_params_override_path = LaunchConfiguration('ros_params_override_path')
-    config_ffmpeg = LaunchConfiguration('ffmpeg_config_path')
+    object_detection_config_path = LaunchConfiguration('object_detection_config_path')
+    custom_object_detection_config_path = LaunchConfiguration('custom_object_detection_config_path')
 
     serial_number = LaunchConfiguration('serial_number')
     camera_id = LaunchConfiguration('camera_id')
@@ -109,6 +120,7 @@ def launch_setup(context, *args, **kwargs):
     enable_gnss = LaunchConfiguration('enable_gnss')
     gnss_antenna_offset = LaunchConfiguration('gnss_antenna_offset')
 
+    node_log_type_val = node_log_type.perform(context)
     container_name_val = container_name.perform(context)
     namespace_val = namespace.perform(context)
     camera_name_val = camera_name.perform(context)
@@ -117,6 +129,14 @@ def launch_setup(context, *args, **kwargs):
     enable_gnss_val = enable_gnss.perform(context)
     gnss_coords = parse_array_param(gnss_antenna_offset.perform(context))
     custom_baseline_val = custom_baseline.perform(context)
+
+    if(node_log_type_val == 'both'):
+        node_log_effective = 'both'
+    else:  # 'screen' or 'log'
+        node_log_effective = {
+            'stdout': node_log_type_val,
+            'stderr': node_log_type_val
+            }
 
     if (camera_name_val == ''):
         camera_name_val = 'zed'
@@ -156,13 +176,17 @@ def launch_setup(context, *args, **kwargs):
     info = 'Using camera configuration file: ' + config_camera_path
     return_array.append(LogInfo(msg=TextSubstitution(text=info)))
 
-    # FFMPEG configuration file
-    info = 'Using FFMPEG configuration file: ' + config_ffmpeg.perform(context)
+    # Object Detection configuration file
+    info = 'Using Object Detection configuration file: ' + object_detection_config_path.perform(context)
+    return_array.append(LogInfo(msg=TextSubstitution(text=info)))
+    
+    # Custom Object Detection configuration file
+    info = 'Using Custom Object Detection configuration file: ' + custom_object_detection_config_path.perform(context)
     return_array.append(LogInfo(msg=TextSubstitution(text=info)))
 
     # ROS parameters override file
     ros_params_override_path_val = ros_params_override_path.perform(context)
-    if(ros_params_override_path_val != ''):        
+    if(ros_params_override_path_val != ''):
         info = 'Using ROS parameters override file: ' + ros_params_override_path_val
         return_array.append(LogInfo(msg=TextSubstitution(text=info)))
 
@@ -203,8 +227,9 @@ def launch_setup(context, *args, **kwargs):
         namespace=namespace_val,
         executable='robot_state_publisher',
         name=rsp_name,
-        output='screen',
+        output=node_log_effective,
         parameters=[{
+            'use_sim_time': publish_svo_clock,
             'robot_description': Command(xacro_command)
         }]
     )
@@ -226,7 +251,8 @@ def launch_setup(context, *args, **kwargs):
                 package='rclcpp_components',
                 executable=container_exec,
                 arguments=['--use_multi_threaded_executor','--ros-args', '--log-level', 'info'],
-                output='screen',
+                output=node_log_effective,
+                composable_node_descriptions=[]
         )
         return_array.append(zed_container)
 
@@ -235,7 +261,8 @@ def launch_setup(context, *args, **kwargs):
             # YAML files
             config_common_path_val,  # Common parameters
             config_camera_path,  # Camera related parameters
-            config_ffmpeg # FFMPEG parameters
+            object_detection_config_path, # Object detection parameters
+            custom_object_detection_config_path # Custom object detection parameters
     ]
 
     if( ros_params_override_path_val != ''):
@@ -253,6 +280,7 @@ def launch_setup(context, *args, **kwargs):
                 'general.camera_name': camera_name_val,
                 'general.camera_model': camera_model_val,
                 'svo.svo_path': svo_path,
+                'svo.publish_svo_clock': publish_svo_clock,
                 'general.serial_number': serial_number,
                 'general.camera_id': camera_id,
                 'pos_tracking.publish_tf': publish_tf,
@@ -277,7 +305,7 @@ def launch_setup(context, *args, **kwargs):
             plugin='stereolabs::ZedCamera',
             name=node_name_val,
             parameters=node_parameters,
-            extra_arguments=[{'use_intra_process_comms': True}]
+            extra_arguments=[{'use_intra_process_comms': enable_ipc}]
         )
     else: # 'zedxonegs' or 'zedxone4k')
         zed_wrapper_component = ComposableNode(
@@ -286,7 +314,7 @@ def launch_setup(context, *args, **kwargs):
             plugin='stereolabs::ZedCameraOne',
             name=node_name_val,
             parameters=node_parameters,
-            extra_arguments=[{'use_intra_process_comms': True}]
+            extra_arguments=[{'use_intra_process_comms': enable_ipc}]
         )
     
     full_container_name = '/' + namespace_val + '/' + container_name_val
@@ -304,6 +332,12 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description():
     return LaunchDescription(
         [
+            # Declare launch arguments
+            DeclareLaunchArgument(
+                'node_log_type',
+                default_value=TextSubstitution(text='both'),
+                description='The log type of the node. It can be `screen`, `log` or `both`. The `log` type will save the log in a file in the `~/.ros/log/` folder. The `screen` type will print the log on the terminal. The `both` type will do both.',
+                choices=['screen', 'log', 'both']),
             DeclareLaunchArgument(
                 'camera_name',
                 default_value=TextSubstitution(text='zed'),
@@ -329,9 +363,13 @@ def generate_launch_description():
                 default_value='',
                 description='The path to an additional parameters file to override the default values.'),
             DeclareLaunchArgument(
-                'ffmpeg_config_path',
-                default_value=TextSubstitution(text=default_config_ffmpeg),
-                description='Path to the YAML configuration file for the FFMPEG parameters when using FFMPEG image transport plugin.'),
+                'object_detection_config_path',
+                default_value=TextSubstitution(text=default_object_detection_config_path),
+                description='Path to the YAML configuration file for the Object Detection parameters.'),
+            DeclareLaunchArgument(
+                'custom_object_detection_config_path',
+                default_value=TextSubstitution(text=default_custom_object_detection_config_path),
+                description='Path to the YAML configuration file for the Custom Object Detection parameters.'),
             DeclareLaunchArgument(
                 'serial_number',
                 default_value='0',
@@ -363,11 +401,15 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'xacro_path',
                 default_value=TextSubstitution(text=default_xacro_path),
-                description='Path to the camera URDF file as a xacro file.'),            
+                description='Path to the camera URDF file as a xacro file.'),
             DeclareLaunchArgument(
                 'svo_path',
                 default_value=TextSubstitution(text='live'),
                 description='Path to an input SVO file.'),
+            DeclareLaunchArgument(
+                'publish_svo_clock',
+                default_value='false',
+                description='If set to `true` the node will act as a clock server publishing the SVO timestamp. This is useful for node synchronization'),
             DeclareLaunchArgument(
                 'enable_gnss',
                 default_value='false',
@@ -377,6 +419,11 @@ def generate_launch_description():
                 'gnss_antenna_offset',
                 default_value='[]',
                 description='Position of the GNSS antenna with respect to the mounting point of the ZED camera. Format: [x,y,z]'),
+            DeclareLaunchArgument(
+                'enable_ipc',
+                default_value='true',
+                description='Enable intra-process communication (IPC) with ROS 2 Composition',
+                choices=['true', 'false']),
             DeclareLaunchArgument(
                 'use_sim_time',
                 default_value='false',

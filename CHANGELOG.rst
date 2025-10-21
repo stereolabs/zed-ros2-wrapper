@@ -1,42 +1,80 @@
 LATEST CHANGES
 ==============
 
-2025-04-23
+2025-10-09
 ----------
-- Clean shutdown of ZED components using `pre_shutdown_callback`
+- New feature: 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):
+  - Added parameter `pos_tracking.publish_3d_landmarks` to enable/disable landmarks publishing
+  - Added parameter `pos_tracking.publish_lm_skip_frame` to set the frequency of landmarks publishing (0 to publish every frame)
+- Changed the default positional tracking mode from `GEN_1` to `GEN_3`
+- Removed Point Cloud Transport as a required dependency. Point Cloud Transport is now only automatically enabled if the `point_cloud_transport` package is installed on the system.
+- Removed FFMPEG Image Transport support because of a problem with the Humble distribution not allowing to set the transport parameters, and the lack of compatibility with NVIDIA® Jetson.
 
-2025-04-22
+2025-09-30
 ----------
-- Add backward compatibility with SDK v4.2
+- Enabled Isaac ROS NITROS integration for ZED X One cameras
 
-2025-04-18
+2025-09-29
 ----------
-- Add parameter 'debug.sdk_verbose_log_file' to Stereo and Mono components to set the path of the SDK verbose log file
+- Added `camera_info` in transport namespace to reflect `rviz2` requirements with the Camera plugin.
+  - Added new `camInfoPubTrans` publisher for each image topic to publish the `camera_info` in the transport namespace.
+  - Updated `publishImageWithInfo` method to handle the new `camInfoPubTrans` publisher.
 
-2025-04-16
+2025-09-17
 ----------
-- Fix realtime IMU data publishing when using SVO2
+- Added debug parameter `debug.debug_nitros` to enable debug logs for NITROS-related operations.
+- Added debug parameter `debug.use_pub_timestamps` to use the current ROS time for the message timestamp instead of the camera timestamp.
+  This is useful to test data communication latency.
 
-2025-04-15
-----------
-- Improve performance with the default stereo configuration
-- Fix Positional Tracking enabling when required by ZED SDK modules
-
-2025-04-01
-----------
-- Add Heartbeat status message at 1 Hz: `~/status/heartbeat`
-
-2025-03-28
-----------
+v5.0.0
+------
+- Backward compatible with SDK v4.2
+- Added official support for ROS 2 Jazzy Jalisco
 - Note: requires the latest `zed_msgs` package v5.0.0
-- Add SVO Status topic to monitor the current SVO status of type `zed_msgs::SvoStatus`
-- Add fully integrated Health Status topic of type `zed_msgs::HealthStatusStamped`
+- Added SVO Status topic to monitor the current SVO status of type `zed_msgs::SvoStatus`
+- Added fully integrated Health Status topic of type `zed_msgs::HealthStatusStamped`
   - Remove the single health status topics to simplicy health monitoring
 - Remove `cob_srvs` dependency to use the custom `zed_msgs::SetSvoFrame` service
-
-2025-03-26
-----------
-- Add official support for ROS 2 Jazzy Jalisco
+- Added Heartbeat status message at 1 Hz: `~/status/heartbeat`
+- Improve performance with the default stereo configuration
+- Fix Positional Tracking enabling when required by ZED SDK modules
+- Fix realtime IMU data publishing when using SVO2
+- Added parameter 'debug.sdk_verbose_log_file' to Stereo and Mono components to set the path of the SDK verbose log file
+- Clean shutdown of ZED components using `pre_shutdown_callback`
+- Added new parameter `svo.replay_rate` to set the replay rate for the SVO when not used in realtime mode (range [0.10-5.0])
+- Improved diagnostic information for SVO playback
+- Default SVO Recording Compression mode [`0`] is forced to `H265` replacing the old `LOSSLESS` mode
+  - H265 is far superior as it uses hardware encoder, resulting in faster, lighter encoding, and dramatically smaller SVO2 files
+- Added `/clock` publisher to be used in SVO Mode to synchronize other nodes with the SVO timestamp
+- Added parameter `svo.publish_svo_clock` to enable the `/clock` publisher
+  - The parameter 'svo.publish_svo_clock' is normally overridden by the `publish_svo_clock` launch option
+- Moved `brightness`, `contrast`, and `hue` from `common_stereo.yaml` to `zed.yaml`, `zed2.yaml`, `zed2i.yaml`, and `zedm.yaml` files
+- Add advanced handling of the Object Detection and Tracking module of the ZED SDK
+  - Move the multi-box native object detection parameters to the `object_detection.yaml` file
+  - Add specific parameters to set the confidence threshold for each of the includes object detection classes of the ZED SDK
+  - Move the Custom Object Detection parameters to the `custom_object_detection.yaml` file
+  - Support all the new parameters of the ZED SDK v5 separately for each of the custom object detection classes
+- The usage of the new Object Detection support is fully described on the ZED ROS 2 online documentation:
+  - Object Detection: https://docs.stereolabs.com/ros2/object-detection/
+  - Custom Object Detection: https://docs.stereolabs.com/ros2/custom-object-detection/
+- Separated Video/Depth data publishing into its own thread for more precise control over the publishing rate, 
+  independent of the camera grab rate. This enables recording SVO files or processing positional tracking at 
+  full grab rate, while publishing data at a reduced rate to optimize bandwidth usage.
+- Added a new launch option 'node_log_type' to set the type of log to be used by the ZED Node.
+  - The available options are `screen`, `log`, and `both`.
+- Changed `pos_tracking.area_memory_db_path` to `pos_tracking.area_file_path` to match the ZED SDK parameter name
+- Added parameter `pos_tracking.save_area_memory_on_closing` to save the Area Memory before closing the camera
+- Fixed Area Mapping file handling according to the ZED SDK policies.
+  - The Area Memory file is now saved only if the Area Memory is enabled, if the `pos_tracking.save_area_memory_on_closing` 
+  parameter is set to `true`, if the `pos_tracking.area_file_path` is set and if the `pos_tracking.area_file_path` is valid.
+- Added `save_area_memory` service
+  - Set the filename as a parameter. If the filename is empty, it uses the value of the parameter `pos_tracking.area_file_path` if not empty.
+- Added `enable_ipc` launch argument to enable intra-process communication (IPC) when using ROS 2 Composition. 
+  - Note: NITROS requires IPC to be disabled to work properly.
+- Fixed plane topic names, adding missing node name prefix
+- Added camera_info to Confidence Map topic
+- Enabled Isaac ROS integration and automatic NITROS usage: https://docs.stereolabs.com/isaac-ros/
+  - Added the parameter `debug.disable_nitros` to disable NITROS usage. This is useful for debugging and testing purposes.
 
 v4.2.5
 ------
@@ -77,7 +115,7 @@ v4.2.x
 - Renamed `common.yaml` to `common_stereo.yaml`
 - Added `common_mono.yaml` for monocular cameras
 - Added `video.enable_hdr` to `zedxone4k.yaml` for monocular 4K cameras
-- Changed the name of the package `zed_interfaces` to `zed_msgs` to match the ROS2 naming convention
+- Changed the name of the package `zed_interfaces` to `zed_msgs` to match the ROS 2 naming convention
 - Added the new `stereolabs::ZedCameraOne` component to handle ZED X One cameras
 - Removed the ZED Wrapper executable node.
 
@@ -307,7 +345,7 @@ v4.0.0
   - Added a check on timestamp to not publish already published point cloud messages in the point cloud thread
   - Improve thread synchronization when the frequency of the `grab` SDK function is minor of the expected camera frame rate setting because of a leaking of elaboration power.
   - Added diagnostic warning if the frequency of the camera grabbing thread is minor than the selected `general.grab_frame_rate` value.
-  - Removed annoying build log messages. Only warning regarding unsupported ROS2 distributions will be displayed when required.
+  - Removed annoying build log messages. Only warning regarding unsupported ROS 2 distributions will be displayed when required.
   - Convert `shared_ptr` to `unique_ptr` for IPC support
   - Improve the `zed_camera.launch.py`
 
@@ -317,7 +355,7 @@ v4.0.0
     - Modify the "display" launch files in [zed-ros2-examples](https://github.com/stereolabs/zed-ros2-examples) to match the new configuration.
     - Added `publish_tf` and `publish_map_tf` launch parameters useful for multi-camera configuretion or external odometry fusion.
   
-  - Change LICENSE to Apache 2.0 to match ROS2 license.
+  - Change LICENSE to Apache 2.0 to match ROS 2 license.
 
 v3.8.x
 ------
@@ -325,8 +363,8 @@ v3.8.x
 - Added Plane Detection.
 - Fixed "NO DEPTH" mode. By setting `depth/quality` to `0` now the depth extraction and all the sub-modules depending on it are correctly disabled.
 - Added `debug` sub-set of parameters with new parameters `debug_mode` and `debug_sensors`.
-- Added support for ROS2 Humble. Thx @nakai-omer.
-  The two ROS2 LTS releases are now supported simoultaneously.
+- Added support for ROS 2 Humble. Thx @nakai-omer.
+  The two ROS 2 LTS releases are now supported simoultaneously.
 - Set `read_only` flag in parameter descriptors for non-dynamic parameters. Thx @bjsowa.
 - Enabled Intra Process Communication. The ZED node no longer publishes topics with `TRANSIENT LOCAL` durability.
 - Improved TF broadcasting at grabbing frequency
@@ -384,10 +422,10 @@ v3.6.x (2021-12-03)
 - Improved diagnostic time and frequencies calculation
 - Added StopWatch to sl_tools
 - Enabled Diagnostic status publishing
-- Changed the default values of the QoS parameter reliability for all topics from BEST_EFFORT to RELIABLE to guarantee compatibility with all ROS2 tools
+- Changed the default values of the QoS parameter reliability for all topics from BEST_EFFORT to RELIABLE to guarantee compatibility with all ROS 2 tools
 - Fixed tab error in `zedm.yaml`
 - Fixed compatibility issue with ZED SDK older than v3.5 - Thanks @PhilippPolterauer
-- Migration to ROS2 Foxy Fitzroy
+- Migration to ROS 2 Foxy Fitzroy
 
 v3.5.x (2021-07-05)
 -------------------

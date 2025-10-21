@@ -65,7 +65,7 @@ bool GNSSReplay::initialize()
               0.5328999999999999
           ]
       },
-   *********
+   =========
    * Or
    * this one will be converted to the format above
       {

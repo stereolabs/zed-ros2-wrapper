@@ -4407,9 +4407,6 @@ void ZedCamera::threadFunc_zedGrab()
       }
       // <---- Grab errors?
 
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
-        publishHealthStatus();
-#endif
       mFrameCount++;
       if (mSvoMode) {
         mSvoFrameId = mZed->getSVOPosition();

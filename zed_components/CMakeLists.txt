@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(zed_components)
+project(zed_components LANGUAGES C CXX CUDA)
 
 ################################################
 ## Generate symbols for IDE indexer (VSCode)
@@ -90,7 +90,7 @@ if(CMAKE_SYSTEM_NAME2 MATCHES "aarch64") # Jetson TX
     set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 endif()
 
-find_package(CUDA REQUIRED)
+
 
 set(DEPENDENCIES
     rclcpp

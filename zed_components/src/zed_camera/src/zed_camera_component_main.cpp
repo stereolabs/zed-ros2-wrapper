@@ -955,18 +955,15 @@ void ZedCamera::getGeneralParams()
         " * Camera framerate: ", false, 0, 120);
     }
   }
-  getParam("general.gpu_id", mGpuId, mGpuId, " * GPU ID: ");
-  getParam("general.async_image_retrieval", mAsyncImageRetrieval, mAsyncImageRetrieval);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Asynchronous image retrieval: " << (mAsyncImageRetrieval ? "TRUE" : "FALSE"));
+  sl_tools::getParam(shared_from_this(), "general.gpu_id", mGpuId, mGpuId,
+                     " * GPU ID: ", false, -1, 999);
+  sl_tools::getParam(shared_from_this(), "general.async_image_retrieval",
+                     mAsyncImageRetrieval, mAsyncImageRetrieval,
+                     " * Asynchronous image retrieval: ");
 
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
-  getParam("general.enable_image_validity_check", mImageValidityCheck, mImageValidityCheck);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Image Validity Check: " << (mImageValidityCheck == 1 ? "ENABLED" : "DISABLED"));
-#endif
+  sl_tools::getParam(shared_from_this(), "general.enable_image_validity_check",
+                     mImageValidityCheck, mImageValidityCheck,
+                     " * Image Validity Check: ", false, 0, 10);
 
   // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
 

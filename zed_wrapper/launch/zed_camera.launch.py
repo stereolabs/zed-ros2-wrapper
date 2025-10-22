@@ -245,15 +245,17 @@ def launch_setup(context, *args, **kwargs):
         if distro == 'foxy':
             # Foxy does not support the isolated mode
             container_exec='component_container'
+            arguments_val=['--ros-args', '--log-level', 'info']
         else:
             container_exec='component_container_isolated'
+            arguments_val=['--use_multi_threaded_executor','--ros-args', '--log-level', 'info']
         
         zed_container = ComposableNodeContainer(
                 name=container_name_val,
                 namespace=namespace_val,
                 package='rclcpp_components',
                 executable=container_exec,
-                arguments=['--use_multi_threaded_executor','--ros-args', '--log-level', 'info'],
+                arguments=arguments_val,
                 output=node_log_effective,
                 composable_node_descriptions=[]
         )

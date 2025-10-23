@@ -130,44 +130,72 @@ void ZedCameraOne::initVideoPublishers()
   RCLCPP_INFO(get_logger(), " +++ IMAGE TOPICS +++");
 
   // ----> Advertised topics
-  std::string rect_prefix = "rect/";
-  std::string raw_prefix = "raw/";
-  std::string color_prefix = "rgb/";
-  std::string gray_prefix = "gray/";
-  std::string image_topic = "image";
+  const std::string sensor = "rgb/";
+  const std::string rect_prefix = "rect/";
+  const std::string raw_prefix = "raw/";
+  const std::string color_prefix = "color/";
+  const std::string gray_prefix = "gray/";
+  const std::string image_topic = "image";
 
   // Helper to build topic names
   auto make_topic =
-    [&](const std::string & root, const std::string & suffix, const std::string & type) {
-      std::string topic = _topicRoot + root + suffix + type;
+    [&](const std::string & sensor, const std::string & color_mode, const std::string & rect_raw,
+      const std::string & type) {
+      std::string topic = _topicRoot + sensor + color_mode + rect_raw + type;
       return get_node_topics_interface()->resolve_topic_name(topic);
     };
 
-  _imgColorTopic = make_topic(color_prefix, rect_prefix, image_topic);
-  _imgColorRawTopic = make_topic(color_prefix, raw_prefix, image_topic);
-  _imgGrayTopic = make_topic(gray_prefix, rect_prefix, image_topic);
-  _imgRawGrayTopic = make_topic(gray_prefix, raw_prefix, image_topic);
+  _imgColorTopic = make_topic(sensor, color_prefix, rect_prefix, image_topic);
+  _imgColorRawTopic = make_topic(sensor, color_prefix, raw_prefix, image_topic);
+  _imgGrayTopic = make_topic(sensor, gray_prefix, rect_prefix, image_topic);
+  _imgRawGrayTopic = make_topic(sensor, gray_prefix, raw_prefix, image_topic);
   // <---- Advertised topics
 
   // ----> Create publishers
   auto qos = _qos.get_rmw_qos_profile();
 
+  // Publishers logging
+  auto log_cam_pub = [&](const auto & pub) {
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "  * Advertised on topic: " << pub.getTopic());
+      auto transports = image_transport::getLoadableTransports();
+      for (const auto & transport : transports) {
+        std::string transport_copy = transport;
+        auto pos = transport_copy.find('/');
+        if (pos != std::string::npos) {
+          transport_copy.erase(0, pos);
+        }
+        RCLCPP_INFO_STREAM(
+          get_logger(), " * Advertised on topic: "
+            << pub.getTopic() << transport_copy
+            << " [image_transport]");
+      }
+    };
+
   // Camera publishers
   if (_nitrosDisabled) {
-    _pubColorImg = image_transport::create_publisher(this, _imgColorTopic, qos);
-    _pubColorRawImg = image_transport::create_publisher(this, _imgColorRawTopic, qos);
-    _pubGrayImg = image_transport::create_publisher(this, _imgGrayTopic, qos);
-    _pubGrayRawImg = image_transport::create_publisher(this, _imgRawGrayTopic, qos);
+    if (_publishImgRgb) {
+      _pubColorImg = image_transport::create_publisher(this, _imgColorTopic, qos);
+      log_cam_pub(_pubColorImg);
 
-    // Publishers logging
-    auto log_cam_pub = [&](const auto & pub) {
-        RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << pub.getTopic());
-      };
+      if (_publishImgRaw) {
+        _pubColorRawImg = image_transport::create_publisher(this, _imgColorRawTopic, qos);
+        log_cam_pub(_pubColorRawImg);
+      }
+    }
 
-    log_cam_pub(_pubColorImg);
-    log_cam_pub(_pubColorRawImg);
-    log_cam_pub(_pubGrayImg);
-    log_cam_pub(_pubGrayRawImg);
+    if (_publishImgGray) {
+      _pubGrayImg = image_transport::create_publisher(this, _imgGrayTopic, qos);
+      log_cam_pub(_pubGrayImg);
+
+      if (_publishImgRaw) {
+        _pubGrayRawImg = image_transport::create_publisher(this, _imgRawGrayTopic, qos);
+        log_cam_pub(_pubGrayRawImg);
+      }
+    }
+
+
   } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
     // Nitros publishers lambda
@@ -176,15 +204,25 @@ void ZedCameraOne::initVideoPublishers()
               nvidia::isaac_ros::nitros::NitrosImage>>(
           this, topic, nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name,
           nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), _qos);
-        RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << topic);
-        RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << topic + "/nitros");
+        RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << topic);
+        RCLCPP_INFO_STREAM(
+          get_logger(), "  * Advertised on topic: " << topic + "/nitros [isaac_ros_nitros]");
         return ret;
       };
+    if (_publishImgRgb) {
+      _nitrosPubColorImg = make_nitros_img_pub(_imgColorTopic);
 
-    _nitrosPubColorImg = make_nitros_img_pub(_imgColorTopic);
-    _nitrosPubColorRawImg = make_nitros_img_pub(_imgColorRawTopic);
-    _nitrosPubGrayImg = make_nitros_img_pub(_imgGrayTopic);
-    _nitrosPubGrayRawImg = make_nitros_img_pub(_imgRawGrayTopic);
+      if (_publishImgRaw) {
+        _nitrosPubColorRawImg = make_nitros_img_pub(_imgColorRawTopic);
+      }
+    }
+
+    if (_publishImgGray) {
+      _nitrosPubGrayImg = make_nitros_img_pub(_imgGrayTopic);
+      if (_publishImgRaw) {
+        _nitrosPubGrayRawImg = make_nitros_img_pub(_imgRawGrayTopic);
+      }
+    }
 #endif
   }
   // <---- Create publishers
@@ -194,26 +232,39 @@ void ZedCameraOne::initVideoPublishers()
   auto make_cam_info_pub = [&](const std::string & topic) {
       std::string info_topic = image_transport::getCameraInfoTopic(topic);
       auto pub = create_publisher<sensor_msgs::msg::CameraInfo>(info_topic, _qos);
-      RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << pub->get_topic_name());
+      RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << pub->get_topic_name());
       return pub;
     };
 
-  _pubColorImgInfo = make_cam_info_pub(_imgColorTopic);
-  _pubColorRawImgInfo = make_cam_info_pub(_imgColorRawTopic);
-  _pubGrayImgInfo = make_cam_info_pub(_imgGrayTopic);
-  _pubGrayRawImgInfo = make_cam_info_pub(_imgRawGrayTopic);
-
+  // Lambda to create and log CameraInfo publishers for image_transport or nitros
   auto make_cam_info_trans_pub = [&](const std::string & topic) {
       std::string info_topic = topic + "/camera_info";
       auto pub = create_publisher<sensor_msgs::msg::CameraInfo>(info_topic, _qos);
-      RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << pub->get_topic_name());
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "  * Advertised on topic: " << pub->get_topic_name());
       return pub;
     };
 
-  _pubColorImgInfoTrans = make_cam_info_trans_pub(_imgColorTopic);
-  _pubColorRawImgInfoTrans = make_cam_info_trans_pub(_imgColorRawTopic);
-  _pubGrayImgInfoTrans = make_cam_info_trans_pub(_imgGrayTopic);
-  _pubGrayRawImgInfoTrans = make_cam_info_trans_pub(_imgRawGrayTopic);
+  if (_publishImgRgb) {
+    _pubColorImgInfo = make_cam_info_pub(_imgColorTopic);
+    _pubColorImgInfoTrans = make_cam_info_trans_pub(_imgColorTopic);
+
+    if (_publishImgRaw) {
+      _pubColorRawImgInfo = make_cam_info_pub(_imgColorRawTopic);
+      _pubColorRawImgInfoTrans = make_cam_info_trans_pub(_imgColorRawTopic);
+    }
+  }
+
+  if (_publishImgGray) {
+    _pubGrayImgInfo = make_cam_info_pub(_imgGrayTopic);
+    _pubGrayImgInfoTrans = make_cam_info_trans_pub(_imgGrayTopic);
+
+    if (_publishImgRaw) {
+      _pubGrayRawImgInfo = make_cam_info_pub(_imgRawGrayTopic);
+      _pubGrayRawImgInfoTrans = make_cam_info_trans_pub(_imgRawGrayTopic);
+    }
+  }
   // <---- Camera Info publishers
 }
 
@@ -269,6 +320,22 @@ void ZedCameraOne::fillCamInfo(
       camInfoMsg->d[5] = zedParam.disto[5];    // k4
       camInfoMsg->d[6] = zedParam.disto[6];    // k5
       camInfoMsg->d[7] = zedParam.disto[7];    // k6
+      break;
+
+    case sl::MODEL::ZED_XONE_HDR:  // RATIONAL_POLYNOMIAL
+
+      camInfoMsg->distortion_model =
+        sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
+
+      camInfoMsg->d.resize(8);
+      camInfoMsg->d[0] = zedParam.disto[0];  // k1
+      camInfoMsg->d[1] = zedParam.disto[1];  // k2
+      camInfoMsg->d[2] = zedParam.disto[2];  // p1
+      camInfoMsg->d[3] = zedParam.disto[3];  // p2
+      camInfoMsg->d[4] = zedParam.disto[4];  // k3
+      camInfoMsg->d[5] = zedParam.disto[5];  // k4
+      camInfoMsg->d[6] = zedParam.disto[6];  // k5
+      camInfoMsg->d[7] = zedParam.disto[7];  // k6
       break;
   }
 

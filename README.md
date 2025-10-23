@@ -30,7 +30,7 @@ This package enables the use of ZED cameras with ROS 2, providing access to a va
 ### Prerequisites
 
 - [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/), [Ubuntu 22.04 (Jammy Jellyfish)](https://releases.ubuntu.com/jammy/), or [Ubuntu 24.04 (Noble Numbat)](https://releases.ubuntu.com/noble/)
-- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v5.0 EA (for older versions support please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
+- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v5.1 (to support older versions please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - ROS 2 Foxy Fitzroy (deprecated), ROS 2 Humble Hawksbill, or ROS 2 Jazzy Jalisco:
   - [Foxy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html) [**Not recommended. EOL reached**]
@@ -92,12 +92,12 @@ To start the ZED node, open a bash terminal and use the [CLI](https://index.ros.
 ros2 launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>
 ```
 
-Replace `<camera_model>` with the model of the camera that you are using: `'zed'`, `'zedm'`, `'zed2'`, `'zed2i'`, `'zedx'`, `'zedxm'`, `'virtual'`,`'zedxonegs'`,`'zedxone4k'`.
+Replace `<camera_model>` with the model of the camera that you are using: `'zed'`, `'zedm'`, `'zed2'`, `'zed2i'`, `'zedx'`, `'zedxm'`, `'zedxhdrmini'`, `'zedxhdr'`, `'zedxhdrmax'`, `'virtual'`,`'zedxonegs'`,`'zedxone4k'`,`'zedxonehdr'`.
 
 The `zed_camera.launch.py` is a Python launch script that automatically starts the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/). The parameters for the indicated camera model are loaded from the relative "YAML files."
 A Robot State Publisher node is started to publish the camera static links and joints loaded from the URDF model associated with the camera model.
 
-> :pushpin: **Note:** You can set your configurations by modifying the parameters in the files **common_stereo.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, **zedxm.yaml**, **common_mono.yaml**, **zedxonegs.yaml**, and **zedxone4k.yaml**  available in the folder `zed_wrapper/config`.
+> :pushpin: **Note:** You can set your configurations by modifying the parameters in the files **common_stereo.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, **zedxm.yaml**, **common_mono.yaml**, **zedxonegs.yaml**, **zedxone4k.yaml**, **zedxonehdr.yaml**  available in the folder `zed_wrapper/config`.
 
 You can get the list of all the available launch parameters by using the `-s` launch option:
 

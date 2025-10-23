@@ -1,0 +1,28 @@
+# config/zedxhdr.yaml
+# Parameters for Stereolabs ZED X HDR camera
+---
+/**:
+    ros__parameters:
+        general:
+          camera_model: 'zedxhdr'
+          camera_name: 'zedxhdr' # overwritten by launch file
+          grab_resolution: 'HD1536' # The native camera grab resolution. 'HD1536', 'AUTO'
+          grab_frame_rate: 30 # ZED SDK internal grabbing rate (HD1536: 30)
+
+        video:
+          exposure_time: 16000 # Defines the real exposure time in microseconds. Recommended to control manual exposure (instead of `video.exposure` setting)
+          auto_exposure_time_range_min: 28 # Defines the minimum range of exposure auto control in micro seconds
+          auto_exposure_time_range_max: 30000 # Defines the maximum range of exposure auto control in micro seconds
+          exposure_compensation: 50 # Defines the Exposure-target compensation made after auto exposure. Reduces the overall illumination target by factor of F-stops. Values range is [0 - 100]. Default value is 50, i.e. no compensation applied
+          analog_gain: 1255 # Defines the real analog gain (sensor) in mDB. Range [1000-16000]. Recommended to control manual sensor gain (instead of `video.gain` setting)
+          auto_analog_gain_range_min: 1000 # Defines the minimum range of sensor gain in automatic control
+          auto_analog_gain_range_max: 16000 # Defines the maximum range of sensor gain in automatic control
+          digital_gain: 1 # Defines the real digital gain (ISP) as a factor. Range [1-256]. Recommended to control manual ISP gain (instead of `video.gain` setting)
+          auto_digital_gain_range_min: 1 # Defines the minimum range of digital ISP gain in automatic control
+          auto_digital_gain_range_max: 256 # Defines the maximum range of digital ISP gain in automatic control
+          denoising: 50 # Defines the level of denoising applied on both left and right images. Range [0-100]
+
+        depth:
+          min_depth: 0.3 # Min: 0.3, Max: 3.0
+          max_depth: 10.0 # Max: 20.0
+

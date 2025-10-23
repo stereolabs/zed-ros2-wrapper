@@ -315,7 +315,7 @@ def launch_setup(context, *args, **kwargs):
             parameters=node_parameters,
             extra_arguments=[{'use_intra_process_comms': enable_ipc}]
         )
-    else: # 'zedxonegs','zedxone4k','zedxonehdr')
+    else: # # camera_model_val == 'zedxonegs' or camera_model_val == 'zedxone4k' or camera_model_val == 'zedxonehdr'
         zed_wrapper_component = ComposableNode(
             package='zed_components',
             namespace=namespace_val,

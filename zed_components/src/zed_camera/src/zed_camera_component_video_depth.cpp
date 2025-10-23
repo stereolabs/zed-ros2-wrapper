@@ -2060,7 +2060,9 @@ void ZedCamera::publishDepthInfo(const rclcpp::Time & t)
 
     DEBUG_STREAM_VD(" * Publishing DEPTH INFO message");
     try {
-      if (mPubDepthInfo) {mPubDepthInfo->publish(std::move(depthInfoMsg));}
+      if (mPubDepthInfo) {
+        mPubDepthInfo->publish(std::move(depthInfoMsg));
+      }
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
     } catch (...) {
@@ -2079,7 +2081,9 @@ void ZedCamera::publishCameraInfo(
     " * Publishing Camera Info message: " << camInfoMsg->header.stamp.nanosec
                                           << " nsec");
 
-  if (infoPub) {infoPub->publish(*camInfoMsg);}
+  if (infoPub) {
+    infoPub->publish(*camInfoMsg);
+  }
 }
 
 void ZedCamera::publishImageWithInfo(
@@ -2165,7 +2169,9 @@ void ZedCamera::publishImageWithInfo(
       //.WithGpuData(img.getPtr<sl::uchar4>(sl::MEM::GPU)) // TODO: Enable direct GPU memory sharing when supported by Isaac ROS.
       .Build();
 
-    if (nitrosPubImg) {nitrosPubImg->publish(nitros_image);}
+    if (nitrosPubImg) {
+      nitrosPubImg->publish(nitros_image);
+    }
     publishCameraInfo(infoPub, camInfoMsg, header.stamp);
     publishCameraInfo(infoPubTrans, camInfoMsg, header.stamp);
   } catch (std::system_error & e) {
@@ -2272,7 +2278,9 @@ void ZedCamera::publishDepthMapWithInfo(sl::Mat & depth, rclcpp::Time t)
         //.WithGpuData(depth.getPtr<sl::float1>(sl::MEM::GPU)) // TODO: Enable direct GPU memory sharing when supported by Isaac ROS.
         .Build();
 
-      if (mNitrosPubDepth) {mNitrosPubDepth->publish(nitros_image);}
+      if (mNitrosPubDepth) {
+        mNitrosPubDepth->publish(nitros_image);
+      }
       publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
@@ -2306,7 +2314,9 @@ void ZedCamera::publishDisparity(sl::Mat disparity, rclcpp::Time t)
 
   DEBUG_STREAM_VD(" * Publishing DISPARITY message");
   try {
-    if (mPubDisparity) {mPubDisparity->publish(std::move(disparityMsg));}
+    if (mPubDisparity) {
+      mPubDisparity->publish(std::move(disparityMsg));
+    }
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
   } catch (...) {

@@ -94,7 +94,7 @@ void ZedCamera::initVideoDepthPublishers()
           get_logger(),
           " * Advertised on topic: " << pub.getTopic());
         auto transports = image_transport::getLoadableTransports();
-        for (const auto& transport : transports) {
+        for (const auto & transport : transports) {
           std::string transport_copy = transport;
           auto pos = transport_copy.find('/');
           if (pos != std::string::npos) {

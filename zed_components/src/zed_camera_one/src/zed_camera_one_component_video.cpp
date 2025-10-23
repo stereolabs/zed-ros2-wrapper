@@ -160,14 +160,15 @@ void ZedCameraOne::initVideoPublishers()
         get_logger(),
         "  * Advertised on topic: " << pub.getTopic());
       auto transports = image_transport::getLoadableTransports();
-      for (auto transport: transports) {
-        auto pos = transport.find('/');
+      for (const auto& transport : transports) {
+        std::string transport_copy = transport;
+        auto pos = transport_copy.find('/');
         if (pos != std::string::npos) {
-          transport.erase(0, pos);
+          transport_copy.erase(0, pos);
         }
         RCLCPP_INFO_STREAM(
           get_logger(),
-          "  * Advertised on topic: " << pub.getTopic() << transport << " [image_transport]");
+          "  * Advertised on topic: " << pub.getTopic() << transport_copy << " [image_transport]");
       }
     };
 

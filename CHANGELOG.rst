@@ -14,22 +14,30 @@ LATEST CHANGES
 2025-10-13
 ----------
 - Changed ZED Camera image topic names to match the cleaner convention used by ZED X One cameras:
+
   - Left sensor topics:
+
     - From `~/left/image_rect_color` to `~/left/color/rect/image`
     - From `~/left_raw/image_raw_color` to `~/left/color/raw/image`
     - From `~/left_gray/image_rect_gray` to `~/left/gray/rect/image`
     - From `~/left_raw_gray/image_raw_gray` to `~/left/gray/raw/image`
+
   - Right sensor topics:
+
     - From `~/right/image_rect_color` to `~/right/color/rect/image`
     - From `~/right_raw/image_raw_color` to `~/right/color/raw/image`
     - From `~/right_gray/image_rect_gray` to `~/right/gray/rect/image`
     - From `~/right_raw_gray/image_raw_gray` to `~/right/gray/raw/image`
+
   - RGB sensor topics (corresponding to the left sensor for the Stereo cameras):
+
     - From `~/rgb/image_rect_color` to `~/rgb/color/rect/image`
     - From `~/rgb_raw/image_raw_color` to `~/rgb/color/raw/image`
     - From `~/rgb_gray/image_rect_gray` to `~/rgb/gray/rect/image`
     - From `~/rgb_raw_gray/image_raw_gray` to `~/rgb/gray/raw/image`
+
 - Added parameters to select what topics will be advertised when the node starts:
+
   - `general.publish_status`: Advertise the status topics that are published only if a node subscribes to them
   - `video.publish_rgb`: Advertise the RGB image topics that are published only if a node subscribes to them
   - `video.publish_left_right`:  Advertise the left and right image topics that are published only if a node subscribes to them
@@ -52,13 +60,16 @@ LATEST CHANGES
   - `pos_tracking.publish_pose_cov`: Advertise the pose with covariance topic that is published only if a node subscribes to it
   - `pos_tracking.publish_cam_path`: Advertise the camera odometry and pose path topics that are published only if a node subscribes to them
   - `mapping.publish_det_plane`: Advertise the plane detection topics that is published only if a node subscribes to it
+
 **NOTE** THIS IS A BREAKING CHANGE. TOPICS MAY NO LONGER BE AVAILABLE IF NOT ENABLED IN THE DEFAULT CONFIGURATION. Please check what topic you use and set the relevant parameter to `true`.
   
 2025-10-09
 ----------
 - New feature: 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):
+
   - Added parameter `pos_tracking.publish_3d_landmarks` to enable/disable landmarks publishing
   - Added parameter `pos_tracking.publish_lm_skip_frame` to set the frequency of landmarks publishing (0 to publish every frame)
+
 - Changed the default positional tracking mode from `GEN_1` to `GEN_3`
 - Removed Point Cloud Transport as a required dependency. Point Cloud Transport is now only automatically enabled if the `point_cloud_transport` package is installed on the system.
 - Removed FFMPEG Image Transport support because of a problem with the Humble distribution not allowing to set the transport parameters, and the lack of compatibility with NVIDIA® Jetson.
@@ -70,6 +81,7 @@ LATEST CHANGES
 2025-09-29
 ----------
 - Added `camera_info` in transport namespace to reflect `rviz2` requirements with the Camera plugin.
+
   - Added new `camInfoPubTrans` publisher for each image topic to publish the `camera_info` in the transport namespace.
   - Updated `publishImageWithInfo` method to handle the new `camInfoPubTrans` publisher.
 
@@ -86,7 +98,9 @@ v5.0.0
 - Note: requires the latest `zed_msgs` package v5.0.0
 - Added SVO Status topic to monitor the current SVO status of type `zed_msgs::SvoStatus`
 - Added fully integrated Health Status topic of type `zed_msgs::HealthStatusStamped`
+
   - Remove the single health status topics to simplicy health monitoring
+
 - Remove `cob_srvs` dependency to use the custom `zed_msgs::SetSvoFrame` service
 - Added Heartbeat status message at 1 Hz: `~/status/heartbeat`
 - Improve performance with the default stereo configuration
@@ -97,51 +111,72 @@ v5.0.0
 - Added new parameter `svo.replay_rate` to set the replay rate for the SVO when not used in realtime mode (range [0.10-5.0])
 - Improved diagnostic information for SVO playback
 - Default SVO Recording Compression mode [`0`] is forced to `H265` replacing the old `LOSSLESS` mode
+
   - H265 is far superior as it uses hardware encoder, resulting in faster, lighter encoding, and dramatically smaller SVO2 files
+
 - Added `/clock` publisher to be used in SVO Mode to synchronize other nodes with the SVO timestamp
 - Added parameter `svo.publish_svo_clock` to enable the `/clock` publisher
+
   - The parameter 'svo.publish_svo_clock' is normally overridden by the `publish_svo_clock` launch option
+
 - Moved `brightness`, `contrast`, and `hue` from `common_stereo.yaml` to `zed.yaml`, `zed2.yaml`, `zed2i.yaml`, and `zedm.yaml` files
 - Add advanced handling of the Object Detection and Tracking module of the ZED SDK
+
   - Move the multi-box native object detection parameters to the `object_detection.yaml` file
   - Add specific parameters to set the confidence threshold for each of the includes object detection classes of the ZED SDK
   - Move the Custom Object Detection parameters to the `custom_object_detection.yaml` file
   - Support all the new parameters of the ZED SDK v5 separately for each of the custom object detection classes
+
 - The usage of the new Object Detection support is fully described on the ZED ROS 2 online documentation:
+
   - Object Detection: https://docs.stereolabs.com/ros2/object-detection/
   - Custom Object Detection: https://docs.stereolabs.com/ros2/custom-object-detection/
+
 - Separated Video/Depth data publishing into its own thread for more precise control over the publishing rate, 
   independent of the camera grab rate. This enables recording SVO files or processing positional tracking at 
   full grab rate, while publishing data at a reduced rate to optimize bandwidth usage.
 - Added a new launch option 'node_log_type' to set the type of log to be used by the ZED Node.
+
   - The available options are `screen`, `log`, and `both`.
+
 - Changed `pos_tracking.area_memory_db_path` to `pos_tracking.area_file_path` to match the ZED SDK parameter name
 - Added parameter `pos_tracking.save_area_memory_on_closing` to save the Area Memory before closing the camera
 - Fixed Area Mapping file handling according to the ZED SDK policies.
+  
   - The Area Memory file is now saved only if the Area Memory is enabled, if the `pos_tracking.save_area_memory_on_closing` 
   parameter is set to `true`, if the `pos_tracking.area_file_path` is set and if the `pos_tracking.area_file_path` is valid.
+
 - Added `save_area_memory` service
+  
   - Set the filename as a parameter. If the filename is empty, it uses the value of the parameter `pos_tracking.area_file_path` if not empty.
+
 - Added `enable_ipc` launch argument to enable intra-process communication (IPC) when using ROS 2 Composition. 
+  
   - Note: NITROS requires IPC to be disabled to work properly.
+
 - Fixed plane topic names, adding missing node name prefix
 - Added camera_info to Confidence Map topic
 - Enabled Isaac ROS integration and automatic NITROS usage: https://docs.stereolabs.com/isaac-ros/
+  
   - Added the parameter `debug.disable_nitros` to disable NITROS usage. This is useful for debugging and testing purposes.
 
 v4.2.5
 ------
 - Add new parameter 'depth.point_cloud_res' to set a specific point cloud publishing resolution
+  
   - 'COMPACT': Standard resolution. Optimizes processing and bandwidth
   - 'REDUCED': Half 'COMPACT' resolution. Low processing and low bandwidth requirements
+
 - Add uptime and frame drop rate information to node diagnostics
 - Add image validity check support [SDK 5 required]
+  
   - Add new parameter 'general.enable_image_validity_check'
   - Add new topic 'health_status/low_image_quality' to publish image quality status
   - Add new topic 'health_status/low_lighting' to publish low light condition status
   - Add new topic 'health_status/low_depth_reliability' to publish low depth quality status
   - Add new topic 'health_status/low_motion_sensors_reliability' to publish low quality of inertial sensors status
   - Set the Node Disgnostic to WARNING if any of the above conditions are detected
+
 - Add `general.camera_id` parameter to set the camera ID for the ZedCamera. 
 - Add `general.camera_id` parameter to set the camera ID for the ZedCameraOne.
 - Add `camera_id` argument to the `zed_camera.launch.py` launch file. Useful for GMSL2 multi-camera configurations where camera ID is estabilished by the GMSL2 wire.
@@ -175,6 +210,7 @@ v4.2.x
   - Modified the launch file to create an isolated composable container that loads the `stereolabs:ZedCamera` or the `stereolabs:ZedCameraOne` component according to the camera model  
 
 - Added support for custom ONNX detection engine (SDK v4.2 required)
+  
   - Added value `CUSTOM_YOLOLIKE_BOX_OBJECTS` to the `object_detection.model` parameter
   - Added parameter `object_detection.custom_onnx_file` to set the full path of the custom ONNX file
   - Added parameter `object_detection.onnx_input_size` to set the size of the YOLO input tensor
@@ -199,6 +235,7 @@ v4.1.x
 - Added Local Streaming input
 
   - Added 'stream.stream_address' and 'stream.stream_port' parameter to configure the local streaming input
+  
 - GNSS Fusion temporarily disabled *(available with 4.1.1)*
 - Moved parameter 'general.svo_file' to 'svo.svo_path'
 - Moved parameter 'general.svo_loop' to 'svo.svo_loop'

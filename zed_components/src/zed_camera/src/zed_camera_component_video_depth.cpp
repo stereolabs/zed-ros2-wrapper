@@ -2114,7 +2114,8 @@ void ZedCamera::publishImageWithInfo(
     size_t spitch = img.getStepBytes(sl::MEM::GPU); // SL Mat can be padded
 
     DEBUG_NITROS(
-      " * Nitros Image publish - Width: %d Height: %d PixelBytes: %ld Spitch: %zu Dpitch: %zu",
+      " * Nitros Image publish - Width: %zu Height: %zu PixelBytes: %zu "
+      "Spitch: %zu Dpitch: %zu",
       img.getWidth(), img.getHeight(), img.getPixelBytes(), spitch, dpitch);
 
     size_t dbuffer_size{spitch * img.getHeight()};

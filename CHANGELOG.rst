@@ -4,6 +4,7 @@ LATEST CHANGES
 2025-10-14
 ----------
 - Added topic enabler feature to `sl::CameraOne`
+
   - Added parameter `video.publish_rgb` to enable/disable RGB image publishing
   - Added parameter `video.publish_raw` to enable/disable raw image publishing
   - Added parameter `video.publish_gray` to enable/disable gray image publishing
@@ -235,7 +236,7 @@ v4.1.x
 - Added Local Streaming input
 
   - Added 'stream.stream_address' and 'stream.stream_port' parameter to configure the local streaming input
-  
+
 - GNSS Fusion temporarily disabled *(available with 4.1.1)*
 - Moved parameter 'general.svo_file' to 'svo.svo_path'
 - Moved parameter 'general.svo_loop' to 'svo.svo_loop'

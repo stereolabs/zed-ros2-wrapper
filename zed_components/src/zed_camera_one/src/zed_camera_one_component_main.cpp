@@ -863,8 +863,7 @@ void ZedCameraOne::processCameraInformation()
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Focal Lenght -> "
-      << camInfo.camera_configuration.calibration_parameters
-      .focal_length_metric
+      << camInfo.camera_configuration.calibration_parameters.focal_length_metric
       << " mm");
 
   RCLCPP_INFO_STREAM(

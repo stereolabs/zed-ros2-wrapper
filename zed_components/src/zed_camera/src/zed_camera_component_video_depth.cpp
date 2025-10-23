@@ -891,13 +891,17 @@ bool ZedCamera::isDepthRequired()
         count_subscribers(mConfMapTopic + "/nitros");
 #endif
     }
-    if (mPubDisparity) {dispSub = count_subscribers(mPubDisparity->get_topic_name());}
+    if (mPubDisparity) {
+      dispSub = count_subscribers(mPubDisparity->get_topic_name());
+    }
 #ifdef FOUND_POINT_CLOUD_TRANSPORT
     pcSub = mPubCloud.getNumSubscribers();
 #else
     if (mPubCloud) {pcSub = count_subscribers(mPubCloud->get_topic_name());}
 #endif
-    if (mPubDepthInfo) {depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());}
+    if (mPubDepthInfo) {
+      depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
+    }
 
     tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub + nitrosDepthSub +
       nitrosConfSub;

@@ -8745,7 +8745,7 @@ void ZedCamera::publishHealthStatus()
   msg->low_motion_sensors_reliability =
     status.low_motion_sensors_reliability;
 
-  if (mPubHealthStatus) {mPubHealthStatus->publish(std::move(msg));}
+  mPubHealthStatus->publish(std::move(msg));
 }
 
 bool ZedCamera::publishSvoStatus(uint64_t frame_ts)

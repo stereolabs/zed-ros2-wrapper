@@ -38,14 +38,15 @@ public:
 
 protected:
   // ----> Initialization functions
-  void init();
+  void initNode();
+  void deInitNode();
+
   void initParameters();
   void initServices();
   void initThreads();
 
-  void close();
-
   void getDebugParams();
+  void getTopicEnableParams();
   void getSimParams();
   void getGeneralParams();
   void getVideoParams();
@@ -426,6 +427,7 @@ private:
   // <---- Topics
 
   // ----> Parameter variables
+  // Debug
   bool _debugCommon = false;
   bool _debugSim = false;
   bool _debugVideoDepth = false;
@@ -445,6 +447,32 @@ private:
   // purposes; otherwise, this is always true.
   bool _nitrosDisabled = false;
 
+  // Topic Enablers
+  bool mPublishSensImu = true;
+  bool mPublishSensImuRaw = false;
+  bool mPublishSensMag = false;
+  bool mPublishSensBaro = false;
+  bool mPublishSensTemp = false;
+  bool mPublishSensImuTransf = false;
+  bool mPublishImgLeftRight = false;
+  bool mPublishImgRaw = false;
+  bool mPublishImgGray = false;
+  bool mPublishImgRgb = true;
+  bool mPublishImgStereo = false;
+  bool mPublishImgRoiMask = false;
+  bool mPublishOdomPose = true;
+  bool mPublishPoseCov = false;
+  bool mPublishPath = false;
+  bool mPublishDetPlane = false;
+  bool mPublishDepthMap = true;
+  bool mPublishDepthInfo = false;
+  bool mPublishPointcloud = true;
+  bool mPublishConfidence = false;
+  bool mPublishDisparity = false;
+  bool mPublishStatus = true;
+  bool mPublishSvoClock = false;
+
+  // General
   int mCamSerialNumber = 0;
   int mCamId = -1;
   bool mSimMode = false;     // Expecting simulation data?
@@ -475,7 +503,6 @@ private:
   double mSvoExpectedPeriod = 0.0;
   bool mUseSvoTimestamp = false;
   bool mUsePubTimestamps = false;
-  bool mPublishSvoClock = false;
   bool mGrabOnce = false;
   bool mGrabImuOnce = false;
   int mVerbose = 1;
@@ -536,7 +563,6 @@ private:
   bool mSetAsStatic = false;
   bool mSetGravityAsOrigin = false;
   int mPathMaxCount = -1;
-  bool mPublishPoseCov = true;
 
   bool mGnssFusionEnabled = false;
   std::string mGnssTopic = "/gps/fix";

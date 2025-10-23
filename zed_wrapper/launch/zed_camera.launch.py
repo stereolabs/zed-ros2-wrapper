@@ -158,6 +158,9 @@ def launch_setup(context, *args, **kwargs):
         camera_model_val == 'zed2i' or 
         camera_model_val == 'zedx' or 
         camera_model_val == 'zedxm' or
+        camera_model_val == 'zedxhdr' or
+        camera_model_val == 'zedxhdrmini' or
+        camera_model_val == 'zedxhdrmax' or
         camera_model_val == 'virtual'):
         config_common_path_val = default_config_common + '_stereo.yaml'
     else:
@@ -242,15 +245,17 @@ def launch_setup(context, *args, **kwargs):
         if distro == 'foxy':
             # Foxy does not support the isolated mode
             container_exec='component_container'
+            arguments_val=['--ros-args', '--log-level', 'info']
         else:
             container_exec='component_container_isolated'
+            arguments_val=['--use_multi_threaded_executor','--ros-args', '--log-level', 'info']
         
         zed_container = ComposableNodeContainer(
                 name=container_name_val,
                 namespace=namespace_val,
                 package='rclcpp_components',
                 executable=container_exec,
-                arguments=['--use_multi_threaded_executor','--ros-args', '--log-level', 'info'],
+                arguments=arguments_val,
                 output=node_log_effective,
                 composable_node_descriptions=[]
         )
@@ -298,6 +303,9 @@ def launch_setup(context, *args, **kwargs):
         camera_model_val=='zed2i' or
         camera_model_val=='zedx' or
         camera_model_val=='zedxm' or
+        camera_model_val == 'zedxhdr' or
+        camera_model_val == 'zedxhdrmini' or
+        camera_model_val == 'zedxhdrmax' or
         camera_model_val=='virtual'):
         zed_wrapper_component = ComposableNode(
             package='zed_components',
@@ -307,7 +315,7 @@ def launch_setup(context, *args, **kwargs):
             parameters=node_parameters,
             extra_arguments=[{'use_intra_process_comms': enable_ipc}]
         )
-    else: # 'zedxonegs' or 'zedxone4k')
+    else: # 'zedxonegs','zedxone4k','zedxonehdr')
         zed_wrapper_component = ComposableNode(
             package='zed_components',
             namespace=namespace_val,
@@ -345,7 +353,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'camera_model',
                 description='[REQUIRED] The model of the camera. Using a wrong camera model can disable camera features.',
-                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'virtual', 'zedxonegs', 'zedxone4k']),
+                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'zedxhdr', 'zedxhdrmini', 'zedxhdrmax', 'virtual', 'zedxonegs', 'zedxone4k', 'zedxonehdr']),
             DeclareLaunchArgument(
                 'container_name',
                 default_value='',

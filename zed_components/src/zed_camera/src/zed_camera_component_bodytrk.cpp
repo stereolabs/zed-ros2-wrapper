@@ -341,7 +341,7 @@ void ZedCamera::stopBodyTracking()
       "Publishing EMPTY OBJ message "
         << mPubBodyTrk->get_topic_name());
     try {
-      mPubBodyTrk->publish(std::move(objMsg));
+      if (mPubBodyTrk) {mPubBodyTrk->publish(std::move(objMsg));}
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
@@ -359,7 +359,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
   size_t bt_sub_count = 0;
 
   try {
-    bt_sub_count = count_subscribers(mPubBodyTrk->get_topic_name());
+    if (mPubBodyTrk) {bt_sub_count = count_subscribers(mPubBodyTrk->get_topic_name());}
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_OD("processBodies: Exception while counting subscribers");
@@ -500,7 +500,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
 
   DEBUG_STREAM_OD("Publishing BODY TRK message");
   try {
-    mPubBodyTrk->publish(std::move(bodyMsg));
+    if (mPubBodyTrk) {mPubBodyTrk->publish(std::move(bodyMsg));}
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {

@@ -32,6 +32,7 @@
             gpu_id: -1
             optional_opencv_calibration_file: '' # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
             async_image_retrieval: false # If set to true will camera image retrieve at a framerate different from \ref grab() application framerate. This is useful for recording SVO or sending camera stream at different rate than application.
+            publish_status: true # Advertise the status topics that are published only if a node subscribes to them
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
             # 'zedx.yaml', 'zedxmini.yaml', 'virtual.yaml' files
 
@@ -44,13 +45,24 @@
             gain: 80 # [DYNAMIC]
             auto_whitebalance: true # [DYNAMIC]
             whitebalance_temperature: 42 # [DYNAMIC] - [28,65] x100 - works only if `auto_whitebalance` is false
+            publish_rgb: true # Advertise the RGB image topics that are published only if a node subscribes to them
+            publish_left_right: false # Advertise the left and right image topics that are published only if a node subscribes to them
+            publish_raw: false # Advertise the raw image topics that are published only if a node subscribes to them
+            publish_gray: false # Advertise the gray image topics that are published only if a node subscribes to them
+            publish_stereo: false # Advertise the stereo image topic that is published only if a node subscribes to it
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
             # 'zedx.yaml', 'zedxmini.yaml', 'virtual.yaml' files
 
         sensors:
-            publish_imu_tf: false # [overwritten by launch file options] enable/disable the IMU TF broadcasting
+            publish_imu_tf: true # [overwritten by launch file options] enable/disable the IMU TF broadcasting
             sensors_image_sync: false # Synchronize Sensors messages with latest published video/depth message
             sensors_pub_rate: 100. # frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
+            publish_imu: true # Advertise the IMU topic that is published only if a node subscribes to it
+            publish_imu_raw: false # Advertise the raw IMU topic that is published only if a node subscribes to it
+            publish_cam_imu_transf: false # Advertise the CAMERA-IMU transformation topic that is published only if a node subscribes to it
+            publish_mag: false # Advertise the magnetometer topic that is published only if a node subscribes to it
+            publish_baro: false # Advertise the barometer topic that is published only if a node subscribes to it
+            publish_temp: false # Advertise the temperature topics that are published only if a node subscribes to them
 
         region_of_interest:
             automatic_roi: false # Enable the automatic ROI generation to automatically detect part of the robot in the FoV and remove them from the processing. Note: if enabled the value of `manual_polygon` is ignored
@@ -65,6 +77,7 @@
             apply_to_object_detection: true # Apply ROI to object detection processing
             apply_to_body_tracking: true # Apply ROI to body tracking processing
             apply_to_spatial_mapping: true # Apply ROI to spatial mapping processing
+            publish_roi_mask: false # Advertise the ROI mask image topic that is published only if a node subscribes to it
 
         depth:
             depth_mode: 'NEURAL_LIGHT' # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
@@ -75,6 +88,11 @@
             depth_confidence: 95 # [DYNAMIC]
             depth_texture_conf: 100 # [DYNAMIC]
             remove_saturated_areas: true # [DYNAMIC]
+            publish_depth_map: true # Advertise the depth map topics that are published only if a node subscribes to them
+            publish_depth_info: false # Advertise the depth info topic that is published only if a node subscribes to it
+            publish_point_cloud: true # Advertise the point cloud topic that is published only if a node subscribes to it
+            publish_depth_confidence: false # Advertise the depth confidence topic that is published only if a node subscribes to it
+            publish_disparity: false # Advertise the disparity topic that is published only if a node subscribes to it
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
             # 'zedx.yaml', 'zedxmini.yaml', 'virtual.yaml' files
 
@@ -90,7 +108,7 @@
             area_file_path: '' # Path to the area memory file for relocalization and loop closure in a previously explored environment. 
             save_area_memory_on_closing: false # Save Area memory before closing the camera if `area_file_path` is not empty. You can also use the `save_area_memory` service to save the area memory at any time.
             reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
-            publish_3d_landmarks: true # Publish 3D landmarks used by the positional tracking algorithm
+            publish_3d_landmarks: false # Publish 3D landmarks used by the positional tracking algorithm
             publish_lm_skip_frame: 5 # Publish the landmarks every X frames to reduce bandwidth. Set to 0 to publish all landmarks
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
             set_as_static: false # If 'true' the camera will be static and not move in the environment
@@ -103,6 +121,9 @@
             fixed_z_value: 0.0 # Value to be used for Z coordinate if `two_d_mode` is true
             transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->camera_link` transform being generated
             reset_pose_with_svo_loop: true # Reset the camera pose the `initial_base_pose` when the SVO loop is enabled and the SVO playback reaches the end of the file.
+            publish_odom_pose: true # Advertise the odometry and pose topics that are published only if a node subscribes to them
+            publish_pose_cov: false # Advertise the pose with covariance topic that is published only if a node subscribes to it
+            publish_cam_path: false # Advertise the camera odometry and pose path topics that are published only if a node subscribes to them
 
         gnss_fusion:
             gnss_fusion_enabled: false # fuse 'sensor_msg/NavSatFix' message information into pose data
@@ -127,6 +148,7 @@
             clicked_point_topic: '/clicked_point' # Topic published by Rviz when a point of the cloud is clicked. Used for plane detection
             pd_max_distance_threshold: 0.15 # Plane detection: controls the spread of plane by checking the position difference.
             pd_normal_similarity_threshold: 15.0 # Plane detection: controls the spread of plane by checking the angle difference.
+            publish_det_plane: false # Advertise the plane detection topics that is published only if a node subscribes to it
 
         object_detection:
             od_enabled: false # True to enable Object Detection

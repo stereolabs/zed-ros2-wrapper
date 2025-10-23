@@ -35,6 +35,15 @@
     <material name="zedxm_mat">
         <color rgba="0.25 0.25 0.25 1.0"/>
     </material>
+    <material name="zedxhdr_mat">
+        <color rgba="0.25 0.25 0.25 1.0"/>
+    </material>
+    <material name="zedxhdrmini_mat">
+        <color rgba="0.25 0.25 0.25 1.0"/>
+    </material>
+    <material name="zedxhdrmax_mat">
+        <color rgba="0.25 0.25 0.25 1.0"/>
+    </material>
     <material name="virtual_mat">
         <color rgba="0.25 0.25 0.25 1.0"/>
     </material>
@@ -42,6 +51,9 @@
         <color rgba="0.25 0.25 0.25 1.0"/>
     </material>
     <material name="zedxone4k_mat">
+        <color rgba="0.25 0.25 0.25 1.0"/>
+    </material>
+    <material name="zedxonehdr_mat">
         <color rgba="0.25 0.25 0.25 1.0"/>
     </material>
 </robot>

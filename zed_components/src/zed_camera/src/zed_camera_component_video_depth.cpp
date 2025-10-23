@@ -898,7 +898,9 @@ bool ZedCamera::isDepthRequired()
 #ifdef FOUND_POINT_CLOUD_TRANSPORT
     pcSub = mPubCloud.getNumSubscribers();
 #else
-    if (mPubCloud) {pcSub = count_subscribers(mPubCloud->get_topic_name());}
+    if (mPubCloud) {
+      pcSub = count_subscribers(mPubCloud->get_topic_name());
+    }
 #endif
     if (mPubDepthInfo) {
       depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
@@ -2360,7 +2362,9 @@ bool ZedCamera::isPointCloudSubscribed()
 #ifdef FOUND_POINT_CLOUD_TRANSPORT
     cloudSubCount = mPubCloud.getNumSubscribers();
 #else
-    if (mPubCloud) {cloudSubCount = count_subscribers(mPubCloud->get_topic_name());}
+    if (mPubCloud) {
+      cloudSubCount = count_subscribers(mPubCloud->get_topic_name());
+    }
 #endif
   } catch (...) {
     rcutils_reset_error();
@@ -2451,7 +2455,9 @@ void ZedCamera::publishPointCloud()
   }
 #else
   try {
-    if (mPubCloud) {mPubCloud->publish(std::move(pcMsg));}
+    if (mPubCloud) {
+      mPubCloud->publish(std::move(pcMsg));
+    }
   } catch (std::system_error & e) {
     DEBUG_STREAM_PC(" * [publishPointCloud] Message publishing exception: " << e.what());
   } catch (...) {

@@ -2110,22 +2110,22 @@ void ZedCamera::initPublishers()
         RCLCPP_INFO_STREAM(
           get_logger(), " * Advertised on topic: "
             << mPubOdomPath->get_topic_name());
-        if (mPublish3DLandmarks) {
+      }
+      if (mPublish3DLandmarks) {
 #ifdef FOUND_POINT_CLOUD_TRANSPORT
-          mPub3DLandmarks = point_cloud_transport::create_publisher(
-            shared_from_this(), mPointcloud3DLandmarksTopic, mQos.get_rmw_qos_profile(),
-            mPubOpt);
-          RCLCPP_INFO_STREAM(
-            get_logger(), "Advertised on topic "
-              << mPub3DLandmarks.getTopic());
+        mPub3DLandmarks = point_cloud_transport::create_publisher(
+          shared_from_this(), mPointcloud3DLandmarksTopic, mQos.get_rmw_qos_profile(),
+          mPubOpt);
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Advertised on topic "
+            << mPub3DLandmarks.getTopic());
 #else
-          mPub3DLandmarks = create_publisher<sensor_msgs::msg::PointCloud2>(
-            mPointcloud3DLandmarksTopic, mQos, mPubOpt);
-          RCLCPP_INFO_STREAM(
-            get_logger(), "Advertised on topic "
-              << mPub3DLandmarks->get_topic_name());
+        mPub3DLandmarks = create_publisher<sensor_msgs::msg::PointCloud2>(
+          mPointcloud3DLandmarksTopic, mQos, mPubOpt);
+        RCLCPP_INFO_STREAM(
+          get_logger(), "Advertised on topic "
+            << mPub3DLandmarks->get_topic_name());
 #endif
-        }
       }
     }
     if (mGnssFusionEnabled) {
@@ -5781,6 +5781,11 @@ void ZedCamera::publishPoseLandmarks()
 
     DEBUG_STREAM_PT(" * [publishPoseLandmarks] " << ptsCount << " landmarks to publish");
 
+    if (ptsCount == 0) {
+      DEBUG_STREAM_PT(" * [publishPoseLandmarks] No landmarks to publish, skipping...");
+      return;
+    }
+
     if (mSvoMode) {
       msg->header.stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
     } else if (mSimMode) {
@@ -5839,14 +5844,14 @@ void ZedCamera::publishPoseLandmarks()
           map_lm2d.begin(), map_lm2d.end(),
           [&landmark](const sl::Landmark2D & lm2d) {return lm2d.id == landmark.first;}))
       {
-        *iter_r = 20;
-        *iter_g = 200;
-        *iter_b = 20;
-        *iter_a = 150;
+        *iter_r = 63;
+        *iter_g = 255;
+        *iter_b = 67;
+        *iter_a = 255;
       } else {
-        *iter_r = 200;
-        *iter_g = 20;
-        *iter_b = 20;
+        *iter_r = 255;
+        *iter_g = 100;
+        *iter_b = 100;
         *iter_a = 150;
       }
       // <---- Set the landmark color (green if tracked in 2D, red if not)
@@ -5874,7 +5879,11 @@ void ZedCamera::publishPoseLandmarks()
     }
 #else
     try {
-      mPub3DLandmarks->publish(std::move(msg));
+      if (mPub3DLandmarks) {
+        mPub3DLandmarks->publish(std::move(msg));
+      } else {
+        DEBUG_STREAM_PT(" * [publishPoseLandmarks] Publisher not initialized");
+      }
     } catch (std::system_error & e) {
       DEBUG_STREAM_PT(" * [publishPoseLandmarks] Message publishing exception: " << e.what());
     } catch (...) {

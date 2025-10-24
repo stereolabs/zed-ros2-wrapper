@@ -774,6 +774,15 @@ bool ZedCameraOne::openZedCamera()
   _connStatus = _zed->open(_initParams);
 
   if (_connStatus != sl::ERROR_CODE::SUCCESS) {
+    if (_connStatus == sl::ERROR_CODE::DRIVER_FAILURE) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "ZED X Driver failure: " << sl::toVerbose(_connStatus)
+                                 << ". Please verify that the ZED drivers "
+          "are correctly installed.");
+      return false;
+    }
+
     if (_connStatus == sl::ERROR_CODE::INVALID_CALIBRATION_FILE) {
       if (_opencvCalibFile.empty()) {
         RCLCPP_ERROR_STREAM(

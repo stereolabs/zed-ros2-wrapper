@@ -7,8 +7,8 @@
         general:
             camera_model: 'zed2i'
             camera_name: 'zed2i' # overwritten by launch file
-            grab_resolution: 'HD1080' # The native camera grab resolution. 'HD2K', 'HD1080', 'HD720', 'VGA', 'AUTO'
-            grab_frame_rate: 15 # ZED SDK internal grabbing rate
+            grab_resolution: 'VGA' # The native camera grab resolution. 'HD2K', 'HD1080', 'HD720', 'VGA', 'AUTO'
+            grab_frame_rate: 30 # ZED SDK internal grabbing rate
 
         video:
             brightness: 4 # [DYNAMIC] Image brightness. Range: 0-8

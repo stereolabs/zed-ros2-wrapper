@@ -1041,6 +1041,10 @@ void ZedCamera::getGeneralParams()
         mCamGrabFrameRate, mCamGrabFrameRate,
         " * Camera framerate: ", false, 0, 120);
     }
+  } else {
+    // Set it to the maximum possible frame rate to avoid problem on the next validations
+    // This value will be forced to the correct SVO rate after it has been opened.
+    mCamGrabFrameRate = 120;
   }
   sl_tools::getParam(
     shared_from_this(), "general.gpu_id", mGpuId, mGpuId,
@@ -2604,6 +2608,21 @@ bool ZedCamera::startCamera()
           << "'. Please fix the parameter !!!");
     }
     mCamGrabFrameRate = realFps;
+
+    // ----> Check publishing rates
+    if (mVdPubRate > mCamGrabFrameRate){
+      mVdPubRate = mCamGrabFrameRate;
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Video/Depth publishing rate was too high [" << mVdPubRate << "], capped to real grab rate: " << mCamGrabFrameRate);
+    }
+    if (mPcPubRate > mCamGrabFrameRate) {
+      mPcPubRate = mCamGrabFrameRate;
+      RCLCPP_WARN_STREAM(get_logger(),
+                         "PointCloud publishing rate was too high ["
+                             << mPcPubRate << "], capped to real grab rate: "
+                             << mCamGrabFrameRate);
+    }
+    // <---- Check publishing rates
   }
   if (mSvoMode && !mSvoRealtime) {
     mVdPubRate = static_cast<double>(mCamGrabFrameRate) * mSvoRate;

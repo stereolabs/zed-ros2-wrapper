@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2025-10-31
+----------
+- Fixed a bug that forced the maximum publishing rate of the point cloud topic to 15 Hz with SVO files
+- Set the default mode for positional tracking to `GEN_2` waiting for improvements in `GEN_3` stability
+
 2025-10-14
 ----------
 - Added topic enabler feature to `sl::CameraOne`

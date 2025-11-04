@@ -2484,6 +2484,7 @@ bool ZedCamera::startCamera()
       break;
     }
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
     if (mConnStatus == sl::ERROR_CODE::DRIVER_FAILURE) {
       RCLCPP_ERROR_STREAM(
         get_logger(),
@@ -2492,6 +2493,7 @@ bool ZedCamera::startCamera()
           << ". Please verify that the ZED drivers are correctly installed.");
       return false;
     }
+#endif
 
     if (mConnStatus == sl::ERROR_CODE::INVALID_CALIBRATION_FILE) {
       if (mOpencvCalibFile.empty()) {

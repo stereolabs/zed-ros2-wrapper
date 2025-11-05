@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-11-05
+----------
+- Changed minimum depth value to 0.01 meters when using ZED SDK v5.1 or higher 
+
 2025-10-31
 ----------
 - Fixed a bug that forced the maximum publishing rate of the point cloud topic to 15 Hz with SVO files

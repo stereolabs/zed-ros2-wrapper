@@ -23,6 +23,6 @@
           denoising: 50 # Defines the level of denoising applied on both left and right images. Range [0-100]
 
         depth:
-          min_depth: 0.3 # Min: 0.3, Max: 3.0
-          max_depth: 10.0 # Max: 20.0
+          min_depth: 0.01 # Min: 0.01, Max: 3.0
+          max_depth: 20.0 # Min: 0.5, Max: 40.0
 

@@ -500,13 +500,18 @@ void ZedCamera::getDepthParams()
                         << "]");
   }
 
-  if (!mDepthDisabled) {
-    sl_tools::getParam(
-      shared_from_this(), "depth.min_depth", mCamMinDepth,
-      mCamMinDepth, " * Min depth [m]: ", false, 0.1, 100.0);
+  if (!mDepthDisabled) {   
+#if ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51)
+    const double default_min_depth = 0.1;
+#else
+    const double default_min_depth = 0.01;
+#endif
+    sl_tools::getParam(shared_from_this(), "depth.min_depth", mCamMinDepth,
+                       mCamMinDepth, " * Min depth [m]: ", false,
+                       default_min_depth, 3.0);
     sl_tools::getParam(
       shared_from_this(), "depth.max_depth", mCamMaxDepth,
-      mCamMaxDepth, " * Max depth [m]: ", false, 0.1, 100.0);
+      mCamMaxDepth, " * Max depth [m]: ", false, 0.5, 1000.0);
 
     sl_tools::getParam(
       shared_from_this(), "depth.depth_stabilization",

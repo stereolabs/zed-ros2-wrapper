@@ -299,8 +299,9 @@ protected:
   void publishGnssPose();
   void publishPoseStatus();
   void publishGnssPoseStatus();
-  void publishGeoPoseStatus();
+  void publishGeoPoseStatus();  
   void publishTFs(rclcpp::Time t);
+  void publishCameraTFs(rclcpp::Time t);
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
   bool publishSensorsData(rclcpp::Time force_ts = TIMEZERO_ROS);
@@ -725,6 +726,7 @@ private:
   // ----> initialization Transform listener
   std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
   std::unique_ptr<tf2_ros::TransformListener> mTfListener;
+  std::unique_ptr<tf2_ros::StaticTransformBroadcaster> mStaticTfBroadcaster;
   std::unique_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
   // <---- initialization Transform listener
 

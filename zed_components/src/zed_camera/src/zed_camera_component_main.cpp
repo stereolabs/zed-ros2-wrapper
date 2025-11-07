@@ -2391,50 +2391,57 @@ bool ZedCamera::startCamera()
   mTfListener = std::make_unique<tf2_ros::TransformListener>(
     *mTfBuffer);    // Start TF Listener thread
   mTfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-  // <---- TF2 Transform
 
-  // ----> ZED configuration
-
-  // if (primary_cuda_context) {
-  //   mInitParams.sdk_cuda_ctx = *primary_cuda_context;
-  // } else {
-  //   RCLCPP_INFO(
-  //     get_logger(),
-  //     "No ready CUDA context found, using default ZED SDK context.");
-  // }
-
-  if (mSimMode) {  // Simulation?
-    RCLCPP_INFO_STREAM(
-      get_logger(), "=== CONNECTING TO THE SIMULATION SERVER ["
-        << mSimAddr.c_str() << ":" << mSimPort
-        << "] ===");
-
-    mInitParams.input.setFromStream(mSimAddr.c_str(), mSimPort);
-  } else if (!mSvoFilepath.empty()) {
-    RCLCPP_INFO(get_logger(), "=== SVO OPENING ===");
-
-    mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
-    mInitParams.svo_real_time_mode = mSvoRealtime;
-  } else if (!mStreamAddr.empty()) {
-    RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING OPENING ===");
-
-    mInitParams.input.setFromStream(mStreamAddr.c_str(), static_cast<unsigned short>(mStreamPort));
-  } else {
-    RCLCPP_INFO(get_logger(), "=== CAMERA OPENING ===");
-
-    mInitParams.camera_fps = mCamGrabFrameRate;
-    //mInitParams.grab_compute_capping_fps = static_cast<float>(mVdPubRate); // Using Wrapper multi-threading instead
-    mInitParams.grab_compute_capping_fps = 0.0f;
-    mInitParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
-    mInitParams.async_image_retrieval = mAsyncImageRetrieval;
-    mInitParams.enable_image_validity_check = mImageValidityCheck;
-
-    if (mCamSerialNumber > 0) {
-      mInitParams.input.setFromSerialNumber(mCamSerialNumber);
-    } else if (mCamId >= 0) {
-      mInitParams.input.setFromCameraID(mCamId);
-    }
+  if (!options.use_intra_process_comms()) {
+    mStaticTfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+  } else { // Cannot use LOCAL_TRANSIENT with intra-process comms
+    mStaticTfBroadcaster.reset();
   }
+    // <---- TF2 Transform
+
+    // ----> ZED configuration
+
+    // if (primary_cuda_context) {
+    //   mInitParams.sdk_cuda_ctx = *primary_cuda_context;
+    // } else {
+    //   RCLCPP_INFO(
+    //     get_logger(),
+    //     "No ready CUDA context found, using default ZED SDK context.");
+    // }
+
+    if (mSimMode) {  // Simulation?
+      RCLCPP_INFO_STREAM(get_logger(),
+                         "=== CONNECTING TO THE SIMULATION SERVER ["
+                             << mSimAddr.c_str() << ":" << mSimPort << "] ===");
+
+      mInitParams.input.setFromStream(mSimAddr.c_str(), mSimPort);
+    } else if (!mSvoFilepath.empty()) {
+      RCLCPP_INFO(get_logger(), "=== SVO OPENING ===");
+
+      mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
+      mInitParams.svo_real_time_mode = mSvoRealtime;
+    } else if (!mStreamAddr.empty()) {
+      RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING OPENING ===");
+
+      mInitParams.input.setFromStream(mStreamAddr.c_str(),
+                                      static_cast<unsigned short>(mStreamPort));
+    } else {
+      RCLCPP_INFO(get_logger(), "=== CAMERA OPENING ===");
+
+      mInitParams.camera_fps = mCamGrabFrameRate;
+      // mInitParams.grab_compute_capping_fps = static_cast<float>(mVdPubRate);
+      // // Using Wrapper multi-threading instead
+      mInitParams.grab_compute_capping_fps = 0.0f;
+      mInitParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
+      mInitParams.async_image_retrieval = mAsyncImageRetrieval;
+      mInitParams.enable_image_validity_check = mImageValidityCheck;
+
+      if (mCamSerialNumber > 0) {
+        mInitParams.input.setFromSerialNumber(mCamSerialNumber);
+      } else if (mCamId >= 0) {
+        mInitParams.input.setFromCameraID(mCamId);
+      }
+    }
 
   mInitParams.coordinate_system = ROS_COORDINATE_SYSTEM;
   mInitParams.coordinate_units = ROS_MEAS_UNITS;
@@ -5131,7 +5138,13 @@ void ZedCamera::publishTFs(rclcpp::Time t)
   }
 }
 
-void ZedCamera::publishOdomTF(rclcpp::Time t)
+void ZedCamera::publishCameraTFs(rclcpp::Time t )
+{
+
+}
+
+void
+ZedCamera::publishOdomTF(rclcpp::Time t) 
 {
   // DEBUG_STREAM_PT("publishOdomTF");
 

@@ -299,7 +299,7 @@ protected:
   void publishGnssPose();
   void publishPoseStatus();
   void publishGnssPoseStatus();
-  void publishGeoPoseStatus();  
+  void publishGeoPoseStatus();
   void publishTFs(rclcpp::Time t);
   void publishCameraTFs(rclcpp::Time t);
   void publishOdomTF(rclcpp::Time t);
@@ -368,7 +368,6 @@ private:
   std::shared_ptr<sl::Camera> mZed;
   sl::InitParameters mInitParams;
   sl::RuntimeParameters mRunParams;
-
 
   // ----> Fusion module
   std::shared_ptr<sl::FusionConfiguration> mFusionConfig;
@@ -612,7 +611,6 @@ private:
   std::unordered_map<int, std::string> mCustomLabels;
   std::unordered_map<std::string, int> mCustomClassIdMap;
 
-
   bool mBodyTrkEnabled = false;
   sl::BODY_TRACKING_MODEL mBodyTrkModel =
     sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST;
@@ -687,6 +685,7 @@ private:
   // <---- QoS
 
   // ----> Frame IDs
+  bool mStaticTfPublished = false;
   std::string mDepthFrameId;
   std::string mDepthOptFrameId;
 
@@ -695,11 +694,11 @@ private:
   std::string mUtmFrameId = "utm";
   std::string mMapFrameId = "map";
   std::string mOdomFrameId = "odom";
-  std::string mBaseFrameId = "";
   std::string mGnssFrameId = "";
   std::string mGnssOriginFrameId = "gnss_ref_pose";
 
-  std::string mCameraFrameId;
+  std::string mBaseFrameId;
+  std::string mCenterFrameId;
 
   std::string mRightCamFrameId;
   std::string mRightCamOptFrameId;
@@ -1029,6 +1028,7 @@ private:
 
   // ----> Diagnostic
   sl_tools::StopWatch mUptimer;
+  bool mUsingIPC = false;
   float mTempImu = NOT_VALID_TEMP;
   float mTempLeft = NOT_VALID_TEMP;
   float mTempRight = NOT_VALID_TEMP;

@@ -500,15 +500,16 @@ void ZedCamera::getDepthParams()
                         << "]");
   }
 
-  if (!mDepthDisabled) {   
+  if (!mDepthDisabled) {
 #if ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51)
     const double default_min_depth = 0.1;
 #else
     const double default_min_depth = 0.01;
 #endif
-    sl_tools::getParam(shared_from_this(), "depth.min_depth", mCamMinDepth,
-                       mCamMinDepth, " * Min depth [m]: ", false,
-                       default_min_depth, 3.0);
+    sl_tools::getParam(
+      shared_from_this(), "depth.min_depth", mCamMinDepth,
+      mCamMinDepth, " * Min depth [m]: ", false,
+      default_min_depth, 3.0);
     sl_tools::getParam(
       shared_from_this(), "depth.max_depth", mCamMaxDepth,
       mCamMaxDepth, " * Max depth [m]: ", false, 0.5, 1000.0);
@@ -1991,8 +1992,7 @@ void ZedCamera::publishStereoImages(const rclcpp::Time & t)
   if (mStereoSubCount > 0) {
     DEBUG_STREAM_VD(" * mStereoSubCount: " << mStereoSubCount);
     auto combined = sl_tools::imagesToROSmsg(
-      mMatLeft, mMatRight,
-      mCameraFrameId, t, mUsePubTimestamps);
+      mMatLeft, mMatRight, mCenterFrameId, t, mUsePubTimestamps);
     DEBUG_STREAM_VD(" * Publishing SIDE-BY-SIDE message");
     try {
       mPubStereo.publish(std::move(combined));
@@ -2009,8 +2009,7 @@ void ZedCamera::publishStereoRawImages(const rclcpp::Time & t)
   if (mStereoRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mStereoRawSubCount: " << mStereoRawSubCount);
     auto combined = sl_tools::imagesToROSmsg(
-      mMatLeftRaw, mMatRightRaw,
-      mCameraFrameId, t, mUsePubTimestamps);
+      mMatLeftRaw, mMatRightRaw, mCenterFrameId, t, mUsePubTimestamps);
     DEBUG_STREAM_VD(" * Publishing SIDE-BY-SIDE RAW message");
     try {
       mPubRawStereo.publish(std::move(combined));

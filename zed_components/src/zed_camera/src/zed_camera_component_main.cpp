@@ -98,14 +98,15 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mUptimer(get_clock()),
   mSetSvoFrameCheckTimer(get_clock())
 {
+  mUsingIPC = options.use_intra_process_comms();
+
   RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
   RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), " * namespace: %s", get_namespace());
   RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
-  RCLCPP_INFO(
-    get_logger(), " * IPC: %s",
-    options.use_intra_process_comms() ? "enabled" : "disabled");
+
+  RCLCPP_INFO(get_logger(), " * IPC: %s", mUsingIPC ? "enabled" : "disabled");
   RCLCPP_INFO(get_logger(), "================================");
 
   if (((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) <
@@ -1916,14 +1917,14 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
 void ZedCamera::setTFCoordFrameNames()
 {
   // ----> Coordinate frames
-  mCameraFrameId = mCameraName + "_camera_center";
+  mCenterFrameId = mCameraName + "_camera_center";
   mLeftCamFrameId = mCameraName + "_left_camera_frame";
   mLeftCamOptFrameId = mCameraName + "_left_camera_optical_frame";
   mRightCamFrameId = mCameraName + "_right_camera_frame";
   mRightCamOptFrameId = mCameraName + "_right_camera_optical_frame";
 
   mImuFrameId = mCameraName + "_imu_link";
-  mBaroFrameId = mCameraFrameId;         // mCameraName + "_baro_link";
+  mBaroFrameId = mCenterFrameId;         // mCameraName + "_baro_link";
   mMagFrameId = mImuFrameId;             // mCameraName + "_mag_link";
   mTempLeftFrameId = mLeftCamFrameId;    // mCameraName + "_temp_left_link";
   mTempRightFrameId = mRightCamFrameId;  // mCameraName + "_temp_right_link";
@@ -1937,7 +1938,7 @@ void ZedCamera::setTFCoordFrameNames()
   RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t-> " << mOdomFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t-> " << mBaseFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t-> " << mCameraFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t-> " << mCenterFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t-> " << mLeftCamFrameId);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -2392,56 +2393,60 @@ bool ZedCamera::startCamera()
     *mTfBuffer);    // Start TF Listener thread
   mTfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
-  if (!options.use_intra_process_comms()) {
-    mStaticTfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-  } else { // Cannot use LOCAL_TRANSIENT with intra-process comms
+  mStaticTfPublished = false;
+  if (!mUsingIPC) {
+    mStaticTfBroadcaster =
+      std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
+  } else {  // Cannot use LOCAL_TRANSIENT with intra-process comms
     mStaticTfBroadcaster.reset();
   }
-    // <---- TF2 Transform
+  // <---- TF2 Transform
 
-    // ----> ZED configuration
+  // ----> ZED configuration
 
-    // if (primary_cuda_context) {
-    //   mInitParams.sdk_cuda_ctx = *primary_cuda_context;
-    // } else {
-    //   RCLCPP_INFO(
-    //     get_logger(),
-    //     "No ready CUDA context found, using default ZED SDK context.");
-    // }
+  // if (primary_cuda_context) {
+  //   mInitParams.sdk_cuda_ctx = *primary_cuda_context;
+  // } else {
+  //   RCLCPP_INFO(
+  //     get_logger(),
+  //     "No ready CUDA context found, using default ZED SDK context.");
+  // }
 
-    if (mSimMode) {  // Simulation?
-      RCLCPP_INFO_STREAM(get_logger(),
-                         "=== CONNECTING TO THE SIMULATION SERVER ["
-                             << mSimAddr.c_str() << ":" << mSimPort << "] ===");
+  if (mSimMode) {  // Simulation?
+    RCLCPP_INFO_STREAM(
+      get_logger(), "=== CONNECTING TO THE SIMULATION SERVER ["
+        << mSimAddr.c_str() << ":" << mSimPort
+        << "] ===");
 
-      mInitParams.input.setFromStream(mSimAddr.c_str(), mSimPort);
-    } else if (!mSvoFilepath.empty()) {
-      RCLCPP_INFO(get_logger(), "=== SVO OPENING ===");
+    mInitParams.input.setFromStream(mSimAddr.c_str(), mSimPort);
+  } else if (!mSvoFilepath.empty()) {
+    RCLCPP_INFO(get_logger(), "=== SVO OPENING ===");
 
-      mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
-      mInitParams.svo_real_time_mode = mSvoRealtime;
-    } else if (!mStreamAddr.empty()) {
-      RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING OPENING ===");
+    mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
+    mInitParams.svo_real_time_mode = mSvoRealtime;
+  } else if (!mStreamAddr.empty()) {
+    RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING OPENING ===");
 
-      mInitParams.input.setFromStream(mStreamAddr.c_str(),
-                                      static_cast<unsigned short>(mStreamPort));
-    } else {
-      RCLCPP_INFO(get_logger(), "=== CAMERA OPENING ===");
+    mInitParams.input.setFromStream(
+      mStreamAddr.c_str(),
+      static_cast<unsigned short>(mStreamPort));
+  } else {
+    RCLCPP_INFO(get_logger(), "=== CAMERA OPENING ===");
 
-      mInitParams.camera_fps = mCamGrabFrameRate;
-      // mInitParams.grab_compute_capping_fps = static_cast<float>(mVdPubRate);
-      // // Using Wrapper multi-threading instead
-      mInitParams.grab_compute_capping_fps = 0.0f;
-      mInitParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
-      mInitParams.async_image_retrieval = mAsyncImageRetrieval;
-      mInitParams.enable_image_validity_check = mImageValidityCheck;
+    mInitParams.camera_fps = mCamGrabFrameRate;
+    // mInitParams.grab_compute_capping_fps = static_cast<float>(mVdPubRate);
+    // // Using Wrapper multi-threading instead
+    mInitParams.grab_compute_capping_fps = 0.0f;
+    mInitParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
+    mInitParams.async_image_retrieval = mAsyncImageRetrieval;
+    mInitParams.enable_image_validity_check = mImageValidityCheck;
 
-      if (mCamSerialNumber > 0) {
-        mInitParams.input.setFromSerialNumber(mCamSerialNumber);
-      } else if (mCamId >= 0) {
-        mInitParams.input.setFromCameraID(mCamId);
-      }
+    if (mCamSerialNumber > 0) {
+      mInitParams.input.setFromSerialNumber(mCamSerialNumber);
+    } else if (mCamId >= 0) {
+      mInitParams.input.setFromCameraID(mCamId);
     }
+  }
 
   mInitParams.coordinate_system = ROS_COORDINATE_SYSTEM;
   mInitParams.coordinate_units = ROS_MEAS_UNITS;
@@ -2619,17 +2624,21 @@ bool ZedCamera::startCamera()
     mCamGrabFrameRate = realFps;
 
     // ----> Check publishing rates
-    if (mVdPubRate > mCamGrabFrameRate){
+    if (mVdPubRate > mCamGrabFrameRate) {
       mVdPubRate = mCamGrabFrameRate;
       RCLCPP_WARN_STREAM(
-        get_logger(), "Video/Depth publishing rate was too high [" << mVdPubRate << "], capped to real grab rate: " << mCamGrabFrameRate);
+        get_logger(),
+        "Video/Depth publishing rate was too high ["
+          << mVdPubRate << "], capped to real grab rate: "
+          << mCamGrabFrameRate);
     }
     if (mPcPubRate > mCamGrabFrameRate) {
       mPcPubRate = mCamGrabFrameRate;
-      RCLCPP_WARN_STREAM(get_logger(),
-                         "PointCloud publishing rate was too high ["
-                             << mPcPubRate << "], capped to real grab rate: "
-                             << mCamGrabFrameRate);
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "PointCloud publishing rate was too high ["
+          << mPcPubRate << "], capped to real grab rate: "
+          << mCamGrabFrameRate);
     }
     // <---- Check publishing rates
   }
@@ -3872,7 +3881,7 @@ void ZedCamera::initTransforms()
 bool ZedCamera::getCamera2BaseTransform()
 {
   DEBUG_STREAM_PT(
-    "Getting static TF from '" << mCameraFrameId.c_str()
+    "Getting static TF from '" << mCenterFrameId.c_str()
                                << "' to '" << mBaseFrameId.c_str()
                                << "'");
 
@@ -3883,7 +3892,7 @@ bool ZedCamera::getCamera2BaseTransform()
   try {
     // Save the transformation
     geometry_msgs::msg::TransformStamped c2b = mTfBuffer->lookupTransform(
-      mCameraFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
+      mCenterFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
 
     // Get the TF2 transformation
     // tf2::fromMsg(c2b.transform, mCamera2BaseTransf);
@@ -3901,7 +3910,7 @@ bool ZedCamera::getCamera2BaseTransform()
     RCLCPP_INFO(
       get_logger(),
       " Static transform Camera Center to Base [%s -> %s]",
-      mCameraFrameId.c_str(), mBaseFrameId.c_str());
+      mCenterFrameId.c_str(), mBaseFrameId.c_str());
     RCLCPP_INFO(
       get_logger(), "  * Translation: {%.3f,%.3f,%.3f}",
       mCamera2BaseTransf.getOrigin().x(),
@@ -3919,7 +3928,7 @@ bool ZedCamera::getCamera2BaseTransform()
       RCLCPP_WARN_THROTTLE(
         get_logger(), steady_clock, 1000.0,
         "The tf from '%s' to '%s' is not available.",
-        mCameraFrameId.c_str(), mBaseFrameId.c_str());
+        mCenterFrameId.c_str(), mBaseFrameId.c_str());
       RCLCPP_WARN_THROTTLE(
         get_logger(), steady_clock, 1000.0,
         "Note: one of the possible cause of the problem is the absense of an "
@@ -3928,7 +3937,7 @@ bool ZedCamera::getCamera2BaseTransform()
         "TF transformations "
         "or a modified URDF not correctly reproducing the ZED "
         "TF chain '%s' -> '%s' -> '%s'",
-        mBaseFrameId.c_str(), mCameraFrameId.c_str(), mDepthFrameId.c_str());
+        mBaseFrameId.c_str(), mCenterFrameId.c_str(), mDepthFrameId.c_str());
       mCamera2BaseFirstErr = false;
     }
 
@@ -3945,7 +3954,7 @@ bool ZedCamera::getSens2CameraTransform()
 {
   DEBUG_STREAM_PT(
     "Getting static TF from '"
-      << mDepthFrameId.c_str() << "' to '" << mCameraFrameId.c_str()
+      << mDepthFrameId.c_str() << "' to '" << mCenterFrameId.c_str()
       << "'");
 
   mSensor2CameraTransfValid = false;
@@ -3955,7 +3964,7 @@ bool ZedCamera::getSens2CameraTransform()
   try {
     // Save the transformation
     geometry_msgs::msg::TransformStamped s2c = mTfBuffer->lookupTransform(
-      mDepthFrameId, mCameraFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
+      mDepthFrameId, mCenterFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
 
     // Get the TF2 transformation
     // tf2::fromMsg(s2c.transform, mSensor2CameraTransf);
@@ -3973,7 +3982,7 @@ bool ZedCamera::getSens2CameraTransform()
     RCLCPP_INFO(
       get_logger(),
       " Static transform ref. CMOS Sensor to Camera Center [%s -> %s]",
-      mDepthFrameId.c_str(), mCameraFrameId.c_str());
+      mDepthFrameId.c_str(), mCenterFrameId.c_str());
     RCLCPP_INFO(
       get_logger(), "  * Translation: {%.3f,%.3f,%.3f}",
       mSensor2CameraTransf.getOrigin().x(),
@@ -3991,7 +4000,7 @@ bool ZedCamera::getSens2CameraTransform()
       RCLCPP_WARN_THROTTLE(
         get_logger(), steady_clock, 1000.0,
         "The tf from '%s' to '%s' is not available.",
-        mDepthFrameId.c_str(), mCameraFrameId.c_str());
+        mDepthFrameId.c_str(), mCenterFrameId.c_str());
       RCLCPP_WARN_THROTTLE(
         get_logger(), steady_clock, 1000.0,
         "Note: one of the possible cause of the problem is the absense of an "
@@ -4000,7 +4009,7 @@ bool ZedCamera::getSens2CameraTransform()
         "TF transformations "
         "or a modified URDF not correctly reproducing the ZED "
         "TF chain '%s' -> '%s' -> '%s'",
-        mBaseFrameId.c_str(), mCameraFrameId.c_str(), mDepthFrameId.c_str());
+        mBaseFrameId.c_str(), mCenterFrameId.c_str(), mDepthFrameId.c_str());
       mSensor2CameraTransfFirstErr = false;
     }
 
@@ -4072,7 +4081,7 @@ bool ZedCamera::getSens2BaseTransform()
         "TF transformations "
         "or a modified URDF not correctly reproducing the ZED "
         "TF chain '%s' -> '%s' -> '%s'",
-        mBaseFrameId.c_str(), mCameraFrameId.c_str(), mDepthFrameId.c_str());
+        mBaseFrameId.c_str(), mCenterFrameId.c_str(), mDepthFrameId.c_str());
       mSensor2BaseTransfFirstErr = false;
     }
 
@@ -5119,6 +5128,8 @@ void ZedCamera::publishTFs(rclcpp::Time t)
   // RCLCPP_INFO_STREAM(get_logger(), "publishTFs - t type:" <<
   // t.get_clock_type());
 
+  publishCameraTFs(t);
+
   if (!mPosTrackingReady) {
     return;
   }
@@ -5138,13 +5149,129 @@ void ZedCamera::publishTFs(rclcpp::Time t)
   }
 }
 
-void ZedCamera::publishCameraTFs(rclcpp::Time t )
+void ZedCamera::publishCameraTFs(rclcpp::Time t)
 {
+  // DEBUG_STREAM_PT("publishCameraTFs");
 
+  if (!mUsingIPC && mStaticTfPublished) {
+    DEBUG_STREAM_PT("Static Camera TF already broadcasted");
+    return;
+  }
+
+  const double baseline = static_cast<double>(
+    mZed->getCameraInformation()
+    .camera_configuration.calibration_parameters.getCameraBaseline());
+
+  double height = 0.0;
+  double bottom_slope = 0.0;
+  double screw_offset_x = 0.0;
+  double screw_offset_z = 0.0;
+  double optical_offset_x = 0.0;
+
+  switch (mCamRealModel) {
+    case sl::MODEL::ZED:
+      optical_offset_x = -0.01;
+      break;
+    case sl::MODEL::ZED_M:
+      optical_offset_x = 0.0;
+      break;
+    case sl::MODEL::ZED2:
+      optical_offset_x = -0.01;
+      break;
+    case sl::MODEL::ZED2i:
+      optical_offset_x = -0.01;
+      break;
+    case sl::MODEL::ZED_X:
+    case sl::MODEL::ZED_XM:
+    case sl::MODEL::ZED_X_HDR:
+    case sl::MODEL::ZED_X_HDR_MAX:
+    case sl::MODEL::ZED_X_HDR_MINI:
+      optical_offset_x = -0.01;
+      break;
+    case sl::MODEL::VIRTUAL_ZED_X:
+      optical_offset_x = -0.01;
+      break;
+    default:
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "Unknown camera model for static TF publishing: "
+          << sl::toString(mCamRealModel).c_str());
+      mZed.reset();
+      exit(EXIT_FAILURE);
+  }
+
+  // ----> Common info
+  geometry_msgs::msg::TransformStamped transformStamped;
+  transformStamped.header.stamp =
+    mUsePubTimestamps ? get_clock()->now() :
+    (t + rclcpp::Duration(0, mTfOffset * 1e9));
+  // <---- Common info
+
+  // // ----> camera_link -> camera_center
+  // transformStamped.header.frame_id = mBaseFrameId;
+  // transformStamped.child_frame_id = mCenterFrameId;
+
+  // transformStamped.transform.translation.x = screw_offset_x;
+  // transformStamped.transform.translation.y = 0.0;
+  // transformStamped.transform.translation.z = screw_offset_z;
+  // transformStamped.transform.rotation.x = 0.0;
+  // transformStamped.transform.rotation.y = 0.0;
+  // transformStamped.transform.rotation.z = 0.0;
+  // transformStamped.transform.rotation.w = 1.0;
+
+  // // Publish transformation
+  // if (mUsingIPC) {
+  //   mTfBroadcaster->sendTransform(transformStamped);
+  // } else {
+  //   mStaticTfBroadcaster->sendTransform(transformStamped);
+  // }
+  // // <---- camera_link -> camera_center
+
+  // ----> camera_center -> left_camera_frame
+  transformStamped.header.frame_id = mCenterFrameId;
+  transformStamped.child_frame_id = mLeftCamFrameId;
+
+  transformStamped.transform.translation.x = optical_offset_x;
+  transformStamped.transform.translation.y = baseline / 2.0;
+  transformStamped.transform.translation.z = 0.0;
+  transformStamped.transform.rotation.x = 0.0;
+  transformStamped.transform.rotation.y = 0.0;
+  transformStamped.transform.rotation.z = 0.0;
+  transformStamped.transform.rotation.w = 1.0;
+
+  // Publish transformation
+  if (mUsingIPC) {
+    mTfBroadcaster->sendTransform(transformStamped);
+  } else {
+    mStaticTfBroadcaster->sendTransform(transformStamped);
+  }
+  // <---- camera_center -> left_camera_frame
+
+  // ----> camera_center -> left_camera_frame
+  transformStamped.header.frame_id = mCenterFrameId;
+  transformStamped.child_frame_id = mRightCamFrameId;
+
+  transformStamped.transform.translation.x = optical_offset_x;
+  transformStamped.transform.translation.y = -baseline / 2.0;
+  transformStamped.transform.translation.z = 0.0;
+  transformStamped.transform.rotation.x = 0.0;
+  transformStamped.transform.rotation.y = 0.0;
+  transformStamped.transform.rotation.z = 0.0;
+  transformStamped.transform.rotation.w = 1.0;
+
+  // Publish transformation
+  if (mUsingIPC) {
+    mTfBroadcaster->sendTransform(transformStamped);
+  } else {
+    mStaticTfBroadcaster->sendTransform(transformStamped);
+  }
+  // <---- camera_center -> left_camera_frame
+
+  // at the end
+  mStaticTfPublished = true;
 }
 
-void
-ZedCamera::publishOdomTF(rclcpp::Time t) 
+void ZedCamera::publishOdomTF(rclcpp::Time t)
 {
   // DEBUG_STREAM_PT("publishOdomTF");
 
@@ -7452,6 +7579,7 @@ void ZedCamera::callback_updateDiagnostic(
   stat.addf("Uptime", "%s", sl_tools::seconds2str(mUptimer.toc()).c_str());
 
   if (mGrabStatus == sl::ERROR_CODE::SUCCESS || mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
+    stat.addf("IPC Enabled", "%s", mUsingIPC ? "YES" : "NO");
     stat.addf("Camera Grab rate", "%d Hz", mCamGrabFrameRate);
 
     double freq = 1. / mGrabPeriodMean_sec->getAvg();

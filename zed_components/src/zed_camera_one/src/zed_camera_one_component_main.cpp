@@ -25,6 +25,7 @@ using namespace std::placeholders;
 
 namespace stereolabs
 {
+
 ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
 : Node("zed_node_one", options),
   _threadStop(false),
@@ -772,9 +773,10 @@ bool ZedCameraOne::openZedCamera()
 {
   _grabStatus = sl::ERROR_CODE::LAST;
   _connStatus = _zed->open(_initParams);
-  
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+
   if (_connStatus != sl::ERROR_CODE::SUCCESS) {
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
     if (_connStatus == sl::ERROR_CODE::DRIVER_FAILURE) {
       RCLCPP_ERROR_STREAM(
         get_logger(),

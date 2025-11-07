@@ -464,7 +464,7 @@ std::string ZedCamera::getParam(
   }
 
   std::string error;
-  outVal = sl_tools::parseStringVector(out_str, error);
+  outVal = sl_tools::parseStringMultiVector_float(out_str, error);
 
   if (error != "") {
     RCLCPP_WARN_STREAM(
@@ -1016,12 +1016,39 @@ void ZedCamera::getGeneralParams()
     mCameraName, " * Camera name: ");
 
   if (!mSvoMode) {
-    sl_tools::getParam(
-      shared_from_this(), "general.serial_number",
-      mCamSerialNumber, mCamSerialNumber, " * Camera SN: ", false, 0);
-    sl_tools::getParam(
-      shared_from_this(), "general.camera_id", mCamId, mCamId,
-      " * Camera ID: ", false, -1, 256);
+    if (mCamUserModel == sl::MODEL::VIRTUAL_ZED_X) {
+      std::string array_param = "[]";
+      sl_tools::getParam(
+        shared_from_this(), "general.virtual_serial_numbers",
+        array_param, array_param,
+        " * Virtual Camera SNs: ", false);
+
+      std::string error;
+      auto serials = sl_tools::parseStringVector_int(array_param, error);
+      if (serials.size() == 2) {
+        mCamVirtualSerialNumbers = serials;
+      }
+
+      array_param = "[]";
+      sl_tools::getParam(
+        shared_from_this(), "general.virtual_camera_ids",
+        array_param, array_param,
+        " * Virtual Camera IDs: ", false);
+
+      auto ids = sl_tools::parseStringVector_int(array_param, error);
+      if (ids.size() == 2) {
+        mCamVirtualCameraIds = ids;
+      }
+
+    } else {
+      sl_tools::getParam(
+        shared_from_this(), "general.serial_number",
+        mCamSerialNumber, mCamSerialNumber,
+        " * Camera SN: ", false, 0);
+      sl_tools::getParam(
+        shared_from_this(), "general.camera_id", mCamId,
+        mCamId, " * Camera ID: ", false, -1, 256);
+    }
     sl_tools::getParam(
       shared_from_this(), "general.camera_timeout_sec",
       mCamTimeoutSec, mCamTimeoutSec,
@@ -2612,17 +2639,20 @@ bool ZedCamera::startCamera()
     mCamGrabFrameRate = realFps;
 
     // ----> Check publishing rates
-    if (mVdPubRate > mCamGrabFrameRate){
+    if (mVdPubRate > mCamGrabFrameRate) {
       mVdPubRate = mCamGrabFrameRate;
       RCLCPP_WARN_STREAM(
-        get_logger(), "Video/Depth publishing rate was too high [" << mVdPubRate << "], capped to real grab rate: " << mCamGrabFrameRate);
+        get_logger(),
+        "Video/Depth publishing rate was too high [" << mVdPubRate << "], capped to real grab rate: " <<
+          mCamGrabFrameRate);
     }
     if (mPcPubRate > mCamGrabFrameRate) {
       mPcPubRate = mCamGrabFrameRate;
-      RCLCPP_WARN_STREAM(get_logger(),
-                         "PointCloud publishing rate was too high ["
-                             << mPcPubRate << "], capped to real grab rate: "
-                             << mCamGrabFrameRate);
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "PointCloud publishing rate was too high ["
+          << mPcPubRate << "], capped to real grab rate: "
+          << mCamGrabFrameRate);
     }
     // <---- Check publishing rates
   }
@@ -8392,7 +8422,7 @@ void ZedCamera::callback_setRoi(
 
   std::string error;
   std::vector<std::vector<float>> parsed_poly =
-    sl_tools::parseStringVector(req->roi, error);
+    sl_tools::parseStringMultiVector_float(req->roi, error);
 
   if (error != "") {
     std::string err_msg = "Error while setting ZED SDK region of interest: ";

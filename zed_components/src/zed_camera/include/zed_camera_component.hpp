@@ -475,6 +475,8 @@ private:
   // General
   int mCamSerialNumber = 0;
   int mCamId = -1;
+  std::vector<int> mCamVirtualSerialNumbers;
+  std::vector<int> mCamVirtualCameraIds;
   bool mSimMode = false;     // Expecting simulation data?
   bool mUseSimTime = false;  // Use sim time?
   std::string mSimAddr =

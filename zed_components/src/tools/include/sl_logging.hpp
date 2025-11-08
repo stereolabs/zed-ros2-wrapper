@@ -74,6 +74,21 @@
 #define DEBUG_STREAM_PC(stream_arg) \
   if (_debugPointCloud) RCLCPP_DEBUG_STREAM(get_logger(), stream_arg)
 
+// TF
+#define DEBUG_TF(...) \
+  if (_debugTf) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
+#define DEBUG_ONCE_TF(...) \
+  if (_debugTf) RCLCPP_DEBUG_ONCE(get_logger(), __VA_ARGS__)
+#define DEBUG_STREAM_TF(stream_arg) \
+  if (_debugTf) RCLCPP_DEBUG_STREAM(get_logger(), stream_arg)
+#define DEBUG_STREAM_THROTTLE_TF(duration, stream_arg) \
+  if (_debugTf) { \
+    rclcpp::Clock steady_clock(RCL_STEADY_TIME); \
+    RCLCPP_DEBUG_STREAM_THROTTLE( \
+      get_logger(), steady_clock, duration, \
+      stream_arg); \
+  }
+
 // Positional Tracking
 #define DEBUG_PT(...) \
   if (_debugPosTracking) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)

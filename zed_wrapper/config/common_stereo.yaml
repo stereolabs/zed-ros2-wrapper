@@ -199,6 +199,7 @@
             debug_video_depth: false
             debug_camera_controls: false
             debug_point_cloud: false
+            debug_tf: true
             debug_positional_tracking: false
             debug_gnss: false
             debug_sensors: false
@@ -210,4 +211,4 @@
             debug_streaming: false
             debug_advanced: false
             debug_nitros: false
-            disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes
+            disable_nitros: true # If available, disable NITROS usage for debugging and testing purposes

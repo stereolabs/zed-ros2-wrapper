@@ -1,6 +1,12 @@
 LATEST CHANGES
 ==============
 
+2025-11-08
+----------
+- Added debug option for TF broadcasting
+- Static baseline information from URDF is now overwritten by the real baseline value retrieved from the camera calibration file.
+- Removed mandatory `custom_baseline` launch argument for virtual stereo cameras made with two ZED X One cameras. The value is retrieved from the calibration file.
+
 2025-11-05
 ----------
 - Changed minimum depth value to 0.01 meters when using ZED SDK v5.1 or higher 

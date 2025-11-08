@@ -115,8 +115,6 @@ def launch_setup(context, *args, **kwargs):
     publish_imu_tf = LaunchConfiguration('publish_imu_tf')
     xacro_path = LaunchConfiguration('xacro_path')
 
-    custom_baseline = LaunchConfiguration('custom_baseline')
-
     enable_gnss = LaunchConfiguration('enable_gnss')
     gnss_antenna_offset = LaunchConfiguration('gnss_antenna_offset')
 
@@ -128,7 +126,6 @@ def launch_setup(context, *args, **kwargs):
     node_name_val = node_name.perform(context)
     enable_gnss_val = enable_gnss.perform(context)
     gnss_coords = parse_array_param(gnss_antenna_offset.perform(context))
-    custom_baseline_val = custom_baseline.perform(context)
 
     if(node_log_type_val == 'both'):
         node_log_effective = 'both'
@@ -140,11 +137,6 @@ def launch_setup(context, *args, **kwargs):
 
     if (camera_name_val == ''):
         camera_name_val = 'zed'
-
-    if (camera_model_val == 'virtual' and float(custom_baseline_val) <= 0):
-        return [
-            LogInfo(msg="Please set a positive value for the 'custom_baseline' argument when using a 'virtual' Stereo Camera with two ZED X One devices."),
-        ]
     
     if(namespace_val == ''):
         namespace_val = camera_name_val
@@ -205,8 +197,6 @@ def launch_setup(context, *args, **kwargs):
     xacro_command.append('camera_model:=')
     xacro_command.append(camera_model_val)
     xacro_command.append(' ')
-    xacro_command.append('custom_baseline:=')
-    xacro_command.append(custom_baseline_val)   
     if(enable_gnss_val=='true'):
         xacro_command.append(' ')
         xacro_command.append('enable_gnss:=true')
@@ -458,10 +448,6 @@ def generate_launch_description():
                 'stream_port',
                 default_value='30000',
                 description='The connection port of the input streaming server.'),
-            DeclareLaunchArgument(
-                'custom_baseline',
-                default_value='0.0',
-                description='Distance between the center of ZED X One cameras in a custom stereo rig.'),
             OpaqueFunction(function=launch_setup)
         ]
     )

@@ -650,12 +650,15 @@ void ZedCamera::getDebugParams()
     _debugPointCloud, _debugPointCloud,
     " * Debug Point Cloud: ");
   sl_tools::getParam(
-    shared_from_this(), "debug.debug_gnss", _debugGnss,
-    _debugGnss, " * Debug GNSS: ");
+    shared_from_this(), "debug.debug_tf", _debugTf, _debugTf,
+    " * Debug TF: ");
   sl_tools::getParam(
     shared_from_this(), "debug.debug_positional_tracking",
     _debugPosTracking, _debugPosTracking,
     " * Debug Positional Tracking: ");
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_gnss", _debugGnss,
+    _debugGnss, " * Debug GNSS: ");
   sl_tools::getParam(
     shared_from_this(), "debug.debug_sensors", _debugSensors,
     _debugSensors, " * Debug sensors: ");
@@ -683,9 +686,10 @@ void ZedCamera::getDebugParams()
     _debugAdvanced, " * Debug Advanced: ");
 
   mDebugMode = _debugCommon || _debugSim || _debugVideoDepth || _debugCamCtrl ||
-    _debugPointCloud || _debugPosTracking || _debugGnss ||
+    _debugPointCloud || _debugTf || _debugPosTracking || _debugGnss ||
     _debugSensors || _debugMapping || _debugObjectDet ||
-    _debugBodyTrk || _debugAdvanced || _debugRoi || _debugStreaming || _debugNitros;
+    _debugBodyTrk || _debugAdvanced || _debugRoi ||
+    _debugStreaming || _debugNitros;
 
   if (mDebugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(
@@ -3880,7 +3884,7 @@ void ZedCamera::initTransforms()
 
 bool ZedCamera::getCamera2BaseTransform()
 {
-  DEBUG_STREAM_PT(
+  DEBUG_STREAM_TF(
     "Getting static TF from '" << mCenterFrameId.c_str()
                                << "' to '" << mBaseFrameId.c_str()
                                << "'");
@@ -3952,7 +3956,7 @@ bool ZedCamera::getCamera2BaseTransform()
 
 bool ZedCamera::getSens2CameraTransform()
 {
-  DEBUG_STREAM_PT(
+  DEBUG_STREAM_TF(
     "Getting static TF from '"
       << mDepthFrameId.c_str() << "' to '" << mCenterFrameId.c_str()
       << "'");
@@ -4024,7 +4028,7 @@ bool ZedCamera::getSens2CameraTransform()
 
 bool ZedCamera::getSens2BaseTransform()
 {
-  DEBUG_STREAM_PT(
+  DEBUG_STREAM_TF(
     "Getting static TF from '" << mDepthFrameId.c_str()
                                << "' to '" << mBaseFrameId.c_str()
                                << "'");
@@ -5123,7 +5127,7 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
 void ZedCamera::publishTFs(rclcpp::Time t)
 {
-  // DEBUG_STREAM_PT("publishTFs");
+  // DEBUG_STREAM_TF("publishTFs");
 
   // RCLCPP_INFO_STREAM(get_logger(), "publishTFs - t type:" <<
   // t.get_clock_type());
@@ -5135,7 +5139,7 @@ void ZedCamera::publishTFs(rclcpp::Time t)
   }
 
   if (t == TIMEZERO_ROS) {
-    DEBUG_STREAM_PT("Time zero: not publishing TFs");
+    DEBUG_STREAM_TF("Time zero: not publishing TFs");
     return;
   }
 
@@ -5151,16 +5155,65 @@ void ZedCamera::publishTFs(rclcpp::Time t)
 
 void ZedCamera::publishCameraTFs(rclcpp::Time t)
 {
-  // DEBUG_STREAM_PT("publishCameraTFs");
+  // DEBUG_STREAM_TF("publishCameraTFs");
 
   if (!mUsingIPC && mStaticTfPublished) {
-    DEBUG_STREAM_PT("Static Camera TF already broadcasted");
+    DEBUG_STREAM_TF("Static Camera TF already broadcasted");
     return;
   }
 
-  const double baseline = static_cast<double>(
+  const double baseline =
+    static_cast<double>(mZed->getCameraInformation().camera_configuration.calibration_parameters
+    .
+    getCameraBaseline());
+  DEBUG_STREAM_TF("Calibrated Camera baseline: " << baseline << " m");
+  sl::Transform stereo_transform =
     mZed->getCameraInformation()
-    .camera_configuration.calibration_parameters.getCameraBaseline());
+    .camera_configuration.calibration_parameters.stereo_transform;
+  DEBUG_STREAM_TF(
+    "SDK Stereo Transform T: [" << stereo_transform.getTranslation().x << ", "
+                                << stereo_transform.getTranslation().y << ", "
+                                << stereo_transform.getTranslation().z << "]");
+  DEBUG_STREAM_TF(
+    "SDK Stereo Transform R: ["
+      << stereo_transform.getOrientation().x << ", "
+      << stereo_transform.getOrientation().y << ", "
+      << stereo_transform.getOrientation().z << ", "
+      << stereo_transform.getOrientation().w << "]");
+
+  // ----> Validate data
+  if (stereo_transform.getTranslation().x != 0.0 ||
+    stereo_transform.getTranslation().z != 0.0)
+  {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Unexpected calibrated stereo transform translation: ["
+        << stereo_transform.getTranslation().x << ", "
+        << stereo_transform.getTranslation().y << ", "
+        << stereo_transform.getTranslation().z << "]. Expected [0, " << baseline << ", 0].");
+  }
+  if (stereo_transform.getOrientation().x != 0.0 ||
+    stereo_transform.getOrientation().y != 0.0 ||
+    stereo_transform.getOrientation().z != 0.0 ||
+    stereo_transform.getOrientation().w != 1.0)
+  {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Unexpected calibrated stereo transform rotation: ["
+        << stereo_transform.getOrientation().x << ", "
+        << stereo_transform.getOrientation().y << ", "
+        << stereo_transform.getOrientation().z << ", "
+        << stereo_transform.getOrientation().w << "]. Expected [0, 0, 0, 1].");
+  }
+  if( baseline != -stereo_transform.getTranslation().y ) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Baseline mismatch: Camera baseline is " << baseline << " m but calibrated stereo transform y-translation is " <<
+      stereo_transform.getTranslation().y << " m.");
+  }
+  RCLCPP_WARN_STREAM(
+      get_logger(), "Please report this problem to Stereolabs support if you see this message, adding information about your camera model and serial number: " << sl::toString(mCamRealModel) << " - " << mCamSerialNumber);
+  // <---- Validate data
 
   double height = 0.0;
   double bottom_slope = 0.0;
@@ -5199,6 +5252,32 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
       mZed.reset();
       exit(EXIT_FAILURE);
   }
+
+  // ----> Lambda function to publish transform with debug info
+  auto publishTransform = [&](const geometry_msgs::msg::TransformStamped & tf) {
+      if (mUsingIPC) {
+        mTfBroadcaster->sendTransform(tf);
+        DEBUG_STREAM_TF(
+          "Broadcasted new dynamic transform: "
+            << tf.header.frame_id << " -> " << tf.child_frame_id);
+      } else {
+        mStaticTfBroadcaster->sendTransform(tf);
+        DEBUG_STREAM_TF(
+          "Broadcasted new static transform: "
+            << tf.header.frame_id << " -> " << tf.child_frame_id);
+      }
+      double roll, pitch, yaw;
+      tf2::Matrix3x3(
+        tf2::Quaternion(
+          tf.transform.rotation.x, tf.transform.rotation.y,
+          tf.transform.rotation.z, tf.transform.rotation.w)).getRPY(roll, pitch, yaw);
+      RCLCPP_INFO_STREAM(
+        get_logger(), "TF [" << tf.header.frame_id << " -> " << tf.child_frame_id << "] Position: ("
+                             << tf.transform.translation.x << ", " << tf.transform.translation.y << ", " << tf.transform.translation.z
+                             << ") - Orientation RPY: (" << roll * RAD2DEG << ", " << pitch * RAD2DEG << ", " << yaw * RAD2DEG <<
+          ")");
+    };
+  // <---- Lambda function to publish transform with debug info
 
   // ----> Common info
   geometry_msgs::msg::TransformStamped transformStamped;
@@ -5240,14 +5319,10 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
   transformStamped.transform.rotation.w = 1.0;
 
   // Publish transformation
-  if (mUsingIPC) {
-    mTfBroadcaster->sendTransform(transformStamped);
-  } else {
-    mStaticTfBroadcaster->sendTransform(transformStamped);
-  }
+  publishTransform(transformStamped);
   // <---- camera_center -> left_camera_frame
 
-  // ----> camera_center -> left_camera_frame
+  // ----> camera_center -> right_camera_frame
   transformStamped.header.frame_id = mCenterFrameId;
   transformStamped.child_frame_id = mRightCamFrameId;
 
@@ -5260,12 +5335,8 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
   transformStamped.transform.rotation.w = 1.0;
 
   // Publish transformation
-  if (mUsingIPC) {
-    mTfBroadcaster->sendTransform(transformStamped);
-  } else {
-    mStaticTfBroadcaster->sendTransform(transformStamped);
-  }
-  // <---- camera_center -> left_camera_frame
+  publishTransform(transformStamped);
+  // <---- camera_center -> right_camera_frame
 
   // at the end
   mStaticTfPublished = true;
@@ -5273,7 +5344,7 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
 
 void ZedCamera::publishOdomTF(rclcpp::Time t)
 {
-  // DEBUG_STREAM_PT("publishOdomTF");
+  // DEBUG_STREAM_TF("publishOdomTF");
 
   // ----> Avoid duplicated TF publishing
   if (t == mLastTs_odom) {
@@ -5327,7 +5398,7 @@ void ZedCamera::publishOdomTF(rclcpp::Time t)
 
 void ZedCamera::publishPoseTF(rclcpp::Time t)
 {
-  // DEBUG_STREAM_PT("publishPoseTF");
+  // DEBUG_STREAM_TF("publishPoseTF");
 
   // ----> Avoid duplicated TF publishing
   if (t == mLastTs_pose) {

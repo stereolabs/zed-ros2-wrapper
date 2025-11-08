@@ -433,6 +433,7 @@ private:
   bool _debugVideoDepth = false;
   bool _debugCamCtrl = false;
   bool _debugPointCloud = false;
+  bool _debugTf = false;
   bool _debugPosTracking = false;
   bool _debugGnss = false;
   bool _debugSensors = false;

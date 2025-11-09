@@ -460,6 +460,12 @@ void ZedCameraOne::publishImuFrameAndTopic()
     return;
   }
 
+  if (!_usingIPC && _staticImuTfPublished) {
+    DEBUG_ONCE_TF(
+      "Static Imu TF and Transient Local message already published");
+    return;
+  }
+
   sl::Orientation sl_rot = _slCamImuTransf.getOrientation();
   sl::Translation sl_tr = _slCamImuTransf.getTranslation();
 
@@ -518,7 +524,17 @@ void ZedCameraOne::publishImuFrameAndTopic()
   transformStamped->transform.translation.y = sl_tr.y;
   transformStamped->transform.translation.z = sl_tr.z;
 
-  _tfBroadcaster->sendTransform(*transformStamped);
+  if (_usingIPC) {
+    _tfBroadcaster->sendTransform(*transformStamped);
+    DEBUG_STREAM_TF(
+      "Broadcasted new dynamic transform: "
+        << transformStamped->header.frame_id << " -> " << transformStamped->child_frame_id);
+  } else {
+    _staticTfBroadcaster->sendTransform(*transformStamped);
+    DEBUG_STREAM_TF(
+      "Broadcasted new static transform: "
+        << transformStamped->header.frame_id << " -> " << transformStamped->child_frame_id);
+  }
 
   double elapsed_sec = _imuTfFreqTimer.toc();
   _pubImuTF_sec->addValue(elapsed_sec);
@@ -544,6 +560,8 @@ void ZedCameraOne::publishImuFrameAndTopic()
              << ") - Orientation RPY: (" << roll * RAD2DEG << ", "
              << pitch * RAD2DEG << ", " << yaw * RAD2DEG << ")");
   }
+
+  _staticImuTfPublished = true;
 }
 
 bool ZedCameraOne::areSensorsTopicsSubscribed()

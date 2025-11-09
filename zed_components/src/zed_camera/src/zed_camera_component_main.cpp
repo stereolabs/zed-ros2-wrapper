@@ -105,7 +105,6 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), " * namespace: %s", get_namespace());
   RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
-
   RCLCPP_INFO(get_logger(), " * IPC: %s", mUsingIPC ? "enabled" : "disabled");
   RCLCPP_INFO(get_logger(), "================================");
 
@@ -2305,7 +2304,7 @@ void ZedCamera::initPublishers()
       auto qos = mQos;
       if (!mUsingIPC) {
         // Use TRANSIENT_LOCAL durability if not using intra-process comms
-        qos.durability(rclcpp::DurabilityPolicy::TransientLocal);
+        qos = qos.durability(rclcpp::DurabilityPolicy::TransientLocal);
       }
       mPubCamImuTransf = create_publisher<geometry_msgs::msg::TransformStamped>(
         cam_imu_tr_topic, qos, mPubOpt);
@@ -2658,7 +2657,6 @@ bool ZedCamera::startCamera()
     mCamGrabFrameRate = realFps;
 
     // ----> Check publishing rates
-    if (mVdPubRate > mCamGrabFrameRate) {
     if (mVdPubRate > mCamGrabFrameRate) {
       mVdPubRate = mCamGrabFrameRate;
       RCLCPP_WARN_STREAM(
@@ -4351,6 +4349,9 @@ void ZedCamera::publishImuFrameAndTopic()
         << ") - Orientation RPY: (" << roll * RAD2DEG << ", "
         << pitch * RAD2DEG << ", " << yaw * RAD2DEG << ")");
   }
+
+  // At the end
+  mStaticImuTfPublished = true;
 }
 
 void ZedCamera::threadFunc_zedGrab()
@@ -5374,7 +5375,7 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
   publishTransform(transformStamped);
   // <---- New camera_center -> left_camera_frame
 
-  // ----> Newcamera_center -> right_camera_frame
+  // ----> New camera_center -> right_camera_frame
   transformStamped.header.frame_id = mCenterFrameId;
   transformStamped.child_frame_id = mRightCamFrameId;
 

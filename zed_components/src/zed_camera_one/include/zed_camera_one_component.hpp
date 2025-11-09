@@ -304,6 +304,7 @@ private:
   // <---- Publishers
 
   // ----> Publisher variables
+  bool _usingIPC = false;
   sl::Timestamp _lastTs_grab = 0;  // Used to calculate stable publish frequency
   sl::Timestamp _sdkGrabTS = 0;
   std::atomic<size_t> _colorSubCount;
@@ -421,6 +422,7 @@ private:
   std::unique_ptr<tf2_ros::Buffer> _tfBuffer;
   std::unique_ptr<tf2_ros::TransformListener> _tfListener;
   std::unique_ptr<tf2_ros::TransformBroadcaster> _tfBroadcaster;
+  std::unique_ptr<tf2_ros::StaticTransformBroadcaster> _staticTfBroadcaster;
 
   // Camera IMU transform
   sl::Transform _slCamImuTransf;
@@ -444,6 +446,7 @@ private:
   // <---- Camera infos
 
   // ----> Frame IDs
+  bool _staticImuTfPublished = false;
   std::string _cameraLinkFrameId;
   std::string _cameraCenterFrameId;
   std::string _camImgFrameId;

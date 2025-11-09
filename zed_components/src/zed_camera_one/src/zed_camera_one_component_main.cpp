@@ -48,25 +48,28 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   _triggerUpdateDynParams(true),
   _uptimer(get_clock())
 {
+  _usingIPC = options.use_intra_process_comms();
+
   RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), "    ZED Camera One Component    ");
   RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), " * namespace: %s", get_namespace());
   RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
+  RCLCPP_INFO(get_logger(), " * IPC: %s", _usingIPC ? "enabled" : "disabled");
   RCLCPP_INFO(get_logger(), "================================");
 
-  const size_t SDK_MAJOR_REQ = 4;
-  const size_t SDK_MINOR_REQ = 2;
-
-  if (ZED_SDK_MAJOR_VERSION < SDK_MAJOR_REQ ||
-    (ZED_SDK_MAJOR_VERSION == SDK_MAJOR_REQ &&
-    ZED_SDK_MINOR_VERSION < SDK_MINOR_REQ))
+  if (((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) <
+    (SDK_MAJOR_MIN_SUPP * 10 + SDK_MINOR_MIN_SUPP)) ||
+    ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >
+    (SDK_MAJOR_MAX_SUPP * 10 + SDK_MINOR_MAX_SUPP)))
   {
     RCLCPP_ERROR_STREAM(
       get_logger(),
       "This version of the ZED ROS2 wrapper is designed to work with ZED SDK "
-      "v" << static_cast<int>(SDK_MAJOR_REQ)
-          << "." << static_cast<int>(SDK_MINOR_REQ) << " or newer.");
+      "v" << static_cast<int>(SDK_MAJOR_MIN_SUPP)
+          << "." << static_cast<int>(SDK_MINOR_MIN_SUPP)
+          << " or newer up to v" << static_cast<int>(SDK_MAJOR_MAX_SUPP)
+          << "." << static_cast<int>(SDK_MINOR_MAX_SUPP) << ".");
     RCLCPP_INFO_STREAM(
       get_logger(), "* Detected SDK v"
         << ZED_SDK_MAJOR_VERSION << "."
@@ -76,6 +79,10 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
     RCLCPP_INFO(get_logger(), "Node stopped. Press Ctrl+C to exit.");
     exit(EXIT_FAILURE);
   }
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
+  sl::setEnvironmentVariable("ZED_SDK_DISABLE_PROGRESS_BAR_LOG", "1");
+#endif
 
 // ----> Publishers/Subscribers options
 #ifndef FOUND_FOXY
@@ -716,9 +723,17 @@ void ZedCameraOne::logSdkVersion()
 
 void ZedCameraOne::setupTf2()
 {
+  _staticImuTfPublished = false;
   _tfBuffer = std::make_unique<tf2_ros::Buffer>(get_clock());
   _tfListener = std::make_unique<tf2_ros::TransformListener>(*_tfBuffer);
   _tfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+
+  _staticImuTfPublished = false;
+  if (!_usingIPC) {
+    _staticTfBroadcaster = std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
+  } else {  // Cannot use LOCAL_TRANSIENT with intra-process comms
+    _staticTfBroadcaster.reset();
+  }
 }
 
 void ZedCameraOne::configureZedInput()
@@ -1587,8 +1602,13 @@ void ZedCameraOne::initPublishers()
   // ----> Camera/imu transform message
   if (_publishSensImuTransf) {
     std::string cam_imu_tr_topic = _topicRoot + "left_cam_imu_transform";
+    auto qos = _qos;
+    if (!_usingIPC) {
+      // Use TRANSIENT_LOCAL durability if not using intra-process comms
+      qos = qos.durability(rclcpp::DurabilityPolicy::TransientLocal);
+    }
     _pubCamImuTransf = create_publisher<geometry_msgs::msg::TransformStamped>(
-      cam_imu_tr_topic, _qos, _pubOpt);
+      cam_imu_tr_topic, qos, _pubOpt);
 
     RCLCPP_INFO_STREAM(
       get_logger(), "  * Advertised on topic: "

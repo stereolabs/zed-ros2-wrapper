@@ -690,30 +690,31 @@ private:
   // ----> Frame IDs
   bool mStaticTfPublished = false;
   bool mStaticImuTfPublished = false;
-  std::string mDepthFrameId;
-  std::string mDepthOptFrameId;
 
-  std::string mPointCloudFrameId;
+  std::string mBaseFrameId = "";
+  std::string mCenterFrameId = "";
+
+  std::string mRightCamFrameId = "";
+  std::string mRightCamOptFrameId = "";
+  std::string mLeftCamFrameId = "";
+  std::string mLeftCamOptFrameId = "";
+
+  std::string mImuFrameId = "";
+  std::string mBaroFrameId = "";
+  std::string mMagFrameId = "";
+  std::string mTempLeftFrameId = "";
+  std::string mTempRightFrameId = "";
+
+  std::string mDepthFrameId = "";
+  std::string mDepthOptFrameId = "";
+
+  std::string mPointCloudFrameId = "";
 
   std::string mUtmFrameId = "utm";
   std::string mMapFrameId = "map";
   std::string mOdomFrameId = "odom";
   std::string mGnssFrameId = "";
   std::string mGnssOriginFrameId = "gnss_ref_pose";
-
-  std::string mBaseFrameId;
-  std::string mCenterFrameId;
-
-  std::string mRightCamFrameId;
-  std::string mRightCamOptFrameId;
-  std::string mLeftCamFrameId;
-  std::string mLeftCamOptFrameId;
-
-  std::string mImuFrameId;
-  std::string mBaroFrameId;
-  std::string mMagFrameId;
-  std::string mTempLeftFrameId;
-  std::string mTempRightFrameId;
   // <---- Frame IDs
 
   // ----> Stereolabs Mat Info

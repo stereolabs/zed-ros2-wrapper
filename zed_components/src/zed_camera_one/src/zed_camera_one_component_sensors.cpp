@@ -551,7 +551,8 @@ void ZedCameraOne::publishImuFrameAndTopic()
         transformStamped->transform.rotation.z,
         transformStamped->transform.rotation.w))
     .getRPY(roll, pitch, yaw);
-    DEBUG_STREAM_TF("TF [" << transformStamped->header.frame_id << " -> "
+    DEBUG_STREAM_TF(
+      "TF [" << transformStamped->header.frame_id << " -> "
              << transformStamped->child_frame_id << "] Position: ("
              << transformStamped->transform.translation.x << ", "
              << transformStamped->transform.translation.y << ", "

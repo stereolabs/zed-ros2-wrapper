@@ -4339,7 +4339,8 @@ void ZedCamera::publishImuFrameAndTopic()
         transformStamped.transform.rotation.z,
         transformStamped.transform.rotation.w))
     .getRPY(roll, pitch, yaw);
-    DEBUG_STREAM_TF("TF ["
+    DEBUG_STREAM_TF(
+      "TF ["
         << transformStamped.header.frame_id << " -> "
         << transformStamped.child_frame_id << "] Position: ("
         << transformStamped.transform.translation.x << ", "
@@ -5351,13 +5352,14 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
         tf2::Quaternion(
           tf.transform.rotation.x, tf.transform.rotation.y,
           tf.transform.rotation.z, tf.transform.rotation.w)).getRPY(roll, pitch, yaw);
-      DEBUG_STREAM_TF("TF ["
-                      << tf.header.frame_id << " -> " << tf.child_frame_id
-                      << "] Position: (" << tf.transform.translation.x << ", "
-                      << tf.transform.translation.y << ", "
-                      << tf.transform.translation.z << ") - Orientation RPY: ("
-                      << roll * RAD2DEG << ", " << pitch * RAD2DEG << ", "
-                      << yaw * RAD2DEG << ")");
+      DEBUG_STREAM_TF(
+        "TF ["
+          << tf.header.frame_id << " -> " << tf.child_frame_id
+          << "] Position: (" << tf.transform.translation.x << ", "
+          << tf.transform.translation.y << ", "
+          << tf.transform.translation.z << ") - Orientation RPY: ("
+          << roll * RAD2DEG << ", " << pitch * RAD2DEG << ", "
+          << yaw * RAD2DEG << ")");
     };
   // <---- Lambda function to publish transform with debug info
 
@@ -5467,7 +5469,8 @@ void ZedCamera::publishOdomTF(rclcpp::Time t)
         transformStamped.transform.rotation.z,
         transformStamped.transform.rotation.w))
     .getRPY(roll, pitch, yaw);
-    DEBUG_STREAM_TF("TF [" << transformStamped.header.frame_id << " -> "
+    DEBUG_STREAM_TF(
+      "TF [" << transformStamped.header.frame_id << " -> "
              << transformStamped.child_frame_id << "] Position: ("
              << transformStamped.transform.translation.x << ", "
              << transformStamped.transform.translation.y << ", "
@@ -5536,13 +5539,14 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
         transformStamped.transform.rotation.z,
         transformStamped.transform.rotation.w))
     .getRPY(roll, pitch, yaw);
-    DEBUG_STREAM_TF("TF [" << transformStamped.header.frame_id << " -> "
-                           << transformStamped.child_frame_id << "] Position: ("
-                           << transformStamped.transform.translation.x << ", "
-                           << transformStamped.transform.translation.y << ", "
-                           << transformStamped.transform.translation.z
-                           << ") - Orientation RPY: (" << roll * RAD2DEG << ", "
-                           << pitch * RAD2DEG << ", " << yaw * RAD2DEG << ")");
+    DEBUG_STREAM_TF(
+      "TF [" << transformStamped.header.frame_id << " -> "
+             << transformStamped.child_frame_id << "] Position: ("
+             << transformStamped.transform.translation.x << ", "
+             << transformStamped.transform.translation.y << ", "
+             << transformStamped.transform.translation.z
+             << ") - Orientation RPY: (" << roll * RAD2DEG << ", "
+             << pitch * RAD2DEG << ", " << yaw * RAD2DEG << ")");
   }
 }
 
@@ -6478,7 +6482,8 @@ void ZedCamera::processGeoPose()
           transformStamped.transform.rotation.z,
           transformStamped.transform.rotation.w))
       .getRPY(roll, pitch, yaw);
-      DEBUG_STREAM_TF("TF ["
+      DEBUG_STREAM_TF(
+        "TF ["
           << transformStamped.header.frame_id << " -> "
           << transformStamped.child_frame_id << "] Position: ("
           << transformStamped.transform.translation.x << ", "

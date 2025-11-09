@@ -4339,8 +4339,7 @@ void ZedCamera::publishImuFrameAndTopic()
         transformStamped.transform.rotation.z,
         transformStamped.transform.rotation.w))
     .getRPY(roll, pitch, yaw);
-    DEBUG_STREAM_TF(
-      "TF ["
+    DEBUG_STREAM_TF("TF ["
         << transformStamped.header.frame_id << " -> "
         << transformStamped.child_frame_id << "] Position: ("
         << transformStamped.transform.translation.x << ", "
@@ -5253,6 +5252,7 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
       << stereo_transform.getOrientation().w << "]");
 
   // ----> Validate data
+  bool not_valid = false;
   if (stereo_transform.getTranslation().x != 0.0 ||
     stereo_transform.getTranslation().z != 0.0)
   {
@@ -5262,6 +5262,7 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
         << stereo_transform.getTranslation().x << ", "
         << stereo_transform.getTranslation().y << ", "
         << stereo_transform.getTranslation().z << "]. Expected [0, " << baseline << ", 0].");
+    not_valid = true;
   }
   if (stereo_transform.getOrientation().x != 0.0 ||
     stereo_transform.getOrientation().y != 0.0 ||
@@ -5275,17 +5276,23 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
         << stereo_transform.getOrientation().y << ", "
         << stereo_transform.getOrientation().z << ", "
         << stereo_transform.getOrientation().w << "]. Expected [0, 0, 0, 1].");
+    not_valid = true;
   }
   if (baseline != -stereo_transform.getTranslation().y) {
     RCLCPP_WARN_STREAM(
       get_logger(),
       "Baseline mismatch: Camera baseline is " << baseline << " m but calibrated stereo transform y-translation is " <<
         stereo_transform.getTranslation().y << " m.");
+    not_valid = true;
   }
-  RCLCPP_WARN_STREAM(
-    get_logger(), "Please report this problem to Stereolabs support if you see this message, "
-    "adding information about your camera model and serial number: "
-      << sl::toString(mCamRealModel) << " - " << mCamSerialNumber);
+
+  if (not_valid) {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Please report this problem to Stereolabs support if you see this message, "
+      "adding information about your camera model and serial number: "
+        << sl::toString(mCamRealModel) << " - " << mCamSerialNumber);
+    return;
+  }
   // <---- Validate data
 
   double height = 0.0;
@@ -5344,11 +5351,13 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
         tf2::Quaternion(
           tf.transform.rotation.x, tf.transform.rotation.y,
           tf.transform.rotation.z, tf.transform.rotation.w)).getRPY(roll, pitch, yaw);
-      RCLCPP_INFO_STREAM(
-        get_logger(), "TF [" << tf.header.frame_id << " -> " << tf.child_frame_id << "] Position: ("
-                             << tf.transform.translation.x << ", " << tf.transform.translation.y << ", " << tf.transform.translation.z
-                             << ") - Orientation RPY: (" << roll * RAD2DEG << ", " << pitch * RAD2DEG << ", " << yaw * RAD2DEG <<
-          ")");
+      DEBUG_STREAM_TF("TF ["
+                      << tf.header.frame_id << " -> " << tf.child_frame_id
+                      << "] Position: (" << tf.transform.translation.x << ", "
+                      << tf.transform.translation.y << ", "
+                      << tf.transform.translation.z << ") - Orientation RPY: ("
+                      << roll * RAD2DEG << ", " << pitch * RAD2DEG << ", "
+                      << yaw * RAD2DEG << ")");
     };
   // <---- Lambda function to publish transform with debug info
 
@@ -5458,8 +5467,7 @@ void ZedCamera::publishOdomTF(rclcpp::Time t)
         transformStamped.transform.rotation.z,
         transformStamped.transform.rotation.w))
     .getRPY(roll, pitch, yaw);
-    DEBUG_STREAM_TF(
-      "TF [" << transformStamped.header.frame_id << " -> "
+    DEBUG_STREAM_TF("TF [" << transformStamped.header.frame_id << " -> "
              << transformStamped.child_frame_id << "] Position: ("
              << transformStamped.transform.translation.x << ", "
              << transformStamped.transform.translation.y << ", "
@@ -5528,16 +5536,13 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
         transformStamped.transform.rotation.z,
         transformStamped.transform.rotation.w))
     .getRPY(roll, pitch, yaw);
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "TF ["
-        << transformStamped.header.frame_id << " -> "
-        << transformStamped.child_frame_id << "] Position: ("
-        << transformStamped.transform.translation.x << ", "
-        << transformStamped.transform.translation.y << ", "
-        << transformStamped.transform.translation.z
-        << ") - Orientation RPY: (" << roll * RAD2DEG << ", "
-        << pitch * RAD2DEG << ", " << yaw * RAD2DEG << ")");
+    DEBUG_STREAM_TF("TF [" << transformStamped.header.frame_id << " -> "
+                           << transformStamped.child_frame_id << "] Position: ("
+                           << transformStamped.transform.translation.x << ", "
+                           << transformStamped.transform.translation.y << ", "
+                           << transformStamped.transform.translation.z
+                           << ") - Orientation RPY: (" << roll * RAD2DEG << ", "
+                           << pitch * RAD2DEG << ", " << yaw * RAD2DEG << ")");
   }
 }
 
@@ -6473,8 +6478,7 @@ void ZedCamera::processGeoPose()
           transformStamped.transform.rotation.z,
           transformStamped.transform.rotation.w))
       .getRPY(roll, pitch, yaw);
-      DEBUG_STREAM_TF(
-        "TF ["
+      DEBUG_STREAM_TF("TF ["
           << transformStamped.header.frame_id << " -> "
           << transformStamped.child_frame_id << "] Position: ("
           << transformStamped.transform.translation.x << ", "

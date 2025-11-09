@@ -5343,19 +5343,21 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
           "Broadcasted new static transform: "
             << tf.header.frame_id << " -> " << tf.child_frame_id);
       }
-      double roll, pitch, yaw;
-      tf2::Matrix3x3(
-        tf2::Quaternion(
-          tf.transform.rotation.x, tf.transform.rotation.y,
-          tf.transform.rotation.z, tf.transform.rotation.w)).getRPY(roll, pitch, yaw);
-      DEBUG_STREAM_TF(
-        "TF ["
-          << tf.header.frame_id << " -> " << tf.child_frame_id
-          << "] Position: (" << tf.transform.translation.x << ", "
-          << tf.transform.translation.y << ", "
-          << tf.transform.translation.z << ") - Orientation RPY: ("
-          << roll * RAD2DEG << ", " << pitch * RAD2DEG << ", "
-          << yaw * RAD2DEG << ")");
+      if (!_debugTf) {
+        double roll, pitch, yaw;
+        tf2::Matrix3x3(
+          tf2::Quaternion(
+            tf.transform.rotation.x, tf.transform.rotation.y,
+            tf.transform.rotation.z, tf.transform.rotation.w)).getRPY(roll, pitch, yaw);
+        DEBUG_STREAM_TF(
+          "TF ["
+            << tf.header.frame_id << " -> " << tf.child_frame_id
+            << "] Position: (" << tf.transform.translation.x << ", "
+            << tf.transform.translation.y << ", "
+            << tf.transform.translation.z << ") - Orientation RPY: ("
+            << roll * RAD2DEG << ", " << pitch * RAD2DEG << ", "
+            << yaw * RAD2DEG << ")");
+      }
     };
   // <---- Lambda function to publish transform with debug info
 

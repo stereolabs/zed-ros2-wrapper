@@ -243,6 +243,7 @@ private:
   bool _debugStreaming = false;
   bool _debugAdvanced = false;
   bool _debugNitros = false;
+  bool _debugTf = false;
   // If available, force disable NITROS usage for debugging and testing
   // purposes; otherwise, this is always true.
   bool _nitrosDisabled = false;

@@ -524,6 +524,26 @@ void ZedCameraOne::publishImuFrameAndTopic()
   _pubImuTF_sec->addValue(elapsed_sec);
   _imuTfFreqTimer.tic();
   // <---- Broadcast CAM/IMU TF
+
+  // Debug info
+  if (_debugTf) {
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(
+      tf2::Quaternion(
+        transformStamped->transform.rotation.x,
+        transformStamped->transform.rotation.y,
+        transformStamped->transform.rotation.z,
+        transformStamped->transform.rotation.w))
+    .getRPY(roll, pitch, yaw);
+    DEBUG_STREAM_TF(
+      "TF [" << transformStamped->header.frame_id << " -> "
+             << transformStamped->child_frame_id << "] Position: ("
+             << transformStamped->transform.translation.x << ", "
+             << transformStamped->transform.translation.y << ", "
+             << transformStamped->transform.translation.z
+             << ") - Orientation RPY: (" << roll * RAD2DEG << ", "
+             << pitch * RAD2DEG << ", " << yaw * RAD2DEG << ")");
+  }
 }
 
 bool ZedCameraOne::areSensorsTopicsSubscribed()

@@ -539,12 +539,16 @@ void ZedCameraOne::getDebugParams()
     shared_from_this(), "debug.debug_advanced", _debugAdvanced,
     _debugAdvanced, " * Debug Advanced: ");
   sl_tools::getParam(
+    shared_from_this(), "debug.debug_tf", _debugTf, _debugTf,
+    " * Debug TF: ");
+  sl_tools::getParam(
     shared_from_this(), "debug.debug_nitros", _debugNitros,
     _debugNitros, " * Debug Nitros: ");
 
   // Set debug mode
   _debugMode = _debugCommon || _debugVideoDepth || _debugCamCtrl ||
-    _debugSensors || _debugStreaming || _debugAdvanced || _debugNitros;
+    _debugSensors || _debugStreaming || _debugAdvanced ||
+    _debugTf || _debugNitros;
 
   if (_debugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(

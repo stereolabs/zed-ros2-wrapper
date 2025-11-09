@@ -687,6 +687,7 @@ private:
 
   // ----> Frame IDs
   bool mStaticTfPublished = false;
+  bool mStaticImuTfPublished = false;
   std::string mDepthFrameId;
   std::string mDepthOptFrameId;
 

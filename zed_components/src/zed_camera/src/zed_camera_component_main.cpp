@@ -2469,7 +2469,7 @@ bool ZedCamera::startCamera()
     RCLCPP_INFO(get_logger(), "=== CAMERA OPENING ===");
 
     mInitParams.camera_fps = mCamGrabFrameRate;
-    mInitParams.grab_compute_capping_fps = 0.0f; // Using Wrapper multi-threading
+    mInitParams.grab_compute_capping_fps = 0.0f; // Using multi-threading in the component
     mInitParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
     mInitParams.async_image_retrieval = mAsyncImageRetrieval;
     mInitParams.enable_image_validity_check = mImageValidityCheck;
@@ -5296,10 +5296,6 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
   }
   // <---- Validate data
 
-  double height = 0.0;
-  double bottom_slope = 0.0;
-  double screw_offset_x = 0.0;
-  double screw_offset_z = 0.0;
   double optical_offset_x = 0.0;
 
   switch (mCamRealModel) {

@@ -723,7 +723,6 @@ void ZedCameraOne::logSdkVersion()
 
 void ZedCameraOne::setupTf2()
 {
-  _staticImuTfPublished = false;
   _tfBuffer = std::make_unique<tf2_ros::Buffer>(get_clock());
   _tfListener = std::make_unique<tf2_ros::TransformListener>(*_tfBuffer);
   _tfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);

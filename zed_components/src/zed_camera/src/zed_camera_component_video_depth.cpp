@@ -1992,8 +1992,7 @@ void ZedCamera::publishStereoImages(const rclcpp::Time & t)
   if (mStereoSubCount > 0) {
     DEBUG_STREAM_VD(" * mStereoSubCount: " << mStereoSubCount);
     auto combined = sl_tools::imagesToROSmsg(
-      mMatLeft, mMatRight,
-      mCameraFrameId, t, mUsePubTimestamps);
+      mMatLeft, mMatRight, mCenterFrameId, t, mUsePubTimestamps);
     DEBUG_STREAM_VD(" * Publishing SIDE-BY-SIDE message");
     try {
       mPubStereo.publish(std::move(combined));
@@ -2010,8 +2009,7 @@ void ZedCamera::publishStereoRawImages(const rclcpp::Time & t)
   if (mStereoRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mStereoRawSubCount: " << mStereoRawSubCount);
     auto combined = sl_tools::imagesToROSmsg(
-      mMatLeftRaw, mMatRightRaw,
-      mCameraFrameId, t, mUsePubTimestamps);
+      mMatLeftRaw, mMatRightRaw, mCenterFrameId, t, mUsePubTimestamps);
     DEBUG_STREAM_VD(" * Publishing SIDE-BY-SIDE RAW message");
     try {
       mPubRawStereo.publish(std::move(combined));

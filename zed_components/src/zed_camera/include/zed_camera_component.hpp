@@ -301,6 +301,7 @@ protected:
   void publishGnssPoseStatus();
   void publishGeoPoseStatus();
   void publishTFs(rclcpp::Time t);
+  void publishCameraTFs(rclcpp::Time t);
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
   bool publishSensorsData(rclcpp::Time force_ts = TIMEZERO_ROS);
@@ -368,7 +369,6 @@ private:
   sl::InitParameters mInitParams;
   sl::RuntimeParameters mRunParams;
 
-
   // ----> Fusion module
   std::shared_ptr<sl::FusionConfiguration> mFusionConfig;
   sl::Fusion mFusion;
@@ -433,6 +433,7 @@ private:
   bool _debugVideoDepth = false;
   bool _debugCamCtrl = false;
   bool _debugPointCloud = false;
+  bool _debugTf = false;
   bool _debugPosTracking = false;
   bool _debugGnss = false;
   bool _debugSensors = false;
@@ -613,7 +614,6 @@ private:
   std::unordered_map<int, std::string> mCustomLabels;
   std::unordered_map<std::string, int> mCustomClassIdMap;
 
-
   bool mBodyTrkEnabled = false;
   sl::BODY_TRACKING_MODEL mBodyTrkModel =
     sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST;
@@ -688,30 +688,33 @@ private:
   // <---- QoS
 
   // ----> Frame IDs
-  std::string mDepthFrameId;
-  std::string mDepthOptFrameId;
+  bool mStaticTfPublished = false;
+  bool mStaticImuTfPublished = false;
 
-  std::string mPointCloudFrameId;
+  std::string mBaseFrameId = "";
+  std::string mCenterFrameId = "";
+
+  std::string mRightCamFrameId = "";
+  std::string mRightCamOptFrameId = "";
+  std::string mLeftCamFrameId = "";
+  std::string mLeftCamOptFrameId = "";
+
+  std::string mImuFrameId = "";
+  std::string mBaroFrameId = "";
+  std::string mMagFrameId = "";
+  std::string mTempLeftFrameId = "";
+  std::string mTempRightFrameId = "";
+
+  std::string mDepthFrameId = "";
+  std::string mDepthOptFrameId = "";
+
+  std::string mPointCloudFrameId = "";
 
   std::string mUtmFrameId = "utm";
   std::string mMapFrameId = "map";
   std::string mOdomFrameId = "odom";
-  std::string mBaseFrameId = "";
   std::string mGnssFrameId = "";
   std::string mGnssOriginFrameId = "gnss_ref_pose";
-
-  std::string mCameraFrameId;
-
-  std::string mRightCamFrameId;
-  std::string mRightCamOptFrameId;
-  std::string mLeftCamFrameId;
-  std::string mLeftCamOptFrameId;
-
-  std::string mImuFrameId;
-  std::string mBaroFrameId;
-  std::string mMagFrameId;
-  std::string mTempLeftFrameId;
-  std::string mTempRightFrameId;
   // <---- Frame IDs
 
   // ----> Stereolabs Mat Info
@@ -727,6 +730,7 @@ private:
   // ----> initialization Transform listener
   std::unique_ptr<tf2_ros::Buffer> mTfBuffer;
   std::unique_ptr<tf2_ros::TransformListener> mTfListener;
+  std::unique_ptr<tf2_ros::StaticTransformBroadcaster> mStaticTfBroadcaster;
   std::unique_ptr<tf2_ros::TransformBroadcaster> mTfBroadcaster;
   // <---- initialization Transform listener
 
@@ -1029,6 +1033,7 @@ private:
 
   // ----> Diagnostic
   sl_tools::StopWatch mUptimer;
+  bool mUsingIPC = false;
   float mTempImu = NOT_VALID_TEMP;
   float mTempLeft = NOT_VALID_TEMP;
   float mTempRight = NOT_VALID_TEMP;

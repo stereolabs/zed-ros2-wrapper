@@ -431,7 +431,46 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi)
   return true;
 }
 
-std::vector<std::vector<float>> parseStringVector(
+std::vector<int> parseStringVector_int(
+  const std::string & input,
+  std::string & error_return)
+{
+  std::vector<int> result;
+
+  if (input == "[]") {
+    error_return = "";
+    return result;
+  }
+
+  if (input.empty() || input.front() != '[' || input.back() != ']') {
+    error_return = "Vector string must start with [ and end with ]";
+    return result;
+  }
+
+  std::string trimmed = input;
+  trimmed.erase(
+    std::remove(trimmed.begin(), trimmed.end(), '['),
+    trimmed.end());
+  trimmed.erase(
+    std::remove(trimmed.begin(), trimmed.end(), ']'),
+    trimmed.end());
+
+  std::stringstream ss(trimmed);
+  std::string token;
+  while (std::getline(ss, token, ',')) {
+    try {
+      int value = std::stoi(token);
+      result.push_back(value);
+    } catch (const std::exception & e) {
+      error_return = "Failed to parse integer: " + token;
+      return result;
+    }
+  }
+  error_return = "";
+  return result;
+}
+
+std::vector<std::vector<float>> parseStringMultiVector_float(
   const std::string & input, std::string & error_return)
 {
   std::vector<std::vector<float>> result;

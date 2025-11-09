@@ -25,6 +25,7 @@ using namespace std::placeholders;
 
 namespace stereolabs
 {
+
 ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
 : Node("zed_node_one", options),
   _threadStop(false),

@@ -285,7 +285,6 @@ def launch_setup(context, *args, **kwargs):
             }
     )
 
-
     # ZED Wrapper component
     if( camera_model_val=='zed' or
         camera_model_val=='zedm' or

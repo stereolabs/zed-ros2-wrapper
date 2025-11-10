@@ -196,7 +196,7 @@
             use_pub_timestamps: false # Use the current ROS time for the message timestamp instead of the camera timestamp. This is useful to test data communication latency.
             debug_common: false
             debug_sim: false
-            debug_video_depth: false
+            debug_video_depth: true
             debug_camera_controls: false
             debug_point_cloud: false
             debug_positional_tracking: false
@@ -210,4 +210,4 @@
             debug_streaming: false
             debug_advanced: false
             debug_nitros: false
-            disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes
+            disable_nitros: true # If available, disable NITROS usage for debugging and testing purposes

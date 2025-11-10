@@ -282,6 +282,7 @@ protected:
   void publishConfidenceMap(const rclcpp::Time & t);
   void publishDisparityImage(const rclcpp::Time & t);
   void publishDepthInfo(const rclcpp::Time & t);
+  void publishCameraInfos(); // Used to publish camera infos when no video/depth is subscribed
 
   void checkRgbDepthSync();
   bool checkGrabAndUpdateTimestamp(rclcpp::Time & out_pub_ts);

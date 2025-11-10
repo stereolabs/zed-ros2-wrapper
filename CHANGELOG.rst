@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-11-10
+----------
+- Fixed `camera_info` publishing when no image topics are subscribed
+
 2025-11-05
 ----------
 - Changed minimum depth value to 0.01 meters when using ZED SDK v5.1 or higher 

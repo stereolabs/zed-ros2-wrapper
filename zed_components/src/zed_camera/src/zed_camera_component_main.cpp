@@ -2612,17 +2612,20 @@ bool ZedCamera::startCamera()
     mCamGrabFrameRate = realFps;
 
     // ----> Check publishing rates
-    if (mVdPubRate > mCamGrabFrameRate){
+    if (mVdPubRate > mCamGrabFrameRate) {
       mVdPubRate = mCamGrabFrameRate;
       RCLCPP_WARN_STREAM(
-        get_logger(), "Video/Depth publishing rate was too high [" << mVdPubRate << "], capped to real grab rate: " << mCamGrabFrameRate);
+        get_logger(),
+        "Video/Depth publishing rate was too high [" << mVdPubRate << "], capped to real grab rate: " <<
+          mCamGrabFrameRate);
     }
     if (mPcPubRate > mCamGrabFrameRate) {
       mPcPubRate = mCamGrabFrameRate;
-      RCLCPP_WARN_STREAM(get_logger(),
-                         "PointCloud publishing rate was too high ["
-                             << mPcPubRate << "], capped to real grab rate: "
-                             << mCamGrabFrameRate);
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "PointCloud publishing rate was too high ["
+          << mPcPubRate << "], capped to real grab rate: "
+          << mCamGrabFrameRate);
     }
     // <---- Check publishing rates
   }

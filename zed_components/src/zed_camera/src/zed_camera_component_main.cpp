@@ -2661,9 +2661,8 @@ bool ZedCamera::startCamera()
       mVdPubRate = mCamGrabFrameRate;
       RCLCPP_WARN_STREAM(
         get_logger(),
-        "Video/Depth publishing rate was too high ["
-          << mVdPubRate << "], capped to real grab rate: "
-          << mCamGrabFrameRate);
+        "Video/Depth publishing rate was too high [" << mVdPubRate << "], capped to real grab rate: " <<
+          mCamGrabFrameRate);
     }
     if (mPcPubRate > mCamGrabFrameRate) {
       mPcPubRate = mCamGrabFrameRate;
@@ -3854,8 +3853,10 @@ void ZedCamera::stop3dMapping()
   if (mFusedPcTimer) {
     mFusedPcTimer->cancel();
   }
+
   mSpatialMappingRunning = false;
   mMappingEnabled = false;
+
   mZed->disableSpatialMapping();
 
   RCLCPP_INFO(get_logger(), "=== Spatial Mapping stopped ===");
@@ -4519,10 +4520,11 @@ void ZedCamera::threadFunc_zedGrab()
         // ----> Check for Spatial Mapping requirement
 
         mMappingMutex.lock();
-        bool required = mMappingEnabled;
-
-        if (required && !mSpatialMappingRunning) {
+        if (mMappingEnabled && !mSpatialMappingRunning) {
           start3dMapping();
+        }
+        if (!mMappingEnabled && mSpatialMappingRunning) {
+          stop3dMapping();
         }
         mMappingMutex.unlock();
 
@@ -5717,12 +5719,11 @@ void ZedCamera::processOdometry()
     mPosTrackingStatus.spatial_memory_status ==
     sl::SPATIAL_MEMORY_STATUS::LOOP_CLOSED))
   {
+
     if (mPosTrackingStatus.spatial_memory_status ==
       sl::SPATIAL_MEMORY_STATUS::LOOP_CLOSED)
     {
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "=== Odometry reset for LOOP CLOSURE event ===");
+      DEBUG_PT("=== Odometry reset for LOOP CLOSURE event ===");
     }
 
     // Propagate Odom transform in time
@@ -7442,9 +7443,13 @@ void ZedCamera::callback_enableMapping(
     RCLCPP_INFO(get_logger(), "Stopping Spatial Mapping");
     // Stop
     if (!mMappingEnabled || !mSpatialMappingRunning) {
+      mMappingEnabled = false;
+      mSpatialMappingRunning = false;
+
       RCLCPP_WARN(get_logger(), "Spatial Mapping was not running");
       res->message = "Spatial Mapping was not running";
       res->success = false;
+
       return;
     }
 
@@ -7935,6 +7940,16 @@ void ZedCamera::callback_updateDiagnostic(
         } else {
           stat.add("TF Odometry", "DISABLED");
           stat.add("TF Pose", "DISABLED");
+        }
+
+        if (mMappingEnabled) {
+          if (mSpatialMappingRunning) {
+            stat.add("3D Mapping", "ACTIVE");
+          } else {
+            stat.add("3D Mapping", "STARTING...");
+          }
+        } else {
+          stat.add("3D Mapping", "INACTIVE");
         }
       } else {
         stat.add("Pos. Tracking status", "INACTIVE");

@@ -1,11 +1,6 @@
 LATEST CHANGES
 ==============
 
-2025-10-10
-----------
-- Improved diagnostic information for 3D Mapping status in diagnostics
-- Fixed random crash when stopping 3D Mapping
-
 2025-11-11
 ----------
 - Loop Closure log event is now displayed only in DEBUG mode to reduce log spam

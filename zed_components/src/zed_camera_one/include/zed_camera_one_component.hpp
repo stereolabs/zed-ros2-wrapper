@@ -39,12 +39,15 @@ public:
 
 protected:
   // ----> Initialization functions
-  void init();
+  void initNode();
+  void deInitNode();
+
   void initParameters();
   void initServices();
   void initTFCoordFrameNames();
   void initPublishers();
   void initVideoPublishers();
+  void initSensorPublishers();
   void initializeTimestamp();
   void initializeDiagnosticStatistics();
   void initThreadsAndTimers();
@@ -53,6 +56,7 @@ protected:
   void getDebugParams();
   void getVideoParams();
   void getGeneralParams();
+  void getTopicEnableParams();
   void getSvoParams();
   void getStreamParams();
   void getCameraModelParams();
@@ -63,9 +67,8 @@ protected:
   void getStreamingServerParams();
   void getAdvancedParams();
 
-  void close();
-
   bool startCamera();
+  void closeCamera();
   void createZedObject();
   void logSdkVersion();
   void setupTf2();
@@ -75,7 +78,6 @@ protected:
   void processCameraInformation();
   void setupCameraInfoMessages();
 
-  void closeCamera();
   void startTempPubTimer();
   bool startStreamingServer();
   void stopStreamingServer();
@@ -180,7 +182,6 @@ protected:
   bool handleDigitalGain(
     const rclcpp::Parameter & param, const std::string & param_name,
     int & count_ok);
-
   // <---- Utility functions
 
   // ----> Callbacks functions
@@ -261,11 +262,13 @@ private:
   std::string _imgGrayTopic;
   std::string _imgRawGrayTopic;
 
-  std::string _tempTopic;
+  std::string _sensImuTopic;
+  std::string _sensImuRawTopic;
+  std::string _sensTempTopic;
   // <---- Topics
 
   // ----> Publishers
-// Image publishers
+  // Image publishers
   image_transport::Publisher _pubColorImg;
   image_transport::Publisher _pubColorRawImg;
   image_transport::Publisher _pubGrayImg;
@@ -335,6 +338,16 @@ private:
 
   sl::MODEL _camUserModel = sl::MODEL::ZED_XONE_GS;  // Default camera model
 
+  //Topic enabler parameters
+  bool _publishImgRgb = true;
+  bool _publishImgRaw = false;
+  bool _publishImgGray = false;
+  bool _publishSensImu = true;
+  bool _publishSensImuRaw = false;
+  bool _publishSensImuTransf = false;
+  bool _publishSensImuTF = false;
+  bool _publishSensTemp = false;
+
   std::string _svoFilepath = ""; // SVO input
 #if ENABLE_SVO
   bool _svoRealtime = true; // SVO playback with real time
@@ -357,7 +370,6 @@ private:
   int _streamingServerChunckSize = 16084;
   int _streamingServerTargetFramerate = 0;
 
-  bool _publishImuTF = false;
   double _sensPubRate = 200.;
   // <---- Parameters
 

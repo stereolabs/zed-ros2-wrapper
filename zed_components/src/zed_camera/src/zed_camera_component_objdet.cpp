@@ -1011,7 +1011,9 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   size_t objdet_sub_count = 0;
 
   try {
-    objdet_sub_count = count_subscribers(mPubObjDet->get_topic_name());
+    if (mPubObjDet) {
+      objdet_sub_count = count_subscribers(mPubObjDet->get_topic_name());
+    }
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_OD(

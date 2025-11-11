@@ -72,8 +72,35 @@
       <xacro:property name="optical_offset_x" value="-0.01" />
       <xacro:property name="mono" value="false" />
     </xacro:if>
+    <xacro:if value="${model == 'zedxhdr'}">
+      <xacro:property name="baseline" value="0.12" />
+      <xacro:property name="height" value="0.032" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="-0.016" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+      <xacro:property name="mono" value="false" />
+    </xacro:if>
     <xacro:if value="${model == 'zedxm'}">
       <xacro:property name="baseline" value="0.05" />
+      <xacro:property name="height" value="0.032" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="-0.016" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+      <xacro:property name="mono" value="false" />
+    </xacro:if>
+    <xacro:if value="${model == 'zedxhdrmini'}">
+      <xacro:property name="baseline" value="0.05" />
+      <xacro:property name="height" value="0.032" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="0.0" />
+      <xacro:property name="screw_offset_z" value="-0.016" />
+      <xacro:property name="optical_offset_x" value="-0.01" />
+      <xacro:property name="mono" value="false" />
+    </xacro:if>
+    <xacro:if value="${model == 'zedxhdrmax'}">
+      <xacro:property name="baseline" value="0.170" />
       <xacro:property name="height" value="0.032" />
       <xacro:property name="bottom_slope" value="0.0" />
       <xacro:property name="screw_offset_x" value="0.0" />
@@ -108,6 +135,15 @@
       <xacro:property name="optical_offset_x" value="0.0" />
       <xacro:property name="mono" value="true" />
     </xacro:if>
+    <xacro:if value="${model == 'zedxonehdr'}">
+      <xacro:property name="baseline" value="0.0" />
+      <xacro:property name="height" value="0.025" />
+      <xacro:property name="bottom_slope" value="0.0" />
+      <xacro:property name="screw_offset_x" value="0.00" />
+      <xacro:property name="screw_offset_z" value="-0.0125" />
+      <xacro:property name="optical_offset_x" value="0.0" />
+      <xacro:property name="mono" value="true" />
+    </xacro:if>
 
     <!-- Camera mounting point (the threaded screw hole in the bottom) -->
     <link name="${name}_camera_link" />
@@ -118,14 +154,14 @@
         <visual>
           <origin xyz="${screw_offset_x} 0 ${screw_offset_z}" rpy="0 0 0"/>
           <geometry>
-<mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
+            <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
           </geometry>
           <material name="${model}_mat" />
-        </visual>      
+        </visual>
         <collision>
           <origin xyz="${screw_offset_x} 0 ${screw_offset_z}" rpy="0 0 0"/>
           <geometry>
-<mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
+            <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
           </geometry>
         </collision>
       </xacro:unless>
@@ -143,14 +179,14 @@
           <visual>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-  <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
+              <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
             </geometry>
             <material name="${model}_mat" />
           </visual>
           <collision>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-  <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
+              <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
             </geometry>
           </collision>
         </xacro:if>
@@ -174,14 +210,14 @@
           <visual>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-  <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
+              <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
             </geometry>
             <material name="${model}_mat" />
-          </visual>      
+          </visual>
           <collision>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-  <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
+              <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
             </geometry>
           </collision>
         </xacro:if>

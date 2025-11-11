@@ -30,7 +30,7 @@ This package enables the use of ZED cameras with ROS 2, providing access to a va
 ### Prerequisites
 
 - [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/), [Ubuntu 22.04 (Jammy Jellyfish)](https://releases.ubuntu.com/jammy/), or [Ubuntu 24.04 (Noble Numbat)](https://releases.ubuntu.com/noble/)
-- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v5.0 EA (for older versions support please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
+- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v5.1 (to support older versions please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - ROS 2 Foxy Fitzroy (deprecated), ROS 2 Humble Hawksbill, or ROS 2 Jazzy Jalisco:
   - [Foxy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html) [**Not recommended. EOL reached**]
@@ -92,12 +92,12 @@ To start the ZED node, open a bash terminal and use the [CLI](https://index.ros.
 ros2 launch zed_wrapper zed_camera.launch.py camera_model:=<camera_model>
 ```
 
-Replace `<camera_model>` with the model of the camera that you are using: `'zed'`, `'zedm'`, `'zed2'`, `'zed2i'`, `'zedx'`, `'zedxm'`, `'virtual'`,`'zedxonegs'`,`'zedxone4k'`.
+Replace `<camera_model>` with the model of the camera that you are using: `'zed'`, `'zedm'`, `'zed2'`, `'zed2i'`, `'zedx'`, `'zedxm'`, `'zedxhdrmini'`, `'zedxhdr'`, `'zedxhdrmax'`, `'virtual'`,`'zedxonegs'`,`'zedxone4k'`,`'zedxonehdr'`.
 
 The `zed_camera.launch.py` is a Python launch script that automatically starts the ZED node using ["manual composition"](https://index.ros.org/doc/ros2/Tutorials/Composition/). The parameters for the indicated camera model are loaded from the relative "YAML files."
 A Robot State Publisher node is started to publish the camera static links and joints loaded from the URDF model associated with the camera model.
 
-> :pushpin: **Note:** You can set your configurations by modifying the parameters in the files **common_stereo.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, **zedxm.yaml**, **common_mono.yaml**, **zedxonegs.yaml**, and **zedxone4k.yaml**  available in the folder `zed_wrapper/config`.
+> :pushpin: **Note:** You can set your configurations by modifying the parameters in the files **common_stereo.yaml**, **zed.yaml** **zedm.yaml**, **zed2.yaml**, **zed2i.yaml**, **zedx.yaml**, **zedxm.yaml**, **common_mono.yaml**, **zedxonegs.yaml**, **zedxone4k.yaml**, **zedxonehdr.yaml**  available in the folder `zed_wrapper/config`.
 
 You can get the list of all the available launch parameters by using the `-s` launch option:
 
@@ -110,7 +110,7 @@ For full descriptions of each parameter, follow the complete guide [here](https:
 
 ### RViz visualization
 
-To start a pre-configured RViz environment and visualize the data of all ZED cameras, we provide in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2). You'll see there more advanced examples and visualization that demonstrate depth, point clouds, odometry, object detection, etc.
+To start a pre-configured RViz environment and visualize the data of all ZED cameras, we provide in the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2). You'll see more advanced examples and visualizations that demonstrate depth, point clouds, odometry, object detection, etc.
 
 You can also quickly check that your depth data is correctly retrieved in RViz with `rviz2 -d ./zed_wrapper/config/rviz2/<your camera model>.rviz`. RViz subscribes to numerous ROS topics, which can potentially impact the performance of your application compared to when it runs without RViz.
 
@@ -126,7 +126,7 @@ ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zedx sim_mode:=true
 
 Launch options:
 
-- [Mandatory] `camera_model`: indicates the model of the simulated camera. It's required that this parameter matches the model of the simulated camera. In most cases, it will be a ZED X, since the first versions of the simulation plugins that we released are simulating this type of device.
+- [Mandatory] `camera_model`: indicates the model of the simulated camera. It's required that this parameter match the model of the simulated camera. In most cases, it will be a ZED X, since the first versions of the simulation plugins that we released are simulating this type of device.
 - [Mandatory] `sim_mode`: start the ZED node in simulation mode if `true`.
 - [Optional] `use_sim_time`: force the node to wait for valid messages on the topic `/clock`, and so use the simulation clock as the time reference.
 - [Optional] `sim_address`: set the address of the simulation server. The default is `127.0.0.1`, and it's valid if the node runs on the same machine as the simulator.
@@ -156,7 +156,7 @@ Supported simulation environments:
 
 The ZED ROS 2 Wrapper supports [Point Cloud Transport](http://wiki.ros.org/point_cloud_transport) to publish point clouds using different compression methods.
 
-This feature is available only if the package `point_cloud_transport` is installed in your ROS 2 environment, otherwise it will be disabled automatically.
+This feature is available only if the package `point_cloud_transport` is installed in your ROS 2 environment; otherwise, it will be disabled automatically.
 
 To install the packages, use the command:
 
@@ -252,7 +252,7 @@ The Spatial Mapping can be enabled/disabled manually by calling the service `ena
 The ZED ROS 2 Wrapper can subscribe to a `NavSatFix` topic and fuse GNSS data information
 with Positional Tracking information to obtain a precise robot localization referred to Earth coordinates.
 To enable GNSS fusion, set the parameter `gnss_fusion.gnss_fusion_enabled` to `true`.
-You must set the correct `gnss_frame` parameter when launching the node, e.g. `gnss_frame:='gnss_link'`.
+You must set the correct `gnss_frame` parameter when launching the node, e.g., `gnss_frame:='gnss_link'`.
 The services `toLL` and `fromLL` can be used to convert Latitude/Longitude coordinates to robot `map` coordinates.
 
 ### 2D mode
@@ -271,7 +271,7 @@ The ZED ROS 2 Wrapper leverages [NITROS](https://nvidia-isaac-ros.github.io/conc
 
 ![NITROS communication](./images/nitros-graph.gif)
 
-Read the full [Isaac ROS integration guide](https://docs.stereolabs.com/isaac-ros/) and learn how to setup your development environment to use the ZED ROS2 Wrapper with Isaac ROS and NITROS.
+Read the full [Isaac ROS integration guide](https://docs.stereolabs.com/isaac-ros/) and learn how to set up your development environment to use the ZED ROS2 Wrapper with Isaac ROS and NITROS.
 
 ## Examples and Tutorials
 
@@ -280,26 +280,27 @@ See the [`zed-ros2-examples` repository](https://github.com/stereolabs/zed-ros2-
 
 ### RVIZ2 visualization examples
 
-- Example launch files to start a preconfigured instance of Rviz displaying all the ZED Wrapper node information: [zed_display_rviz2](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
+- Example launch files to start a preconfigured instance of RViz displaying all the ZED Wrapper node information: [zed_display_rviz2](https://github.com/stereolabs/zed-ros2-examples/tree/master/zed_display_rviz2)
 - ROS 2 plugin for ZED2 to visualize the results of the Object Detection and Body Tracking modules (bounding boxes and skeletons): [rviz-plugin-zed-od](https://github.com/stereolabs/zed-ros2-examples/tree/master/rviz-plugin-zed-od)
 
 ### Tutorials
 
-A series of tutorials are provided to better understand how to use the ZED nodes in the ROS 2 environment :
+A series of tutorials is provided to better understand how to use the ZED nodes in the ROS 2 environment :
 
-- [Video subscribing](./zed_video_tutorial): `zed_video_tutorial` - In this tutorial, you will learn how to write a simple node that subscribes to messages of type `sensor_msgs/Image` to retrieve the left and right rectified images published by the ZED node.
-- [Depth subscribing](./zed_depth_tutorial): `zed_depth_tutorial` - In this tutorial, you will learn how to write a simple node that subscribes to messages of type `sensor_msgs/Image` to retrieve the depth images published by the ZED node and to get the measured distance at the center of the image.
-- [Pose/Odometry subscribing](./zed_pose_tutorial): `zed_pose_tutorial` - In this tutorial, you will learn how to write a simple node that subscribes to messages of type `geometry_msgs/PoseStamped` and `nav_msgs/Odometry` to retrieve the position and the odometry of the camera while moving in the world.
-- [ROS 2 Composition + BGRA2BGR conversion](./zed_rgb_convert): `zed_rgb_convert` - In this tutorial, you will learn how to use the concept of "ROS 2 Composition" and "Intra Process Communication" to write a ROS 2 component that gets a 4 channel BGRA image as input and re-publishes it as 3 channels BGR image.
-- [ROS 2 Multi-Camera](./zed_multi_camera): `zed_multi_camera` - In this tutorial, you will learn how to use the provided launch file to start a multi-camera robot configuration.
-- [Robot integration](./zed_robot_integration): `zed_robot_integration` - In this tutorial, you will learn how to add one or more ZED cameras to a robot configuration.
+- [Video subscribing](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_video_tutorial): `zed_video_tutorial` - In this tutorial, you will learn how to write a simple node that subscribes to messages of type `sensor_msgs/Image` to retrieve the Left and Right rectified images published by the ZED node.
+- [Depth subscribing](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_depth_tutorial): `zed_depth_tutorial` - In this tutorial, you will learn how to write a simple node that subscribes to messages of type `sensor_msgs/Image` to retrieve the depth images published by the ZED node and to get the measured distance at the center of the image.
+- [Pose/Odometry subscribing](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_pose_tutorial): `zed_pose_tutorial` - In this tutorial, you will learn how to write a simple node that subscribes to messages of type `geometry_msgs/PoseStamped` and `nav_msgs/Odometry` to retrieve the position and the odometry of the camera while moving in the world.
+- [ROS 2 Composition + BGRA2BGR conversion](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_rgb_convert): `zed_rgb_convert` - In this tutorial, you will learn how to use the concept of "ROS 2 Composition" and "Intra Process Communication" to write a ROS 2 component that gets a 4 channel BGRA image as input and re-publishes it as 3 channels BGR image.
+- [ROS 2 Multi-Camera](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_multi_camera): `zed_multi_camera` - In this tutorial, you will learn how to use the provided launch file to start a multi-camera robot configuration.
+- [ROS 2 Multi-Camera + Intra Process Communication](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_ipc): `zed_ipc - In this tutorial, you will learn how to use the provided launch file to start a multi-camera configuration, and load a new processing node in the same process to leverage Intra Process Communication with ROS 2composition.
+- [Robot integration](https://github.com/stereolabs/zed-ros2-examples/tree/master/tutorials/zed_robot_integration): `zed_robot_integration` - In this tutorial, you will learn how to add one or more ZED cameras to a robot configuration.
 
 ### Examples
 
 How to use the ZED ROS 2 nodes alongside other ROS 2 packages or advanced features.
 
-- [zed_aruco_localization](./zed_aruco_localization): Use localized ArUco tag as a reference for localization.
-- [zed_depth_to_laserscan](./zed_depth_to_laserscan): Convert ZED Depth maps into virtual Laser Scans using
+- [zed_aruco_localization](https://github.com/stereolabs/zed-ros2-examples/tree/master/examples/zed_aruco_localization): Use localized ArUco tag as a reference for localization.
+- [zed_depth_to_laserscan](https://github.com/stereolabs/zed-ros2-examples/tree/master/examples/zed_depth_to_laserscan): Convert ZED Depth maps into virtual Laser Scans using
 
 ## Update the local repository
 
@@ -322,6 +323,6 @@ colcon build --symlink-install --cmake-args=-DCMAKE_BUILD_TYPE=Release --paralle
 
 ## Known issues
 
-- Nothindg to report yet.
+- Nothing to report yet.
 
 If you find a bug or want to request a new feature, please open an issue on the [GitHub issues page](https://github.com/stereolabs/zed-ros2-wrapper/issues).

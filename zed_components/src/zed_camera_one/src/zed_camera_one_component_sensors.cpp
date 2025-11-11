@@ -31,11 +31,53 @@ void ZedCameraOne::getSensorsParams()
 
   sl_tools::getParam(
     shared_from_this(), "sensors.publish_imu_tf",
-    _publishImuTF, _publishImuTF, " * Publish IMU TF: ");
+    _publishSensImuTF, _publishSensImuTF, " * Publish IMU TF: ");
   sl_tools::getParam(
     shared_from_this(), "sensors.sensors_pub_rate",
     _sensPubRate, _sensPubRate,
     " * Sensors publishing rate [Hz]: ", true, 1.0, 400.0);
+}
+
+void ZedCameraOne::initSensorPublishers()
+{
+  RCLCPP_INFO(get_logger(), " +++ SENSORS TOPICS +++");
+
+  // ----> Advertised topics
+  const std::string imu_topic_root = "imu/";
+  const std::string imu_topic = imu_topic_root + "data";
+  const std::string imu_raw_topic = imu_topic_root + "data_raw";
+  const std::string temp_topic = "temperature";
+
+  // Helper to build topic names
+  auto make_topic =
+    [&](const std::string & type) {
+      std::string topic = _topicRoot + type;
+      return get_node_topics_interface()->resolve_topic_name(topic);
+    };
+
+  _sensImuTopic = make_topic(imu_topic);
+  _sensImuRawTopic = make_topic(imu_raw_topic);
+  _sensTempTopic = make_topic(temp_topic);
+  // <---- Advertised topics
+
+  // ----> Create publishers
+
+  // Sensors publishers
+  if (_publishSensImu) {
+    _pubImu = this->create_publisher<sensor_msgs::msg::Imu>(_sensImuTopic, _qos, _pubOpt);
+    RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubImu->get_topic_name());
+  }
+
+  if (_publishSensImuRaw) {
+    _pubImuRaw = this->create_publisher<sensor_msgs::msg::Imu>(_sensImuRawTopic, _qos, _pubOpt);
+    RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubImuRaw->get_topic_name());
+  }
+
+  if (_publishSensTemp) {
+    _pubTemp = this->create_publisher<sensor_msgs::msg::Temperature>(_sensTempTopic, _qos, _pubOpt);
+    RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubTemp->get_topic_name());
+  }
+  // <---- Create publishers
 }
 
 void ZedCameraOne::threadFunc_pubSensorsData()
@@ -142,7 +184,7 @@ bool ZedCameraOne::waitForCameraOpen()
 bool ZedCameraOne::waitForSensorSubscribers()
 {
   _imuPublishing = areSensorsTopicsSubscribed();
-  if (!_imuPublishing && !_publishImuTF) {
+  if (!_imuPublishing && !_publishSensImuTF) {
     rclcpp::sleep_for(200ms);
     return false;
   }
@@ -217,10 +259,13 @@ void ZedCameraOne::callback_pubTemp()
   // <---- Always update temperature values for diagnostic
 
   // ----> Subscribers count
-  size_t tempSubCount;
+  size_t tempSubCount = 0;
 
   try {
-    tempSubCount = count_subscribers(_pubTemp->get_topic_name());
+    if (_pubTemp) {
+      tempSubCount = count_subscribers(_pubTemp->get_topic_name());
+      DEBUG_STREAM_SENS("Temperature subscribers: " << static_cast<int>(tempSubCount));
+    }
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_SENS(
@@ -241,7 +286,9 @@ void ZedCameraOne::callback_pubTemp()
 
     DEBUG_SENS("Publishing IMU TEMP message");
     try {
-      _pubTemp->publish(std::move(imuTempMsg));
+      if (_pubTemp) {
+        _pubTemp->publish(std::move(imuTempMsg));
+      }
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
     } catch (...) {
@@ -304,6 +351,11 @@ void ZedCameraOne::updateImuFreqDiagnostics(double dT)
 
 void ZedCameraOne::publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data)
 {
+  if (!_pubImu) {
+    DEBUG_STREAM_SENS("[publishSensorsData] _pubImu is null");
+    return;
+  }
+
   DEBUG_STREAM_SENS("[publishSensorsData] IMU subscribers: " << static_cast<int>(_imuSubCount));
   auto imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
   imuMsg->header.stamp = ts_imu;
@@ -357,6 +409,11 @@ void ZedCameraOne::publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsD
 
 void ZedCameraOne::publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data)
 {
+  if (!_pubImuRaw) {
+    DEBUG_STREAM_SENS("[publishSensorsData] _pubImuRaw is null");
+    return;
+  }
+
   DEBUG_STREAM_SENS(
     "[publishSensorsData] IMU RAW subscribers: " << static_cast<int>(_imuRawSubCount));
   auto imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
@@ -399,6 +456,10 @@ void ZedCameraOne::publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::Senso
 
 void ZedCameraOne::publishImuFrameAndTopic()
 {
+  if (!_publishSensImuTF && !_publishSensImuTransf) {
+    return;
+  }
+
   sl::Orientation sl_rot = _slCamImuTransf.getOrientation();
   sl::Translation sl_tr = _slCamImuTransf.getTranslation();
 
@@ -417,15 +478,28 @@ void ZedCameraOne::publishImuFrameAndTopic()
   cameraImuTransfMsg->transform.translation.y = sl_tr.y;
   cameraImuTransfMsg->transform.translation.z = sl_tr.z;
 
-  try {
-    _pubCamImuTransf->publish(std::move(cameraImuTransfMsg));
-  } catch (const std::system_error & e) {
-    DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
-  } catch (...) {
-    DEBUG_STREAM_COMM("Message publishing generic exception.");
-  }
+  // ----> Publish CAM/IMU Transform
+  if (_publishSensImuTransf) {
+    try {
+      size_t sub_count = 0;
+      if (_pubCamImuTransf) {
+        sub_count = count_subscribers(_pubCamImuTransf->get_topic_name());
+        DEBUG_STREAM_SENS("Camera-IMU Transform subscribers: " << static_cast<int>(sub_count));
+      }
 
-  if (!_publishImuTF) {
+      if (sub_count && _pubCamImuTransf) {
+        _pubCamImuTransf->publish(std::move(cameraImuTransfMsg));
+      }
+    } catch (const std::system_error & e) {
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_COMM("Message publishing generic exception.");
+    }
+  }
+  // <---- Publish CAM/IMU Transform
+
+  // ----> Broadcast CAM/IMU TF
+  if (!_publishSensImuTF) {
     return;
   }
 
@@ -449,13 +523,22 @@ void ZedCameraOne::publishImuFrameAndTopic()
   double elapsed_sec = _imuTfFreqTimer.toc();
   _pubImuTF_sec->addValue(elapsed_sec);
   _imuTfFreqTimer.tic();
+  // <---- Broadcast CAM/IMU TF
 }
 
 bool ZedCameraOne::areSensorsTopicsSubscribed()
 {
   try {
-    _imuSubCount = _pubImu->get_subscription_count();
-    _imuRawSubCount = _pubImuRaw->get_subscription_count();
+    if (_pubImu) {
+      _imuSubCount = _pubImu->get_subscription_count();
+    } else {
+      _imuSubCount = 0;
+    }
+    if (_pubImuRaw) {
+      _imuRawSubCount = _pubImuRaw->get_subscription_count();
+    } else {
+      _imuRawSubCount = 0;
+    }
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_SENS(

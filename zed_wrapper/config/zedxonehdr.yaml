@@ -1,0 +1,10 @@
+# config/zedxonehdr.yaml
+# Parameters for Stereolabs ZED X One HDR camera
+---
+/**:
+    ros__parameters:
+        general:
+          camera_model: 'zedxonehdr'
+          camera_name: 'zedxonehdr' # overwritten by launch file
+          grab_resolution: 'HD1536' # The native camera grab resolution. 'HD1536', 'AUTO'
+          grab_frame_rate: 30 # ZED SDK internal grabbing rate (HD1536: 30)

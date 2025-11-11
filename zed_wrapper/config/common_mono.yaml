@@ -31,10 +31,17 @@
             auto_digital_gain_range_min: 1 # [DYNAMIC] - Defines the minimum range of digital ISP gain in automatic control
             auto_digital_gain_range_max: 256 # [DYNAMIC] - Defines the maximum range of digital ISP gain in automatic control
             denoising: 50 # [DYNAMIC] - Defines the level of denoising applied on both left and right images. Range [0-100]
+            publish_rgb: true # Advertise the RGB image topics that are published only if a node subscribes to them
+            publish_gray: false # Advertise the gray image topics that are published only if a node subscribes to them
+            publish_raw: false # Advertise the raw image topics that are published only if a node subscribes to them (only if 'publish_rgb' or 'publish_gray' is true)
 
         sensors:
             publish_imu_tf: true # [overwritten by launch file options] enable/disable the IMU TF broadcasting
             sensors_pub_rate: 100. # [DYNAMIC] - frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
+            publish_imu: true # Advertise the IMU topic that is published only if a node subscribes to it
+            publish_imu_raw: false # Advertise the raw IMU topic that is published only if a node subscribes to it
+            publish_cam_imu_transf: false # Advertise the CAMERA-IMU transformation topic that is published only if a node subscribes to it
+            publish_temp: false # Advertise the temperature topics that are published only if a node subscribes to them
 
         stream_server:
             stream_enabled: false # enable the streaming server when the camera is open

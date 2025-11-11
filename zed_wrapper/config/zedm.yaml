@@ -15,6 +15,6 @@
             hue: 0 # [DYNAMIC] Image hue. Range: 0 to 11
 
         depth:
-            min_depth: 0.1 # Min: 0.1, Max: 3.0
-            max_depth: 10.0 # Max: 20.0
+            min_depth: 0.01 # Min: 0.01, Max: 3.0
+            max_depth: 10.0 # Min: 0.5, Max: 15.0
 

@@ -90,16 +90,18 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   std::chrono::milliseconds init_msec(static_cast<int>(50.0));
   _initTimer = create_wall_timer(
     std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
-    std::bind(&ZedCameraOne::init, this));
+    std::bind(&ZedCameraOne::initNode, this));
   // <---- Start a "one shot timer" to initialize the node
 }
 
 ZedCameraOne::~ZedCameraOne()
 {
-  close();
+  deInitNode();
+  DEBUG_STREAM_COMM(
+    "ZED Component destroyed:" << this->get_fully_qualified_name());
 }
 
-void ZedCameraOne::close()
+void ZedCameraOne::deInitNode()
 {
   DEBUG_STREAM_SENS("Stopping temperatures timer");
   if (_tempPubTimer) {
@@ -145,10 +147,9 @@ void ZedCameraOne::closeCamera()
   }
 
   RCLCPP_INFO(get_logger(), "=== CLOSING CAMERA ===");
-
   _zed->close();
   _zed.reset();
-  DEBUG_COMM("Camera closed");
+  RCLCPP_INFO(get_logger(), "=== CAMERA CLOSED ===");
 }
 
 void ZedCameraOne::initParameters()
@@ -158,6 +159,9 @@ void ZedCameraOne::initParameters()
 
   // GENERAL parameters
   getGeneralParams();
+
+  // TOPIC selection parameters
+  getTopicEnableParams();
 
   // Image Parameters
   getVideoParams();
@@ -183,6 +187,37 @@ void ZedCameraOne::getGeneralParams()
   getCameraInfoParams();
   getResolutionParams();
   getOpencvCalibrationParam();
+}
+
+void ZedCameraOne::getTopicEnableParams()
+{
+  RCLCPP_INFO(get_logger(), "=== TOPIC selection parameters ===");
+
+  // Image topics
+  sl_tools::getParam(
+    shared_from_this(), "video.publish_rgb", _publishImgRgb,
+    _publishImgRgb, " * Publish RGB image: ");
+  sl_tools::getParam(
+    shared_from_this(), "video.publish_raw", _publishImgRaw,
+    _publishImgRaw, " * Publish Raw images: ");
+  sl_tools::getParam(
+    shared_from_this(), "video.publish_gray", _publishImgGray,
+    _publishImgGray, " * Publish Gray images: ");
+
+  // Sensor topics
+  sl_tools::getParam(
+    shared_from_this(), "sensors.publish_imu", _publishSensImu,
+    _publishSensImu, " * Publish IMU: ");
+  sl_tools::getParam(
+    shared_from_this(), "sensors.publish_imu_raw", _publishSensImuRaw,
+    _publishSensImuRaw, " * Publish IMU Raw: ");
+  sl_tools::getParam(
+    shared_from_this(), "sensors.publish_cam_imu_transf", _publishSensImuTransf,
+    _publishSensImuTransf, " * Publish Camera/IMU Transf.: ");
+  sl_tools::getParam(
+    shared_from_this(), "sensors.publish_temp", _publishSensTemp,
+    _publishSensTemp, " * Publish Temperature: ");
+
 }
 
 void ZedCameraOne::getSvoParams()
@@ -272,6 +307,25 @@ void ZedCameraOne::getCameraModelParams()
           _camUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
+  } else if (camera_model == "zedxonehdr") {
+    _camUserModel = sl::MODEL::ZED_XONE_HDR;
+    if (_svoMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Playing an SVO for "
+          << sl::toString(_camUserModel)
+          << " camera model.");
+    } else if (_streamMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Playing a network stream from a "
+          << sl::toString(_camUserModel)
+          << " camera model.");
+    } else if (!IS_JETSON) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "Camera model " << sl::toString(_camUserModel).c_str()
+                        << " is available only with NVIDIA Jetson devices.");
+      exit(EXIT_FAILURE);
+    }
   } else {
     RCLCPP_ERROR_STREAM(
       get_logger(),
@@ -305,11 +359,13 @@ void ZedCameraOne::getResolutionParams()
     _camResol = sl::RESOLUTION::HD4K;
   } else if (resol == "QHDPLUS" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
     _camResol = sl::RESOLUTION::QHDPLUS;
-  } else if (resol == "HD1200") {
+  } else if (resol == "HD1536" && _camUserModel == sl::MODEL::ZED_XONE_HDR) {
+    _camResol = sl::RESOLUTION::HD1536;
+  } else if (resol == "HD1200" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
     _camResol = sl::RESOLUTION::HD1200;
-  } else if (resol == "HD1080") {
+  } else if (resol == "HD1080" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
     _camResol = sl::RESOLUTION::HD1080;
-  } else if (resol == "SVGA") {
+  } else if (resol == "SVGA" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
     _camResol = sl::RESOLUTION::SVGA;
   } else {
     RCLCPP_WARN(
@@ -527,14 +583,15 @@ void ZedCameraOne::getDebugParams()
 #endif
 }
 
-void ZedCameraOne::init()
+void ZedCameraOne::initNode()
 {
   // Stop the timer for "one shot" initialization
   _initTimer->cancel();
 
   // ----> Diagnostic initialization
+  std::string info = sl::toString(_camUserModel).c_str();
   _diagUpdater.add(
-    "ZED X One Diagnostic", this,
+    info, this,
     &ZedCameraOne::callback_updateDiagnostic);
   std::string hw_id = std::string("Stereolabs camera: ") + _cameraName;
   _diagUpdater.setHardwareID(hw_id);
@@ -562,7 +619,7 @@ void ZedCameraOne::init()
   get_global_default_context()->add_pre_shutdown_callback(
     [this]() {
       DEBUG_COMM("ZED X One Component is shutting down");
-      close();
+      deInitNode();
       DEBUG_COMM("ZED X One Component is shutting down - done");
     });
 
@@ -683,9 +740,17 @@ void ZedCameraOne::configureZedInput()
   _initParams.camera_resolution = static_cast<sl::RESOLUTION>(_camResol);
 
   if (_camSerialNumber > 0) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
     _initParams.input.setFromSerialNumber(_camSerialNumber, sl::BUS_TYPE::GMSL);
+#else
+    _initParams.input.setFromSerialNumber(_camSerialNumber);
+#endif
   } else if (_camId >= 0) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
     _initParams.input.setFromCameraID(_camId, sl::BUS_TYPE::GMSL, sl::CAMERA_TYPE::MONO);
+#else
+    _initParams.input.setFromCameraID(_camId, sl::BUS_TYPE::GMSL);
+#endif
   }
 }
 
@@ -709,6 +774,18 @@ bool ZedCameraOne::openZedCamera()
   _connStatus = _zed->open(_initParams);
 
   if (_connStatus != sl::ERROR_CODE::SUCCESS) {
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+    if (_connStatus == sl::ERROR_CODE::DRIVER_FAILURE) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "ZED X Driver failure: " << sl::toVerbose(_connStatus)
+                                 << ". Please verify that the ZED drivers "
+          "are correctly installed.");
+      return false;
+    }
+#endif
+
     if (_connStatus == sl::ERROR_CODE::INVALID_CALIBRATION_FILE) {
       if (_opencvCalibFile.empty()) {
         RCLCPP_ERROR_STREAM(
@@ -776,6 +853,8 @@ void ZedCameraOne::processCameraInformation()
       RCLCPP_WARN(get_logger(), "Please set the parameter 'general.camera_model' to 'zedxonegs'");
     } else if (_camRealModel == sl::MODEL::ZED_XONE_UHD) {
       RCLCPP_WARN(get_logger(), "Please set the parameter 'general.camera_model' to 'zedxone4k'");
+    } else if (_camRealModel == sl::MODEL::ZED_XONE_HDR) {
+      RCLCPP_WARN(get_logger(), "Please set the parameter 'general.camera_model' to 'zedxonehdr'");
     }
   }
 
@@ -784,6 +863,14 @@ void ZedCameraOne::processCameraInformation()
       << sl::toString(_camRealModel).c_str());
   _camSerialNumber = camInfo.serial_number;
   RCLCPP_INFO_STREAM(get_logger(), " * Serial Number -> " << _camSerialNumber);
+
+  // ----> Update HW ID
+  std::string hw_id = std::string("Stereolabs ");
+  hw_id += sl::toString(_camRealModel).c_str();
+  hw_id += " - '" + _cameraName + "'" + " - S/N: " + std::to_string(_camSerialNumber);
+  _diagUpdater.setHardwareID(hw_id);
+  _diagUpdater.force_update();
+  // <---- Update HW ID
 
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -957,12 +1044,14 @@ void ZedCameraOne::updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatus
   }
 
   // ----> Frame drop count
-  auto dropped = _zed->getFrameDroppedCount();
-  uint64_t total = dropped + _frameCount;
-  auto perc_drop = 100. * static_cast<double>(dropped) / total;
-  stat.addf(
-    "Frame Drop rate", "%u/%lu (%g%%)",
-    dropped, total, perc_drop);
+  if (_zed && _zed->isOpened()) {
+    auto dropped = _zed->getFrameDroppedCount();
+    uint64_t total = dropped + _frameCount;
+    auto perc_drop = 100. * static_cast<double>(dropped) / total;
+    stat.addf(
+      "Frame Drop rate", "%u/%lu (%g%%)",
+      dropped, total, perc_drop);
+  }
   // <---- Frame drop count
 }
 
@@ -1014,7 +1103,7 @@ void ZedCameraOne::updateSvoDiagnostics(diagnostic_updater::DiagnosticStatusWrap
 
 void ZedCameraOne::updateTfImuDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
-  if (_publishImuTF) {
+  if (_publishSensImuTF) {
     double freq = 1. / _pubImuTF_sec->getAvg();
     stat.addf("TF IMU", "Mean Frequency: %.1f Hz", freq);
   } else {
@@ -1472,11 +1561,11 @@ void ZedCameraOne::initTFCoordFrameNames()
 
   // Print TF frames
   RCLCPP_INFO_STREAM(get_logger(), "=== TF FRAMES ===");
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera link\t-> " << _cameraLinkFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera link\t\t-> " << _cameraLinkFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Camera center\t-> " << _cameraCenterFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Image\t\t-> " << _camImgFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Optical\t-> " << _camOptFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t-> " << _imuFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Optical\t\t-> " << _camOptFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t\t-> " << _imuFrameId);
   // <---- Coordinate frames
 }
 
@@ -1487,45 +1576,28 @@ void ZedCameraOne::initPublishers()
   // Video
   initVideoPublishers();
 
-  // ----> Sensors
-  RCLCPP_INFO(get_logger(), " +++ SENSOR TOPICS +++");
-  _tempTopic = _topicRoot + "temperature";
-  _pubTemp = create_publisher<sensor_msgs::msg::Temperature>(_tempTopic, _qos, _pubOpt);
-  RCLCPP_INFO_STREAM(get_logger(), "  * Advertised on topic: " << _pubTemp->get_topic_name());
-
-  std::string imuTopicRoot = "imu";
-  std::string imu_topic_name = "data";
-  std::string imu_topic_raw_name = "data_raw";
-  std::string imu_topic = _topicRoot + imuTopicRoot + "/" + imu_topic_name;
-  std::string imu_topic_raw = _topicRoot + imuTopicRoot + "/" + imu_topic_raw_name;
-  _pubImu = create_publisher<sensor_msgs::msg::Imu>(imu_topic, _qos, _pubOpt);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "  * Advertised on topic: " << _pubImu->get_topic_name());
-  _pubImuRaw =
-    create_publisher<sensor_msgs::msg::Imu>(imu_topic_raw, _qos, _pubOpt);
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    "  * Advertised on topic: " << _pubImuRaw->get_topic_name());
-  // <---- Sensors
+  // Sensors
+  initSensorPublishers();
 
   // ----> Camera/imu transform message
-  std::string cam_imu_tr_topic = _topicRoot + "left_cam_imu_transform";
-  _pubCamImuTransf = create_publisher<geometry_msgs::msg::TransformStamped>(
-    cam_imu_tr_topic, _qos, _pubOpt);
+  if (_publishSensImuTransf) {
+    std::string cam_imu_tr_topic = _topicRoot + "left_cam_imu_transform";
+    _pubCamImuTransf = create_publisher<geometry_msgs::msg::TransformStamped>(
+      cam_imu_tr_topic, _qos, _pubOpt);
 
-  RCLCPP_INFO_STREAM(
-    get_logger(), "  * Advertised on topic: "
-      << _pubCamImuTransf->get_topic_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(), "  * Advertised on topic: "
+        << _pubCamImuTransf->get_topic_name());
 
-  sl::Orientation sl_rot = _slCamImuTransf.getOrientation();
-  sl::Translation sl_tr = _slCamImuTransf.getTranslation();
-  RCLCPP_INFO(
-    get_logger(), "  * Camera-IMU Translation: \n %g %g %g", sl_tr.x,
-    sl_tr.y, sl_tr.z);
-  RCLCPP_INFO(
-    get_logger(), "  * Camera-IMU Rotation:\n%s",
-    sl_rot.getRotationMatrix().getInfos().c_str());
+    sl::Orientation sl_rot = _slCamImuTransf.getOrientation();
+    sl::Translation sl_tr = _slCamImuTransf.getTranslation();
+    RCLCPP_INFO(
+      get_logger(), "  * Camera-IMU Translation: \n %g %g %g", sl_tr.x,
+      sl_tr.y, sl_tr.z);
+    RCLCPP_INFO(
+      get_logger(), "  * Camera-IMU Rotation:\n%s",
+      sl_rot.getRotationMatrix().getInfos().c_str());
+  }
   // <---- Camera/imu transform message
 }
 

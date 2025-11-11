@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-11-11
+----------
+- Loop Closure log event is now displayed only in DEBUG mode to reduce log spam
+
 2025-11-05
 ----------
 - Remapped `robot_description` topic to `<camera_name>_description` to allow multi-camera URDF integration

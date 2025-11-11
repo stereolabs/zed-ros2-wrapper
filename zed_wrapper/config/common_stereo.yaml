@@ -210,4 +210,4 @@
             debug_streaming: false
             debug_advanced: false
             debug_nitros: false
-            disable_nitros: true # If available, disable NITROS usage for debugging and testing purposes
+            disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes

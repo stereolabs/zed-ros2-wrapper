@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+2025-10-10
+----------
+- Improved diagnostic information for 3D Mapping status in diagnostics
+- Fixed random crash when stopping 3D Mapping
+
 2025-11-11
 ----------
 - Loop Closure log event is now displayed only in DEBUG mode to reduce log spam
@@ -80,7 +85,12 @@ LATEST CHANGES
   - `mapping.publish_det_plane`: Advertise the plane detection topics that is published only if a node subscribes to it
 
 **NOTE** THIS IS A BREAKING CHANGE. TOPICS MAY NO LONGER BE AVAILABLE IF NOT ENABLED IN THE DEFAULT CONFIGURATION. Please check what topic you use and set the relevant parameter to `true`.
-  
+
+2025-10-10
+----------
+- Improved diagnostic information for 3D Mapping status in diagnostics
+- Fixed random crash when stopping 3D Mapping
+
 2025-10-09
 ----------
 - New feature: 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):

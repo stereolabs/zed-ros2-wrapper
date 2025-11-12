@@ -5407,12 +5407,11 @@ void ZedCamera::processOdometry()
     mPosTrackingStatus.spatial_memory_status ==
     sl::SPATIAL_MEMORY_STATUS::LOOP_CLOSED))
   {
+
     if (mPosTrackingStatus.spatial_memory_status ==
       sl::SPATIAL_MEMORY_STATUS::LOOP_CLOSED)
     {
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "=== Odometry reset for LOOP CLOSURE event ===");
+      DEBUG_PT("=== Odometry reset for LOOP CLOSURE event ===");
     }
 
     // Propagate Odom transform in time

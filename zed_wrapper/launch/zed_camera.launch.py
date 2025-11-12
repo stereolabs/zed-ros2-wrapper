@@ -234,7 +234,8 @@ def launch_setup(context, *args, **kwargs):
         parameters=[{
             'use_sim_time': publish_svo_clock,
             'robot_description': Command(xacro_command)
-        }]
+        }],
+        remappings=[('robot_description', camera_name_val+'_description')]
     )
     return_array.append(rsp_node)
 

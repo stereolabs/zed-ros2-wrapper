@@ -18,9 +18,6 @@ LATEST CHANGES
 2025-11-05
 ----------
 - Remapped `robot_description` topic to `<camera_name>_description` to allow multi-camera URDF integration
-
-2025-11-05
-----------
 - Changed minimum depth value to 0.01 meters when using ZED SDK v5.1 or higher 
 
 2025-10-31

@@ -103,7 +103,7 @@
             publish_tf: true # [overwritten by launch file options] publish `odom -> camera_link` TF
             publish_map_tf: true # [overwritten by launch file options] publish `map -> odom` TF
             map_frame: 'map'
-            odometry_frame: 'odom'
+            odometry_frame: 'zed/zed_node/odom'
             area_memory: true # Enable to detect loop closure
             area_file_path: '' # Path to the area memory file for relocalization and loop closure in a previously explored environment. 
             save_area_memory_on_closing: false # Save Area memory before closing the camera if `area_file_path` is not empty. You can also use the `save_area_memory` service to save the area memory at any time.

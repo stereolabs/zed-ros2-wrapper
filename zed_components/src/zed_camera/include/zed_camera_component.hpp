@@ -293,7 +293,7 @@ protected:
   void publishImuFrameAndTopic();
 
   void publishOdom(
-    tf2::Transform & odom2baseTransf, sl::Pose & slPose, const tf2::Transform &twist2base,
+    tf2::Transform & odom2baseTransf, sl::Pose & slPose, const tf2::Vector3& linear_velocity, const tf2::Vector3& angular_velocity,
     rclcpp::Time t);
   void publishPose();
   void publishPoseLandmarks();
@@ -736,7 +736,8 @@ private:
   tf2::Transform mMap2BaseTransf;   // Coordinates of the base in map frame
   tf2::Transform
     mSensor2BaseTransf;    // Coordinates of the base frame in sensor frame
-  tf2::Transform mTwist2Base;   // Twist of the camera in base frame
+  tf2::Vector3 linear_base; // Linear twist in the camera base link frame
+  tf2::Vector3 angular_base; // Angular twist in the camera base link frame
   tf2::Transform
     mSensor2CameraTransf;    // Coordinates of the camera frame in sensor frame
   tf2::Transform

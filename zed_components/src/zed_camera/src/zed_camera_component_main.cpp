@@ -5404,6 +5404,7 @@ void ZedCamera::processOdometry()
 
   sl::Pose deltaOdom;
 
+
   mPosTrackingStatus = mZed->getPositionalTrackingStatus();
 
   if (mResetOdomFromSrv || (mResetOdomWhenLoopClosure &&
@@ -5501,16 +5502,12 @@ void ZedCamera::processOdometry()
       tf2::Vector3 translation_sensor2base = mSensor2BaseTransf.getOrigin();
       
       // Transform angular velocity
-      tf2::Vector3 angular_base = rotation_sensor2base * angular_sensor;
-      tf2::Quaternion angular_base_quat;
-      angular_base_quat.setRPY(angular_base.x(), angular_base.y(), angular_base.z());
-      mTwist2Base.setRotation(angular_base_quat);
+      angular_base = rotation_sensor2base * angular_sensor;
       
       // Transform linear velocity: v_base = R * v_sensor + omega_sensor x r
       tf2::Vector3 linear_rotated = rotation_sensor2base * linear_sensor;
       tf2::Vector3 cross_product = angular_base.cross(translation_sensor2base);
-      tf2::Vector3 linear_base = linear_rotated + cross_product;
-      mTwist2Base.setOrigin(linear_base);
+      linear_base = linear_rotated + cross_product;
 
       DEBUG_STREAM_PT(
         "Delta ODOM Twist - Transformed Linear:" <<
@@ -5541,11 +5538,11 @@ void ZedCamera::processOdometry()
   }
 
   // Publish odometry message
-  publishOdom(mOdom2BaseTransf, deltaOdom, mTwist2Base, mFrameTimestamp);
+  publishOdom(mOdom2BaseTransf, deltaOdom, linear_base, angular_base, mFrameTimestamp);
 }
 
 void ZedCamera::publishOdom(
-  tf2::Transform & odom2baseTransf, sl::Pose & slPose, const tf2::Transform& mTwist2Base,
+  tf2::Transform & odom2baseTransf, sl::Pose & slPose, const tf2::Vector3& linear_velocity, const tf2::Vector3& angular_velocity,
   rclcpp::Time t)
 {
   size_t odomSub = 0;
@@ -5592,12 +5589,12 @@ void ZedCamera::publishOdom(
     }
 
     // Odometry twist
-    odomMsg->twist.twist.linear.x = mTwist2Base.getOrigin().x();
-    odomMsg->twist.twist.linear.y = mTwist2Base.getOrigin().y();
-    odomMsg->twist.twist.linear.z = mTwist2Base.getOrigin().z();
-    odomMsg->twist.twist.angular.x = mTwist2Base.getRotation().x();
-    odomMsg->twist.twist.angular.y = mTwist2Base.getRotation().y();
-    odomMsg->twist.twist.angular.z = mTwist2Base.getRotation().z();
+    odomMsg->twist.twist.linear.x = linear_velocity.x();
+    odomMsg->twist.twist.linear.y = linear_velocity.y();
+    odomMsg->twist.twist.linear.z = linear_velocity.z();
+    odomMsg->twist.twist.angular.x = angular_velocity.x();
+    odomMsg->twist.twist.angular.y = angular_velocity.y();
+    odomMsg->twist.twist.angular.z = angular_velocity.z();
 
 
     // Publish odometry message

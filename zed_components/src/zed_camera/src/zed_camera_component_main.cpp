@@ -5403,6 +5403,8 @@ void ZedCamera::processOdometry()
   }
 
   sl::Pose deltaOdom;
+  linear_base = tf2::Vector3(0.0,0.0,0.0);
+  angular_base = tf2::Vector3(0.0,0.0,0.0);
 
 
   mPosTrackingStatus = mZed->getPositionalTrackingStatus();

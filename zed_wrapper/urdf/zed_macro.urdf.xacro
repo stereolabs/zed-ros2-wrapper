@@ -197,11 +197,11 @@
         <origin xyz="${optical_offset_x} ${baseline/2} 0" rpy="0 0 0" />
       </joint>
 
-      <link name="${name}_left_camera_optical_frame"/>
+      <link name="${name}_left_camera_frame_optical"/>
       <joint name="${name}_left_camera_optical_joint" type="fixed">
         <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
         <parent link="${name}_left_camera_frame"/>
-        <child link="${name}_left_camera_optical_frame"/>
+        <child link="${name}_left_camera_frame_optical"/>
       </joint>
 
       <!-- Right Camera -->
@@ -228,11 +228,11 @@
         <origin xyz="${optical_offset_x} -${baseline/2} 0" rpy="0 0 0" />
       </joint>
 
-      <link name="${name}_right_camera_optical_frame"/>
+      <link name="${name}_right_camera_frame_optical"/>
       <joint name="${name}_right_camera_optical_joint" type="fixed">
         <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
         <parent link="${name}_right_camera_frame"/>
-        <child link="${name}_right_camera_optical_frame"/>
+        <child link="${name}_right_camera_frame_optical"/>
       </joint>
 
       <!-- ZED2 Sensors -->
@@ -276,11 +276,11 @@
         <origin xyz="${optical_offset_x} 0 0" rpy="0 0 0" />
       </joint>
 
-      <link name="${name}_camera_optical_frame"/>
+      <link name="${name}_camera_frame_optical"/>
       <joint name="${name}_camera_optical_joint" type="fixed">
         <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
         <parent link="${name}_camera_frame"/>
-        <child link="${name}_camera_optical_frame"/>
+        <child link="${name}_camera_frame_optical"/>
       </joint>
     </xacro:if>
 

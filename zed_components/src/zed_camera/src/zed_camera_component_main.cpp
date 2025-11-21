@@ -5306,8 +5306,10 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
 
   // ----> Validate data
   bool not_valid = false;
-  if (stereo_transform.getTranslation().x != 0.0 ||
-    stereo_transform.getTranslation().z != 0.0)
+  const double EPSILON = 1e-6;
+  
+  if (std::abs(stereo_transform.getTranslation().x) > EPSILON ||
+    std::abs(stereo_transform.getTranslation().z) > EPSILON)
   {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -5317,10 +5319,10 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
         << stereo_transform.getTranslation().z << "]. Expected [0, " << baseline << ", 0].");
     not_valid = true;
   }
-  if (stereo_transform.getOrientation().x != 0.0 ||
-    stereo_transform.getOrientation().y != 0.0 ||
-    stereo_transform.getOrientation().z != 0.0 ||
-    stereo_transform.getOrientation().w != 1.0)
+  if (std::abs(stereo_transform.getOrientation().x) > EPSILON ||
+    std::abs(stereo_transform.getOrientation().y) > EPSILON ||
+    std::abs(stereo_transform.getOrientation().z) > EPSILON ||
+    std::abs(stereo_transform.getOrientation().w - 1.0) > EPSILON)
   {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -5331,7 +5333,7 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
         << stereo_transform.getOrientation().w << "]. Expected [0, 0, 0, 1].");
     not_valid = true;
   }
-  if (baseline != -stereo_transform.getTranslation().y) {
+  if (std::abs(baseline + stereo_transform.getTranslation().y) > EPSILON) {
     RCLCPP_WARN_STREAM(
       get_logger(),
       "Baseline mismatch: Camera baseline is " << baseline << " m but calibrated stereo transform y-translation is " <<

@@ -1556,7 +1556,7 @@ void ZedCameraOne::initTFCoordFrameNames()
   _cameraLinkFrameId = _cameraName + "_camera_link";
   _cameraCenterFrameId = _cameraName + "_camera_center";
   _camImgFrameId = _cameraName + "_camera_frame";
-  _camOptFrameId = _cameraName + "_camera_optical_frame";
+  _camOptFrameId = _cameraName + "_camera_frame_optical";
   _imuFrameId = _cameraName + "_imu_link";
 
   // Print TF frames

@@ -2443,7 +2443,7 @@ bool ZedCamera::startCamera()
   if (!mUsingIPC) {
     mStaticTfBroadcaster =
       std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
-  } else { // Cannot use LOCAL_TRANSIENT with intra-process comms
+  } else { // Cannot use TRANSIENT_LOCAL with intra-process comms
     mStaticTfBroadcaster.reset();
   }
   // <---- TF2 Transform

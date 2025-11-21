@@ -730,7 +730,7 @@ void ZedCameraOne::setupTf2()
   _staticImuTfPublished = false;
   if (!_usingIPC) {
     _staticTfBroadcaster = std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
-  } else {  // Cannot use LOCAL_TRANSIENT with intra-process comms
+  } else {  // Cannot use TRANSIENT_LOCAL with intra-process comms
     _staticTfBroadcaster.reset();
   }
 }

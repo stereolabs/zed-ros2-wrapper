@@ -142,8 +142,6 @@ def launch_setup(context, *args, **kwargs):
     if (camera_name_val == ''):
         camera_name_val = 'zed'
 
-    
-
     if (camera_model_val == 'virtual'):
         # Virtual Stereo Camera setup
         serials = parse_array_param(serial_numbers_val)

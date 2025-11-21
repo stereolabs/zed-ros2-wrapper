@@ -2487,7 +2487,7 @@ bool ZedCamera::startCamera()
 
     if (mCamUserModel == sl::MODEL::VIRTUAL_ZED_X) {
       if(mCamVirtualSerialNumbers.size() == 2) {
-        // Generate the virtual serial number from the two real serial mumbers
+        // Generate the virtual serial number from the two real serial numbers
         auto virtual_sn =
             sl::generateVirtualStereoSerialNumber(mCamVirtualSerialNumbers[0], mCamVirtualSerialNumbers[1]);
         mInitParams.input.setVirtualStereoFromSerialNumbers(
@@ -2511,7 +2511,7 @@ bool ZedCamera::startCamera()
           return false;
         }
 
-        // Generate the virtual serial number from the two real serial mumbers
+        // Generate the virtual serial number from the two real serial numbers
         auto virtual_sn = sl::generateVirtualStereoSerialNumber(serials[0], serials[1]);
 
         mInitParams.input.setVirtualStereoFromCameraIDs(

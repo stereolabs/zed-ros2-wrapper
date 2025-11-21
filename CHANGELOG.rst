@@ -18,15 +18,12 @@ LATEST CHANGES
 - Static baseline information from URDF is now overwritten by the real baseline value retrieved from the camera calibration file.
 - Removed mandatory `custom_baseline` launch argument for virtual stereo cameras made with two ZED X One cameras. 
   The value is retrieved from the calibration file.
-- IMU TF is not broadcasted as static if IPC is disabled.
+- IMU TF is now broadcast as static if IPC is disabled.
 - IMU Transform topic is now published with TRANSIENT LOCAL durability if IPC is disabled.
 
 2025-11-05
 ----------
 - Remapped `robot_description` topic to `<camera_name>_description` to allow multi-camera URDF integration
-
-2025-11-05
-----------
 - Changed minimum depth value to 0.01 meters when using ZED SDK v5.1 or higher 
 
 2025-10-31

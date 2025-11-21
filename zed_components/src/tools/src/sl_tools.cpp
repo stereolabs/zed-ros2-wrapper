@@ -458,6 +458,10 @@ std::vector<int> parseStringVector_int(
   std::stringstream ss(trimmed);
   std::string token;
   while (std::getline(ss, token, ',')) {
+    // Trim leading and trailing whitespace
+    token.erase(0, token.find_first_not_of(" \t\n\r"));
+    token.erase(token.find_last_not_of(" \t\n\r") + 1);
+    
     try {
       int value = std::stoi(token);
       result.push_back(value);

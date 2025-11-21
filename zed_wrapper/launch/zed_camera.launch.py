@@ -66,14 +66,13 @@ default_xacro_path = os.path.join(
     'zed_descr.urdf.xacro'
 )
 
-
 def parse_array_param(param):
     str = param.replace('[', '')
     str = str.replace(']', '')
+    str = str.replace(' ', '')
     arr = str.split(',')
 
     return arr
-
 
 def launch_setup(context, *args, **kwargs):
     return_array = []
@@ -109,6 +108,9 @@ def launch_setup(context, *args, **kwargs):
     serial_number = LaunchConfiguration('serial_number')
     camera_id = LaunchConfiguration('camera_id')
 
+    serial_numbers = LaunchConfiguration('serial_numbers')
+    camera_ids = LaunchConfiguration('camera_ids')
+
     publish_urdf = LaunchConfiguration('publish_urdf')
     publish_tf = LaunchConfiguration('publish_tf')
     publish_map_tf = LaunchConfiguration('publish_map_tf')
@@ -126,6 +128,8 @@ def launch_setup(context, *args, **kwargs):
     node_name_val = node_name.perform(context)
     enable_gnss_val = enable_gnss.perform(context)
     gnss_coords = parse_array_param(gnss_antenna_offset.perform(context))
+    serial_numbers_val = serial_numbers.perform(context)
+    camera_ids_val = camera_ids.perform(context)
 
     if(node_log_type_val == 'both'):
         node_log_effective = 'both'
@@ -137,6 +141,19 @@ def launch_setup(context, *args, **kwargs):
 
     if (camera_name_val == ''):
         camera_name_val = 'zed'
+
+    
+
+    if (camera_model_val == 'virtual'):
+        # Virtual Stereo Camera setup
+        serials = parse_array_param(serial_numbers_val)
+        ids = parse_array_param(camera_ids_val)
+
+        if(len(serials) != 2 and len(ids) != 2):
+            return [
+                LogInfo(msg=TextSubstitution(
+                    text='With a Virtual Stereo Camera setup, one of `serial_numbers` or `camera_ids` launch arguments must contain two valid values (Left and Right camera identification).'))
+            ]
     
     if(namespace_val == ''):
         namespace_val = camera_name_val
@@ -282,7 +299,9 @@ def launch_setup(context, *args, **kwargs):
                 'pos_tracking.publish_tf': publish_tf,
                 'pos_tracking.publish_map_tf': publish_map_tf,
                 'sensors.publish_imu_tf': publish_imu_tf,
-                'gnss_fusion.gnss_fusion_enabled': enable_gnss
+                'gnss_fusion.gnss_fusion_enabled': enable_gnss,
+                'general.virtual_serial_numbers': serial_numbers_val,
+                'general.virtual_camera_ids': camera_ids_val
             }
     )
 
@@ -371,11 +390,19 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'serial_number',
                 default_value='0',
-                description='The serial number of the camera to be opened. It is mandatory to use this parameter or camera ID in multi-camera rigs to distinguish between different cameras. Use `ZED_Explorer -a` to retrieve the serial number of all the connected cameras.'),
+                description='The serial number of the camera to be opened, [left,right]. It is mandatory to use this parameter or camera ID in multi-camera rigs to distinguish between different cameras. Use `ZED_Explorer -a` to retrieve the serial number of all the connected cameras.'),
+            DeclareLaunchArgument(
+                'serial_numbers',
+                default_value='[]',
+                description='The serial numbers of the two cameras to be opened to compose a Virtual Stereo Camera. Use `ZED_Explorer -a` to retrieve the serial number of all the connected cameras.'),
             DeclareLaunchArgument(
                 'camera_id',
                 default_value='-1',
                 description='The ID of the camera to be opened. It is mandatory to use this parameter or serial number in multi-camera rigs to distinguish between different cameras.  Use `ZED_Explorer -a` to retrieve the ID of all the connected cameras.'),
+            DeclareLaunchArgument(
+                'camera_ids',
+                default_value='[]',
+                description='The IDs of the two cameras to be opened to compose a Virtual Stereo Camera, [left,right]. Use `ZED_Explorer -a` to retrieve the ID of all the connected cameras.'),
             DeclareLaunchArgument(
                 'publish_urdf',
                 default_value='true',

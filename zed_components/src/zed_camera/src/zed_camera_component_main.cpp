@@ -1044,6 +1044,15 @@ void ZedCamera::getGeneralParams()
         mCamVirtualCameraIds = ids;
       }
 
+      if(ids.size() != 2 && serials.size() != 2) {
+        RCLCPP_ERROR(
+          get_logger(),
+          "With a Virtual Stereo Camera setup, one of 'general.virtual_serial_numbers' "
+          "or 'general.virtual_camera_ids' parameters must contain two "
+          "valid values (Left and Right camera identification).");
+        exit(EXIT_FAILURE);
+      }
+
     } else {
       sl_tools::getParam(
         shared_from_this(), "general.serial_number",

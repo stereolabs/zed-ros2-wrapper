@@ -5395,7 +5395,7 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
           "Broadcasted new static transform: "
             << tf.header.frame_id << " -> " << tf.child_frame_id);
       }
-      if (!_debugTf) {
+      if (_debugTf) {
         double roll, pitch, yaw;
         tf2::Matrix3x3(
           tf2::Quaternion(

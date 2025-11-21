@@ -14,6 +14,8 @@
 
 #include "zed_camera_component.hpp"
 
+#include <sl/CameraOne.hpp>
+
 #include <sys/resource.h>
 
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
@@ -2483,10 +2485,49 @@ bool ZedCamera::startCamera()
     mInitParams.async_image_retrieval = mAsyncImageRetrieval;
     mInitParams.enable_image_validity_check = mImageValidityCheck;
 
-    if (mCamSerialNumber > 0) {
-      mInitParams.input.setFromSerialNumber(mCamSerialNumber);
-    } else if (mCamId >= 0) {
-      mInitParams.input.setFromCameraID(mCamId);
+    if (mCamUserModel == sl::MODEL::VIRTUAL_ZED_X) {
+      if(mCamVirtualSerialNumbers.size() == 2) {
+        // Generate the virtual serial number from the two real serial mumbers
+        auto virtual_sn =
+            sl::generateVirtualStereoSerialNumber(mCamVirtualSerialNumbers[0], mCamVirtualSerialNumbers[1]);
+        mInitParams.input.setVirtualStereoFromSerialNumbers(
+            mCamVirtualSerialNumbers[0], mCamVirtualSerialNumbers[1], virtual_sn);
+      } else if (mCamVirtualCameraIds.size() == 2) {
+
+        // Here we need the ZED X One serial numbers to generate the virtual camera SN
+        auto cams = sl::CameraOne::getDeviceList();
+        std::vector<int> serials;
+        for (const auto& cam : cams) {
+          if (std::any_of(mCamVirtualCameraIds.begin(), mCamVirtualCameraIds.end(),
+                  [&cam](int id) { return cam.id == id; })) {
+            serials.push_back(cam.serial_number);
+          }
+        }
+
+        if(serials.size() < 2) {
+          RCLCPP_ERROR(
+              get_logger(),
+              "To use VIRTUAL_ZED_X model with camera IDs, the cameras must be connected and recognized by the system.");
+          return false;
+        }
+
+        // Generate the virtual serial number from the two real serial mumbers
+        auto virtual_sn = sl::generateVirtualStereoSerialNumber(serials[0], serials[1]);
+
+        mInitParams.input.setVirtualStereoFromCameraIDs(
+            mCamVirtualCameraIds[0], mCamVirtualCameraIds[1], virtual_sn);
+      } else {
+        RCLCPP_ERROR(
+            get_logger(),
+            "To use VIRTUAL_ZED_X model, you must provide either two VALID serial numbers or two VALID camera IDs.");
+        return false;
+      }
+    } else {
+      if (mCamSerialNumber > 0) {
+        mInitParams.input.setFromSerialNumber(mCamSerialNumber);
+      } else if (mCamId >= 0) {
+        mInitParams.input.setFromCameraID(mCamId);
+      }
     }
   }
 

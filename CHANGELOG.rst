@@ -1,6 +1,12 @@
 LATEST CHANGES
 ==============
 
+2025-11-21
+----------
+- Added support for the new Virtual Stereo API with SDK v5.1. ZED MEDIA SERVER IS NO LONGER REQUIRED.
+  - New launch arguments to setup the virtual camera: `serial_numbers` and `camera_ids`
+  - New `ZedCamera` component parameters to setup the virtual camera: `general.virtual_serial_numbers` and `general.virtual_camera_ids`
+
 2025-11-11
 ----------
 - Loop Closure log event is now displayed only in DEBUG mode to reduce log spam

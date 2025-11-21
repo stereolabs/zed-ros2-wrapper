@@ -388,11 +388,11 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'serial_number',
                 default_value='0',
-                description='The serial number of the camera to be opened, [left,right]. It is mandatory to use this parameter or camera ID in multi-camera rigs to distinguish between different cameras. Use `ZED_Explorer -a` to retrieve the serial number of all the connected cameras.'),
+                description='The serial number of the camera to be opened. It is mandatory to use this parameter or camera ID in multi-camera rigs to distinguish between different cameras. Use `ZED_Explorer -a` to retrieve the serial number of all the connected cameras.'),
             DeclareLaunchArgument(
                 'serial_numbers',
                 default_value='[]',
-                description='The serial numbers of the two cameras to be opened to compose a Virtual Stereo Camera. Use `ZED_Explorer -a` to retrieve the serial number of all the connected cameras.'),
+                description='The serial numbers of the two cameras to be opened to compose a Virtual Stereo Camera, [left_sn,right_sn]. Use `ZED_Explorer -a` to retrieve the serial number of all the connected cameras.'),
             DeclareLaunchArgument(
                 'camera_id',
                 default_value='-1',
@@ -400,7 +400,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'camera_ids',
                 default_value='[]',
-                description='The IDs of the two cameras to be opened to compose a Virtual Stereo Camera, [left,right]. Use `ZED_Explorer -a` to retrieve the ID of all the connected cameras.'),
+                description='The IDs of the two cameras to be opened to compose a Virtual Stereo Camera, [left_id,right_id]. Use `ZED_Explorer -a` to retrieve the ID of all the connected cameras.'),
             DeclareLaunchArgument(
                 'publish_urdf',
                 default_value='true',

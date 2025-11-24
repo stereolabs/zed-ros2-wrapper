@@ -4092,7 +4092,7 @@ bool ZedCamera::getSens2CameraTransform()
         mDepthFrameId.c_str(), mCenterFrameId.c_str());
       RCLCPP_WARN_THROTTLE(
         get_logger(), steady_clock, 1000.0,
-        "Note: one of the possible cause of the problem is the absense of an "
+        "Note: one of the possible cause of the problem is the absence of an "
         "instance "
         "of the `robot_state_publisher` node publishing the correct static "
         "TF transformations "

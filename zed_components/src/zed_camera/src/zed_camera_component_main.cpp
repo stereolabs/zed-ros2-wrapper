@@ -5337,7 +5337,8 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
         << stereo_transform.getOrientation().w << "]. Expected [0, 0, 0, 1].");
     not_valid = true;
   }
-  if (std::abs(baseline - stereo_transform.getTranslation().y) > EPSILON) {
+  // Note: "baseline" is a positive value, while the stereo transform y-translation is expected to be a negative value.
+  if (std::abs(baseline + stereo_transform.getTranslation().y) > EPSILON) {
     RCLCPP_WARN_STREAM(
       get_logger(),
       "Baseline mismatch: Camera baseline is " << baseline << " m but calibrated stereo transform y-translation is " <<

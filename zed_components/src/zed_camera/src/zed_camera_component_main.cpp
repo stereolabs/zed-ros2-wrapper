@@ -1046,7 +1046,7 @@ void ZedCamera::getGeneralParams()
         mCamVirtualCameraIds = ids;
       }
 
-      if(ids.size() != 2 && serials.size() != 2) {
+      if (ids.size() != 2 && serials.size() != 2) {
         RCLCPP_ERROR(
           get_logger(),
           "With a Virtual Stereo Camera setup, one of 'general.virtual_serial_numbers' "
@@ -2486,28 +2486,32 @@ bool ZedCamera::startCamera()
     mInitParams.enable_image_validity_check = mImageValidityCheck;
 
     if (mCamUserModel == sl::MODEL::VIRTUAL_ZED_X) {
-      if(mCamVirtualSerialNumbers.size() == 2) {
+      if (mCamVirtualSerialNumbers.size() == 2) {
         // Generate the virtual serial number from the two real serial numbers
         auto virtual_sn =
-            sl::generateVirtualStereoSerialNumber(mCamVirtualSerialNumbers[0], mCamVirtualSerialNumbers[1]);
+          sl::generateVirtualStereoSerialNumber(
+          mCamVirtualSerialNumbers[0],
+          mCamVirtualSerialNumbers[1]);
         mInitParams.input.setVirtualStereoFromSerialNumbers(
-            mCamVirtualSerialNumbers[0], mCamVirtualSerialNumbers[1], virtual_sn);
+          mCamVirtualSerialNumbers[0], mCamVirtualSerialNumbers[1], virtual_sn);
       } else if (mCamVirtualCameraIds.size() == 2) {
 
         // Here we need the ZED X One serial numbers to generate the virtual camera SN
         auto cams = sl::CameraOne::getDeviceList();
         std::vector<int> serials;
-        for (const auto& cam : cams) {
-          if (std::any_of(mCamVirtualCameraIds.begin(), mCamVirtualCameraIds.end(),
-                  [&cam](int id) { return cam.id == id; })) {
+        for (const auto & cam : cams) {
+          if (std::any_of(
+              mCamVirtualCameraIds.begin(), mCamVirtualCameraIds.end(),
+              [&cam](int id) {return cam.id == id;}))
+          {
             serials.push_back(cam.serial_number);
           }
         }
 
-        if(serials.size() < 2) {
+        if (serials.size() < 2) {
           RCLCPP_ERROR(
-              get_logger(),
-              "To use VIRTUAL_ZED_X model with camera IDs, the cameras must be connected and recognized by the system.");
+            get_logger(),
+            "To use VIRTUAL_ZED_X model with camera IDs, the cameras must be connected and recognized by the system.");
           return false;
         }
 
@@ -2515,11 +2519,11 @@ bool ZedCamera::startCamera()
         auto virtual_sn = sl::generateVirtualStereoSerialNumber(serials[0], serials[1]);
 
         mInitParams.input.setVirtualStereoFromCameraIDs(
-            mCamVirtualCameraIds[0], mCamVirtualCameraIds[1], virtual_sn);
+          mCamVirtualCameraIds[0], mCamVirtualCameraIds[1], virtual_sn);
       } else {
         RCLCPP_ERROR(
-            get_logger(),
-            "To use VIRTUAL_ZED_X model, you must provide either two VALID serial numbers or two VALID camera IDs.");
+          get_logger(),
+          "To use VIRTUAL_ZED_X model, you must provide either two VALID serial numbers or two VALID camera IDs.");
         return false;
       }
     } else {
@@ -5307,7 +5311,7 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
   // ----> Validate data
   bool not_valid = false;
   const double EPSILON = 1e-6;
-  
+
   if (std::abs(stereo_transform.getTranslation().x) > EPSILON ||
     std::abs(stereo_transform.getTranslation().z) > EPSILON)
   {
@@ -5333,7 +5337,7 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
         << stereo_transform.getOrientation().w << "]. Expected [0, 0, 0, 1].");
     not_valid = true;
   }
-  if (std::abs(baseline + stereo_transform.getTranslation().y) > EPSILON) {
+  if (std::abs(baseline - stereo_transform.getTranslation().y) > EPSILON) {
     RCLCPP_WARN_STREAM(
       get_logger(),
       "Baseline mismatch: Camera baseline is " << baseline << " m but calibrated stereo transform y-translation is " <<
@@ -5764,8 +5768,8 @@ void ZedCamera::processOdometry()
   }
 
   sl::Pose deltaOdom;
-  linear_base = tf2::Vector3(0.0,0.0,0.0);
-  angular_base = tf2::Vector3(0.0,0.0,0.0);
+  linear_base = tf2::Vector3(0.0, 0.0, 0.0);
+  angular_base = tf2::Vector3(0.0, 0.0, 0.0);
 
 
   mPosTrackingStatus = mZed->getPositionalTrackingStatus();
@@ -5853,20 +5857,20 @@ void ZedCamera::processOdometry()
       // Angular velocity: omega_base = R * omega_sensor
       tf2::Vector3 linear_sensor(deltaOdom.twist[0], deltaOdom.twist[1], deltaOdom.twist[2]);
       tf2::Vector3 angular_sensor(deltaOdom.twist[3], deltaOdom.twist[4], deltaOdom.twist[5]);
-      
+
       DEBUG_STREAM_PT(
-        "Delta ODOM Twist - Linear:" << 
+        "Delta ODOM Twist - Linear:" <<
           linear_sensor.x() << "," << linear_sensor.y() << "," << linear_sensor.z() <<
           " - Angular:" << angular_sensor.x() << "," << angular_sensor.y() << "," <<
           angular_sensor.z());
-      
+
       // Get rotation from sensor to base
       tf2::Matrix3x3 rotation_sensor2base(mSensor2BaseTransf.getRotation());
       tf2::Vector3 translation_sensor2base = mSensor2BaseTransf.getOrigin();
-      
+
       // Transform angular velocity
       angular_base = rotation_sensor2base * angular_sensor;
-      
+
       // Transform linear velocity: v_base = R * v_sensor + omega_sensor x r
       tf2::Vector3 linear_rotated = rotation_sensor2base * linear_sensor;
       tf2::Vector3 cross_product = angular_base.cross(translation_sensor2base);
@@ -5905,7 +5909,8 @@ void ZedCamera::processOdometry()
 }
 
 void ZedCamera::publishOdom(
-  tf2::Transform & odom2baseTransf, sl::Pose & slPose, const tf2::Vector3& linear_velocity, const tf2::Vector3& angular_velocity,
+  tf2::Transform & odom2baseTransf, sl::Pose & slPose, const tf2::Vector3 & linear_velocity,
+  const tf2::Vector3 & angular_velocity,
   rclcpp::Time t)
 {
   size_t odomSub = 0;
@@ -5952,22 +5957,21 @@ void ZedCamera::publishOdom(
     }
 
     // Odometry twist
-     if (mTwoDMode) {
+    if (mTwoDMode) {
       odomMsg->twist.twist.linear.x = linear_velocity.x();
       odomMsg->twist.twist.linear.y = linear_velocity.y();
       odomMsg->twist.twist.linear.z = 0.0;
       odomMsg->twist.twist.angular.x = 0.0;
       odomMsg->twist.twist.angular.y = 0.0;
       odomMsg->twist.twist.angular.z = angular_velocity.z();
-     }
-     else {
+    } else {
       odomMsg->twist.twist.linear.x = linear_velocity.x();
       odomMsg->twist.twist.linear.y = linear_velocity.y();
       odomMsg->twist.twist.linear.z = linear_velocity.z();
       odomMsg->twist.twist.angular.x = angular_velocity.x();
       odomMsg->twist.twist.angular.y = angular_velocity.y();
       odomMsg->twist.twist.angular.z = angular_velocity.z();
-     }
+    }
 
 
     // Publish odometry message

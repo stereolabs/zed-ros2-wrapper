@@ -66,18 +66,17 @@ default_xacro_path = os.path.join(
     'zed_descr.urdf.xacro'
 )
 
+# Function to parse array-like launch arguments
 def parse_array_param(param):
-    str = param.replace('[', '')
-    str = str.replace(']', '')
-    str = str.replace(' ', '')
-    arr = str.split(',')
+    cleaned = param.replace('[', '').replace(']', '').replace(' ', '')
+    if not cleaned:
+        return []
+    return cleaned.split(',')
 
     return arr
 
 def launch_setup(context, *args, **kwargs):
     return_array = []
-
-    wrapper_dir = get_package_share_directory('zed_wrapper')    
 
     # Launch configuration variables
     node_log_type = LaunchConfiguration('node_log_type')
@@ -147,7 +146,8 @@ def launch_setup(context, *args, **kwargs):
         serials = parse_array_param(serial_numbers_val)
         ids = parse_array_param(camera_ids_val)
 
-        if(len(serials) != 2 and len(ids) != 2):
+        # If not in live mode, at least one of serials or ids must be a valid 2-values array
+        if(len(serials) != 2 and len(ids) != 2 and svo_path.perform(context) == 'live'):
             return [
                 LogInfo(msg=TextSubstitution(
                     text='With a Virtual Stereo Camera setup, one of `serial_numbers` or `camera_ids` launch arguments must contain two valid values (Left and Right camera identification).'))

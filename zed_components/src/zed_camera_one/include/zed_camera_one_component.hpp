@@ -108,6 +108,8 @@ protected:
   void publishColorRawImage(const rclcpp::Time & timeStamp);
   void publishGrayImage(const rclcpp::Time & timeStamp);
   void publishGrayRawImage(const rclcpp::Time & timeStamp);
+  void publishCameraInfos();  // Used to publish camera infos when no video/depth is subscribed
+
   void publishImageWithInfo(
     const sl::Mat & img,
     const image_transport::Publisher & pubImg,

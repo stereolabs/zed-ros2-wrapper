@@ -1434,6 +1434,9 @@ void ZedCamera::processVideoDepth()
   } else {
     mVdPublishing = false;
     DEBUG_VD(" * [processVideoDepth] No video/depth subscribers");
+
+    // Publish camera infos even if no video/depth subscribers are present
+    publishCameraInfos();
   }
   DEBUG_VD("=== Process Video/Depth done ===");
 }
@@ -1699,6 +1702,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   publishDisparityImage(timeStamp);
   publishDepthInfo(timeStamp);
 
+
   mVideoDepthElabMean_sec->addValue(vdElabTimer.toc());
 
   out_pub_ts = timeStamp;
@@ -1796,6 +1800,9 @@ void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
         mLeftCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubLeftCamInfo, mLeftCamInfoMsg, t);
+    publishCameraInfo(mPubLeftCamInfoTrans, mLeftCamInfoMsg, t);
   }
 
   if (mRgbSubCount > 0) {
@@ -1812,6 +1819,9 @@ void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
         mLeftCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubRgbCamInfo, mLeftCamInfoMsg, t);
+    publishCameraInfo(mPubRgbCamInfoTrans, mLeftCamInfoMsg, t);
   }
 }
 
@@ -1830,7 +1840,11 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubRawLeftCamInfo, mLeftCamInfoRawMsg, t);
+    publishCameraInfo(mPubRawLeftCamInfoTrans, mLeftCamInfoRawMsg, t);
   }
+
   if (mRgbRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mRgbRawSubCount: " << mRgbRawSubCount);
     if (_nitrosDisabled) {
@@ -1844,6 +1858,9 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubRawRgbCamInfo, mLeftCamInfoRawMsg, t);
+    publishCameraInfo(mPubRawRgbCamInfoTrans, mLeftCamInfoRawMsg, t);
   }
 }
 
@@ -1863,7 +1880,11 @@ void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubLeftGrayCamInfo, mLeftCamInfoMsg, t);
+    publishCameraInfo(mPubLeftGrayCamInfoTrans, mLeftCamInfoMsg, t);
   }
+
   if (mRgbGraySubCount > 0) {
     DEBUG_STREAM_VD(" * mRgbGraySubCount: " << mRgbGraySubCount);
     if (_nitrosDisabled) {
@@ -1877,6 +1898,9 @@ void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubRgbGrayCamInfo, mLeftCamInfoMsg, t);
+    publishCameraInfo(mPubRgbGrayCamInfoTrans, mLeftCamInfoMsg, t);
   }
 }
 
@@ -1896,7 +1920,11 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubRawLeftGrayCamInfo, mLeftCamInfoRawMsg, t);
+    publishCameraInfo(mPubRawLeftGrayCamInfoTrans, mLeftCamInfoRawMsg, t);
   }
+
   if (mRgbGrayRawSubCount > 0) {
     DEBUG_STREAM_VD(" * mRgbGrayRawSubCount: " << mRgbGrayRawSubCount);
     if (_nitrosDisabled) {
@@ -1910,6 +1938,9 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubRawRgbGrayCamInfo, mLeftCamInfoRawMsg, t);
+    publishCameraInfo(mPubRawRgbGrayCamInfoTrans, mLeftCamInfoRawMsg, t);
   }
 }
 
@@ -1928,6 +1959,9 @@ void ZedCamera::publishRightImages(const rclcpp::Time & t)
         mRightCamInfoMsg, mRightCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubRightCamInfo, mRightCamInfoMsg, t);
+    publishCameraInfo(mPubRightCamInfoTrans, mRightCamInfoMsg, t);
   }
 }
 
@@ -1946,6 +1980,9 @@ void ZedCamera::publishRightRawImages(const rclcpp::Time & t)
         mRightCamInfoRawMsg, mRightCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubRawRightCamInfo, mRightCamInfoRawMsg, t);
+    publishCameraInfo(mPubRawRightCamInfoTrans, mRightCamInfoRawMsg, t);
   }
 }
 
@@ -1964,6 +2001,9 @@ void ZedCamera::publishRightGrayImages(const rclcpp::Time & t)
         mRightCamInfoMsg, mRightCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubRightGrayCamInfo, mRightCamInfoMsg, t);
+    publishCameraInfo(mPubRightGrayCamInfoTrans, mRightCamInfoMsg, t);
   }
 }
 
@@ -1984,6 +2024,9 @@ void ZedCamera::publishRightRawGrayImages(const rclcpp::Time & t)
         mRightCamInfoRawMsg, mRightCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubRawRightGrayCamInfo, mRightCamInfoRawMsg, t);
+    publishCameraInfo(mPubRawRightGrayCamInfoTrans, mRightCamInfoRawMsg, t);
   }
 }
 
@@ -2025,6 +2068,9 @@ void ZedCamera::publishDepthImage(const rclcpp::Time & t)
 {
   if (mDepthSubCount > 0) {
     publishDepthMapWithInfo(mMatDepth, t);
+  } else {
+    publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
+    publishCameraInfo(mPubDepthCamInfoTrans, mLeftCamInfoMsg, t);
   }
 }
 
@@ -2043,6 +2089,9 @@ void ZedCamera::publishConfidenceMap(const rclcpp::Time & t)
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
     }
+  } else {
+    publishCameraInfo(mPubConfMapCamInfo, mLeftCamInfoMsg, t);
+    publishCameraInfo(mPubConfMapCamInfoTrans, mLeftCamInfoMsg, t);
   }
 }
 
@@ -2080,13 +2129,15 @@ void ZedCamera::publishCameraInfo(
   camInfoMsgPtr & camInfoMsg,
   const rclcpp::Time & t)
 {
-  camInfoMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
-  DEBUG_STREAM_VD(
-    " * Publishing Camera Info message: " << camInfoMsg->header.stamp.nanosec
-                                          << " nsec");
+  auto ts = mUsePubTimestamps ? get_clock()->now() : t;
+  camInfoMsg->header.stamp = ts;
 
   if (infoPub) {
-    infoPub->publish(*camInfoMsg);
+    if (count_subscribers(infoPub->get_topic_name()) > 0) {
+      infoPub->publish(*camInfoMsg);
+      DEBUG_STREAM_VD(" * Camera Info message published: " << infoPub->get_topic_name());
+      DEBUG_STREAM_VD("   * Timestamp: " << ts.nanoseconds() << " nsec");
+    }
   }
 }
 
@@ -2643,6 +2694,40 @@ void ZedCamera::handleVideoDepthPublishing()
 
   mVdPubFreqTimer.tic();
   // <---- Check publishing frequency
+}
+
+void ZedCamera::publishCameraInfos()
+{
+  rclcpp::Time pub_ts = get_clock()->now();
+
+  publishCameraInfo(mPubRgbCamInfo, mLeftCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRawRgbCamInfo, mLeftCamInfoRawMsg, pub_ts);
+  publishCameraInfo(mPubLeftCamInfo, mLeftCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRawLeftCamInfo, mLeftCamInfoRawMsg, pub_ts);
+  publishCameraInfo(mPubRightCamInfo, mRightCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRawRightCamInfo, mRightCamInfoRawMsg, pub_ts);
+  publishCameraInfo(mPubRgbGrayCamInfo, mLeftCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRawRgbGrayCamInfo, mLeftCamInfoRawMsg, pub_ts);
+  publishCameraInfo(mPubLeftGrayCamInfo, mLeftCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRawLeftGrayCamInfo, mLeftCamInfoRawMsg, pub_ts);
+  publishCameraInfo(mPubRightGrayCamInfo, mRightCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRawRightGrayCamInfo, mRightCamInfoRawMsg, pub_ts);
+  publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubConfMapCamInfo, mLeftCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRgbCamInfoTrans, mLeftCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRawRgbCamInfoTrans, mLeftCamInfoRawMsg, pub_ts);
+  publishCameraInfo(mPubLeftCamInfoTrans, mLeftCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRawLeftCamInfoTrans, mLeftCamInfoRawMsg, pub_ts);
+  publishCameraInfo(mPubRightCamInfoTrans, mRightCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRawRightCamInfoTrans, mRightCamInfoRawMsg, pub_ts);
+  publishCameraInfo(mPubRgbGrayCamInfoTrans, mLeftCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRawRgbGrayCamInfoTrans, mLeftCamInfoRawMsg, pub_ts);
+  publishCameraInfo(mPubLeftGrayCamInfoTrans, mLeftCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRawLeftGrayCamInfoTrans, mLeftCamInfoRawMsg, pub_ts);
+  publishCameraInfo(mPubRightGrayCamInfoTrans, mRightCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubRawRightGrayCamInfoTrans, mRightCamInfoRawMsg, pub_ts);
+  publishCameraInfo(mPubDepthCamInfoTrans, mLeftCamInfoMsg, pub_ts);
+  publishCameraInfo(mPubConfMapCamInfoTrans, mLeftCamInfoMsg, pub_ts);
 }
 
 void ZedCamera::setupPointCloudThread()

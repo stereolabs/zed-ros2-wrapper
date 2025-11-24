@@ -430,6 +430,9 @@ void ZedCameraOne::handleImageRetrievalAndPublishing()
     _videoPublishing = true;
   } else {
     _videoPublishing = false;
+
+    // Publish camera infos even if no video/depth subscribers are present
+    publishCameraInfos();
   }
 }
 
@@ -562,6 +565,9 @@ void ZedCameraOne::publishColorImage(const rclcpp::Time & timeStamp)
         _camInfoMsg, _camOptFrameId, timeStamp);
 #endif
     }
+  } else {
+    publishCameraInfo(_pubColorImgInfo, _camInfoMsg, timeStamp);
+    publishCameraInfo(_pubColorImgInfoTrans, _camInfoMsg, timeStamp);
   }
 }
 
@@ -580,6 +586,9 @@ void ZedCameraOne::publishColorRawImage(const rclcpp::Time & timeStamp)
         _camInfoRawMsg, _camOptFrameId, timeStamp);
 #endif
     }
+  } else {
+    publishCameraInfo(_pubColorRawImgInfo, _camInfoRawMsg, timeStamp);
+    publishCameraInfo(_pubColorRawImgInfoTrans, _camInfoRawMsg, timeStamp);
   }
 }
 
@@ -598,6 +607,9 @@ void ZedCameraOne::publishGrayImage(const rclcpp::Time & timeStamp)
         _camInfoMsg, _camOptFrameId, timeStamp);
 #endif
     }
+  } else {
+    publishCameraInfo(_pubGrayImgInfo, _camInfoMsg, timeStamp);
+    publishCameraInfo(_pubGrayImgInfoTrans, _camInfoMsg, timeStamp);
   }
 }
 
@@ -616,6 +628,9 @@ void ZedCameraOne::publishGrayRawImage(const rclcpp::Time & timeStamp)
         _camInfoRawMsg, _camOptFrameId, timeStamp);
 #endif
     }
+  } else {
+    publishCameraInfo(_pubGrayRawImgInfo, _camInfoRawMsg, timeStamp);
+    publishCameraInfo(_pubGrayRawImgInfoTrans, _camInfoRawMsg, timeStamp);
   }
 }
 
@@ -624,12 +639,17 @@ void ZedCameraOne::publishCameraInfo(
   camInfoMsgPtr & camInfoMsg,
   const rclcpp::Time & t)
 {
-  camInfoMsg->header.stamp = _usePubTimestamps ? get_clock()->now() : t;
-  DEBUG_STREAM_VD(
-    " * Publishing Camera Info message: " << camInfoMsg->header.stamp.nanosec
-                                          << " nsec");
+  auto ts = _usePubTimestamps ? get_clock()->now() : t;
+  camInfoMsg->header.stamp = ts;
 
-  infoPub->publish(*camInfoMsg);
+  if (infoPub) {
+    if (count_subscribers(infoPub->get_topic_name()) > 0) {
+      infoPub->publish(*camInfoMsg);
+      DEBUG_STREAM_VD(
+        " * Camera Info message published: " << infoPub->get_topic_name());
+      DEBUG_STREAM_VD("   * Timestamp: " << ts.nanoseconds() << " nsec");
+    }
+  }
 }
 
 void ZedCameraOne::publishImageWithInfo(
@@ -1115,6 +1135,20 @@ void ZedCameraOne::applyExposureCompensationAndDenoising()
     "video.exposure_compensation");
 
   setVideoSetting(sl::VIDEO_SETTINGS::DENOISING, _camDenoising, "video.denoising");
+}
+
+void ZedCameraOne::publishCameraInfos()
+{
+  rclcpp::Time pub_ts = get_clock()->now();
+
+  publishCameraInfo(_pubColorImgInfo, _camInfoMsg, pub_ts);
+  publishCameraInfo(_pubColorRawImgInfo, _camInfoRawMsg, pub_ts);
+  publishCameraInfo(_pubGrayImgInfo, _camInfoMsg, pub_ts);
+  publishCameraInfo(_pubGrayRawImgInfo, _camInfoRawMsg, pub_ts);
+  publishCameraInfo(_pubColorImgInfoTrans, _camInfoMsg, pub_ts);
+  publishCameraInfo(_pubColorRawImgInfoTrans, _camInfoRawMsg, pub_ts);
+  publishCameraInfo(_pubGrayImgInfoTrans, _camInfoMsg, pub_ts);
+  publishCameraInfo(_pubGrayRawImgInfoTrans, _camInfoRawMsg, pub_ts);
 }
 
 }

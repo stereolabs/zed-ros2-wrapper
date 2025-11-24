@@ -36,7 +36,6 @@ stages:
 
 
 variables:
-  #GIT_SUBMODULE_STRATEGY: normal
   GIT_SUBMODULE_STRATEGY: recursive
   #GIT_CLONE_PATH: $CI_BUILDS_DIR/ros2_ws/src/$CI_PROJECT_NAME # must be enabled in the configuration of the runners!
 
@@ -347,4 +346,3 @@ github_push:
   only:
     - master
   allow_failure: true
-

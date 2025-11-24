@@ -1918,9 +1918,9 @@ void ZedCamera::setTFCoordFrameNames()
   // ----> Coordinate frames
   mCameraFrameId = mCameraName + "_camera_center";
   mLeftCamFrameId = mCameraName + "_left_camera_frame";
-  mLeftCamOptFrameId = mCameraName + "_left_camera_optical_frame";
+  mLeftCamOptFrameId = mCameraName + "_left_camera_frame_optical";
   mRightCamFrameId = mCameraName + "_right_camera_frame";
-  mRightCamOptFrameId = mCameraName + "_right_camera_optical_frame";
+  mRightCamOptFrameId = mCameraName + "_right_camera_frame_optical";
 
   mImuFrameId = mCameraName + "_imu_link";
   mBaroFrameId = mCameraFrameId;         // mCameraName + "_baro_link";
@@ -8117,7 +8117,7 @@ void ZedCamera::callback_clickedPoint(
     get_logger(), "Clicked 3D point [X FW, Y LF, Z UP]: ["
       << X << "," << Y << "," << Z << "]");
 
-  // ----> Transform the point from `map` frame to `left_camera_optical_frame`
+  // ----> Transform the point from `map` frame to `left_camera_frame_optical`
   double camX, camY, camZ;
   try {
     // Save the transformation
@@ -8161,7 +8161,7 @@ void ZedCamera::callback_clickedPoint(
 
     return;
   }
-  // <---- Transform the point from `map` frame to `left_camera_optical_frame`
+  // <---- Transform the point from `map` frame to `left_camera_frame_optical`
 
   // ----> Project the point into 2D image coordinates
   sl::CalibrationParameters zedParam;

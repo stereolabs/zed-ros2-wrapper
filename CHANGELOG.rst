@@ -4,9 +4,11 @@ LATEST CHANGES
 2025-11-24
 ----------
 - Add twist information to the `odom` topic
-- Added support for the new Virtual Stereo API with SDK v5.1. ZED MEDIA SERVER IS NO LONGER REQUIRED to create a virtual Stereo camera using two ZED X One cameras.
+- Added support for the new Virtual Stereo API with SDK v5.1. 
+
   - New launch arguments to setup the virtual camera: `serial_numbers` and `camera_ids`
   - New `ZedCamera` component parameters to setup the virtual camera: `general.virtual_serial_numbers` and `general.virtual_camera_ids`
+  - **NOTE** ZED MEDIA SERVER IS NO LONGER REQUIRED to create a virtual Stereo camera using two ZED X One cameras.
 
 2025-11-21
 ----------
@@ -15,7 +17,7 @@ LATEST CHANGES
   - From `<camera_name>_left_camera_optical_frame` to `<camera_name>_left_camera_frame_optical`
   - From `<camera_name>_right_camera_optical_frame` to `<camera_name>_right_camera_frame_optical`
   - From `<camera_name>_camera_optical_frame` to `<camera_name>_rgb_camera_frame_optical`
-**NOTE** THIS IS A BREAKING CHANGE. Please update your TF references accordingly.
+  - **NOTE** THIS IS A BREAKING CHANGE. Please update your TF references accordingly.
 
 2025-11-11
 ----------
@@ -28,7 +30,9 @@ LATEST CHANGES
 2025-11-09
 ----------
 - Added debug option for TF broadcasting
+
   - Improved TF debug logs to show frame transformations when enabled 
+
 - Static baseline information from URDF is now overwritten by the real baseline value retrieved from the camera calibration file.
 - Removed mandatory `custom_baseline` launch argument for virtual stereo cameras made with two ZED X One cameras. 
   The value is retrieved from the calibration file.

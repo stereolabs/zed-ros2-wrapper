@@ -5403,6 +5403,9 @@ void ZedCamera::processOdometry()
   }
 
   sl::Pose deltaOdom;
+  linear_base = tf2::Vector3(0.0,0.0,0.0);
+  angular_base = tf2::Vector3(0.0,0.0,0.0);
+
 
   mPosTrackingStatus = mZed->getPositionalTrackingStatus();
 
@@ -5483,6 +5486,38 @@ void ZedCamera::processOdometry()
 
         mOdom2BaseTransf.setRotation(quat_2d);
       }
+
+      // Transform twist from sensor frame to base frame
+      // Linear velocity: v_base = R * v_sensor + omega_sensor x r
+      // Angular velocity: omega_base = R * omega_sensor
+      tf2::Vector3 linear_sensor(deltaOdom.twist[0], deltaOdom.twist[1], deltaOdom.twist[2]);
+      tf2::Vector3 angular_sensor(deltaOdom.twist[3], deltaOdom.twist[4], deltaOdom.twist[5]);
+      
+      DEBUG_STREAM_PT(
+        "Delta ODOM Twist - Linear:" << 
+          linear_sensor.x() << "," << linear_sensor.y() << "," << linear_sensor.z() <<
+          " - Angular:" << angular_sensor.x() << "," << angular_sensor.y() << "," <<
+          angular_sensor.z());
+      
+      // Get rotation from sensor to base
+      tf2::Matrix3x3 rotation_sensor2base(mSensor2BaseTransf.getRotation());
+      tf2::Vector3 translation_sensor2base = mSensor2BaseTransf.getOrigin();
+      
+      // Transform angular velocity
+      angular_base = rotation_sensor2base * angular_sensor;
+      
+      // Transform linear velocity: v_base = R * v_sensor + omega_sensor x r
+      tf2::Vector3 linear_rotated = rotation_sensor2base * linear_sensor;
+      tf2::Vector3 cross_product = angular_base.cross(translation_sensor2base);
+      linear_base = linear_rotated + cross_product;
+
+      DEBUG_STREAM_PT(
+        "Delta ODOM Twist - Transformed Linear:" <<
+          linear_base.x() << "," << linear_base.y() << "," <<
+          linear_base.z() << " - Transformed Angular:" <<
+          angular_base.x() << "," << angular_base.y() << "," <<
+          angular_base.z());
+
       mPosTrackingReady = true;
     } else if (mFloorAlignment) {
       DEBUG_STREAM_THROTTLE_PT(
@@ -5505,11 +5540,11 @@ void ZedCamera::processOdometry()
   }
 
   // Publish odometry message
-  publishOdom(mOdom2BaseTransf, deltaOdom, mFrameTimestamp);
+  publishOdom(mOdom2BaseTransf, deltaOdom, linear_base, angular_base, mFrameTimestamp);
 }
 
 void ZedCamera::publishOdom(
-  tf2::Transform & odom2baseTransf, sl::Pose & slPose,
+  tf2::Transform & odom2baseTransf, sl::Pose & slPose, const tf2::Vector3& linear_velocity, const tf2::Vector3& angular_velocity,
   rclcpp::Time t)
 {
   size_t odomSub = 0;
@@ -5554,6 +5589,25 @@ void ZedCamera::publishOdom(
         }
       }
     }
+
+    // Odometry twist
+     if (mTwoDMode) {
+      odomMsg->twist.twist.linear.x = linear_velocity.x();
+      odomMsg->twist.twist.linear.y = linear_velocity.y();
+      odomMsg->twist.twist.linear.z = 0.0;
+      odomMsg->twist.twist.angular.x = 0.0;
+      odomMsg->twist.twist.angular.y = 0.0;
+      odomMsg->twist.twist.angular.z = angular_velocity.z();
+     }
+     else {
+      odomMsg->twist.twist.linear.x = linear_velocity.x();
+      odomMsg->twist.twist.linear.y = linear_velocity.y();
+      odomMsg->twist.twist.linear.z = linear_velocity.z();
+      odomMsg->twist.twist.angular.x = angular_velocity.x();
+      odomMsg->twist.twist.angular.y = angular_velocity.y();
+      odomMsg->twist.twist.angular.z = angular_velocity.z();
+     }
+
 
     // Publish odometry message
     DEBUG_STREAM_PT("Publishing ODOM message");

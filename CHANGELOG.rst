@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-11-24
+----------
+- Add twist information to the `odom` topic
+
 2025-11-21
 ----------
 - Renamed camera optical frames to comply with ROS conventions:
@@ -8,7 +12,6 @@ LATEST CHANGES
   - From `<camera_name>_left_camera_optical_frame` to `<camera_name>_left_camera_frame_optical`
   - From `<camera_name>_right_camera_optical_frame` to `<camera_name>_right_camera_frame_optical`
   - From `<camera_name>_camera_optical_frame` to `<camera_name>_rgb_camera_frame_optical`
-
 **NOTE** THIS IS A BREAKING CHANGE. Please update your TF references accordingly.
 
 2025-11-11

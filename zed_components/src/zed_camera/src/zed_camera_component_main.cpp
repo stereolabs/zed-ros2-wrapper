@@ -5591,12 +5591,22 @@ void ZedCamera::publishOdom(
     }
 
     // Odometry twist
-    odomMsg->twist.twist.linear.x = linear_velocity.x();
-    odomMsg->twist.twist.linear.y = linear_velocity.y();
-    odomMsg->twist.twist.linear.z = linear_velocity.z();
-    odomMsg->twist.twist.angular.x = angular_velocity.x();
-    odomMsg->twist.twist.angular.y = angular_velocity.y();
-    odomMsg->twist.twist.angular.z = angular_velocity.z();
+     if (mTwoDMode) {
+      odomMsg->twist.twist.linear.x = linear_velocity.x();
+      odomMsg->twist.twist.linear.y = linear_velocity.y();
+      odomMsg->twist.twist.linear.z = 0.0;
+      odomMsg->twist.twist.angular.x = 0.0;
+      odomMsg->twist.twist.angular.y = 0.0;
+      odomMsg->twist.twist.angular.z = angular_velocity.z();
+     }
+     else {
+      odomMsg->twist.twist.linear.x = linear_velocity.x();
+      odomMsg->twist.twist.linear.y = linear_velocity.y();
+      odomMsg->twist.twist.linear.z = linear_velocity.z();
+      odomMsg->twist.twist.angular.x = angular_velocity.x();
+      odomMsg->twist.twist.angular.y = angular_velocity.y();
+      odomMsg->twist.twist.angular.z = angular_velocity.z();
+     }
 
 
     // Publish odometry message

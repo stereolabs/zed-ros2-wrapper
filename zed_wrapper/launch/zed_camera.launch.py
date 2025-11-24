@@ -77,7 +77,7 @@ def parse_array_param(param):
 def launch_setup(context, *args, **kwargs):
     return_array = []
 
-    wrapper_dir = get_package_share_directory('zed_wrapper')    
+    wrapper_dir = get_package_share_directory('zed_wrapper')
 
     # Launch configuration variables
     node_log_type = LaunchConfiguration('node_log_type')
@@ -147,7 +147,7 @@ def launch_setup(context, *args, **kwargs):
         serials = parse_array_param(serial_numbers_val)
         ids = parse_array_param(camera_ids_val)
 
-        if(len(serials) != 2 and len(ids) != 2):
+        if(len(serials) != 2 and len(ids) != 2 and svo_path.perform(context) == 'live'):
             return [
                 LogInfo(msg=TextSubstitution(
                     text='With a Virtual Stereo Camera setup, one of `serial_numbers` or `camera_ids` launch arguments must contain two valid values (Left and Right camera identification).'))

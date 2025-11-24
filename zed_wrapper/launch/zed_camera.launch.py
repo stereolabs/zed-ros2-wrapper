@@ -77,8 +77,6 @@ def parse_array_param(param):
 def launch_setup(context, *args, **kwargs):
     return_array = []
 
-    wrapper_dir = get_package_share_directory('zed_wrapper')
-
     # Launch configuration variables
     node_log_type = LaunchConfiguration('node_log_type')
 

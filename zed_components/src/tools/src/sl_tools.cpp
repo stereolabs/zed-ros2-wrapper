@@ -462,6 +462,10 @@ std::vector<int> parseStringVector_int(
     token.erase(0, token.find_first_not_of(" \t\n\r"));
     token.erase(token.find_last_not_of(" \t\n\r") + 1);
 
+    if (token.empty()) {
+      continue;
+    }
+
     try {
       int value = std::stoi(token);
       result.push_back(value);

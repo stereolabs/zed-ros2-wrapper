@@ -3,8 +3,8 @@ LATEST CHANGES
 
 2025-11-24
 ----------
-- Add twist information to the `odom` topic
-- Added support for the new Virtual Stereo API with SDK v5.1. 
+- Added twist information to the `odom` topic
+- Added support for the new Virtual Stereo API with SDK v5.1.
 
   - New launch arguments to setup the virtual camera: `serial_numbers` and `camera_ids`
   - New `ZedCamera` component parameters to setup the virtual camera: `general.virtual_serial_numbers` and `general.virtual_camera_ids`
@@ -31,10 +31,10 @@ LATEST CHANGES
 ----------
 - Added debug option for TF broadcasting
 
-  - Improved TF debug logs to show frame transformations when enabled 
+  - Improved TF debug logs to show frame transformations when enabled
 
 - Static baseline information from URDF is now overwritten by the real baseline value retrieved from the camera calibration file.
-- Removed mandatory `custom_baseline` launch argument for virtual stereo cameras made with two ZED X One cameras. 
+- Removed mandatory `custom_baseline` launch argument for virtual stereo cameras made with two ZED X One cameras.
   The value is retrieved from the calibration file.
 - IMU TF is now broadcast as static if IPC is disabled.
 - IMU Transform topic is now published with TRANSIENT LOCAL durability if IPC is disabled.
@@ -42,7 +42,7 @@ LATEST CHANGES
 2025-11-05
 ----------
 - Remapped `robot_description` topic to `<camera_name>_description` to allow multi-camera URDF integration
-- Changed minimum depth value to 0.01 meters when using ZED SDK v5.1 or higher 
+- Changed minimum depth value to 0.01 meters when using ZED SDK v5.1 or higher
 
 2025-10-31
 ----------

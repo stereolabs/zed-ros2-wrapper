@@ -1046,6 +1046,8 @@ void ZedCamera::getGeneralParams()
         mCamVirtualCameraIds = ids;
       }
 
+      // With a live virtual stereo camera at least one of "general.virtual_camera_ids"  and "general.virtual_serial_numbers"
+      // must contain two valid values
       if (ids.size() != 2 && serials.size() != 2) {
         RCLCPP_ERROR(
           get_logger(),
@@ -1054,7 +1056,6 @@ void ZedCamera::getGeneralParams()
           "valid values (Left and Right camera identification).");
         exit(EXIT_FAILURE);
       }
-
     } else {
       sl_tools::getParam(
         shared_from_this(), "general.serial_number",
@@ -5286,6 +5287,11 @@ void ZedCamera::publishTFs(rclcpp::Time t)
 void ZedCamera::publishCameraTFs(rclcpp::Time t)
 {
   // DEBUG_STREAM_TF("publishCameraTFs");
+
+  if(!mZed) {
+    DEBUG_STREAM_TF("ZED Camera not initialized");
+    return;
+  }
 
   if (!mUsingIPC && mStaticTfPublished) {
     DEBUG_ONCE_TF("Static Camera TF already broadcasted");

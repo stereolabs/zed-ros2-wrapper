@@ -459,7 +459,7 @@ void ZedCameraOne::retrieveImages(bool gpu)
     retrieved |= (sl::ERROR_CODE::SUCCESS ==
       _zed->retrieveImage(
         _matColorRaw,
-        _24bitMode ? (sl::VIEW::LEFT_UNRECTIFIED_BGR) : (sl::VIEW::LEFT_UNRECTIFIED_BGRA),
+        _24bitMode ? sl::VIEW::LEFT_UNRECTIFIED_BGR : sl::VIEW::LEFT_UNRECTIFIED_BGRA,
         gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
     _sdkGrabTS = _matColorRaw.timestamp;
     DEBUG_STREAM_VD(

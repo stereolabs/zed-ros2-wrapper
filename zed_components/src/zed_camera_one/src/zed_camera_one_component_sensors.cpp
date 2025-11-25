@@ -83,6 +83,7 @@ void ZedCameraOne::initSensorPublishers()
 void ZedCameraOne::threadFunc_pubSensorsData()
 {
   DEBUG_STREAM_SENS("Sensors thread started");
+  pthread_setname_np(pthread_self(), (get_name() + std::string("_sensors_pub")).c_str());
   setupSensorThreadScheduling();
 
   DEBUG_STREAM_SENS("Sensors thread loop starting...");

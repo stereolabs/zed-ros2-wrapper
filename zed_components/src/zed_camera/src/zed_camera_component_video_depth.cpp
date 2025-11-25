@@ -2552,6 +2552,8 @@ void ZedCamera::publishPointCloud()
 void ZedCamera::threadFunc_videoDepthElab()
 {
   DEBUG_STREAM_VD("Video Depth thread started");
+  pthread_setname_np(pthread_self(), (get_name() + std::string("_video_depth")).c_str());
+
   setupVideoDepthThread();
 
   mVdDataReady = false;
@@ -2871,6 +2873,8 @@ void ZedCamera::handlePointCloudPublishing()
 void ZedCamera::threadFunc_pointcloudElab()
 {
   DEBUG_STREAM_PC("Point Cloud thread started");
+  pthread_setname_np(pthread_self(), (get_name() + std::string("_pc")).c_str());
+
   setupPointCloudThread();
 
   mPcDataReady = false;

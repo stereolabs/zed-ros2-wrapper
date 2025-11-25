@@ -1489,7 +1489,10 @@ bool ZedCamera::retrieveLeftImage(bool gpu)
   if (mRgbSubCount + mLeftSubCount + mStereoSubCount > 0) {
     DEBUG_VD(" * Retrieving Left image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveImage(mMatLeft, sl::VIEW::LEFT, gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
+      mZed->retrieveImage(
+      mMatLeft,
+      m24bitMode ? (sl::VIEW::LEFT_BGR) : (sl::VIEW::LEFT_BGRA),
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       mRgbSubscribed = true;
       DEBUG_STREAM_VD(" * Left image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
@@ -1505,7 +1508,8 @@ bool ZedCamera::retrieveLeftRawImage(bool gpu)
     DEBUG_VD(" * Retrieving Left raw image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
-      mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED,
+      mMatLeftRaw,
+      m24bitMode ? (sl::VIEW::LEFT_UNRECTIFIED_BGR) : (sl::VIEW::LEFT_UNRECTIFIED_BGRA),
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Left raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
@@ -1535,7 +1539,8 @@ bool ZedCamera::retrieveRightRawImage(bool gpu)
     DEBUG_VD(" * Retrieving Right raw image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
-      mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED,
+      mMatRightRaw,
+      m24bitMode ? (sl::VIEW::RIGHT_UNRECTIFIED_BGR) : (sl::VIEW::RIGHT_UNRECTIFIED_BGRA),
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Right raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");

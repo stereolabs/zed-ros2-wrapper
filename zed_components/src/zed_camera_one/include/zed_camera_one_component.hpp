@@ -341,6 +341,7 @@ private:
   sl::MODEL _camUserModel = sl::MODEL::ZED_XONE_GS;  // Default camera model
 
   //Topic enabler parameters
+  bool _24bitMode = false;
   bool _publishImgRgb = true;
   bool _publishImgRaw = false;
   bool _publishImgGray = false;

@@ -36,7 +36,7 @@
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
             # 'zedx.yaml', 'zedxmini.yaml', 'virtual.yaml' files
 
-        video:
+        video:            
             saturation: 4 # [DYNAMIC]
             sharpness: 4 # [DYNAMIC]
             gamma: 8 # [DYNAMIC]
@@ -45,6 +45,7 @@
             gain: 80 # [DYNAMIC]
             auto_whitebalance: true # [DYNAMIC]
             whitebalance_temperature: 42 # [DYNAMIC] - [28,65] x100 - works only if `auto_whitebalance` is false
+            enable_24bit_output: true # Enable BGR 24-bit output for lower bandwidth usage. If false, BGRA 32-bit output is used (old way before SDK v5.1)
             publish_rgb: true # Advertise the RGB image topics that are published only if a node subscribes to them
             publish_left_right: false # Advertise the left and right image topics that are published only if a node subscribes to them
             publish_raw: false # Advertise the raw image topics that are published only if a node subscribes to them

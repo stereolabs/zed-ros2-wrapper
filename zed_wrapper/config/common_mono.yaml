@@ -11,7 +11,7 @@
             gpu_id: -1
             optional_opencv_calibration_file: "" # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
 
-        video:
+        video:            
             saturation: 4 # [DYNAMIC]
             sharpness: 4 # [DYNAMIC]
             gamma: 8 # [DYNAMIC]
@@ -31,6 +31,7 @@
             auto_digital_gain_range_min: 1 # [DYNAMIC] - Defines the minimum range of digital ISP gain in automatic control
             auto_digital_gain_range_max: 256 # [DYNAMIC] - Defines the maximum range of digital ISP gain in automatic control
             denoising: 50 # [DYNAMIC] - Defines the level of denoising applied on both left and right images. Range [0-100]
+            enable_24bit_output: true # Enable BGR 24-bit output for lower bandwidth usage. If false, BGRA 32-bit output is used (old way before SDK v5.1)
             publish_rgb: true # Advertise the RGB image topics that are published only if a node subscribes to them
             publish_gray: false # Advertise the gray image topics that are published only if a node subscribes to them
             publish_raw: false # Advertise the raw image topics that are published only if a node subscribes to them (only if 'publish_rgb' or 'publish_gray' is true)

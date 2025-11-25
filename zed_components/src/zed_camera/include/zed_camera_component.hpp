@@ -293,7 +293,8 @@ protected:
   void publishImuFrameAndTopic();
 
   void publishOdom(
-    tf2::Transform & odom2baseTransf, sl::Pose & slPose, const tf2::Vector3& linear_velocity, const tf2::Vector3& angular_velocity,
+    tf2::Transform & odom2baseTransf, sl::Pose & slPose, const tf2::Vector3 & linear_velocity,
+    const tf2::Vector3 & angular_velocity,
     rclcpp::Time t);
   void publishPose();
   void publishPoseLandmarks();
@@ -449,6 +450,7 @@ private:
   bool _nitrosDisabled = false;
 
   // Topic Enablers
+  bool m24bitMode = false;
   bool mPublishSensImu = true;
   bool mPublishSensImuRaw = false;
   bool mPublishSensMag = false;

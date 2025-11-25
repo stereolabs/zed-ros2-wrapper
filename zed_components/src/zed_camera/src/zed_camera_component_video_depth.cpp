@@ -1491,7 +1491,7 @@ bool ZedCamera::retrieveLeftImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatLeft,
-      m24bitMode ? (sl::VIEW::LEFT_BGR) : (sl::VIEW::LEFT_BGRA),
+      m24bitMode ? sl::VIEW::LEFT_BGR : sl::VIEW::LEFT_BGRA,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       mRgbSubscribed = true;

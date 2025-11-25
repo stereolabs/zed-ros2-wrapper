@@ -1509,7 +1509,7 @@ bool ZedCamera::retrieveLeftRawImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatLeftRaw,
-      m24bitMode ? (sl::VIEW::LEFT_UNRECTIFIED_BGR) : (sl::VIEW::LEFT_UNRECTIFIED_BGRA),
+      m24bitMode ? sl::VIEW::LEFT_UNRECTIFIED_BGR : sl::VIEW::LEFT_UNRECTIFIED_BGRA,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Left raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");

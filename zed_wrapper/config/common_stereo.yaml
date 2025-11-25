@@ -45,6 +45,7 @@
             gain: 80 # [DYNAMIC]
             auto_whitebalance: true # [DYNAMIC]
             whitebalance_temperature: 42 # [DYNAMIC] - [28,65] x100 - works only if `auto_whitebalance` is false
+            enable_24bit_output: false # Enable BGR 24-bit output for lower bandwidth usage. If false, BGRA 32-bit output is used (old way before SDK v5.1)
             publish_rgb: true # Advertise the RGB image topics that are published only if a node subscribes to them
             publish_left_right: false # Advertise the left and right image topics that are published only if a node subscribes to them
             publish_raw: false # Advertise the raw image topics that are published only if a node subscribes to them

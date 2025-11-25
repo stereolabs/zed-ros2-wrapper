@@ -195,6 +195,14 @@ void ZedCameraOne::getTopicEnableParams()
 
   // Image topics
   sl_tools::getParam(
+    shared_from_this(), "video.enable_24bit_output",
+    _24bitMode, _24bitMode);
+  if (_24bitMode) {
+    RCLCPP_INFO(get_logger(), " * Image format: BGR 24-bit");
+  } else {
+    RCLCPP_INFO(get_logger(), " * Image format: BGRA 32-bit");
+  }
+  sl_tools::getParam(
     shared_from_this(), "video.publish_rgb", _publishImgRgb,
     _publishImgRgb, " * Publish RGB image: ");
   sl_tools::getParam(

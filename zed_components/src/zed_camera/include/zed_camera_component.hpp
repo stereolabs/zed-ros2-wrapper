@@ -49,6 +49,7 @@ protected:
   void getTopicEnableParams();
   void getSimParams();
   void getGeneralParams();
+  void getSvoParams();
   void getVideoParams();
   void getRoiParams();
   void getDepthParams();

@@ -8,6 +8,8 @@ LATEST CHANGES
   - Added parameter `video.enable_24bit_output` to enable/disable 24-bit BGR image publishing to `common_stereo.yaml` and `common_mono.yaml` configuration files
   - **NOTE**: `video.enable_24bit_output` is disabled by default to maintain backward compatibility. Enabling this parameter will change the image message encoding from `BGRA8` to `BGR8`, which may affect existing applications that rely on the previous encoding.
 
+- Enabled SVO support for ZED X One cameras (playback, recording, and diagnostic)
+
 2025-11-24
 ----------
 - Add twist information to the `odom` topic

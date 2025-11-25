@@ -57,9 +57,6 @@ using namespace std::placeholders;
 // Used for simulation data input
 #define ZED_SDK_PORT 30000
 
-// Used to enable ZED SDK RealTime SVO pause
-//#define USE_SVO_REALTIME_PAUSE
-
 namespace stereolabs
 {
 
@@ -493,6 +490,9 @@ void ZedCamera::initParameters()
   // SIMULATION parameters
   getSimParams();
 
+  // SVO parameters
+  getSvoParams();
+
   // GENERAL parameters
   getGeneralParams();
 
@@ -854,59 +854,6 @@ void ZedCamera::getGeneralParams()
 {
   rclcpp::Parameter paramVal;
 
-  RCLCPP_INFO(get_logger(), "=== SVO INPUT parameters ===");
-
-  sl_tools::getParam(
-    shared_from_this(), "svo.svo_path", std::string(),
-    mSvoFilepath);
-  if (mSvoFilepath.compare("live") == 0) {
-    mSvoFilepath = "";
-  }
-
-  if (mSvoFilepath == "") {
-    mSvoMode = false;
-  } else {
-    RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << mSvoFilepath.c_str() << "'");
-    mSvoMode = true;
-    sl_tools::getParam(
-      shared_from_this(), "svo.use_svo_timestamps",
-      mUseSvoTimestamp, mUseSvoTimestamp,
-      " * Use SVO timestamp: ");
-    if (mUseSvoTimestamp) {
-      sl_tools::getParam(
-        shared_from_this(), "svo.publish_svo_clock",
-        mPublishSvoClock, mPublishSvoClock,
-        " * Publish SVO timestamp: ");
-    }
-
-    sl_tools::getParam(shared_from_this(), "svo.svo_loop", mSvoLoop, mSvoLoop);
-    if (mUseSvoTimestamp) {
-      if (mSvoLoop) {
-        RCLCPP_WARN(
-          get_logger(),
-          "SVO Loop is not supported when using SVO timestamps. Loop playback disabled.");
-        mSvoLoop = false;
-      }
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        " * SVO Loop: " << (mSvoLoop ? "TRUE" : "FALSE"));
-    }
-    sl_tools::getParam(
-      shared_from_this(), "svo.svo_realtime", mSvoRealtime,
-      mSvoRealtime, " * SVO Realtime: ");
-
-    sl_tools::getParam(
-      shared_from_this(), "svo.play_from_frame",
-      mSvoFrameStart, mSvoFrameStart,
-      " * SVO start frame: ", false, 0);
-
-    if (!mSvoRealtime) {
-      sl_tools::getParam(
-        shared_from_this(), "svo.replay_rate", mSvoRate,
-        mSvoRate, " * SVO replay rate: ", true, 0.1, 5.0);
-    }
-  }
-
   mStreamMode = false;
   if (!mSvoMode) {
     RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING parameters ===");
@@ -1185,6 +1132,67 @@ void ZedCamera::getGeneralParams()
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Publish framerate [Hz]:  " << mVdPubRate);
+  }
+}
+
+void ZedCamera::getSvoParams()
+{
+  rclcpp::Parameter paramVal;
+
+  RCLCPP_INFO(get_logger(), "=== SVO INPUT parameters ===");
+
+  sl_tools::getParam(
+    shared_from_this(), "svo.svo_path", std::string(),
+    mSvoFilepath);
+  if (mSvoFilepath.compare("live") == 0) {
+    mSvoFilepath = "";
+  }
+
+  if (mSvoFilepath == "") {
+    mSvoMode = false;
+  } else {
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * SVO: '" << mSvoFilepath.c_str() << "'");
+    mSvoMode = true;
+    sl_tools::getParam(
+      shared_from_this(), "svo.use_svo_timestamps",
+      mUseSvoTimestamp, mUseSvoTimestamp,
+      " * Use SVO timestamp: ");
+    if (mUseSvoTimestamp) {
+      sl_tools::getParam(
+        shared_from_this(), "svo.publish_svo_clock",
+        mPublishSvoClock, mPublishSvoClock,
+        " * Publish SVO timestamp: ");
+    }
+
+    sl_tools::getParam(shared_from_this(), "svo.svo_loop", mSvoLoop, mSvoLoop);
+    if (mUseSvoTimestamp) {
+      if (mSvoLoop) {
+        RCLCPP_WARN(
+          get_logger(),
+          "SVO Loop is not supported when using SVO timestamps. Loop "
+          "playback disabled.");
+        mSvoLoop = false;
+      }
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " * SVO Loop: " << (mSvoLoop ? "TRUE" : "FALSE"));
+    }
+    sl_tools::getParam(
+      shared_from_this(), "svo.svo_realtime", mSvoRealtime,
+      mSvoRealtime, " * SVO Realtime: ");
+
+    sl_tools::getParam(
+      shared_from_this(), "svo.play_from_frame",
+      mSvoFrameStart, mSvoFrameStart,
+      " * SVO start frame: ", false, 0);
+
+    if (!mSvoRealtime) {
+      sl_tools::getParam(
+        shared_from_this(), "svo.replay_rate", mSvoRate,
+        mSvoRate, " * SVO replay rate: ", true, 0.1, 5.0);
+    }
   }
 }
 

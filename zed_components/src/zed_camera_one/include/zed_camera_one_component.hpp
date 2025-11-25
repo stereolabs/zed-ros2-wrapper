@@ -16,7 +16,6 @@
 #define ZED_CAMERA_ONE_COMPONENT_HPP_
 
 #define ENABLE_STREAM_INPUT 1
-#define ENABLE_SVO 0
 
 #include <atomic>
 #include <sl/CameraOne.hpp>
@@ -81,10 +80,8 @@ protected:
   void startTempPubTimer();
   bool startStreamingServer();
   void stopStreamingServer();
-#if ENABLE_SVO
   bool startSvoRecording(std::string & errMsg);
   void stopSvoRecording();
-#endif
   // <---- Initialization functions
 
   // ----> Utility functions
@@ -197,7 +194,6 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
     std::shared_ptr<std_srvs::srv::SetBool_Response> res);
-#if ENABLE_SVO
   void callback_startSvoRec(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_msgs::srv::StartSvoRec_Request> req,
@@ -210,7 +206,6 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
-#endif
   // <---- Callbacks functions
 
   // ----> Thread functions
@@ -332,7 +327,6 @@ private:
   int _sdkVerbose = 0; // SDK verbose level
   std::string _sdkVerboseLogFile = ""; // SDK Verbose Log file
   int _gpuId = -1; // GPU ID
-  bool _useSvoTimestamp = false; // Use SVO timestamp
   bool _usePubTimestamps = false; // Use publishing timestamp instead of grab timestamp
 
   int _camSerialNumber = 0; // Camera serial number
@@ -351,13 +345,16 @@ private:
   bool _publishSensImuTF = false;
   bool _publishSensTemp = false;
 
-  std::string _svoFilepath = ""; // SVO input
-#if ENABLE_SVO
-  bool _svoRealtime = true; // SVO playback with real time
-  bool _svoLoop = false; // SVO loop playback
-#endif
+  std::string _svoFilepath = "";
+  bool _svoLoop = false;
+  bool _svoRealtime = false;
+  int _svoFrameStart = 0;
+  double _svoRate = 1.0;
+  double _svoExpectedPeriod = 0.0;
+  bool _useSvoTimestamp = false;
+  bool _publishSvoClock = false;
 
-  std::string _streamAddr = ""; // Address for local streaming input
+  std::string _streamAddr = "";      // Address for local streaming input
   int _streamPort = 10000;
 
   std::string _threadSchedPolicy;
@@ -483,31 +480,27 @@ private:
   // <---- Diagnostic variables
 
   // ----> SVO Recording parameters
-#if ENABLE_SVO
   unsigned int _svoRecBitrate = 0;
-  sl::SVO_COMPRESSION_MODE _svoRecCompr = sl::SVO_COMPRESSION_MODE::H264;
+  sl::SVO_COMPRESSION_MODE _svoRecCompression = sl::SVO_COMPRESSION_MODE::H265;
   unsigned int _svoRecFramerate = 0;
   bool _svoRecTranscode = false;
   std::string _svoRecFilename;
-#endif
   // <---- SVO Recording parameters
 
   // ----> Services
   enableStreamingPtr _srvEnableStreaming;
-#if ENABLE_SVO
   startSvoRecSrvPtr _srvStartSvoRec;
   stopSvoRecSrvPtr _srvStopSvoRec;
   pauseSvoSrvPtr _srvPauseSvo;
-#endif
+  setSvoFramePtr _srvSetSvoFrame;
   // <---- Services
 
   // ----> Services names
   const std::string _srvEnableStreamingName = "enable_streaming";
-#if ENABLE_SVO
   const std::string _srvStartSvoRecName = "start_svo_rec";
   const std::string _srvStopSvoRecName = "stop_svo_rec";
   const std::string _srvToggleSvoPauseName = "toggle_svo_pause";
-#endif
+  const std::string _srvSetSvoFrameName = "set_svo_frame";
   // <---- Services names
 };
 

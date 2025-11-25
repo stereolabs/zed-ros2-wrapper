@@ -230,32 +230,63 @@ void ZedCameraOne::getTopicEnableParams()
 
 void ZedCameraOne::getSvoParams()
 {
-  sl_tools::getParam(shared_from_this(), "svo.svo_path", std::string(), _svoFilepath);
+  rclcpp::Parameter paramVal;
+
+  RCLCPP_INFO(get_logger(), "=== SVO INPUT parameters ===");
+
+  sl_tools::getParam(
+    shared_from_this(), "svo.svo_path", std::string(),
+    _svoFilepath);
   if (_svoFilepath.compare("live") == 0) {
     _svoFilepath = "";
   }
-#if !ENABLE_SVO
-  if (_svoFilepath != "") {
-    RCLCPP_ERROR_STREAM(
-      get_logger(),
-      "SVO input is not enabled in this version. This feature will be available later");
-    exit(EXIT_FAILURE);
-  }
-#endif
-#if ENABLE_SVO
+
   if (_svoFilepath == "") {
     _svoMode = false;
   } else {
-    RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << _svoFilepath.c_str() << "'");
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * SVO: '" << _svoFilepath.c_str() << "'");
     _svoMode = true;
-    sl_tools::getParam(shared_from_this(), "svo.svo_loop", _svoLoop, _svoLoop, " * SVO Loop: ");
     sl_tools::getParam(
-      shared_from_this(), "svo.svo_realtime", _svoRealtime, _svoRealtime, " * SVO Real Time: ");
-    sl_tools::getParam(
-      "svo.use_svo_timestamps", _useSvoTimestamp, _useSvoTimestamp,
+      shared_from_this(), "svo.use_svo_timestamps",
+      _useSvoTimestamp, _useSvoTimestamp,
       " * Use SVO timestamp: ");
+    if (_useSvoTimestamp) {
+      sl_tools::getParam(
+        shared_from_this(), "svo.publish_svo_clock",
+        _publishSvoClock, _publishSvoClock,
+        " * Publish SVO timestamp: ");
+    }
+
+    sl_tools::getParam(shared_from_this(), "svo.svo_loop", _svoLoop, _svoLoop);
+    if (_useSvoTimestamp) {
+      if (_svoLoop) {
+        RCLCPP_WARN(
+          get_logger(),
+          "SVO Loop is not supported when using SVO timestamps. Loop "
+          "playback disabled.");
+        _svoLoop = false;
+      }
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " * SVO Loop: " << (_svoLoop ? "TRUE" : "FALSE"));
+    }
+    sl_tools::getParam(
+      shared_from_this(), "svo.svo_realtime", _svoRealtime,
+      _svoRealtime, " * SVO Realtime: ");
+
+    sl_tools::getParam(
+      shared_from_this(), "svo.play_from_frame",
+      _svoFrameStart, _svoFrameStart,
+      " * SVO start frame: ", false, 0);
+
+    if (!_svoRealtime) {
+      sl_tools::getParam(
+        shared_from_this(), "svo.replay_rate", _svoRate,
+        _svoRate, " * SVO replay rate: ", true, 0.1, 5.0);
+    }
   }
-#endif
 }
 
 void ZedCameraOne::getStreamParams()
@@ -650,29 +681,40 @@ void ZedCameraOne::initServices()
     std::bind(&ZedCameraOne::callback_enableStreaming, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", _srvEnableStreaming->get_service_name());
 
-#if ENABLE_SVO
   // Start SVO Recording
   srv_name = srv_prefix + _srvStartSvoRecName;
-  _srvStartSvoRec = create_service<zed_msgs::srv::StartSvoRec>(
-    srv_name,
-    std::bind(&ZedCameraOne::callback_startSvoRec, this, _1, _2, _3));
-  RCLCPP_INFO(get_logger(), " * '%s'", _srvStartSvoRec->get_service_name());
+  _startSvoRecSrv = create_service<zed_msgs::srv::StartSvoRec>(
+    srv_name, std::bind(&ZedCameraOne::callback_startSvoRec, this, _1, _2, _3));
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Advertised on service: '"
+      << _startSvoRecSrv->get_service_name()
+      << "'");
   // Stop SVO Recording
   srv_name = srv_prefix + _srvStopSvoRecName;
-  _srvStopSvoRec = create_service<std_srvs::srv::Trigger>(
-    srv_name,
-    std::bind(&ZedCameraOne::callback_stopSvoRec, this, _1, _2, _3));
-  RCLCPP_INFO(get_logger(), " * '%s'", _srvStopSvoRec->get_service_name());
+  _stopSvoRecSrv = create_service<std_srvs::srv::Trigger>(
+    srv_name, std::bind(&ZedCameraOne::callback_stopSvoRec, this, _1, _2, _3));
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Advertised on service: '"
+      << _stopSvoRecSrv->get_service_name()
+      << "'");
 
-  // Pause SVO Playback
-  if (_svoMode && !_svoRealtime) {
+  // Pause SVO (only if the realtime playing mode is disabled)
+  if (_svoMode) {
+#ifndef USE_SVO_REALTIME_PAUSE
+    if (!_svoRealtime) {
+#endif
     srv_name = srv_prefix + _srvToggleSvoPauseName;
-    _srvPauseSvo = create_service<std_srvs::srv::Trigger>(
+    _pauseSvoSrv = create_service<std_srvs::srv::Trigger>(
       srv_name,
       std::bind(&ZedCameraOne::callback_pauseSvoInput, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", _srvPauseSvo->get_service_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(), " * Advertised on service: '"
+        << _pauseSvoSrv->get_service_name()
+        << "'");
+#ifndef USE_SVO_REALTIME_PAUSE
   }
 #endif
+  }
 }
 
 bool ZedCameraOne::startCamera()

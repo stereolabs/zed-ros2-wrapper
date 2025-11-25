@@ -1524,7 +1524,8 @@ bool ZedCamera::retrieveRightImage(bool gpu)
   if (mRightSubCount + mStereoSubCount > 0) {
     DEBUG_VD(" * Retrieving Right image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveImage(mMatRight,
+      mZed->retrieveImage(
+      mMatRight,
       m24bitMode ? sl::VIEW::RIGHT_BGR : sl::VIEW::RIGHT_BGRA,
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {

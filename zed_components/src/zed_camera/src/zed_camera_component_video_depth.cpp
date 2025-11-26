@@ -1491,7 +1491,11 @@ bool ZedCamera::retrieveLeftImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatLeft,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
       m24bitMode ? sl::VIEW::LEFT_BGR : sl::VIEW::LEFT_BGRA,
+#else
+      sl::VIEW::LEFT,
+#endif
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       mRgbSubscribed = true;
@@ -1509,7 +1513,11 @@ bool ZedCamera::retrieveLeftRawImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatLeftRaw,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
       m24bitMode ? sl::VIEW::LEFT_UNRECTIFIED_BGR : sl::VIEW::LEFT_UNRECTIFIED_BGRA,
+#else
+      sl::VIEW::LEFT_UNRECTIFIED,
+#endif
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Left raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
@@ -1526,7 +1534,11 @@ bool ZedCamera::retrieveRightImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatRight,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
       m24bitMode ? sl::VIEW::RIGHT_BGR : sl::VIEW::RIGHT_BGRA,
+#else
+      sl::VIEW::RIGHT,
+#endif
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Right image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
@@ -1543,7 +1555,11 @@ bool ZedCamera::retrieveRightRawImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatRightRaw,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
       m24bitMode ? sl::VIEW::RIGHT_UNRECTIFIED_BGR : sl::VIEW::RIGHT_UNRECTIFIED_BGRA,
+#else
+      sl::VIEW::RIGHT_UNRECTIFIED,
+#endif
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Right raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");

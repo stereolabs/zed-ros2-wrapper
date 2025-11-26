@@ -733,6 +733,7 @@ void ZedCamera::getTopicEnableParams()
     mPublishStatus, " * Publish Status: ");
 
   // Image topics
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
   sl_tools::getParam(
     shared_from_this(), "video.enable_24bit_output",
     m24bitMode, m24bitMode);
@@ -741,6 +742,7 @@ void ZedCamera::getTopicEnableParams()
   } else {
     RCLCPP_INFO(get_logger(), " * Image format: BGRA 32-bit");
   }
+#endif
   sl_tools::getParam(
     shared_from_this(), "video.publish_left_right", mPublishImgLeftRight,
     mPublishImgLeftRight, " * Publish Left/Right images: ");

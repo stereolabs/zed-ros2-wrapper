@@ -164,7 +164,9 @@ void ZedCameraOne::initParameters()
   getTopicEnableParams();
 
   // Image Parameters
-  getVideoParams();
+  if (!_svoMode) {
+    getVideoParams();
+  }
 
   // SENSORS parameters
   getSensorsParams();
@@ -182,7 +184,9 @@ void ZedCameraOne::getGeneralParams()
   RCLCPP_INFO(get_logger(), "=== GENERAL parameters ===");
 
   getSvoParams();
-  getStreamParams();
+  if (!_svoMode) {
+    getStreamParams();
+  }
   getCameraModelParams();
   getCameraInfoParams();
   getResolutionParams();
@@ -379,42 +383,46 @@ void ZedCameraOne::getCameraInfoParams()
 {
   sl_tools::getParam(
     shared_from_this(), "general.camera_name", _cameraName, _cameraName, " * Camera name: ");
-  sl_tools::getParam(
-    shared_from_this(), "general.serial_number", _camSerialNumber, _camSerialNumber,
-    " * Camera SN: ");
-  sl_tools::getParam(shared_from_this(), "general.camera_id", _camId, _camId, " * Camera ID: ");
-  sl_tools::getParam(
-    shared_from_this(), "general.grab_frame_rate", _camGrabFrameRate, _camGrabFrameRate, " * Camera framerate: ", false, 15,
-    120);
+  if (!_svoMode) {
+    sl_tools::getParam(
+      shared_from_this(), "general.serial_number", _camSerialNumber, _camSerialNumber,
+      " * Camera SN: ");
+    sl_tools::getParam(shared_from_this(), "general.camera_id", _camId, _camId, " * Camera ID: ");
+    sl_tools::getParam(
+      shared_from_this(), "general.grab_frame_rate", _camGrabFrameRate, _camGrabFrameRate, " * Camera framerate: ", false, 15,
+      120);
+  }
   sl_tools::getParam(
     shared_from_this(), "general.gpu_id", _gpuId, _gpuId, " * GPU ID: ", false, -1, 256);
 }
 
 void ZedCameraOne::getResolutionParams()
 {
-  std::string resol = "AUTO";
-  sl_tools::getParam(shared_from_this(), "general.grab_resolution", resol, resol);
-  if (resol == "AUTO") {
-    _camResol = sl::RESOLUTION::AUTO;
-  } else if (resol == "HD4K" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
-    _camResol = sl::RESOLUTION::HD4K;
-  } else if (resol == "QHDPLUS" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
-    _camResol = sl::RESOLUTION::QHDPLUS;
-  } else if (resol == "HD1536" && _camUserModel == sl::MODEL::ZED_XONE_HDR) {
-    _camResol = sl::RESOLUTION::HD1536;
-  } else if (resol == "HD1200" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
-    _camResol = sl::RESOLUTION::HD1200;
-  } else if (resol == "HD1080" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
-    _camResol = sl::RESOLUTION::HD1080;
-  } else if (resol == "SVGA" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
-    _camResol = sl::RESOLUTION::SVGA;
-  } else {
-    RCLCPP_WARN(
-      get_logger(), "Not valid 'general.grab_resolution' value: '%s'. Using 'AUTO' setting.",
-      resol.c_str());
-    _camResol = sl::RESOLUTION::AUTO;
+  if (!_svoMode) {
+    std::string resol = "AUTO";
+    sl_tools::getParam(shared_from_this(), "general.grab_resolution", resol, resol);
+    if (resol == "AUTO") {
+      _camResol = sl::RESOLUTION::AUTO;
+    } else if (resol == "HD4K" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
+      _camResol = sl::RESOLUTION::HD4K;
+    } else if (resol == "QHDPLUS" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
+      _camResol = sl::RESOLUTION::QHDPLUS;
+    } else if (resol == "HD1536" && _camUserModel == sl::MODEL::ZED_XONE_HDR) {
+      _camResol = sl::RESOLUTION::HD1536;
+    } else if (resol == "HD1200" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
+      _camResol = sl::RESOLUTION::HD1200;
+    } else if (resol == "HD1080" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
+      _camResol = sl::RESOLUTION::HD1080;
+    } else if (resol == "SVGA" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
+      _camResol = sl::RESOLUTION::SVGA;
+    } else {
+      RCLCPP_WARN(
+        get_logger(), "Not valid 'general.grab_resolution' value: '%s'. Using 'AUTO' setting.",
+        resol.c_str());
+      _camResol = sl::RESOLUTION::AUTO;
+    }
+    RCLCPP_INFO_STREAM(get_logger(), " * Camera resolution: " << sl::toString(_camResol).c_str());
   }
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera resolution: " << sl::toString(_camResol).c_str());
 
   std::string out_resol = "NATIVE";
   sl_tools::getParam(shared_from_this(), "general.pub_resolution", out_resol, out_resol);
@@ -685,19 +693,19 @@ void ZedCameraOne::initServices()
 
   // Start SVO Recording
   srv_name = srv_prefix + _srvStartSvoRecName;
-  _startSvoRecSrv = create_service<zed_msgs::srv::StartSvoRec>(
+  _srvStartSvoRec = create_service<zed_msgs::srv::StartSvoRec>(
     srv_name, std::bind(&ZedCameraOne::callback_startSvoRec, this, _1, _2, _3));
   RCLCPP_INFO_STREAM(
     get_logger(), " * Advertised on service: '"
-      << _startSvoRecSrv->get_service_name()
+      << _srvStartSvoRec->get_service_name()
       << "'");
   // Stop SVO Recording
   srv_name = srv_prefix + _srvStopSvoRecName;
-  _stopSvoRecSrv = create_service<std_srvs::srv::Trigger>(
+  _srvStopSvoRec = create_service<std_srvs::srv::Trigger>(
     srv_name, std::bind(&ZedCameraOne::callback_stopSvoRec, this, _1, _2, _3));
   RCLCPP_INFO_STREAM(
     get_logger(), " * Advertised on service: '"
-      << _stopSvoRecSrv->get_service_name()
+      << _srvStopSvoRec->get_service_name()
       << "'");
 
   // Pause SVO (only if the realtime playing mode is disabled)
@@ -706,12 +714,12 @@ void ZedCameraOne::initServices()
     if (!_svoRealtime) {
 #endif
     srv_name = srv_prefix + _srvToggleSvoPauseName;
-    _pauseSvoSrv = create_service<std_srvs::srv::Trigger>(
+    _srvPauseSvo = create_service<std_srvs::srv::Trigger>(
       srv_name,
       std::bind(&ZedCameraOne::callback_pauseSvoInput, this, _1, _2, _3));
     RCLCPP_INFO_STREAM(
       get_logger(), " * Advertised on service: '"
-        << _pauseSvoSrv->get_service_name()
+        << _srvPauseSvo->get_service_name()
         << "'");
 #ifndef USE_SVO_REALTIME_PAUSE
   }
@@ -770,7 +778,7 @@ void ZedCameraOne::setupTf2()
 
 void ZedCameraOne::configureZedInput()
 {
-#if ENABLE_SVO
+
   if (!_svoFilepath.empty()) {
     RCLCPP_INFO(get_logger(), "=== SVO OPENING ===");
     _initParams.input.setFromSVOFile(_svoFilepath.c_str());
@@ -778,7 +786,7 @@ void ZedCameraOne::configureZedInput()
     _svoMode = true;
     return;
   }
-#endif
+
   if (!_streamAddr.empty()) {
     RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING OPENING ===");
     _initParams.input.setFromStream(
@@ -934,7 +942,7 @@ void ZedCameraOne::processCameraInformation()
     get_logger(),
     " * Input\t -> "
       << sl::toString(camInfo.input_type).c_str());
-#if ENABLE_SVO
+
   if (_svoMode) {
     RCLCPP_INFO(
       get_logger(), " * SVO resolution\t-> %dx%d",
@@ -945,7 +953,6 @@ void ZedCameraOne::processCameraInformation()
       " * SVO framerate\t-> "
         << (camInfo.camera_configuration.fps));
   }
-#endif
 
   if (!_svoMode) {
     _camFwVersion = camInfo.camera_configuration.firmware_version;
@@ -1087,7 +1094,7 @@ void ZedCameraOne::updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatus
     stat.summary(
       diagnostic_msgs::msg::DiagnosticStatus::WARN,
       "System overloaded. Consider reducing "
-      "'general.pub_frame_rate' or 'general.grab_resolution'");
+      "'general.grab_frame_rate' or 'general.grab_resolution'");
   } else {
     _sysOverloadCount = 0;
     stat.summary(
@@ -1109,13 +1116,13 @@ void ZedCameraOne::updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatus
 
 void ZedCameraOne::updateInputModeDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
-#if ENABLE_SVO
+
   if (_svoMode) {
     stat.add("Input mode", "SVO");
     stat.addf("SVO file", "%s", _svoFilepath.c_str());
     return;
   }
-#endif
+
   if (_streamMode) {
     stat.add("Input mode", "LOCAL STREAM");
   } else {
@@ -1140,7 +1147,6 @@ void ZedCameraOne::updateImageDiagnostics(diagnostic_updater::DiagnosticStatusWr
 
 void ZedCameraOne::updateSvoDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
-#if ENABLE_SVO
   if (_svoMode) {
     int frame = _zed->getSVOPosition();
     int totFrames = _zed->getSVONumberOfFrames();
@@ -1150,7 +1156,6 @@ void ZedCameraOne::updateSvoDiagnostics(diagnostic_updater::DiagnosticStatusWrap
       "Playing SVO", "Frame: %d/%d (%.1f%%)", frame, totFrames,
       svo_perc);
   }
-#endif
 }
 
 void ZedCameraOne::updateTfImuDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
@@ -1186,7 +1191,6 @@ void ZedCameraOne::updateTemperatureDiagnostics(diagnostic_updater::DiagnosticSt
 
 void ZedCameraOne::updateSvoRecordingDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
-#if ENABLE_SVO
   if (_recording) {
     if (!_recStatus.status) {
       stat.add("SVO Recording", "ERROR");
@@ -1209,7 +1213,6 @@ void ZedCameraOne::updateSvoRecordingDiagnostics(diagnostic_updater::DiagnosticS
   } else {
     stat.add("SVO Recording", "NOT ACTIVE");
   }
-#endif
 }
 
 void ZedCameraOne::updateStreamingServerDiagnostics(
@@ -1790,7 +1793,6 @@ bool ZedCameraOne::performCameraGrab()
 {
   _grabStatus = _zed->grab();
   if (_grabStatus != sl::ERROR_CODE::SUCCESS) {
-#if ENABLE_SVO
     if (_svoMode && _grabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
       if (_svoLoop) {
         _zed->setSVOPosition(0);
@@ -1804,9 +1806,7 @@ bool ZedCameraOne::performCameraGrab()
         RCLCPP_WARN(get_logger(), "SVO reached the end. The node has been stopped.");
         return false;
       }
-    } else
-#endif
-    if (_grabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
+    } else if (_grabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Connection issue detected: " << sl::toString(
           _grabStatus).c_str());
@@ -1857,7 +1857,6 @@ void ZedCameraOne::handleStreamingServer()
 
 void ZedCameraOne::handleSvoRecordingStatus()
 {
-#if ENABLE_SVO
   _recMutex.lock();
   if (_recording) {
     _recStatus = _zed->getRecordingStatus();
@@ -1867,7 +1866,6 @@ void ZedCameraOne::handleSvoRecordingStatus()
     }
   }
   _recMutex.unlock();
-#endif
 }
 
 bool ZedCameraOne::startStreamingServer()
@@ -1962,7 +1960,6 @@ void ZedCameraOne::callback_enableStreaming(
   }
 }
 
-#if ENABLE_SVO
 void ZedCameraOne::callback_startSvoRec(
   const std::shared_ptr<rmw_request_id_t> request_header,
   const std::shared_ptr<zed_msgs::srv::StartSvoRec_Request> req,
@@ -2147,7 +2144,6 @@ void ZedCameraOne::stopSvoRecording()
     _zed->disableRecording();
   }
 }
-#endif
 
 }  // namespace stereolabs
 

@@ -483,7 +483,7 @@ private:
 
   // ----> SVO Recording parameters
   unsigned int _svoRecBitrate = 0;
-  sl::SVO_COMPRESSION_MODE _svoRecCompression = sl::SVO_COMPRESSION_MODE::H265;
+  sl::SVO_COMPRESSION_MODE _svoRecCompr = sl::SVO_COMPRESSION_MODE::H265;
   unsigned int _svoRecFramerate = 0;
   bool _svoRecTranscode = false;
   std::string _svoRecFilename;
@@ -494,7 +494,7 @@ private:
   startSvoRecSrvPtr _srvStartSvoRec;
   stopSvoRecSrvPtr _srvStopSvoRec;
   pauseSvoSrvPtr _srvPauseSvo;
-  setSvoFramePtr _srvSetSvoFrame;
+  setSvoFramePtr _srvSetSvoFrame; TODO ADD CODE TO HANDLE THIS SERVICE
   // <---- Services
 
   // ----> Services names

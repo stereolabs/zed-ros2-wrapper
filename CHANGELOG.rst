@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-11-27
+----------
+- Set thread names according to the thread function namefor easier identification in debuggers and profilers
+
 2025-11-25
 ----------
 - Added 24-bit BGR image mode

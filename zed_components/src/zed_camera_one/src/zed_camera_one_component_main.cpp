@@ -54,6 +54,11 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
   RCLCPP_INFO(get_logger(), "================================");
 
+  // Set the name of the main thread for easier identification in
+  // system monitors
+  pthread_setname_np(pthread_self(), (get_name() + std::string("_main")).c_str());
+
+
   const size_t SDK_MAJOR_REQ = 4;
   const size_t SDK_MINOR_REQ = 2;
 
@@ -1614,6 +1619,10 @@ void ZedCameraOne::initPublishers()
 void ZedCameraOne::threadFunc_zedGrab()
 {
   DEBUG_STREAM_COMM("Grab thread started");
+
+  // Set the name of the zedGrab thread for easier identification in
+  // system monitors
+  pthread_setname_np(pthread_self(), (get_name() + std::string("_zedGrab")).c_str());
 
   setupGrabThreadPolicy();
 

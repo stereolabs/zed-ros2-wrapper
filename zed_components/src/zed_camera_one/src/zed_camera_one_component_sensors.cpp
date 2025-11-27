@@ -90,6 +90,16 @@ void ZedCameraOne::threadFunc_pubSensorsData()
 
   while (true) {
     if (handleSensorThreadInterruption()) {break;}
+
+    if (_svoMode && _svoPause) {
+      if (!_grabImuOnce) {
+        rclcpp::sleep_for(100ms);
+        continue;
+      } else {
+        _grabImuOnce = false;  // Reset the flag and grab the IMU data
+      }
+    }
+
     if (!waitForCameraOpen()) {continue;}
     if (!waitForSensorSubscribers()) {continue;}
     if (!handleSensorPublishing()) {continue;}

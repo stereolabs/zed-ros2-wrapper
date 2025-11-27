@@ -206,6 +206,10 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_setSvoFrame(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<zed_msgs::srv::SetSvoFrame_Request> req,
+    std::shared_ptr<zed_msgs::srv::SetSvoFrame_Response> res);
   // <---- Callbacks functions
 
   // ----> Thread functions
@@ -328,6 +332,8 @@ private:
   std::string _sdkVerboseLogFile = ""; // SDK Verbose Log file
   int _gpuId = -1; // GPU ID
   bool _usePubTimestamps = false; // Use publishing timestamp instead of grab timestamp
+  bool _grabOnce = false;
+  bool _grabImuOnce = false;
 
   int _camSerialNumber = 0; // Camera serial number
   int _camId = -1; // Camera ID
@@ -494,7 +500,9 @@ private:
   startSvoRecSrvPtr _srvStartSvoRec;
   stopSvoRecSrvPtr _srvStopSvoRec;
   pauseSvoSrvPtr _srvPauseSvo;
-  setSvoFramePtr _srvSetSvoFrame; TODO ADD CODE TO HANDLE THIS SERVICE
+  setSvoFramePtr _srvSetSvoFrame;
+
+  sl_tools::StopWatch _setSvoFrameCheckTimer;
   // <---- Services
 
   // ----> Services names

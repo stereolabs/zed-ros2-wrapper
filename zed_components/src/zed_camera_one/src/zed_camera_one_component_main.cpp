@@ -45,7 +45,8 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   _streamingServerRequired(false),
   _streamingServerRunning(false),
   _triggerUpdateDynParams(true),
-  _uptimer(get_clock())
+  _uptimer(get_clock()),
+  _setSvoFrameCheckTimer(get_clock())
 {
   RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), "    ZED Camera One Component    ");
@@ -724,6 +725,14 @@ void ZedCameraOne::initServices()
 #ifndef USE_SVO_REALTIME_PAUSE
   }
 #endif
+    // Set Service for SVO frame
+    srv_name = srv_prefix + _srvSetSvoFrameName;
+    _srvSetSvoFrame = create_service<zed_msgs::srv::SetSvoFrame>(
+      srv_name, std::bind(&ZedCameraOne::callback_setSvoFrame, this, _1, _2, _3));
+    RCLCPP_INFO_STREAM(
+      get_logger(), " * Advertised on service: '"
+        << _srvSetSvoFrame->get_service_name()
+        << "'");
   }
 }
 
@@ -1672,6 +1681,19 @@ void ZedCameraOne::threadFunc_zedGrab()
 
       if (checkGrabThreadInterruption()) {break;}
 
+      if (_svoMode && _svoPause) {
+        if (!_grabOnce) {
+          rclcpp::sleep_for(100ms);
+#ifdef USE_SVO_REALTIME_PAUSE
+          // Dummy grab
+          mZed->grab();
+#endif
+          continue;
+        } else {
+          _grabOnce = false;  // Reset the flag and grab once
+        }
+      }
+
       handleDynamicSettings();
 
       updateGrabFrequency();
@@ -2109,6 +2131,58 @@ void ZedCameraOne::callback_pauseSvoInput(
     res->message = "SVO is playing";
     _svoPause = false;
   }
+  res->success = true;
+}
+
+void ZedCameraOne::callback_setSvoFrame(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<zed_msgs::srv::SetSvoFrame_Request> req,
+  std::shared_ptr<zed_msgs::srv::SetSvoFrame_Response> res)
+{
+  (void)request_header;
+
+  RCLCPP_INFO(get_logger(), "** Set SVO Frame service called **");
+
+  // ----> Check service call frequency
+  if (_setSvoFrameCheckTimer.toc() < 0.5) {
+    RCLCPP_WARN(get_logger(), "SVO frame set too fast");
+    res->message = "SVO frame set too fast";
+    res->success = false;
+    return;
+  }
+  _setSvoFrameCheckTimer.tic();
+  // <---- Check service call frequency
+
+  std::lock_guard<std::mutex> lock(_recMutex);
+
+  if (!_svoMode) {
+    RCLCPP_WARN(get_logger(), "The node is not using an SVO as input");
+    res->message = "The node is not using an SVO as input";
+    res->success = false;
+    return;
+  }
+
+  int frame = req->frame_id;
+  int svo_frames = _zed->getSVONumberOfFrames();
+  if (frame >= svo_frames) {
+    std::stringstream ss;
+    ss << "Frame number is out of range. SVO has " << svo_frames << " frames";
+    RCLCPP_WARN(get_logger(), ss.str().c_str());
+    res->message = ss.str();
+    res->success = false;
+    return;
+  }
+
+  _zed->setSVOPosition(frame);
+  RCLCPP_INFO_STREAM(get_logger(), "SVO frame set to " << frame);
+  res->message = "SVO frame set to " + std::to_string(frame);
+
+  // if svo is paused, ensure one grab can update topics
+  if (_svoPause) {
+    _grabOnce = true;
+    _grabImuOnce = true;
+  }
+
   res->success = true;
 }
 

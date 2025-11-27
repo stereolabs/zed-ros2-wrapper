@@ -108,6 +108,8 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
     options.use_intra_process_comms() ? "enabled" : "disabled");
   RCLCPP_INFO(get_logger(), "================================");
 
+  // Set the name of the main thread for easier identification in
+  // system monitors
   pthread_setname_np(pthread_self(), (get_name() + std::string("_main")).c_str());
 
   if (((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) <
@@ -4280,7 +4282,10 @@ void ZedCamera::publishImuFrameAndTopic()
 void ZedCamera::threadFunc_zedGrab()
 {
   DEBUG_STREAM_COMM("Grab thread started");
-  pthread_setname_np(pthread_self(), (get_name() + std::string("_grab")).c_str());
+
+  // Set the name of the zedGrab thread for easier identification in
+  // system monitors
+  pthread_setname_np(pthread_self(), (get_name() + std::string("_zedGrab")).c_str());
 
   // ----> Advanced thread settings
   DEBUG_STREAM_ADV("Grab thread settings");
@@ -5257,7 +5262,10 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
 void ZedCamera::threadFunc_pubSensorsData()
 {
   DEBUG_STREAM_SENS("Sensors thread started");
-  pthread_setname_np(pthread_self(), (get_name() + std::string("_sensors_pub")).c_str());
+
+  // Set the name of the pubSensorsData thread for easier identification in
+  // system monitors
+  pthread_setname_np(pthread_self(), (get_name() + std::string("_pubSensorsData")).c_str());
 
   // ----> Advanced thread settings
   DEBUG_STREAM_ADV("Sensors thread settings");

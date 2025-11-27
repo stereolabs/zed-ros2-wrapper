@@ -197,6 +197,7 @@ void ZedCameraOne::getTopicEnableParams()
   RCLCPP_INFO(get_logger(), "=== TOPIC selection parameters ===");
 
   // Image topics
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
   sl_tools::getParam(
     shared_from_this(), "video.enable_24bit_output",
     _24bitMode, _24bitMode);
@@ -205,6 +206,7 @@ void ZedCameraOne::getTopicEnableParams()
   } else {
     RCLCPP_INFO(get_logger(), " * Image format: BGRA 32-bit");
   }
+#endif
   sl_tools::getParam(
     shared_from_this(), "video.publish_rgb", _publishImgRgb,
     _publishImgRgb, " * Publish RGB image: ");

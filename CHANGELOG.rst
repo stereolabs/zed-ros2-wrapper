@@ -1,6 +1,16 @@
 LATEST CHANGES
 ==============
 
+2025-11-28
+----------
+- Enable SVO for ZedCameraOne
+  - add service to pause SVO playback
+  - add service to set SVO frame ID
+  - add servives to start/stop SVO recording
+  - publish SVO status
+  - publish SVO clock on `/clock` topic
+- Publish ZedCameraOne hearthbeat message
+
 2025-11-25
 ----------
 - Added 24-bit BGR image mode

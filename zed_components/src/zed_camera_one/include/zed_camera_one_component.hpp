@@ -78,6 +78,7 @@ protected:
   void setupCameraInfoMessages();
 
   void startTempPubTimer();
+  void startHeartbeatTimer();
   bool startStreamingServer();
   void stopStreamingServer();
   bool startSvoRecording(std::string & errMsg);
@@ -130,6 +131,7 @@ protected:
     camInfoMsgPtr & camInfoMsg, const rclcpp::Time & t);
   bool publishSensorsData();
   void publishImuFrameAndTopic();
+  bool publishSvoStatus(uint64_t frame_ts);
 
   void updateImuFreqDiagnostics(double dT);
   void publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
@@ -192,6 +194,7 @@ protected:
   void callback_updateDiagnostic(
     diagnostic_updater::DiagnosticStatusWrapper & stat);
   void callback_pubTemp();
+  void callback_pubHeartbeat();
 
   void callback_enableStreaming(
     const std::shared_ptr<rmw_request_id_t> request_header,
@@ -213,6 +216,7 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_msgs::srv::SetSvoFrame_Request> req,
     std::shared_ptr<zed_msgs::srv::SetSvoFrame_Response> res);
+  
   // <---- Callbacks functions
 
   // ----> Thread functions
@@ -233,6 +237,7 @@ private:
   std::atomic<bool> _threadStop;
   rclcpp::TimerBase::SharedPtr _initTimer;
   rclcpp::TimerBase::SharedPtr _tempPubTimer;    // Timer to retrieve and publish camera temperature
+  rclcpp::TimerBase::SharedPtr _heartbeatTimer;
   // <---- Threads and Timers
 
   // ----> Thread Sync
@@ -306,6 +311,12 @@ private:
 
   // SVO Clock publisher
   clockPub _pubClock;
+
+  // SVO Status publisher
+  svoStatusPub _pubSvoStatus;
+
+  // Heartbeat Status publisher
+  heartbeatStatusPub _pubHeartbeatStatus;
   // <---- Publishers
 
   // ----> Publisher variables
@@ -362,10 +373,9 @@ private:
   bool _svoLoop = false;
   bool _svoRealtime = false;
   int _svoFrameStart = 0;
-  double _svoRate = 1.0;
-  double _svoExpectedPeriod = 0.0;
   bool _useSvoTimestamp = false;
   bool _publishSvoClock = false;
+  bool _publishStatus = true;
 
   std::string _streamAddr = "";      // Address for local streaming input
   int _streamPort = 10000;
@@ -416,12 +426,16 @@ private:
   bool _debugMode = false;  // Debug mode active?
   bool _svoMode = false;        // Input from SVO?
   bool _svoPause = false;       // SVO pause status
+  int _svoFrameId = 0;          // Current SVO frame ID
+  int _svoFrameCount = 0;     // Total number of frames in SVO
   bool _streamMode = false;     // Expecting local streaming data?
 
   std::atomic<bool> _triggerUpdateDynParams;  // Trigger auto exposure/gain
 
   bool _recording = false;
   sl::RecordingStatus _recStatus = sl::RecordingStatus();
+
+  uint64_t _heartbeatCount = 0;
   // <---- Running status
 
   // ----> Timestamps
@@ -472,6 +486,8 @@ private:
   sl::ERROR_CODE _grabStatus = sl::ERROR_CODE::LAST; // Grab status
   float _tempImu = NOT_VALID_TEMP;
   uint64_t _frameCount = 0;
+  uint32_t _svoLoopCount = 0;
+  
   std::unique_ptr<sl_tools::WinAvg> _elabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> _grabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> _imagePeriodMean_sec;
@@ -494,7 +510,7 @@ private:
 
   // ----> SVO Recording parameters
   unsigned int _svoRecBitrate = 0;
-  sl::SVO_COMPRESSION_MODE _svoRecCompr = sl::SVO_COMPRESSION_MODE::H265;
+  sl::SVO_COMPRESSION_MODE _svoRecCompression = sl::SVO_COMPRESSION_MODE::H265;
   unsigned int _svoRecFramerate = 0;
   bool _svoRecTranscode = false;
   std::string _svoRecFilename;

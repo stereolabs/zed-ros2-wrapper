@@ -1663,6 +1663,21 @@ void ZedCameraOne::initPublishers()
       sl_rot.getRotationMatrix().getInfos().c_str());
   }
   // <---- Camera/imu transform message
+
+  // ----> /clock publisher in SVO mode
+  if (_svoMode) {
+    if (_useSvoTimestamp && _publishSvoClock) {
+      auto clock_qos = rclcpp::ClockQoS();
+      clock_qos.reliability(rclcpp::ReliabilityPolicy::Reliable);  // REQUIRED
+      _pubClock = create_publisher<rosgraph_msgs::msg::Clock>(
+        "/clock", clock_qos,
+        _pubOpt);
+      RCLCPP_INFO_STREAM(
+        get_logger(), " * Advertised on topic: "
+          << _pubClock->get_topic_name());
+    }
+  }
+  // <---- /clock publisher in SVO mode
 }
 
 void ZedCameraOne::threadFunc_zedGrab()
@@ -1702,6 +1717,7 @@ void ZedCameraOne::threadFunc_zedGrab()
         grabElabTimer.tic();
         if (!performCameraGrab()) {break;}
         updateFrameTimestamp();
+        publishSvoClock();
         handleStreamingServer();
       }
 
@@ -1866,6 +1882,46 @@ void ZedCameraOne::updateFrameTimestamp()
     }
   } else {
     _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+  }
+}
+
+void ZedCameraOne::publishSvoClock()
+{
+  if (_svoMode) {
+    // ----> Publish Clock if required
+    if (_useSvoTimestamp && _publishSvoClock) {
+      publishClock(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+    }
+    // <---- Publish Clock if required
+  }
+}
+
+void ZedCameraOne::publishClock(const sl::Timestamp & ts)
+{
+  DEBUG_COMM("Publishing clock");
+
+  if (!_pubClock) {
+    return;
+  }
+
+  size_t subCount = 0;
+  try {
+    subCount = _pubClock->get_subscription_count();
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_COMM("publishClock: Exception while counting subscribers");
+    return;
+  }
+
+  if (subCount == 0) {
+    return;
+  }
+
+  auto msg = std::make_unique<rosgraph_msgs::msg::Clock>();
+  msg->clock = sl_tools::slTime2Ros(ts);
+
+  if (_pubClock) {
+    _pubClock->publish(std::move(msg));
   }
 }
 

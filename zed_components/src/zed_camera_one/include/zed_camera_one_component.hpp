@@ -135,6 +135,8 @@ protected:
   void publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
   void publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
 
+  void publishClock(const sl::Timestamp & ts);
+
   void updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
   void updateInputModeDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
   void updateImageDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
@@ -152,6 +154,7 @@ protected:
   void updateGrabFrequency();
   bool performCameraGrab();
   void updateFrameTimestamp();
+  void publishSvoClock();
   void handleStreamingServer();
   void handleSvoRecordingStatus();
   void handleImageRetrievalAndPublishing();
@@ -283,7 +286,6 @@ private:
   nitrosImgPub _nitrosPubGrayRawImg;
 #endif
 
-
   // Camera Info publishers
   camInfoPub _pubColorImgInfo;
   camInfoPub _pubColorRawImgInfo;
@@ -301,6 +303,9 @@ private:
 
   // Camera-IMU Transform publisher
   transfPub _pubCamImuTransf;
+
+  // SVO Clock publisher
+  clockPub _pubClock;
   // <---- Publishers
 
   // ----> Publisher variables

@@ -9,7 +9,7 @@ LATEST CHANGES
   - add servives to start/stop SVO recording
   - publish SVO status
   - publish SVO clock on `/clock` topic
-- Publish ZedCameraOne hearthbeat status on `~/status/heartbeat` topic
+- Publish ZedCameraOne heartbeat status on `~/status/heartbeat` topic
 
 2025-11-27
 ----------

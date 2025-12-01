@@ -57,9 +57,6 @@ using namespace std::placeholders;
 // Used for simulation data input
 #define ZED_SDK_PORT 30000
 
-// Used to enable ZED SDK RealTime SVO pause
-//#define USE_SVO_REALTIME_PAUSE
-
 namespace stereolabs
 {
 
@@ -497,6 +494,9 @@ void ZedCamera::initParameters()
   // SIMULATION parameters
   getSimParams();
 
+  // SVO parameters
+  getSvoParams();
+
   // GENERAL parameters
   getGeneralParams();
 
@@ -860,59 +860,6 @@ void ZedCamera::getGeneralParams()
 {
   rclcpp::Parameter paramVal;
 
-  RCLCPP_INFO(get_logger(), "=== SVO INPUT parameters ===");
-
-  sl_tools::getParam(
-    shared_from_this(), "svo.svo_path", std::string(),
-    mSvoFilepath);
-  if (mSvoFilepath.compare("live") == 0) {
-    mSvoFilepath = "";
-  }
-
-  if (mSvoFilepath == "") {
-    mSvoMode = false;
-  } else {
-    RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << mSvoFilepath.c_str() << "'");
-    mSvoMode = true;
-    sl_tools::getParam(
-      shared_from_this(), "svo.use_svo_timestamps",
-      mUseSvoTimestamp, mUseSvoTimestamp,
-      " * Use SVO timestamp: ");
-    if (mUseSvoTimestamp) {
-      sl_tools::getParam(
-        shared_from_this(), "svo.publish_svo_clock",
-        mPublishSvoClock, mPublishSvoClock,
-        " * Publish SVO timestamp: ");
-    }
-
-    sl_tools::getParam(shared_from_this(), "svo.svo_loop", mSvoLoop, mSvoLoop);
-    if (mUseSvoTimestamp) {
-      if (mSvoLoop) {
-        RCLCPP_WARN(
-          get_logger(),
-          "SVO Loop is not supported when using SVO timestamps. Loop playback disabled.");
-        mSvoLoop = false;
-      }
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        " * SVO Loop: " << (mSvoLoop ? "TRUE" : "FALSE"));
-    }
-    sl_tools::getParam(
-      shared_from_this(), "svo.svo_realtime", mSvoRealtime,
-      mSvoRealtime, " * SVO Realtime: ");
-
-    sl_tools::getParam(
-      shared_from_this(), "svo.play_from_frame",
-      mSvoFrameStart, mSvoFrameStart,
-      " * SVO start frame: ", false, 0);
-
-    if (!mSvoRealtime) {
-      sl_tools::getParam(
-        shared_from_this(), "svo.replay_rate", mSvoRate,
-        mSvoRate, " * SVO replay rate: ", true, 0.1, 5.0);
-    }
-  }
-
   mStreamMode = false;
   if (!mSvoMode) {
     RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING parameters ===");
@@ -1191,6 +1138,67 @@ void ZedCamera::getGeneralParams()
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Publish framerate [Hz]:  " << mVdPubRate);
+  }
+}
+
+void ZedCamera::getSvoParams()
+{
+  rclcpp::Parameter paramVal;
+
+  RCLCPP_INFO(get_logger(), "=== SVO INPUT parameters ===");
+
+  sl_tools::getParam(
+    shared_from_this(), "svo.svo_path", std::string(),
+    mSvoFilepath);
+  if (mSvoFilepath.compare("live") == 0) {
+    mSvoFilepath = "";
+  }
+
+  if (mSvoFilepath == "") {
+    mSvoMode = false;
+  } else {
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * SVO: '" << mSvoFilepath.c_str() << "'");
+    mSvoMode = true;
+    sl_tools::getParam(
+      shared_from_this(), "svo.use_svo_timestamps",
+      mUseSvoTimestamp, mUseSvoTimestamp,
+      " * Use SVO timestamp: ");
+    if (mUseSvoTimestamp) {
+      sl_tools::getParam(
+        shared_from_this(), "svo.publish_svo_clock",
+        mPublishSvoClock, mPublishSvoClock,
+        " * Publish SVO timestamp: ");
+    }
+
+    sl_tools::getParam(shared_from_this(), "svo.svo_loop", mSvoLoop, mSvoLoop);
+    if (mUseSvoTimestamp) {
+      if (mSvoLoop) {
+        RCLCPP_WARN(
+          get_logger(),
+          "SVO Loop is not supported when using SVO timestamps. Loop "
+          "playback disabled.");
+        mSvoLoop = false;
+      }
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " * SVO Loop: " << (mSvoLoop ? "TRUE" : "FALSE"));
+    }
+    sl_tools::getParam(
+      shared_from_this(), "svo.svo_realtime", mSvoRealtime,
+      mSvoRealtime, " * SVO Realtime: ");
+
+    sl_tools::getParam(
+      shared_from_this(), "svo.play_from_frame",
+      mSvoFrameStart, mSvoFrameStart,
+      " * SVO start frame: ", false, 0);
+
+    if (!mSvoRealtime) {
+      sl_tools::getParam(
+        shared_from_this(), "svo.replay_rate", mSvoRate,
+        mSvoRate, " * SVO replay rate: ", true, 0.1, 5.0);
+    }
   }
 }
 
@@ -4831,9 +4839,12 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   }
 
   if (err != sl::ERROR_CODE::SUCCESS) {
-    if (mSvoMode && err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+    // Only warn if not in SVO mode or if the error is not a benign sensor
+    // unavailability
+    if (!mSvoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
       RCLCPP_WARN_STREAM(
-        get_logger(), "sl::getSensorsData error: "
+        get_logger(),
+        "[publishSensorsData] sl::getSensorsData error: "
           << sl::toString(err).c_str());
     }
     return false;
@@ -6552,9 +6563,14 @@ void ZedCamera::callback_pubTemp()
   sl::ERROR_CODE err =
     mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    DEBUG_STREAM_SENS(
-      "[callback_pubTemp] sl::getSensorsData error: "
-        << sl::toString(err).c_str());
+    // Only warn if not in SVO mode or if the error is not a benign sensor
+    // unavailability
+    if (!mSvoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "[publishSensorsData] sl::getSensorsData error: "
+          << sl::toString(err).c_str());
+    }
     return;
   }
 
@@ -7603,7 +7619,7 @@ void ZedCamera::callback_updateDiagnostic(
       if (mSvoLoop) {
         stat.addf("SVO Loop Count", "%d", mSvoLoopCount);
       }
-      stat.addf("Real Time mode", "%s", (mSvoRealtime ? "ON" : "OFF"));
+      stat.addf("SVO Real Time mode", "%s", (mSvoRealtime ? "ON" : "OFF"));
       if (!mSvoRealtime) {
         stat.addf("SVO Playback rate", "%.1fx -> %.1f Hz", mSvoRate, mSvoRate * mCamGrabFrameRate);
       }

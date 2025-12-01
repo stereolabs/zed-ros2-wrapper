@@ -1,6 +1,16 @@
 LATEST CHANGES
 ==============
 
+2025-11-28
+----------
+- Enable SVO for ZedCameraOne
+  - add service to pause SVO playback
+  - add service to set SVO frame ID
+  - add servives to start/stop SVO recording
+  - publish SVO status
+  - publish SVO clock on `/clock` topic
+- Publish ZedCameraOne hearthbeat message
+
 2025-11-27
 ----------
 - Set thread names according to the thread function namefor easier identification in debuggers and profilers
@@ -11,6 +21,8 @@ LATEST CHANGES
 
   - Added parameter `video.enable_24bit_output` to enable/disable 24-bit BGR image publishing to `common_stereo.yaml` and `common_mono.yaml` configuration files
   - **NOTE**: `video.enable_24bit_output` is disabled by default to maintain backward compatibility. Enabling this parameter will change the image message encoding from `BGRA8` to `BGR8`, which may affect existing applications that rely on the previous encoding.
+
+- Enabled SVO support for ZED X One cameras (playback, recording, and diagnostic)
 
 2025-11-24
 ----------

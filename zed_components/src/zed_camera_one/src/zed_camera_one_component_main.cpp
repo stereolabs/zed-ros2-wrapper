@@ -45,7 +45,8 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   _streamingServerRequired(false),
   _streamingServerRunning(false),
   _triggerUpdateDynParams(true),
-  _uptimer(get_clock())
+  _uptimer(get_clock()),
+  _setSvoFrameCheckTimer(get_clock())
 {
   RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), "    ZED Camera One Component    ");
@@ -162,6 +163,9 @@ void ZedCameraOne::initParameters()
   // DEBUG parameters
   getDebugParams();
 
+  // SVO parameters
+  getSvoParams();
+
   // GENERAL parameters
   getGeneralParams();
 
@@ -169,7 +173,9 @@ void ZedCameraOne::initParameters()
   getTopicEnableParams();
 
   // Image Parameters
-  getVideoParams();
+  if (!_svoMode) {
+    getVideoParams();
+  }
 
   // SENSORS parameters
   getSensorsParams();
@@ -186,8 +192,9 @@ void ZedCameraOne::getGeneralParams()
   rclcpp::Parameter paramVal;
   RCLCPP_INFO(get_logger(), "=== GENERAL parameters ===");
 
-  getSvoParams();
-  getStreamParams();
+  if (!_svoMode) {
+    getStreamParams();
+  }
   getCameraModelParams();
   getCameraInfoParams();
   getResolutionParams();
@@ -197,6 +204,11 @@ void ZedCameraOne::getGeneralParams()
 void ZedCameraOne::getTopicEnableParams()
 {
   RCLCPP_INFO(get_logger(), "=== TOPIC selection parameters ===");
+
+  // General topics
+  sl_tools::getParam(
+    shared_from_this(), "general.publish_status",
+    _publishStatus, _publishStatus, " * Publish Status: ");
 
   // Image topics
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
@@ -237,32 +249,57 @@ void ZedCameraOne::getTopicEnableParams()
 
 void ZedCameraOne::getSvoParams()
 {
-  sl_tools::getParam(shared_from_this(), "svo.svo_path", std::string(), _svoFilepath);
+  rclcpp::Parameter paramVal;
+
+  RCLCPP_INFO(get_logger(), "=== SVO INPUT parameters ===");
+
+  sl_tools::getParam(
+    shared_from_this(), "svo.svo_path", std::string(),
+    _svoFilepath);
   if (_svoFilepath.compare("live") == 0) {
     _svoFilepath = "";
   }
-#if !ENABLE_SVO
-  if (_svoFilepath != "") {
-    RCLCPP_ERROR_STREAM(
-      get_logger(),
-      "SVO input is not enabled in this version. This feature will be available later");
-    exit(EXIT_FAILURE);
-  }
-#endif
-#if ENABLE_SVO
+
   if (_svoFilepath == "") {
     _svoMode = false;
   } else {
-    RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << _svoFilepath.c_str() << "'");
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * SVO: '" << _svoFilepath.c_str() << "'");
     _svoMode = true;
-    sl_tools::getParam(shared_from_this(), "svo.svo_loop", _svoLoop, _svoLoop, " * SVO Loop: ");
     sl_tools::getParam(
-      shared_from_this(), "svo.svo_realtime", _svoRealtime, _svoRealtime, " * SVO Real Time: ");
-    sl_tools::getParam(
-      "svo.use_svo_timestamps", _useSvoTimestamp, _useSvoTimestamp,
+      shared_from_this(), "svo.use_svo_timestamps",
+      _useSvoTimestamp, _useSvoTimestamp,
       " * Use SVO timestamp: ");
+    if (_useSvoTimestamp) {
+      sl_tools::getParam(
+        shared_from_this(), "svo.publish_svo_clock",
+        _publishSvoClock, _publishSvoClock,
+        " * Publish SVO timestamp: ");
+    }
+
+    sl_tools::getParam(shared_from_this(), "svo.svo_loop", _svoLoop, _svoLoop);
+    if (_useSvoTimestamp) {
+      if (_svoLoop) {
+        RCLCPP_WARN(
+          get_logger(),
+          "SVO Loop is not supported when using SVO timestamps. Loop "
+          "playback disabled.");
+        _svoLoop = false;
+      }
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " * SVO Loop: " << (_svoLoop ? "TRUE" : "FALSE"));
+    }
+    sl_tools::getParam(
+      shared_from_this(), "svo.svo_realtime", _svoRealtime,
+      _svoRealtime, " * SVO Realtime: ");
+
+    sl_tools::getParam(
+      shared_from_this(), "svo.play_from_frame",
+      _svoFrameStart, _svoFrameStart,
+      " * SVO start frame: ", false, 0);
   }
-#endif
 }
 
 void ZedCameraOne::getStreamParams()
@@ -353,42 +390,46 @@ void ZedCameraOne::getCameraInfoParams()
 {
   sl_tools::getParam(
     shared_from_this(), "general.camera_name", _cameraName, _cameraName, " * Camera name: ");
-  sl_tools::getParam(
-    shared_from_this(), "general.serial_number", _camSerialNumber, _camSerialNumber,
-    " * Camera SN: ");
-  sl_tools::getParam(shared_from_this(), "general.camera_id", _camId, _camId, " * Camera ID: ");
-  sl_tools::getParam(
-    shared_from_this(), "general.grab_frame_rate", _camGrabFrameRate, _camGrabFrameRate, " * Camera framerate: ", false, 15,
-    120);
+  if (!_svoMode) {
+    sl_tools::getParam(
+      shared_from_this(), "general.serial_number", _camSerialNumber, _camSerialNumber,
+      " * Camera SN: ");
+    sl_tools::getParam(shared_from_this(), "general.camera_id", _camId, _camId, " * Camera ID: ");
+    sl_tools::getParam(
+      shared_from_this(), "general.grab_frame_rate", _camGrabFrameRate, _camGrabFrameRate, " * Camera framerate: ", false, 15,
+      120);
+  }
   sl_tools::getParam(
     shared_from_this(), "general.gpu_id", _gpuId, _gpuId, " * GPU ID: ", false, -1, 256);
 }
 
 void ZedCameraOne::getResolutionParams()
 {
-  std::string resol = "AUTO";
-  sl_tools::getParam(shared_from_this(), "general.grab_resolution", resol, resol);
-  if (resol == "AUTO") {
-    _camResol = sl::RESOLUTION::AUTO;
-  } else if (resol == "HD4K" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
-    _camResol = sl::RESOLUTION::HD4K;
-  } else if (resol == "QHDPLUS" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
-    _camResol = sl::RESOLUTION::QHDPLUS;
-  } else if (resol == "HD1536" && _camUserModel == sl::MODEL::ZED_XONE_HDR) {
-    _camResol = sl::RESOLUTION::HD1536;
-  } else if (resol == "HD1200" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
-    _camResol = sl::RESOLUTION::HD1200;
-  } else if (resol == "HD1080" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
-    _camResol = sl::RESOLUTION::HD1080;
-  } else if (resol == "SVGA" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
-    _camResol = sl::RESOLUTION::SVGA;
-  } else {
-    RCLCPP_WARN(
-      get_logger(), "Not valid 'general.grab_resolution' value: '%s'. Using 'AUTO' setting.",
-      resol.c_str());
-    _camResol = sl::RESOLUTION::AUTO;
+  if (!_svoMode) {
+    std::string resol = "AUTO";
+    sl_tools::getParam(shared_from_this(), "general.grab_resolution", resol, resol);
+    if (resol == "AUTO") {
+      _camResol = sl::RESOLUTION::AUTO;
+    } else if (resol == "HD4K" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
+      _camResol = sl::RESOLUTION::HD4K;
+    } else if (resol == "QHDPLUS" && _camUserModel == sl::MODEL::ZED_XONE_UHD) {
+      _camResol = sl::RESOLUTION::QHDPLUS;
+    } else if (resol == "HD1536" && _camUserModel == sl::MODEL::ZED_XONE_HDR) {
+      _camResol = sl::RESOLUTION::HD1536;
+    } else if (resol == "HD1200" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
+      _camResol = sl::RESOLUTION::HD1200;
+    } else if (resol == "HD1080" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
+      _camResol = sl::RESOLUTION::HD1080;
+    } else if (resol == "SVGA" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
+      _camResol = sl::RESOLUTION::SVGA;
+    } else {
+      RCLCPP_WARN(
+        get_logger(), "Not valid 'general.grab_resolution' value: '%s'. Using 'AUTO' setting.",
+        resol.c_str());
+      _camResol = sl::RESOLUTION::AUTO;
+    }
+    RCLCPP_INFO_STREAM(get_logger(), " * Camera resolution: " << sl::toString(_camResol).c_str());
   }
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera resolution: " << sl::toString(_camResol).c_str());
 
   std::string out_resol = "NATIVE";
   sl_tools::getParam(shared_from_this(), "general.pub_resolution", out_resol, out_resol);
@@ -657,29 +698,48 @@ void ZedCameraOne::initServices()
     std::bind(&ZedCameraOne::callback_enableStreaming, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", _srvEnableStreaming->get_service_name());
 
-#if ENABLE_SVO
   // Start SVO Recording
   srv_name = srv_prefix + _srvStartSvoRecName;
   _srvStartSvoRec = create_service<zed_msgs::srv::StartSvoRec>(
-    srv_name,
-    std::bind(&ZedCameraOne::callback_startSvoRec, this, _1, _2, _3));
-  RCLCPP_INFO(get_logger(), " * '%s'", _srvStartSvoRec->get_service_name());
+    srv_name, std::bind(&ZedCameraOne::callback_startSvoRec, this, _1, _2, _3));
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Advertised on service: '"
+      << _srvStartSvoRec->get_service_name()
+      << "'");
   // Stop SVO Recording
   srv_name = srv_prefix + _srvStopSvoRecName;
   _srvStopSvoRec = create_service<std_srvs::srv::Trigger>(
-    srv_name,
-    std::bind(&ZedCameraOne::callback_stopSvoRec, this, _1, _2, _3));
-  RCLCPP_INFO(get_logger(), " * '%s'", _srvStopSvoRec->get_service_name());
+    srv_name, std::bind(&ZedCameraOne::callback_stopSvoRec, this, _1, _2, _3));
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Advertised on service: '"
+      << _srvStopSvoRec->get_service_name()
+      << "'");
 
-  // Pause SVO Playback
-  if (_svoMode && !_svoRealtime) {
+  // Pause SVO (only if the realtime playing mode is disabled)
+  if (_svoMode) {
+#ifndef USE_SVO_REALTIME_PAUSE
+    if (!_svoRealtime) {
+#endif
     srv_name = srv_prefix + _srvToggleSvoPauseName;
     _srvPauseSvo = create_service<std_srvs::srv::Trigger>(
       srv_name,
       std::bind(&ZedCameraOne::callback_pauseSvoInput, this, _1, _2, _3));
-    RCLCPP_INFO(get_logger(), " * '%s'", _srvPauseSvo->get_service_name());
+    RCLCPP_INFO_STREAM(
+      get_logger(), " * Advertised on service: '"
+        << _srvPauseSvo->get_service_name()
+        << "'");
+#ifndef USE_SVO_REALTIME_PAUSE
   }
 #endif
+    // Set Service for SVO frame
+    srv_name = srv_prefix + _srvSetSvoFrameName;
+    _srvSetSvoFrame = create_service<zed_msgs::srv::SetSvoFrame>(
+      srv_name, std::bind(&ZedCameraOne::callback_setSvoFrame, this, _1, _2, _3));
+    RCLCPP_INFO_STREAM(
+      get_logger(), " * Advertised on service: '"
+        << _srvSetSvoFrame->get_service_name()
+        << "'");
+  }
 }
 
 bool ZedCameraOne::startCamera()
@@ -697,6 +757,27 @@ bool ZedCameraOne::startCamera()
   }
 
   _uptimer.tic();
+
+  // ----> Set SVO first frame if required
+  if (_svoMode && _svoFrameStart != 0) {
+    int svo_frames = _zed->getSVONumberOfFrames();
+
+    if (_svoFrameStart > svo_frames) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "The SVO contains "
+          << svo_frames
+          << " frames. The requested starting frame ("
+          << _svoFrameStart << ") is invalid.");
+      return false;
+    }
+
+    _zed->setSVOPosition(_svoFrameStart);
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "SVO playing from frame #" << _svoFrameStart);
+  }
+  // <---- Set SVO first frame if required
 
   processCameraInformation();
   initTFCoordFrameNames();
@@ -733,7 +814,7 @@ void ZedCameraOne::setupTf2()
 
 void ZedCameraOne::configureZedInput()
 {
-#if ENABLE_SVO
+
   if (!_svoFilepath.empty()) {
     RCLCPP_INFO(get_logger(), "=== SVO OPENING ===");
     _initParams.input.setFromSVOFile(_svoFilepath.c_str());
@@ -741,7 +822,7 @@ void ZedCameraOne::configureZedInput()
     _svoMode = true;
     return;
   }
-#endif
+
   if (!_streamAddr.empty()) {
     RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING OPENING ===");
     _initParams.input.setFromStream(
@@ -897,7 +978,7 @@ void ZedCameraOne::processCameraInformation()
     get_logger(),
     " * Input\t -> "
       << sl::toString(camInfo.input_type).c_str());
-#if ENABLE_SVO
+
   if (_svoMode) {
     RCLCPP_INFO(
       get_logger(), " * SVO resolution\t-> %dx%d",
@@ -905,10 +986,9 @@ void ZedCameraOne::processCameraInformation()
       camInfo.camera_configuration.resolution.height);
     RCLCPP_INFO_STREAM(
       get_logger(),
-      " * SVO framerate\t-> "
+      " * SVO framerate\t\t-> "
         << (camInfo.camera_configuration.fps));
   }
-#endif
 
   if (!_svoMode) {
     _camFwVersion = camInfo.camera_configuration.firmware_version;
@@ -981,6 +1061,9 @@ void ZedCameraOne::initializeDiagnosticStatistics()
 
 void ZedCameraOne::initThreadsAndTimers()
 {
+  // Start Heartbeat timer
+  startHeartbeatTimer();
+
   // ----> Start CMOS Temperatures thread
   startTempPubTimer();
   // <---- Start CMOS Temperatures thread
@@ -1050,7 +1133,7 @@ void ZedCameraOne::updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatus
     stat.summary(
       diagnostic_msgs::msg::DiagnosticStatus::WARN,
       "System overloaded. Consider reducing "
-      "'general.pub_frame_rate' or 'general.grab_resolution'");
+      "'general.grab_frame_rate' or 'general.grab_resolution'");
   } else {
     _sysOverloadCount = 0;
     stat.summary(
@@ -1072,13 +1155,13 @@ void ZedCameraOne::updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatus
 
 void ZedCameraOne::updateInputModeDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
-#if ENABLE_SVO
+
   if (_svoMode) {
     stat.add("Input mode", "SVO");
     stat.addf("SVO file", "%s", _svoFilepath.c_str());
     return;
   }
-#endif
+
   if (_streamMode) {
     stat.add("Input mode", "LOCAL STREAM");
   } else {
@@ -1103,17 +1186,20 @@ void ZedCameraOne::updateImageDiagnostics(diagnostic_updater::DiagnosticStatusWr
 
 void ZedCameraOne::updateSvoDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
-#if ENABLE_SVO
   if (_svoMode) {
-    int frame = _zed->getSVOPosition();
-    int totFrames = _zed->getSVONumberOfFrames();
-    double svo_perc = 100. * (static_cast<double>(frame) / totFrames);
+    double svo_perc =
+      100. * (static_cast<double>(_svoFrameId) / _svoFrameCount);
 
     stat.addf(
-      "Playing SVO", "Frame: %d/%d (%.1f%%)", frame, totFrames,
+      "Playing SVO", "%sFrame: %d/%d (%.1f%%)",
+      (_svoPause ? "PAUSED - " : ""), _svoFrameId, _svoFrameCount,
       svo_perc);
+    stat.addf("SVO Loop", "%s", (_svoLoop ? "ON" : "OFF"));
+    if (_svoLoop) {
+      stat.addf("SVO Loop Count", "%d", _svoLoopCount);
+    }
+    stat.addf("SVO Real Time mode", "%s", (_svoRealtime ? "ON" : "OFF"));
   }
-#endif
 }
 
 void ZedCameraOne::updateTfImuDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
@@ -1149,7 +1235,6 @@ void ZedCameraOne::updateTemperatureDiagnostics(diagnostic_updater::DiagnosticSt
 
 void ZedCameraOne::updateSvoRecordingDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
-#if ENABLE_SVO
   if (_recording) {
     if (!_recStatus.status) {
       stat.add("SVO Recording", "ERROR");
@@ -1172,7 +1257,6 @@ void ZedCameraOne::updateSvoRecordingDiagnostics(diagnostic_updater::DiagnosticS
   } else {
     stat.add("SVO Recording", "NOT ACTIVE");
   }
-#endif
 }
 
 void ZedCameraOne::updateStreamingServerDiagnostics(
@@ -1576,11 +1660,11 @@ void ZedCameraOne::initTFCoordFrameNames()
 
   // Print TF frames
   RCLCPP_INFO_STREAM(get_logger(), "=== TF FRAMES ===");
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera link\t\t-> " << _cameraLinkFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera link\t-> " << _cameraLinkFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Camera center\t-> " << _cameraCenterFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Image\t\t-> " << _camImgFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Optical\t\t-> " << _camOptFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t\t-> " << _imuFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Optical\t-> " << _camOptFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * IMU\t\t-> " << _imuFrameId);
   // <---- Coordinate frames
 }
 
@@ -1614,6 +1698,44 @@ void ZedCameraOne::initPublishers()
       sl_rot.getRotationMatrix().getInfos().c_str());
   }
   // <---- Camera/imu transform message
+
+  // Status topic names
+  std::string status_root = _topicRoot + "status/";
+  std::string svo_status_topic = status_root + "svo";
+  std::string heartbeat_topic = status_root + "heartbeat";
+
+  RCLCPP_INFO(get_logger(), " +++ STATUS TOPICS +++");
+
+  // ----> SVO Status publisher
+  if (_svoMode) {
+    if (_publishStatus) {
+      _pubSvoStatus = create_publisher<zed_msgs::msg::SvoStatus>(
+        svo_status_topic, _qos, _pubOpt);
+      RCLCPP_INFO_STREAM(
+        get_logger(), "  * Advertised on topic: "
+          << _pubSvoStatus->get_topic_name());
+    }
+    if (_useSvoTimestamp && _publishSvoClock) {
+      auto clock_qos = rclcpp::ClockQoS();
+      clock_qos.reliability(rclcpp::ReliabilityPolicy::Reliable);  // REQUIRED
+      _pubClock = create_publisher<rosgraph_msgs::msg::Clock>(
+        "/clock", clock_qos, _pubOpt);
+      RCLCPP_INFO_STREAM(
+        get_logger(), "  * Advertised on topic: "
+          << _pubClock->get_topic_name());
+    }
+  }
+  // <---- SVO Status publisher
+
+  if (_publishStatus) {
+    // ----> Heartbeat Status publisher
+    _pubHeartbeatStatus = create_publisher<zed_msgs::msg::Heartbeat>(
+      heartbeat_topic, _qos, _pubOpt);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "  * Advertised on topic: " << _pubHeartbeatStatus->get_topic_name());
+    // <---- Heartbeat Status publisher
+  }
 }
 
 void ZedCameraOne::threadFunc_zedGrab()
@@ -1636,6 +1758,19 @@ void ZedCameraOne::threadFunc_zedGrab()
 
       if (checkGrabThreadInterruption()) {break;}
 
+      if (_svoMode && _svoPause) {
+        if (!_grabOnce) {
+          rclcpp::sleep_for(100ms);
+#ifdef USE_SVO_REALTIME_PAUSE
+          // Dummy grab
+          mZed->grab();
+#endif
+          continue;
+        } else {
+          _grabOnce = false;  // Reset the flag and grab once
+        }
+      }
+
       handleDynamicSettings();
 
       updateGrabFrequency();
@@ -1644,6 +1779,12 @@ void ZedCameraOne::threadFunc_zedGrab()
         grabElabTimer.tic();
         if (!performCameraGrab()) {break;}
         updateFrameTimestamp();
+        if (_svoMode) {
+          _svoFrameId = _zed->getSVOPosition();
+          _svoFrameCount = _zed->getSVONumberOfFrames();
+
+          publishSvoClock();
+        }
         handleStreamingServer();
       }
 
@@ -1667,6 +1808,9 @@ void ZedCameraOne::threadFunc_zedGrab()
 
   _diagUpdater.broadcast(diagnostic_msgs::msg::DiagnosticStatus::STALE, "Grab thread stopped");
   _diagUpdater.force_update();
+
+  // Stop the heartbeat
+  _heartbeatTimer->cancel();
 
   DEBUG_STREAM_COMM("Grab thread finished");
 }
@@ -1757,23 +1901,48 @@ bool ZedCameraOne::performCameraGrab()
 {
   _grabStatus = _zed->grab();
   if (_grabStatus != sl::ERROR_CODE::SUCCESS) {
-#if ENABLE_SVO
     if (_svoMode && _grabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
+      // ----> Check SVO status
       if (_svoLoop) {
-        _zed->setSVOPosition(0);
-        RCLCPP_WARN(get_logger(), "SVO reached the end and it has been restarted.");
+        _svoLoopCount++;
+        _zed->setSVOPosition(_svoFrameStart);
+        RCLCPP_WARN_STREAM(
+          get_logger(),
+          "SVO reached the end and it has been restarted from frame #"
+            << _svoFrameStart);
         rclcpp::sleep_for(
           std::chrono::microseconds(
-            static_cast<int>(_grabPeriodMean_sec->getAvg() *
-            1e6)));
+            static_cast<int>(_grabPeriodMean_sec->getAvg() * 1e6)));
         return true;
       } else {
-        RCLCPP_WARN(get_logger(), "SVO reached the end. The node has been stopped.");
-        return false;
+        // ----> Stop all the other threads and Timers
+        _threadStop = true;
+        if (_tempPubTimer) {
+          _tempPubTimer->cancel();
+        }
+        // <---- Stop all the other threads and Timers
+
+        RCLCPP_WARN(get_logger(), "SVO reached the end.");
+
+        // Force SVO status update
+        if (!publishSvoStatus(_frameTimestamp.nanoseconds())) {
+          RCLCPP_WARN(get_logger(), "Node stopped. Press Ctrl+C to exit.");
+          return false;
+        } else {
+          if (_pubSvoStatus) {
+            RCLCPP_WARN_STREAM(
+              get_logger(),
+              "Waiting for SVO status subscribers to "
+              "unsubscribe. Active subscribers: "
+                << _pubSvoStatus->get_subscription_count());
+          }
+          _diagUpdater.force_update();
+          rclcpp::sleep_for(1s);
+          return true;
+        }
       }
-    } else
-#endif
-    if (_grabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
+      //<---- Check SVO status
+    } else if (_grabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Connection issue detected: " << sl::toString(
           _grabStatus).c_str());
@@ -1814,6 +1983,143 @@ void ZedCameraOne::updateFrameTimestamp()
   }
 }
 
+void ZedCameraOne::publishSvoClock()
+{
+  if (_svoMode) {
+    // ----> Publish Clock if required
+    if (_useSvoTimestamp && _publishSvoClock) {
+      publishClock(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+    }
+    // <---- Publish Clock if required
+  }
+}
+
+void ZedCameraOne::publishClock(const sl::Timestamp & ts)
+{
+  DEBUG_COMM("Publishing clock");
+
+  if (!_pubClock) {
+    return;
+  }
+
+  size_t subCount = 0;
+  try {
+    subCount = _pubClock->get_subscription_count();
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_COMM("publishClock: Exception while counting subscribers");
+    return;
+  }
+
+  if (subCount == 0) {
+    return;
+  }
+
+  auto msg = std::make_unique<rosgraph_msgs::msg::Clock>();
+  msg->clock = sl_tools::slTime2Ros(ts);
+
+  if (_pubClock) {
+    _pubClock->publish(std::move(msg));
+  }
+}
+
+bool ZedCameraOne::publishSvoStatus(uint64_t frame_ts)
+{
+  if (!_svoMode) {
+    return false;
+  }
+
+  if (!_pubSvoStatus) {
+    return false;
+  }
+
+  size_t subCount = 0;
+  try {
+    subCount = _pubSvoStatus->get_subscription_count();
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_COMM("publishSvoStatus: Exception while counting subscribers");
+    return false;
+  }
+
+  if (subCount > 0) {
+    auto msg = std::make_unique<zed_msgs::msg::SvoStatus>();
+
+    // ----> Fill the status message
+    msg->file_name = _svoFilepath;
+    msg->frame_id = _zed->getSVOPosition();
+    msg->total_frames = _zed->getSVONumberOfFrames();
+    msg->frame_ts = frame_ts;
+
+    if (_svoPause) {
+      msg->status = zed_msgs::msg::SvoStatus::STATUS_PAUSED;
+    } else if (_grabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
+      msg->frame_id = msg->total_frames - 1;
+      msg->status = zed_msgs::msg::SvoStatus::STATUS_END;
+    } else {
+      msg->status = zed_msgs::msg::SvoStatus::STATUS_PLAYING;
+    }
+
+    msg->loop_active = _svoLoop;
+    msg->loop_count = _svoLoopCount;
+    msg->real_time_mode = _svoRealtime;
+    // <---- Fill the status message
+
+    // Publish the message
+    if (_pubSvoStatus) {
+      _pubSvoStatus->publish(std::move(msg));
+    }
+    return true;
+  }
+  return false;
+}
+
+void ZedCameraOne::callback_pubHeartbeat()
+{
+  if (!_pubHeartbeatStatus) {
+    return;
+  }
+
+  if (!_publishStatus) {
+    return;
+  }
+
+  if (_threadStop) {
+    return;
+  }
+
+  // ----> Count the subscribers
+  size_t sub_count = 0;
+  try {
+    sub_count = _pubHeartbeatStatus->get_subscription_count();
+  } catch (...) {
+    rcutils_reset_error();
+    DEBUG_STREAM_COMM("publishHeartbeat: Exception while counting subscribers");
+    return;
+  }
+
+  if (sub_count == 0) {
+    return;
+  }
+  // <---- Count the subscribers
+
+  // ----> Fill the message
+  auto msg = std::make_unique<zed_msgs::msg::Heartbeat>();
+  msg->beat_count = ++_heartbeatCount;
+  msg->camera_sn = _camSerialNumber;
+  msg->full_name = this->get_fully_qualified_name();
+  msg->node_name = this->get_name();
+  msg->node_ns = this->get_namespace();
+  msg->simul_mode = false; //mSimMode;
+  msg->svo_mode = _svoMode;
+  // <---- Fill the message
+
+  // Publish the hearbeat
+  if (_pubHeartbeatStatus) {
+    _pubHeartbeatStatus->publish(std::move(msg));
+  }
+}
+
 void ZedCameraOne::handleStreamingServer()
 {
   if (_streamingServerRequired && !_streamingServerRunning) {
@@ -1824,7 +2130,6 @@ void ZedCameraOne::handleStreamingServer()
 
 void ZedCameraOne::handleSvoRecordingStatus()
 {
-#if ENABLE_SVO
   _recMutex.lock();
   if (_recording) {
     _recStatus = _zed->getRecordingStatus();
@@ -1834,7 +2139,6 @@ void ZedCameraOne::handleSvoRecordingStatus()
     }
   }
   _recMutex.unlock();
-#endif
 }
 
 bool ZedCameraOne::startStreamingServer()
@@ -1929,7 +2233,6 @@ void ZedCameraOne::callback_enableStreaming(
   }
 }
 
-#if ENABLE_SVO
 void ZedCameraOne::callback_startSvoRec(
   const std::shared_ptr<rmw_request_id_t> request_header,
   const std::shared_ptr<zed_msgs::srv::StartSvoRec_Request> req,
@@ -1971,24 +2274,41 @@ void ZedCameraOne::callback_startSvoRec(
     res->success = false;
     return;
   }
-  _svoRecCompr = static_cast<sl::SVO_COMPRESSION_MODE>(req->compression_mode);
-  if (_svoRecCompr >= sl::SVO_COMPRESSION_MODE::LAST) {
+
+  if (req->compression_mode < 0 || req->compression_mode > 5) {
     RCLCPP_WARN(
       get_logger(),
       "'compression_mode' mode not valid. Please use a value in "
-      "range [0,2]");
+      "range [0,5]");
     res->message =
       "'compression_mode' mode not valid. Please use a value in range "
-      "[0,2]";
+      "[0,5]";
     res->success = false;
     return;
+  }
+  switch (req->compression_mode) {
+    case 1:
+      _svoRecCompression = sl::SVO_COMPRESSION_MODE::H264;
+      break;
+    case 3:
+      _svoRecCompression = sl::SVO_COMPRESSION_MODE::H264_LOSSLESS;
+      break;
+    case 4:
+      _svoRecCompression = sl::SVO_COMPRESSION_MODE::H265_LOSSLESS;
+      break;
+    case 5:
+      _svoRecCompression = sl::SVO_COMPRESSION_MODE::LOSSLESS;
+      break;
+    default:
+      _svoRecCompression = sl::SVO_COMPRESSION_MODE::H265;
+      break;
   }
   _svoRecFramerate = req->target_framerate;
   _svoRecTranscode = req->input_transcode;
   _svoRecFilename = req->svo_filename;
 
   if (_svoRecFilename.empty()) {
-    _svoRecFilename = "zed.svo2";
+    _svoRecFilename = "zed_one.svo2";
   }
 
   std::string err;
@@ -2001,14 +2321,16 @@ void ZedCameraOne::callback_startSvoRec(
 
   RCLCPP_INFO(get_logger(), "SVO Recording started: ");
   RCLCPP_INFO_STREAM(get_logger(), " * Bitrate: " << _svoRecBitrate);
-  RCLCPP_INFO_STREAM(get_logger(), " * Compression: " << _svoRecCompr);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Compression mode: " << sl::toString(_svoRecCompression).c_str());
   RCLCPP_INFO_STREAM(get_logger(), " * Framerate: " << _svoRecFramerate);
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Input Transcode: " << (_svoRecTranscode ? "TRUE" : "FALSE"));
   RCLCPP_INFO_STREAM(
     get_logger(), " * Filename: " << (_svoRecFilename.empty() ?
-    "zed.svo2" :
+    "zed_one.svo2" :
     _svoRecFilename));
 
   res->message = "SVO Recording started";
@@ -2036,7 +2358,7 @@ void ZedCameraOne::callback_stopSvoRec(
 
   stopSvoRecording();
 
-  RCLCPP_WARN(get_logger(), "SVO Recording stopped");
+  RCLCPP_INFO(get_logger(), "SVO Recording stopped");
   res->message = "SVO Recording stopped";
   res->success = true;
 }
@@ -2082,12 +2404,64 @@ void ZedCameraOne::callback_pauseSvoInput(
   res->success = true;
 }
 
+void ZedCameraOne::callback_setSvoFrame(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<zed_msgs::srv::SetSvoFrame_Request> req,
+  std::shared_ptr<zed_msgs::srv::SetSvoFrame_Response> res)
+{
+  (void)request_header;
+
+  RCLCPP_INFO(get_logger(), "** Set SVO Frame service called **");
+
+  // ----> Check service call frequency
+  if (_setSvoFrameCheckTimer.toc() < 0.5) {
+    RCLCPP_WARN(get_logger(), "SVO frame set too fast");
+    res->message = "SVO frame set too fast";
+    res->success = false;
+    return;
+  }
+  _setSvoFrameCheckTimer.tic();
+  // <---- Check service call frequency
+
+  std::lock_guard<std::mutex> lock(_recMutex);
+
+  if (!_svoMode) {
+    RCLCPP_WARN(get_logger(), "The node is not using an SVO as input");
+    res->message = "The node is not using an SVO as input";
+    res->success = false;
+    return;
+  }
+
+  int frame = req->frame_id;
+  int svo_frames = _zed->getSVONumberOfFrames();
+  if (frame >= svo_frames) {
+    std::stringstream ss;
+    ss << "Frame number is out of range. SVO has " << svo_frames << " frames";
+    RCLCPP_WARN(get_logger(), ss.str().c_str());
+    res->message = ss.str();
+    res->success = false;
+    return;
+  }
+
+  _zed->setSVOPosition(frame);
+  RCLCPP_INFO_STREAM(get_logger(), "SVO frame set to " << frame);
+  res->message = "SVO frame set to " + std::to_string(frame);
+
+  // if svo is paused, ensure one grab can update topics
+  if (_svoPause) {
+    _grabOnce = true;
+    _grabImuOnce = true;
+  }
+
+  res->success = true;
+}
+
 bool ZedCameraOne::startSvoRecording(std::string & errMsg)
 {
   sl::RecordingParameters params;
 
   params.bitrate = _svoRecBitrate;
-  params.compression_mode = _svoRecCompr;
+  params.compression_mode = _svoRecCompression;
   params.target_framerate = _svoRecFramerate;
   params.transcode_streaming_input = _svoRecTranscode;
   params.video_filename = _svoRecFilename.c_str();
@@ -2114,7 +2488,18 @@ void ZedCameraOne::stopSvoRecording()
     _zed->disableRecording();
   }
 }
-#endif
+
+void ZedCameraOne::startHeartbeatTimer()
+{
+  if (_heartbeatTimer != nullptr) {
+    _heartbeatTimer->cancel();
+  }
+
+  std::chrono::milliseconds pubPeriod_msec(1000);
+  _heartbeatTimer = create_wall_timer(
+    std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
+    std::bind(&ZedCameraOne::callback_pubHeartbeat, this));
+}
 
 }  // namespace stereolabs
 

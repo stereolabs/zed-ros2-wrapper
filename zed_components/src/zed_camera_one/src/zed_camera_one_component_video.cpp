@@ -167,7 +167,7 @@ void ZedCameraOne::initVideoPublishers()
           transport_copy.erase(0, pos);
         }
         RCLCPP_INFO_STREAM(
-          get_logger(), " * Advertised on topic: "
+          get_logger(), "  * Advertised on topic: "
             << pub.getTopic() << transport_copy
             << " [image_transport]");
       }

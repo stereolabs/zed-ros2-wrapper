@@ -73,8 +73,6 @@ def parse_array_param(param):
         return []
     return cleaned.split(',')
 
-    return arr
-
 def launch_setup(context, *args, **kwargs):
     return_array = []
 

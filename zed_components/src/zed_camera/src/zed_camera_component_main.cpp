@@ -5317,7 +5317,7 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
 {
   // DEBUG_STREAM_TF("publishCameraTFs");
 
-  if(!mZed) {
+  if (!mZed) {
     DEBUG_STREAM_TF("ZED Camera not initialized");
     return;
   }

@@ -61,13 +61,15 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
 
   // Set the name of the main thread for easier identification in
   // system monitors
-  pthread_setname_np(pthread_self(),
-                     (get_name() + std::string("_main")).c_str());
+  pthread_setname_np(
+    pthread_self(),
+    (get_name() + std::string("_main")).c_str());
 
   if (((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) <
-       (SDK_MAJOR_MIN_SUPP * 10 + SDK_MINOR_MIN_SUPP)) ||
-      ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >
-       (SDK_MAJOR_MAX_SUPP * 10 + SDK_MINOR_MAX_SUPP))) {
+    (SDK_MAJOR_MIN_SUPP * 10 + SDK_MINOR_MIN_SUPP)) ||
+    ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >
+    (SDK_MAJOR_MAX_SUPP * 10 + SDK_MINOR_MAX_SUPP)))
+  {
     RCLCPP_ERROR_STREAM(
       get_logger(),
       "This version of the ZED ROS2 wrapper is designed to work with ZED SDK "

@@ -9,8 +9,7 @@ LATEST CHANGES
   - add servives to start/stop SVO recording
   - publish SVO status
   - publish SVO clock on `/clock` topic
-- Publish ZedCameraOne hearthbeat message
-
+- Publish ZedCameraOne hearthbeat status on `~/status/heartbeat` topic
 2025-11-25
 ----------
 - Added 24-bit BGR image mode

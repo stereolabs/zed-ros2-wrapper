@@ -3418,7 +3418,7 @@ void ZedCamera::startHeartbeatTimer()
     mHeartbeatTimer->cancel();
   }
 
-  std::chrono::milliseconds pubPeriod_msec(1000);
+  std::chrono::milliseconds pubPeriod_msec(HEARTBEAT_INTERVAL_MS);
   mHeartbeatTimer = create_wall_timer(
     std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
     std::bind(&ZedCamera::callback_pubHeartbeat, this));
@@ -3430,7 +3430,7 @@ void ZedCamera::startTempPubTimer()
     mTempPubTimer->cancel();
   }
 
-  std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0));
+  std::chrono::milliseconds pubPeriod_msec(TEMP_PUB_INTERVAL_MS);
   mTempPubTimer = create_wall_timer(
     std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
     std::bind(&ZedCamera::callback_pubTemp, this));
@@ -6556,7 +6556,7 @@ void ZedCamera::callback_pubTemp()
     if (!mSvoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
       RCLCPP_WARN_STREAM(
         get_logger(),
-        "[publishSensorsData] sl::getSensorsData error: "
+        "[callback_pubTemp] sl::getSensorsData error: "
           << sl::toString(err).c_str());
     }
     return;
@@ -7443,8 +7443,12 @@ void ZedCamera::callback_setSvoFrame(
 
   RCLCPP_INFO(get_logger(), "** Set SVO Frame service called **");
 
+  constexpr double SVO_FRAME_SET_MIN_INTERVAL =
+    0.5;    // Minimum interval in seconds between frame changes to prevent
+            // excessive seeking
+
   // ----> Check service call frequency
-  if (mSetSvoFrameCheckTimer.toc() < 0.5) {
+  if (mSetSvoFrameCheckTimer.toc() < SVO_FRAME_SET_MIN_INTERVAL) {
     RCLCPP_WARN(get_logger(), "SVO frame set too fast");
     res->message = "SVO frame set too fast";
     res->success = false;
@@ -8973,7 +8977,7 @@ void ZedCamera::callback_pubHeartbeat()
   msg->svo_mode = mSvoMode;
   // <---- Fill the message
 
-  // Publish the hearbeat
+  // Publish the heartbeat
   if (mPubHeartbeatStatus) {mPubHeartbeatStatus->publish(std::move(msg));}
 }
 

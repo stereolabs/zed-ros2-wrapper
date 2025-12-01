@@ -2105,7 +2105,7 @@ void ZedCameraOne::callback_pubHeartbeat()
   msg->svo_mode = _svoMode;
   // <---- Fill the message
 
-  // Publish the hearbeat
+  // Publish the heartbeat
   if (_pubHeartbeatStatus) {
     _pubHeartbeatStatus->publish(std::move(msg));
   }
@@ -2404,8 +2404,12 @@ void ZedCameraOne::callback_setSvoFrame(
 
   RCLCPP_INFO(get_logger(), "** Set SVO Frame service called **");
 
+  constexpr double SVO_FRAME_SET_MIN_INTERVAL =
+    0.5;    // Minimum interval in seconds between frame changes to prevent
+            // excessive seeking
+
   // ----> Check service call frequency
-  if (_setSvoFrameCheckTimer.toc() < 0.5) {
+  if (_setSvoFrameCheckTimer.toc() < SVO_FRAME_SET_MIN_INTERVAL) {
     RCLCPP_WARN(get_logger(), "SVO frame set too fast");
     res->message = "SVO frame set too fast";
     res->success = false;
@@ -2486,7 +2490,7 @@ void ZedCameraOne::startHeartbeatTimer()
     _heartbeatTimer->cancel();
   }
 
-  std::chrono::milliseconds pubPeriod_msec(1000);
+  std::chrono::milliseconds pubPeriod_msec(HEARTBEAT_INTERVAL_MS);
   _heartbeatTimer = create_wall_timer(
     std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
     std::bind(&ZedCameraOne::callback_pubHeartbeat, this));

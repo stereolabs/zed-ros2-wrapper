@@ -167,7 +167,7 @@ void ZedCameraOne::initVideoPublishers()
           transport_copy.erase(0, pos);
         }
         RCLCPP_INFO_STREAM(
-          get_logger(), " * Advertised on topic: "
+          get_logger(), "  * Advertised on topic: "
             << pub.getTopic() << transport_copy
             << " [image_transport]");
       }
@@ -445,7 +445,14 @@ void ZedCameraOne::retrieveImages(bool gpu)
   if (_colorSubCount > 0) {
     retrieved |=
       (sl::ERROR_CODE::SUCCESS ==
-      _zed->retrieveImage(_matColor, sl::VIEW::LEFT, gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
+      _zed->retrieveImage(
+        _matColor,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+        _24bitMode ? sl::VIEW::LEFT_BGR : sl::VIEW::LEFT_BGRA,
+#else
+        sl::VIEW::LEFT,
+#endif
+        gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
     _sdkGrabTS = _matColor.timestamp;
     DEBUG_STREAM_VD(
       "Color image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " <<
@@ -455,7 +462,12 @@ void ZedCameraOne::retrieveImages(bool gpu)
   if (_colorRawSubCount > 0) {
     retrieved |= (sl::ERROR_CODE::SUCCESS ==
       _zed->retrieveImage(
-        _matColorRaw, sl::VIEW::LEFT_UNRECTIFIED,
+        _matColorRaw,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+        _24bitMode ? sl::VIEW::LEFT_UNRECTIFIED_BGR : sl::VIEW::LEFT_UNRECTIFIED_BGRA,
+#else
+        sl::VIEW::LEFT_UNRECTIFIED,
+#endif
         gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
     _sdkGrabTS = _matColorRaw.timestamp;
     DEBUG_STREAM_VD(

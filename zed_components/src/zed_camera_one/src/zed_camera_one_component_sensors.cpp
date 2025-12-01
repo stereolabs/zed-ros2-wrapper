@@ -83,13 +83,30 @@ void ZedCameraOne::initSensorPublishers()
 void ZedCameraOne::threadFunc_pubSensorsData()
 {
   DEBUG_STREAM_SENS("Sensors thread started");
+
+  // Set the name of the pubSensorsData thread for easier identification in
+  // system monitors
+  pthread_setname_np(pthread_self(), (get_name() + std::string("_pubSensorsData")).c_str());
   setupSensorThreadScheduling();
 
   DEBUG_STREAM_SENS("Sensors thread loop starting...");
   _lastTs_imu = TIMEZERO_ROS;
 
+  constexpr auto SVO_PAUSE_POLL_INTERVAL =
+    100ms;    // Poll interval when SVO is paused
+
   while (true) {
     if (handleSensorThreadInterruption()) {break;}
+
+    if (_svoMode && _svoPause) {
+      if (!_grabImuOnce) {
+        rclcpp::sleep_for(SVO_PAUSE_POLL_INTERVAL);
+        continue;
+      } else {
+        _grabImuOnce = false;  // Reset the flag and grab the IMU data
+      }
+    }
+
     if (!waitForCameraOpen()) {continue;}
     if (!waitForSensorSubscribers()) {continue;}
     if (!handleSensorPublishing()) {continue;}
@@ -228,7 +245,7 @@ void ZedCameraOne::startTempPubTimer()
     _tempPubTimer->cancel();
   }
 
-  std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0));
+  std::chrono::milliseconds pubPeriod_msec(TEMP_PUB_INTERVAL_MS);
   _tempPubTimer = create_wall_timer(
     std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
     std::bind(&ZedCameraOne::callback_pubTemp, this));
@@ -247,9 +264,14 @@ void ZedCameraOne::callback_pubTemp()
   sl::SensorsData sens_data;
   sl::ERROR_CODE err = _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    DEBUG_STREAM_SENS(
-      "[callback_pubTemp] sl::getSensorsData error: "
-        << sl::toString(err).c_str());
+    // Only warn if not in SVO mode or if the error is not a benign sensor
+    // unavailability
+    if (!_svoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "[callback_pubTemp] sl::getSensorsData error: "
+          << sl::toString(err).c_str());
+    }
     return;
   }
 
@@ -308,9 +330,12 @@ bool ZedCameraOne::publishSensorsData()
   sl::SensorsData sens_data;
   sl::ERROR_CODE err = _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "[publishSensorsData] sl::getSensorsData error: " << sl::toString(err).c_str());
+    // Only warn if not in SVO mode or if the error is not a benign sensor unavailability
+    if (!_svoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "[publishSensorsData] sl::getSensorsData error: " << sl::toString(err).c_str());
+    }
     return false;
   }
 
@@ -352,11 +377,12 @@ void ZedCameraOne::updateImuFreqDiagnostics(double dT)
 void ZedCameraOne::publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data)
 {
   if (!_pubImu) {
-    DEBUG_STREAM_SENS("[publishSensorsData] _pubImu is null");
+    DEBUG_STREAM_SENS("[publishImuMsg] _pubImu is null");
     return;
   }
 
-  DEBUG_STREAM_SENS("[publishSensorsData] IMU subscribers: " << static_cast<int>(_imuSubCount));
+  DEBUG_STREAM_SENS(
+    "[publishImuMsg] IMU subscribers: " << static_cast<int>(_imuSubCount));
   auto imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
   imuMsg->header.stamp = ts_imu;
   imuMsg->header.frame_id = _imuFrameId;
@@ -410,12 +436,13 @@ void ZedCameraOne::publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsD
 void ZedCameraOne::publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data)
 {
   if (!_pubImuRaw) {
-    DEBUG_STREAM_SENS("[publishSensorsData] _pubImuRaw is null");
+    DEBUG_STREAM_SENS("[publishImuRawMsg] _pubImuRaw is null");
     return;
   }
 
   DEBUG_STREAM_SENS(
-    "[publishSensorsData] IMU RAW subscribers: " << static_cast<int>(_imuRawSubCount));
+    "[publishImuRawMsg] IMU RAW subscribers: "
+      << static_cast<int>(_imuRawSubCount));
   auto imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
   imuRawMsg->header.stamp = ts_imu;
   imuRawMsg->header.frame_id = _imuFrameId;

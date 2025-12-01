@@ -30,6 +30,9 @@
 
 #include <rcutils/logging_macros.h>
 
+// Used to enable ZED SDK RealTime SVO pause
+//#define USE_SVO_REALTIME_PAUSE
+
 // CUDA includes and macros
 #ifdef FOUND_ISAAC_ROS_NITROS
   #include "isaac_ros_nitros_image_type/nitros_image_builder.hpp"

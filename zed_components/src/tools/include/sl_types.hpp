@@ -81,6 +81,9 @@
 #define TIMEZERO_ROS rclcpp::Time(0, 0, RCL_ROS_TIME)
 #define TIMEZERO_SYS rclcpp::Time(0, 0, RCL_SYSTEM_TIME)
 
+constexpr auto HEARTBEAT_INTERVAL_MS = 1000;  // Publish heartbeat every second
+constexpr auto TEMP_PUB_INTERVAL_MS = 1000;  // Publish temperature every second
+
 namespace stereolabs
 {
 

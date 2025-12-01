@@ -1489,7 +1489,14 @@ bool ZedCamera::retrieveLeftImage(bool gpu)
   if (mRgbSubCount + mLeftSubCount + mStereoSubCount > 0) {
     DEBUG_VD(" * Retrieving Left image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveImage(mMatLeft, sl::VIEW::LEFT, gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
+      mZed->retrieveImage(
+      mMatLeft,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+      m24bitMode ? sl::VIEW::LEFT_BGR : sl::VIEW::LEFT_BGRA,
+#else
+      sl::VIEW::LEFT,
+#endif
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       mRgbSubscribed = true;
       DEBUG_STREAM_VD(" * Left image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
@@ -1505,7 +1512,12 @@ bool ZedCamera::retrieveLeftRawImage(bool gpu)
     DEBUG_VD(" * Retrieving Left raw image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
-      mMatLeftRaw, sl::VIEW::LEFT_UNRECTIFIED,
+      mMatLeftRaw,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+      m24bitMode ? sl::VIEW::LEFT_UNRECTIFIED_BGR : sl::VIEW::LEFT_UNRECTIFIED_BGRA,
+#else
+      sl::VIEW::LEFT_UNRECTIFIED,
+#endif
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Left raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
@@ -1520,7 +1532,14 @@ bool ZedCamera::retrieveRightImage(bool gpu)
   if (mRightSubCount + mStereoSubCount > 0) {
     DEBUG_VD(" * Retrieving Right image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
-      mZed->retrieveImage(mMatRight, sl::VIEW::RIGHT, gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
+      mZed->retrieveImage(
+      mMatRight,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+      m24bitMode ? sl::VIEW::RIGHT_BGR : sl::VIEW::RIGHT_BGRA,
+#else
+      sl::VIEW::RIGHT,
+#endif
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Right image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
@@ -1535,7 +1554,12 @@ bool ZedCamera::retrieveRightRawImage(bool gpu)
     DEBUG_VD(" * Retrieving Right raw image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
-      mMatRightRaw, sl::VIEW::RIGHT_UNRECTIFIED,
+      mMatRightRaw,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+      m24bitMode ? sl::VIEW::RIGHT_UNRECTIFIED_BGR : sl::VIEW::RIGHT_UNRECTIFIED_BGRA,
+#else
+      sl::VIEW::RIGHT_UNRECTIFIED,
+#endif
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Right raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
@@ -2542,6 +2566,11 @@ void ZedCamera::publishPointCloud()
 void ZedCamera::threadFunc_videoDepthElab()
 {
   DEBUG_STREAM_VD("Video Depth thread started");
+
+  // Set the name of the videoDepthElab thread for easier identification in
+  // system monitors
+  pthread_setname_np(pthread_self(), (get_name() + std::string("_videoDepthElab")).c_str());
+
   setupVideoDepthThread();
 
   mVdDataReady = false;
@@ -2861,6 +2890,11 @@ void ZedCamera::handlePointCloudPublishing()
 void ZedCamera::threadFunc_pointcloudElab()
 {
   DEBUG_STREAM_PC("Point Cloud thread started");
+
+  // Set the name of the pointcloudElab thread for easier identification in
+  // system monitors
+  pthread_setname_np(pthread_self(), (get_name() + std::string("_pointcloudElab")).c_str());
+
   setupPointCloudThread();
 
   mPcDataReady = false;

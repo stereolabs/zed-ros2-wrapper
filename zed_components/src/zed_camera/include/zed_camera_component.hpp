@@ -49,6 +49,7 @@ protected:
   void getTopicEnableParams();
   void getSimParams();
   void getGeneralParams();
+  void getSvoParams();
   void getVideoParams();
   void getRoiParams();
   void getDepthParams();
@@ -451,6 +452,9 @@ private:
   bool _nitrosDisabled = false;
 
   // Topic Enablers
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+  bool m24bitMode = false;
+#endif
   bool mPublishSensImu = true;
   bool mPublishSensImuRaw = false;
   bool mPublishSensMag = false;

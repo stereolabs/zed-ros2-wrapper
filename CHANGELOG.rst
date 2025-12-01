@@ -6,10 +6,10 @@ LATEST CHANGES
 - Enable SVO for ZedCameraOne
   - add service to pause SVO playback
   - add service to set SVO frame ID
-  - add servives to start/stop SVO recording
+  - add services to start/stop SVO recording
   - publish SVO status
   - publish SVO clock on `/clock` topic
-- Publish ZedCameraOne hearthbeat message
+- Publish ZedCameraOne heartbeat status on `~/status/heartbeat` topic
 
 2025-11-27
 ----------

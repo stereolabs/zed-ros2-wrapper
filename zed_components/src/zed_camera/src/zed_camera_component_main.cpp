@@ -4831,9 +4831,12 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   }
 
   if (err != sl::ERROR_CODE::SUCCESS) {
-    if (mSvoMode && err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+    // Only warn if not in SVO mode or if the error is not a benign sensor
+    // unavailability
+    if (!mSvoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
       RCLCPP_WARN_STREAM(
-        get_logger(), "sl::getSensorsData error: "
+        get_logger(),
+        "[publishSensorsData] sl::getSensorsData error: "
           << sl::toString(err).c_str());
     }
     return false;
@@ -6548,9 +6551,14 @@ void ZedCamera::callback_pubTemp()
   sl::ERROR_CODE err =
     mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    DEBUG_STREAM_SENS(
-      "[callback_pubTemp] sl::getSensorsData error: "
-        << sl::toString(err).c_str());
+    // Only warn if not in SVO mode or if the error is not a benign sensor
+    // unavailability
+    if (!mSvoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "[publishSensorsData] sl::getSensorsData error: "
+          << sl::toString(err).c_str());
+    }
     return;
   }
 
@@ -7599,7 +7607,7 @@ void ZedCamera::callback_updateDiagnostic(
       if (mSvoLoop) {
         stat.addf("SVO Loop Count", "%d", mSvoLoopCount);
       }
-      stat.addf("Real Time mode", "%s", (mSvoRealtime ? "ON" : "OFF"));
+      stat.addf("SVO Real Time mode", "%s", (mSvoRealtime ? "ON" : "OFF"));
       if (!mSvoRealtime) {
         stat.addf("SVO Playback rate", "%.1fx -> %.1f Hz", mSvoRate, mSvoRate * mCamGrabFrameRate);
       }

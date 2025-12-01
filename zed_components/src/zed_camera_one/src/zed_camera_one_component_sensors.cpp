@@ -257,9 +257,14 @@ void ZedCameraOne::callback_pubTemp()
   sl::SensorsData sens_data;
   sl::ERROR_CODE err = _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    DEBUG_STREAM_SENS(
-      "[callback_pubTemp] sl::getSensorsData error: "
-        << sl::toString(err).c_str());
+    // Only warn if not in SVO mode or if the error is not a benign sensor
+    // unavailability
+    if (!_svoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "[publishSensorsData] sl::getSensorsData error: "
+          << sl::toString(err).c_str());
+    }
     return;
   }
 
@@ -318,9 +323,12 @@ bool ZedCameraOne::publishSensorsData()
   sl::SensorsData sens_data;
   sl::ERROR_CODE err = _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "[publishSensorsData] sl::getSensorsData error: " << sl::toString(err).c_str());
+    // Only warn if not in SVO mode or if the error is not a benign sensor unavailability
+    if (!_svoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "[publishSensorsData] sl::getSensorsData error: " << sl::toString(err).c_str());
+    }
     return false;
   }
 

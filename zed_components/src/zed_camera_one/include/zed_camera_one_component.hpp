@@ -216,7 +216,7 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_msgs::srv::SetSvoFrame_Request> req,
     std::shared_ptr<zed_msgs::srv::SetSvoFrame_Response> res);
-  
+
   // <---- Callbacks functions
 
   // ----> Thread functions
@@ -487,7 +487,7 @@ private:
   float _tempImu = NOT_VALID_TEMP;
   uint64_t _frameCount = 0;
   uint32_t _svoLoopCount = 0;
-  
+
   std::unique_ptr<sl_tools::WinAvg> _elabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> _grabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> _imagePeriodMean_sec;

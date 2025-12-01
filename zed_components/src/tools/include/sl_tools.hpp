@@ -165,8 +165,16 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi);
  *  \param input
  *  \param error_return
  *  Syntax is [[1.0, 2.0], [3.3, 4.4, 5.5], ...] */
-std::vector<std::vector<float>> parseStringVector(
+std::vector<std::vector<float>> parseStringMultiVector_float(
   const std::string & input, std::string & error_return);
+
+/*! \brief Parse a vector of integer values from a string.
+ *  \param input
+ *  \param error_return
+ *  Syntax is [1, 2, 3, ...] */
+std::vector<int> parseStringVector_int(
+  const std::string & input,
+  std::string & error_return);
 
 /*!
  * @brief Convert thread policy to string

@@ -66,19 +66,15 @@ default_xacro_path = os.path.join(
     'zed_descr.urdf.xacro'
 )
 
-
+# Function to parse array-like launch arguments
 def parse_array_param(param):
-    str = param.replace('[', '')
-    str = str.replace(']', '')
-    arr = str.split(',')
-
-    return arr
-
+    cleaned = param.replace('[', '').replace(']', '').replace(' ', '')
+    if not cleaned:
+        return []
+    return cleaned.split(',')
 
 def launch_setup(context, *args, **kwargs):
     return_array = []
-
-    wrapper_dir = get_package_share_directory('zed_wrapper')    
 
     # Launch configuration variables
     node_log_type = LaunchConfiguration('node_log_type')
@@ -109,13 +105,14 @@ def launch_setup(context, *args, **kwargs):
     serial_number = LaunchConfiguration('serial_number')
     camera_id = LaunchConfiguration('camera_id')
 
+    serial_numbers = LaunchConfiguration('serial_numbers')
+    camera_ids = LaunchConfiguration('camera_ids')
+
     publish_urdf = LaunchConfiguration('publish_urdf')
     publish_tf = LaunchConfiguration('publish_tf')
     publish_map_tf = LaunchConfiguration('publish_map_tf')
     publish_imu_tf = LaunchConfiguration('publish_imu_tf')
     xacro_path = LaunchConfiguration('xacro_path')
-
-    custom_baseline = LaunchConfiguration('custom_baseline')
 
     enable_gnss = LaunchConfiguration('enable_gnss')
     gnss_antenna_offset = LaunchConfiguration('gnss_antenna_offset')
@@ -128,7 +125,8 @@ def launch_setup(context, *args, **kwargs):
     node_name_val = node_name.perform(context)
     enable_gnss_val = enable_gnss.perform(context)
     gnss_coords = parse_array_param(gnss_antenna_offset.perform(context))
-    custom_baseline_val = custom_baseline.perform(context)
+    serial_numbers_val = serial_numbers.perform(context)
+    camera_ids_val = camera_ids.perform(context)
 
     if(node_log_type_val == 'both'):
         node_log_effective = 'both'
@@ -141,10 +139,17 @@ def launch_setup(context, *args, **kwargs):
     if (camera_name_val == ''):
         camera_name_val = 'zed'
 
-    if (camera_model_val == 'virtual' and float(custom_baseline_val) <= 0):
-        return [
-            LogInfo(msg="Please set a positive value for the 'custom_baseline' argument when using a 'virtual' Stereo Camera with two ZED X One devices."),
-        ]
+    if (camera_model_val == 'virtual'):
+        # Virtual Stereo Camera setup
+        serials = parse_array_param(serial_numbers_val)
+        ids = parse_array_param(camera_ids_val)
+
+        # If not in live mode, at least one of serials or ids must be a valid 2-values array
+        if(len(serials) != 2 and len(ids) != 2 and svo_path.perform(context) == 'live'):
+            return [
+                LogInfo(msg=TextSubstitution(
+                    text='With a Virtual Stereo Camera setup, one of `serial_numbers` or `camera_ids` launch arguments must contain two valid values (Left and Right camera identification).'))
+            ]
     
     if(namespace_val == ''):
         namespace_val = camera_name_val
@@ -205,8 +210,6 @@ def launch_setup(context, *args, **kwargs):
     xacro_command.append('camera_model:=')
     xacro_command.append(camera_model_val)
     xacro_command.append(' ')
-    xacro_command.append('custom_baseline:=')
-    xacro_command.append(custom_baseline_val)   
     if(enable_gnss_val=='true'):
         xacro_command.append(' ')
         xacro_command.append('enable_gnss:=true')
@@ -292,10 +295,11 @@ def launch_setup(context, *args, **kwargs):
                 'pos_tracking.publish_tf': publish_tf,
                 'pos_tracking.publish_map_tf': publish_map_tf,
                 'sensors.publish_imu_tf': publish_imu_tf,
-                'gnss_fusion.gnss_fusion_enabled': enable_gnss
+                'gnss_fusion.gnss_fusion_enabled': enable_gnss,
+                'general.virtual_serial_numbers': serial_numbers_val,
+                'general.virtual_camera_ids': camera_ids_val
             }
     )
-
 
     # ZED Wrapper component
     if( camera_model_val=='zed' or
@@ -384,9 +388,17 @@ def generate_launch_description():
                 default_value='0',
                 description='The serial number of the camera to be opened. It is mandatory to use this parameter or camera ID in multi-camera rigs to distinguish between different cameras. Use `ZED_Explorer -a` to retrieve the serial number of all the connected cameras.'),
             DeclareLaunchArgument(
+                'serial_numbers',
+                default_value='[]',
+                description='The serial numbers of the two cameras to be opened to compose a Virtual Stereo Camera, [left_sn,right_sn]. Use `ZED_Explorer -a` to retrieve the serial number of all the connected cameras.'),
+            DeclareLaunchArgument(
                 'camera_id',
                 default_value='-1',
                 description='The ID of the camera to be opened. It is mandatory to use this parameter or serial number in multi-camera rigs to distinguish between different cameras.  Use `ZED_Explorer -a` to retrieve the ID of all the connected cameras.'),
+            DeclareLaunchArgument(
+                'camera_ids',
+                default_value='[]',
+                description='The IDs of the two cameras to be opened to compose a Virtual Stereo Camera, [left_id,right_id]. Use `ZED_Explorer -a` to retrieve the ID of all the connected cameras.'),
             DeclareLaunchArgument(
                 'publish_urdf',
                 default_value='true',
@@ -459,10 +471,6 @@ def generate_launch_description():
                 'stream_port',
                 default_value='30000',
                 description='The connection port of the input streaming server.'),
-            DeclareLaunchArgument(
-                'custom_baseline',
-                default_value='0.0',
-                description='Distance between the center of ZED X One cameras in a custom stereo rig.'),
             OpaqueFunction(function=launch_setup)
         ]
     )

@@ -14,6 +14,8 @@
 
 #include "zed_camera_component.hpp"
 
+#include <sl/CameraOne.hpp>
+
 #include <sys/resource.h>
 
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
@@ -95,14 +97,14 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mUptimer(get_clock()),
   mSetSvoFrameCheckTimer(get_clock())
 {
+  mUsingIPC = options.use_intra_process_comms();
+
   RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
   RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), " * namespace: %s", get_namespace());
   RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
-  RCLCPP_INFO(
-    get_logger(), " * IPC: %s",
-    options.use_intra_process_comms() ? "enabled" : "disabled");
+  RCLCPP_INFO(get_logger(), " * IPC: %s", mUsingIPC ? "enabled" : "disabled");
   RCLCPP_INFO(get_logger(), "================================");
 
   // Set the name of the main thread for easier identification in
@@ -465,7 +467,7 @@ std::string ZedCamera::getParam(
   }
 
   std::string error;
-  outVal = sl_tools::parseStringVector(out_str, error);
+  outVal = sl_tools::parseStringMultiVector_float(out_str, error);
 
   if (error != "") {
     RCLCPP_WARN_STREAM(
@@ -653,12 +655,15 @@ void ZedCamera::getDebugParams()
     _debugPointCloud, _debugPointCloud,
     " * Debug Point Cloud: ");
   sl_tools::getParam(
-    shared_from_this(), "debug.debug_gnss", _debugGnss,
-    _debugGnss, " * Debug GNSS: ");
+    shared_from_this(), "debug.debug_tf", _debugTf, _debugTf,
+    " * Debug TF: ");
   sl_tools::getParam(
     shared_from_this(), "debug.debug_positional_tracking",
     _debugPosTracking, _debugPosTracking,
     " * Debug Positional Tracking: ");
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_gnss", _debugGnss,
+    _debugGnss, " * Debug GNSS: ");
   sl_tools::getParam(
     shared_from_this(), "debug.debug_sensors", _debugSensors,
     _debugSensors, " * Debug sensors: ");
@@ -686,9 +691,10 @@ void ZedCamera::getDebugParams()
     _debugAdvanced, " * Debug Advanced: ");
 
   mDebugMode = _debugCommon || _debugSim || _debugVideoDepth || _debugCamCtrl ||
-    _debugPointCloud || _debugPosTracking || _debugGnss ||
+    _debugPointCloud || _debugTf || _debugPosTracking || _debugGnss ||
     _debugSensors || _debugMapping || _debugObjectDet ||
-    _debugBodyTrk || _debugAdvanced || _debugRoi || _debugStreaming || _debugNitros;
+    _debugBodyTrk || _debugAdvanced || _debugRoi ||
+    _debugStreaming || _debugNitros;
 
   if (mDebugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(
@@ -977,12 +983,49 @@ void ZedCamera::getGeneralParams()
     mCameraName, " * Camera name: ");
 
   if (!mSvoMode) {
-    sl_tools::getParam(
-      shared_from_this(), "general.serial_number",
-      mCamSerialNumber, mCamSerialNumber, " * Camera SN: ", false, 0);
-    sl_tools::getParam(
-      shared_from_this(), "general.camera_id", mCamId, mCamId,
-      " * Camera ID: ", false, -1, 256);
+    if (mCamUserModel == sl::MODEL::VIRTUAL_ZED_X) {
+      std::string array_param = "[]";
+      sl_tools::getParam(
+        shared_from_this(), "general.virtual_serial_numbers",
+        array_param, array_param,
+        " * Virtual Camera SNs: ", false);
+
+      std::string error;
+      auto serials = sl_tools::parseStringVector_int(array_param, error);
+      if (serials.size() == 2) {
+        mCamVirtualSerialNumbers = serials;
+      }
+
+      array_param = "[]";
+      sl_tools::getParam(
+        shared_from_this(), "general.virtual_camera_ids",
+        array_param, array_param,
+        " * Virtual Camera IDs: ", false);
+
+      auto ids = sl_tools::parseStringVector_int(array_param, error);
+      if (ids.size() == 2) {
+        mCamVirtualCameraIds = ids;
+      }
+
+      // With a live virtual stereo camera at least one of "general.virtual_camera_ids"  and "general.virtual_serial_numbers"
+      // must contain two valid values
+      if (ids.size() != 2 && serials.size() != 2) {
+        RCLCPP_ERROR(
+          get_logger(),
+          "With a Virtual Stereo Camera setup, one of 'general.virtual_serial_numbers' "
+          "or 'general.virtual_camera_ids' parameters must contain two "
+          "valid values (Left and Right camera identification).");
+        exit(EXIT_FAILURE);
+      }
+    } else {
+      sl_tools::getParam(
+        shared_from_this(), "general.serial_number",
+        mCamSerialNumber, mCamSerialNumber,
+        " * Camera SN: ", false, 0);
+      sl_tools::getParam(
+        shared_from_this(), "general.camera_id", mCamId,
+        mCamId, " * Camera ID: ", false, -1, 256);
+    }
     sl_tools::getParam(
       shared_from_this(), "general.camera_timeout_sec",
       mCamTimeoutSec, mCamTimeoutSec,
@@ -1938,14 +1981,14 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
 void ZedCamera::setTFCoordFrameNames()
 {
   // ----> Coordinate frames
-  mCameraFrameId = mCameraName + "_camera_center";
+  mCenterFrameId = mCameraName + "_camera_center";
   mLeftCamFrameId = mCameraName + "_left_camera_frame";
   mLeftCamOptFrameId = mCameraName + "_left_camera_frame_optical";
   mRightCamFrameId = mCameraName + "_right_camera_frame";
   mRightCamOptFrameId = mCameraName + "_right_camera_frame_optical";
 
   mImuFrameId = mCameraName + "_imu_link";
-  mBaroFrameId = mCameraFrameId;         // mCameraName + "_baro_link";
+  mBaroFrameId = mCenterFrameId;         // mCameraName + "_baro_link";
   mMagFrameId = mImuFrameId;             // mCameraName + "_mag_link";
   mTempLeftFrameId = mLeftCamFrameId;    // mCameraName + "_temp_left_link";
   mTempRightFrameId = mRightCamFrameId;  // mCameraName + "_temp_right_link";
@@ -1959,7 +2002,7 @@ void ZedCamera::setTFCoordFrameNames()
   RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t-> " << mOdomFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t-> " << mBaseFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t-> " << mCameraFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t-> " << mCenterFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t-> " << mLeftCamFrameId);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -2292,12 +2335,16 @@ void ZedCamera::initPublishers()
     // ----> Camera/imu transform message
     if (mPublishSensImuTransf) {
       std::string cam_imu_tr_topic = mTopicRoot + "left_cam_imu_transform";
+      auto qos = mQos;
+      if (!mUsingIPC) {
+        // Use TRANSIENT_LOCAL durability if not using intra-process comms
+        qos = qos.durability(rclcpp::DurabilityPolicy::TransientLocal);
+      }
       mPubCamImuTransf = create_publisher<geometry_msgs::msg::TransformStamped>(
-        cam_imu_tr_topic, mQos, mPubOpt);
+        cam_imu_tr_topic, qos, mPubOpt);
 
       RCLCPP_INFO_STREAM(
-        get_logger(), " * Advertised on topic: "
-          << mPubCamImuTransf->get_topic_name());
+        get_logger(), " * Advertised on topic: " << mPubCamImuTransf->get_topic_name());
     }
 
     sl::Orientation sl_rot = mSlCamImuTransf.getOrientation();
@@ -2413,6 +2460,15 @@ bool ZedCamera::startCamera()
   mTfListener = std::make_unique<tf2_ros::TransformListener>(
     *mTfBuffer);    // Start TF Listener thread
   mTfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+
+  mStaticTfPublished = false;
+  mStaticImuTfPublished = false;
+  if (!mUsingIPC) {
+    mStaticTfBroadcaster =
+      std::make_unique<tf2_ros::StaticTransformBroadcaster>(this);
+  } else { // Cannot use TRANSIENT_LOCAL with intra-process comms
+    mStaticTfBroadcaster.reset();
+  }
   // <---- TF2 Transform
 
   // ----> ZED configuration
@@ -2440,21 +2496,65 @@ bool ZedCamera::startCamera()
   } else if (!mStreamAddr.empty()) {
     RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING OPENING ===");
 
-    mInitParams.input.setFromStream(mStreamAddr.c_str(), static_cast<unsigned short>(mStreamPort));
+    mInitParams.input.setFromStream(
+      mStreamAddr.c_str(),
+      static_cast<unsigned short>(mStreamPort));
   } else {
     RCLCPP_INFO(get_logger(), "=== CAMERA OPENING ===");
 
     mInitParams.camera_fps = mCamGrabFrameRate;
-    //mInitParams.grab_compute_capping_fps = static_cast<float>(mVdPubRate); // Using Wrapper multi-threading instead
-    mInitParams.grab_compute_capping_fps = 0.0f;
+    mInitParams.grab_compute_capping_fps = 0.0f; // Using multi-threading in the component
     mInitParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
     mInitParams.async_image_retrieval = mAsyncImageRetrieval;
     mInitParams.enable_image_validity_check = mImageValidityCheck;
 
-    if (mCamSerialNumber > 0) {
-      mInitParams.input.setFromSerialNumber(mCamSerialNumber);
-    } else if (mCamId >= 0) {
-      mInitParams.input.setFromCameraID(mCamId);
+    if (mCamUserModel == sl::MODEL::VIRTUAL_ZED_X) {
+      if (mCamVirtualSerialNumbers.size() == 2) {
+        // Generate the virtual serial number from the two real serial numbers
+        auto virtual_sn =
+          sl::generateVirtualStereoSerialNumber(
+          mCamVirtualSerialNumbers[0],
+          mCamVirtualSerialNumbers[1]);
+        mInitParams.input.setVirtualStereoFromSerialNumbers(
+          mCamVirtualSerialNumbers[0], mCamVirtualSerialNumbers[1], virtual_sn);
+      } else if (mCamVirtualCameraIds.size() == 2) {
+
+        // Here we need the ZED X One serial numbers to generate the virtual camera SN
+        auto cams = sl::CameraOne::getDeviceList();
+        std::vector<int> serials;
+        for (const auto & cam : cams) {
+          if (std::any_of(
+              mCamVirtualCameraIds.begin(), mCamVirtualCameraIds.end(),
+              [&cam](int id) {return cam.id == id;}))
+          {
+            serials.push_back(cam.serial_number);
+          }
+        }
+
+        if (serials.size() < 2) {
+          RCLCPP_ERROR(
+            get_logger(),
+            "To use VIRTUAL_ZED_X model with camera IDs, the cameras must be connected and recognized by the system.");
+          return false;
+        }
+
+        // Generate the virtual serial number from the two real serial numbers
+        auto virtual_sn = sl::generateVirtualStereoSerialNumber(serials[0], serials[1]);
+
+        mInitParams.input.setVirtualStereoFromCameraIDs(
+          mCamVirtualCameraIds[0], mCamVirtualCameraIds[1], virtual_sn);
+      } else {
+        RCLCPP_ERROR(
+          get_logger(),
+          "To use VIRTUAL_ZED_X model, you must provide either two VALID serial numbers or two VALID camera IDs.");
+        return false;
+      }
+    } else {
+      if (mCamSerialNumber > 0) {
+        mInitParams.input.setFromSerialNumber(mCamSerialNumber);
+      } else if (mCamId >= 0) {
+        mInitParams.input.setFromCameraID(mCamId);
+      }
     }
   }
 
@@ -3891,8 +3991,8 @@ void ZedCamera::initTransforms()
 
 bool ZedCamera::getCamera2BaseTransform()
 {
-  DEBUG_STREAM_PT(
-    "Getting static TF from '" << mCameraFrameId.c_str()
+  DEBUG_STREAM_TF(
+    "Getting static TF from '" << mCenterFrameId.c_str()
                                << "' to '" << mBaseFrameId.c_str()
                                << "'");
 
@@ -3903,7 +4003,7 @@ bool ZedCamera::getCamera2BaseTransform()
   try {
     // Save the transformation
     geometry_msgs::msg::TransformStamped c2b = mTfBuffer->lookupTransform(
-      mCameraFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
+      mCenterFrameId, mBaseFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
 
     // Get the TF2 transformation
     // tf2::fromMsg(c2b.transform, mCamera2BaseTransf);
@@ -3921,7 +4021,7 @@ bool ZedCamera::getCamera2BaseTransform()
     RCLCPP_INFO(
       get_logger(),
       " Static transform Camera Center to Base [%s -> %s]",
-      mCameraFrameId.c_str(), mBaseFrameId.c_str());
+      mCenterFrameId.c_str(), mBaseFrameId.c_str());
     RCLCPP_INFO(
       get_logger(), "  * Translation: {%.3f,%.3f,%.3f}",
       mCamera2BaseTransf.getOrigin().x(),
@@ -3939,16 +4039,16 @@ bool ZedCamera::getCamera2BaseTransform()
       RCLCPP_WARN_THROTTLE(
         get_logger(), steady_clock, 1000.0,
         "The tf from '%s' to '%s' is not available.",
-        mCameraFrameId.c_str(), mBaseFrameId.c_str());
+        mCenterFrameId.c_str(), mBaseFrameId.c_str());
       RCLCPP_WARN_THROTTLE(
         get_logger(), steady_clock, 1000.0,
-        "Note: one of the possible cause of the problem is the absense of an "
+        "Note: one of the possible cause of the problem is the absence of an "
         "instance "
         "of the `robot_state_publisher` node publishing the correct static "
         "TF transformations "
         "or a modified URDF not correctly reproducing the ZED "
         "TF chain '%s' -> '%s' -> '%s'",
-        mBaseFrameId.c_str(), mCameraFrameId.c_str(), mDepthFrameId.c_str());
+        mBaseFrameId.c_str(), mCenterFrameId.c_str(), mDepthFrameId.c_str());
       mCamera2BaseFirstErr = false;
     }
 
@@ -3963,9 +4063,9 @@ bool ZedCamera::getCamera2BaseTransform()
 
 bool ZedCamera::getSens2CameraTransform()
 {
-  DEBUG_STREAM_PT(
+  DEBUG_STREAM_TF(
     "Getting static TF from '"
-      << mDepthFrameId.c_str() << "' to '" << mCameraFrameId.c_str()
+      << mDepthFrameId.c_str() << "' to '" << mCenterFrameId.c_str()
       << "'");
 
   mSensor2CameraTransfValid = false;
@@ -3975,7 +4075,7 @@ bool ZedCamera::getSens2CameraTransform()
   try {
     // Save the transformation
     geometry_msgs::msg::TransformStamped s2c = mTfBuffer->lookupTransform(
-      mDepthFrameId, mCameraFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
+      mDepthFrameId, mCenterFrameId, TIMEZERO_SYS, rclcpp::Duration(1, 0));
 
     // Get the TF2 transformation
     // tf2::fromMsg(s2c.transform, mSensor2CameraTransf);
@@ -3993,7 +4093,7 @@ bool ZedCamera::getSens2CameraTransform()
     RCLCPP_INFO(
       get_logger(),
       " Static transform ref. CMOS Sensor to Camera Center [%s -> %s]",
-      mDepthFrameId.c_str(), mCameraFrameId.c_str());
+      mDepthFrameId.c_str(), mCenterFrameId.c_str());
     RCLCPP_INFO(
       get_logger(), "  * Translation: {%.3f,%.3f,%.3f}",
       mSensor2CameraTransf.getOrigin().x(),
@@ -4011,16 +4111,16 @@ bool ZedCamera::getSens2CameraTransform()
       RCLCPP_WARN_THROTTLE(
         get_logger(), steady_clock, 1000.0,
         "The tf from '%s' to '%s' is not available.",
-        mDepthFrameId.c_str(), mCameraFrameId.c_str());
+        mDepthFrameId.c_str(), mCenterFrameId.c_str());
       RCLCPP_WARN_THROTTLE(
         get_logger(), steady_clock, 1000.0,
-        "Note: one of the possible cause of the problem is the absense of an "
+        "Note: one of the possible cause of the problem is the absence of an "
         "instance "
         "of the `robot_state_publisher` node publishing the correct static "
         "TF transformations "
         "or a modified URDF not correctly reproducing the ZED "
         "TF chain '%s' -> '%s' -> '%s'",
-        mBaseFrameId.c_str(), mCameraFrameId.c_str(), mDepthFrameId.c_str());
+        mBaseFrameId.c_str(), mCenterFrameId.c_str(), mDepthFrameId.c_str());
       mSensor2CameraTransfFirstErr = false;
     }
 
@@ -4035,7 +4135,7 @@ bool ZedCamera::getSens2CameraTransform()
 
 bool ZedCamera::getSens2BaseTransform()
 {
-  DEBUG_STREAM_PT(
+  DEBUG_STREAM_TF(
     "Getting static TF from '" << mDepthFrameId.c_str()
                                << "' to '" << mBaseFrameId.c_str()
                                << "'");
@@ -4092,7 +4192,7 @@ bool ZedCamera::getSens2BaseTransform()
         "TF transformations "
         "or a modified URDF not correctly reproducing the ZED "
         "TF chain '%s' -> '%s' -> '%s'",
-        mBaseFrameId.c_str(), mCameraFrameId.c_str(), mDepthFrameId.c_str());
+        mBaseFrameId.c_str(), mCenterFrameId.c_str(), mDepthFrameId.c_str());
       mSensor2BaseTransfFirstErr = false;
     }
 
@@ -4226,6 +4326,15 @@ bool ZedCamera::setPose(
 
 void ZedCamera::publishImuFrameAndTopic()
 {
+  if (!mPublishSensImuTransf && !mPublishImuTF) {
+    return;
+  }
+
+  if (!mUsingIPC && mStaticImuTfPublished) {
+    DEBUG_ONCE_TF("Static Imu TF and Transient Local message already published");
+    return;
+  }
+
   sl::Orientation sl_rot = mSlCamImuTransf.getOrientation();
   sl::Translation sl_tr = mSlCamImuTransf.getTranslation();
 
@@ -4246,7 +4355,9 @@ void ZedCamera::publishImuFrameAndTopic()
   cameraImuTransfMgs->transform.translation.z = sl_tr.z;
 
   try {
-    if (mPubCamImuTransf) {mPubCamImuTransf->publish(std::move(cameraImuTransfMgs));}
+    if (mPubCamImuTransf) {
+      mPubCamImuTransf->publish(std::move(cameraImuTransfMgs));
+    }
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
   } catch (...) {
@@ -4278,13 +4389,47 @@ void ZedCamera::publishImuFrameAndTopic()
   transformStamped.transform.translation.y = sl_tr.y;
   transformStamped.transform.translation.z = sl_tr.z;
 
-  mTfBroadcaster->sendTransform(transformStamped);
+  if (mUsingIPC) {
+    mTfBroadcaster->sendTransform(transformStamped);
+    DEBUG_STREAM_TF(
+      "Broadcasted new IMU dynamic transform: "
+        << transformStamped.header.frame_id << " -> " << transformStamped.child_frame_id);
+  } else {
+    mStaticTfBroadcaster->sendTransform(transformStamped);
+    DEBUG_STREAM_TF(
+      "Broadcasted new IMU static transform: "
+        << transformStamped.header.frame_id << " -> " << transformStamped.child_frame_id);
+  }
   // <---- Publish TF
 
   // IMU TF publishing diagnostic
   double elapsed_sec = mImuTfFreqTimer.toc();
   mPubImuTF_sec->addValue(elapsed_sec);
   mImuTfFreqTimer.tic();
+
+  // Debug info
+  if (_debugTf) {
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(
+      tf2::Quaternion(
+        transformStamped.transform.rotation.x,
+        transformStamped.transform.rotation.y,
+        transformStamped.transform.rotation.z,
+        transformStamped.transform.rotation.w))
+    .getRPY(roll, pitch, yaw);
+    DEBUG_STREAM_TF(
+      "TF ["
+        << transformStamped.header.frame_id << " -> "
+        << transformStamped.child_frame_id << "] Position: ("
+        << transformStamped.transform.translation.x << ", "
+        << transformStamped.transform.translation.y << ", "
+        << transformStamped.transform.translation.z
+        << ") - Orientation RPY: (" << roll * RAD2DEG << ", "
+        << pitch * RAD2DEG << ", " << yaw * RAD2DEG << ")");
+  }
+
+  // At the end
+  mStaticImuTfPublished = true;
 }
 
 void ZedCamera::threadFunc_zedGrab()
@@ -5142,17 +5287,19 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
 void ZedCamera::publishTFs(rclcpp::Time t)
 {
-  // DEBUG_STREAM_PT("publishTFs");
+  // DEBUG_STREAM_TF("publishTFs");
 
   // RCLCPP_INFO_STREAM(get_logger(), "publishTFs - t type:" <<
   // t.get_clock_type());
+
+  publishCameraTFs(t);
 
   if (!mPosTrackingReady) {
     return;
   }
 
   if (t == TIMEZERO_ROS) {
-    DEBUG_STREAM_PT("Time zero: not publishing TFs");
+    DEBUG_STREAM_TF("Time zero: not publishing TFs");
     return;
   }
 
@@ -5166,9 +5313,194 @@ void ZedCamera::publishTFs(rclcpp::Time t)
   }
 }
 
+void ZedCamera::publishCameraTFs(rclcpp::Time t)
+{
+  // DEBUG_STREAM_TF("publishCameraTFs");
+
+  if (!mZed) {
+    DEBUG_STREAM_TF("ZED Camera not initialized");
+    return;
+  }
+
+  if (!mUsingIPC && mStaticTfPublished) {
+    DEBUG_ONCE_TF("Static Camera TF already broadcasted");
+    return;
+  }
+
+  auto calib_params = mZed->getCameraInformation().camera_configuration.calibration_parameters;
+  const double baseline = static_cast<double>(calib_params.getCameraBaseline());
+  sl::Transform stereo_transform = calib_params.stereo_transform;
+
+  DEBUG_STREAM_TF("Calibrated Camera baseline: " << baseline << " m");
+  DEBUG_STREAM_TF(
+    "SDK Stereo Transform T: [" << stereo_transform.getTranslation().x << ", "
+                                << stereo_transform.getTranslation().y << ", "
+                                << stereo_transform.getTranslation().z << "]");
+  DEBUG_STREAM_TF(
+    "SDK Stereo Transform R: ["
+      << stereo_transform.getOrientation().x << ", "
+      << stereo_transform.getOrientation().y << ", "
+      << stereo_transform.getOrientation().z << ", "
+      << stereo_transform.getOrientation().w << "]");
+
+  // ----> Validate data
+  bool not_valid = false;
+  const double EPSILON = 1e-6;
+
+  if (std::abs(stereo_transform.getTranslation().x) > EPSILON ||
+    std::abs(stereo_transform.getTranslation().z) > EPSILON)
+  {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Unexpected calibrated stereo transform translation: ["
+        << stereo_transform.getTranslation().x << ", "
+        << stereo_transform.getTranslation().y << ", "
+        << stereo_transform.getTranslation().z << "]. Expected [0, " << baseline << ", 0].");
+    not_valid = true;
+  }
+  if (std::abs(stereo_transform.getOrientation().x) > EPSILON ||
+    std::abs(stereo_transform.getOrientation().y) > EPSILON ||
+    std::abs(stereo_transform.getOrientation().z) > EPSILON ||
+    std::abs(stereo_transform.getOrientation().w - 1.0) > EPSILON)
+  {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Unexpected calibrated stereo transform rotation: ["
+        << stereo_transform.getOrientation().x << ", "
+        << stereo_transform.getOrientation().y << ", "
+        << stereo_transform.getOrientation().z << ", "
+        << stereo_transform.getOrientation().w << "]. Expected [0, 0, 0, 1].");
+    not_valid = true;
+  }
+  // Note: "baseline" is a positive value, while the stereo transform y-translation is expected to be a negative value.
+  if (std::abs(baseline + stereo_transform.getTranslation().y) > EPSILON) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Baseline mismatch: Camera baseline is " << baseline << " m but calibrated stereo transform y-translation is " <<
+        stereo_transform.getTranslation().y << " m.");
+    not_valid = true;
+  }
+
+  if (not_valid) {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Please report this problem to Stereolabs support if you see this message, "
+      "adding information about your camera model and serial number: "
+        << sl::toString(mCamRealModel) << " - " << mCamSerialNumber);
+    return;
+  }
+  // <---- Validate data
+
+  double optical_offset_x = 0.0;
+
+  switch (mCamRealModel) {
+    case sl::MODEL::ZED:
+      optical_offset_x = -0.01;
+      break;
+    case sl::MODEL::ZED_M:
+      optical_offset_x = 0.0;
+      break;
+    case sl::MODEL::ZED2:
+      optical_offset_x = -0.01;
+      break;
+    case sl::MODEL::ZED2i:
+      optical_offset_x = -0.01;
+      break;
+    case sl::MODEL::ZED_X:
+    case sl::MODEL::ZED_XM:
+    case sl::MODEL::ZED_X_HDR:
+    case sl::MODEL::ZED_X_HDR_MAX:
+    case sl::MODEL::ZED_X_HDR_MINI:
+      optical_offset_x = -0.01;
+      break;
+    case sl::MODEL::VIRTUAL_ZED_X:
+      optical_offset_x = -0.01;
+      break;
+    default:
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "Unknown camera model for static TF publishing: "
+          << sl::toString(mCamRealModel).c_str());
+      mZed.reset();
+      exit(EXIT_FAILURE);
+  }
+
+  // ----> Lambda function to publish transform with debug info
+  auto publishTransform = [&](const geometry_msgs::msg::TransformStamped & tf) {
+      if (mUsingIPC) {
+        mTfBroadcaster->sendTransform(tf);
+        DEBUG_STREAM_TF(
+          "Broadcasted new dynamic transform: "
+            << tf.header.frame_id << " -> " << tf.child_frame_id);
+      } else {
+        mStaticTfBroadcaster->sendTransform(tf);
+        DEBUG_STREAM_TF(
+          "Broadcasted new static transform: "
+            << tf.header.frame_id << " -> " << tf.child_frame_id);
+      }
+      if (_debugTf) {
+        double roll, pitch, yaw;
+        tf2::Matrix3x3(
+          tf2::Quaternion(
+            tf.transform.rotation.x, tf.transform.rotation.y,
+            tf.transform.rotation.z, tf.transform.rotation.w)).getRPY(roll, pitch, yaw);
+        DEBUG_STREAM_TF(
+          "TF ["
+            << tf.header.frame_id << " -> " << tf.child_frame_id
+            << "] Position: (" << tf.transform.translation.x << ", "
+            << tf.transform.translation.y << ", "
+            << tf.transform.translation.z << ") - Orientation RPY: ("
+            << roll * RAD2DEG << ", " << pitch * RAD2DEG << ", "
+            << yaw * RAD2DEG << ")");
+      }
+    };
+  // <---- Lambda function to publish transform with debug info
+
+  // ----> Common info
+  geometry_msgs::msg::TransformStamped transformStamped;
+  transformStamped.header.stamp =
+    mUsePubTimestamps ? get_clock()->now() :
+    (t + rclcpp::Duration(0, mTfOffset * 1e9));
+  // <---- Common info
+
+  // ----> New camera_center -> left_camera_frame
+  transformStamped.header.frame_id = mCenterFrameId;
+  transformStamped.child_frame_id = mLeftCamFrameId;
+
+  transformStamped.transform.translation.x = optical_offset_x;
+  transformStamped.transform.translation.y = baseline / 2.0;
+  transformStamped.transform.translation.z = 0.0;
+  transformStamped.transform.rotation.x = 0.0;
+  transformStamped.transform.rotation.y = 0.0;
+  transformStamped.transform.rotation.z = 0.0;
+  transformStamped.transform.rotation.w = 1.0;
+
+  // Publish transformation
+  publishTransform(transformStamped);
+  // <---- New camera_center -> left_camera_frame
+
+  // ----> New camera_center -> right_camera_frame
+  transformStamped.header.frame_id = mCenterFrameId;
+  transformStamped.child_frame_id = mRightCamFrameId;
+
+  transformStamped.transform.translation.x = optical_offset_x;
+  transformStamped.transform.translation.y = -baseline / 2.0;
+  transformStamped.transform.translation.z = 0.0;
+  transformStamped.transform.rotation.x = 0.0;
+  transformStamped.transform.rotation.y = 0.0;
+  transformStamped.transform.rotation.z = 0.0;
+  transformStamped.transform.rotation.w = 1.0;
+
+  // Publish transformation
+  publishTransform(transformStamped);
+  // <---- New camera_center -> right_camera_frame
+
+  // at the end
+  mStaticTfPublished = true;
+}
+
 void ZedCamera::publishOdomTF(rclcpp::Time t)
 {
-  // DEBUG_STREAM_PT("publishOdomTF");
+  // DEBUG_STREAM_TF("publishOdomTF");
 
   // ----> Avoid duplicated TF publishing
   if (t == mLastTs_odom) {
@@ -5218,11 +5550,31 @@ void ZedCamera::publishOdomTF(rclcpp::Time t)
   double elapsed_sec = mOdomFreqTimer.toc();
   mPubOdomTF_sec->addValue(elapsed_sec);
   mOdomFreqTimer.tic();
+
+  // Debug info
+  if (_debugTf) {
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(
+      tf2::Quaternion(
+        transformStamped.transform.rotation.x,
+        transformStamped.transform.rotation.y,
+        transformStamped.transform.rotation.z,
+        transformStamped.transform.rotation.w))
+    .getRPY(roll, pitch, yaw);
+    DEBUG_STREAM_TF(
+      "TF [" << transformStamped.header.frame_id << " -> "
+             << transformStamped.child_frame_id << "] Position: ("
+             << transformStamped.transform.translation.x << ", "
+             << transformStamped.transform.translation.y << ", "
+             << transformStamped.transform.translation.z
+             << ") - Orientation RPY: (" << roll * RAD2DEG << ", "
+             << pitch * RAD2DEG << ", " << yaw * RAD2DEG << ")");
+  }
 }
 
 void ZedCamera::publishPoseTF(rclcpp::Time t)
 {
-  // DEBUG_STREAM_PT("publishPoseTF");
+  // DEBUG_STREAM_TF("publishPoseTF");
 
   // ----> Avoid duplicated TF publishing
   if (t == mLastTs_pose) {
@@ -5268,6 +5620,26 @@ void ZedCamera::publishPoseTF(rclcpp::Time t)
   double elapsed_sec = mPoseFreqTimer.toc();
   mPubPoseTF_sec->addValue(elapsed_sec);
   mPoseFreqTimer.tic();
+
+  // Debug info
+  if (_debugTf) {
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(
+      tf2::Quaternion(
+        transformStamped.transform.rotation.x,
+        transformStamped.transform.rotation.y,
+        transformStamped.transform.rotation.z,
+        transformStamped.transform.rotation.w))
+    .getRPY(roll, pitch, yaw);
+    DEBUG_STREAM_TF(
+      "TF [" << transformStamped.header.frame_id << " -> "
+             << transformStamped.child_frame_id << "] Position: ("
+             << transformStamped.transform.translation.x << ", "
+             << transformStamped.transform.translation.y << ", "
+             << transformStamped.transform.translation.z
+             << ") - Orientation RPY: (" << roll * RAD2DEG << ", "
+             << pitch * RAD2DEG << ", " << yaw * RAD2DEG << ")");
+  }
 }
 
 void ZedCamera::threadFunc_pubSensorsData()
@@ -6248,6 +6620,27 @@ void ZedCamera::processGeoPose()
       (tf2::toMsg(mMap2UtmTransf.inverse()));
 
     mTfBroadcaster->sendTransform(transformStamped);
+
+    // Debug info
+    if (_debugTf) {
+      double roll, pitch, yaw;
+      tf2::Matrix3x3(
+        tf2::Quaternion(
+          transformStamped.transform.rotation.x,
+          transformStamped.transform.rotation.y,
+          transformStamped.transform.rotation.z,
+          transformStamped.transform.rotation.w))
+      .getRPY(roll, pitch, yaw);
+      DEBUG_STREAM_TF(
+        "TF ["
+          << transformStamped.header.frame_id << " -> "
+          << transformStamped.child_frame_id << "] Position: ("
+          << transformStamped.transform.translation.x << ", "
+          << transformStamped.transform.translation.y << ", "
+          << transformStamped.transform.translation.z
+          << ") - Orientation RPY: (" << roll * RAD2DEG << ", "
+          << pitch * RAD2DEG << ", " << yaw * RAD2DEG << ")");
+    }
   }
 
   publishGnssPose();
@@ -7544,6 +7937,7 @@ void ZedCamera::callback_updateDiagnostic(
   stat.addf("Uptime", "%s", sl_tools::seconds2str(mUptimer.toc()).c_str());
 
   if (mGrabStatus == sl::ERROR_CODE::SUCCESS || mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
+    stat.addf("IPC Enabled", "%s", mUsingIPC ? "YES" : "NO");
     stat.addf("Camera Grab rate", "%d Hz", mCamGrabFrameRate);
 
     double freq = 1. / mGrabPeriodMean_sec->getAvg();
@@ -8507,7 +8901,7 @@ void ZedCamera::callback_setRoi(
 
   std::string error;
   std::vector<std::vector<float>> parsed_poly =
-    sl_tools::parseStringVector(req->roi, error);
+    sl_tools::parseStringMultiVector_float(req->roi, error);
 
   if (error != "") {
     std::string err_msg = "Error while setting ZED SDK region of interest: ";

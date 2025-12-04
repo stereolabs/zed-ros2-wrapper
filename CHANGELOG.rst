@@ -5,7 +5,7 @@ v5.1.0
 ------
 - Changed ZED Camera image topic names to match the cleaner convention used by ZED X One cameras:
   
-  - **NOTE** THIS IS A BREAKING CHANGE. TOPICS MAY NO LONGER BE AVAILABLE IF NOT ENABLED IN THE DEFAULT CONFIGURATION. Please check what topic you use and set the relevant parameter to `true`.
+  - **NOTE** THIS IS A BREAKING CHANGE.
   - Left sensor topics:
 
     - From `~/left/image_rect_color` to `~/left/color/rect/image`
@@ -29,6 +29,7 @@ v5.1.0
 
 - Added parameters to select what topics will be advertised when the node starts:
 
+  - **NOTE** THIS IS A BREAKING CHANGE. TOPICS MAY NO LONGER BE AVAILABLE IF NOT ENABLED IN THE DEFAULT CONFIGURATION. Please check what topic you use and set the relevant parameter to `true`.
   - `general.publish_status`: Advertise the status topics that are published only if a node subscribes to them
   - `video.publish_rgb`: Advertise the RGB image topics that are published only if a node subscribes to them
   - `video.publish_left_right`:  Advertise the left and right image topics that are published only if a node subscribes to them
@@ -54,6 +55,7 @@ v5.1.0
 
 - Added topic enabler feature to `sl::CameraOne`
 
+  - **NOTE** THIS IS A BREAKING CHANGE. TOPICS MAY NO LONGER BE AVAILABLE IF NOT ENABLED IN THE DEFAULT CONFIGURATION. Please check what topic you use and set the relevant parameter to `true`.
   - Added parameter `video.publish_rgb` to enable/disable RGB image publishing
   - Added parameter `video.publish_raw` to enable/disable raw image publishing
   - Added parameter `video.publish_gray` to enable/disable gray image publishing

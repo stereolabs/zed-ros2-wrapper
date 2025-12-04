@@ -51,6 +51,7 @@ v5.0.0
   - `pos_tracking.publish_pose_cov`: Advertise the pose with covariance topic that is published only if a node subscribes to it
   - `pos_tracking.publish_cam_path`: Advertise the camera odometry and pose path topics that are published only if a node subscribes to them
   - `mapping.publish_det_plane`: Advertise the plane detection topics that is published only if a node subscribes to it
+
 - Added topic enabler feature to `sl::CameraOne`
 
   - Added parameter `video.publish_rgb` to enable/disable RGB image publishing
@@ -68,6 +69,7 @@ v5.0.0
 
   - Added new `camInfoPubTrans` publisher for each image topic to publish the `camera_info` in the transport namespace.
   - Updated `publishImageWithInfo` method to handle the new `camInfoPubTrans` publisher.
+
 - Added 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):
 
   - Added parameter `pos_tracking.publish_3d_landmarks` to enable/disable landmarks publishing
@@ -99,12 +101,14 @@ v5.0.0
   - From `<camera_name>_left_camera_optical_frame` to `<camera_name>_left_camera_frame_optical`
   - From `<camera_name>_right_camera_optical_frame` to `<camera_name>_right_camera_frame_optical`
   - From `<camera_name>_camera_optical_frame` to `<camera_name>_rgb_camera_frame_optical`
+
 - Added twist information to the `odom` topic
 - Added support for the new Virtual Stereo API with SDK v5.1.
 
   - New launch arguments to setup the virtual camera: `serial_numbers` and `camera_ids`
   - New `ZedCamera` component parameters to setup the virtual camera: `general.virtual_serial_numbers` and `general.virtual_camera_ids`
   - **NOTE** ZED MEDIA SERVER IS NO LONGER REQUIRED to create a virtual Stereo camera using two ZED X One cameras.
+
 - Added 24-bit BGR image mode
 
   - Added parameter `video.enable_24bit_output` to enable/disable 24-bit BGR image publishing to `common_stereo.yaml` and `common_mono.yaml` configuration files
@@ -119,6 +123,7 @@ v5.0.0
   - add services to start/stop SVO recording
   - publish SVO status
   - publish SVO clock on `/clock` topic
+
 - Publish ZedCameraOne heartbeat status on `~/status/heartbeat` topic
 
 v5.0.0

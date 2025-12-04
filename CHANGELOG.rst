@@ -1,7 +1,7 @@
 LATEST CHANGES
 ==============
 
-v5.0.0
+v5.1.0
 ------
 - Changed ZED Camera image topic names to match the cleaner convention used by ZED X One cameras:
   

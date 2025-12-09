@@ -17,7 +17,7 @@
 -->
 
 <robot xmlns:xacro="http://wiki.ros.org/xacro">
-  <xacro:include filename="$(find zed_wrapper)/urdf/include/materials.urdf.xacro" />
+  <!-- xacro:include filename="$(find zed_wrapper)/urdf/include/materials.urdf.xacro" / -->
   <xacro:property name="M_PI"     value="3.1415926535897931" />
 
   <!--
@@ -35,6 +35,7 @@
       <xacro:property name="screw_offset_z" value="0.0" />
       <xacro:property name="optical_offset_x" value="-0.01" />
       <xacro:property name="mono" value="false" />
+      <xacro:property name="mat" value="0.8 0.8 0.8 1.0" />
     </xacro:if>
     <xacro:if value="${model == 'zedm'}">
       <xacro:property name="baseline" value="0.063" />
@@ -44,6 +45,7 @@
       <xacro:property name="screw_offset_z" value="0.0" />
       <xacro:property name="optical_offset_x" value="0.0" />
       <xacro:property name="mono" value="false" />
+      <xacro:property name="mat" value="0 0 0 1.0" />
     </xacro:if>
     <xacro:if value="${model == 'zed2'}">
       <xacro:property name="baseline" value="0.12" />
@@ -53,6 +55,7 @@
       <xacro:property name="screw_offset_z" value="0.0" />
       <xacro:property name="optical_offset_x" value="-0.01" />
       <xacro:property name="mono" value="false" />
+      <xacro:property name="mat" value="0.25 0.25 0.25 1.0" />
     </xacro:if>
     <xacro:if value="${model == 'zed2i'}">
       <xacro:property name="baseline" value="0.12" />
@@ -62,6 +65,7 @@
       <xacro:property name="screw_offset_z" value="0.0" />
       <xacro:property name="optical_offset_x" value="-0.01" />
       <xacro:property name="mono" value="false" />
+      <xacro:property name="mat" value="0.25 0.25 0.25 1.0" />
     </xacro:if>
     <xacro:if value="${model == 'zedx'}">
       <xacro:property name="baseline" value="0.12" />
@@ -71,6 +75,7 @@
       <xacro:property name="screw_offset_z" value="-0.016" />
       <xacro:property name="optical_offset_x" value="-0.01" />
       <xacro:property name="mono" value="false" />
+      <xacro:property name="mat" value="0.25 0.25 0.25 1.0" />
     </xacro:if>
     <xacro:if value="${model == 'zedxhdr'}">
       <xacro:property name="baseline" value="0.12" />
@@ -80,6 +85,7 @@
       <xacro:property name="screw_offset_z" value="-0.016" />
       <xacro:property name="optical_offset_x" value="-0.01" />
       <xacro:property name="mono" value="false" />
+      <xacro:property name="mat" value="0.25 0.25 0.25 1.0" />
     </xacro:if>
     <xacro:if value="${model == 'zedxm'}">
       <xacro:property name="baseline" value="0.05" />
@@ -89,6 +95,7 @@
       <xacro:property name="screw_offset_z" value="-0.016" />
       <xacro:property name="optical_offset_x" value="-0.01" />
       <xacro:property name="mono" value="false" />
+      <xacro:property name="mat" value="0.25 0.25 0.25 1.0" />
     </xacro:if>
     <xacro:if value="${model == 'zedxhdrmini'}">
       <xacro:property name="baseline" value="0.05" />
@@ -98,6 +105,7 @@
       <xacro:property name="screw_offset_z" value="-0.016" />
       <xacro:property name="optical_offset_x" value="-0.01" />
       <xacro:property name="mono" value="false" />
+      <xacro:property name="mat" value="0.25 0.25 0.25 1.0" />
     </xacro:if>
     <xacro:if value="${model == 'zedxhdrmax'}">
       <xacro:property name="baseline" value="0.170" />
@@ -107,6 +115,7 @@
       <xacro:property name="screw_offset_z" value="-0.016" />
       <xacro:property name="optical_offset_x" value="-0.01" />
       <xacro:property name="mono" value="false" />
+      <xacro:property name="mat" value="0.25 0.25 0.25 1.0" />
     </xacro:if>
     <xacro:if value="${model == 'virtual'}">
       <xacro:property name="baseline" value="${custom_baseline}" />
@@ -116,6 +125,7 @@
       <xacro:property name="screw_offset_z" value="-0.0155" />
       <xacro:property name="optical_offset_x" value="0.0" />
       <xacro:property name="mono" value="false" />
+      <xacro:property name="mat" value="0.25 0.25 0.25 1.0" />
     </xacro:if>
     <xacro:if value="${model == 'zedxonegs'}">
       <xacro:property name="baseline" value="0.0" />
@@ -125,6 +135,7 @@
       <xacro:property name="screw_offset_z" value="-0.0155" />
       <xacro:property name="optical_offset_x" value="0.0" />
       <xacro:property name="mono" value="true" />
+      <xacro:property name="mat" value="0.25 0.25 0.25 1.0" />
     </xacro:if>
     <xacro:if value="${model == 'zedxone4k'}">
       <xacro:property name="baseline" value="0.0" />
@@ -134,6 +145,7 @@
       <xacro:property name="screw_offset_z" value="-0.0155" />
       <xacro:property name="optical_offset_x" value="0.0" />
       <xacro:property name="mono" value="true" />
+      <xacro:property name="mat" value="0.25 0.25 0.25 1.0" />
     </xacro:if>
     <xacro:if value="${model == 'zedxonehdr'}">
       <xacro:property name="baseline" value="0.0" />
@@ -143,6 +155,7 @@
       <xacro:property name="screw_offset_z" value="-0.0125" />
       <xacro:property name="optical_offset_x" value="0.0" />
       <xacro:property name="mono" value="true" />
+      <xacro:property name="mat" value="0.25 0.25 0.25 1.0" />
     </xacro:if>
 
     <!-- Camera mounting point (the threaded screw hole in the bottom) -->
@@ -156,7 +169,9 @@
           <geometry>
             <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
           </geometry>
-          <material name="${model}_mat" />
+            <material name="zed_mat">
+              <color rgba="${mat}"/>
+            </material>
         </visual>
         <collision>
           <origin xyz="${screw_offset_x} 0 ${screw_offset_z}" rpy="0 0 0"/>
@@ -181,7 +196,9 @@
             <geometry>
               <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
             </geometry>
-            <material name="${model}_mat" />
+            <material name="zed_mat">
+              <color rgba="${mat}"/>
+            </material>
           </visual>
           <collision>
             <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -212,7 +229,9 @@
             <geometry>
               <mesh filename="file://$(find zed_msgs)/meshes/${model}.stl"/>
             </geometry>
-            <material name="${model}_mat" />
+            <material name="zed_mat">
+              <color rgba="${mat}"/>
+            </material>
           </visual>
           <collision>
             <origin xyz="0 0 0" rpy="0 0 0"/>

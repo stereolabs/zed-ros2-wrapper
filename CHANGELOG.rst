@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-12-11
+----------
+- Removed the `zed_wrapper/urdf/include/materials.urdf.xacro` file and moved the material settings directly in the `zed_macro.urdf.xacro` file to avoid possible conflicts in multi-camera configurations. Thx @davesarmoury for the fix
+
 v5.1.0
 ------
 - Changed ZED Camera image topic names to match the cleaner convention used by ZED X One cameras:

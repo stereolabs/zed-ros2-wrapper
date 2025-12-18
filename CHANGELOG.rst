@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2025-12-18
+----------
+- Added the `enable_localization_only` parameter to the configuration to allow the camera to localize in the loaded area memory without updating the map with new information.
+
 2025-12-11
 ----------
 - Removed the `zed_wrapper/urdf/include/materials.urdf.xacro` file and moved the material settings directly in the `zed_macro.urdf.xacro` file to avoid possible conflicts in multi-camera configurations. Thx @davesarmoury for the fix

@@ -552,6 +552,7 @@ private:
   bool mPoseSmoothing = false;
   bool mAreaMemory = true;
   std::string mAreaMemoryFilePath = "";
+  bool mLocalizationOnly = false;
   sl::POSITIONAL_TRACKING_MODE mPosTrkMode =
     sl::POSITIONAL_TRACKING_MODE::GEN_1;
   bool mSaveAreaMemoryOnClosing = true;

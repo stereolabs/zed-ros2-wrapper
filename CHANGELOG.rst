@@ -4,7 +4,7 @@ LATEST CHANGES
 2025-12-18
 ----------
 - Added the `enable_localization_only` parameter to the configuration to allow the camera to localize in the loaded area memory without updating the map with new information.
-- Support the ZED SDK Positional Tracking 2D mode if SDK version is 5.1 or higher
+- Support the ZED SDK Positional Tracking 2D mode if the SDK version is 5.1 or higher
 
 2025-12-11
 ----------

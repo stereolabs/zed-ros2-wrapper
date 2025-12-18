@@ -3685,7 +3685,11 @@ bool ZedCamera::startPosTracking()
   ptParams.mode = mPosTrkMode;
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
-  ptParams.enable_2d_ground_mode = mTwoDMode;
+  if (mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+    ptParams.enable_2d_ground_mode = mTwoDMode;
+  } else {
+    ptParams.enable_2d_ground_mode = false;
+  }
 #endif
 
   if (_debugPosTracking) {
@@ -5888,13 +5892,11 @@ void ZedCamera::processOdometry()
       mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
 
       if (mTwoDMode) {
-        if (fabs(mFixedZValue) > 1e-6) {
-          tf2::Vector3 tr_2d = mOdom2BaseTransf.getOrigin();
-          tr_2d.setZ(mFixedZValue);
-          mOdom2BaseTransf.setOrigin(tr_2d);
-        }
-
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
+        tf2::Vector3 tr_2d = mOdom2BaseTransf.getOrigin();
+        tr_2d.setZ(mFixedZValue);
+        mOdom2BaseTransf.setOrigin(tr_2d);
+
         double roll, pitch, yaw;
         tf2::Matrix3x3(mOdom2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
@@ -5902,6 +5904,25 @@ void ZedCamera::processOdometry()
         quat_2d.setRPY(0.0, 0.0, yaw);
 
         mOdom2BaseTransf.setRotation(quat_2d);
+#else
+        if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+          tf2::Vector3 tr_2d = mOdom2BaseTransf.getOrigin();
+          tr_2d.setZ(mFixedZValue);
+          mOdom2BaseTransf.setOrigin(tr_2d);
+
+          double roll, pitch, yaw;
+          tf2::Matrix3x3(mOdom2BaseTransf.getRotation())
+          .getRPY(roll, pitch, yaw);
+
+          tf2::Quaternion quat_2d;
+          quat_2d.setRPY(0.0, 0.0, yaw);
+
+          mOdom2BaseTransf.setRotation(quat_2d);
+        } else if (fabs(mFixedZValue) > 1e-6) {
+          tf2::Vector3 tr_2d = mOdom2BaseTransf.getOrigin();
+          tr_2d.setZ(mFixedZValue);
+          mOdom2BaseTransf.setOrigin(tr_2d);
+        }
 #endif
       }
 
@@ -5997,8 +6018,8 @@ void ZedCamera::publishOdom(
       odomMsg->pose.covariance[i] =
         static_cast<double>(slPose.pose_covariance[i]);
 
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
       if (mTwoDMode) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
         if (i == 14 || i == 21 || i == 28) {
           odomMsg->pose.covariance[i] = 1e-9;  // Very low covariance if 2D mode
         } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
@@ -6007,8 +6028,19 @@ void ZedCamera::publishOdom(
         {
           odomMsg->pose.covariance[i] = 0.0;
         }
-      }
+#else
+        if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+          if (i == 14 || i == 21 || i == 28) {
+            odomMsg->pose.covariance[i] = 1e-9;  // Very low covariance if 2D mode
+          } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
+            (i >= 12 && i <= 13) || (i >= 15 && i <= 16) ||
+            (i >= 18 && i <= 20) || (i == 22) || (i >= 24 && i <= 27))
+          {
+            odomMsg->pose.covariance[i] = 0.0;
+          }
+        }
 #endif
+      }
     }
 
     // Odometry twist
@@ -6027,7 +6059,6 @@ void ZedCamera::publishOdom(
       odomMsg->twist.twist.angular.y = angular_velocity.y();
       odomMsg->twist.twist.angular.z = angular_velocity.z();
     }
-
 
     // Publish odometry message
     DEBUG_STREAM_PT("Publishing ODOM message");
@@ -6107,19 +6138,34 @@ void ZedCamera::processPose()
       map_to_sens_transf * mSensor2BaseTransf;    // Base position in map frame
 
     if (mTwoDMode) {
-      if (fabs(mFixedZValue) > 1e-6) {
-        tf2::Vector3 tr_2d = mMap2BaseTransf.getOrigin();
-        tr_2d.setZ(mFixedZValue);
-        mMap2BaseTransf.setOrigin(tr_2d);
-      }
-
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
+      tf2::Vector3 tr_2d = mMap2BaseTransf.getOrigin();
+      tr_2d.setZ(mFixedZValue);
+      mMap2BaseTransf.setOrigin(tr_2d);
+
       tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
 
       tf2::Quaternion quat_2d;
       quat_2d.setRPY(0.0, 0.0, yaw);
 
       mMap2BaseTransf.setRotation(quat_2d);
+#else
+      if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+        tf2::Vector3 tr_2d = mMap2BaseTransf.getOrigin();
+        tr_2d.setZ(mFixedZValue);
+        mMap2BaseTransf.setOrigin(tr_2d);
+
+        tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+        tf2::Quaternion quat_2d;
+        quat_2d.setRPY(0.0, 0.0, yaw);
+
+        mMap2BaseTransf.setRotation(quat_2d);
+      } else if (fabs(mFixedZValue) > 1e-6) {
+        tf2::Vector3 tr_2d = mMap2BaseTransf.getOrigin();
+        tr_2d.setZ(mFixedZValue);
+        mMap2BaseTransf.setOrigin(tr_2d);
+      }
 #endif
     }
 
@@ -6467,17 +6513,25 @@ void ZedCamera::publishPose()
       for (size_t i = 0; i < poseCov->pose.covariance.size(); i++) {
         poseCov->pose.covariance[i] =
           static_cast<double>(mLastZedPose.pose_covariance[i]);
-
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
         if (mTwoDMode) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
           if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
             (i >= 12 && i <= 29) || (i >= 32 && i <= 34))
           {
             poseCov->pose.covariance[i] =
               1e-9;    // Very low covariance if 2D mode
           }
-        }
+#else
+          if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+            if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
+              (i >= 12 && i <= 29) || (i >= 32 && i <= 34))
+            {
+              poseCov->pose.covariance[i] =
+                1e-9;    // Very low covariance if 2D mode
+            }
+          }
 #endif
+        }
       }
 
       // Publish pose with covariance stamped message
@@ -6709,8 +6763,8 @@ void ZedCamera::publishGnssPose()
       msg->pose.covariance[i] =
         static_cast<double>(mLastZedPose.pose_covariance[i]);
 
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
       if (mTwoDMode) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
         if (i == 14 || i == 21 || i == 28) {
           msg->pose.covariance[i] = 1e-9;   // Very low covariance if 2D mode
         } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
@@ -6719,8 +6773,20 @@ void ZedCamera::publishGnssPose()
         {
           msg->pose.covariance[i] = 0.0;
         }
-      }
+#else
+        if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+          if (i == 14 || i == 21 || i == 28) {
+            msg->pose.covariance[i] = 1e-9;  // Very low covariance if 2D mode
+          } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
+            (i >= 12 && i <= 13) || (i >= 15 && i <= 16) ||
+            (i >= 18 && i <= 20) || (i == 22) ||
+            (i >= 24 && i <= 27))
+          {
+            msg->pose.covariance[i] = 0.0;
+          }
+        }
 #endif
+      }
     }
 
     // Publish gnss message
@@ -6784,8 +6850,8 @@ void ZedCamera::publishGnssPose()
       msg->position_covariance[i] =
         static_cast<double>(mLastZedPose.pose_covariance[i]);
 
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
       if (mTwoDMode) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
         if (i == 14 || i == 21 || i == 28) {
           msg->position_covariance[i] = 1e-9;   // Very low covariance if 2D mode
         } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
@@ -6794,8 +6860,21 @@ void ZedCamera::publishGnssPose()
         {
           msg->position_covariance[i] = 0.0;
         }
-      }
+#else
+        if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+          if (i == 14 || i == 21 || i == 28) {
+            msg->position_covariance[i] =
+              1e-9;    // Very low covariance if 2D mode
+          } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
+            (i >= 12 && i <= 13) || (i >= 15 && i <= 16) ||
+            (i >= 18 && i <= 20) || (i == 22) ||
+            (i >= 24 && i <= 27))
+          {
+            msg->position_covariance[i] = 0.0;
+          }
+        }
 #endif
+      }
     }
     // <---- Covariance
 

@@ -1538,6 +1538,10 @@ void ZedCamera::getPosTrackingParams()
       mAreaMemoryFilePath, mAreaMemoryFilePath,
       " * Area Memory File: ");
     sl_tools::getParam(
+      shared_from_this(), "pos_tracking.enable_localization_only",
+      mLocalizationOnly, mLocalizationOnly,
+      " * Enable Localization Only: ");
+    sl_tools::getParam(
       shared_from_this(), "pos_tracking.save_area_memory_on_closing",
       mSaveAreaMemoryOnClosing, mSaveAreaMemoryOnClosing,
       " * Save Area Memory on closing: ");
@@ -3671,6 +3675,7 @@ bool ZedCamera::startPosTracking()
   ptParams.enable_pose_smoothing = mPoseSmoothing;
   ptParams.enable_area_memory = mAreaMemory;
   ptParams.area_file_path = (mAreaFileExists ? mAreaMemoryFilePath.c_str() : "");
+  ptParams.enable_localization_only = mLocalizationOnly;
   ptParams.enable_imu_fusion = mImuFusion;
   ptParams.initial_world_transform = mInitialPoseSl;
   ptParams.set_floor_as_origin = mFloorAlignment;
@@ -3678,6 +3683,14 @@ bool ZedCamera::startPosTracking()
   ptParams.set_as_static = mSetAsStatic;
   ptParams.set_gravity_as_origin = mSetGravityAsOrigin;
   ptParams.mode = mPosTrkMode;
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+  if (mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+    ptParams.enable_2d_ground_mode = mTwoDMode;
+  } else {
+    ptParams.enable_2d_ground_mode = false;
+  }
+#endif
 
   if (_debugPosTracking) {
     DEBUG_PT(" * Positional Tracking parameters:");
@@ -5879,6 +5892,7 @@ void ZedCamera::processOdometry()
       mOdom2BaseTransf = mOdom2BaseTransf * deltaOdomTf_base;
 
       if (mTwoDMode) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
         tf2::Vector3 tr_2d = mOdom2BaseTransf.getOrigin();
         tr_2d.setZ(mFixedZValue);
         mOdom2BaseTransf.setOrigin(tr_2d);
@@ -5890,6 +5904,26 @@ void ZedCamera::processOdometry()
         quat_2d.setRPY(0.0, 0.0, yaw);
 
         mOdom2BaseTransf.setRotation(quat_2d);
+#else
+        if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+          tf2::Vector3 tr_2d = mOdom2BaseTransf.getOrigin();
+          tr_2d.setZ(mFixedZValue);
+          mOdom2BaseTransf.setOrigin(tr_2d);
+
+          double roll, pitch, yaw;
+          tf2::Matrix3x3(mOdom2BaseTransf.getRotation())
+          .getRPY(roll, pitch, yaw);
+
+          tf2::Quaternion quat_2d;
+          quat_2d.setRPY(0.0, 0.0, yaw);
+
+          mOdom2BaseTransf.setRotation(quat_2d);
+        } else if (fabs(mFixedZValue) > 1e-6) {
+          tf2::Vector3 tr_2d = mOdom2BaseTransf.getOrigin();
+          tr_2d.setZ(mFixedZValue);
+          mOdom2BaseTransf.setOrigin(tr_2d);
+        }
+#endif
       }
 
       // Transform twist from sensor frame to base frame
@@ -5985,6 +6019,7 @@ void ZedCamera::publishOdom(
         static_cast<double>(slPose.pose_covariance[i]);
 
       if (mTwoDMode) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
         if (i == 14 || i == 21 || i == 28) {
           odomMsg->pose.covariance[i] = 1e-9;  // Very low covariance if 2D mode
         } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
@@ -5993,6 +6028,18 @@ void ZedCamera::publishOdom(
         {
           odomMsg->pose.covariance[i] = 0.0;
         }
+#else
+        if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+          if (i == 14 || i == 21 || i == 28) {
+            odomMsg->pose.covariance[i] = 1e-9;  // Very low covariance if 2D mode
+          } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
+            (i >= 12 && i <= 13) || (i >= 15 && i <= 16) ||
+            (i >= 18 && i <= 20) || (i == 22) || (i >= 24 && i <= 27))
+          {
+            odomMsg->pose.covariance[i] = 0.0;
+          }
+        }
+#endif
       }
     }
 
@@ -6012,7 +6059,6 @@ void ZedCamera::publishOdom(
       odomMsg->twist.twist.angular.y = angular_velocity.y();
       odomMsg->twist.twist.angular.z = angular_velocity.z();
     }
-
 
     // Publish odometry message
     DEBUG_STREAM_PT("Publishing ODOM message");
@@ -6092,6 +6138,7 @@ void ZedCamera::processPose()
       map_to_sens_transf * mSensor2BaseTransf;    // Base position in map frame
 
     if (mTwoDMode) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
       tf2::Vector3 tr_2d = mMap2BaseTransf.getOrigin();
       tr_2d.setZ(mFixedZValue);
       mMap2BaseTransf.setOrigin(tr_2d);
@@ -6102,6 +6149,24 @@ void ZedCamera::processPose()
       quat_2d.setRPY(0.0, 0.0, yaw);
 
       mMap2BaseTransf.setRotation(quat_2d);
+#else
+      if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+        tf2::Vector3 tr_2d = mMap2BaseTransf.getOrigin();
+        tr_2d.setZ(mFixedZValue);
+        mMap2BaseTransf.setOrigin(tr_2d);
+
+        tf2::Matrix3x3(mMap2BaseTransf.getRotation()).getRPY(roll, pitch, yaw);
+
+        tf2::Quaternion quat_2d;
+        quat_2d.setRPY(0.0, 0.0, yaw);
+
+        mMap2BaseTransf.setRotation(quat_2d);
+      } else if (fabs(mFixedZValue) > 1e-6) {
+        tf2::Vector3 tr_2d = mMap2BaseTransf.getOrigin();
+        tr_2d.setZ(mFixedZValue);
+        mMap2BaseTransf.setOrigin(tr_2d);
+      }
+#endif
     }
 
     // double roll, pitch, yaw;
@@ -6448,14 +6513,24 @@ void ZedCamera::publishPose()
       for (size_t i = 0; i < poseCov->pose.covariance.size(); i++) {
         poseCov->pose.covariance[i] =
           static_cast<double>(mLastZedPose.pose_covariance[i]);
-
         if (mTwoDMode) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
           if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
             (i >= 12 && i <= 29) || (i >= 32 && i <= 34))
           {
             poseCov->pose.covariance[i] =
               1e-9;    // Very low covariance if 2D mode
           }
+#else
+          if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+            if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
+              (i >= 12 && i <= 29) || (i >= 32 && i <= 34))
+            {
+              poseCov->pose.covariance[i] =
+                1e-9;    // Very low covariance if 2D mode
+            }
+          }
+#endif
         }
       }
 
@@ -6689,6 +6764,7 @@ void ZedCamera::publishGnssPose()
         static_cast<double>(mLastZedPose.pose_covariance[i]);
 
       if (mTwoDMode) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
         if (i == 14 || i == 21 || i == 28) {
           msg->pose.covariance[i] = 1e-9;   // Very low covariance if 2D mode
         } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
@@ -6697,6 +6773,19 @@ void ZedCamera::publishGnssPose()
         {
           msg->pose.covariance[i] = 0.0;
         }
+#else
+        if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+          if (i == 14 || i == 21 || i == 28) {
+            msg->pose.covariance[i] = 1e-9;  // Very low covariance if 2D mode
+          } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
+            (i >= 12 && i <= 13) || (i >= 15 && i <= 16) ||
+            (i >= 18 && i <= 20) || (i == 22) ||
+            (i >= 24 && i <= 27))
+          {
+            msg->pose.covariance[i] = 0.0;
+          }
+        }
+#endif
       }
     }
 
@@ -6762,6 +6851,7 @@ void ZedCamera::publishGnssPose()
         static_cast<double>(mLastZedPose.pose_covariance[i]);
 
       if (mTwoDMode) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
         if (i == 14 || i == 21 || i == 28) {
           msg->position_covariance[i] = 1e-9;   // Very low covariance if 2D mode
         } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
@@ -6770,6 +6860,20 @@ void ZedCamera::publishGnssPose()
         {
           msg->position_covariance[i] = 0.0;
         }
+#else
+        if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+          if (i == 14 || i == 21 || i == 28) {
+            msg->position_covariance[i] =
+              1e-9;    // Very low covariance if 2D mode
+          } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
+            (i >= 12 && i <= 13) || (i >= 15 && i <= 16) ||
+            (i >= 18 && i <= 20) || (i == 22) ||
+            (i >= 24 && i <= 27))
+          {
+            msg->position_covariance[i] = 0.0;
+          }
+        }
+#endif
       }
     }
     // <---- Covariance

@@ -7886,23 +7886,26 @@ void ZedCamera::callback_setSvoFrame(
   RCLCPP_INFO_STREAM(get_logger(), "SVO frame set to " << frame);
   res->message = "SVO frame set to " + std::to_string(frame);
 
-  // ----> Set camera pose to identity
-  RCLCPP_WARN(get_logger(), " * Camera pose reset to identity.");
-  mInitialBasePose[0] = 0.0;
-  mInitialBasePose[1] = 0.0;
-  mInitialBasePose[2] = 0.0;
+  if (isPosTrackingRequired()) {
+    // Reset odometry and paths
+    // ----> Set camera pose to identity
+    RCLCPP_WARN(get_logger(), " * Camera pose reset to identity.");
+    mInitialBasePose[0] = 0.0;
+    mInitialBasePose[1] = 0.0;
+    mInitialBasePose[2] = 0.0;
 
-  mInitialBasePose[3] = 0.0;
-  mInitialBasePose[4] = 0.0;
-  mInitialBasePose[5] = 0.0;
+    mInitialBasePose[3] = 0.0;
+    mInitialBasePose[4] = 0.0;
+    mInitialBasePose[5] = 0.0;
 
-  mResetOdomFromSrv = true;
-  mOdomPath.clear();
-  mPosePath.clear();
+    mResetOdomFromSrv = true;
+    mOdomPath.clear();
+    mPosePath.clear();
 
-  // Restart tracking
-  startPosTracking();
-  // <---- Set camera pose to identity
+    // Restart tracking
+    startPosTracking();
+    // <---- Set camera pose to identity
+  }
 
   //if svo is paused, ensure one grab can update topics
   if (mSvoPause) {

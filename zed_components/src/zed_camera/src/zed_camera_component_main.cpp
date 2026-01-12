@@ -199,88 +199,107 @@ void ZedCamera::initNode()
 
 void ZedCamera::deInitNode()
 {
+  DEBUG_COMM("De-initializing ZED Component");
+
   // ----> Stop subscribers
+  DEBUG_COMM("Stopping subscribers");
   mClickedPtSub.reset();
   mGnssFixSub.reset();
   mClockSub.reset();
+  DEBUG_COMM("... subscribers stopped");
   // <---- Stop subscribers
 
+  
+
   if (mObjDetRunning) {
+    DEBUG_COMM("Stopping Object Detection");
     std::lock_guard<std::mutex> lock(mObjDetMutex);
     stopObjDetect();
+    DEBUG_COMM("... Object Detection stopped");
   }
 
   if (mBodyTrkRunning) {
+    DEBUG_COMM("Stopping Body Tracking");
     std::lock_guard<std::mutex> lock(mBodyTrkMutex);
     stopBodyTracking();
+    DEBUG_COMM("... Body Tracking stopped");
   }
 
   if (mSpatialMappingRunning) {
+    DEBUG_COMM("Stopping 3D Mapping");
     std::lock_guard<std::mutex> lock(mMappingMutex);
     stop3dMapping();
+    DEBUG_COMM("... 3D Mapping stopped");
   }
 
-  DEBUG_STREAM_PT("Stopping path timer");
   if (mPathTimer) {
+    DEBUG_COMM("Stopping path timer");
     mPathTimer->cancel();
+    DEBUG_COMM("... path timer stopped");
   }
-  DEBUG_STREAM_MAP("Stopping fused cloud timer");
+  
   if (mFusedPcTimer) {
+    DEBUG_COMM("Stopping fused cloud timer");
     mFusedPcTimer->cancel();
+    DEBUG_COMM("... fused cloud timer stopped");
   }
-
-  DEBUG_STREAM_SENS("Stopping temperatures timer");
+ 
   if (mTempPubTimer) {
+    DEBUG_COMM("Stopping temperatures timer");
     mTempPubTimer->cancel();
+    DEBUG_COMM("... temperatures timer stopped");
   }
 
   // ----> Verify that all the threads are not active
-  DEBUG_STREAM_COMM("Stopping running threads");
+  DEBUG_COMM("Stopping running threads");
   if (!mThreadStop) {
     mThreadStop = true;
-  }
+  }  
 
-  DEBUG_STREAM_COMM("Waiting for grab thread...");
-  try {
-    if (mGrabThread.joinable()) {
-      mGrabThread.join();
-    }
-  } catch (std::system_error & e) {
-    DEBUG_STREAM_COMM("Grab thread joining exception: " << e.what());
-  }
-  DEBUG_STREAM_COMM("... grab thread stopped");
-
-  DEBUG_STREAM_SENS("Waiting for sensors thread...");
+  DEBUG_COMM("Waiting for sensors thread...");
   try {
     if (mSensThread.joinable()) {
       mSensThread.join();
     }
   } catch (std::system_error & e) {
-    DEBUG_STREAM_SENS("Sensors thread joining exception: " << e.what());
+    DEBUG_STREAM_COMM("Sensors thread joining exception: " << e.what());
   }
-  DEBUG_STREAM_SENS("... sensors thread stopped");
+  DEBUG_COMM("... sensors thread stopped");
 
-  DEBUG_STREAM_VD("Waiting for video/depth thread...");
+  DEBUG_COMM("Waiting for video/depth thread...");
   try {
     if (mVdThread.joinable()) {
       mVdThread.join();
     }
   } catch (std::system_error & e) {
-    DEBUG_STREAM_VD("Video/Depth thread joining exception: " << e.what());
+    DEBUG_STREAM_COMM("Video/Depth thread joining exception: " << e.what());
   }
-  DEBUG_STREAM_VD("... video/depth thread stopped");
+  DEBUG_COMM("... video/depth thread stopped");
 
-  DEBUG_STREAM_PC("Waiting for Point Cloud thread...");
+  DEBUG_COMM("Waiting for Point Cloud thread...");
   try {
     if (mPcThread.joinable()) {
       mPcThread.join();
     }
   } catch (std::system_error & e) {
-    DEBUG_STREAM_PC("Pointcloud thread joining exception: " << e.what());
+    DEBUG_STREAM_COMM("Pointcloud thread joining exception: " << e.what());
   }
-  DEBUG_STREAM_PC("... Point Cloud thread stopped");
+  DEBUG_COMM("... Point Cloud thread stopped");
 
+  DEBUG_COMM("Waiting for grab thread...");
+  try {
+    if (mGrabThread.joinable()) {
+      mGrabThread.join();
+    }
+  } catch (std::system_error &e) {
+    DEBUG_STREAM_COMM("Grab thread joining exception: " << e.what());
+  }
+  DEBUG_COMM("... grab thread stopped");
+  // <---- Verify that all the threads are not active
+
+  DEBUG_COMM("All threads stopped. Closing camera...");
   closeCamera();
+  DEBUG_COMM("... camera closed");
 }
 
 ZedCamera::~ZedCamera()
@@ -884,7 +903,7 @@ void ZedCamera::getGeneralParams()
 
   RCLCPP_INFO(get_logger(), "=== GENERAL parameters ===");
 
-  std::string camera_model = "zed";
+  std::string camera_model = "zed2i";
   sl_tools::getParam(
     shared_from_this(), "general.camera_model", camera_model,
     camera_model);
@@ -1091,10 +1110,7 @@ void ZedCamera::getGeneralParams()
           "'AUTO' setting.",
           resol.c_str());
         mCamResol = sl::RESOLUTION::AUTO;
-      }
-      RCLCPP_INFO_STREAM(
-        get_logger(), " * Camera resolution: "
-          << sl::toString(mCamResol).c_str());
+      }      
     } else {
       if (resol == "HD2K") {
         mCamResol = sl::RESOLUTION::HD2K;
@@ -1112,10 +1128,9 @@ void ZedCamera::getGeneralParams()
           resol.c_str());
         mCamResol = sl::RESOLUTION::AUTO;
       }
-      RCLCPP_INFO_STREAM(
-        get_logger(), " * Camera resolution: "
-          << sl::toString(mCamResol).c_str());
     }
+    RCLCPP_INFO_STREAM(get_logger(), " * Camera resolution: "
+                                         << sl::toString(mCamResol).c_str());
   }
 
   std::string out_resol = "NATIVE";
@@ -1397,6 +1412,7 @@ void ZedCamera::getMappingParams()
     mFusedPcPubRate, mFusedPcPubRate,
     " * Map publishing rate [Hz]: ", true, 0.1, 30.0);
 
+  mClickedPtTopic = "/clicked_point";
   sl_tools::getParam(
     shared_from_this(), "mapping.clicked_point_topic",
     mClickedPtTopic, mClickedPtTopic,
@@ -1781,6 +1797,7 @@ void ZedCamera::getAdvancedParams()
 
   RCLCPP_INFO(get_logger(), "=== ADVANCED parameters ===");
 
+  mThreadSchedPolicy = "SCHED_OTHER";
   sl_tools::getParam(
     shared_from_this(), "advanced.thread_sched_policy",
     mThreadSchedPolicy, mThreadSchedPolicy,
@@ -2005,12 +2022,12 @@ void ZedCamera::setTFCoordFrameNames()
   RCLCPP_INFO_STREAM(get_logger(), "=== TF FRAMES ===");
   RCLCPP_INFO_STREAM(get_logger(), " * Map\t\t\t-> " << mMapFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Odometry\t\t-> " << mOdomFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t-> " << mBaseFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Base\t\t\t-> " << mBaseFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Camera\t\t-> " << mCenterFrameId);
-  RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t-> " << mLeftCamFrameId);
+  RCLCPP_INFO_STREAM(get_logger(), " * Left\t\t\t-> " << mLeftCamFrameId);
   RCLCPP_INFO_STREAM(
     get_logger(),
-    " * Left Optical\t-> " << mLeftCamOptFrameId);
+    " * Left Optical\t\t-> " << mLeftCamOptFrameId);
   RCLCPP_INFO_STREAM(get_logger(), " * Right\t\t-> " << mRightCamFrameId);
   RCLCPP_INFO_STREAM(
     get_logger(),
@@ -2366,7 +2383,7 @@ void ZedCamera::initPublishers()
 
 void ZedCamera::initSubscribers()
 {
-  RCLCPP_INFO(get_logger(), "===Subscribers ===");
+  RCLCPP_INFO(get_logger(), "=== Subscribers ===");
   // ----> Clicked Point Subscriber
   /* From `$ ros2 topic info /clicked_point -v`
       QoS profile:
@@ -4535,9 +4552,9 @@ void ZedCamera::threadFunc_zedGrab()
 
   // Infinite grab thread
   while (1) {
-    auto t0 = get_clock()->now().nanoseconds();
     try {
       // ----> Interruption check
+      DEBUG_STREAM_COMM("Grab thread: checking for interruption");
       if (!rclcpp::ok()) {
         mThreadStop = true;
         DEBUG_STREAM_COMM("Ctrl+C received: stopping grab thread");
@@ -4553,7 +4570,7 @@ void ZedCamera::threadFunc_zedGrab()
       if (mSvoMode && mSvoPause) {
         if (!mGrabOnce) {
           rclcpp::sleep_for(100ms);
-  #ifdef USE_SVO_REALTIME_PAUSE
+#ifdef USE_SVO_REALTIME_PAUSE
           // Lock on Positional Tracking mutex to avoid race conditions
           std::lock_guard<std::mutex> lock(mPtMutex);
 
@@ -4577,16 +4594,19 @@ void ZedCamera::threadFunc_zedGrab()
       sl_tools::StopWatch grabElabTimer(get_clock());
 
       // ----> Apply depth settings
+      DEBUG_STREAM_COMM("Grab thread: applying depth settings");
       applyDepthSettings();
       // <---- Apply depth settings
 
       // ----> Apply video dynamic parameters
       if (!mSimMode && !mSvoMode) {
+        DEBUG_STREAM_COMM("Grab thread: applying video settings");
         applyVideoSettings();
       }
       // <---- Apply video dynamic parameters
 
       // ----> Check for Positional Tracking requirement
+      DEBUG_STREAM_COMM("Grab thread: checking Positional Tracking requirement");
       if (isPosTrackingRequired() && !mPosTrackingStarted) {
         static int pt_err_count = 0;
         if (!startPosTracking()) {
@@ -4613,6 +4633,7 @@ void ZedCamera::threadFunc_zedGrab()
       if (!mDepthDisabled) {
         // ----> Check for Spatial Mapping requirement
 
+        DEBUG_STREAM_COMM("Grab thread: checking Spatial Mapping requirement");
         mMappingMutex.lock();
         if (mMappingEnabled && !mSpatialMappingRunning) {
           start3dMapping();
@@ -4625,6 +4646,7 @@ void ZedCamera::threadFunc_zedGrab()
         // <---- Check for Spatial Mapping requirement
 
         // ----> Check for Object Detection requirement
+        DEBUG_STREAM_COMM("Grab thread: checking Object Detection requirement");
         mObjDetMutex.lock();
         if (mObjDetEnabled && !mObjDetRunning) {
           startObjDetect();
@@ -4636,6 +4658,7 @@ void ZedCamera::threadFunc_zedGrab()
         // ----> Check for Object Detection requirement
 
         // ----> Check for Body Tracking requirement
+        DEBUG_STREAM_COMM("Grab thread: checking Body Tracking requirement");
         mBodyTrkMutex.lock();
         if (mBodyTrkEnabled && !mBodyTrkRunning) {
           startBodyTracking();
@@ -4664,17 +4687,18 @@ void ZedCamera::threadFunc_zedGrab()
       // <---- Publish SVO Status information
 
       // Lock on Positional Tracking mutex to avoid race conditions
+      DEBUG_STREAM_COMM("Grab thread: locking PT mutex for grab");
       std::lock_guard<std::mutex> lock(mPtMutex);
 
       // Start processing timer for diagnostic
       grabElabTimer.tic();
 
       // ZED grab
-      //DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
+      DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
 
       mGrabStatus = mZed->grab(mRunParams);
 
-      //DEBUG_COMM("Grabbed");
+      DEBUG_STREAM_COMM("Grab thread: frame grabbed");
 
       // ----> Grab errors?
       // Note: disconnection are automatically handled by the ZED SDK
@@ -4845,9 +4869,11 @@ void ZedCamera::threadFunc_zedGrab()
         }
       }
 
+      DEBUG_STREAM_COMM("Grab thread: publishing health status");
       publishHealthStatus();
 
       // ----> Check recording status
+      DEBUG_STREAM_COMM("Grab thread: checking recording status");
       mRecMutex.lock();
       if (mRecording) {
         mRecStatus = mZed->getRecordingStatus();
@@ -4867,15 +4893,18 @@ void ZedCamera::threadFunc_zedGrab()
       // <---- Check recording status
 
       // ----> Retrieve Image/Depth data if someone has subscribed to
+      DEBUG_STREAM_COMM("Grab thread: retrieving Image/Depth data");
       processVideoDepth();
       // <---- Retrieve Image/Depth data if someone has subscribed to
 
       if (!mDepthDisabled) {
         // ----> Retrieve the point cloud if someone has subscribed to
+        DEBUG_STREAM_COMM("Grab thread: retrieving Point Cloud data");
         processPointCloud();
         // <---- Retrieve the point cloud if someone has subscribed to
 
         // ----> Localization processing
+        DEBUG_STREAM_COMM("Grab thread: Localization processing");
         if (mPosTrackingStarted) {
           if (!mSvoPause) {
             DEBUG_PT("================================================================");
@@ -4900,18 +4929,21 @@ void ZedCamera::threadFunc_zedGrab()
         }
         // <---- Localization processing
 
+        DEBUG_STREAM_COMM("Grab thread: Object Detection processing");
         mObjDetMutex.lock();
         if (mObjDetRunning) {
           processDetectedObjects(mFrameTimestamp);
         }
         mObjDetMutex.unlock();
 
+        DEBUG_STREAM_COMM("Grab thread: Body Tracking processing");
         mBodyTrkMutex.lock();
         if (mBodyTrkRunning) {
           processBodies(mFrameTimestamp);
         }
         mBodyTrkMutex.unlock();
 
+        DEBUG_STREAM_COMM("Grab thread: Region of interest processing");
         // ----> Region of interest
         processRtRoi(mFrameTimestamp);
         // <---- Region of interest
@@ -4937,6 +4969,8 @@ void ZedCamera::threadFunc_zedGrab()
                            << mSvoExpectedPeriod << " sec - Elab time:"
                            << effective_grab_period << " sec");
     }
+
+    DEBUG_STREAM_COMM("Grab thread: iteration completed");
   }
 
   // Stop the heartbeat

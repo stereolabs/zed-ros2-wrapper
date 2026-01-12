@@ -474,7 +474,7 @@ void ZedCamera::getDepthParams()
   }
 
   if (!matched) {
-    mDepthMode = sl::DEPTH_MODE::PERFORMANCE;
+    mDepthMode = sl::DEPTH_MODE::NEURAL;
     if (depth_mode_str != "NEURAL_LIGHT") {
       RCLCPP_WARN(
         get_logger(),
@@ -935,6 +935,7 @@ void ZedCamera::applyDepthSettings()
 
     DEBUG_STREAM_COMM_ONCE("Depth extraction enabled");
     mRunParams.enable_depth = true;
+    
   } else {
     DEBUG_STREAM_COMM_ONCE("Depth extraction disabled");
     mRunParams.enable_depth = false;

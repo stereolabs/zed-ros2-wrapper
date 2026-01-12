@@ -431,7 +431,7 @@ private:
 
   // ----> Parameter variables
   // Debug
-  bool _debugCommon = false;
+  bool _debugCommon = true;
   bool _debugSim = false;
   bool _debugVideoDepth = false;
   bool _debugCamCtrl = false;
@@ -443,7 +443,7 @@ private:
   bool _debugMapping = false;
   bool _debugObjectDet = false;
   bool _debugBodyTrk = false;
-  bool _debugAdvanced = false;
+  bool _debugAdvanced = true;
   bool _debugRoi = false;
   bool _debugStreaming = false;
   bool _debugNitros = false;
@@ -494,11 +494,11 @@ private:
   std::string mStreamAddr = "";  // The local address of the streaming server
   int mStreamPort = 30000;  // The port to be used to connect to a local streaming server
 
-  sl::MODEL mCamUserModel = sl::MODEL::ZED;  // Default camera model
-  sl::MODEL mCamRealModel;                   // Camera model requested to SDK
-  unsigned int mCamFwVersion;                // Camera FW version
-  unsigned int mSensFwVersion;               // Sensors FW version
-  std::string mCameraName = "zed";           // Default camera name
+  sl::MODEL mCamUserModel = sl::MODEL::ZED2i;  // Default camera model
+  sl::MODEL mCamRealModel;                     // Camera model requested to SDK
+  unsigned int mCamFwVersion;                  // Camera FW version
+  unsigned int mSensFwVersion;                 // Sensors FW version
+  std::string mCameraName = "zed";             // Default camera name
   int mCamGrabFrameRate = 15;
   bool mAsyncImageRetrieval = false;
   int mImageValidityCheck = 1;
@@ -516,9 +516,9 @@ private:
   std::string mVerboseLogFile = "";
   int mGpuId = -1;
   std::string mOpencvCalibFile;
-  sl::RESOLUTION mCamResol = sl::RESOLUTION::HD1080;    // Default resolution: RESOLUTION_HD1080
-  PubRes mPubResolution = PubRes::NATIVE;                     // Use native grab resolution by default
-  double mCustomDownscaleFactor = 1.0;  // Used to rescale data with user factor
+  sl::RESOLUTION mCamResol = sl::RESOLUTION::AUTO;    // Default resolution: AUTOMATIC
+  PubRes mPubResolution = PubRes::NATIVE;             // Use native grab resolution by default
+  double mCustomDownscaleFactor = 1.0;                // Used to rescale data with user factor
   bool mOpenniDepthMode =
     false;    // 16 bit UC data in mm else 32F in m,
               // for more info -> http://www.ros.org/reps/rep-0118.html
@@ -527,7 +527,7 @@ private:
   sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::NEURAL;
   PcRes mPcResolution = PcRes::COMPACT;
   bool mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE)
-  int mDepthStabilization = 1;
+  int mDepthStabilization = 0;
 
   int mCamTimeoutSec = 5;
   int mMaxReconnectTemp = 5;
@@ -639,9 +639,9 @@ private:
   double mPdNormalSimilarityThreshold = 15.0;
 
   std::string mThreadSchedPolicy;
-  int mThreadPrioGrab;
-  int mThreadPrioSens;
-  int mThreadPrioPointCloud;
+  int mThreadPrioGrab = 50;
+  int mThreadPrioSens = 70;
+  int mThreadPrioPointCloud = 60;
 
   std::atomic<bool> mStreamingServerRequired;
   sl::STREAMING_CODEC mStreamingServerCodec = sl::STREAMING_CODEC::H264;

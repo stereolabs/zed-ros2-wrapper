@@ -84,7 +84,7 @@ source ~/.bashrc
 
 ## Starting the ZED node
 
-> :pushpin: **Note:** we recommend reading [this ROS 2 tuning guide](https://www.stereolabs.com/docs/ros2/150_dds_and_network_tuning) to improve the ROS 2 experience with ZED.
+> :pushpin: **Note:** we recommend reading [this ROS 2 tuning guide](https://www.stereolabs.com/docs/ros2/dds_and_network_tuning) to improve the ROS 2 experience with ZED.
 
 To start the ZED node, open a bash terminal and use the [CLI](https://index.ros.org/doc/ros2/Tutorials/Introspection-with-command-line-tools/) command `ros2 launch`:
 

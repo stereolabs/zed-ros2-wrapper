@@ -873,6 +873,7 @@ bool ZedCamera::isDepthRequired()
   // DEBUG_STREAM_COMM( "isDepthRequired called");
 
   if (mDepthDisabled) {
+    DEBUG_STREAM_COMM("Depth not required: depth disabled");
     return false;
   }
 
@@ -933,11 +934,11 @@ void ZedCamera::applyDepthSettings()
       mDepthTextConf;      // Update depth texture confidence if changed
     mRunParams.remove_saturated_areas = mRemoveSatAreas;
 
-    DEBUG_STREAM_COMM_ONCE("Depth extraction enabled");
+    DEBUG_STREAM_COMM("Depth processing enabled");
     mRunParams.enable_depth = true;
-    
+
   } else {
-    DEBUG_STREAM_COMM_ONCE("Depth extraction disabled");
+    DEBUG_STREAM_COMM("Depth processing disabled");
     mRunParams.enable_depth = false;
   }
 }

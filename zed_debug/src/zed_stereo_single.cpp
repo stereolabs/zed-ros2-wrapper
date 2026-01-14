@@ -40,5 +40,6 @@ int main(int argc, char ** argv)
   executor.add_node(zed_stereo_component);
   executor.spin();
   rclcpp::shutdown();
+
   return 0;
 }

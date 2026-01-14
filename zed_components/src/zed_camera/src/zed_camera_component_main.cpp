@@ -209,7 +209,6 @@ void ZedCamera::deInitNode()
   DEBUG_COMM("... subscribers stopped");
   // <---- Stop subscribers
 
-  
 
   if (mObjDetRunning) {
     DEBUG_COMM("Stopping Object Detection");
@@ -237,13 +236,13 @@ void ZedCamera::deInitNode()
     mPathTimer->cancel();
     DEBUG_COMM("... path timer stopped");
   }
-  
+
   if (mFusedPcTimer) {
     DEBUG_COMM("Stopping fused cloud timer");
     mFusedPcTimer->cancel();
     DEBUG_COMM("... fused cloud timer stopped");
   }
- 
+
   if (mTempPubTimer) {
     DEBUG_COMM("Stopping temperatures timer");
     mTempPubTimer->cancel();
@@ -254,7 +253,7 @@ void ZedCamera::deInitNode()
   DEBUG_COMM("Stopping running threads");
   if (!mThreadStop) {
     mThreadStop = true;
-  }  
+  }
 
   DEBUG_COMM("Waiting for sensors thread...");
   try {
@@ -291,7 +290,7 @@ void ZedCamera::deInitNode()
     if (mGrabThread.joinable()) {
       mGrabThread.join();
     }
-  } catch (std::system_error &e) {
+  } catch (std::system_error & e) {
     DEBUG_STREAM_COMM("Grab thread joining exception: " << e.what());
   }
   DEBUG_COMM("... grab thread stopped");
@@ -1110,7 +1109,7 @@ void ZedCamera::getGeneralParams()
           "'AUTO' setting.",
           resol.c_str());
         mCamResol = sl::RESOLUTION::AUTO;
-      }      
+      }
     } else {
       if (resol == "HD2K") {
         mCamResol = sl::RESOLUTION::HD2K;
@@ -1129,8 +1128,9 @@ void ZedCamera::getGeneralParams()
         mCamResol = sl::RESOLUTION::AUTO;
       }
     }
-    RCLCPP_INFO_STREAM(get_logger(), " * Camera resolution: "
-                                         << sl::toString(mCamResol).c_str());
+    RCLCPP_INFO_STREAM(
+      get_logger(), " * Camera resolution: "
+        << sl::toString(mCamResol).c_str());
   }
 
   std::string out_resol = "NATIVE";
@@ -4696,9 +4696,25 @@ void ZedCamera::threadFunc_zedGrab()
       // ZED grab
       DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
 
-      mGrabStatus = mZed->grab(mRunParams);
+      if(_debugComm) {
+        sl::String json;
+        mRunParams.encode(json);
+        DEBUG_STREAM_COMM("Grab thread: Grab parameters: " << std::string(json));
 
-      DEBUG_STREAM_COMM("Grab thread: frame grabbed");
+        mInitParams.encode(json);
+        DEBUG_STREAM_COMM("Grab thread: Init parameters: " << std::string(json));
+      }
+      
+      if (isDepthRequired() ) {
+        DEBUG_COMM("Grab thread: grabbing...");
+        mGrabStatus = mZed->grab(mRunParams);  // Process the full pipeline with depth
+
+      } else {
+        DEBUG_COMM("Grab thread: reading...");
+        mGrabStatus = mZed->read();  // Image and sensor data reading with no depth processing
+      }
+
+      DEBUG_COMM("Grab thread: frame grabbed");
 
       // ----> Grab errors?
       // Note: disconnection are automatically handled by the ZED SDK

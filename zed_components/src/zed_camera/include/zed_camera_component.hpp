@@ -522,8 +522,8 @@ private:
   bool mOpenniDepthMode =
     false;    // 16 bit UC data in mm else 32F in m,
               // for more info -> http://www.ros.org/reps/rep-0118.html
-  double mCamMinDepth = 0.1;
-  double mCamMaxDepth = 10.0;
+  double mCamMinDepth = 0.01;
+  double mCamMaxDepth = 15.0;
   sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::NEURAL;
   PcRes mPcResolution = PcRes::COMPACT;
   bool mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE)
@@ -668,9 +668,9 @@ private:
   int mCamExposure = 80;
   bool mCamAutoWB = true;
   int mCamWBTemp = 42;
-  int mDepthConf = 50;
+  int mDepthConf = 95;
   int mDepthTextConf = 100;
-  double mPcPubRate = 15.0;
+  double mPcPubRate = 10.0;
   double mFusedPcPubRate = 1.0;
   bool mRemoveSatAreas = true;
 

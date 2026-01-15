@@ -137,27 +137,31 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   sl::setEnvironmentVariable("ZED_SDK_DISABLE_PROGRESS_BAR_LOG", "1");
 #endif
 
-  // ----> Publishers/Subscribers options
-  #ifndef FOUND_FOXY
-  mPubOpt.qos_overriding_options =
-    rclcpp::QosOverridingOptions::with_default_policies();
-  mSubOpt.qos_overriding_options =
-    rclcpp::QosOverridingOptions::with_default_policies();
-  #endif
-  // <---- Publishers/Subscribers options
-
   // ----> Start a "one shot timer" to initialize the node and make `shared_from_this` available
   std::chrono::milliseconds init_msec(static_cast<int>(50.0));
   mInitTimer = create_wall_timer(
-    std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
-    std::bind(&ZedCamera::initNode, this));
+   std::chrono::duration_cast<std::chrono::milliseconds>(init_msec),
+   std::bind(&ZedCamera::initNode, this));
   // <---- Start a "one shot timer" to initialize the node and make `shared_from_this` available
+
+  RCLCPP_INFO(get_logger(), "Waiting for node initialization...");
 }
 
 void ZedCamera::initNode()
 {
+  RCLCPP_INFO(get_logger(), "Starting node initialization...");
+
   // Stop the timer for "one shot" initialization
   mInitTimer->cancel();
+
+  // ----> Publishers/Subscribers options
+#ifndef FOUND_FOXY
+  mPubOpt.qos_overriding_options =
+      rclcpp::QosOverridingOptions::with_default_policies();
+  mSubOpt.qos_overriding_options =
+      rclcpp::QosOverridingOptions::with_default_policies();
+#endif
+  // <---- Publishers/Subscribers options
 
   // Parameters initialization
   initParameters();

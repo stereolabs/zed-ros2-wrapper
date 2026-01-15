@@ -27,12 +27,10 @@ int main(int argc, char ** argv)
 
   auto zed_stereo_component = std::make_shared<stereolabs::ZedCamera>(options);
 
-  rclcpp::executors::SingleThreadedExecutor executor;
+  rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(zed_stereo_component);
   executor.spin();
   rclcpp::shutdown();
-
-  zed_stereo_component.reset();
 
   return 0;
 }

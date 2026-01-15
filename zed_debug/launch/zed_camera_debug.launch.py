@@ -30,38 +30,35 @@ from launch.substitutions import (
     TextSubstitution
 )
 from launch_ros.actions import (
-    Node,
-    ComposableNodeContainer,
-    LoadComposableNodes
+    Node
 )
-from launch_ros.descriptions import ComposableNode
 
 # Enable colored output
 os.environ["RCUTILS_COLORIZED_OUTPUT"] = "1"
 
 # ZED Configurations to be loaded by ZED Node
 default_config_common = os.path.join(
-    get_package_share_directory('zed_wrapper'),
+    get_package_share_directory('zed_debug'),
     'config',
     'common'
 )
 
 # Object Detection Configuration to be loaded by ZED Node
 default_object_detection_config_path = os.path.join(
-    get_package_share_directory('zed_wrapper'),
+    get_package_share_directory('zed_debug'),
     'config',
     'object_detection.yaml'
 )
 # Custom Object Detection Configuration to be loaded by ZED Node
 default_custom_object_detection_config_path = os.path.join(
-    get_package_share_directory('zed_wrapper'),
+    get_package_share_directory('zed_debug'),
     'config',
     'custom_object_detection.yaml'
 )
 
 # URDF/xacro file to be loaded by the Robot State Publisher node
 default_xacro_path = os.path.join(
-    get_package_share_directory('zed_wrapper'),
+    get_package_share_directory('zed_description'),
     'urdf',
     'zed_descr.urdf.xacro'
 )
@@ -82,7 +79,6 @@ def launch_setup(context, *args, **kwargs):
     svo_path = LaunchConfiguration('svo_path')
     publish_svo_clock = LaunchConfiguration('publish_svo_clock')
 
-    enable_ipc = LaunchConfiguration('enable_ipc')
     use_sim_time = LaunchConfiguration('use_sim_time')
     sim_mode = LaunchConfiguration('sim_mode')
     sim_address = LaunchConfiguration('sim_address')
@@ -91,7 +87,6 @@ def launch_setup(context, *args, **kwargs):
     stream_address = LaunchConfiguration('stream_address')
     stream_port = LaunchConfiguration('stream_port')
 
-    container_name = LaunchConfiguration('container_name')
     namespace = LaunchConfiguration('namespace')
     camera_name = LaunchConfiguration('camera_name')
     camera_model = LaunchConfiguration('camera_model')
@@ -118,7 +113,6 @@ def launch_setup(context, *args, **kwargs):
     gnss_antenna_offset = LaunchConfiguration('gnss_antenna_offset')
 
     node_log_type_val = node_log_type.perform(context)
-    container_name_val = container_name.perform(context)
     namespace_val = namespace.perform(context)
     camera_name_val = camera_name.perform(context)
     camera_model_val = camera_model.perform(context)
@@ -152,9 +146,9 @@ def launch_setup(context, *args, **kwargs):
             ]
     
     if(namespace_val == ''):
-        namespace_val = camera_name_val
+        namespace_val = camera_name_val + '_debug'
     else:
-        node_name_val = camera_name_val
+        node_name_val = camera_name_val + '_debug'
     
     # Common configuration file
     if (camera_model_val == 'zed' or 
@@ -176,7 +170,7 @@ def launch_setup(context, *args, **kwargs):
 
     # Camera configuration file
     config_camera_path = os.path.join(
-        get_package_share_directory('zed_wrapper'),
+        get_package_share_directory('zed_debug'),
         'config',
         camera_model_val + '.yaml'
     )
@@ -246,9 +240,9 @@ def launch_setup(context, *args, **kwargs):
     node_parameters = [
             # YAML files
             config_common_path_val,  # Common parameters
-            config_camera_path,  # Camera related parameters
-            object_detection_config_path, # Object detection parameters
-            custom_object_detection_config_path # Custom object detection parameters
+            #config_camera_path,  # Camera related parameters
+            #object_detection_config_path, # Object detection parameters
+            #custom_object_detection_config_path # Custom object detection parameters
     ]
 
     if( ros_params_override_path_val != ''):
@@ -277,17 +271,16 @@ def launch_setup(context, *args, **kwargs):
                 'general.virtual_camera_ids': camera_ids_val
             }
     )
-    return_array.append(rsp_node)
 
     # ZED Wrapper node with hardcoded container
     zed_node = Node(
+        executable='zed_stereo_single',
         package='zed_debug',
-        namespace=namespace_val,
-        executable='zed_debug_node',
         name=node_name_val,
-        parameters=node_parameters,
-        extra_arguments=[{'use_intra_process_comms': enable_ipc}]
+        namespace=namespace_val,
+        parameters=node_parameters
     )
+    return_array.append(zed_node)
 
     return return_array
 
@@ -309,17 +302,13 @@ def generate_launch_description():
                 description='[REQUIRED] The model of the camera. Using a wrong camera model can disable camera features.',
                 choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'zedxhdr', 'zedxhdrmini', 'zedxhdrmax', 'virtual', 'zedxonegs', 'zedxone4k', 'zedxonehdr']),
             DeclareLaunchArgument(
-                'container_name',
-                default_value='',
-                description='The name of the container to be used to load the ZED component. If empty (default) a new container will be created.'),
-            DeclareLaunchArgument(
                 'namespace',
                 default_value='',
                 description='The namespace of the node. If empty (default) the camera name is used.'),
             DeclareLaunchArgument(
                 'node_name',
                 default_value='zed_debug_node',
-                description='The name of the zed_wrapper node. All the topic will have the same prefix: `/<camera_name>/<node_name>/`. If a namespace is specified, the node name is replaced by the camera name.'),
+                description='The name of the zed_debug node. All the topic will have the same prefix: `/<camera_name>/<node_name>/`. If a namespace is specified, the node name is replaced by the camera name.'),
             DeclareLaunchArgument(
                 'ros_params_override_path',
                 default_value='',
@@ -389,11 +378,6 @@ def generate_launch_description():
                 'gnss_antenna_offset',
                 default_value='[]',
                 description='Position of the GNSS antenna with respect to the mounting point of the ZED camera. Format: [x,y,z]'),
-            DeclareLaunchArgument(
-                'enable_ipc',
-                default_value='true',
-                description='Enable intra-process communication (IPC) with ROS 2 Composition',
-                choices=['true', 'false']),
             DeclareLaunchArgument(
                 'use_sim_time',
                 default_value='false',

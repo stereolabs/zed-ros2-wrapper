@@ -443,7 +443,7 @@ private:
   bool _debugMapping = false;
   bool _debugObjectDet = false;
   bool _debugBodyTrk = false;
-  bool _debugAdvanced = true;
+  bool _debugAdvanced = false;
   bool _debugRoi = false;
   bool _debugStreaming = false;
   bool _debugNitros = false;
@@ -951,6 +951,7 @@ private:
   std::thread mPcThread;          // Point Cloud publish thread
   std::thread mSensThread;        // Sensors data publish thread
   std::atomic<bool> mThreadStop;
+  std::atomic<bool> mNodeDeinitialized;
   rclcpp::TimerBase::SharedPtr mInitTimer;
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;

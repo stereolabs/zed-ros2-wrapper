@@ -21,16 +21,7 @@ int main(int argc, char ** argv)
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
   rclcpp::init(argc, argv);
-  //   if (rclcpp::signal_handlers_installed()) {
-  //     RCLCPP_INFO(
-  //       rclcpp::get_logger("zed_stereo_single"),
-  //       "Signal handlers are installed.");
-  //   } else {
-  //     RCLCPP_WARN(
-  //       rclcpp::get_logger("zed_stereo_single"),
-  //       "Signal handlers are NOT installed.");
-  //   }
-
+  
   rclcpp::NodeOptions options;
   options.use_intra_process_comms(false);
 
@@ -40,6 +31,8 @@ int main(int argc, char ** argv)
   executor.add_node(zed_stereo_component);
   executor.spin();
   rclcpp::shutdown();
+
+  zed_stereo_component.reset();
 
   return 0;
 }

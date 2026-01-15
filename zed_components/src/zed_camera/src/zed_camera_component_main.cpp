@@ -65,6 +65,7 @@ namespace stereolabs
 ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
 : Node("zed_node", options),
   mThreadStop(false),
+  mNodeDeinitialized(false),
   mQos(QOS_QUEUE_SIZE),
   mAiInstanceID(0),
   mDiagUpdater(this),
@@ -199,6 +200,11 @@ void ZedCamera::initNode()
 
 void ZedCamera::deInitNode()
 {
+  if(mNodeDeinitialized) {
+    return;
+  }
+  mNodeDeinitialized = true;
+
   DEBUG_COMM("De-initializing ZED Component");
 
   // ----> Stop subscribers
@@ -208,7 +214,6 @@ void ZedCamera::deInitNode()
   mClockSub.reset();
   DEBUG_COMM("... subscribers stopped");
   // <---- Stop subscribers
-
 
   if (mObjDetRunning) {
     DEBUG_COMM("Stopping Object Detection");
@@ -304,7 +309,9 @@ void ZedCamera::deInitNode()
 ZedCamera::~ZedCamera()
 {
   deInitNode();
-  DEBUG_STREAM_COMM("ZED Component destroyed:" << this->get_fully_qualified_name());
+  if(_debugCommon) {
+    std::cout << "[ZedCamera] Destructor called" << std::endl << std::flush;
+  }
 }
 
 void ZedCamera::initServices()
@@ -4696,7 +4703,7 @@ void ZedCamera::threadFunc_zedGrab()
       // ZED grab
       DEBUG_STREAM_COMM("Grab thread: grabbing frame #" << mFrameCount);
 
-      if(_debugComm) {
+      if (_debugCommon) {
         sl::String json;
         mRunParams.encode(json);
         DEBUG_STREAM_COMM("Grab thread: Grab parameters: " << std::string(json));
@@ -4704,7 +4711,7 @@ void ZedCamera::threadFunc_zedGrab()
         mInitParams.encode(json);
         DEBUG_STREAM_COMM("Grab thread: Init parameters: " << std::string(json));
       }
-      
+
       if (isDepthRequired() ) {
         DEBUG_COMM("Grab thread: grabbing...");
         mGrabStatus = mZed->grab(mRunParams);  // Process the full pipeline with depth

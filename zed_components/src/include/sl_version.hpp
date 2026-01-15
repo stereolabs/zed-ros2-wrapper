@@ -20,8 +20,8 @@
 namespace stereolabs
 {
 const size_t WRAPPER_MAJOR = 5;
-const size_t WRAPPER_MINOR = 1;
-const size_t WRAPPER_PATCH = 1;
+const size_t WRAPPER_MINOR = 2;
+const size_t WRAPPER_PATCH = 0;
 
 const size_t SDK_MAJOR_MIN_SUPP = 4;
 const size_t SDK_MINOR_MIN_SUPP = 2;

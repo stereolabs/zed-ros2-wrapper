@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2026-01-15
+----------
+- The new default positional tracking mode is now `GEN_3` for improved odometry and localization performance with ZED SDK v5.2.
+
 2025-12-18
 ----------
 - Added the `enable_localization_only` parameter to the configuration to allow the camera to localize in the loaded area memory without updating the map with new information.

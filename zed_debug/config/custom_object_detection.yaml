@@ -1,0 +1,1623 @@
+# Example of a custom object detection configuration file for the ZED ROS2 wrapper
+# This file is used to configure the CUSTOM object detection parameters for the ZED camera.
+# The parameters are defined in a YAML format and can be modified to suit the user's needs.
+# The parameters are divided into sections for each CUSTOM object class, with each section containing
+# specific parameters for that class.
+
+# This is an example of configuration file for a custom object detection model trained on the COCO dataset.
+# COCO 2017 dataset https://cocodataset.org by Microsoft
+
+# To create a custom ONNX model, you can follow the online documentation: https://www.stereolabs.com/docs/yolo/export
+
+/**:
+  ros__parameters:
+      object_detection:
+          custom_onnx_file: '' # Path to the YOLO-like ONNX file for custom object detection directly performed by the ZED SDK
+          custom_onnx_input_size: 512 # Resolution used with the YOLO-like ONNX file. For example, 512 means a input tensor '1x3x512x512' 
+          
+          custom_class_count: 80 # Number of classes in the custom ONNX file. For example, 80 for YOLOv8 trained on COCO dataset
+
+          # TODO: Add one instance of each class to the list below
+          # Note: create a class_XXX identifier for each class in the custom ONNX file.
+          # Note: XXX is a number from 000 to 'custom_class_count-1', and it must be unique for each class.
+          # Note: the class_XXX identifier is not required to match the class ID [model_class_id] in the custom ONNX file.
+
+          class_000:
+            label: 'person'
+            model_class_id: 0 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_001:
+            label: 'bicycle'
+            model_class_id: 1 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_002:
+            label: 'car'
+            model_class_id: 2 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_003:
+            label: 'motorcycle'
+            model_class_id: 3 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_004:
+            label: 'airplane'
+            model_class_id: 4 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_005:
+            label: 'bus'
+            model_class_id: 5 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_006:
+            label: 'train'
+            model_class_id: 6 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_007:
+            label: 'truck'
+            model_class_id: 7 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_008:
+            label: 'boat'
+            model_class_id: 8 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_009:
+            label: 'traffic light'
+            model_class_id: 9 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_010:
+            label: 'fire hydrant'
+            model_class_id: 10 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_011:
+            label: 'stop sign'
+            model_class_id: 11 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_012:
+            label: 'parking meter'
+            model_class_id: 12 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_013:
+            label: 'bench'
+            model_class_id: 13 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_014:
+            label: 'bird'
+            model_class_id: 14 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_015:
+            label: 'cat'
+            model_class_id: 15 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_016:
+            label: 'dog'
+            model_class_id: 16 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_017:
+            label: 'horse'
+            model_class_id: 17 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_018:
+            label: 'sheep'
+            model_class_id: 18 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_019:
+            label: 'cow'
+            model_class_id: 19 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_020:
+            label: 'elephant'
+            model_class_id: 20 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_021:
+            label: 'bear'
+            model_class_id: 21 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_022:
+            label: 'zebra'
+            model_class_id: 22 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_023:
+            label: 'giraffe'
+            model_class_id: 23 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_024:
+            label: 'backpack'
+            model_class_id: 24 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_025:
+            label: 'umbrella'
+            model_class_id: 25 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_026:
+            label: 'handbag'
+            model_class_id: 26 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_027:
+            label: 'tie'
+            model_class_id: 27 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_028:
+            label: 'suitcase'
+            model_class_id: 28 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_029:
+            label: 'frisbee'
+            model_class_id: 29 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_030:
+            label: 'skis'
+            model_class_id: 30 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_031:
+            label: 'snowboard'
+            model_class_id: 31 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_032:
+            label: 'pesports ballrson'
+            model_class_id: 32 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_033:
+            label: 'kite'
+            model_class_id: 33 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)  
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_034:
+            label: 'baseball bat'
+            model_class_id: 34 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_035:
+            label: 'baseball glove'
+            model_class_id: 35 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_036:
+            label: 'skateboard'
+            model_class_id: 36 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_037:
+            label: 'surfboard'
+            model_class_id: 37 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_038:
+            label: 'tennis racket'
+            model_class_id: 38 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_039:
+            label: 'bottle'
+            model_class_id: 39 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_040:
+            label: 'wine glass'
+            model_class_id: 40 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_041:
+            label: 'cup'
+            model_class_id: 41 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_042:
+            label: 'fork'
+            model_class_id: 42 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_043:
+            label: 'knife'
+            model_class_id: 43 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_044:
+            label: 'spoon'
+            model_class_id: 44 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_045:
+            label: 'bowl'
+            model_class_id: 45 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_046:
+            label: 'banana'
+            model_class_id: 46 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_047:
+            label: 'apple'
+            model_class_id: 47 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_048:
+            label: 'sandwich'
+            model_class_id: 48 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_049:
+            label: 'orange'
+            model_class_id: 49 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_050:
+            label: 'broccoli'
+            model_class_id: 50 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_051:
+            label: 'carrot'
+            model_class_id: 51 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_052:
+            label: 'hot dog'
+            model_class_id: 52 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_053:
+            label: 'pizza'
+            model_class_id: 53 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_054:
+            label: 'donut'
+            model_class_id: 54 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_055:
+            label: 'cake'
+            model_class_id: 55 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_056:
+            label: 'chair'
+            model_class_id: 56 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_057:
+            label: 'couch'
+            model_class_id: 57 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_058:
+            label: 'potted plant'
+            model_class_id: 58 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_059:
+            label: 'bed'
+            model_class_id: 59 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_060:
+            label: 'dining table'
+            model_class_id: 60 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_061:
+            label: 'toilet'
+            model_class_id: 61 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_062:
+            label: 'tv'
+            model_class_id: 62 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_063:
+            label: 'laptop'
+            model_class_id: 63 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_064:
+            label: 'mouse'
+            model_class_id: 64 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_065:
+            label: 'remote'
+            model_class_id: 65 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_066:
+            label: 'keyboard'
+            model_class_id: 66 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_067:
+            label: 'cell phone'
+            model_class_id: 67 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_068:
+            label: 'microwave'
+            model_class_id: 68 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_069:
+            label: 'oven'
+            model_class_id: 69 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_070:
+            label: 'toaster'
+            model_class_id: 70 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_071:
+            label: 'sink'
+            model_class_id: 71 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_072:
+            label: 'refrigerator'
+            model_class_id: 72 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_073:
+            label: 'book'
+            model_class_id: 73 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_074:
+            label: 'clock'
+            model_class_id: 74 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_075:
+            label: 'vase'
+            model_class_id: 75 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)  
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: true # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: true # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_076:
+            label: 'scissors'
+            model_class_id: 76 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_077:
+            label: 'teddy bear'
+            model_class_id: 77 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_078:
+            label: 'hair drier'
+            model_class_id: 78 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
+
+          class_079:
+            label: 'toothbrush'
+            model_class_id: 79 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
+            enabled: true # Enable/disable the detection of this class
+            confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
+            is_grounded: false # Provide hypothesis about the object movements (degrees of freedom or DoF) to improve the object tracking
+            is_static: false # Provide hypothesis about the object staticity to improve the object tracking
+            tracking_timeout: -1.0 # Maximum tracking time threshold (in seconds) before dropping the tracked object when unseen for this amount of time
+            tracking_max_dist: -1.0 # Maximum tracking distance threshold (in meters) before dropping the tracked object when unseen for this amount of meters. Only valid for static object
+            max_box_width_normalized: -1.0 # Maximum allowed width normalized to the image size
+            min_box_width_normalized: -1.0 # Minimum allowed width normalized to the image size
+            max_box_height_normalized: -1.0 # Maximum allowed height normalized to the image size
+            min_box_height_normalized: -1.0 # Minimum allowed height normalized to the image size
+            max_box_width_meters: -1.0 # Maximum allowed 3D width
+            min_box_width_meters: -1.0 # Minimum allowed 3D width
+            max_box_height_meters: -1.0 # Maximum allowed 3D height
+            min_box_height_meters: -1.0 # Minimum allowed 3D height
+            object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
+            max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.

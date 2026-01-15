@@ -1,0 +1,82 @@
+# config/common_mono.yaml
+# Common parameters to Stereolabs ZED Stereo cameras
+
+---
+/**:
+    ros__parameters:
+        general:
+            serial_number: 0 # overwritten by launch file
+            pub_resolution: "CUSTOM" # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
+            pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
+            gpu_id: -1
+            optional_opencv_calibration_file: "" # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
+            publish_status: true # Enable/Disable the publishing of the camera status topic
+
+        svo:
+            use_svo_timestamps: true # Use the SVO timestamps to publish data. If false, data will be published at the system time.
+            publish_svo_clock: true # [overwritten by launch file options] When use_svo_timestamps is true allows to publish the SVO clock to the `/clock` topic. This is useful for synchronous rosbag playback.
+            svo_loop: false # Enable loop mode when using an SVO as input source. NOTE: ignored if SVO timestamping is used
+            svo_realtime: true # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
+            play_from_frame: 0 # Start playing the SVO from a specific frame
+
+        video:
+            saturation: 4 # [DYNAMIC]
+            sharpness: 4 # [DYNAMIC]
+            gamma: 8 # [DYNAMIC]
+            auto_whitebalance: true # [DYNAMIC]
+            whitebalance_temperature: 42 # [DYNAMIC] - [28,65] x100 - works only if `auto_whitebalance` is false
+            auto_exposure: true # [DYNAMIC] - Enables or disables auto exposure control. false: manual, true: auto
+            exposure_time: 16000 # [DYNAMIC] - Defines the real exposure time in microseconds. Recommended to control manual exposure (instead of `video.exposure` setting)          
+            auto_exposure_time_range_min: 28 # [DYNAMIC] - Defines the minimum range of exposure auto control in micro seconds
+            auto_exposure_time_range_max: 30000 # [DYNAMIC] - Defines the maximum range of exposure auto control in micro seconds
+            exposure_compensation: 50 # [DYNAMIC] - Defines the Exposure-target compensation made after auto exposure. Reduces the overall illumination target by factor of F-stops. Values range is [0 - 100]. Default value is 50, i.e. no compensation applied
+            auto_analog_gain: true # [DYNAMIC] - Enables or disables auto gain control. false: manual, true: auto
+            analog_gain: 1255 # [DYNAMIC] - Defines the real analog gain (sensor) in mDB. Range [1000-16000]. Recommended to control manual sensor gain (instead of `video.gain` setting)
+            auto_analog_gain_range_min: 1000 # [DYNAMIC] - Defines the minimum range of sensor gain in automatic control
+            auto_analog_gain_range_max: 16000 # [DYNAMIC] - Defines the maximum range of sensor gain in automatic control
+            auto_digital_gain: false # [DYNAMIC] - Enables or disables auto digital gain control. false: manual, true: auto
+            digital_gain: 1 # [DYNAMIC] - Defines the real digital gain (ISP) as a factor. Range [1-256]. Recommended to control manual ISP gain (instead of `video.gain` setting)
+            auto_digital_gain_range_min: 1 # [DYNAMIC] - Defines the minimum range of digital ISP gain in automatic control
+            auto_digital_gain_range_max: 256 # [DYNAMIC] - Defines the maximum range of digital ISP gain in automatic control
+            denoising: 50 # [DYNAMIC] - Defines the level of denoising applied on both left and right images. Range [0-100]
+            enable_24bit_output: false # [SDK >= 5.1] Enable BGR 24-bit output for lower bandwidth usage. If false, BGRA 32-bit output is used (old way before SDK v5.1)
+            publish_rgb: true # Advertise the RGB image topics that are published only if a node subscribes to them
+            publish_gray: false # Advertise the gray image topics that are published only if a node subscribes to them
+            publish_raw: false # Advertise the raw image topics that are published only if a node subscribes to them (only if 'publish_rgb' or 'publish_gray' is true)
+
+        sensors:
+            publish_imu_tf: true # [overwritten by launch file options] enable/disable the IMU TF broadcasting
+            sensors_pub_rate: 100. # [DYNAMIC] - frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
+            publish_imu: true # Advertise the IMU topic that is published only if a node subscribes to it
+            publish_imu_raw: false # Advertise the raw IMU topic that is published only if a node subscribes to it
+            publish_cam_imu_transf: false # Advertise the CAMERA-IMU transformation topic that is published only if a node subscribes to it
+            publish_temp: false # Advertise the temperature topics that are published only if a node subscribes to them
+
+        stream_server:
+            stream_enabled: false # enable the streaming server when the camera is open
+            codec: 'H264' # different encoding types for image streaming: 'H264', 'H265'
+            port: 30000 # Port used for streaming. Port must be an even number. Any odd number will be rejected.
+            bitrate: 12500 # [1000 - 60000] Streaming bitrate (in Kbits/s) used for streaming. See https://www.stereolabs.com/docs/api/structsl_1_1StreamingParameters.html#a873ba9440e3e9786eb1476a3bfa536d0
+            gop_size: -1 # [max 256] The GOP size determines the maximum distance between IDR/I-frames. Very high GOP size will result in slightly more efficient compression, especially on static scenes. But latency will increase.
+            adaptative_bitrate: false # Bitrate will be adjusted depending the number of packet dropped during streaming. If activated, the bitrate can vary between [bitrate/4, bitrate].
+            chunk_size: 16084 # [1024 - 65000] Stream buffers are divided into X number of chunks where each chunk is chunk_size bytes long. You can lower chunk_size value if network generates a lot of packet lost: this will generates more chunk for a single image, but each chunk sent will be lighter to avoid inside-chunk corruption. Increasing this value can decrease latency.
+            target_framerate: 0 # Framerate for the streaming output. This framerate must be below or equal to the camera framerate. Allowed framerates are 15, 30, 60 or 100 if possible. Any other values will be discarded and camera FPS will be taken.
+            
+        advanced: # WARNING: do not modify unless you are confident of what you are doing
+            # Reference documentation: https://man7.org/linux/man-pages/man7/sched.7.html
+            thread_sched_policy: "SCHED_BATCH" # 'SCHED_OTHER', 'SCHED_BATCH', 'SCHED_FIFO', 'SCHED_RR' - NOTE: 'SCHED_FIFO' and 'SCHED_RR' require 'sudo'
+            thread_grab_priority: 50 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
+            thread_sensor_priority: 70 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
+
+        debug:
+            sdk_verbose: 1 # Set the verbose level of the ZED SDK
+            sdk_verbose_log_file: '' # Path to the file where the ZED SDK will log its messages. If empty, no file will be created. The log level can be set using the `sdk_verbose` parameter.
+            use_pub_timestamps: false # Use the current ROS time for the message timestamp instead of the camera timestamp. This is useful to test data communication latency.
+            debug_common: false
+            debug_video_depth: false
+            debug_camera_controls: false
+            debug_sensors: false
+            debug_streaming: false
+            debug_advanced: false
+            debug_nitros: false
+            disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes

@@ -150,9 +150,9 @@ install(TARGETS zed_stereo_single
   RUNTIME DESTINATION lib/${PROJECT_NAME}  
 )
 
-# Install LAUNCH files
+# Install LAUNCH and CONFIG files
 install(DIRECTORY
-  launch
+  launch config
   DESTINATION share/${PROJECT_NAME}
 )
 

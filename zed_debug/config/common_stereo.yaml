@@ -1,0 +1,216 @@
+# config/common_stereo.yaml
+# Common parameters to Stereolabs ZED Stereo cameras
+
+---
+/**:
+    ros__parameters:
+        use_sim_time: false # Set to `true` only if there is a publisher for the simulated clock to the `/clock` topic. Normally used in simulation mode.
+
+        simulation:
+            sim_enabled: false # Set to `true` to enable the simulation mode and connect to a simulation server
+            sim_address: '127.0.0.1' # The connection address of the simulation server. See the documentation of the supported simulation plugins for more information.
+            sim_port: 30000 # The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.
+
+        svo:
+            use_svo_timestamps: true # Use the SVO timestamps to publish data. If false, data will be published at the system time.
+            publish_svo_clock: false # [overwritten by launch file options] When use_svo_timestamps is true allows to publish the SVO clock to the `/clock` topic. This is useful for synchronous rosbag playback.
+            svo_loop: false # Enable loop mode when using an SVO as input source. NOTE: ignored if SVO timestamping is used
+            svo_realtime: false # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
+            play_from_frame: 0 # Start playing the SVO from a specific frame
+            replay_rate: 1.0 # Replay rate for the SVO when not used in realtime mode (between [0.10-5.0])
+
+        general:
+            camera_timeout_sec: 5
+            camera_max_reconnect: 5
+            camera_flip: false
+            self_calib: true # Enable the self-calibration process at camera opening. See https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#affeaa06cfc1d849e311e484ceb8edcc5
+            serial_number: 0 # overwritten by launch file
+            pub_resolution: 'CUSTOM' # The resolution used for image and depth map publishing. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
+            pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
+            pub_frame_rate: 15.0 # [DYNAMIC] Frequency of publishing of visual images and depth data (not the Point Cloud, see 'depth.point_cloud_freq'). This value must be equal or less than the camera framerate.
+            enable_image_validity_check: 1 # [SDK5 required] Sets the image validity check. If set to 1, the SDK will check if the frames are valid before processing.
+            gpu_id: -1
+            optional_opencv_calibration_file: '' # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
+            async_image_retrieval: false # If set to true will camera image retrieve at a framerate different from \ref grab() application framerate. This is useful for recording SVO or sending camera stream at different rate than application.
+            publish_status: true # Advertise the status topics that are published only if a node subscribes to them
+            # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
+            # 'zedx.yaml', 'zedxmini.yaml', 'virtual.yaml' files
+
+        video:
+            saturation: 4 # [DYNAMIC]
+            sharpness: 4 # [DYNAMIC]
+            gamma: 8 # [DYNAMIC]
+            auto_exposure_gain: true # [DYNAMIC]
+            exposure: 80 # [DYNAMIC]
+            gain: 80 # [DYNAMIC]
+            auto_whitebalance: true # [DYNAMIC]
+            whitebalance_temperature: 42 # [DYNAMIC] - [28,65] x100 - works only if `auto_whitebalance` is false
+            enable_24bit_output: false # [SDK >= 5.1] Enable BGR 24-bit output for lower bandwidth usage. If false, BGRA 32-bit output is used (old way before SDK v5.1)
+            publish_rgb: true # Advertise the RGB image topics that are published only if a node subscribes to them
+            publish_left_right: false # Advertise the left and right image topics that are published only if a node subscribes to them
+            publish_raw: false # Advertise the raw image topics that are published only if a node subscribes to them
+            publish_gray: false # Advertise the gray image topics that are published only if a node subscribes to them
+            publish_stereo: false # Advertise the stereo image topic that is published only if a node subscribes to it
+            # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
+            # 'zedx.yaml', 'zedxmini.yaml', 'virtual.yaml' files
+
+        sensors:
+            publish_imu_tf: false # [overwritten by launch file options] enable/disable the IMU TF broadcasting
+            sensors_image_sync: false # Synchronize Sensors messages with latest published video/depth message
+            sensors_pub_rate: 100. # frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
+            publish_imu: false # Advertise the IMU topic that is published only if a node subscribes to it
+            publish_imu_raw: false # Advertise the raw IMU topic that is published only if a node subscribes to it
+            publish_cam_imu_transf: false # Advertise the CAMERA-IMU transformation topic that is published only if a node subscribes to it
+            publish_mag: false # Advertise the magnetometer topic that is published only if a node subscribes to it
+            publish_baro: false # Advertise the barometer topic that is published only if a node subscribes to it
+            publish_temp: false # Advertise the temperature topics that are published only if a node subscribes to them
+
+        region_of_interest:
+            automatic_roi: false # Enable the automatic ROI generation to automatically detect part of the robot in the FoV and remove them from the processing. Note: if enabled the value of `manual_polygon` is ignored
+            depth_far_threshold_meters: 2.5 # Filtering how far object in the ROI should be considered, this is useful for a vehicle for instance
+            image_height_ratio_cutoff: 0.5 # By default consider only the lower half of the image, can be useful to filter out the sky
+            #manual_polygon: '[]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+            #manual_polygon: '[[0.25,0.33],[0.75,0.33],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+            #manual_polygon: '[[0.25,0.25],[0.75,0.25],[0.75,0.75],[0.25,0.75]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+            #manual_polygon: '[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]' # A polygon defining the ROI where the ZED SDK perform the processing ignoring the rest. Coordinates must be normalized to '1.0' to be resolution independent.
+            apply_to_depth: true # Apply ROI to depth processing
+            apply_to_positional_tracking: true # Apply ROI to positional tracking processing
+            apply_to_object_detection: true # Apply ROI to object detection processing
+            apply_to_body_tracking: true # Apply ROI to body tracking processing
+            apply_to_spatial_mapping: true # Apply ROI to spatial mapping processing
+            publish_roi_mask: false # Advertise the ROI mask image topic that is published only if a node subscribes to it
+
+        depth:
+            depth_mode: 'NEURAL_LIGHT' # Matches the ZED SDK setting: 'NONE', 'PERFORMANCE', 'QUALITY', 'ULTRA', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            depth_stabilization: 30 # Forces positional tracking to start if major than 0 - Range: [0,100]
+            openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
+            point_cloud_freq: 10.0 # [DYNAMIC] Frequency of the pointcloud publishing. This value must be equal or less than the camera framerate.
+            point_cloud_res: 'COMPACT' # The resolution used for point cloud publishing - 'COMPACT'-Standard resolution. Optimizes processing and bandwidth, 'REDUCED'-Half resolution. Low processing and bandwidth requirements
+            depth_confidence: 95 # [DYNAMIC]
+            depth_texture_conf: 100 # [DYNAMIC]
+            remove_saturated_areas: true # [DYNAMIC]
+            publish_depth_map: true # Advertise the depth map topics that are published only if a node subscribes to them
+            publish_depth_info: false # Advertise the depth info topic that is published only if a node subscribes to it
+            publish_point_cloud: false # Advertise the point cloud topic that is published only if a node subscribes to it
+            publish_depth_confidence: false # Advertise the depth confidence topic that is published only if a node subscribes to it
+            publish_disparity: false # Advertise the disparity topic that is published only if a node subscribes to it
+            # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
+            # 'zedx.yaml', 'zedxmini.yaml', 'virtual.yaml' files
+
+        pos_tracking:
+            pos_tracking_enabled: true # True to enable positional tracking from start
+            pos_tracking_mode: 'GEN_2' # Matches the ZED SDK setting: 'GEN_1', 'GEN_2', 'GEN_3'
+            imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
+            publish_tf: false # [overwritten by launch file options] publish `odom -> camera_link` TF
+            publish_map_tf: false # [overwritten by launch file options] publish `map -> odom` TF
+            map_frame: 'map'
+            odometry_frame: 'odom'
+            area_memory: true # Enable to detect loop closure
+            area_file_path: '' # Path to the area memory file for relocalization and loop closure in a previously explored environment. 
+            enable_localization_only: false # If true, the camera will only localize in the loaded area memory without updating the map with new information.
+            save_area_memory_on_closing: false # Save Area memory before closing the camera if `area_file_path` is not empty. You can also use the `save_area_memory` service to save the area memory at any time.
+            reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
+            publish_3d_landmarks: false # Publish 3D landmarks used by the positional tracking algorithm
+            publish_lm_skip_frame: 5 # Publish the landmarks every X frames to reduce bandwidth. Set to 0 to publish all landmarks
+            depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
+            set_as_static: false # If 'true' the camera will be static and not move in the environment
+            set_gravity_as_origin: true # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
+            floor_alignment: false # Enable to automatically calculate camera/floor offset
+            initial_base_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial position of the `camera_link` frame in the map -> [X, Y, Z, R, P, Y]
+            path_pub_rate: 2.0 # [DYNAMIC] - Camera trajectory publishing frequency
+            path_max_count: -1 # use '-1' for unlimited path size
+            two_d_mode: false # Force navigation on a plane. If true the Z value will be fixed to 'fixed_z_value', roll and pitch to zero
+            fixed_z_value: 0.0 # Value to be used for Z coordinate if `two_d_mode` is true
+            transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->camera_link` transform being generated
+            reset_pose_with_svo_loop: true # Reset the camera pose the `initial_base_pose` when the SVO loop is enabled and the SVO playback reaches the end of the file.
+            publish_odom_pose: false # Advertise the odometry and pose topics that are published only if a node subscribes to them
+            publish_pose_cov: false # Advertise the pose with covariance topic that is published only if a node subscribes to it
+            publish_cam_path: false # Advertise the camera odometry and pose path topics that are published only if a node subscribes to them
+
+        gnss_fusion:
+            gnss_fusion_enabled: false # fuse 'sensor_msg/NavSatFix' message information into pose data
+            gnss_fix_topic: '/fix' # Name of the GNSS topic of type NavSatFix to subscribe [Default: '/gps/fix']
+            gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
+            h_covariance_mul: 1.0 # Multiplier factor to be applied to horizontal covariance of the received fix (plane X/Y)
+            v_covariance_mul: 1.0 # Multiplier factor to be applied to vertical covariance of the received fix (Z axis)
+            publish_utm_tf: false # Publish `utm` -> `map` TF
+            broadcast_utm_transform_as_parent_frame: false # if 'true' publish `utm` -> `map` TF, otherwise `map` -> `utm`
+            enable_reinitialization: false # determines whether reinitialization should be performed between GNSS and VIO fusion when a significant disparity is detected between GNSS data and the current fusion data. It becomes particularly crucial during prolonged GNSS signal loss scenarios.
+            enable_rolling_calibration: true # If this parameter is set to true, the fusion algorithm will used a rough VIO / GNSS calibration at first and then refine it. This allow you to quickly get a fused position.
+            enable_translation_uncertainty_target: false # When this parameter is enabled (set to true), the calibration process between GNSS and VIO accounts for the uncertainty in the determined translation, thereby facilitating the calibration termination. The maximum allowable uncertainty is controlled by the 'target_translation_uncertainty' parameter.
+            gnss_vio_reinit_threshold: 5.0 # determines the threshold for GNSS/VIO reinitialization. If the fused position deviates beyond out of the region defined by the product of the GNSS covariance and the gnss_vio_reinit_threshold, a reinitialization will be triggered.
+            target_translation_uncertainty: 0.1 # defines the target translation uncertainty at which the calibration process between GNSS and VIO concludes. By default, the threshold is set at 10 centimeters.
+            target_yaw_uncertainty: 0.1 # defines the target yaw uncertainty at which the calibration process between GNSS and VIO concludes. The unit of this parameter is in radian. By default, the threshold is set at 0.1 radians.
+
+        mapping:
+            mapping_enabled: false # True to enable mapping t # Pand fused point cloud pubblication
+            resolution: 0.05 # maps resolution in meters [min: 0.01f - max: 0.2f]
+            max_mapping_range: 5.0 # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
+            fused_pointcloud_freq: 1.0 # frequency of the publishing of the fused colored point cloud
+            clicked_point_topic: '/clicked_point' # Topic published by Rviz when a point of the cloud is clicked. Used for plane detection
+            pd_max_distance_threshold: 0.15 # Plane detection: controls the spread of plane by checking the position difference.
+            pd_normal_similarity_threshold: 15.0 # Plane detection: controls the spread of plane by checking the angle difference.
+            publish_det_plane: false # Advertise the plane detection topics that is published only if a node subscribes to it
+
+        object_detection:
+            od_enabled: false # True to enable Object Detection
+            enable_tracking: true # Whether the object detection system includes object tracking capabilities across a sequence of images.
+            detection_model: 'MULTI_CLASS_BOX_FAST' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE', 'CUSTOM_YOLOLIKE_BOX_OBJECTS'
+            max_range: 20.0 # [m] Upper depth range for detections.The value cannot be greater than 'depth.max_depth'
+            filtering_mode: 'NMS3D' # Filtering mode that should be applied to raw detections: 'NONE', 'NMS3D', 'NMS3D_PER_CLASS'
+            prediction_timeout: 2.0 # During this time [sec], the object will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
+            allow_reduced_precision_inference: false # Allow inference to run at a lower precision to improve runtime and memory usage
+            # Other parameters are defined in the 'object_detection.yaml' and 'custom_object_detection.yaml' files
+
+        body_tracking:
+            bt_enabled: false # True to enable Body Tracking
+            model: 'HUMAN_BODY_MEDIUM' # 'HUMAN_BODY_FAST', 'HUMAN_BODY_MEDIUM', 'HUMAN_BODY_ACCURATE'
+            body_format: 'BODY_38' # 'BODY_18','BODY_34','BODY_38'
+            allow_reduced_precision_inference: false # Allow inference to run at a lower precision to improve runtime and memory usage
+            max_range: 15.0 # [m] Defines a upper depth range for detections
+            body_kp_selection: 'FULL' # 'FULL', 'UPPER_BODY'
+            enable_body_fitting: false # Defines if the body fitting will be applied
+            enable_tracking: true # Defines if the object detection will track objects across images flow
+            prediction_timeout_s: 0.5 # During this time [sec], the skeleton will have OK state even if it is not detected. Set this parameter to 0 to disable SDK predictions
+            confidence_threshold: 50.0 # [DYNAMIC] - Minimum value of the detection confidence of skeleton key points [0,99]
+            minimum_keypoints_threshold: 5 # [DYNAMIC] - Minimum number of skeleton key points to be detected for a valid skeleton
+
+        stream_server:
+            stream_enabled: false # enable the streaming server when the camera is open
+            codec: 'H264' # different encoding types for image streaming: 'H264', 'H265'
+            port: 30000 # Port used for streaming. Port must be an even number. Any odd number will be rejected.
+            bitrate: 12500 # [1000 - 60000] Streaming bitrate (in Kbits/s) used for streaming. See https://www.stereolabs.com/docs/api/structsl_1_1StreamingParameters.html#a873ba9440e3e9786eb1476a3bfa536d0
+            gop_size: -1 # [max 256] The GOP size determines the maximum distance between IDR/I-frames. Very high GOP size will result in slightly more efficient compression, especially on static scenes. But latency will increase.
+            adaptative_bitrate: false # Bitrate will be adjusted depending the number of packet dropped during streaming. If activated, the bitrate can vary between [bitrate/4, bitrate].
+            chunk_size: 16084 # [1024 - 65000] Stream buffers are divided into X number of chunks where each chunk is chunk_size bytes long. You can lower chunk_size value if network generates a lot of packet lost: this will generates more chunk for a single image, but each chunk sent will be lighter to avoid inside-chunk corruption. Increasing this value can decrease latency.
+            target_framerate: 0 # Framerate for the streaming output. This framerate must be below or equal to the camera framerate. Allowed framerates are 15, 30, 60 or 100 if possible. Any other values will be discarded and camera FPS will be taken.
+
+        advanced: # WARNING: do not modify unless you are confident of what you are doing
+            # Reference documentation: https://man7.org/linux/man-pages/man7/sched.7.html
+            thread_sched_policy: 'SCHED_BATCH' # 'SCHED_OTHER', 'SCHED_BATCH', 'SCHED_FIFO', 'SCHED_RR' - NOTE: 'SCHED_FIFO' and 'SCHED_RR' require 'sudo'
+            thread_grab_priority: 50 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
+            thread_sensor_priority: 70 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
+            thread_pointcloud_priority: 60 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
+
+        debug:
+            sdk_verbose: 1 # Set the verbose level of the ZED SDK
+            sdk_verbose_log_file: '' # Path to the file where the ZED SDK will log its messages. If empty, no file will be created. The log level can be set using the `sdk_verbose` parameter.
+            use_pub_timestamps: false # Use the current ROS time for the message timestamp instead of the camera timestamp. This is useful to test data communication latency.
+            debug_common: true
+            debug_sim: false
+            debug_video_depth: false
+            debug_camera_controls: false
+            debug_point_cloud: false
+            debug_tf: false
+            debug_positional_tracking: false
+            debug_gnss: false
+            debug_sensors: false
+            debug_mapping: false
+            debug_terrain_mapping: false
+            debug_object_detection: false
+            debug_body_tracking: false
+            debug_roi: false
+            debug_streaming: false
+            debug_advanced: true
+            debug_nitros: false
+            disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes

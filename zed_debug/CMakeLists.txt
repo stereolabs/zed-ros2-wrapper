@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(zed_debug LANGUAGES CXX)
+project(zed_debug)
 
 ################################################
 ## Generate symbols for IDE indexer (VSCode)
@@ -59,8 +59,6 @@ endif()
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
-
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 if(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
     #message(" * Release with Debug Info Mode")
@@ -134,10 +132,6 @@ add_executable(zed_stereo_single
 target_include_directories(zed_stereo_single PUBLIC
     ${CUDA_INCLUDE_DIRS}
     ${ZED_INCLUDE_DIRS}
-)
-
-target_link_libraries(zed_stereo_single
-    ${ZED_LIBS}
 )
 ament_target_dependencies(zed_stereo_single
     ${DEPENDENCIES}

@@ -117,7 +117,8 @@ def launch_setup(context, *args, **kwargs):
     if( cmd_prefix.perform(context) == ''):
         prefix_string = ''
     else:
-        prefix_string = 'xterm -e ' + cmd_prefix.perform(context)
+        #prefix_string = 'xterm -geometry 250x40  -e ' + cmd_prefix.perform(context)
+        prefix_string = cmd_prefix.perform(context)
         info = 'Using command prefix: `' + prefix_string + '`'
         return_array.append(LogInfo(msg=TextSubstitution(text=info)))
 
@@ -246,39 +247,43 @@ def launch_setup(context, *args, **kwargs):
     return_array.append(rsp_node)
   
     # ZED Node parameters
-    node_parameters = [
-            # YAML files
-            config_common_path_val,  # Common parameters
-            #config_camera_path,  # Camera related parameters
-            #object_detection_config_path, # Object detection parameters
-            #custom_object_detection_config_path # Custom object detection parameters
-    ]
+    node_parameters = []
 
+    # Add YAML files
+    if(config_common_path_val != ''):
+        node_parameters.append(config_common_path_val)
+    if(config_camera_path != ''):
+        node_parameters.append(config_camera_path)
+    if(object_detection_config_path != ''):
+        node_parameters.append(object_detection_config_path.perform(context))
+    if(custom_object_detection_config_path != ''):
+        node_parameters.append(custom_object_detection_config_path.perform(context))
     if( ros_params_override_path_val != ''):
-        node_parameters.append(ros_params_override_path)
-
+        node_parameters.append(ros_params_override_path.perform(context))
+        
+    # Add launch arguments overrides
     node_parameters.append( 
-            # Launch arguments must override the YAML files values
-            {
-                'use_sim_time': use_sim_time,
-                'simulation.sim_enabled': sim_mode,
-                'simulation.sim_address': sim_address,
-                'simulation.sim_port': sim_port,
-                'stream.stream_address': stream_address,
-                'stream.stream_port': stream_port,
-                'general.camera_name': camera_name_val,
-                'general.camera_model': camera_model_val,
-                'svo.svo_path': svo_path,
-                'svo.publish_svo_clock': publish_svo_clock,
-                'general.serial_number': serial_number,
-                'general.camera_id': camera_id,
-                'pos_tracking.publish_tf': publish_tf,
-                'pos_tracking.publish_map_tf': publish_map_tf,
-                'sensors.publish_imu_tf': publish_imu_tf,
-                'gnss_fusion.gnss_fusion_enabled': enable_gnss,
-                'general.virtual_serial_numbers': serial_numbers_val,
-                'general.virtual_camera_ids': camera_ids_val
-            }
+        # Launch arguments must override the YAML files values
+        {
+            'use_sim_time': use_sim_time,
+            'simulation.sim_enabled': sim_mode,
+            'simulation.sim_address': sim_address,
+            'simulation.sim_port': sim_port,
+            'stream.stream_address': stream_address,
+            'stream.stream_port': stream_port,
+            'general.camera_name': camera_name_val,
+            'general.camera_model': camera_model_val,
+            'svo.svo_path': svo_path,
+            'svo.publish_svo_clock': publish_svo_clock,
+            'general.serial_number': serial_number,
+            'general.camera_id': camera_id,
+            'pos_tracking.publish_tf': publish_tf,
+            'pos_tracking.publish_map_tf': publish_map_tf,
+            'sensors.publish_imu_tf': publish_imu_tf,
+            'gnss_fusion.gnss_fusion_enabled': enable_gnss,
+            'general.virtual_serial_numbers': serial_numbers_val,
+            'general.virtual_camera_ids': camera_ids_val
+        }
     )
 
     # ZED Wrapper node with hardcoded container
@@ -288,6 +293,7 @@ def launch_setup(context, *args, **kwargs):
         name=node_name_val,
         namespace=namespace_val,
         parameters=node_parameters,
+        output='screen',
         prefix=[prefix_string]
     )
     return_array.append(zed_node)

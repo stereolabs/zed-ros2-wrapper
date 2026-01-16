@@ -431,7 +431,7 @@ private:
 
   // ----> Parameter variables
   // Debug
-  bool _debugCommon = true;
+  bool _debugCommon = false;
   bool _debugSim = false;
   bool _debugVideoDepth = false;
   bool _debugCamCtrl = false;
@@ -449,7 +449,7 @@ private:
   bool _debugNitros = false;
   // If available, force disable NITROS usage for debugging and testing
   // purposes; otherwise, this is always true.
-  bool _nitrosDisabled = false;
+  bool _nitrosDisabled = true;
 
   // Topic Enablers
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
@@ -638,6 +638,7 @@ private:
   double mPdMaxDistanceThreshold = 0.15;
   double mPdNormalSimilarityThreshold = 15.0;
 
+  bool mChangeThreadSched = false;
   std::string mThreadSchedPolicy;
   int mThreadPrioGrab = 50;
   int mThreadPrioSens = 70;

@@ -112,6 +112,15 @@ def launch_setup(context, *args, **kwargs):
     enable_gnss = LaunchConfiguration('enable_gnss')
     gnss_antenna_offset = LaunchConfiguration('gnss_antenna_offset')
 
+    cmd_prefix = LaunchConfiguration('cmd_prefix')
+
+    if( cmd_prefix.perform(context) == ''):
+        prefix_string = ''
+    else:
+        prefix_string = 'xterm -e ' + cmd_prefix.perform(context)
+        info = 'Using command prefix: `' + prefix_string + '`'
+        return_array.append(LogInfo(msg=TextSubstitution(text=info)))
+
     node_log_type_val = node_log_type.perform(context)
     namespace_val = namespace.perform(context)
     camera_name_val = camera_name.perform(context)
@@ -278,7 +287,8 @@ def launch_setup(context, *args, **kwargs):
         package='zed_debug',
         name=node_name_val,
         namespace=namespace_val,
-        parameters=node_parameters
+        parameters=node_parameters,
+        prefix=[prefix_string]
     )
     return_array.append(zed_node)
 
@@ -404,6 +414,10 @@ def generate_launch_description():
                 'stream_port',
                 default_value='30000',
                 description='The connection port of the input streaming server.'),
+            DeclareLaunchArgument(
+                'cmd_prefix',
+                default_value='',
+                description='A prefix to be added to the node executable, to run debugging tools like `valgrind` or `gdb`. For example: `valgrind --leak-check=full` or `gdb --args`.'),
             OpaqueFunction(function=launch_setup)
         ]
     )

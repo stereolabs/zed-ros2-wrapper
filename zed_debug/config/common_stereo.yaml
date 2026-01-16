@@ -128,11 +128,11 @@
             publish_cam_path: false # Advertise the camera odometry and pose path topics that are published only if a node subscribes to them
 
         gnss_fusion:
-             gnss_fusion_enabled: false # fuse 'sensor_msg/NavSatFix' message information into pose data
-             gnss_fix_topic: '/fix' # Name of the GNSS topic of type NavSatFix to subscribe [Default: '/gps/fix']
-        #     gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
-        #     h_covariance_mul: 1.0 # Multiplier factor to be applied to horizontal covariance of the received fix (plane X/Y)
-             v_covariance_mul: 1.0 # Multiplier factor to be applied to vertical covariance of the received fix (Z axis)
+            gnss_fusion_enabled: false # fuse 'sensor_msg/NavSatFix' message information into pose data
+            gnss_fix_topic: '/fix' # Name of the GNSS topic of type NavSatFix to subscribe [Default: '/gps/fix']
+            gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
+            h_covariance_mul: 1.0 # Multiplier factor to be applied to horizontal covariance of the received fix (plane X/Y)
+        #    v_covariance_mul: 1.0 # Multiplier factor to be applied to vertical covariance of the received fix (Z axis)
         #     publish_utm_tf: false # Publish `utm` -> `map` TF
         #     broadcast_utm_transform_as_parent_frame: false # if 'true' publish `utm` -> `map` TF, otherwise `map` -> `utm`
         #     enable_reinitialization: false # determines whether reinitialization should be performed between GNSS and VIO fusion when a significant disparity is detected between GNSS data and the current fusion data. It becomes particularly crucial during prolonged GNSS signal loss scenarios.
@@ -152,8 +152,8 @@
             pd_normal_similarity_threshold: 15.0 # Plane detection: controls the spread of plane by checking the angle difference.
             publish_det_plane: false # Advertise the plane detection topics that is published only if a node subscribes to it
 
-        # object_detection:
-        #     od_enabled: false # True to enable Object Detection
+        #object_detection:
+        #    od_enabled: false # True to enable Object Detection
         #     enable_tracking: true # Whether the object detection system includes object tracking capabilities across a sequence of images.
         #     detection_model: 'MULTI_CLASS_BOX_FAST' # 'MULTI_CLASS_BOX_FAST', 'MULTI_CLASS_BOX_MEDIUM', 'MULTI_CLASS_BOX_ACCURATE', 'PERSON_HEAD_BOX_FAST', 'PERSON_HEAD_BOX_ACCURATE', 'CUSTOM_YOLOLIKE_BOX_OBJECTS'
         #     max_range: 20.0 # [m] Upper depth range for detections.The value cannot be greater than 'depth.max_depth'

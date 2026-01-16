@@ -156,9 +156,4 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}
 )
 
-ament_export_include_directories(include)
-ament_export_libraries(
-    zed_camera_single
-)
-ament_export_dependencies(${DEPENDENCIES})
 ament_package()

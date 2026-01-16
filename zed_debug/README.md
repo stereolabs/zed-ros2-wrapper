@@ -55,6 +55,11 @@ It's possible to debug the ZED ROS2 nodes using VSCode and the `ros2 launch` com
 
 with `"stopAtEntry": true` the node will stop at the beginning of the `main` function. This allows you to set breakpoints before the execution continues.
 
+Learn more about VSCode debugging configuration:
+
+* [Debug C++ in Visual Studio Code](https://code.visualstudio.com/docs/cpp/cpp-debug)
+* [Configure C/C++ debugging](https://code.visualstudio.com/docs/cpp/launch-json-reference)
+
 ### Start the node with gdbserver
 
 The `zed_camera_debug.launch.py` launch file has been modified to accept a `cmd_prefix` argument that allows you to add a prefix to the node executable.

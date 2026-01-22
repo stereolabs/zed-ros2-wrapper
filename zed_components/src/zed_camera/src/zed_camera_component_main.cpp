@@ -98,65 +98,75 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mLastClock(TIMEZERO_ROS),                // 1107
   mSetSvoFrameCheckTimer(get_clock())      // 1136
 {
-  mUsingIPC = options.use_intra_process_comms();
+  try {
+    mUsingIPC = options.use_intra_process_comms();
 
-  RCLCPP_INFO(get_logger(), "================================");
-  RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
-  RCLCPP_INFO(get_logger(), "================================");
-  RCLCPP_INFO(get_logger(), " * IPC: %s", mUsingIPC ? "enabled" : "disabled");
+    RCLCPP_INFO(get_logger(), "================================");
+    RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
+    RCLCPP_INFO(get_logger(), "================================");
+    RCLCPP_INFO(get_logger(), " * IPC: %s", mUsingIPC ? "enabled" : "disabled");
 
-  auto context = options.context();
+    auto context = options.context();
 
-  rclcpp::contexts::get_global_default_context()->is_valid();
+    rclcpp::contexts::get_global_default_context()->is_valid();
 
-  if (!rclcpp::contexts::get_global_default_context() ||
-      !rclcpp::contexts::get_global_default_context()->is_valid()) {
-    RCLCPP_ERROR(get_logger(), "Global context is null!");
-    exit(EXIT_FAILURE);
-  }
+    if (!rclcpp::contexts::get_global_default_context() ||
+        !rclcpp::contexts::get_global_default_context()->is_valid()) {
+      RCLCPP_ERROR(get_logger(), "Global context is null!");
+      exit(EXIT_FAILURE);
+    }
 
-  if (!context || !context->is_valid()) {
-    RCLCPP_ERROR(get_logger(), "Node context is null!");
-    exit(EXIT_FAILURE);
-  }
+    if (!context || !context->is_valid()) {
+      RCLCPP_ERROR(get_logger(), "Node context is null!");
+      exit(EXIT_FAILURE);
+    }
 
-  // Set the name of the main thread for easier identification in
-  // system monitors
-  pthread_setname_np(pthread_self(), (get_name() + std::string("_main")).c_str());
+    // Set the name of the main thread for easier identification in
+    // system monitors
+    pthread_setname_np(pthread_self(), (get_name() + std::string("_main")).c_str());
 
-  if (((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) <
-    (SDK_MAJOR_MIN_SUPP * 10 + SDK_MINOR_MIN_SUPP)) ||
-    ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >
-    (SDK_MAJOR_MAX_SUPP * 10 + SDK_MINOR_MAX_SUPP)))
-  {
+    if (((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) <
+      (SDK_MAJOR_MIN_SUPP * 10 + SDK_MINOR_MIN_SUPP)) ||
+      ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >
+      (SDK_MAJOR_MAX_SUPP * 10 + SDK_MINOR_MAX_SUPP)))
+    {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "This version of the ZED ROS2 wrapper is designed to work with ZED SDK "
+        "v" << static_cast<int>(SDK_MAJOR_MIN_SUPP)
+            << "." << static_cast<int>(SDK_MINOR_MIN_SUPP) << " or newer up to v" <<
+          static_cast<int>(SDK_MAJOR_MAX_SUPP) << "." << static_cast<int>(SDK_MINOR_MAX_SUPP) << ".");
+      RCLCPP_INFO_STREAM(
+        get_logger(), "* Detected SDK v"
+          << ZED_SDK_MAJOR_VERSION << "."
+          << ZED_SDK_MINOR_VERSION << "."
+          << ZED_SDK_PATCH_VERSION << "-"
+          << ZED_SDK_BUILD_ID);
+      RCLCPP_INFO(get_logger(), "Node stopped. Press Ctrl+C to exit.");
+      exit(EXIT_FAILURE);
+    }
+
+  #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
+    sl::setEnvironmentVariable("ZED_SDK_DISABLE_PROGRESS_BAR_LOG", "1");
+  #endif
+
+    // ----> Start a "one shot timer" to initialize the node and make `shared_from_this` available
+    DEBUG_COMM("Creating one-shot initialization timer...");
+    mInitTimer = create_wall_timer(
+      std::chrono::milliseconds(50),
+      std::bind(&ZedCamera::initNode, this));
+    // <---- Start a "one shot timer" to initialize the node and make `shared_from_this` available
+
+    DEBUG_COMM("Waiting for node initialization...");
+  } catch (const std::exception & e) {
     RCLCPP_ERROR_STREAM(
       get_logger(),
-      "This version of the ZED ROS2 wrapper is designed to work with ZED SDK "
-      "v" << static_cast<int>(SDK_MAJOR_MIN_SUPP)
-          << "." << static_cast<int>(SDK_MINOR_MIN_SUPP) << " or newer up to v" <<
-        static_cast<int>(SDK_MAJOR_MAX_SUPP) << "." << static_cast<int>(SDK_MINOR_MAX_SUPP) << ".");
-    RCLCPP_INFO_STREAM(
-      get_logger(), "* Detected SDK v"
-        << ZED_SDK_MAJOR_VERSION << "."
-        << ZED_SDK_MINOR_VERSION << "."
-        << ZED_SDK_PATCH_VERSION << "-"
-        << ZED_SDK_BUILD_ID);
-    RCLCPP_INFO(get_logger(), "Node stopped. Press Ctrl+C to exit.");
-    exit(EXIT_FAILURE);
+      "Exception during ZedCamera component initialization: " << e.what());
+  } catch (...) {
+    RCLCPP_ERROR(
+      get_logger(),
+      "Unknown exception during ZedCamera component initialization");
   }
-
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
-  sl::setEnvironmentVariable("ZED_SDK_DISABLE_PROGRESS_BAR_LOG", "1");
-#endif
-
-  // ----> Start a "one shot timer" to initialize the node and make `shared_from_this` available
-  DEBUG_COMM("Creating one-shot initialization timer...");
-  mInitTimer = create_wall_timer(
-    std::chrono::milliseconds(50),
-    std::bind(&ZedCamera::initNode, this));
-  // <---- Start a "one shot timer" to initialize the node and make `shared_from_this` available
-
-  DEBUG_COMM("Waiting for node initialization...");
 }
 
 void ZedCamera::initNode()

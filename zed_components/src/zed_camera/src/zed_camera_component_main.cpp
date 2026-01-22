@@ -103,10 +103,7 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(get_logger(), "================================");
   RCLCPP_INFO(get_logger(), "      ZED Camera Component ");
   RCLCPP_INFO(get_logger(), "================================");
-  RCLCPP_INFO(get_logger(), " * namespace: %s", get_namespace());
-  RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
   RCLCPP_INFO(get_logger(), " * IPC: %s", mUsingIPC ? "enabled" : "disabled");
-  RCLCPP_INFO(get_logger(), "================================");
 
   auto context = options.context();
 
@@ -153,17 +150,21 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
 #endif
 
   // ----> Start a "one shot timer" to initialize the node and make `shared_from_this` available
-  RCLCPP_INFO(get_logger(), "Creating one-shot initialization timer...");
+  DEBUG_COMM("Creating one-shot initialization timer...");
   mInitTimer = create_wall_timer(
     std::chrono::milliseconds(50),
     std::bind(&ZedCamera::initNode, this));
   // <---- Start a "one shot timer" to initialize the node and make `shared_from_this` available
 
-  RCLCPP_INFO(get_logger(), "Waiting for node initialization...");
+  DEBUG_COMM("Waiting for node initialization...");
 }
 
 void ZedCamera::initNode()
 {
+  RCLCPP_INFO(get_logger(), " * namespace: %s", get_namespace());
+  RCLCPP_INFO(get_logger(), " * node name: %s", get_name());
+  RCLCPP_INFO(get_logger(), "================================");
+
   RCLCPP_INFO(get_logger(), "Starting node initialization...");
 
   // Stop the timer for "one shot" initialization

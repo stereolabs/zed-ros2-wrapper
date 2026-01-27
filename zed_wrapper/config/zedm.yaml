@@ -6,7 +6,7 @@
         general:
             camera_model: 'zedm'
             camera_name: 'zedm' # overwritten by launch file
-            grab_resolution: 'HD1080' # The native camera grab resolution. 'HD2K', 'HD1080', 'HD720', 'VGA', 'AUTO'
+            grab_resolution: 'VGA' # The native camera grab resolution. 'HD2K', 'HD1080', 'HD720', 'VGA', 'AUTO'
             grab_frame_rate: 30 # ZED SDK internal grabbing rate
 
         video:

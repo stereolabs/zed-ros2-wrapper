@@ -382,6 +382,7 @@ private:
   std::string _streamAddr = "";      // Address for local streaming input
   int _streamPort = 10000;
 
+  bool _changeThreadSched = false;
   std::string _threadSchedPolicy;
   int _threadPrioGrab;
   int _threadPrioSens;

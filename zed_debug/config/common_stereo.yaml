@@ -187,6 +187,7 @@
 
         advanced: # WARNING: do not modify unless you are confident of what you are doing
             # Reference documentation: https://man7.org/linux/man-pages/man7/sched.7.html
+            change_thread_priority: false # Enable changing thread priority and scheduling policy
             thread_sched_policy: 'SCHED_BATCH' # 'SCHED_OTHER', 'SCHED_BATCH', 'SCHED_FIFO', 'SCHED_RR' - NOTE: 'SCHED_FIFO' and 'SCHED_RR' require 'sudo'
             thread_grab_priority: 50 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
             thread_sensor_priority: 70 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
@@ -197,6 +198,7 @@
             sdk_verbose_log_file: '' # Path to the file where the ZED SDK will log its messages. If empty, no file will be created. The log level can be set using the `sdk_verbose` parameter.
             use_pub_timestamps: false # Use the current ROS time for the message timestamp instead of the camera timestamp. This is useful to test data communication latency.
             debug_common: false
+            debug_grab: false
             debug_sim: false
             debug_video_depth: false
             debug_camera_controls: false
@@ -213,4 +215,4 @@
             debug_streaming: false
             debug_advanced: false
             debug_nitros: false
-            disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes
+            disable_nitros: true # If available, disable NITROS usage for debugging and testing purposes

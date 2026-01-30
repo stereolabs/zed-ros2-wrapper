@@ -539,28 +539,35 @@ void ZedCameraOne::getAdvancedParams()
   RCLCPP_INFO(get_logger(), "=== ADVANCED parameters ===");
 
   sl_tools::getParam(
-    shared_from_this(), "advanced.thread_sched_policy",
-    _threadSchedPolicy, _threadSchedPolicy,
-    " * Thread sched. policy: ");
+    shared_from_this(), "advanced.change_thread_priority",
+    _changeThreadSched, _changeThreadSched,
+    " * Change thread priority: ");
 
-  if (_threadSchedPolicy == "SCHED_FIFO" || _threadSchedPolicy == "SCHED_RR") {
-    if (!sl_tools::checkRoot()) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        "'sudo' permissions required to set "
-          << _threadSchedPolicy
-          << " thread scheduling policy. Using Linux "
-          "default [SCHED_OTHER]");
-      _threadSchedPolicy = "SCHED_OTHER";
-    } else {
-      sl_tools::getParam(
-        shared_from_this(), "advanced.thread_grab_priority",
-        _threadPrioGrab, _threadPrioGrab,
-        " * Grab thread priority: ");
-      sl_tools::getParam(
-        shared_from_this(), "advanced.thread_sensor_priority",
-        _threadPrioSens, _threadPrioSens,
-        " * Sensors thread priority: ");
+  if (_changeThreadSched) {
+    sl_tools::getParam(
+      shared_from_this(), "advanced.thread_sched_policy",
+      _threadSchedPolicy, _threadSchedPolicy,
+      " * Thread sched. policy: ");
+
+    if (_threadSchedPolicy == "SCHED_FIFO" || _threadSchedPolicy == "SCHED_RR") {
+      if (!sl_tools::checkRoot()) {
+        RCLCPP_WARN_STREAM(
+          get_logger(),
+          "'sudo' permissions required to set "
+            << _threadSchedPolicy
+            << " thread scheduling policy. Using Linux "
+            "default [SCHED_OTHER]");
+        _threadSchedPolicy = "SCHED_OTHER";
+      } else {
+        sl_tools::getParam(
+          shared_from_this(), "advanced.thread_grab_priority",
+          _threadPrioGrab, _threadPrioGrab,
+          " * Grab thread priority: ");
+        sl_tools::getParam(
+          shared_from_this(), "advanced.thread_sensor_priority",
+          _threadPrioSens, _threadPrioSens,
+          " * Sensors thread priority: ");
+      }
     }
   }
 }
@@ -1844,46 +1851,55 @@ void ZedCameraOne::threadFunc_zedGrab()
 
 void ZedCameraOne::setupGrabThreadPolicy()
 {
-  DEBUG_STREAM_ADV("Grab thread settings");
-  if (_debugAdvanced) {
-    int policy;
-    sched_param par;
-    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        " ! Failed to get thread policy! - " << std::strerror(errno));
-    } else {
-      DEBUG_STREAM_ADV(
-        " * Default GRAB thread (#" << pthread_self() << ") settings - Policy: "
-                                    << sl_tools::threadSched2Str(
-          policy).c_str() << " - Priority: " << par.sched_priority);
+  if (_changeThreadSched) {
+    DEBUG_STREAM_ADV("Grab thread settings");
+    if (_debugAdvanced) {
+      int policy;
+      sched_param par;
+      if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+        RCLCPP_WARN_STREAM(
+          get_logger(), " ! Failed to get thread policy! - "
+            << std::strerror(errno));
+      } else {
+        DEBUG_STREAM_ADV(
+          " * Default GRAB thread (#"
+            << pthread_self() << ") settings - Policy: "
+            << sl_tools::threadSched2Str(policy).c_str()
+            << " - Priority: " << par.sched_priority);
+      }
     }
-  }
 
-  sched_param par;
-  par.sched_priority =
-    (_threadSchedPolicy == "SCHED_FIFO" ||
-    _threadSchedPolicy == "SCHED_RR") ? _threadPrioGrab : 0;
-  int policy = SCHED_OTHER;
-  if (_threadSchedPolicy == "SCHED_BATCH") {
-    policy = SCHED_BATCH;
-  } else if (_threadSchedPolicy == "SCHED_FIFO") {
-    policy = SCHED_FIFO;
-  } else if (_threadSchedPolicy == "SCHED_RR") {policy = SCHED_RR;}
-  if (pthread_setschedparam(pthread_self(), policy, &par)) {
-    RCLCPP_WARN_STREAM(get_logger(), " ! Failed to set thread params! - " << std::strerror(errno));
-  }
-
-  if (_debugAdvanced) {
-    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+    sched_param par;
+    par.sched_priority =
+      (_threadSchedPolicy == "SCHED_FIFO" || _threadSchedPolicy == "SCHED_RR") ?
+      _threadPrioGrab :
+      0;
+    int policy = SCHED_OTHER;
+    if (_threadSchedPolicy == "SCHED_BATCH") {
+      policy = SCHED_BATCH;
+    } else if (_threadSchedPolicy == "SCHED_FIFO") {
+      policy = SCHED_FIFO;
+    } else if (_threadSchedPolicy == "SCHED_RR") {
+      policy = SCHED_RR;
+    }
+    if (pthread_setschedparam(pthread_self(), policy, &par)) {
       RCLCPP_WARN_STREAM(
-        get_logger(),
-        " ! Failed to get thread policy! - " << std::strerror(errno));
-    } else {
-      DEBUG_STREAM_ADV(
-        " * New GRAB thread (#" << pthread_self() << ") settings - Policy: "
-                                << sl_tools::threadSched2Str(
-          policy).c_str() << " - Priority: " << par.sched_priority);
+        get_logger(), " ! Failed to set thread params! - "
+          << std::strerror(errno));
+    }
+
+    if (_debugAdvanced) {
+      if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+        RCLCPP_WARN_STREAM(
+          get_logger(), " ! Failed to get thread policy! - "
+            << std::strerror(errno));
+      } else {
+        DEBUG_STREAM_ADV(
+          " * New GRAB thread (#"
+            << pthread_self() << ") settings - Policy: "
+            << sl_tools::threadSched2Str(policy).c_str()
+            << " - Priority: " << par.sched_priority);
+      }
     }
   }
 }

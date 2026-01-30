@@ -119,48 +119,57 @@ void ZedCameraOne::threadFunc_pubSensorsData()
 // Helper: Setup thread scheduling for sensors thread
 void ZedCameraOne::setupSensorThreadScheduling()
 {
-  DEBUG_STREAM_ADV("Sensors thread settings");
-  if (_debugAdvanced) {
-    int policy;
-    sched_param par;
-    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        " ! Failed to get thread policy! - " << std::strerror(errno));
-    } else {
-      DEBUG_STREAM_ADV(
-        " * Default Sensors thread (#" << pthread_self() << ") settings - Policy: "
-                                       << sl_tools::threadSched2Str(
-          policy).c_str() << " - Priority: " << par.sched_priority);
+  if (_changeThreadSched) {
+    DEBUG_STREAM_ADV("Sensors thread settings");
+    if (_debugAdvanced) {
+      int policy;
+      sched_param par;
+      if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+        RCLCPP_WARN_STREAM(
+          get_logger(), " ! Failed to get thread policy! - "
+            << std::strerror(errno));
+      } else {
+        DEBUG_STREAM_ADV(
+          " * Default Sensors thread (#"
+            << pthread_self() << ") settings - Policy: "
+            << sl_tools::threadSched2Str(policy).c_str()
+            << " - Priority: " << par.sched_priority);
+      }
     }
-  }
 
-  sched_param par;
-  par.sched_priority =
-    (_threadSchedPolicy == "SCHED_FIFO" ||
-    _threadSchedPolicy == "SCHED_RR") ? _threadPrioSens : 0;
-  int sched_policy = SCHED_OTHER;
-  if (_threadSchedPolicy == "SCHED_BATCH") {
-    sched_policy = SCHED_BATCH;
-  } else if (_threadSchedPolicy == "SCHED_FIFO") {
-    sched_policy = SCHED_FIFO;
-  } else if (_threadSchedPolicy == "SCHED_RR") {sched_policy = SCHED_RR;}
+    sched_param par;
+    par.sched_priority =
+      (_threadSchedPolicy == "SCHED_FIFO" || _threadSchedPolicy == "SCHED_RR") ?
+      _threadPrioSens :
+      0;
+    int sched_policy = SCHED_OTHER;
+    if (_threadSchedPolicy == "SCHED_BATCH") {
+      sched_policy = SCHED_BATCH;
+    } else if (_threadSchedPolicy == "SCHED_FIFO") {
+      sched_policy = SCHED_FIFO;
+    } else if (_threadSchedPolicy == "SCHED_RR") {
+      sched_policy = SCHED_RR;
+    }
 
-  if (pthread_setschedparam(pthread_self(), sched_policy, &par)) {
-    RCLCPP_WARN_STREAM(get_logger(), " ! Failed to set thread params! - " << std::strerror(errno));
-  }
-
-  if (_debugAdvanced) {
-    int policy;
-    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+    if (pthread_setschedparam(pthread_self(), sched_policy, &par)) {
       RCLCPP_WARN_STREAM(
-        get_logger(),
-        " ! Failed to get thread policy! - " << std::strerror(errno));
-    } else {
-      DEBUG_STREAM_ADV(
-        " * New Sensors thread (#" << pthread_self() << ") settings - Policy: "
-                                   << sl_tools::threadSched2Str(
-          policy).c_str() << " - Priority: " << par.sched_priority);
+        get_logger(), " ! Failed to set thread params! - "
+          << std::strerror(errno));
+    }
+
+    if (_debugAdvanced) {
+      int policy;
+      if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+        RCLCPP_WARN_STREAM(
+          get_logger(), " ! Failed to get thread policy! - "
+            << std::strerror(errno));
+      } else {
+        DEBUG_STREAM_ADV(
+          " * New Sensors thread (#"
+            << pthread_self() << ") settings - Policy: "
+            << sl_tools::threadSched2Str(policy).c_str()
+            << " - Priority: " << par.sched_priority);
+      }
     }
   }
 }

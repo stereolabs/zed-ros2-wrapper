@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>zed_debug</name>
+  <version>5.2.0</version>
+  <description>Package to debug ZED Components by loading them in a single C++ process</description>
+  <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
+  <license>Apache License 2.0</license>
+  <url type="website">https://www.stereolabs.com/</url>
+  <url type="repository">https://github.com/stereolabs/zed-ros2-wrapper</url>
+  <url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <build_depend>ament_cmake_auto</build_depend>  
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
+  <depend>rcutils</depend>
+  <depend>zed_components</depend>
+  <depend>backward_ros</depend>
+  
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_cmake_copyright</test_depend>
+  <test_depend>ament_cmake_cppcheck</test_depend>
+  <test_depend>ament_cmake_lint_cmake</test_depend>
+  <test_depend>ament_cmake_pep257</test_depend>
+  <test_depend>ament_cmake_uncrustify</test_depend>
+  <test_depend>ament_cmake_xmllint</test_depend>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

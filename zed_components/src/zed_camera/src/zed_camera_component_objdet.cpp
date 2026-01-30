@@ -92,7 +92,7 @@ void ZedCamera::getOdParams()
       << sl::toString(mObjFilterMode).c_str());
 
   // ----> Object Detection model
-  std::string model_str;
+  std::string model_str = "MULTI_CLASS_BOX_FAST";
   sl_tools::getParam(
     shared_from_this(), "object_detection.detection_model",
     model_str, model_str);

@@ -432,6 +432,7 @@ private:
   // ----> Parameter variables
   // Debug
   bool _debugCommon = false;
+  bool _debugGrab = false;
   bool _debugSim = false;
   bool _debugVideoDepth = false;
   bool _debugCamCtrl = false;
@@ -449,7 +450,7 @@ private:
   bool _debugNitros = false;
   // If available, force disable NITROS usage for debugging and testing
   // purposes; otherwise, this is always true.
-  bool _nitrosDisabled = false;
+  bool _nitrosDisabled = true;
 
   // Topic Enablers
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
@@ -494,11 +495,11 @@ private:
   std::string mStreamAddr = "";  // The local address of the streaming server
   int mStreamPort = 30000;  // The port to be used to connect to a local streaming server
 
-  sl::MODEL mCamUserModel = sl::MODEL::ZED;  // Default camera model
-  sl::MODEL mCamRealModel;                   // Camera model requested to SDK
-  unsigned int mCamFwVersion;                // Camera FW version
-  unsigned int mSensFwVersion;               // Sensors FW version
-  std::string mCameraName = "zed";           // Default camera name
+  sl::MODEL mCamUserModel = sl::MODEL::ZED2i;  // Default camera model
+  sl::MODEL mCamRealModel;                     // Camera model requested to SDK
+  unsigned int mCamFwVersion;                  // Camera FW version
+  unsigned int mSensFwVersion;                 // Sensors FW version
+  std::string mCameraName = "zed";             // Default camera name
   int mCamGrabFrameRate = 15;
   bool mAsyncImageRetrieval = false;
   int mImageValidityCheck = 1;
@@ -516,18 +517,18 @@ private:
   std::string mVerboseLogFile = "";
   int mGpuId = -1;
   std::string mOpencvCalibFile;
-  sl::RESOLUTION mCamResol = sl::RESOLUTION::HD1080;    // Default resolution: RESOLUTION_HD1080
-  PubRes mPubResolution = PubRes::NATIVE;                     // Use native grab resolution by default
-  double mCustomDownscaleFactor = 1.0;  // Used to rescale data with user factor
+  sl::RESOLUTION mCamResol = sl::RESOLUTION::AUTO;    // Default resolution: AUTOMATIC
+  PubRes mPubResolution = PubRes::NATIVE;             // Use native grab resolution by default
+  double mCustomDownscaleFactor = 1.0;                // Used to rescale data with user factor
   bool mOpenniDepthMode =
     false;    // 16 bit UC data in mm else 32F in m,
               // for more info -> http://www.ros.org/reps/rep-0118.html
-  double mCamMinDepth = 0.1;
-  double mCamMaxDepth = 10.0;
+  double mCamMinDepth = 0.01;
+  double mCamMaxDepth = 15.0;
   sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::NEURAL;
   PcRes mPcResolution = PcRes::COMPACT;
   bool mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE)
-  int mDepthStabilization = 1;
+  int mDepthStabilization = 0;
 
   int mCamTimeoutSec = 5;
   int mMaxReconnectTemp = 5;
@@ -554,7 +555,7 @@ private:
   std::string mAreaMemoryFilePath = "";
   bool mLocalizationOnly = false;
   sl::POSITIONAL_TRACKING_MODE mPosTrkMode =
-    sl::POSITIONAL_TRACKING_MODE::GEN_1;
+    sl::POSITIONAL_TRACKING_MODE::GEN_3;
   bool mSaveAreaMemoryOnClosing = true;
   bool mImuFusion = true;
   bool mFloorAlignment = false;
@@ -638,10 +639,11 @@ private:
   double mPdMaxDistanceThreshold = 0.15;
   double mPdNormalSimilarityThreshold = 15.0;
 
+  bool mChangeThreadSched = false;
   std::string mThreadSchedPolicy;
-  int mThreadPrioGrab;
-  int mThreadPrioSens;
-  int mThreadPrioPointCloud;
+  int mThreadPrioGrab = 50;
+  int mThreadPrioSens = 70;
+  int mThreadPrioPointCloud = 60;
 
   std::atomic<bool> mStreamingServerRequired;
   sl::STREAMING_CODEC mStreamingServerCodec = sl::STREAMING_CODEC::H264;
@@ -668,9 +670,9 @@ private:
   int mCamExposure = 80;
   bool mCamAutoWB = true;
   int mCamWBTemp = 42;
-  int mDepthConf = 50;
+  int mDepthConf = 95;
   int mDepthTextConf = 100;
-  double mPcPubRate = 15.0;
+  double mPcPubRate = 10.0;
   double mFusedPcPubRate = 1.0;
   bool mRemoveSatAreas = true;
 
@@ -951,6 +953,7 @@ private:
   std::thread mPcThread;          // Point Cloud publish thread
   std::thread mSensThread;        // Sensors data publish thread
   std::atomic<bool> mThreadStop;
+  std::atomic<bool> mNodeDeinitialized;
   rclcpp::TimerBase::SharedPtr mInitTimer;
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;

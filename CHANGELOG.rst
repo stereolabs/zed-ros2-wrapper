@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2026-01-30
+----------
+- Add the `zed_debug` package for debugging ZED Components by loading them in a single C++ process.
+
 2025-12-18
 ----------
 - Added the `enable_localization_only` parameter to the configuration to allow the camera to localize in the loaded area memory without updating the map with new information.

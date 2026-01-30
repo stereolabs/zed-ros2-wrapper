@@ -133,6 +133,10 @@ protected:
   void callback_updateDiagnostic(
     diagnostic_updater::DiagnosticStatusWrapper & stat);
 
+  void callback_enableDepth(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+    std::shared_ptr<std_srvs::srv::SetBool_Response> res);
   void callback_resetOdometry(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
@@ -145,14 +149,10 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_msgs::srv::SetPose_Request> req,
     std::shared_ptr<zed_msgs::srv::SetPose_Response> res);
-  /*void callback_saveAreaMemory(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<zed_msgs::srv::SaveAreaMemory_Request> req,
-    std::shared_ptr<zed_msgs::srv::SaveAreaMemory_Response> res);*/// TODO(Walter): Uncomment when available in `zed_msgs` package from APT
   void callback_saveAreaMemory(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<zed_msgs::srv::SetROI_Request> req,
-    std::shared_ptr<zed_msgs::srv::SetROI_Response> res);
+    const std::shared_ptr<zed_msgs::srv::SaveAreaMemory_Request> req,
+    std::shared_ptr<zed_msgs::srv::SaveAreaMemory_Response> res);
   void callback_enableObjDet(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
@@ -1117,6 +1117,7 @@ private:
   // <---- SVO Recording parameters
 
   // ----> Services
+  enableDepthPtr mEnableDepthSrv;
   resetOdomSrvPtr mResetOdomSrv;
   resetPosTrkSrvPtr mResetPosTrkSrv;
   setPoseSrvPtr mSetPoseSrv;
@@ -1138,6 +1139,7 @@ private:
   // <---- Services
 
   // ----> Services names
+  const std::string mSrvEnableDepthName = "enable_depth";
   const std::string mSrvResetOdomName = "reset_odometry";
   const std::string mSrvResetPoseName = "reset_pos_tracking";
   const std::string mSrvSetPoseName = "set_pose";

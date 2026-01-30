@@ -135,7 +135,8 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
         "This version of the ZED ROS2 wrapper is designed to work with ZED SDK "
         "v" << static_cast<int>(SDK_MAJOR_MIN_SUPP)
             << "." << static_cast<int>(SDK_MINOR_MIN_SUPP) << " or newer up to v" <<
-          static_cast<int>(SDK_MAJOR_MAX_SUPP) << "." << static_cast<int>(SDK_MINOR_MAX_SUPP) << ".");
+          static_cast<int>(SDK_MAJOR_MAX_SUPP) << "." << static_cast<int>(SDK_MINOR_MAX_SUPP) <<
+          ".");
       RCLCPP_INFO_STREAM(
         get_logger(), "* Detected SDK v"
           << ZED_SDK_MAJOR_VERSION << "."
@@ -353,6 +354,11 @@ void ZedCamera::initServices()
   std::string srv_prefix = "~/";
 
   if (!mDepthDisabled) {
+    // Enable Depth Processing
+    srv_name = srv_prefix + mSrvEnableDepthName;
+    mEnableDepthSrv = create_service<std_srvs::srv::SetBool>(
+      srv_name,
+      std::bind(&ZedCamera::callback_enableDepth, this, _1, _2, _3));
     // Reset Odometry
     srv_name = srv_prefix + mSrvResetOdomName;
     mResetOdomSrv = create_service<std_srvs::srv::Trigger>(
@@ -376,9 +382,7 @@ void ZedCamera::initServices()
       " * Advertised on service: '" << mSetPoseSrv->get_service_name() << "'");
     // Save Area Memory
     srv_name = srv_prefix + mSrvSaveAreaMemoryName;
-    /*mSaveAreaMemorySrv = create_service<zed_msgs::srv::SaveAreaMemory>(
-      srv_name, std::bind(&ZedCamera::callback_saveAreaMemory, this, _1, _2, _3));*/// TODO(Walter): Uncomment when available in `zed_msgs` package from APT
-    mSaveAreaMemorySrv = create_service<zed_msgs::srv::SetROI>(
+    mSaveAreaMemorySrv = create_service<zed_msgs::srv::SaveAreaMemory>(
       srv_name, std::bind(&ZedCamera::callback_saveAreaMemory, this, _1, _2, _3));
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -694,10 +698,12 @@ void ZedCamera::getDebugParams()
   sl_tools::getParam(
     shared_from_this(), "debug.debug_common", _debugCommon,
     _debugCommon, " * Debug Common: ");
-  sl_tools::getParam(shared_from_this(), "debug.debug_grab", _debugGrab,
-                     _debugGrab, " * Debug Grab (low level): ");
-  sl_tools::getParam(shared_from_this(), "debug.debug_sim", _debugSim,
-                     _debugSim, " * Debug Simulation: ");
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_grab", _debugGrab,
+    _debugGrab, " * Debug Grab (low level): ");
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_sim", _debugSim,
+    _debugSim, " * Debug Simulation: ");
   sl_tools::getParam(
     shared_from_this(), "debug.debug_video_depth",
     _debugVideoDepth, _debugVideoDepth,
@@ -747,10 +753,10 @@ void ZedCamera::getDebugParams()
     _debugAdvanced, " * Debug Advanced: ");
 
   mDebugMode = _debugCommon || _debugGrab || _debugSim || _debugVideoDepth ||
-               _debugCamCtrl || _debugPointCloud || _debugTf ||
-               _debugPosTracking || _debugGnss || _debugSensors ||
-               _debugMapping || _debugObjectDet || _debugBodyTrk ||
-               _debugAdvanced || _debugRoi || _debugStreaming || _debugNitros;
+    _debugCamCtrl || _debugPointCloud || _debugTf ||
+    _debugPosTracking || _debugGnss || _debugSensors ||
+    _debugMapping || _debugObjectDet || _debugBodyTrk ||
+    _debugAdvanced || _debugRoi || _debugStreaming || _debugNitros;
 
   if (mDebugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(
@@ -4654,7 +4660,7 @@ void ZedCamera::threadFunc_zedGrab()
 
       // ----> Check for Positional Tracking requirement
       DEBUG_STREAM_GRAB(
-          "Grab thread: checking Positional Tracking requirement");
+        "Grab thread: checking Positional Tracking requirement");
       if (isPosTrackingRequired() && !mPosTrackingStarted) {
         static int pt_err_count = 0;
         if (!startPosTracking()) {
@@ -4749,15 +4755,15 @@ void ZedCamera::threadFunc_zedGrab()
         sl::String json;
         mRunParams.encode(json);
         DEBUG_STREAM_GRAB(
-            "Grab thread: Grab parameters: " << std::string(json));
+          "Grab thread: Grab parameters: " << std::string(json));
 
         mInitParams.encode(json);
         DEBUG_STREAM_GRAB(
-            "Grab thread: Init parameters: " << std::string(json));
+          "Grab thread: Init parameters: " << std::string(json));
       }
       // <---- Params Debug info
 
-      if (isDepthRequired() ) {
+      if (isDepthRequired() || isPosTrackingRequired()) {
         DEBUG_STREAM_GRAB("Grab thread: grabbing...");
         mGrabStatus = mZed->grab(mRunParams);  // Process the full pipeline with depth
 
@@ -7515,14 +7521,18 @@ void ZedCamera::callback_pubPaths()
   }
 }
 
-/*void callback_saveAreaMemory(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<zed_msgs::srv::SaveAreaMemory_Request> req,
-    std::shared_ptr<zed_msgs::srv::SaveAreaMemory_Response> res);*/// TODO(Walter): Uncomment when available in `zed_msgs` package from APT
+void ZedCamera::callback_enableDepth(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+  std::shared_ptr<std_srvs::srv::SetBool_Response> res)
+{
+
+}
+
 void ZedCamera::callback_saveAreaMemory(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  const std::shared_ptr<zed_msgs::srv::SetROI_Request> req,
-  std::shared_ptr<zed_msgs::srv::SetROI_Response> res)
+  const std::shared_ptr<zed_msgs::srv::SaveAreaMemory_Request> req,
+  std::shared_ptr<zed_msgs::srv::SaveAreaMemory_Response> res)
 {
   (void)request_header;
 
@@ -7535,8 +7545,7 @@ void ZedCamera::callback_saveAreaMemory(
     return;
   }
 
-  std::string filename = req->roi;
-  // std::string filename = req->area_file_path; // TODO(Walter): Uncomment when available in `zed_msgs` package from APT
+  std::string filename = req->area_file_path;
 
   if (filename.empty()) {
     if (mAreaMemoryFilePath.empty()) {

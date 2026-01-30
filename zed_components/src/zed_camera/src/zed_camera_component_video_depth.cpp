@@ -921,7 +921,8 @@ bool ZedCamera::isDepthRequired()
     return false;
   }
 
-  return tot_sub > 0 || isPosTrackingRequired();
+  return tot_sub > 0 ||
+         (isPosTrackingRequired() && mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_1);
 }
 
 void ZedCamera::applyDepthSettings()

@@ -663,7 +663,7 @@
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
 
           class_032:
-            label: 'pesports ballrson'
+            label: 'sports ball'
             model_class_id: 32 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]

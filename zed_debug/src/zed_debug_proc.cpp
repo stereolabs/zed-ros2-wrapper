@@ -13,7 +13,14 @@
 // limitations under the License.
 
 #include <rclcpp/rclcpp.hpp>
+
+#define DEBUG_MONOCULAR
+
+#if defined(DEBUG_MONOCULAR)
+#include <zed_components/zed_camera_one_component.hpp>
+#else
 #include <zed_components/zed_camera_component.hpp>
+#endif
 
 int main(int argc, char ** argv)
 {
@@ -24,11 +31,16 @@ int main(int argc, char ** argv)
   rclcpp::NodeOptions options;
   options.use_intra_process_comms(false);
 
-  auto zed_stereo_component =
+#if defined(DEBUG_MONOCULAR)
+  auto zed_component =
+    std::make_shared<stereolabs::ZedCameraOne>(options);
+#else
+  auto zed_component =
     std::make_shared<stereolabs::ZedCamera>(options);
+#endif
 
   rclcpp::executors::SingleThreadedExecutor executor;
-  executor.add_node(zed_stereo_component);
+  executor.add_node(zed_component);
   executor.spin();
 
   rclcpp::shutdown();

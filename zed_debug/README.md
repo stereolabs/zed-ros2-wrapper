@@ -46,7 +46,7 @@ It's possible to debug the ZED ROS2 nodes using VSCode and the `ros2 launch` com
             "type": "cppdbg",
             "miDebuggerServerAddress": "localhost:3000",
             "cwd": "${workspaceFolder}",
-            "program": "install/zed_debug/lib/zed_debug/zed_stereo_single",
+            "program": "install/zed_debug/lib/zed_debug/zed_debug_proc",
             "stopAtEntry": true
         }
     ]
@@ -91,3 +91,7 @@ ros2 launch zed_debug zed_camera_debug.launch.py camera_model:=<your_camera_mode
 ```
 
 You can modify `valgrind --leak-check=full --track-origins=yes` to add any other `valgrind` options you may need.
+
+## Known Issues
+
+When the `isaac_ros_managed_nitros` package is installed and the ZED Camera Components are linked against Isaac ROS libraries, you may experience issues when trying to start the `zed_debug` executable. This appears to be an issue with the Isaac ROS libraries when used with static ROS 2 Composition instead of dynamic composition (using launch files). We are working with NVIDIA to resolve this issue. In the meantime, if you encounter this problem and want to debug the ZED Components, please uninstall the `isaac_ros_managed_nitros` package from your system and rebuild.

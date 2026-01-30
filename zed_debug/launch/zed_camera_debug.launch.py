@@ -288,7 +288,7 @@ def launch_setup(context, *args, **kwargs):
 
     # ZED Wrapper node with hardcoded container
     zed_node = Node(
-        executable='zed_stereo_single',
+        executable='zed_debug_proc',
         package='zed_debug',
         name=node_name_val,
         namespace=namespace_val,

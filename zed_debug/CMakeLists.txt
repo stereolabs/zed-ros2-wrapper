@@ -118,27 +118,27 @@ set(ZED_LIBS
 
 ###############################################################################
 # SOURCES
-set(ZED_STEREO_SINGLE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_stereo_single.cpp
+set(ZED_DEBUG_PROC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_debug_proc.cpp
 )
 
 ###############################################################################
 # Bin and Install
 
-# ZED STEREO SINGLE executable
-add_executable(zed_stereo_single
-    ${ZED_STEREO_SINGLE}
+# ZED DEBUG PROC executable
+add_executable(zed_debug_proc
+    ${ZED_DEBUG_PROC}
 )
-target_include_directories(zed_stereo_single PUBLIC
+target_include_directories(zed_debug_proc PUBLIC
     ${CUDA_INCLUDE_DIRS}
     ${ZED_INCLUDE_DIRS}
 )
-ament_target_dependencies(zed_stereo_single
+ament_target_dependencies(zed_debug_proc
     ${DEPENDENCIES}
 )
 
 # Install executable
-install(TARGETS zed_stereo_single
+install(TARGETS zed_debug_proc
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}  

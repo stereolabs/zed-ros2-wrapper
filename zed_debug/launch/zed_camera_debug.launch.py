@@ -294,7 +294,8 @@ def launch_setup(context, *args, **kwargs):
         namespace=namespace_val,
         parameters=node_parameters,
         output='screen',
-        prefix=[prefix_string]
+        prefix=[prefix_string],
+        arguments=['--ros-args', '--log-level', 'debug']
     )
     return_array.append(zed_node)
 

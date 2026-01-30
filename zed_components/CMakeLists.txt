@@ -135,7 +135,6 @@ find_package(nmea_msgs REQUIRED)
 find_package(geographic_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
-find_package(backward_ros REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
@@ -143,6 +142,9 @@ find_package(diagnostic_updater REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(shape_msgs REQUIRED)
 find_package(robot_localization REQUIRED)
+
+# Debug
+find_package(backward_ros REQUIRED)
 
 # Check ISAAC ROS Nitros availability
 find_package(isaac_ros_common QUIET)

@@ -26,6 +26,14 @@
 #define DEBUG_STREAM_COMM_ONCE(stream_arg) \
   if (_debugCommon) RCLCPP_DEBUG_STREAM_ONCE(get_logger(), stream_arg)
 
+// Grab (low level)
+#define DEBUG_GRAB(...) \
+  if (_debugGrab) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
+#define DEBUG_STREAM_GRAB(stream_arg) \
+  if (_debugGrab) RCLCPP_DEBUG_STREAM(get_logger(), stream_arg)
+#define DEBUG_STREAM_GRAB_ONCE(stream_arg) \
+  if (_debugGrab) RCLCPP_DEBUG_STREAM_ONCE(get_logger(), stream_arg)
+
 // Simulation
 #define DEBUG_SIM(...) \
   if (_debugSim) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)

@@ -84,6 +84,7 @@ set(DEPENDENCIES
     rclcpp
     rclcpp_components
     zed_components
+    backward_ros
 )
 
 find_package(ament_cmake_auto REQUIRED)
@@ -93,6 +94,9 @@ find_package(rcutils REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(zed_components REQUIRED)
+
+# Debugging with backward-cpp
+find_package(backward_ros REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

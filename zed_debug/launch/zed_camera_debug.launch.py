@@ -286,6 +286,13 @@ def launch_setup(context, *args, **kwargs):
         }
     )
 
+    # Select what camera component to load in the Executor at Runtime
+    exe_args = []
+    if( camera_model_val == 'zedxonegs' or
+        camera_model_val == 'zedxone4k' or
+        camera_model_val == 'zedxonehdr' ):
+        exe_args.append('--monocular')
+
     # ZED Wrapper node with hardcoded container
     zed_node = Node(
         executable='zed_debug_proc',
@@ -295,7 +302,7 @@ def launch_setup(context, *args, **kwargs):
         parameters=node_parameters,
         output='screen',
         prefix=[prefix_string],
-        arguments=['--ros-args', '--log-level', 'debug']
+        arguments=exe_args + ['--ros-args', '--log-level', 'debug']
     )
     return_array.append(zed_node)
 

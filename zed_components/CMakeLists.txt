@@ -317,6 +317,7 @@ install(TARGETS zed_camera_component zed_camera_one_component
 # Install header files
 install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera_one/include/
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/
     DESTINATION include/${PROJECT_NAME}/

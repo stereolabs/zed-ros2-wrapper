@@ -13,37 +13,50 @@
 // limitations under the License.
 
 #include <rclcpp/rclcpp.hpp>
-
-#define DEBUG_MONOCULAR
-
-#if defined(DEBUG_MONOCULAR)
-#include <zed_components/zed_camera_one_component.hpp>
-#else
 #include <zed_components/zed_camera_component.hpp>
-#endif
+#include <zed_components/zed_camera_one_component.hpp>
 
 int main(int argc, char ** argv)
 {
+  // Disable stdout buffering for better logging visibility
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
+  // Initialize ROS 2
   rclcpp::init(argc, argv);
 
+  // Disable intra-process communication
   rclcpp::NodeOptions options;
   options.use_intra_process_comms(false);
 
-#if defined(DEBUG_MONOCULAR)
-  auto zed_component =
-    std::make_shared<stereolabs::ZedCameraOne>(options);
-#else
-  auto zed_component =
-    std::make_shared<stereolabs::ZedCamera>(options);
-#endif
+  // Check for monocular mode argument
+  bool monocular_mode = false;
+  for(int i = 1; i < argc; ++i) {
+    std::string mode_arg = argv[i];
+    if (mode_arg == "--monocular") {
+      monocular_mode = true;
+      break;
+    }
+  }
 
+   // Create the appropriate ZED camera node (monocular or stereo)
+  rclcpp::Node::SharedPtr zed_component;
+  if (monocular_mode) {
+    RCLCPP_INFO(rclcpp::get_logger("zed_debug_proc"),
+                "Debugging ZED Camera One (monocular) node...");
+    zed_component = std::make_shared<stereolabs::ZedCameraOne>(options);    
+  } else {
+    RCLCPP_INFO(rclcpp::get_logger("zed_debug_proc"),
+                "Debugging ZED Camera (stereo) node...");
+    zed_component = std::make_shared<stereolabs::ZedCamera>(options);    
+  }
+
+  // Create single-threaded executor and spin the node
   rclcpp::executors::SingleThreadedExecutor executor;
   executor.add_node(zed_component);
   executor.spin();
 
+  // Shutdown ROS 2
   rclcpp::shutdown();
 
-  return 0;
+  return EXIT_SUCCESS;
 }

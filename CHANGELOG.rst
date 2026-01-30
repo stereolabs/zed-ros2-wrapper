@@ -1,9 +1,9 @@
 LATEST CHANGES
 ==============
 
-2026-01-15
+2026-01-30
 ----------
-- The new default positional tracking mode is now `GEN_3` for improved odometry and localization performance with ZED SDK v5.2.
+- Add the `zed_debug` package for debugging ZED Components by loading them in a single C++ process.
 
 2025-12-18
 ----------

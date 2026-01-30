@@ -111,7 +111,8 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
     rclcpp::contexts::get_global_default_context()->is_valid();
 
     if (!rclcpp::contexts::get_global_default_context() ||
-        !rclcpp::contexts::get_global_default_context()->is_valid()) {
+      !rclcpp::contexts::get_global_default_context()->is_valid())
+    {
       RCLCPP_ERROR(get_logger(), "Global context is null!");
       exit(EXIT_FAILURE);
     }
@@ -3666,11 +3667,10 @@ bool ZedCamera::startPosTracking()
   // Lock on Positional Tracking mutex to avoid race conditions
   std::lock_guard<std::mutex> lock(mPtMutex);
 
-  if (mDepthDisabled) {
+  if (mDepthDisabled && mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
     RCLCPP_WARN(
       get_logger(),
-      "Cannot start Positional Tracking if "
-      "`depth.depth_mode` is set to `0` [NONE]");
+      "Cannot start Positional Tracking if Depth processing is disabled (except for GEN_3 mode).");
     return false;
   }
 
@@ -3872,7 +3872,7 @@ bool ZedCamera::start3dMapping()
   if (mDepthDisabled) {
     RCLCPP_WARN(
       get_logger(),
-      "Cannot start 3D Mapping if `depth.depth_mode` is set to `0` [NONE]");
+      "Cannot start 3D Mapping if Depth processing is disabled");
     return false;
   }
 
@@ -4976,7 +4976,9 @@ void ZedCamera::threadFunc_zedGrab()
         DEBUG_STREAM_GRAB("Grab thread: retrieving Point Cloud data");
         processPointCloud();
         // <---- Retrieve the point cloud if someone has subscribed to
+      }
 
+      if (!mDepthDisabled || mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_3) {
         // ----> Localization processing
         DEBUG_STREAM_GRAB("Grab thread: Localization processing");
         if (mPosTrackingStarted) {
@@ -5002,7 +5004,9 @@ void ZedCamera::threadFunc_zedGrab()
           publishTFs(mFrameTimestamp);
         }
         // <---- Localization processing
+      }
 
+      if (!mDepthDisabled) {
         DEBUG_STREAM_GRAB("Grab thread: Object Detection processing");
         mObjDetMutex.lock();
         if (mObjDetRunning) {
@@ -7038,8 +7042,8 @@ void ZedCamera::publishGnssPose()
 
 bool ZedCamera::isPosTrackingRequired()
 {
-  if (mDepthDisabled) {
-    DEBUG_ONCE_PT("POS. TRACKING not required: Depth disabled.");
+  if (mDepthDisabled && mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+    DEBUG_ONCE_PT("POS. TRACKING not required: Depth disabled (unless GEN3 mode).");
     return false;
   }
 
@@ -7526,7 +7530,53 @@ void ZedCamera::callback_enableDepth(
   const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
   std::shared_ptr<std_srvs::srv::SetBool_Response> res)
 {
+  (void)request_header;
 
+  RCLCPP_INFO(get_logger(), "** Enable Depth service called **");
+
+  if (mDepthMode == sl::DEPTH_MODE::NONE) {
+    RCLCPP_WARN(
+      get_logger(),
+      "The node was started with depth mode NONE. Depth cannot be enabled.");
+    res->message = "Depth mode is NONE";
+    res->success = false;
+    return;
+  }
+
+  if (req->data) {
+    RCLCPP_INFO(get_logger(), "Depth processing enabled");
+    mDepthDisabled = false;
+    res->message = "Depth processing enabled";
+  } else {
+    RCLCPP_INFO(get_logger(), "Depth processing disabled");
+    mDepthDisabled = true;
+    res->message = "Depth processing disabled";
+  }
+
+  if (mDepthDisabled && mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+    RCLCPP_WARN(
+      get_logger(),
+      "Depth disabled: Positional Tracking data will not be processed.");
+    if (mPublishTF) {
+      RCLCPP_WARN(
+        get_logger(),
+        " * Unpredictable TF behavior may occur when Depth will be re-enabled.");
+    }
+  }
+
+  if (mDepthDisabled && mObjDetEnabled) {
+    RCLCPP_WARN(
+      get_logger(),
+      "Depth disabled: Object Detection processing will be disabled.");
+  }
+
+  if (mDepthDisabled && mBodyTrkEnabled) {
+    RCLCPP_WARN(
+      get_logger(),
+      "Depth disabled: Body Tracking processing will be disabled.");
+  }
+
+  res->success = true;
 }
 
 void ZedCamera::callback_saveAreaMemory(
@@ -7536,7 +7586,7 @@ void ZedCamera::callback_saveAreaMemory(
 {
   (void)request_header;
 
-  RCLCPP_INFO(get_logger(), "** Save Area Memory_Response service called **");
+  RCLCPP_INFO(get_logger(), "** Save Area Memory service called **");
 
   if (!mPosTrackingStarted) {
     RCLCPP_WARN(get_logger(), " * Pos. Tracking was not started");
@@ -8245,7 +8295,7 @@ void ZedCamera::callback_updateDiagnostic(
       }
     }
 
-    if (isDepthRequired()) {
+    if (!mDepthDisabled) {
       stat.add("Depth status", "ACTIVE");
       stat.add("Depth mode", sl::toString(mDepthMode).c_str());
 
@@ -8274,66 +8324,6 @@ void ZedCamera::callback_updateDiagnostic(
         stat.add("Automatic ROI", sl::toString(mAutoRoiStatus).c_str());
       } else if (mManualRoiEnabled) {
         stat.add("Manual ROI", "ENABLED");
-      }
-
-      if (mGnssFusionEnabled) {
-        stat.addf("Fusion status", sl::toString(mFusionStatus).c_str());
-        if (mPosTrackingStarted) {
-          stat.addf(
-            "GNSS Tracking status", "%s",
-            sl::toString(mFusedPosTrackingStatus.gnss_fusion_status).c_str());
-        }
-        if (mGnssMsgReceived) {
-          freq = 1. / mGnssFix_sec->getAvg();
-          stat.addf("GNSS input", "Mean Frequency: %.1f Hz", freq);
-          stat.addf("GNSS Services", "%s", mGnssServiceStr.c_str());
-          if (mGnssFixValid) {
-            stat.add("GNSS Status", "FIX OK");
-          } else {
-            stat.add("GNSS Status", "NO FIX");
-          }
-        } else {
-          stat.add("GNSS Fusion", "Waiting for GNSS messages");
-        }
-      } else {
-        stat.add("GNSS Fusion", "DISABLED");
-      }
-
-      if (mPosTrackingStarted) {
-        stat.addf(
-          "Odometry tracking status", "%s",
-          sl::toString(mPosTrackingStatus.odometry_status)
-          .c_str());
-        stat.addf(
-          "Spatial Memory status", "%s",
-          sl::toString(mPosTrackingStatus.spatial_memory_status).c_str());
-
-        if (mPublishTF) {
-          freq = 1. / mPubOdomTF_sec->getAvg();
-          stat.addf("TF Odometry", "Mean Frequency: %.1f Hz", freq);
-
-          if (mPublishMapTF) {
-            freq = 1. / mPubPoseTF_sec->getAvg();
-            stat.addf("TF Pose", "Mean Frequency: %.1f Hz", freq);
-          } else {
-            stat.add("TF Pose", "DISABLED");
-          }
-        } else {
-          stat.add("TF Odometry", "DISABLED");
-          stat.add("TF Pose", "DISABLED");
-        }
-
-        if (mMappingEnabled) {
-          if (mSpatialMappingRunning) {
-            stat.add("3D Mapping", "ACTIVE");
-          } else {
-            stat.add("3D Mapping", "STARTING...");
-          }
-        } else {
-          stat.add("3D Mapping", "INACTIVE");
-        }
-      } else {
-        stat.add("Pos. Tracking status", "INACTIVE");
       }
 
       if (mObjDetRunning) {
@@ -8375,6 +8365,69 @@ void ZedCamera::callback_updateDiagnostic(
       }
     } else {
       stat.add("Depth status", "INACTIVE");
+    }
+
+    if (!mDepthDisabled || mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+      if (mGnssFusionEnabled) {
+        stat.addf("Fusion status", sl::toString(mFusionStatus).c_str());
+        if (mPosTrackingStarted) {
+          stat.addf(
+            "GNSS Tracking status", "%s",
+            sl::toString(mFusedPosTrackingStatus.gnss_fusion_status).c_str());
+        }
+        if (mGnssMsgReceived) {
+          freq = 1. / mGnssFix_sec->getAvg();
+          stat.addf("GNSS input", "Mean Frequency: %.1f Hz", freq);
+          stat.addf("GNSS Services", "%s", mGnssServiceStr.c_str());
+          if (mGnssFixValid) {
+            stat.add("GNSS Status", "FIX OK");
+          } else {
+            stat.add("GNSS Status", "NO FIX");
+          }
+        } else {
+          stat.add("GNSS Fusion", "Waiting for GNSS messages");
+        }
+      } else {
+        stat.add("GNSS Fusion", "DISABLED");
+      }
+
+      if (mPosTrackingStarted) {
+        stat.addf(
+          "Odometry tracking status", "%s",
+          sl::toString(mPosTrackingStatus.odometry_status).c_str());
+        stat.addf(
+          "Spatial Memory status", "%s",
+          sl::toString(mPosTrackingStatus.spatial_memory_status).c_str());
+
+        if (mPublishTF) {
+          freq = 1. / mPubOdomTF_sec->getAvg();
+          stat.addf("TF Odometry", "Mean Frequency: %.1f Hz", freq);
+
+          if (mPublishMapTF) {
+            freq = 1. / mPubPoseTF_sec->getAvg();
+            stat.addf("TF Pose", "Mean Frequency: %.1f Hz", freq);
+          } else {
+            stat.add("TF Pose", "DISABLED");
+          }
+        } else {
+          stat.add("TF Odometry", "DISABLED");
+          stat.add("TF Pose", "DISABLED");
+        }
+
+        if (mMappingEnabled) {
+          if (mSpatialMappingRunning) {
+            stat.add("3D Mapping", "ACTIVE");
+          } else {
+            stat.add("3D Mapping", "STARTING...");
+          }
+        } else {
+          stat.add("3D Mapping", "INACTIVE");
+        }
+      } else {
+        stat.add("Pos. Tracking status", "INACTIVE");
+      }
+    } else {
+      stat.add("Positional Tracking", "N/A");
     }
 
     if (mPublishImuTF) {

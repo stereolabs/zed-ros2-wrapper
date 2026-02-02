@@ -104,10 +104,10 @@
             publish_map_tf: true # [overwritten by launch file options] publish `map -> odom` TF
             map_frame: 'map'
             odometry_frame: 'zed/zed_node/odom'
-            area_memory: true # Enable to detect loop closure
+            area_memory: false # Enable to detect loop closure
             area_file_path: '' # Path to the area memory file for relocalization and loop closure in a previously explored environment. 
             save_area_memory_on_closing: false # Save Area memory before closing the camera if `area_file_path` is not empty. You can also use the `save_area_memory` service to save the area memory at any time.
-            reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
+            reset_odom_with_loop_closure: false # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
             publish_3d_landmarks: false # Publish 3D landmarks used by the positional tracking algorithm
             publish_lm_skip_frame: 5 # Publish the landmarks every X frames to reduce bandwidth. Set to 0 to publish all landmarks
             depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation

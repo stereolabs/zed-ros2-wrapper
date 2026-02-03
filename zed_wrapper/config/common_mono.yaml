@@ -54,7 +54,7 @@
 
         stream_server:
             stream_enabled: false # enable the streaming server when the camera is open
-            codec: 'H264' # different encoding types for image streaming: 'H264', 'H265'
+            codec: 'H265' # different encoding types for image streaming: 'H264', 'H265'
             port: 30000 # Port used for streaming. Port must be an even number. Any odd number will be rejected.
             bitrate: 12500 # [1000 - 60000] Streaming bitrate (in Kbits/s) used for streaming. See https://www.stereolabs.com/docs/api/structsl_1_1StreamingParameters.html#a873ba9440e3e9786eb1476a3bfa536d0
             gop_size: -1 # [max 256] The GOP size determines the maximum distance between IDR/I-frames. Very high GOP size will result in slightly more efficient compression, especially on static scenes. But latency will increase.

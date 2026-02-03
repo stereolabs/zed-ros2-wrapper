@@ -351,6 +351,30 @@ void ZedCamera::getCustomOdParams()
       customOdProperties.max_allowed_acceleration, customOdProperties.max_allowed_acceleration, std::string(
         "  * ") + param_name + ": ", true, 0.0f,
       100000.0f);
+    param_name = param_prefix + "velocity_smoothing_factor";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.object_tracking_parameters.velocity_smoothing_factor, customOdProperties.object_tracking_parameters.velocity_smoothing_factor, std::string(
+        "  * ") + param_name + ": ", true, 0.0f,
+      1.0f);
+    param_name = param_prefix + "min_velocity_threshold";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.object_tracking_parameters.min_velocity_threshold, customOdProperties.object_tracking_parameters.min_velocity_threshold, std::string(
+        "  * ") + param_name + ": ", true, 0.0f,
+      100.0f);
+    param_name = param_prefix + "prediction_timeout_s";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.object_tracking_parameters.prediction_timeout_s, customOdProperties.object_tracking_parameters.prediction_timeout_s, std::string(
+        "  * ") + param_name + ": ", true, 0.0f,
+      100.0f);
+    param_name = param_prefix + "min_confirmation_time_s";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.object_tracking_parameters.min_confirmation_time_s, customOdProperties.object_tracking_parameters.min_confirmation_time_s, std::string(
+        "  * ") + param_name + ": ", true, 0.0f,
+      100.0f);
 
     bool matched = false;
     std::string acc_preset_str = "DEFAULT";
@@ -367,7 +391,7 @@ void ZedCamera::getCustomOdParams()
         test_mode_str.begin(), test_mode_str.end(), ' ', '_');   // Replace spaces with underscores to match the YAML setting
       DEBUG_OD(" Comparing '%s' to '%s'", acc_preset_str.c_str(), test_mode_str.c_str());
       if (acc_preset_str == test_mode_str) {
-        customOdProperties.object_acceleration_preset = test_mode;
+        customOdProperties.object_tracking_parameters.object_acceleration_preset = test_mode;
         matched = true;
         break;
       }
@@ -380,7 +404,7 @@ void ZedCamera::getCustomOdParams()
     }
     RCLCPP_INFO_STREAM(
       get_logger(), std::string("  * ") + param_name + ": "
-        << sl::toString(customOdProperties.object_acceleration_preset).c_str());
+        << sl::toString(customOdProperties.object_tracking_parameters.object_acceleration_preset).c_str());
 
     mCustomOdProperties[class_id] = customOdProperties; // Update the Custom OD Properties information
   }
@@ -901,6 +925,70 @@ bool ZedCamera::handleCustomOdDynamicParams(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].max_allowed_acceleration);
+  } else if (param_name == "velocity_smoothing_factor") {
+    rclcpp::ParameterType
+      correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+    mCustomOdProperties[class_id].object_tracking_parameters.velocity_smoothing_factor = param.as_double();
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << mCustomOdProperties[class_id].object_tracking_parameters.velocity_smoothing_factor);
+  } else if (param_name == "min_velocity_threshold") {
+    rclcpp::ParameterType
+      correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+    mCustomOdProperties[class_id].object_tracking_parameters.min_velocity_threshold = param.as_double();
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << mCustomOdProperties[class_id].object_tracking_parameters.min_velocity_threshold);
+  } else if (param_name == "prediction_timeout_s") {
+    rclcpp::ParameterType
+      correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+    mCustomOdProperties[class_id].object_tracking_parameters.prediction_timeout_s = param.as_double();
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << mCustomOdProperties[class_id].object_tracking_parameters.prediction_timeout_s);
+  } else if (param_name == "min_confirmation_time_s") {
+    rclcpp::ParameterType
+      correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason =
+        param.get_name() + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return false;
+    }
+    mCustomOdProperties[class_id].object_tracking_parameters.min_confirmation_time_s = param.as_double();
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Parameter '"
+        << param.get_name() << "' correctly set to "
+        << mCustomOdProperties[class_id].object_tracking_parameters.min_confirmation_time_s);
   } else {
     RCLCPP_WARN_STREAM(get_logger(), "Unknown parameter: " << param.get_name());
   }

@@ -6226,12 +6226,14 @@ void ZedCamera::processPose()
     mPoseLocked = true;
     mPoseLockCount++;
 
-    RCLCPP_WARN_STREAM_SKIPFIRST(
-      get_logger(),
-      "Pos. Track. seems to be locked (pose diff.: "
-        << dist << " m) since " << mPoseLockCount
-        << " frames. Status: " << sl::toString(mPosTrackingStatus.spatial_memory_status).c_str()
-        << " Call 'reset_positional_tracking' service to unlock.");
+    if (mPoseLockCount > mCamGrabFrameRate) {  // > 1 second
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "Pos. Track. seems to be locked (pose diff.: "
+          << dist << " m) since " << mPoseLockCount << " frames - Status: "
+          << sl::toString(mPosTrackingStatus.spatial_memory_status)
+          .c_str());
+    }
   } else {
     mPoseLocked = false;
     mPoseLockCount = 0;

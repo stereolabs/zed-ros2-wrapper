@@ -3818,6 +3818,8 @@ bool ZedCamera::startPosTracking()
   }
   // <---- Enable Fusion Positional Tracking if required
 
+  mPoseLocked = false;
+  mPoseLockCount = 0;
   mPosTrackingStarted = true;
 
   startPathPubTimer(mPathPubRate);
@@ -5940,7 +5942,6 @@ void ZedCamera::processOdometry()
   linear_base = tf2::Vector3(0.0, 0.0, 0.0);
   angular_base = tf2::Vector3(0.0, 0.0, 0.0);
 
-
   mPosTrackingStatus = mZed->getPositionalTrackingStatus();
 
   if (mResetOdomFromSrv || (mResetOdomWhenLoopClosure &&
@@ -5967,6 +5968,7 @@ void ZedCamera::processOdometry()
         deltaOdom, sl::REFERENCE_FRAME::CAMERA /*,mCamUuid*/,
         sl::CameraIdentifier(), sl::POSITION_TYPE::FUSION);
     }
+    mLastZedDeltaOdom = deltaOdom;
 
     DEBUG_STREAM_PT(
       "MAP -> Odometry Status: "
@@ -6202,13 +6204,42 @@ void ZedCamera::processPose()
     getCamera2BaseTransform();
   }
 
+  sl::Pose pose;
+  sl::POSITIONAL_TRACKING_STATE pt_state;
   if (!mGnssFusionEnabled && mFusionStatus != sl::FUSION_ERROR_CODE::SUCCESS) {
-    mZed->getPosition(mLastZedPose, sl::REFERENCE_FRAME::WORLD);
+    pt_state = mZed->getPosition(pose, sl::REFERENCE_FRAME::WORLD);
   } else {
-    mFusion.getPosition(
-      mLastZedPose, sl::REFERENCE_FRAME::WORLD /*,mCamUuid*/,
-      sl::CameraIdentifier(), sl::POSITION_TYPE::FUSION);
+    pt_state = mFusion.getPosition(
+      pose, sl::REFERENCE_FRAME::WORLD /*,mCamUuid*/,
+      sl::CameraIdentifier(),
+      sl::POSITION_TYPE::FUSION);
   }
+
+  // ----> Check for locked Positional Tracking
+  float dist = std::sqrt(
+    std::pow(pose.getTranslation()(0) - mLastZedPose.getTranslation()(0), 2) +
+    std::pow(pose.getTranslation()(1) - mLastZedPose.getTranslation()(1), 2) +
+    std::pow(pose.getTranslation()(2) - mLastZedPose.getTranslation()(2), 2));
+  if (dist < 1e-9 && pt_state == sl::POSITIONAL_TRACKING_STATE::OK &&
+    mPosTrackingStatus.spatial_memory_status != sl::SPATIAL_MEMORY_STATUS::LOST)
+  {
+    mPoseLocked = true;
+    mPoseLockCount++;
+
+    RCLCPP_WARN_STREAM_SKIPFIRST(
+      get_logger(),
+      "Pos. Track. seems to be locked (pose diff.: "
+        << dist << " m) since " << mPoseLockCount
+        << " frames. Status: " << sl::toString(mPosTrackingStatus.spatial_memory_status).c_str()
+        << " Call 'reset_positional_tracking' service to unlock.");
+  } else {
+    mPoseLocked = false;
+    mPoseLockCount = 0;
+  }
+  // <---- Check for locked Positional Tracking
+
+  // Update last pose
+  mLastZedPose = pose;
 
   publishPoseStatus();
   publishGnssPoseStatus();
@@ -8206,6 +8237,12 @@ void ZedCamera::callback_updateDiagnostic(
     return;
   }
 
+  if (mPoseLocked) {
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::WARN,
+      "Positional Tracking locked. Call the service 'reset_pos_tracking' to reset.");
+  }
+
   stat.addf("Uptime", "%s", sl_tools::seconds2str(mUptimer.toc()).c_str());
 
   if (mGrabStatus == sl::ERROR_CODE::SUCCESS || mGrabStatus == sl::ERROR_CODE::CORRUPTED_FRAME) {
@@ -8233,9 +8270,12 @@ void ZedCamera::callback_updateDiagnostic(
         "'general.pub_frame_rate' or 'general.grab_resolution'");
     } else {
       mSysOverloadCount = 0;
-      stat.summary(
-        diagnostic_msgs::msg::DiagnosticStatus::OK,
-        "Camera grabbing");
+
+      if (!mPoseLocked) {
+        stat.summary(
+          diagnostic_msgs::msg::DiagnosticStatus::OK,
+          "Camera grabbing");
+      }
     }
 
     // ----> Frame drop count
@@ -8367,7 +8407,13 @@ void ZedCamera::callback_updateDiagnostic(
       stat.add("Depth status", "INACTIVE");
     }
 
-    if (!mDepthDisabled || mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 52
+    if (!mDepthDisabled || mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_3) { // With ZED SDK v5.2 we can use `GEN_3` even if depth is disabled
+#else
+    if (!mDepthDisabled) {
+#endif
+      stat.addf("Positional Tracking mode:", sl::toString(mPosTrkMode).c_str());
+
       if (mGnssFusionEnabled) {
         stat.addf("Fusion status", sl::toString(mFusionStatus).c_str());
         if (mPosTrackingStarted) {

@@ -987,6 +987,8 @@ private:
   int mSvoFrameId = 0;
   int mSvoFrameCount = 0;
   bool mPosTrackingStarted = false;
+  bool mPoseLocked = false;
+  uint64_t mPoseLockCount = 0;
   bool mVdPublishing = false;  // Indicates if video and depth data are
                                // subscribed and then published
   bool mPcPublishing =
@@ -1026,6 +1028,7 @@ private:
 
   // ----> Positional Tracking
   sl::Pose mLastZedPose;
+  sl::Pose mLastZedDeltaOdom;
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
   std::vector<geometry_msgs::msg::PoseStamped> mPosePath;

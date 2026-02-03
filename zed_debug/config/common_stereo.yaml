@@ -91,7 +91,7 @@
             remove_saturated_areas: true # [DYNAMIC]
             publish_depth_map: true # Advertise the depth map topics that are published only if a node subscribes to them
             publish_depth_info: false # Advertise the depth info topic that is published only if a node subscribes to it
-            publish_point_cloud: false # Advertise the point cloud topic that is published only if a node subscribes to it
+            publish_point_cloud: true # Advertise the point cloud topic that is published only if a node subscribes to it
             publish_depth_confidence: false # Advertise the depth confidence topic that is published only if a node subscribes to it
             publish_disparity: false # Advertise the disparity topic that is published only if a node subscribes to it
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
@@ -99,10 +99,10 @@
 
         pos_tracking:
             pos_tracking_enabled: true # True to enable positional tracking from start
-            pos_tracking_mode: 'GEN_2' # Matches the ZED SDK setting: 'GEN_1', 'GEN_2', 'GEN_3'
+            pos_tracking_mode: 'GEN_3' # Matches the ZED SDK setting: 'GEN_1', 'GEN_2', 'GEN_3'
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
-            publish_tf: false # [overwritten by launch file options] publish `odom -> camera_link` TF
-            publish_map_tf: false # [overwritten by launch file options] publish `map -> odom` TF
+            publish_tf: true # [overwritten by launch file options] publish `odom -> camera_link` TF
+            publish_map_tf: true # [overwritten by launch file options] publish `map -> odom` TF
             map_frame: 'map'
             odometry_frame: 'odom'
             area_memory: true # Enable to detect loop closure
@@ -123,7 +123,7 @@
             fixed_z_value: 0.0 # Value to be used for Z coordinate if `two_d_mode` is true
             transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->camera_link` transform being generated
             reset_pose_with_svo_loop: true # Reset the camera pose the `initial_base_pose` when the SVO loop is enabled and the SVO playback reaches the end of the file.
-            publish_odom_pose: false # Advertise the odometry and pose topics that are published only if a node subscribes to them
+            publish_odom_pose: true # Advertise the odometry and pose topics that are published only if a node subscribes to them
             publish_pose_cov: false # Advertise the pose with covariance topic that is published only if a node subscribes to it
             publish_cam_path: false # Advertise the camera odometry and pose path topics that are published only if a node subscribes to them
 
@@ -215,4 +215,4 @@
             debug_streaming: false
             debug_advanced: false
             debug_nitros: false
-            disable_nitros: true # If available, disable NITROS usage for debugging and testing purposes
+            disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes

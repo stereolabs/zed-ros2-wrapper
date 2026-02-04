@@ -921,466 +921,515 @@ bool ZedCamera::isDepthRequired()
     return false;
   }
 
-  bool depth_required_for_pos_trk = = isPosTrackingRequired();
+  bool depth_required_for_pos_trk = isPosTrackingRequired();
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 52
   // With ZED SDK v5.2 we can use Positional Tracking `GEN_3` even if depth is
   // disabled
-  depth_required_for_pos_trk = isPosTrackingRequired() && (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3);
+  depth_required_for_pos_trk = isPosTrackingRequired() &&
+    (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3);
 #endif
 
-    return tot_sub > 0 || depth_required_for_pos_trk;
+  return tot_sub > 0 || depth_required_for_pos_trk;
+}
+
+void ZedCamera::applyDepthSettings()
+{
+  if (isDepthRequired()) {
+    std::lock_guard<std::mutex> lock(mDynParMutex);
+    mRunParams.confidence_threshold =
+      mDepthConf;      // Update depth confidence if changed
+    mRunParams.texture_confidence_threshold =
+      mDepthTextConf;      // Update depth texture confidence if changed
+    mRunParams.remove_saturated_areas = mRemoveSatAreas;
+
+    DEBUG_STREAM_COMM("Depth processing enabled");
+    mRunParams.enable_depth = true;
+
+  } else {
+    DEBUG_STREAM_COMM("Depth processing disabled");
+    mRunParams.enable_depth = false;
   }
+}
 
-  void ZedCamera::applyDepthSettings() {
-    if (isDepthRequired()) {
-      std::lock_guard<std::mutex> lock(mDynParMutex);
-      mRunParams.confidence_threshold =
-          mDepthConf;  // Update depth confidence if changed
-      mRunParams.texture_confidence_threshold =
-          mDepthTextConf;  // Update depth texture confidence if changed
-      mRunParams.remove_saturated_areas = mRemoveSatAreas;
+void ZedCamera::applyVideoSettings()
+{
+  if (!mSvoMode && mFrameCount % 10 == 0) {
+    std::lock_guard<std::mutex> lock(mDynParMutex);
 
-      DEBUG_STREAM_COMM("Depth processing enabled");
-      mRunParams.enable_depth = true;
+    applyAutoExposureGainSettings();
+    applyExposureGainSettings();
+    applyWhiteBalanceSettings();
+    applyBrightnessContrastHueSettings();
+    applySaturationSharpnessGammaSettings();
+    applyZEDXSettings();
+  }
+}
 
+// Helper: Auto Exposure/Gain
+void ZedCamera::applyAutoExposureGainSettings()
+{
+  sl::ERROR_CODE err;
+  sl::VIDEO_SETTINGS setting;
+
+  if (mTriggerAutoExpGain) {
+    setting = sl::VIDEO_SETTINGS::AEC_AGC;
+    err = mZed->setCameraSettings(setting, (mCamAutoExpGain ? 1 : 0));
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Error setting AEC_AGC: "
+          << sl::toString(err).c_str());
     } else {
-      DEBUG_STREAM_COMM("Depth processing disabled");
-      mRunParams.enable_depth = false;
+      mTriggerAutoExpGain = false;
+      DEBUG_STREAM_CTRL(
+        "New setting for " << sl::toString(setting).c_str()
+                           << ": "
+                           << (mCamAutoExpGain ? 1 : 0));
     }
   }
+}
 
-  void ZedCamera::applyVideoSettings() {
-    if (!mSvoMode && mFrameCount % 10 == 0) {
-      std::lock_guard<std::mutex> lock(mDynParMutex);
+// Helper: Exposure and Gain
+void ZedCamera::applyExposureGainSettings()
+{
+  sl::ERROR_CODE err;
+  sl::VIDEO_SETTINGS setting;
 
-      applyAutoExposureGainSettings();
-      applyExposureGainSettings();
-      applyWhiteBalanceSettings();
-      applyBrightnessContrastHueSettings();
-      applySaturationSharpnessGammaSettings();
-      applyZEDXSettings();
-    }
-  }
-
-  // Helper: Auto Exposure/Gain
-  void ZedCamera::applyAutoExposureGainSettings() {
-    sl::ERROR_CODE err;
-    sl::VIDEO_SETTINGS setting;
-
-    if (mTriggerAutoExpGain) {
-      setting = sl::VIDEO_SETTINGS::AEC_AGC;
-      err = mZed->setCameraSettings(setting, (mCamAutoExpGain ? 1 : 0));
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(get_logger(), "Error setting AEC_AGC: "
-                                             << sl::toString(err).c_str());
-      } else {
-        mTriggerAutoExpGain = false;
-        DEBUG_STREAM_CTRL("New setting for " << sl::toString(setting).c_str()
-                                             << ": "
-                                             << (mCamAutoExpGain ? 1 : 0));
-      }
-    }
-  }
-
-  // Helper: Exposure and Gain
-  void ZedCamera::applyExposureGainSettings() {
-    sl::ERROR_CODE err;
-    sl::VIDEO_SETTINGS setting;
-
-    if (!mCamAutoExpGain) {
-      int value;
-      err = mZed->getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, value);
-      if (err == sl::ERROR_CODE::SUCCESS && value != mCamExposure) {
-        mZed->setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, mCamExposure);
-      }
-
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(
-            get_logger(),
-            "Error setting "
-                << sl::toString(sl::VIDEO_SETTINGS::EXPOSURE).c_str() << ": "
-                << sl::toString(err).c_str());
-      }
-
-      err = mZed->getCameraSettings(sl::VIDEO_SETTINGS::GAIN, value);
-      if (err == sl::ERROR_CODE::SUCCESS && value != mCamGain) {
-        err = mZed->setCameraSettings(sl::VIDEO_SETTINGS::GAIN, mCamGain);
-      }
-
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(get_logger(),
-                           "Error setting "
-                               << sl::toString(sl::VIDEO_SETTINGS::GAIN).c_str()
-                               << ": " << sl::toString(err).c_str());
-      }
-    }
-  }
-
-  // Helper: White Balance
-  void ZedCamera::applyWhiteBalanceSettings() {
-    sl::ERROR_CODE err;
-    sl::VIDEO_SETTINGS setting;
-
-    if (mTriggerAutoWB) {
-      setting = sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO;
-      err = mZed->setCameraSettings(setting, (mCamAutoWB ? 1 : 0));
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(get_logger(), "Error setting "
-                                             << sl::toString(setting).c_str()
-                                             << ": "
-                                             << sl::toString(err).c_str());
-      } else {
-        mTriggerAutoWB = false;
-        DEBUG_STREAM_CTRL("New setting for " << sl::toString(setting).c_str()
-                                             << ": " << (mCamAutoWB ? 1 : 0));
-      }
-    }
-
-    if (!mCamAutoWB) {
-      int value;
-      setting = sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE;
-      err = mZed->getCameraSettings(setting, value);
-      if (err == sl::ERROR_CODE::SUCCESS && value != mCamWBTemp) {
-        err = mZed->setCameraSettings(setting, mCamWBTemp);
-      }
-
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(get_logger(), "Error setting "
-                                             << sl::toString(setting).c_str()
-                                             << ": "
-                                             << sl::toString(err).c_str());
-      }
-    }
-  }
-
-  // Helper: Brightness, Contrast, Hue (not for ZED X)
-  void ZedCamera::applyBrightnessContrastHueSettings() {
-    if (!sl_tools::isZEDX(mCamRealModel)) {
-      sl::ERROR_CODE err;
-      sl::VIDEO_SETTINGS setting;
-      int value;
-
-      setting = sl::VIDEO_SETTINGS::BRIGHTNESS;
-      err = mZed->getCameraSettings(setting, value);
-      if (err == sl::ERROR_CODE::SUCCESS && value != mCamBrightness) {
-        mZed->setCameraSettings(setting, mCamBrightness);
-      }
-
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(get_logger(), "Error setting "
-                                             << sl::toString(setting).c_str()
-                                             << ": "
-                                             << sl::toString(err).c_str());
-      }
-
-      setting = sl::VIDEO_SETTINGS::CONTRAST;
-      err = mZed->getCameraSettings(setting, value);
-      if (err == sl::ERROR_CODE::SUCCESS && value != mCamContrast) {
-        err = mZed->setCameraSettings(setting, mCamContrast);
-      }
-
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(get_logger(), "Error setting "
-                                             << sl::toString(setting).c_str()
-                                             << ": "
-                                             << sl::toString(err).c_str());
-      }
-
-      setting = sl::VIDEO_SETTINGS::HUE;
-      err = mZed->getCameraSettings(setting, value);
-      if (err == sl::ERROR_CODE::SUCCESS && value != mCamHue) {
-        mZed->setCameraSettings(setting, mCamHue);
-      }
-
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(get_logger(), "Error setting "
-                                             << sl::toString(setting).c_str()
-                                             << ": "
-                                             << sl::toString(err).c_str());
-      }
-    }
-  }
-
-  // Helper: Saturation, Sharpness, Gamma
-  void ZedCamera::applySaturationSharpnessGammaSettings() {
-    sl::ERROR_CODE err;
-    sl::VIDEO_SETTINGS setting;
+  if (!mCamAutoExpGain) {
     int value;
-
-    setting = sl::VIDEO_SETTINGS::SATURATION;
-    err = mZed->getCameraSettings(setting, value);
-    if (err == sl::ERROR_CODE::SUCCESS && value != mCamSaturation) {
-      mZed->setCameraSettings(setting, mCamSaturation);
-    }
-
-    if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(get_logger(),
-                         "Error setting " << sl::toString(setting).c_str()
-                                          << ": " << sl::toString(err).c_str());
-    }
-
-    setting = sl::VIDEO_SETTINGS::SHARPNESS;
-    err = mZed->getCameraSettings(setting, value);
-    if (err == sl::ERROR_CODE::SUCCESS && value != mCamSharpness) {
-      mZed->setCameraSettings(setting, mCamSharpness);
-    }
-
-    if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(get_logger(),
-                         "Error setting " << sl::toString(setting).c_str()
-                                          << ": " << sl::toString(err).c_str());
-    }
-
-    setting = sl::VIDEO_SETTINGS::GAMMA;
-    err = mZed->getCameraSettings(setting, value);
-    if (err == sl::ERROR_CODE::SUCCESS && value != mCamGamma) {
-      err = mZed->setCameraSettings(setting, mCamGamma);
-    }
-
-    if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(get_logger(),
-                         "Error setting " << sl::toString(setting).c_str()
-                                          << ": " << sl::toString(err).c_str());
-    }
-  }
-
-  // Helper: ZED X specific settings
-  void ZedCamera::applyZEDXSettings() {
-    if (!sl_tools::isZEDX(mCamRealModel)) {
-      return;
-    }
-
-    applyZEDXExposureSettings();
-    applyZEDXAutoExposureTimeRange();
-    applyZEDXExposureCompensation();
-    applyZEDXAnalogDigitalGain();
-    applyZEDXAutoAnalogGainRange();
-    applyZEDXAutoDigitalGainRange();
-    applyZEDXDenoising();
-  }
-
-  void ZedCamera::applyZEDXExposureSettings() {
-    if (!mCamAutoExpGain) {
-      sl::ERROR_CODE err;
-      sl::VIDEO_SETTINGS setting = sl::VIDEO_SETTINGS::EXPOSURE_TIME;
-      int value;
-      err = mZed->getCameraSettings(setting, value);
-      if (err == sl::ERROR_CODE::SUCCESS && value != mGmslExpTime) {
-        err = mZed->setCameraSettings(setting, mGmslExpTime);
-        DEBUG_STREAM_CTRL("New setting for " << sl::toString(setting).c_str()
-                                             << ": " << mGmslExpTime << " [Old "
-                                             << value << "]");
-      }
-
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(get_logger(), "Error setting "
-                                             << sl::toString(setting).c_str()
-                                             << ": "
-                                             << sl::toString(err).c_str());
-      }
-    }
-  }
-
-  void ZedCamera::applyZEDXAutoExposureTimeRange() {
-    // ----> TODO(Walter) Remove this check when fixed in ZED SDK
-    if (mCamRealModel == sl::MODEL::VIRTUAL_ZED_X) {
-      DEBUG_VD(
-          "Auto Digital Gain Range not supported for VIRTUAL_ZED_X model. "
-          "Skipping setting.");
-      return;
-    }
-    // <---- TODO(Walter) Remove this check when fixed in ZED SDK
-
-    sl::ERROR_CODE err;
-    int value_min, value_max;
-    err = mZed->getCameraSettings(sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE,
-                                  value_min, value_max);
-    if (err == sl::ERROR_CODE::SUCCESS &&
-        (value_min != mGmslAutoExpTimeRangeMin ||
-         value_max != mGmslAutoExpTimeRangeMax)) {
-      err = mZed->setCameraSettings(
-          sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE,
-          mGmslAutoExpTimeRangeMin, mGmslAutoExpTimeRangeMax);
+    err = mZed->getCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mCamExposure) {
+      mZed->setCameraSettings(sl::VIDEO_SETTINGS::EXPOSURE, mCamExposure);
     }
 
     if (err != sl::ERROR_CODE::SUCCESS) {
       RCLCPP_WARN_STREAM(
-          get_logger(), "Error setting "
-                            << sl::toString(
-                                   sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE)
-                                   .c_str()
-                            << ": " << sl::toString(err).c_str());
+        get_logger(),
+        "Error setting "
+          << sl::toString(sl::VIDEO_SETTINGS::EXPOSURE).c_str() << ": "
+          << sl::toString(err).c_str());
     }
-  }
 
-  void ZedCamera::applyZEDXExposureCompensation() {
-    if (!mStreamMode) {
-      sl::ERROR_CODE err;
-      sl::VIDEO_SETTINGS setting = sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION;
-      int value;
-      err = mZed->getCameraSettings(setting, value);
-      if (err == sl::ERROR_CODE::SUCCESS && value != mGmslExposureComp) {
-        err = mZed->setCameraSettings(setting, mGmslExposureComp);
-        DEBUG_STREAM_CTRL("New setting for " << sl::toString(setting).c_str()
-                                             << ": " << mGmslExposureComp
-                                             << " [Old " << value << "]");
-      }
-
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(get_logger(), "Error setting "
-                                             << sl::toString(setting).c_str()
-                                             << ": "
-                                             << sl::toString(err).c_str());
-      }
-    }
-  }
-
-  void ZedCamera::applyZEDXAnalogDigitalGain() {
-    sl::ERROR_CODE err;
-    sl::VIDEO_SETTINGS setting = sl::VIDEO_SETTINGS::ANALOG_GAIN;
-
-    if (!mCamAutoExpGain) {
-      int value;
-      err = mZed->getCameraSettings(setting, value);
-      if (err == sl::ERROR_CODE::SUCCESS && value != mGmslAnalogGain) {
-        err = mZed->setCameraSettings(setting, mGmslAnalogGain);
-        DEBUG_STREAM_CTRL("New setting for " << sl::toString(setting).c_str()
-                                             << ": " << mGmslAnalogGain
-                                             << " [Old " << value << "]");
-      }
-
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(get_logger(), "Error setting "
-                                             << sl::toString(setting).c_str()
-                                             << ": "
-                                             << sl::toString(err).c_str());
-      }
-
-      setting = sl::VIDEO_SETTINGS::DIGITAL_GAIN;
-      err = mZed->getCameraSettings(setting, value);
-      if (err == sl::ERROR_CODE::SUCCESS && value != mGmslDigitalGain) {
-        err = mZed->setCameraSettings(setting, mGmslDigitalGain);
-        DEBUG_STREAM_CTRL("New setting for " << sl::toString(setting).c_str()
-                                             << ": " << mGmslDigitalGain
-                                             << " [Old " << value << "]");
-      }
-
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(get_logger(), "Error setting "
-                                             << sl::toString(setting).c_str()
-                                             << ": "
-                                             << sl::toString(err).c_str());
-      }
-    }
-  }
-
-  void ZedCamera::applyZEDXAutoAnalogGainRange() {
-    // ----> TODO(Walter) Remove this check when fixed in ZED SDK
-    if (mCamRealModel == sl::MODEL::VIRTUAL_ZED_X) {
-      DEBUG_VD(
-          "Auto Analog Gain Range not supported for VIRTUAL_ZED_X model. "
-          "Skipping setting.");
-      return;
-    }
-    // <---- TODO(Walter) Remove this check when fixed in ZED SDK
-
-    sl::ERROR_CODE err;
-    int value_min, value_max;
-    err = mZed->getCameraSettings(sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE,
-                                  value_min, value_max);
-    if (err == sl::ERROR_CODE::SUCCESS &&
-        (value_min != mGmslAnalogGainRangeMin ||
-         value_max != mGmslAnalogGainRangeMax)) {
-      err = mZed->setCameraSettings(sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE,
-                                    mGmslAnalogGainRangeMin,
-                                    mGmslAnalogGainRangeMax);
-
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(
-            get_logger(),
-            "Error setting "
-                << sl::toString(sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE)
-                       .c_str()
-                << ": " << sl::toString(err).c_str());
-      }
+    err = mZed->getCameraSettings(sl::VIDEO_SETTINGS::GAIN, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mCamGain) {
+      err = mZed->setCameraSettings(sl::VIDEO_SETTINGS::GAIN, mCamGain);
     }
 
     if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(get_logger(),
-                         "Error setting "
-                             << sl::toString(
-                                    sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE)
-                                    .c_str()
-                             << ": " << sl::toString(err).c_str());
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "Error setting "
+          << sl::toString(sl::VIDEO_SETTINGS::GAIN).c_str()
+          << ": " << sl::toString(err).c_str());
+    }
+  }
+}
+
+// Helper: White Balance
+void ZedCamera::applyWhiteBalanceSettings()
+{
+  sl::ERROR_CODE err;
+  sl::VIDEO_SETTINGS setting;
+
+  if (mTriggerAutoWB) {
+    setting = sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO;
+    err = mZed->setCameraSettings(setting, (mCamAutoWB ? 1 : 0));
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
+    } else {
+      mTriggerAutoWB = false;
+      DEBUG_STREAM_CTRL(
+        "New setting for " << sl::toString(setting).c_str()
+                           << ": " << (mCamAutoWB ? 1 : 0));
     }
   }
 
-  void ZedCamera::applyZEDXAutoDigitalGainRange() {
-    // ----> TODO(Walter) Remove this check when fixed in ZED SDK
-    if (mCamRealModel == sl::MODEL::VIRTUAL_ZED_X) {
-      DEBUG_VD(
-          "Auto Digital Gain Range not supported for VIRTUAL_ZED_X model. "
-          "Skipping setting.");
-      return;
-    }
-    // <---- TODO(Walter) Remove this check when fixed in ZED SDK
-
-    sl::ERROR_CODE err;
-    int value_min, value_max;
-    err = mZed->getCameraSettings(sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE,
-                                  value_min, value_max);
-    if (err == sl::ERROR_CODE::SUCCESS &&
-        (value_min != mGmslAutoDigitalGainRangeMin ||
-         value_max != mGmslAutoDigitalGainRangeMax)) {
-      err = mZed->setCameraSettings(sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE,
-                                    mGmslAutoDigitalGainRangeMin,
-                                    mGmslAutoDigitalGainRangeMax);
+  if (!mCamAutoWB) {
+    int value;
+    setting = sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE;
+    err = mZed->getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mCamWBTemp) {
+      err = mZed->setCameraSettings(setting, mCamWBTemp);
     }
 
     if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(get_logger(),
-                         "Error setting "
-                             << sl::toString(
-                                    sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE)
-                                    .c_str()
-                             << ": " << sl::toString(err).c_str());
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
+    }
+  }
+}
+
+// Helper: Brightness, Contrast, Hue (not for ZED X)
+void ZedCamera::applyBrightnessContrastHueSettings()
+{
+  if (!sl_tools::isZEDX(mCamRealModel)) {
+    sl::ERROR_CODE err;
+    sl::VIDEO_SETTINGS setting;
+    int value;
+
+    setting = sl::VIDEO_SETTINGS::BRIGHTNESS;
+    err = mZed->getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mCamBrightness) {
+      mZed->setCameraSettings(setting, mCamBrightness);
+    }
+
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
+    }
+
+    setting = sl::VIDEO_SETTINGS::CONTRAST;
+    err = mZed->getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mCamContrast) {
+      err = mZed->setCameraSettings(setting, mCamContrast);
+    }
+
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
+    }
+
+    setting = sl::VIDEO_SETTINGS::HUE;
+    err = mZed->getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mCamHue) {
+      mZed->setCameraSettings(setting, mCamHue);
+    }
+
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
+    }
+  }
+}
+
+// Helper: Saturation, Sharpness, Gamma
+void ZedCamera::applySaturationSharpnessGammaSettings()
+{
+  sl::ERROR_CODE err;
+  sl::VIDEO_SETTINGS setting;
+  int value;
+
+  setting = sl::VIDEO_SETTINGS::SATURATION;
+  err = mZed->getCameraSettings(setting, value);
+  if (err == sl::ERROR_CODE::SUCCESS && value != mCamSaturation) {
+    mZed->setCameraSettings(setting, mCamSaturation);
+  }
+
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Error setting " << sl::toString(setting).c_str()
+                       << ": " << sl::toString(err).c_str());
+  }
+
+  setting = sl::VIDEO_SETTINGS::SHARPNESS;
+  err = mZed->getCameraSettings(setting, value);
+  if (err == sl::ERROR_CODE::SUCCESS && value != mCamSharpness) {
+    mZed->setCameraSettings(setting, mCamSharpness);
+  }
+
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Error setting " << sl::toString(setting).c_str()
+                       << ": " << sl::toString(err).c_str());
+  }
+
+  setting = sl::VIDEO_SETTINGS::GAMMA;
+  err = mZed->getCameraSettings(setting, value);
+  if (err == sl::ERROR_CODE::SUCCESS && value != mCamGamma) {
+    err = mZed->setCameraSettings(setting, mCamGamma);
+  }
+
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Error setting " << sl::toString(setting).c_str()
+                       << ": " << sl::toString(err).c_str());
+  }
+}
+
+// Helper: ZED X specific settings
+void ZedCamera::applyZEDXSettings()
+{
+  if (!sl_tools::isZEDX(mCamRealModel)) {
+    return;
+  }
+
+  applyZEDXExposureSettings();
+  applyZEDXAutoExposureTimeRange();
+  applyZEDXExposureCompensation();
+  applyZEDXAnalogDigitalGain();
+  applyZEDXAutoAnalogGainRange();
+  applyZEDXAutoDigitalGainRange();
+  applyZEDXDenoising();
+}
+
+void ZedCamera::applyZEDXExposureSettings()
+{
+  if (!mCamAutoExpGain) {
+    sl::ERROR_CODE err;
+    sl::VIDEO_SETTINGS setting = sl::VIDEO_SETTINGS::EXPOSURE_TIME;
+    int value;
+    err = mZed->getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mGmslExpTime) {
+      err = mZed->setCameraSettings(setting, mGmslExpTime);
+      DEBUG_STREAM_CTRL(
+        "New setting for " << sl::toString(setting).c_str()
+                           << ": " << mGmslExpTime << " [Old "
+                           << value << "]");
+    }
+
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
+    }
+  }
+}
+
+void ZedCamera::applyZEDXAutoExposureTimeRange()
+{
+  // ----> TODO(Walter) Remove this check when fixed in ZED SDK
+  if (mCamRealModel == sl::MODEL::VIRTUAL_ZED_X) {
+    DEBUG_VD(
+      "Auto Digital Gain Range not supported for VIRTUAL_ZED_X model. "
+      "Skipping setting.");
+    return;
+  }
+  // <---- TODO(Walter) Remove this check when fixed in ZED SDK
+
+  sl::ERROR_CODE err;
+  int value_min, value_max;
+  err = mZed->getCameraSettings(
+    sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE,
+    value_min, value_max);
+  if (err == sl::ERROR_CODE::SUCCESS &&
+    (value_min != mGmslAutoExpTimeRangeMin ||
+    value_max != mGmslAutoExpTimeRangeMax))
+  {
+    err = mZed->setCameraSettings(
+      sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE,
+      mGmslAutoExpTimeRangeMin, mGmslAutoExpTimeRangeMax);
+  }
+
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Error setting "
+        << sl::toString(
+        sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE)
+        .c_str()
+        << ": " << sl::toString(err).c_str());
+  }
+}
+
+void ZedCamera::applyZEDXExposureCompensation()
+{
+  if (!mStreamMode) {
+    sl::ERROR_CODE err;
+    sl::VIDEO_SETTINGS setting = sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION;
+    int value;
+    err = mZed->getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mGmslExposureComp) {
+      err = mZed->setCameraSettings(setting, mGmslExposureComp);
+      DEBUG_STREAM_CTRL(
+        "New setting for " << sl::toString(setting).c_str()
+                           << ": " << mGmslExposureComp
+                           << " [Old " << value << "]");
+    }
+
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
+    }
+  }
+}
+
+void ZedCamera::applyZEDXAnalogDigitalGain()
+{
+  sl::ERROR_CODE err;
+  sl::VIDEO_SETTINGS setting = sl::VIDEO_SETTINGS::ANALOG_GAIN;
+
+  if (!mCamAutoExpGain) {
+    int value;
+    err = mZed->getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mGmslAnalogGain) {
+      err = mZed->setCameraSettings(setting, mGmslAnalogGain);
+      DEBUG_STREAM_CTRL(
+        "New setting for " << sl::toString(setting).c_str()
+                           << ": " << mGmslAnalogGain
+                           << " [Old " << value << "]");
+    }
+
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
+    }
+
+    setting = sl::VIDEO_SETTINGS::DIGITAL_GAIN;
+    err = mZed->getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mGmslDigitalGain) {
+      err = mZed->setCameraSettings(setting, mGmslDigitalGain);
+      DEBUG_STREAM_CTRL(
+        "New setting for " << sl::toString(setting).c_str()
+                           << ": " << mGmslDigitalGain
+                           << " [Old " << value << "]");
+    }
+
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
+    }
+  }
+}
+
+void ZedCamera::applyZEDXAutoAnalogGainRange()
+{
+  // ----> TODO(Walter) Remove this check when fixed in ZED SDK
+  if (mCamRealModel == sl::MODEL::VIRTUAL_ZED_X) {
+    DEBUG_VD(
+      "Auto Analog Gain Range not supported for VIRTUAL_ZED_X model. "
+      "Skipping setting.");
+    return;
+  }
+  // <---- TODO(Walter) Remove this check when fixed in ZED SDK
+
+  sl::ERROR_CODE err;
+  int value_min, value_max;
+  err = mZed->getCameraSettings(
+    sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE,
+    value_min, value_max);
+  if (err == sl::ERROR_CODE::SUCCESS &&
+    (value_min != mGmslAnalogGainRangeMin ||
+    value_max != mGmslAnalogGainRangeMax))
+  {
+    err = mZed->setCameraSettings(
+      sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE,
+      mGmslAnalogGainRangeMin,
+      mGmslAnalogGainRangeMax);
+
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "Error setting "
+          << sl::toString(sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE)
+          .c_str()
+          << ": " << sl::toString(err).c_str());
     }
   }
 
-  void ZedCamera::applyZEDXDenoising() {
-    if (!mStreamMode) {
-      sl::ERROR_CODE err;
-      sl::VIDEO_SETTINGS setting = sl::VIDEO_SETTINGS::DENOISING;
-      int value;
-      err = mZed->getCameraSettings(setting, value);
-      if (err == sl::ERROR_CODE::SUCCESS && value != mGmslDenoising) {
-        err = mZed->setCameraSettings(setting, mGmslDenoising);
-        DEBUG_STREAM_CTRL("New setting for " << sl::toString(setting).c_str()
-                                             << ": " << mGmslDenoising
-                                             << " [Old " << value << "]");
-      }
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Error setting "
+        << sl::toString(
+        sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE)
+        .c_str()
+        << ": " << sl::toString(err).c_str());
+  }
+}
 
-      if (err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(get_logger(), "Error setting "
-                                             << sl::toString(setting).c_str()
-                                             << ": "
-                                             << sl::toString(err).c_str());
-      }
-    }
+void ZedCamera::applyZEDXAutoDigitalGainRange()
+{
+  // ----> TODO(Walter) Remove this check when fixed in ZED SDK
+  if (mCamRealModel == sl::MODEL::VIRTUAL_ZED_X) {
+    DEBUG_VD(
+      "Auto Digital Gain Range not supported for VIRTUAL_ZED_X model. "
+      "Skipping setting.");
+    return;
+  }
+  // <---- TODO(Walter) Remove this check when fixed in ZED SDK
+
+  sl::ERROR_CODE err;
+  int value_min, value_max;
+  err = mZed->getCameraSettings(
+    sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE,
+    value_min, value_max);
+  if (err == sl::ERROR_CODE::SUCCESS &&
+    (value_min != mGmslAutoDigitalGainRangeMin ||
+    value_max != mGmslAutoDigitalGainRangeMax))
+  {
+    err = mZed->setCameraSettings(
+      sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE,
+      mGmslAutoDigitalGainRangeMin,
+      mGmslAutoDigitalGainRangeMax);
   }
 
-  void ZedCamera::processVideoDepth() {
-    DEBUG_VD("=== Process Video/Depth ===");
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Error setting "
+        << sl::toString(
+        sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE)
+        .c_str()
+        << ": " << sl::toString(err).c_str());
+  }
+}
 
-    // If no subscribers, do not retrieve data
-    if (areVideoDepthSubscribed()) {
-      DEBUG_VD(" * [processVideoDepth] vd_lock -> defer");
-      std::unique_lock<std::mutex> vd_lock(mVdMutex, std::defer_lock);
+void ZedCamera::applyZEDXDenoising()
+{
+  if (!mStreamMode) {
+    sl::ERROR_CODE err;
+    sl::VIDEO_SETTINGS setting = sl::VIDEO_SETTINGS::DENOISING;
+    int value;
+    err = mZed->getCameraSettings(setting, value);
+    if (err == sl::ERROR_CODE::SUCCESS && value != mGmslDenoising) {
+      err = mZed->setCameraSettings(setting, mGmslDenoising);
+      DEBUG_STREAM_CTRL(
+        "New setting for " << sl::toString(setting).c_str()
+                           << ": " << mGmslDenoising
+                           << " [Old " << value << "]");
+    }
 
-      DEBUG_VD(" * [processVideoDepth] vd_lock -> try_lock");
-      if (vd_lock.try_lock()) {
-        bool gpu = false;
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(), "Error setting "
+          << sl::toString(setting).c_str()
+          << ": "
+          << sl::toString(err).c_str());
+    }
+  }
+}
+
+void ZedCamera::processVideoDepth()
+{
+  DEBUG_VD("=== Process Video/Depth ===");
+
+  // If no subscribers, do not retrieve data
+  if (areVideoDepthSubscribed()) {
+    DEBUG_VD(" * [processVideoDepth] vd_lock -> defer");
+    std::unique_lock<std::mutex> vd_lock(mVdMutex, std::defer_lock);
+
+    DEBUG_VD(" * [processVideoDepth] vd_lock -> try_lock");
+    if (vd_lock.try_lock()) {
+      bool gpu = false;
 #ifdef FOUND_ISAAC_ROS_NITROS
       if (!_nitrosDisabled) {
         gpu = true;

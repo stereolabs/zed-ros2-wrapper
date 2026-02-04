@@ -253,6 +253,7 @@ def launch_setup(context, *args, **kwargs):
         else:
             container_exec='component_container_isolated'
             arguments_val=['--use_multi_threaded_executor','--ros-args', '--log-level', 'info']
+            #arguments_val=['--use_multi_threaded_executor','--ros-args', '--log-level', 'debug']
         
         zed_container = ComposableNodeContainer(
                 name=container_name_val,

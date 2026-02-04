@@ -259,8 +259,7 @@ bool ZedCamera::startBodyTracking()
   if (mDepthDisabled) {
     RCLCPP_WARN(
       get_logger(),
-      "Cannot start Body Tracking if "
-      "`depth.depth_mode` is set to `0` [NONE]");
+      "Cannot start Body Tracking if Depth processing is disabled");
     return false;
   }
 

@@ -30,7 +30,7 @@ int main(int argc, char ** argv)
 
   // Check for monocular mode argument
   bool monocular_mode = false;
-  for(int i = 1; i < argc; ++i) {
+  for (int i = 1; i < argc; ++i) {
     std::string mode_arg = argv[i];
     if (mode_arg == "--monocular") {
       monocular_mode = true;
@@ -38,16 +38,18 @@ int main(int argc, char ** argv)
     }
   }
 
-   // Create the appropriate ZED camera node (monocular or stereo)
+  // Create the appropriate ZED camera node (monocular or stereo)
   rclcpp::Node::SharedPtr zed_component;
   if (monocular_mode) {
-    RCLCPP_INFO(rclcpp::get_logger("zed_debug_proc"),
-                "Debugging ZED Camera One (monocular) node...");
-    zed_component = std::make_shared<stereolabs::ZedCameraOne>(options);    
+    RCLCPP_INFO(
+      rclcpp::get_logger("zed_debug_proc"),
+      "Debugging ZED Camera One (monocular) node...");
+    zed_component = std::make_shared<stereolabs::ZedCameraOne>(options);
   } else {
-    RCLCPP_INFO(rclcpp::get_logger("zed_debug_proc"),
-                "Debugging ZED Camera (stereo) node...");
-    zed_component = std::make_shared<stereolabs::ZedCamera>(options);    
+    RCLCPP_INFO(
+      rclcpp::get_logger("zed_debug_proc"),
+      "Debugging ZED Camera (stereo) node...");
+    zed_component = std::make_shared<stereolabs::ZedCamera>(options);
   }
 
   // Create single-threaded executor and spin the node

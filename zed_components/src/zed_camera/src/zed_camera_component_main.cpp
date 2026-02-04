@@ -3715,88 +3715,94 @@ bool ZedCamera::startPosTracking()
 #else
   if (mDepthDisabled) {
 #endif
-      RCLCPP_WARN(get_logger(),
-                  "Cannot start Positional Tracking if Depth processing is "
-                  "disabled (except for GEN_3 mode).");
-      return false;
+    RCLCPP_WARN(
+      get_logger(),
+      "Cannot start Positional Tracking if Depth processing is "
+      "disabled (except for GEN_3 mode).");
+    return false;
+  }
+
+  if (mZed && mZed->isPositionalTrackingEnabled()) {
+    if (!mAreaMemoryFilePath.empty() && mSaveAreaMemoryOnClosing) {
+      mZed->disablePositionalTracking(mAreaMemoryFilePath.c_str());
+      RCLCPP_INFO(
+        get_logger(),
+        "Area memory updated before restarting the Positional "
+        "Tracking module.");
+    } else {
+      mZed->disablePositionalTracking();
     }
+  }
 
-    if (mZed && mZed->isPositionalTrackingEnabled()) {
-      if (!mAreaMemoryFilePath.empty() && mSaveAreaMemoryOnClosing) {
-        mZed->disablePositionalTracking(mAreaMemoryFilePath.c_str());
-        RCLCPP_INFO(get_logger(),
-                    "Area memory updated before restarting the Positional "
-                    "Tracking module.");
-      } else {
-        mZed->disablePositionalTracking();
-      }
+  RCLCPP_INFO(get_logger(), "=== Starting Positional Tracking ===");
+
+  RCLCPP_INFO(get_logger(), " * Waiting for valid static transformations...");
+
+  bool transformOk = false;
+  double elapsed = 0.0;
+  mPosTrackingReady = false;
+  mGnssInitGood = false;
+
+  // auto start = std::chrono::high_resolution_clock::now();
+
+  sl_tools::StopWatch stopWatch(get_clock());
+
+  do {
+    transformOk =    // true;
+      setPose(
+      mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
+      mInitialBasePose[3], mInitialBasePose[4],
+      mInitialBasePose[5]);
+
+    elapsed = stopWatch.toc();
+
+    rclcpp::sleep_for(1ms);
+
+    if (elapsed > 10000) {
+      RCLCPP_WARN(
+        get_logger(),
+        " !!! Failed to get static transforms. Is the "
+        "'ROBOT STATE PUBLISHER' node correctly "
+        "working? ");
+      break;
     }
+  } while (transformOk == false);
 
-    RCLCPP_INFO(get_logger(), "=== Starting Positional Tracking ===");
+  if (transformOk) {
+    DEBUG_STREAM_PT(
+      "Time required to get valid static transforms: "
+        << elapsed / 1000. << " sec");
+  }
 
-    RCLCPP_INFO(get_logger(), " * Waiting for valid static transformations...");
+  RCLCPP_INFO(
+    get_logger(),
+    "Initial ZED left camera pose (ZED pos. tracking): ");
+  RCLCPP_INFO(
+    get_logger(), " * T: [%g,%g,%g]", mInitialPoseSl.getTranslation().x,
+    mInitialPoseSl.getTranslation().y, mInitialPoseSl.getTranslation().z);
+  RCLCPP_INFO(
+    get_logger(), " * Q: [%g,%g,%g,%g]", mInitialPoseSl.getOrientation().ox,
+    mInitialPoseSl.getOrientation().oy, mInitialPoseSl.getOrientation().oz,
+    mInitialPoseSl.getOrientation().ow);
 
-    bool transformOk = false;
-    double elapsed = 0.0;
-    mPosTrackingReady = false;
-    mGnssInitGood = false;
+  // Tracking parameters
+  sl::PositionalTrackingParameters ptParams;
 
-    // auto start = std::chrono::high_resolution_clock::now();
-
-    sl_tools::StopWatch stopWatch(get_clock());
-
-    do {
-      transformOk =  // true;
-          setPose(mInitialBasePose[0], mInitialBasePose[1], mInitialBasePose[2],
-                  mInitialBasePose[3], mInitialBasePose[4],
-                  mInitialBasePose[5]);
-
-      elapsed = stopWatch.toc();
-
-      rclcpp::sleep_for(1ms);
-
-      if (elapsed > 10000) {
-        RCLCPP_WARN(get_logger(),
-                    " !!! Failed to get static transforms. Is the "
-                    "'ROBOT STATE PUBLISHER' node correctly "
-                    "working? ");
-        break;
-      }
-    } while (transformOk == false);
-
-    if (transformOk) {
-      DEBUG_STREAM_PT("Time required to get valid static transforms: "
-                      << elapsed / 1000. << " sec");
-    }
-
-    RCLCPP_INFO(get_logger(),
-                "Initial ZED left camera pose (ZED pos. tracking): ");
-    RCLCPP_INFO(
-        get_logger(), " * T: [%g,%g,%g]", mInitialPoseSl.getTranslation().x,
-        mInitialPoseSl.getTranslation().y, mInitialPoseSl.getTranslation().z);
-    RCLCPP_INFO(
-        get_logger(), " * Q: [%g,%g,%g,%g]", mInitialPoseSl.getOrientation().ox,
-        mInitialPoseSl.getOrientation().oy, mInitialPoseSl.getOrientation().oz,
-        mInitialPoseSl.getOrientation().ow);
-
-    // Tracking parameters
-    sl::PositionalTrackingParameters ptParams;
-
-    mPoseSmoothing = false;  // Always false. Pose Smoothing is to be enabled
+  mPoseSmoothing = false;    // Always false. Pose Smoothing is to be enabled
                              // only for VR/AR applications
 
-    ptParams.enable_pose_smoothing = mPoseSmoothing;
-    ptParams.enable_area_memory = mAreaMemory;
-    ptParams.area_file_path =
-        (mAreaFileExists ? mAreaMemoryFilePath.c_str() : "");
-    ptParams.enable_localization_only = mLocalizationOnly;
-    ptParams.enable_imu_fusion = mImuFusion;
-    ptParams.initial_world_transform = mInitialPoseSl;
-    ptParams.set_floor_as_origin = mFloorAlignment;
-    ptParams.depth_min_range = mPosTrackDepthMinRange;
-    ptParams.set_as_static = mSetAsStatic;
-    ptParams.set_gravity_as_origin = mSetGravityAsOrigin;
-    ptParams.mode = mPosTrkMode;
+  ptParams.enable_pose_smoothing = mPoseSmoothing;
+  ptParams.enable_area_memory = mAreaMemory;
+  ptParams.area_file_path =
+    (mAreaFileExists ? mAreaMemoryFilePath.c_str() : "");
+  ptParams.enable_localization_only = mLocalizationOnly;
+  ptParams.enable_imu_fusion = mImuFusion;
+  ptParams.initial_world_transform = mInitialPoseSl;
+  ptParams.set_floor_as_origin = mFloorAlignment;
+  ptParams.depth_min_range = mPosTrackDepthMinRange;
+  ptParams.set_as_static = mSetAsStatic;
+  ptParams.set_gravity_as_origin = mSetGravityAsOrigin;
+  ptParams.mode = mPosTrkMode;
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
   if (mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_3) {
@@ -8498,8 +8504,9 @@ void ZedCamera::callback_updateDiagnostic(
 #else
     if (!mDepthDisabled) {
 #endif
-      stat.addf("Positional Tracking mode", "%s",
-                sl::toString(mPosTrkMode).c_str());
+      stat.addf(
+        "Positional Tracking mode", "%s",
+        sl::toString(mPosTrkMode).c_str());
 
       if (mPosTrackingStarted) {
         stat.addf(

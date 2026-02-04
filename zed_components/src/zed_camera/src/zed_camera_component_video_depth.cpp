@@ -1335,7 +1335,7 @@ bool ZedCamera::isDepthRequired()
          value_max != mGmslAutoDigitalGainRangeMax)) {
       err = mZed->setCameraSettings(sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE,
                                     mGmslAutoDigitalGainRangeMin,
-                                    mGmslAnalogGainRangeMax);
+                                    mGmslAutoDigitalGainRangeMax);
     }
 
     if (err != sl::ERROR_CODE::SUCCESS) {

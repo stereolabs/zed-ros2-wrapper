@@ -8498,7 +8498,8 @@ void ZedCamera::callback_updateDiagnostic(
 #else
     if (!mDepthDisabled) {
 #endif
-      stat.addf("Positional Tracking mode:", sl::toString(mPosTrkMode).c_str());
+      stat.addf("Positional Tracking mode", "%s",
+                sl::toString(mPosTrkMode).c_str());
 
       if (mPosTrackingStarted) {
         stat.addf(

@@ -133,7 +133,7 @@
             gnss_zero_altitude: false # Set to `true` to ignore GNSS altitude information
             h_covariance_mul: 1.0 # Multiplier factor to be applied to horizontal covariance of the received fix (plane X/Y)
             v_covariance_mul: 1.0 # Multiplier factor to be applied to vertical covariance of the received fix (Z axis)
-            publish_utm_tf: false # Publish `utm` -> `map` TF
+            publish_utm_tf: true # Publish `utm` -> `map` TF
             broadcast_utm_transform_as_parent_frame: false # if 'true' publish `utm` -> `map` TF, otherwise `map` -> `utm`
             enable_reinitialization: false # determines whether reinitialization should be performed between GNSS and VIO fusion when a significant disparity is detected between GNSS data and the current fusion data. It becomes particularly crucial during prolonged GNSS signal loss scenarios.
             enable_rolling_calibration: true # If this parameter is set to true, the fusion algorithm will used a rough VIO / GNSS calibration at first and then refine it. This allow you to quickly get a fused position.

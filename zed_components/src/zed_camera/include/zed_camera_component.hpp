@@ -527,7 +527,7 @@ private:
   double mCamMaxDepth = 15.0;
   sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::NEURAL;
   PcRes mPcResolution = PcRes::COMPACT;
-  bool mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE)
+  std::atomic<bool> mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE)
   int mDepthStabilization = 0;
 
   int mCamTimeoutSec = 5;

@@ -64,6 +64,7 @@ namespace stereolabs
 
 ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
 : Node("zed_node", options),
+  mDepthDisabled(false),                   // 530
   mStreamingServerRequired(false),         // 647
   mQos(QOS_QUEUE_SIZE),                    // 693
   mAiInstanceID(0),                        // 774

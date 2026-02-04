@@ -4,7 +4,7 @@ LATEST CHANGES
 2026-02-04
 ----------
 - Add `enable_depth` service to disable depth processing at runtime
-- When using GEN_3 with ZED SDK v5.2 or newer, Positional Tracking continunes to provide localization feedback even if depth is disabled at runtime or when the node starts by setting the `depth.depth_mode` parameter to `NONE`.
+- When using GEN_3 with ZED SDK v5.2 or newer, Positional Tracking continues to provide localization feedback even if depth is disabled at runtime or when the node starts by setting the `depth.depth_mode` parameter to `NONE`.
 - New diagnostic information regarding Positional Tracking status: "Mode", "Odometry Status", "Spatial Memory Status", "Tracking Fusion Status".
 
 2026-01-30

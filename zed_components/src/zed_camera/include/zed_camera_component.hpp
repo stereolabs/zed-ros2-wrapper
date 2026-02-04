@@ -987,8 +987,8 @@ private:
   int mSvoFrameId = 0;
   int mSvoFrameCount = 0;
   bool mPosTrackingStarted = false;
-  bool mPoseLocked = false;
-  uint64_t mPoseLockCount = 0;
+  std::atomic_bool mPoseLocked = false;
+  std::atomic<uint64_t> mPoseLockCount{0};
   bool mVdPublishing = false;  // Indicates if video and depth data are
                                // subscribed and then published
   bool mPcPublishing =

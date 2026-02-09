@@ -58,11 +58,13 @@ echo source $(pwd)/install/local_setup.bash >> ~/.bashrc # automatically source 
 source ~/.bashrc
 ```
 
-> :pushpin: **Note:** the dependency `zed_msgs` is no longer installed as a submodule of this package, but is available through `apt` as a binary package with ROS 2 Humble. When working with ROS 2 Foxy, or other distributions, you can install it from the sources from the [zed-ros2-interfaces repository](https://github.com/stereolabs/zed-ros2-interfaces?tab=readme-ov-file#install-the-package-from-the-source-code).
+> :pushpin: **Note:** the dependency `zed_msgs` is no longer installed as a submodule of this package; it is available through `apt` as a binary package with ROS 2 Humble. When working with ROS 2 Foxy, or other distributions, you can install it from the sources from the [zed-ros2-interfaces repository](https://github.com/stereolabs/zed-ros2-interfaces?tab=readme-ov-file#install-the-package-from-the-source-code).
 
 > :pushpin: **Note:** If `rosdep` is missing, you can install it with:
 >
 >`sudo apt-get install python3-rosdep python3-rosinstall-generator python3-vcstool python3-rosinstall build-essential`
+
+> :pushpin: **Note:** The `zed_debug` package is intended for internal development only. If you don’t need it, you can skip building this package by adding `--packages-skip zed_debug` to your `colcon` command.
 
 > :pushpin: **Note:** When using the ZED ROS 2 Wrapper on an NVIDIA Jetson with JP6, you may get the following error when building the package for the first time
 >

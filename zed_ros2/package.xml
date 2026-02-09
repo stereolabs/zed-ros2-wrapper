@@ -14,6 +14,7 @@
     <exec_depend>zed_msgs</exec_depend>
     <exec_depend>zed_components</exec_depend>
     <exec_depend>zed_wrapper</exec_depend>
+    <exec_depend>zed_debug</exec_depend>
     <test_depend>ament_lint_auto</test_depend>
     <test_depend>ament_cmake_copyright</test_depend>
     <test_depend>ament_cmake_cppcheck</test_depend>

@@ -137,6 +137,12 @@ target_include_directories(zed_debug_proc PUBLIC
     ${CUDA_INCLUDE_DIRS}
     ${ZED_INCLUDE_DIRS}
 )
+target_link_directories(zed_debug_proc PUBLIC
+    ${CUDA_LIBRARY_DIRS}
+)
+target_link_libraries(zed_debug_proc
+    ${CUDA_LIBRARIES}
+)
 ament_target_dependencies(zed_debug_proc
     ${DEPENDENCIES}
 )

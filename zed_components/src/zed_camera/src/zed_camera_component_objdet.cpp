@@ -404,7 +404,8 @@ void ZedCamera::getCustomOdParams()
     }
     RCLCPP_INFO_STREAM(
       get_logger(), std::string("  * ") + param_name + ": "
-        << sl::toString(customOdProperties.object_tracking_parameters.object_acceleration_preset).c_str());
+        << sl::toString(
+        customOdProperties.object_tracking_parameters.object_acceleration_preset).c_str());
 
     mCustomOdProperties[class_id] = customOdProperties; // Update the Custom OD Properties information
   }
@@ -935,7 +936,8 @@ bool ZedCamera::handleCustomOdDynamicParams(
       RCLCPP_WARN_STREAM(get_logger(), result.reason);
       return false;
     }
-    mCustomOdProperties[class_id].object_tracking_parameters.velocity_smoothing_factor = param.as_double();
+    mCustomOdProperties[class_id].object_tracking_parameters.velocity_smoothing_factor =
+      param.as_double();
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Parameter '"
@@ -951,7 +953,8 @@ bool ZedCamera::handleCustomOdDynamicParams(
       RCLCPP_WARN_STREAM(get_logger(), result.reason);
       return false;
     }
-    mCustomOdProperties[class_id].object_tracking_parameters.min_velocity_threshold = param.as_double();
+    mCustomOdProperties[class_id].object_tracking_parameters.min_velocity_threshold =
+      param.as_double();
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Parameter '"
@@ -967,7 +970,8 @@ bool ZedCamera::handleCustomOdDynamicParams(
       RCLCPP_WARN_STREAM(get_logger(), result.reason);
       return false;
     }
-    mCustomOdProperties[class_id].object_tracking_parameters.prediction_timeout_s = param.as_double();
+    mCustomOdProperties[class_id].object_tracking_parameters.prediction_timeout_s =
+      param.as_double();
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Parameter '"
@@ -983,7 +987,8 @@ bool ZedCamera::handleCustomOdDynamicParams(
       RCLCPP_WARN_STREAM(get_logger(), result.reason);
       return false;
     }
-    mCustomOdProperties[class_id].object_tracking_parameters.min_confirmation_time_s = param.as_double();
+    mCustomOdProperties[class_id].object_tracking_parameters.min_confirmation_time_s =
+      param.as_double();
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Parameter '"

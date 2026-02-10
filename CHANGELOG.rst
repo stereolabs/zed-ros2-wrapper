@@ -1,24 +1,16 @@
 LATEST CHANGES
 ==============
 
-2026-02-04
-----------
-- Add `enable_depth` service to disable depth processing at runtime
-- When using GEN_3 with ZED SDK v5.2 or newer, Positional Tracking continues to provide localization feedback even if depth is disabled at runtime or when the node starts by setting the `depth.depth_mode` parameter to `NONE`.
-- New diagnostic information regarding Positional Tracking status: "Mode", "Odometry Status", "Spatial Memory Status", "Tracking Fusion Status".
-
-2026-01-30
-----------
-- Add the `zed_debug` package for debugging ZED Components by loading them in a single C++ process.
-
-2025-12-18
-----------
+v5.2.0
+------
+- Removed the `zed_wrapper/urdf/include/materials.urdf.xacro` file and moved the material settings directly in the `zed_macro.urdf.xacro` file to avoid possible conflicts in multi-camera configurations. Thx @davesarmoury for the fix
 - Added the `enable_localization_only` parameter to the configuration to allow the camera to localize in the loaded area memory without updating the map with new information.
 - Added support for the ZED SDK Positional Tracking 2D mode if the SDK version is 5.1 or higher.
-
-2025-12-11
-----------
-- Removed the `zed_wrapper/urdf/include/materials.urdf.xacro` file and moved the material settings directly in the `zed_macro.urdf.xacro` file to avoid possible conflicts in multi-camera configurations. Thx @davesarmoury for the fix
+- Added the `zed_debug` package for debugging ZED Components by loading them in a single C++ process.
+- Add `enable_depth` service to disable depth processing at runtime
+- Positional Tracking `GEN_3` is now the default mode when using ZED SDK v5.2 or newer, providing improved stability and performance. The `GEN_2` mode is still available as an option for users who prefer it or need it for specific use cases.
+- When using GEN_3 with ZED SDK v5.2 or newer, Positional Tracking continues to provide localization feedback even if depth is disabled at runtime or when the node starts by setting the `depth.depth_mode` parameter to `NONE`.
+- New diagnostic information regarding Positional Tracking status: "Mode", "Odometry Status", "Spatial Memory Status", "Tracking Fusion Status".
 
 v5.1.0
 ------

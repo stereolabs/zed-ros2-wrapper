@@ -683,13 +683,14 @@ bool ZedCamera::handleCustomOdDynamicParams(
   std::string class_id_str = param_full_name.substr(param_full_name.find("class_"), 9);
   DEBUG_STREAM_COMM("handleCustomOdDynamicParams: Class ID: " << class_id_str);
 
-  int class_id = mCustomClassIdMap[class_id_str];
-  if (mCustomClassIdMap.find(class_id_str) == mCustomClassIdMap.end()) {
+  auto it = mCustomClassIdMap.find(class_id_str);
+  if (it == mCustomClassIdMap.end()) {
     DEBUG_STREAM_COMM(
-      "handleCustomOdDynamicParams: Class ID '" << class_id_str <<
-        "' not found in the custom class ID map");
+      "handleCustomOdDynamicParams: Class ID '"
+        << class_id_str << "' not found");
     return false;
   }
+  int class_id = it->second;
   DEBUG_STREAM_COMM("handleCustomOdDynamicParams: Class ID: " << class_id);
 
   std::string param_name = param_full_name.substr(param_full_name.find_last_of('.') + 1);
@@ -1207,7 +1208,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   objMsg->objects.resize(objCount);
 
   size_t idx = 0;
-  for (auto data : objects.object_list) {
+  for (const auto & data : objects.object_list) {
     if (!mUsingCustomOd) {
       objMsg->objects[idx].label = sl::toString(data.label).c_str();
       objMsg->objects[idx].sublabel = sl::toString(data.sublabel).c_str();

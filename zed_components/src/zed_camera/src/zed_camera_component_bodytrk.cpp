@@ -409,7 +409,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
   bodyMsg->objects.resize(bodyCount);
 
   size_t idx = 0;
-  for (auto body : bodies.body_list) {
+  for (const auto & body : bodies.body_list) {
     std::string label = "Body_";
     label += std::to_string(body.id);
     DEBUG_STREAM_BT("Processing body: " << label);

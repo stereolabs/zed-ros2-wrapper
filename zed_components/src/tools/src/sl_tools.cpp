@@ -17,7 +17,6 @@
 #include <unistd.h> // getuid
 
 #include <algorithm>
-#include <string>
 #include <sstream>
 #include <vector>
 

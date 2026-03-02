@@ -2,7 +2,7 @@ LATEST CHANGES
 ==============
 
 v5.2.1
-----------
+------
 - Added the parameter `general.grab_compute_capping_fps` to define a computation upper limit to the grab frequency.
 
   - This can be useful to get a known constant fixed rate or limit the computation load while keeping a short exposure time by setting a high camera capture framerate.

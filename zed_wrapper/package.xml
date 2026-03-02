@@ -16,6 +16,7 @@
     <build_depend>rclcpp_components</build_depend>
     <build_depend>rcutils</build_depend>
     <exec_depend>zed_components</exec_depend>
+    <exec_depend>zed_description</exec_depend>
     <exec_depend>launch_ros</exec_depend>
     <exec_depend>rclcpp</exec_depend>
     <exec_depend>rclcpp_components</exec_depend>

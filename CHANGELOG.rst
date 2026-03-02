@@ -1,12 +1,15 @@
 LATEST CHANGES
 ==============
 
-2026-02-11
+v5.2.1
 ----------
 - Added the parameter `general.grab_compute_capping_fps` to define a computation upper limit to the grab frequency.
 
   - This can be useful to get a known constant fixed rate or limit the computation load while keeping a short exposure time by setting a high camera capture framerate.
   - If set to 0, the grab compute capping will be disabled, and the ZED SDK will process data at the grab rate.
+- URDF now belongs to the `zed_description` package, which is now a dependency of the `zed_wrapper` package. This allows to use the URDF files of the ZED ROS2 Wrapper in other packages without depending on the whole wrapper.
+
+  - The `zed_description` is available in binary form for ROS 2 Humble, Jazzy, and Rolling and can be installed with `sudo apt install ros-$ROS_DISTRO-zed-description`
 
 v5.2.0
 ------

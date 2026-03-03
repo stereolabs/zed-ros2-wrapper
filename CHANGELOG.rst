@@ -1,6 +1,22 @@
 LATEST CHANGES
 ==============
 
+2026-03-03
+----------
+- Default Positional Tracking mode changed back to `GEN_1` until the stability and reliability of `GEN_3` is improved. 
+  Users can still select a specific mode by setting the `pos_tracking.pos_tracking_mode` parameter to `GEN_1`, `GEN_2`, or `GEN_3` according to their needs and preferences.
+- Modified node behaviors when Positional Tracking is disabled [`pos_tracking.pos_tracking_enabled: false`]:
+
+  - `publish_tf` is automatically disabled.
+  - The `odom` related topics are no longer advertised.
+  - The `pose` related topics are no longer advertised.
+  - The GNSS fusion is automatically disabled.
+  - The Plane Detection is automatically disabled.
+  - The Positional Tracking services are no longer advertised.
+  - Depth stability follows the ZED SDK behaviors.
+  - Object Tracking follows the ZED SDK behaviors.
+  - Body Tracking follows the ZED SDK behaviors.
+
 v5.2.1
 ------
 - Added the parameter `general.grab_compute_capping_fps` to define a computation upper limit to the grab frequency.

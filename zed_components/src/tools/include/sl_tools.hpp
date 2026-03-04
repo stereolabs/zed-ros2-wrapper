@@ -33,6 +33,9 @@
 // Used to enable ZED SDK RealTime SVO pause
 //#define USE_SVO_REALTIME_PAUSE
 
+// Used to enable Positional Tracking lock check
+//#define ENABLE_PT_LOCK_CHECK
+
 // CUDA includes and macros
 #ifdef FOUND_ISAAC_ROS_NITROS
   #include "isaac_ros_nitros_image_type/nitros_image_builder.hpp"

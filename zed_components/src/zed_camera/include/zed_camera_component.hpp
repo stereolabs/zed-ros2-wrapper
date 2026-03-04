@@ -16,6 +16,7 @@
 #define ZED_CAMERA_COMPONENT_HPP_
 
 #include <atomic>
+#include <chrono>
 #include <sl/Camera.hpp>
 #include <sl/Fusion.hpp>
 #include <unordered_set>
@@ -254,6 +255,7 @@ protected:
   void publishDisparity(const sl::Mat & disparity, const rclcpp::Time & t);
 
   void processVideoDepth();
+  bool updateVideoDepthSubscribers(bool force = false);
   bool areVideoDepthSubscribed();
   void retrieveVideoDepth(bool gpu);
   bool retrieveLeftImage(bool gpu);
@@ -317,6 +319,7 @@ protected:
 
   // ----> Utility functions
   bool isDepthRequired();
+  bool updatePosTrackingSubscribers(bool force = false);
   bool isPosTrackingRequired();
 
   void applyVideoSettings();
@@ -774,9 +777,7 @@ private:
   bool mGnss2BaseTransfFirstErr = true;
   bool mMap2UtmTransfValid = false;
 
-  std::atomic_uint16_t mAiInstanceID;
-  uint16_t mObjDetInstID;
-  uint16_t mBodyTrkInstID;
+
   // <---- TF Transforms Flags
 
   // ----> Messages (ONLY THOSE NOT CHANGING WHILE NODE RUNS)
@@ -924,6 +925,12 @@ private:
   size_t mConfMapSubCount = 0;
   size_t mDisparitySubCount = 0;
   size_t mDepthInfoSubCount = 0;
+  size_t mPcSubCount = 0;
+  std::chrono::steady_clock::time_point mLastVideoDepthSubCountQuery;
+  bool mVideoDepthSubCountInit = false;
+  size_t mPosTrackingSubCount = 0;
+  std::chrono::steady_clock::time_point mLastPosTrackingSubCountQuery;
+  bool mPosTrackingSubCountInit = false;
 
   sl::Mat mMatLeft, mMatLeftRaw;
   sl::Mat mMatRight, mMatRightRaw;
@@ -985,7 +992,7 @@ private:
   // ----> Status Flags
   bool mDebugMode = false;  // Debug mode active?
   bool mSvoMode = false;
-  bool mSvoPause = false;
+  std::atomic<bool> mSvoPause{false};
   int mSvoFrameId = 0;
   int mSvoFrameCount = 0;
   bool mPosTrackingStarted = false;

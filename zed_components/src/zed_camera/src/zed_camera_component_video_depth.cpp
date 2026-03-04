@@ -745,6 +745,33 @@ void ZedCamera::fillCamInfo(
 
 bool ZedCamera::areVideoDepthSubscribed()
 {
+  if (!updateVideoDepthSubscribers()) {
+    return false;
+  }
+
+  return (
+    mRgbSubCount + mRgbRawSubCount + mRgbGraySubCount + mRgbGrayRawSubCount +
+    mLeftSubCount + mLeftRawSubCount + mLeftGraySubCount + mLeftGrayRawSubCount +
+    mRightSubCount + mRightRawSubCount + mRightGraySubCount + mRightGrayRawSubCount +
+    mStereoSubCount + mStereoRawSubCount +
+    mDepthSubCount + mConfMapSubCount + mDisparitySubCount + mDepthInfoSubCount
+  ) > 0;
+}
+
+bool ZedCamera::updateVideoDepthSubscribers(bool force)
+{
+  constexpr auto kSubQueryInterval = std::chrono::milliseconds(200);
+  auto now = std::chrono::steady_clock::now();
+
+  if (!force && mVideoDepthSubCountInit &&
+    (now - mLastVideoDepthSubCountQuery) < kSubQueryInterval)
+  {
+    return true;
+  }
+
+  mLastVideoDepthSubCountQuery = now;
+  mVideoDepthSubCountInit = true;
+
   mRgbSubCount = 0;
   mRgbRawSubCount = 0;
   mRgbGraySubCount = 0;
@@ -763,6 +790,7 @@ bool ZedCamera::areVideoDepthSubscribed()
   mConfMapSubCount = 0;
   mDisparitySubCount = 0;
   mDepthInfoSubCount = 0;
+  mPcSubCount = 0;
 
   try {
     if (_nitrosDisabled) {
@@ -852,20 +880,22 @@ bool ZedCamera::areVideoDepthSubscribed()
       if (mPubDisparity) {
         mDisparitySubCount = count_subscribers(mPubDisparity->get_topic_name());
       }
+
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
+      mPcSubCount = mPubCloud.getNumSubscribers();
+#else
+      if (mPubCloud) {
+        mPcSubCount = count_subscribers(mPubCloud->get_topic_name());
+      }
+#endif
     }
   } catch (...) {
     rcutils_reset_error();
-    DEBUG_STREAM_VD(" * [areVideoDepthSubscribed] Exception while counting subscribers");
+    DEBUG_STREAM_VD(" * [updateVideoDepthSubscribers] Exception while counting subscribers");
     return false;
   }
 
-  return (
-    mRgbSubCount + mRgbRawSubCount + mRgbGraySubCount + mRgbGrayRawSubCount +
-    mLeftSubCount + mLeftRawSubCount + mLeftGraySubCount + mLeftGrayRawSubCount +
-    mRightSubCount + mRightRawSubCount + mRightGraySubCount + mRightGrayRawSubCount +
-    mStereoSubCount + mStereoRawSubCount +
-    mDepthSubCount + mConfMapSubCount + mDisparitySubCount + mDepthInfoSubCount
-  ) > 0;
+  return true;
 }
 
 bool ZedCamera::isDepthRequired()
@@ -877,56 +907,21 @@ bool ZedCamera::isDepthRequired()
     return false;
   }
 
-  size_t tot_sub = 0;
-
-  try {
-    size_t depthSub = 0;
-    size_t confMapSub = 0;
-    size_t dispSub = 0;
-    size_t pcSub = 0;
-    size_t depthInfoSub = 0;
-
-    size_t nitrosDepthSub = 0;
-    size_t nitrosConfSub = 0;
-
-    if (_nitrosDisabled) {
-      depthSub = mPubDepth.getNumSubscribers();
-      confMapSub = mPubConfMap.getNumSubscribers();
-    } else {
-#ifdef FOUND_ISAAC_ROS_NITROS
-      nitrosDepthSub = count_subscribers(mDepthTopic) + count_subscribers(mDepthTopic + "/nitros");
-      nitrosConfSub = count_subscribers(mConfMapTopic) +
-        count_subscribers(mConfMapTopic + "/nitros");
-#endif
-    }
-    if (mPubDisparity) {
-      dispSub = count_subscribers(mPubDisparity->get_topic_name());
-    }
-#ifdef FOUND_POINT_CLOUD_TRANSPORT
-    pcSub = mPubCloud.getNumSubscribers();
-#else
-    if (mPubCloud) {
-      pcSub = count_subscribers(mPubCloud->get_topic_name());
-    }
-#endif
-    if (mPubDepthInfo) {
-      depthInfoSub = count_subscribers(mPubDepthInfo->get_topic_name());
-    }
-
-    tot_sub = depthSub + confMapSub + dispSub + pcSub + depthInfoSub + nitrosDepthSub +
-      nitrosConfSub;
-  } catch (...) {
-    rcutils_reset_error();
-    DEBUG_STREAM_VD(" * [isDepthRequired] Exception while counting subscribers");
-    return false;
+  if (!updateVideoDepthSubscribers()) {
+    DEBUG_STREAM_VD(" * [isDepthRequired] failed to refresh subscribers, using cached values");
   }
 
-  bool depth_required_for_pos_trk = isPosTrackingRequired();
+  size_t tot_sub =
+    mDepthSubCount + mConfMapSubCount + mDisparitySubCount + mPcSubCount +
+    mDepthInfoSubCount;
+
+  bool pos_tracking_required = isPosTrackingRequired();
+  bool depth_required_for_pos_trk = pos_tracking_required;
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 52
   // With ZED SDK v5.2 we can use Positional Tracking `GEN_3` even if depth is
   // disabled
-  depth_required_for_pos_trk = isPosTrackingRequired() &&
+  depth_required_for_pos_trk = pos_tracking_required &&
     (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3);
 #endif
 
@@ -2450,10 +2445,10 @@ void ZedCamera::publishDisparity(
     .getCameraBaseline();
   disparityMsg->min_disparity =
     disparityMsg->f * disparityMsg->t /
-    mZed->getInitParameters().depth_minimum_distance;
+    mZed->getInitParameters().depth_maximum_distance;
   disparityMsg->max_disparity =
     disparityMsg->f * disparityMsg->t /
-    mZed->getInitParameters().depth_maximum_distance;
+    mZed->getInitParameters().depth_minimum_distance;
 
   DEBUG_STREAM_VD(" * Publishing DISPARITY message");
   try {
@@ -2483,9 +2478,15 @@ void ZedCamera::processPointCloud()
       DEBUG_STREAM_PC(
         " * [processPointCloud] Retrieving point cloud size: " << mPcResol.width << "x" <<
           mPcResol.height);
-      mZed->retrieveMeasure(
+      auto pc_err = mZed->retrieveMeasure(
         mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU,
         mPcResol);
+      if (pc_err != sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_WARN_STREAM(
+          get_logger(),
+          "Point cloud retrieve error: " << sl::toString(pc_err));
+        return;
+      }
       DEBUG_STREAM_PC(
         " * [processPointCloud] Retrieved point cloud size: " << mMatCloud.getWidth() << "x" <<
           mMatCloud.getHeight());

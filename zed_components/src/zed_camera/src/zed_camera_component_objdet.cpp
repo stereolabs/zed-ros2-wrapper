@@ -60,28 +60,15 @@ void ZedCamera::getOdParams()
     get_logger(), " * Object Det. tracking: "
       << (mObjDetTracking ? "TRUE" : "FALSE"));
 
-  bool matched = false;
   std::string filtering_mode_str = "NONE";
   sl_tools::getParam(
     shared_from_this(), "object_detection.filtering_mode",
     filtering_mode_str, filtering_mode_str);
 
-  for (int idx = static_cast<int>(sl::OBJECT_FILTERING_MODE::NONE);
-    idx < static_cast<int>(sl::OBJECT_FILTERING_MODE::LAST); idx++)
+  if (!sl_tools::matchSdkEnum(
+    filtering_mode_str, sl::OBJECT_FILTERING_MODE::NONE,
+    sl::OBJECT_FILTERING_MODE::LAST, mObjFilterMode))
   {
-    sl::OBJECT_FILTERING_MODE test_mode =
-      static_cast<sl::OBJECT_FILTERING_MODE>(idx);
-    std::string test_mode_str = sl::toString(test_mode).c_str();
-    std::replace(
-      test_mode_str.begin(), test_mode_str.end(), ' ', '_');   // Replace spaces with underscores to match the YAML setting
-    DEBUG_OD(" Comparing '%s' to '%s'", filtering_mode_str.c_str(), test_mode_str.c_str());
-    if (filtering_mode_str == test_mode_str) {
-      mObjFilterMode = test_mode;
-      matched = true;
-      break;
-    }
-  }
-  if (!matched) {
     RCLCPP_WARN_STREAM(
       get_logger(),
       "The value of the parameter 'object_detection.filtering_mode' is not valid: '"
@@ -98,26 +85,10 @@ void ZedCamera::getOdParams()
     model_str, model_str);
   DEBUG_STREAM_OD(" 'object_detection.detection_model': " << model_str.c_str());
 
-  matched = false;
-  for (int idx =
-    static_cast<int>(sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST);
-    idx < static_cast<int>(sl::OBJECT_DETECTION_MODEL::LAST);
-    idx++)
+  if (!sl_tools::matchSdkEnum(
+    model_str, sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST,
+    sl::OBJECT_DETECTION_MODEL::LAST, mObjDetModel))
   {
-    sl::OBJECT_DETECTION_MODEL test_model =
-      static_cast<sl::OBJECT_DETECTION_MODEL>(idx);
-    std::string test_model_str = sl::toString(test_model).c_str();
-    std::replace(
-      test_model_str.begin(), test_model_str.end(), ' ',
-      '_');      // Replace spaces with underscores to match the YAML setting
-    DEBUG_OD(" Comparing '%s' to '%s'", test_model_str.c_str(), model_str.c_str());
-    if (model_str == test_model_str) {
-      mObjDetModel = test_model;
-      matched = true;
-      break;
-    }
-  }
-  if (!matched) {
     RCLCPP_WARN_STREAM(
       get_logger(),
       "The value of the parameter 'object_detection.model' is not valid: '"
@@ -376,30 +347,18 @@ void ZedCamera::getCustomOdParams()
         "  * ") + param_name + ": ", true, 0.0f,
       100.0f);
 
-    bool matched = false;
     std::string acc_preset_str = "DEFAULT";
     param_name = param_prefix + "object_acceleration_preset";
     sl_tools::getParam(shared_from_this(), param_name, acc_preset_str, acc_preset_str);
 
-    for (int idx = static_cast<int>(sl::OBJECT_ACCELERATION_PRESET::DEFAULT);
-      idx < static_cast<int>(sl::OBJECT_ACCELERATION_PRESET::LAST); idx++)
+    if (!sl_tools::matchSdkEnum(
+      acc_preset_str, sl::OBJECT_ACCELERATION_PRESET::DEFAULT,
+      sl::OBJECT_ACCELERATION_PRESET::LAST,
+      customOdProperties.object_tracking_parameters.object_acceleration_preset))
     {
-      sl::OBJECT_ACCELERATION_PRESET test_mode =
-        static_cast<sl::OBJECT_ACCELERATION_PRESET>(idx);
-      std::string test_mode_str = sl::toString(test_mode).c_str();
-      std::replace(
-        test_mode_str.begin(), test_mode_str.end(), ' ', '_');   // Replace spaces with underscores to match the YAML setting
-      DEBUG_OD(" Comparing '%s' to '%s'", acc_preset_str.c_str(), test_mode_str.c_str());
-      if (acc_preset_str == test_mode_str) {
-        customOdProperties.object_tracking_parameters.object_acceleration_preset = test_mode;
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) {
       RCLCPP_WARN_STREAM(
         get_logger(),
-        "The value of the parameter 'object_detection.filtering_mode' is not valid: '"
+        "The value of the parameter '" << param_name << "' is not valid: '"
           << acc_preset_str << "'. Using the default value.");
     }
     RCLCPP_INFO_STREAM(
@@ -551,7 +510,9 @@ bool ZedCamera::handleOdDynamicParams(
       return false;
     }
 
-    mObjDetPeopleConf = param.as_double();
+    if (!sl_tools::checkParamRange(param, mObjDetPeopleConf, 0.0, 100.0, result, get_logger())) {
+      return false;
+    }
 
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -568,7 +529,9 @@ bool ZedCamera::handleOdDynamicParams(
       return false;
     }
 
-    mObjDetVehiclesConf = param.as_double();
+    if (!sl_tools::checkParamRange(param, mObjDetVehiclesConf, 0.0, 100.0, result, get_logger())) {
+      return false;
+    }
 
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -585,7 +548,9 @@ bool ZedCamera::handleOdDynamicParams(
       return false;
     }
 
-    mObjDetBagsConf = param.as_double();
+    if (!sl_tools::checkParamRange(param, mObjDetBagsConf, 0.0, 100.0, result, get_logger())) {
+      return false;
+    }
 
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -602,7 +567,9 @@ bool ZedCamera::handleOdDynamicParams(
       return false;
     }
 
-    mObjDetAnimalsConf = param.as_double();
+    if (!sl_tools::checkParamRange(param, mObjDetAnimalsConf, 0.0, 100.0, result, get_logger())) {
+      return false;
+    }
 
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -618,7 +585,9 @@ bool ZedCamera::handleOdDynamicParams(
       RCLCPP_WARN_STREAM(get_logger(), result.reason);
       return false;
     }
-    mObjDetElectronicsConf = param.as_double();
+    if (!sl_tools::checkParamRange(param, mObjDetElectronicsConf, 0.0, 100.0, result, get_logger())) {
+      return false;
+    }
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Parameter '"
@@ -634,7 +603,9 @@ bool ZedCamera::handleOdDynamicParams(
       return false;
     }
 
-    mObjDetFruitsConf = param.as_double();
+    if (!sl_tools::checkParamRange(param, mObjDetFruitsConf, 0.0, 100.0, result, get_logger())) {
+      return false;
+    }
 
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -651,7 +622,9 @@ bool ZedCamera::handleOdDynamicParams(
       return false;
     }
 
-    mObjDetSportConf = param.as_double();
+    if (!sl_tools::checkParamRange(param, mObjDetSportConf, 0.0, 100.0, result, get_logger())) {
+      return false;
+    }
 
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -723,7 +696,11 @@ bool ZedCamera::handleCustomOdDynamicParams(
       return false;
     }
 
-    mCustomOdProperties[class_id].detection_confidence_threshold = param.as_double();
+    if (!sl_tools::checkParamRange(
+      param, mCustomOdProperties[class_id].detection_confidence_threshold,
+      0.0f, 100.0f, result, get_logger())) {
+      return false;
+    }
 
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -1039,9 +1016,6 @@ bool ZedCamera::startObjDetect()
   od_p.allow_reduced_precision_inference = mObjDetReducedPrecision;
   od_p.max_range = mObjDetMaxRange;
 
-  mObjDetInstID = ++mAiInstanceID;
-  od_p.instance_module_id = mObjDetInstID;
-
   if (mUsingCustomOd) {
     od_p.custom_onnx_dynamic_input_shape = mYoloOnnxSize;
     od_p.custom_onnx_file = mYoloOnnxPath;
@@ -1168,7 +1142,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     // <---- Process realtime dynamic parameters
 
     objDetRes = mZed->retrieveObjects(
-      objects, objectTracker_parameters_rt, mObjDetInstID);
+      objects, objectTracker_parameters_rt);
   }
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
   else {
@@ -1178,8 +1152,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     // <---- Process realtime dynamic parameters
 
     objDetRes = mZed->retrieveCustomObjects(
-      objects, custom_objectTracker_parameters_rt,
-      mObjDetInstID);
+      objects, custom_objectTracker_parameters_rt);
   }
 #endif
 
@@ -1213,7 +1186,8 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
       objMsg->objects[idx].label = sl::toString(data.label).c_str();
       objMsg->objects[idx].sublabel = sl::toString(data.sublabel).c_str();
     } else {
-      objMsg->objects[idx].label = mCustomLabels[data.raw_label];
+      auto it = mCustomLabels.find(data.raw_label);
+      objMsg->objects[idx].label = (it != mCustomLabels.end()) ? it->second : std::string();
       objMsg->objects[idx].sublabel = std::to_string(data.raw_label);
     }
 

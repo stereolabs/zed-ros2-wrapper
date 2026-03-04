@@ -67,7 +67,6 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mDepthDisabled(false),                   // 530
   mStreamingServerRequired(false),         // 647
   mQos(QOS_QUEUE_SIZE),                    // 693
-  mAiInstanceID(0),                        // 774
   mThreadStop(false),                      // 954
   mNodeDeinitialized(false),               // 955
   mStreamingServerRunning(false),          // 1020
@@ -4749,6 +4748,7 @@ void ZedCamera::threadFunc_zedGrab()
         RCLCPP_WARN_THROTTLE(
           get_logger(), steady_clock, 5000.0,
           "Waiting for a valid simulation time on the '/clock' topic...");
+        rclcpp::sleep_for(1ms);
         continue;
       }
 
@@ -4796,39 +4796,42 @@ void ZedCamera::threadFunc_zedGrab()
         // ----> Check for Spatial Mapping requirement
 
         DEBUG_STREAM_GRAB("Grab thread: checking Spatial Mapping requirement");
-        mMappingMutex.lock();
-        if (mMappingEnabled && !mSpatialMappingRunning) {
-          start3dMapping();
+        {
+          std::lock_guard<std::mutex> lock(mMappingMutex);
+          if (mMappingEnabled && !mSpatialMappingRunning) {
+            start3dMapping();
+          }
+          if (!mMappingEnabled && mSpatialMappingRunning) {
+            stop3dMapping();
+          }
         }
-        if (!mMappingEnabled && mSpatialMappingRunning) {
-          stop3dMapping();
-        }
-        mMappingMutex.unlock();
 
         // <---- Check for Spatial Mapping requirement
 
         // ----> Check for Object Detection requirement
         DEBUG_STREAM_GRAB("Grab thread: checking Object Detection requirement");
-        mObjDetMutex.lock();
-        if (mObjDetEnabled && !mObjDetRunning) {
-          startObjDetect();
-          if (!sl_tools::isObjDetAvailable(mCamRealModel)) {
-            mObjDetEnabled = false;
+        {
+          std::lock_guard<std::mutex> lock(mObjDetMutex);
+          if (mObjDetEnabled && !mObjDetRunning) {
+            startObjDetect();
+            if (!sl_tools::isObjDetAvailable(mCamRealModel)) {
+              mObjDetEnabled = false;
+            }
           }
         }
-        mObjDetMutex.unlock();
         // ----> Check for Object Detection requirement
 
         // ----> Check for Body Tracking requirement
         DEBUG_STREAM_GRAB("Grab thread: checking Body Tracking requirement");
-        mBodyTrkMutex.lock();
-        if (mBodyTrkEnabled && !mBodyTrkRunning) {
-          startBodyTracking();
-          if (!sl_tools::isObjDetAvailable(mCamRealModel)) {
-            mBodyTrkEnabled = false;
+        {
+          std::lock_guard<std::mutex> lock(mBodyTrkMutex);
+          if (mBodyTrkEnabled && !mBodyTrkRunning) {
+            startBodyTracking();
+            if (!sl_tools::isObjDetAvailable(mCamRealModel)) {
+              mBodyTrkEnabled = false;
+            }
           }
         }
-        mBodyTrkMutex.unlock();
         // ----> Check for Object Detection requirement
       }
 
@@ -5137,18 +5140,20 @@ void ZedCamera::threadFunc_zedGrab()
 
       if (!mDepthDisabled) {
         DEBUG_STREAM_GRAB("Grab thread: Object Detection processing");
-        mObjDetMutex.lock();
-        if (mObjDetRunning) {
-          processDetectedObjects(mFrameTimestamp);
+        {
+          std::lock_guard<std::mutex> lock(mObjDetMutex);
+          if (mObjDetRunning) {
+            processDetectedObjects(mFrameTimestamp);
+          }
         }
-        mObjDetMutex.unlock();
 
         DEBUG_STREAM_GRAB("Grab thread: Body Tracking processing");
-        mBodyTrkMutex.lock();
-        if (mBodyTrkRunning) {
-          processBodies(mFrameTimestamp);
+        {
+          std::lock_guard<std::mutex> lock(mBodyTrkMutex);
+          if (mBodyTrkRunning) {
+            processBodies(mFrameTimestamp);
+          }
         }
-        mBodyTrkMutex.unlock();
 
         DEBUG_STREAM_GRAB("Grab thread: Region of interest processing");
         // ----> Region of interest
@@ -5158,9 +5163,17 @@ void ZedCamera::threadFunc_zedGrab()
 
       // Diagnostic statistics update
       double mean_elab_sec = mElabPeriodMean_sec->addValue(grabElabTimer.toc());
+    } catch (const std::exception & e) {
+      rcutils_reset_error();
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "threadFunc_zedGrab: Exception: " << e.what());
+      continue;
     } catch (...) {
       rcutils_reset_error();
-      DEBUG_STREAM_COMM("threadFunc_zedGrab: Generic exception.");
+      RCLCPP_ERROR(
+        get_logger(),
+        "threadFunc_zedGrab: Unknown exception.");
       continue;
     }
 
@@ -7132,36 +7145,31 @@ void ZedCamera::publishGnssPose()
     msg->altitude = mLastLatLongPose.getAltitude();
 
     // ----> Covariance
+    // Extract 3x3 position submatrix from 6x6 row-major pose covariance
+    // pose_covariance is [tx,ty,tz,rx,ry,rz], we need the upper-left 3x3
     msg->position_covariance_type =
       sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_KNOWN;
-    for (size_t i = 0; i < msg->position_covariance.size(); i++) {
-      msg->position_covariance[i] =
-        static_cast<double>(mLastZedPose.pose_covariance[i]);
+    for (size_t r = 0; r < 3; r++) {
+      for (size_t c = 0; c < 3; c++) {
+        msg->position_covariance[r * 3 + c] =
+          static_cast<double>(mLastZedPose.pose_covariance[r * 6 + c]);
+      }
+    }
 
-      if (mTwoDMode) {
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
-        if (i == 14 || i == 21 || i == 28) {
-          msg->position_covariance[i] = 1e-9;   // Very low covariance if 2D mode
-        } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
-          (i >= 12 && i <= 13) || (i >= 15 && i <= 16) ||
-          (i >= 18 && i <= 20) || (i == 22) || (i >= 24 && i <= 27))
-        {
-          msg->position_covariance[i] = 0.0;
-        }
-#else
-        if (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3) {
-          if (i == 14 || i == 21 || i == 28) {
-            msg->position_covariance[i] =
-              1e-9;    // Very low covariance if 2D mode
-          } else if ((i >= 2 && i <= 4) || (i >= 8 && i <= 10) ||
-            (i >= 12 && i <= 13) || (i >= 15 && i <= 16) ||
-            (i >= 18 && i <= 20) || (i == 22) ||
-            (i >= 24 && i <= 27))
-          {
-            msg->position_covariance[i] = 0.0;
-          }
-        }
+    if (mTwoDMode) {
+      bool apply2d = true;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+      if (mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_3) {
+        apply2d = false;
+      }
 #endif
+      if (apply2d) {
+        // Zero out z-related cross terms (row 2 and col 2), set cov(z,z) small
+        msg->position_covariance[2] = 0.0;  // cov(x,z)
+        msg->position_covariance[5] = 0.0;  // cov(y,z)
+        msg->position_covariance[6] = 0.0;  // cov(z,x)
+        msg->position_covariance[7] = 0.0;  // cov(z,y)
+        msg->position_covariance[8] = 1e-9; // cov(z,z) very low in 2D mode
       }
     }
     // <---- Covariance
@@ -7228,10 +7236,127 @@ bool ZedCamera::isPosTrackingRequired()
   if (mPosTrackingEnabled) {
     DEBUG_ONCE_PT("POS. TRACKING required: enabled by param.");
     return true;
-  } else {
-    DEBUG_ONCE_PT("POS. TRACKING not required.");
+  }
+
+  if (mPublishTF) {
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by TF param.");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `pos_tracking.publish_tf: true`");
+    }
+    return true;
+  }
+
+  if (mDepthStabilization > 0) {
+    DEBUG_ONCE_PT(
+      "POS. TRACKING required: enabled by depth stabilization param.");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `depth.depth_stabilization > 0`");
+    }
+
+    return true;
+  }
+
+  if (mMappingEnabled) {
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by mapping");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `mapping.mapping_enabled: true`");
+    }
+
+    return true;
+  }
+
+  if (mObjDetEnabled && mObjDetTracking) {
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by object detection.");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `object_detection.enable_tracking: true`");
+    }
+
+    return true;
+  }
+
+  if (mBodyTrkEnabled && mBodyTrkEnableTracking) {
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by body tracking.");
+
+    if (!mPosTrackingEnabled) {
+      RCLCPP_WARN_ONCE(
+        get_logger(),
+        "POSITIONAL TRACKING disabled in the parameters, but forced to "
+        "ENABLE because required by `body_tracking.enable_tracking: true`");
+    }
+
+    return true;
+  }
+
+  if (!updatePosTrackingSubscribers()) {
+    RCLCPP_WARN(
+      get_logger(),
+      "isPosTrackingRequired: Exception while counting subscribers");
     return false;
   }
+
+  if (mPosTrackingSubCount > 0) {
+    DEBUG_ONCE_PT("POS. TRACKING required: topic subscribed.");
+    return true;
+  }
+
+  if (mZed->isPositionalTrackingEnabled()) {
+
+    DEBUG_ONCE_PT("POS. TRACKING required: enabled by ZED SDK.");
+
+    RCLCPP_WARN_ONCE(
+      get_logger(),
+      "POSITIONAL TRACKING disabled in the parameters, enabled by the ZED SDK because required by one of the modules.");
+
+    return true;
+  }
+
+  DEBUG_ONCE_PT("POS. TRACKING not required.");
+  return false;
+}
+
+bool ZedCamera::updatePosTrackingSubscribers(bool force)
+{
+  constexpr auto kSubQueryInterval = std::chrono::milliseconds(200);
+  auto now = std::chrono::steady_clock::now();
+
+  if (!force && mPosTrackingSubCountInit &&
+    (now - mLastPosTrackingSubCountQuery) < kSubQueryInterval)
+  {
+    return true;
+  }
+
+  mLastPosTrackingSubCountQuery = now;
+  mPosTrackingSubCountInit = true;
+  mPosTrackingSubCount = 0;
+
+  try {
+    if (mPubPose) {mPosTrackingSubCount += count_subscribers(mPubPose->get_topic_name());}
+    if (mPubPoseCov) {mPosTrackingSubCount += count_subscribers(mPubPoseCov->get_topic_name());}
+    if (mPubPosePath) {mPosTrackingSubCount += count_subscribers(mPubPosePath->get_topic_name());}
+    if (mPubOdom) {mPosTrackingSubCount += count_subscribers(mPubOdom->get_topic_name());}
+    if (mPubOdomPath) {mPosTrackingSubCount += count_subscribers(mPubOdomPath->get_topic_name());}
+  } catch (...) {
+    rcutils_reset_error();
+    return false;
+  }
+
+  return true;
 }
 
 void ZedCamera::callback_pubTemp()
@@ -8880,7 +9005,7 @@ void ZedCamera::callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr ms
     if (mGnssZeroAltitude) {
       gnssData.altitude_std = 1e-9;
     }
-    std::array<double, 9> position_covariance;
+    std::array<double, 9> position_covariance{};
     position_covariance[0] = gnssData.latitude_std * mGnssHcovMul;    // X
     position_covariance[1 * 3 + 1] =
       gnssData.longitude_std * mGnssHcovMul;      // Y
@@ -9549,18 +9674,17 @@ void ZedCamera::processRtRoi(rclcpp::Time ts)
   }
 
   if (mAutoRoiEnabled) {
+    auto prevStatus = mAutoRoiStatus;
     mAutoRoiStatus = mZed->getRegionOfInterestAutoDetectionStatus();
     DEBUG_STREAM_ROI("Automatic ROI Status:" << sl::toString(mAutoRoiStatus));
-    if (mAutoRoiStatus ==
-      sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::RUNNING)
+    if (prevStatus ==
+      sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::RUNNING &&
+      mAutoRoiStatus ==
+      sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::READY)
     {
-      if (mAutoRoiStatus ==
-        sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::READY)
-      {
-        RCLCPP_INFO(
-          get_logger(),
-          "Region of interest auto detection is done!");
-      }
+      RCLCPP_INFO(
+        get_logger(),
+        "Region of interest auto detection is done!");
     }
   }
 

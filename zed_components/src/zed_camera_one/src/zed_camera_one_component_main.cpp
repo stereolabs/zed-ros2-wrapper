@@ -35,8 +35,8 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   _imuFreqTimer(get_clock()),
   _imuTfFreqTimer(get_clock()),
   _imgPubFreqTimer(get_clock()),
-  _frameTimestamp(_frameTimestamp),
-  _lastTs_imu(_frameTimestamp),
+  _frameTimestamp(TIMEZERO_ROS),
+  _lastTs_imu(TIMEZERO_ROS),
   _colorSubCount(0),
   _colorRawSubCount(0),
   _graySubCount(0),
@@ -2013,14 +2013,16 @@ bool ZedCameraOne::performCameraGrab()
 
 void ZedCameraOne::updateFrameTimestamp()
 {
+  _sdkGrabTS = _zed->getTimestamp(sl::TIME_REFERENCE::IMAGE);
+
   if (_svoMode) {
     if (_useSvoTimestamp) {
-      _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+      _frameTimestamp = sl_tools::slTime2Ros(_sdkGrabTS);
     } else {
       _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
     }
   } else {
-    _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+    _frameTimestamp = sl_tools::slTime2Ros(_sdkGrabTS);
   }
 }
 
@@ -2171,15 +2173,16 @@ void ZedCameraOne::handleStreamingServer()
 
 void ZedCameraOne::handleSvoRecordingStatus()
 {
-  _recMutex.lock();
-  if (_recording) {
-    _recStatus = _zed->getRecordingStatus();
-    if (!_recStatus.status) {
-      rclcpp::Clock steady_clock(RCL_STEADY_TIME);
-      RCLCPP_WARN_THROTTLE(get_logger(), steady_clock, 1000.0, "Error saving frame to SVO");
+  {
+    std::lock_guard<std::mutex> lock(_recMutex);
+    if (_recording) {
+      _recStatus = _zed->getRecordingStatus();
+      if (!_recStatus.status) {
+        rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+        RCLCPP_WARN_THROTTLE(get_logger(), steady_clock, 1000.0, "Error saving frame to SVO");
+      }
     }
   }
-  _recMutex.unlock();
 }
 
 bool ZedCameraOne::startStreamingServer()

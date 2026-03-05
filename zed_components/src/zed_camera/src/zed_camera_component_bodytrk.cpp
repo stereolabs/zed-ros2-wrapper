@@ -44,8 +44,8 @@ void ZedCamera::getBodyTrkParams()
     model_str);
 
   if (!sl_tools::matchSdkEnum(
-    model_str, sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST,
-    sl::BODY_TRACKING_MODEL::LAST, mBodyTrkModel))
+      model_str, sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST,
+      sl::BODY_TRACKING_MODEL::LAST, mBodyTrkModel))
   {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -62,8 +62,8 @@ void ZedCamera::getBodyTrkParams()
     fmt_str);
 
   if (!sl_tools::matchSdkEnum(
-    fmt_str, sl::BODY_FORMAT::BODY_18,
-    sl::BODY_FORMAT::LAST, mBodyTrkFmt))
+      fmt_str, sl::BODY_FORMAT::BODY_18,
+      sl::BODY_FORMAT::LAST, mBodyTrkFmt))
   {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -94,8 +94,8 @@ void ZedCamera::getBodyTrkParams()
   DEBUG_BT("body_selection.body_kp_selection: %s", body_sel_str.c_str());
 
   if (!sl_tools::matchSdkEnum(
-    body_sel_str, sl::BODY_KEYPOINTS_SELECTION::FULL,
-    sl::BODY_KEYPOINTS_SELECTION::LAST, mBodyTrkKpSelection))
+      body_sel_str, sl::BODY_KEYPOINTS_SELECTION::FULL,
+      sl::BODY_KEYPOINTS_SELECTION::LAST, mBodyTrkKpSelection))
   {
     RCLCPP_WARN_STREAM(
       get_logger(),

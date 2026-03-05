@@ -66,8 +66,8 @@ void ZedCamera::getOdParams()
     filtering_mode_str, filtering_mode_str);
 
   if (!sl_tools::matchSdkEnum(
-    filtering_mode_str, sl::OBJECT_FILTERING_MODE::NONE,
-    sl::OBJECT_FILTERING_MODE::LAST, mObjFilterMode))
+      filtering_mode_str, sl::OBJECT_FILTERING_MODE::NONE,
+      sl::OBJECT_FILTERING_MODE::LAST, mObjFilterMode))
   {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -86,8 +86,8 @@ void ZedCamera::getOdParams()
   DEBUG_STREAM_OD(" 'object_detection.detection_model': " << model_str.c_str());
 
   if (!sl_tools::matchSdkEnum(
-    model_str, sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST,
-    sl::OBJECT_DETECTION_MODEL::LAST, mObjDetModel))
+      model_str, sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST,
+      sl::OBJECT_DETECTION_MODEL::LAST, mObjDetModel))
   {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -352,14 +352,14 @@ void ZedCamera::getCustomOdParams()
     sl_tools::getParam(shared_from_this(), param_name, acc_preset_str, acc_preset_str);
 
     if (!sl_tools::matchSdkEnum(
-      acc_preset_str, sl::OBJECT_ACCELERATION_PRESET::DEFAULT,
-      sl::OBJECT_ACCELERATION_PRESET::LAST,
-      customOdProperties.object_tracking_parameters.object_acceleration_preset))
+        acc_preset_str, sl::OBJECT_ACCELERATION_PRESET::DEFAULT,
+        sl::OBJECT_ACCELERATION_PRESET::LAST,
+        customOdProperties.object_tracking_parameters.object_acceleration_preset))
     {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "The value of the parameter '" << param_name << "' is not valid: '"
-          << acc_preset_str << "'. Using the default value.");
+                                       << acc_preset_str << "'. Using the default value.");
     }
     RCLCPP_INFO_STREAM(
       get_logger(), std::string("  * ") + param_name + ": "
@@ -585,7 +585,10 @@ bool ZedCamera::handleOdDynamicParams(
       RCLCPP_WARN_STREAM(get_logger(), result.reason);
       return false;
     }
-    if (!sl_tools::checkParamRange(param, mObjDetElectronicsConf, 0.0, 100.0, result, get_logger())) {
+    if (!sl_tools::checkParamRange(
+        param, mObjDetElectronicsConf, 0.0, 100.0, result,
+        get_logger()))
+    {
       return false;
     }
     RCLCPP_INFO_STREAM(
@@ -697,8 +700,9 @@ bool ZedCamera::handleCustomOdDynamicParams(
     }
 
     if (!sl_tools::checkParamRange(
-      param, mCustomOdProperties[class_id].detection_confidence_threshold,
-      0.0f, 100.0f, result, get_logger())) {
+        param, mCustomOdProperties[class_id].detection_confidence_threshold,
+        0.0f, 100.0f, result, get_logger()))
+    {
       return false;
     }
 

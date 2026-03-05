@@ -240,10 +240,11 @@ bool matchSdkEnum(
   const std::string & str, EnumT first, EnumT last, EnumT & outVal)
 {
   auto toUpper = [](std::string s) {
-    std::transform(s.begin(), s.end(), s.begin(),
-      [](unsigned char c) { return std::toupper(c); });
-    return s;
-  };
+      std::transform(
+        s.begin(), s.end(), s.begin(),
+        [](unsigned char c) {return std::toupper(c);});
+      return s;
+    };
   const std::string upperStr = toUpper(str);
 
   for (int idx = static_cast<int>(first);
@@ -337,7 +338,8 @@ bool checkParamRange(
   } else if constexpr (std::is_same_v<T, int>) {
     val = param.as_int();
   } else {
-    static_assert(std::is_same_v<T, double> || std::is_same_v<T, float> || std::is_same_v<T, int>,
+    static_assert(
+      std::is_same_v<T, double>|| std::is_same_v<T, float>|| std::is_same_v<T, int>,
       "checkParamRange only supports double, float and int");
   }
 

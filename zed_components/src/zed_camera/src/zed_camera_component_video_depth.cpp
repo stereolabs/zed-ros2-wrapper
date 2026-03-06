@@ -93,7 +93,18 @@ void ZedCamera::initVideoDepthPublishers()
         RCLCPP_INFO_STREAM(
           get_logger(),
           " * Advertised on topic: " << pub.getTopic());
-        auto transports = image_transport::getLoadableTransports();
+        std::vector<std::string> transports{};
+        //transports = image_transport::getLoadableTransports();
+        try {
+          transports = image_transport::getDeclaredTransports();
+        } catch (const std::exception & e) {
+          RCLCPP_ERROR_STREAM(
+            get_logger(),
+            "Failed to get declared transports: " << e.what());
+        } catch (...) {
+          RCLCPP_ERROR(get_logger(), "Unknown error while getting declared transports");
+        }
+        
         for (const auto & transport : transports) {
           std::string transport_copy = transport;
           auto pos = transport_copy.find('/');

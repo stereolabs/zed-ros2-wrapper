@@ -1222,6 +1222,10 @@ void ZedCamera::getGeneralParams()
         mCamResol = sl::RESOLUTION::HD1080;
       } else if (resol == "SVGA") {
         mCamResol = sl::RESOLUTION::SVGA;
+      } else if (resol == "HD1536") {
+        mCamResol = sl::RESOLUTION::HD1536;
+      } else if (resol == "XVGA") {
+        mCamResol = sl::RESOLUTION::XVGA;
       } else {
         RCLCPP_WARN(
           get_logger(),

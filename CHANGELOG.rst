@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+v5.3.0
+------
+- Added ``XVGA`` as a valid ``grab_resolution`` option for ZED X HDR camera configurations (``zedxhdr``, ``zedxhdrmax``, ``zedxhdrmini``, ``zedxonehdr``).
+- Added ``XVGA`` resolution parsing in both stereo (``ZedCamera``) and mono (``ZedCameraOne``) components.
+
 2026-03-03
 ----------
 - Default Positional Tracking mode changed back to `GEN_1` until the stability and reliability of `GEN_3` is improved. 

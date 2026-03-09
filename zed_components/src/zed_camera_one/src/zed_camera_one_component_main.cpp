@@ -425,6 +425,8 @@ void ZedCameraOne::getResolutionParams()
       _camResol = sl::RESOLUTION::QHDPLUS;
     } else if (resol == "HD1536" && _camUserModel == sl::MODEL::ZED_XONE_HDR) {
       _camResol = sl::RESOLUTION::HD1536;
+    } else if (resol == "XVGA" && _camUserModel == sl::MODEL::ZED_XONE_HDR) {
+      _camResol = sl::RESOLUTION::XVGA;
     } else if (resol == "HD1200" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
       _camResol = sl::RESOLUTION::HD1200;
     } else if (resol == "HD1080" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {

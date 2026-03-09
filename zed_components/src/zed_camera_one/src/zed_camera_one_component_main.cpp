@@ -644,12 +644,33 @@ void ZedCameraOne::getDebugParams()
     "[ROS2] Using RMW_IMPLEMENTATION "
       << rmw_get_implementation_identifier());
 
+  const char * nitrosReason = "not_available";
+
 #ifdef FOUND_ISAAC_ROS_NITROS
+  nitrosReason = "enabled";
+
   sl_tools::getParam(
     shared_from_this(), "debug.disable_nitros",
     _nitrosDisabled, _nitrosDisabled);
 
-  if (_nitrosDisabled) {
+  bool nitrosDisabledByParam = _nitrosDisabled;
+
+  if (nitrosDisabledByParam) {
+    nitrosReason = "param_debug.disable_nitros";
+  }
+
+  if (!_nitrosDisabled && _usingIPC) {
+    RCLCPP_WARN(
+      get_logger(),
+      "NITROS transport is incompatible with ROS 2 Intra-Process Communication "
+      "(IPC). NITROS will be disabled. To use NITROS, launch with "
+      "enable_ipc:=false. NITROS provides its own zero-copy transport, "
+      "so disabling IPC does not reduce performance.");
+    _nitrosDisabled = true;
+    nitrosReason = "auto_disabled_ipc_incompatibility";
+  }
+
+  if (nitrosDisabledByParam) {
     RCLCPP_WARN(
       get_logger(),
       "NITROS is available, but is disabled by 'debug.disable_nitros'");
@@ -657,6 +678,13 @@ void ZedCameraOne::getDebugParams()
 #else
   _nitrosDisabled = true;  // Force disable NITROS if not available
 #endif
+
+  RCLCPP_DEBUG(
+    get_logger(),
+    "Transport summary: IPC=%s, NITROS=%s, reason=%s",
+    _usingIPC ? "enabled" : "disabled",
+    _nitrosDisabled ? "disabled" : "enabled",
+    nitrosReason);
 }
 
 void ZedCameraOne::initNode()

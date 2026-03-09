@@ -229,6 +229,20 @@ private:
   rclcpp::Clock::SharedPtr mClockPtr;  // Node clock interface
 };
 
+// ----> Utility functions
+
+/*! \brief Convert a string to uppercase (ASCII)
+ * \param s : the string to convert
+ * \return the uppercase string
+ */
+inline std::string toUpper(std::string s)
+{
+  std::transform(
+    s.begin(), s.end(), s.begin(),
+    [](unsigned char c) {return std::toupper(c);});
+  return s;
+}
+
 // ----> Template functions definitions
 
 // Match a YAML string (with underscores) to an sl:: SDK enum value.
@@ -239,12 +253,6 @@ template<typename EnumT>
 bool matchSdkEnum(
   const std::string & str, EnumT first, EnumT last, EnumT & outVal)
 {
-  auto toUpper = [](std::string s) {
-      std::transform(
-        s.begin(), s.end(), s.begin(),
-        [](unsigned char c) {return std::toupper(c);});
-      return s;
-    };
   const std::string upperStr = toUpper(str);
 
   for (int idx = static_cast<int>(first);
@@ -259,6 +267,43 @@ bool matchSdkEnum(
     }
   }
   return false;
+}
+
+/*! \brief Read a ROS parameter and match it to an SDK enum value.
+ *  Combines getParam + matchSdkEnum + warning on mismatch + info log.
+ *  \param node : the node to get the parameter from
+ *  \param paramName : the ROS parameter name
+ *  \param defaultStr : the default string value for the parameter
+ *  \param first : first enum value to iterate from
+ *  \param last : sentinel (exclusive) enum value
+ *  \param outVal : receives the matched enum value (unchanged on mismatch)
+ *  \param logLabel : label prefix for the INFO log (empty to skip logging)
+ *  \return true if the parameter matched a valid enum value
+ */
+template<typename EnumT>
+bool getEnumParam(
+  const std::shared_ptr<rclcpp::Node> node,
+  const std::string & paramName,
+  const std::string & defaultStr,
+  EnumT first, EnumT last,
+  EnumT & outVal,
+  const std::string & logLabel = std::string())
+{
+  std::string str = defaultStr;
+  getParam(node, paramName, str, str);
+  bool ok = matchSdkEnum(str, first, last, outVal);
+  if (!ok) {
+    RCLCPP_WARN_STREAM(
+      node->get_logger(),
+      "The value of the parameter '" << paramName << "' is not valid: '"
+                                     << str << "'. Using the default value.");
+  }
+  if (!logLabel.empty()) {
+    RCLCPP_INFO_STREAM(
+      node->get_logger(),
+      logLabel << sl::toString(outVal).c_str());
+  }
+  return ok;
 }
 
 template<typename T>

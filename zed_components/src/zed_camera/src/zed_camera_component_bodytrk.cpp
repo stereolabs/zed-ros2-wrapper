@@ -38,41 +38,17 @@ void ZedCamera::getBodyTrkParams()
     mBodyTrkEnabled, mBodyTrkEnabled,
     " * Body Track. enabled: ");
 
-  std::string model_str = "HUMAN_BODY_FAST";
-  sl_tools::getParam(
-    shared_from_this(), "body_tracking.model", model_str,
-    model_str);
+  sl_tools::getEnumParam(
+    shared_from_this(), "body_tracking.model", "HUMAN_BODY_FAST",
+    sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST,
+    sl::BODY_TRACKING_MODEL::LAST, mBodyTrkModel,
+    " * Body Track. model: ");
 
-  if (!sl_tools::matchSdkEnum(
-      model_str, sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST,
-      sl::BODY_TRACKING_MODEL::LAST, mBodyTrkModel))
-  {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "The value of the parameter 'body_tracking.model' is not valid: '"
-        << model_str << "'. Using the default value.");
-  }
-  RCLCPP_INFO_STREAM(
-    get_logger(), " * Body Track. model: "
-      << sl::toString(mBodyTrkModel).c_str());
-
-  std::string fmt_str = "BODY_70";
-  sl_tools::getParam(
-    shared_from_this(), "body_tracking.body_format", fmt_str,
-    fmt_str);
-
-  if (!sl_tools::matchSdkEnum(
-      fmt_str, sl::BODY_FORMAT::BODY_18,
-      sl::BODY_FORMAT::LAST, mBodyTrkFmt))
-  {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "The value of the parameter 'body_tracking.body_format' is not valid: '"
-        << fmt_str << "'. Using the default value.");
-  }
-  RCLCPP_INFO_STREAM(
-    get_logger(), " * Body Track. format: "
-      << sl::toString(mBodyTrkFmt).c_str());
+  sl_tools::getEnumParam(
+    shared_from_this(), "body_tracking.body_format", "BODY_70",
+    sl::BODY_FORMAT::BODY_18,
+    sl::BODY_FORMAT::LAST, mBodyTrkFmt,
+    " * Body Track. format: ");
 
   sl_tools::getParam(
     shared_from_this(),
@@ -85,24 +61,11 @@ void ZedCamera::getBodyTrkParams()
     mBodyTrkMaxRange, mBodyTrkMaxRange,
     " * Body Track. maximum range [m]: ", false, 0.1, 40.0);
 
-  std::string body_sel_str = "FULL";
-  sl_tools::getParam(
-    shared_from_this(), "body_tracking.body_kp_selection",
-    body_sel_str, body_sel_str,
+  sl_tools::getEnumParam(
+    shared_from_this(), "body_tracking.body_kp_selection", "FULL",
+    sl::BODY_KEYPOINTS_SELECTION::FULL,
+    sl::BODY_KEYPOINTS_SELECTION::LAST, mBodyTrkKpSelection,
     " * Body Track. KP selection: ");
-
-  DEBUG_BT("body_selection.body_kp_selection: %s", body_sel_str.c_str());
-
-  if (!sl_tools::matchSdkEnum(
-      body_sel_str, sl::BODY_KEYPOINTS_SELECTION::FULL,
-      sl::BODY_KEYPOINTS_SELECTION::LAST, mBodyTrkKpSelection))
-  {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "The value of the parameter "
-      "'body_tracking.body_kp_selection' is not valid: '"
-        << body_sel_str << "'. Using the default value.");
-  }
 
   sl_tools::getParam(
     shared_from_this(), "body_tracking.enable_body_fitting",
@@ -186,6 +149,7 @@ bool ZedCamera::handleBodyTrkDynamicParams(
                                   << mBodyTrkMinKp);
   }
 
+  mBodyTrkRtParamsDirty = true;
   return true;
 }
 
@@ -319,15 +283,19 @@ void ZedCamera::processBodies(rclcpp::Time t)
 
   mBodyTrkSubscribed = true;
 
-  // ----> Process realtime dynamic parameters
-  sl::BodyTrackingRuntimeParameters bt_params_rt;
-  bt_params_rt.detection_confidence_threshold = mBodyTrkConfThresh;
-  bt_params_rt.minimum_keypoints_threshold = mBodyTrkMinKp;
-  // <---- Process realtime dynamic parameters
+  // ----> Update runtime parameters only when changed
+  if (mBodyTrkRtParamsDirty) {
+    sl::BodyTrackingRuntimeParameters bt_params_rt;
+    bt_params_rt.detection_confidence_threshold = mBodyTrkConfThresh;
+    bt_params_rt.minimum_keypoints_threshold = mBodyTrkMinKp;
+    mZed->setBodyTrackingRuntimeParameters(bt_params_rt);
+    mBodyTrkRtParamsDirty = false;
+  }
+  // <---- Update runtime parameters only when changed
 
   sl::Bodies bodies;
   sl::ERROR_CODE btRes =
-    mZed->retrieveBodies(bodies, bt_params_rt);
+    mZed->retrieveBodies(bodies);
 
   if (btRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(

@@ -826,12 +826,33 @@ void ZedCamera::getDebugParams()
     "[ROS 2] Using RMW_IMPLEMENTATION "
       << rmw_get_implementation_identifier());
 
+  const char * nitrosReason = "not_available";
+
 #ifdef FOUND_ISAAC_ROS_NITROS
+  nitrosReason = "enabled";
+
   sl_tools::getParam(
     shared_from_this(), "debug.disable_nitros",
     _nitrosDisabled, _nitrosDisabled);
 
-  if (_nitrosDisabled) {
+  bool nitrosDisabledByParam = _nitrosDisabled;
+
+  if (nitrosDisabledByParam) {
+    nitrosReason = "param_debug.disable_nitros";
+  }
+
+  if (!_nitrosDisabled && mUsingIPC) {
+    RCLCPP_WARN(
+      get_logger(),
+      "NITROS transport is incompatible with ROS 2 Intra-Process Communication "
+      "(IPC). NITROS will be disabled. To use NITROS, launch with "
+      "enable_ipc:=false. NITROS provides its own zero-copy transport, "
+      "so disabling IPC does not reduce performance.");
+    _nitrosDisabled = true;
+    nitrosReason = "auto_disabled_ipc_incompatibility";
+  }
+
+  if (nitrosDisabledByParam) {
     RCLCPP_WARN(
       get_logger(),
       "NITROS is available, but is disabled by 'debug.disable_nitros'");
@@ -839,6 +860,13 @@ void ZedCamera::getDebugParams()
 #else
   _nitrosDisabled = true;  // Force disable NITROS if not available
 #endif
+
+  RCLCPP_DEBUG(
+    get_logger(),
+    "Transport summary: IPC=%s, NITROS=%s, reason=%s",
+    mUsingIPC ? "enabled" : "disabled",
+    _nitrosDisabled ? "disabled" : "enabled",
+    nitrosReason);
 }
 
 void ZedCamera::getTopicEnableParams()
@@ -1284,8 +1312,11 @@ void ZedCamera::getGeneralParams()
   } else {
     sl_tools::getParam(
       shared_from_this(), "general.pub_frame_rate", mVdPubRate,
-      mVdPubRate, " * Publish framerate [Hz]:  ", true, 0.1,
+      mVdPubRate, " * Publish framerate [Hz]:  ", true, -1.0,
       static_cast<double>(mCamGrabFrameRate));
+    if (mVdPubRate <= 0.0) {
+      mVdPubRate = static_cast<double>(mCamGrabFrameRate);
+    }
   }
   sl_tools::getParam(
     shared_from_this(), "general.grab_compute_capping_fps",
@@ -1377,7 +1408,7 @@ void ZedCamera::getRoiParams()
         "Automatic ROI generation with '"
           << sl::toString(mPosTrkMode)
           << "' is not recommended. Please set the parameter "
-          "'pos_tracking.pos_tracking_mode' to 'GEN_2' for "
+          "'pos_tracking.pos_tracking_mode' to 'GEN_3' for "
           "improved results.");
     }
 
@@ -1506,7 +1537,10 @@ void ZedCamera::getMappingParams()
   sl_tools::getParam(
     shared_from_this(), "mapping.fused_pointcloud_freq",
     mFusedPcPubRate, mFusedPcPubRate,
-    " * Map publishing rate [Hz]: ", true, 0.1, 30.0);
+    " * Map publishing rate [Hz]: ", true, -1.0, 30.0);
+  if (mFusedPcPubRate <= 0.0) {
+    mFusedPcPubRate = mPcPubRate;
+  }
 
   mClickedPtTopic = "/clicked_point";
   sl_tools::getParam(
@@ -1551,43 +1585,36 @@ void ZedCamera::getPosTrackingParams()
     " * Positional tracking enabled: ");
 
   if (mPosTrackingEnabled) {
-    std::string pos_trk_mode_str = "GEN_1";
+    std::string pos_trk_mode_str = "AUTO";
     sl_tools::getParam(
       shared_from_this(), "pos_tracking.pos_tracking_mode",
       pos_trk_mode_str, pos_trk_mode_str);
     bool matched = false;
     bool auto_pt = false;
-    if (pos_trk_mode_str == "AUTO") {
-#if (ZED_SDK_MAJOR_VERSION * 100 + ZED_SDK_MINOR_VERSION * 10 + ZED_SDK_PATCH_VERSION) >= 521
-      mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::GEN_3;
-#else
+    if (sl_tools::toUpper(pos_trk_mode_str) == "AUTO") {
+      // Use the SDK's own constructed default, except for 5.2.0 where
+      // it defaults to GEN_3 which has known issues — force GEN_1 instead
+#if (ZED_SDK_MAJOR_VERSION == 5 && ZED_SDK_MINOR_VERSION == 2 && \
+      ZED_SDK_PATCH_VERSION == 0)
       mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::GEN_1;
+#else
+      sl::PositionalTrackingParameters defaultPtParams;
+      mPosTrkMode = defaultPtParams.mode;
 #endif
       matched = true;
       auto_pt = true;
     } else {
-      for (int idx = static_cast<int>(sl::POSITIONAL_TRACKING_MODE::GEN_1);
-        idx < static_cast<int>(sl::POSITIONAL_TRACKING_MODE::LAST); idx++)
-      {
-        sl::POSITIONAL_TRACKING_MODE test_mode =
-          static_cast<sl::POSITIONAL_TRACKING_MODE>(idx);
-        std::string test_mode_str = sl::toString(test_mode).c_str();
-        std::replace(
-          test_mode_str.begin(), test_mode_str.end(), ' ', '_'); // Replace spaces with underscores to match the YAML setting
-        DEBUG_PT(" Comparing '%s' to '%s'", test_mode_str.c_str(), pos_trk_mode_str.c_str());
-        if (pos_trk_mode_str == test_mode_str) {
-          mPosTrkMode = test_mode;
-          matched = true;
-          break;
-        }
-      }
+      matched = sl_tools::matchSdkEnum(
+        pos_trk_mode_str, sl::POSITIONAL_TRACKING_MODE::GEN_1,
+        sl::POSITIONAL_TRACKING_MODE::LAST, mPosTrkMode);
     }
     if (!matched) {
-#if (ZED_SDK_MAJOR_VERSION * 100 + ZED_SDK_MINOR_VERSION * 10 + \
-      ZED_SDK_PATCH_VERSION) >= 521
-      mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::GEN_3;
-#else
+#if (ZED_SDK_MAJOR_VERSION == 5 && ZED_SDK_MINOR_VERSION == 2 && \
+      ZED_SDK_PATCH_VERSION == 0)
       mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::GEN_1;
+#else
+      sl::PositionalTrackingParameters defaultPtParams;
+      mPosTrkMode = defaultPtParams.mode;
 #endif
       RCLCPP_WARN_STREAM(
         get_logger(),
@@ -1620,7 +1647,10 @@ void ZedCamera::getPosTrackingParams()
     sl_tools::getParam(
       shared_from_this(), "pos_tracking.path_pub_rate",
       mPathPubRate, mPathPubRate,
-      " * Path publishing rate: ", true, 0.1, 120.0);
+      " * Path publishing rate: ", true, -1.0, 120.0);
+    if (mPathPubRate <= 0.0) {
+      mPathPubRate = static_cast<double>(mCamGrabFrameRate);
+    }
     sl_tools::getParam(
       shared_from_this(), "pos_tracking.path_max_count",
       mPathMaxCount, mPathMaxCount, " * Path history lenght: ", false, -1, 10000);
@@ -2006,13 +2036,16 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
 
       double val = param.as_double();
 
-      if ((val <= 0.0) || (val > mCamGrabFrameRate)) {
+      if (val < -1.0 || val > mCamGrabFrameRate) {
         result.successful = false;
         result.reason =
           param.get_name() +
-          " must be positive and minor of `general.grab_frame_rate`";
+          " must be >= -1 and <= `general.grab_frame_rate` (0 or -1 = no limit)";
         RCLCPP_WARN_STREAM(get_logger(), result.reason);
         break;
+      }
+      if (val <= 0.0) {
+        val = static_cast<double>(mCamGrabFrameRate);
       }
 
       mPathPubRate = val;
@@ -2034,12 +2067,15 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
 
       double val = param.as_double();
 
-      if ((val <= 0.0) || (val > mPcPubRate)) {
+      if (val < -1.0 || val > mPcPubRate) {
         result.successful = false;
         result.reason = param.get_name() +
-          " must be positive and minor of `point_cloud_freq`";
+          " must be >= -1 and <= `point_cloud_freq` (0 or -1 = no limit)";
         RCLCPP_WARN_STREAM(get_logger(), result.reason);
         break;
+      }
+      if (val <= 0.0) {
+        val = mPcPubRate;
       }
 
       mFusedPcPubRate = val;
@@ -2728,7 +2764,9 @@ bool ZedCamera::startCamera()
   mInitParams.sdk_verbose = mVerbose;
   mInitParams.sdk_verbose_log_file = mVerboseLogFile.c_str();
   mInitParams.sdk_gpu_id = mGpuId;
-  mInitParams.depth_stabilization = mDepthStabilization;
+  if (mDepthStabilization >= 0) {
+    mInitParams.depth_stabilization = mDepthStabilization;
+  }  // else: keep SDK constructed default
   mInitParams.camera_image_flip = (mCameraFlip ? sl::FLIP_MODE::ON : sl::FLIP_MODE::OFF);
   mInitParams.depth_minimum_distance = mCamMinDepth;
   mInitParams.depth_maximum_distance = mCamMaxDepth;
@@ -2874,13 +2912,13 @@ bool ZedCamera::startCamera()
   }
   // <---- If SVO and GNSS enabled check that it's a valid SV0 Gen.2
 
-  // ----> If SVO and positional tracking Gen2 check that it's a valid SV0 Gen2
+  // ----> If SVO and positional tracking Gen3 check that it's a valid SVO Gen3
   if (mSvoMode && mPosTrackingEnabled &&
-    mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_2)
+    mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_3)
   {
     // TODO(Walter) Check SVO version when it's available
   }
-  // <---- If SVO and positional tracking Gen2 check that it's a valid SV0 Gen2
+  // <---- If SVO and positional tracking Gen3 check that it's a valid SVO Gen3
 
   // ----> Camera information
   sl::CameraInformation camInfo = mZed->getCameraInformation();
@@ -7250,7 +7288,7 @@ bool ZedCamera::isPosTrackingRequired()
     return true;
   }
 
-  if (mDepthStabilization > 0) {
+  if (mDepthStabilization != 0) {  // -1 = SDK default (> 0), so also forces tracking
     DEBUG_ONCE_PT(
       "POS. TRACKING required: enabled by depth stabilization param.");
 

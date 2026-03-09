@@ -14,6 +14,7 @@
 
 import os
 import sys
+import yaml
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -73,6 +74,52 @@ def parse_array_param(param):
         return []
     return cleaned.split(',')
 
+
+def _to_bool(value):
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered == 'true':
+            return True
+        if lowered == 'false':
+            return False
+
+    return None
+
+
+def _find_disable_nitros(node):
+    if isinstance(node, dict):
+        ros_params = node.get('ros__parameters')
+        if isinstance(ros_params, dict):
+            debug_section = ros_params.get('debug')
+            if isinstance(debug_section, dict) and 'disable_nitros' in debug_section:
+                return _to_bool(debug_section['disable_nitros'])
+
+        for value in node.values():
+            found = _find_disable_nitros(value)
+            if found is not None:
+                return found
+
+    return None
+
+
+def _get_disable_nitros_from_file(file_path):
+    if not file_path or not os.path.isfile(file_path):
+        return None
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as yaml_file:
+            data = yaml.safe_load(yaml_file)
+
+        if data is None:
+            return None
+
+        return _find_disable_nitros(data)
+    except Exception:
+        return None
+
 def launch_setup(context, *args, **kwargs):
     return_array = []
 
@@ -83,6 +130,7 @@ def launch_setup(context, *args, **kwargs):
     publish_svo_clock = LaunchConfiguration('publish_svo_clock')
 
     enable_ipc = LaunchConfiguration('enable_ipc')
+    ipc_nitros_conflict_policy = LaunchConfiguration('ipc_nitros_conflict_policy')
     use_sim_time = LaunchConfiguration('use_sim_time')
     sim_mode = LaunchConfiguration('sim_mode')
     sim_address = LaunchConfiguration('sim_address')
@@ -128,6 +176,14 @@ def launch_setup(context, *args, **kwargs):
     serial_numbers_val = serial_numbers.perform(context)
     camera_ids_val = camera_ids.perform(context)
 
+    stereo_models = (
+        'zed', 'zedm', 'zed2', 'zed2i',
+        'zedx', 'zedxm',
+        'zedxhdr', 'zedxhdrmini', 'zedxhdrmax',
+        'virtual'
+    )
+    is_stereo_model = camera_model_val in stereo_models
+
     if(node_log_type_val == 'both'):
         node_log_effective = 'both'
     else:  # 'screen' or 'log'
@@ -157,16 +213,7 @@ def launch_setup(context, *args, **kwargs):
         node_name_val = camera_name_val
     
     # Common configuration file
-    if (camera_model_val == 'zed' or 
-        camera_model_val == 'zedm' or 
-        camera_model_val == 'zed2' or 
-        camera_model_val == 'zed2i' or 
-        camera_model_val == 'zedx' or 
-        camera_model_val == 'zedxm' or
-        camera_model_val == 'zedxhdr' or
-        camera_model_val == 'zedxhdrmini' or
-        camera_model_val == 'zedxhdrmax' or
-        camera_model_val == 'virtual'):
+    if is_stereo_model:
         config_common_path_val = default_config_common + '_stereo.yaml'
     else:
         config_common_path_val = default_config_common + '_mono.yaml'
@@ -197,6 +244,38 @@ def launch_setup(context, *args, **kwargs):
     if(ros_params_override_path_val != ''):
         info = 'Using ROS parameters override file: ' + ros_params_override_path_val
         return_array.append(LogInfo(msg=TextSubstitution(text=info)))
+
+    enable_ipc_effective = enable_ipc.perform(context) == 'true'
+    ipc_nitros_conflict_policy_val = ipc_nitros_conflict_policy.perform(context)
+
+    # Effective `debug.disable_nitros` value from loaded YAML files.
+    # Component defaults differ if parameter is not present.
+    # - ZedCamera (stereo/virtual): default true
+    # - ZedCameraOne (mono): default false
+    nitros_disabled_effective = True if is_stereo_model else False
+
+    common_disable_nitros = _get_disable_nitros_from_file(config_common_path_val)
+    if common_disable_nitros is not None:
+        nitros_disabled_effective = common_disable_nitros
+
+    if ros_params_override_path_val != '':
+        override_disable_nitros = _get_disable_nitros_from_file(ros_params_override_path_val)
+        if override_disable_nitros is not None:
+            nitros_disabled_effective = override_disable_nitros
+
+    if enable_ipc_effective and not nitros_disabled_effective:
+        conflict_msg = (
+            'Invalid configuration: `enable_ipc:=true` with '
+            '`debug.disable_nitros:=false` can cause NITROS startup failure '
+            '(volatile durability conflict).'
+        )
+
+        if ipc_nitros_conflict_policy_val == 'disable_ipc':
+            enable_ipc_effective = False
+            return_array.append(LogInfo(msg=TextSubstitution(
+                text='WARNING: ' + conflict_msg + ' Forcing `enable_ipc:=false` for this launch.')))
+        else:
+            raise RuntimeError(conflict_msg + ' Set `enable_ipc:=false` or `debug.disable_nitros:=true`.')
 
     # Xacro command with options
     xacro_command = []
@@ -303,23 +382,14 @@ def launch_setup(context, *args, **kwargs):
     )
 
     # ZED Wrapper component
-    if( camera_model_val=='zed' or
-        camera_model_val=='zedm' or
-        camera_model_val=='zed2' or
-        camera_model_val=='zed2i' or
-        camera_model_val=='zedx' or
-        camera_model_val=='zedxm' or
-        camera_model_val == 'zedxhdr' or
-        camera_model_val == 'zedxhdrmini' or
-        camera_model_val == 'zedxhdrmax' or
-        camera_model_val=='virtual'):
+    if is_stereo_model:
         zed_wrapper_component = ComposableNode(
             package='zed_components',
             namespace=namespace_val,
             plugin='stereolabs::ZedCamera',
             name=node_name_val,
             parameters=node_parameters,
-            extra_arguments=[{'use_intra_process_comms': enable_ipc}]
+            extra_arguments=[{'use_intra_process_comms': enable_ipc_effective}]
         )
     else: # camera_model_val == 'zedxonegs' or camera_model_val == 'zedxone4k' or camera_model_val == 'zedxonehdr'
         zed_wrapper_component = ComposableNode(
@@ -328,7 +398,7 @@ def launch_setup(context, *args, **kwargs):
             plugin='stereolabs::ZedCameraOne',
             name=node_name_val,
             parameters=node_parameters,
-            extra_arguments=[{'use_intra_process_comms': enable_ipc}]
+            extra_arguments=[{'use_intra_process_comms': enable_ipc_effective}]
         )
     
     full_container_name = '/' + namespace_val + '/' + container_name_val
@@ -446,6 +516,13 @@ def generate_launch_description():
                 default_value='true',
                 description='Enable intra-process communication (IPC) with ROS 2 Composition',
                 choices=['true', 'false']),
+            DeclareLaunchArgument(
+                'ipc_nitros_conflict_policy',
+                default_value='disable_ipc',
+                description='Behavior when IPC is enabled and NITROS is enabled (`debug.disable_nitros:=false`). '
+                            '`disable_ipc`: force IPC off for this launch. '
+                            '`exit`: stop launch with an error.',
+                choices=['disable_ipc', 'exit']),
             DeclareLaunchArgument(
                 'use_sim_time',
                 default_value='false',

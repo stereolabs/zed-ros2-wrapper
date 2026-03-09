@@ -214,7 +214,7 @@
       </joint>
 
       <link name="${name}_left_camera_frame_optical"/>
-      <joint name="${name}_left_camera_optical_joint" type="fixed">
+      <joint name="${name}_left_camera_joint_optical" type="fixed">
         <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
         <parent link="${name}_left_camera_frame"/>
         <child link="${name}_left_camera_frame_optical"/>
@@ -247,7 +247,7 @@
       </joint>
 
       <link name="${name}_right_camera_frame_optical"/>
-      <joint name="${name}_right_camera_optical_joint" type="fixed">
+      <joint name="${name}_right_camera_joint_optical" type="fixed">
         <origin xyz="0 0 0" rpy="-${M_PI/2} 0.0 -${M_PI/2}"/>
         <parent link="${name}_right_camera_frame"/>
         <child link="${name}_right_camera_frame_optical"/>

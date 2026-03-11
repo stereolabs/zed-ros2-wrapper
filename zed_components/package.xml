@@ -17,7 +17,6 @@
     <depend>backward_ros</depend>
     <depend>nlohmann-json-dev</depend>    
     <depend>zed_msgs</depend>
-
     <depend>rclcpp</depend>
     <depend>rclcpp_components</depend>
     <depend>rcutils</depend>

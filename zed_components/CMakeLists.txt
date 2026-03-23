@@ -81,6 +81,7 @@ endif()
 
 #############################################
 # Dependencies
+find_package(nlohmann_json REQUIRED)
 find_package(ZED REQUIRED)
 
 exec_program(uname ARGS -p OUTPUT_VARIABLE CMAKE_SYSTEM_NAME2)
@@ -214,7 +215,6 @@ set(SL_TOOLS_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_tools.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_win_avg.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_logging.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/json.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/gnss_replay.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_types.hpp
 )

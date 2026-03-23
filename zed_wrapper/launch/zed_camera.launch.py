@@ -75,6 +75,37 @@ def parse_array_param(param):
     return cleaned.split(',')
 
 
+def _auto_type(value):
+    """Convert a string value to the most appropriate Python type."""
+    lowered = value.strip().lower()
+    if lowered == 'true':
+        return True
+    if lowered == 'false':
+        return False
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    try:
+        return float(value)
+    except ValueError:
+        pass
+    return value
+
+
+def _parse_param_overrides(overrides_str):
+    """Parse semicolon-separated 'key:=value' pairs into a dict."""
+    result = {}
+    if not overrides_str:
+        return result
+    for pair in overrides_str.split(';'):
+        pair = pair.strip()
+        if ':=' in pair:
+            key, value = pair.split(':=', 1)
+            result[key.strip()] = _auto_type(value.strip())
+    return result
+
+
 def _to_bool(value):
     if isinstance(value, bool):
         return value
@@ -149,6 +180,7 @@ def launch_setup(context, *args, **kwargs):
     ros_params_override_path = LaunchConfiguration('ros_params_override_path')
     object_detection_config_path = LaunchConfiguration('object_detection_config_path')
     custom_object_detection_config_path = LaunchConfiguration('custom_object_detection_config_path')
+    param_overrides = LaunchConfiguration('param_overrides')
 
     serial_number = LaunchConfiguration('serial_number')
     camera_id = LaunchConfiguration('camera_id')
@@ -262,6 +294,14 @@ def launch_setup(context, *args, **kwargs):
         override_disable_nitros = _get_disable_nitros_from_file(ros_params_override_path_val)
         if override_disable_nitros is not None:
             nitros_disabled_effective = override_disable_nitros
+
+    # Parse inline parameter overrides from command line
+    param_overrides_dict = _parse_param_overrides(param_overrides.perform(context))
+
+    # Check if disable_nitros is set via inline overrides
+    inline_disable_nitros = _to_bool(param_overrides_dict.get('debug.disable_nitros'))
+    if inline_disable_nitros is not None:
+        nitros_disabled_effective = inline_disable_nitros
 
     if enable_ipc_effective and not nitros_disabled_effective:
         conflict_msg = (
@@ -380,6 +420,10 @@ def launch_setup(context, *args, **kwargs):
                 'general.virtual_camera_ids': camera_ids_val
             }
     )
+
+    # Append inline parameter overrides (highest priority)
+    if param_overrides_dict:
+        node_parameters.append(param_overrides_dict)
 
     # ZED Wrapper component
     if is_stereo_model:
@@ -549,6 +593,12 @@ def generate_launch_description():
                 'stream_port',
                 default_value='30000',
                 description='The connection port of the input streaming server.'),
+            DeclareLaunchArgument(
+                'param_overrides',
+                default_value='',
+                description='Inline parameter overrides as semicolon-separated key:=value pairs. '
+                            'These have the highest priority and override all YAML and launch argument values. '
+                            'Example: "debug.disable_nitros:=true;object_detection.custom_onnx_file:=/path/to/model.onnx"'),
             OpaqueFunction(function=launch_setup)
         ]
     )

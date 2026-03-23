@@ -104,7 +104,7 @@ void ZedCamera::initVideoDepthPublishers()
         } catch (...) {
           RCLCPP_ERROR(get_logger(), "Unknown error while getting declared transports");
         }
-        
+
         for (const auto & transport : transports) {
           std::string transport_copy = transport;
           auto pos = transport_copy.find('/');
@@ -468,6 +468,18 @@ void ZedCamera::getDepthParams()
     shared_from_this(), "depth.depth_mode", depth_mode_str,
     depth_mode_str);
 
+  // Check for model override syntax: e.g. 'NEURAL_LIGHT:neural_depth_light_5.3.model'
+  // Supported separators: ':', ',', ';'
+  mDepthModelOverride.clear();
+  for (char sep : {':', ',', ';'}) {
+    auto pos = depth_mode_str.find(sep);
+    if (pos != std::string::npos) {
+      mDepthModelOverride = depth_mode_str.substr(pos + 1);
+      depth_mode_str = depth_mode_str.substr(0, pos);
+      break;
+    }
+  }
+
   if (!sl_tools::matchSdkEnum(
       depth_mode_str, sl::DEPTH_MODE::NONE,
       sl::DEPTH_MODE::LAST, mDepthMode))
@@ -480,6 +492,12 @@ void ZedCamera::getDepthParams()
         "Please check it in 'common_stereo.yaml'.");
       RCLCPP_WARN_STREAM(get_logger(), "Using default value: " << sl::toString(mDepthMode).c_str());
     }
+  }
+
+  if (!mDepthModelOverride.empty()) {
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Depth model override: " << mDepthModelOverride);
   }
 
   if (mDepthMode == sl::DEPTH_MODE::NONE) {

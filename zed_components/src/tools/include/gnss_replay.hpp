@@ -2,9 +2,8 @@
 #define GPSD_Replay_H
 
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <sl/Fusion.hpp>
-
-#include "json.hpp"
 
 namespace sl_tools
 {

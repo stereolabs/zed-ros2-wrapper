@@ -13,6 +13,7 @@
     <build_depend>ament_cmake_auto</build_depend>
 
     <depend>backward_ros</depend>
+    <depend>nlohmann-json-dev</depend>
     
     <build_depend>zed_msgs</build_depend>
     <build_depend>rclcpp</build_depend>

@@ -26,6 +26,7 @@
 #include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 
+#include <cstdlib>
 #include <sstream>
 #include <stdexcept>
 #include <type_traits>
@@ -2765,6 +2766,30 @@ bool ZedCamera::startCamera()
   mInitParams.coordinate_system = ROS_COORDINATE_SYSTEM;
   mInitParams.coordinate_units = ROS_MEAS_UNITS;
   mInitParams.depth_mode = mDepthMode;
+
+  // Set env var for custom depth model override if specified
+  if (!mDepthModelOverride.empty()) {
+#if (ZED_SDK_MAJOR_VERSION < 5) || \
+    (ZED_SDK_MAJOR_VERSION == 5 && ZED_SDK_MINOR_VERSION < 2) || \
+    (ZED_SDK_MAJOR_VERSION == 5 && ZED_SDK_MINOR_VERSION == 2 && ZED_SDK_PATCH_VERSION < 2)
+    RCLCPP_WARN(
+      get_logger(),
+      "*** Depth model override requires ZED SDK >= 5.2.2. "
+      "Current SDK version is %d.%d.%d. The override will likely be ignored. ***",
+      ZED_SDK_MAJOR_VERSION, ZED_SDK_MINOR_VERSION, ZED_SDK_PATCH_VERSION);
+#endif
+    std::string depth_mode_name = sl_tools::toUpper(
+      std::string(sl::toString(mDepthMode).c_str()));
+    std::string env_var = "ZED_SDK_OVERRIDE_" + depth_mode_name;
+    setenv(env_var.c_str(), mDepthModelOverride.c_str(), 1);
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "*** DEPTH MODEL OVERRIDE ACTIVE ***\n"
+        << "  Mode:     " << sl::toString(mDepthMode).c_str() << "\n"
+        << "  Model:    " << mDepthModelOverride << "\n"
+        << "  Env var:  " << env_var << "=" << mDepthModelOverride);
+  }
+
   mInitParams.sdk_verbose = mVerbose;
   mInitParams.sdk_verbose_log_file = mVerboseLogFile.c_str();
   mInitParams.sdk_gpu_id = mGpuId;

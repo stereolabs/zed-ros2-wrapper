@@ -12,6 +12,7 @@
             sim_port: 30000 # The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.
 
         svo:
+            decryption_key: "" # Optional decryption key/passphrase when opening encrypted SVO files
             use_svo_timestamps: true # Use the SVO timestamps to publish data. If false, data will be published at the system time.
             publish_svo_clock: false # [overwritten by launch file options] When use_svo_timestamps is true allows to publish the SVO clock to the `/clock` topic. This is useful for synchronous rosbag playback.
             svo_loop: false # Enable loop mode when using an SVO as input source. NOTE: ignored if SVO timestamping is used

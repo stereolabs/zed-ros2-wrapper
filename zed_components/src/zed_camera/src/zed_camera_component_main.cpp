@@ -1384,6 +1384,10 @@ void ZedCamera::getSvoParams()
       mSvoFrameStart, mSvoFrameStart,
       " * SVO start frame: ", false, 0);
 
+    sl_tools::getParam(
+      shared_from_this(), "svo.decryption_key", std::string(),
+      mSvoDecryptionKey);
+
     if (!mSvoRealtime) {
       sl_tools::getParam(
         shared_from_this(), "svo.replay_rate", mSvoRate,
@@ -2698,6 +2702,7 @@ bool ZedCamera::startCamera()
 
     mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
     mInitParams.svo_real_time_mode = mSvoRealtime;
+    mInitParams.svo_decryption_key = mSvoDecryptionKey.c_str();
   } else if (!mStreamAddr.empty()) {
     RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING OPENING ===");
 

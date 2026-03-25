@@ -372,6 +372,7 @@ private:
   bool _publishSensTemp = false;
 
   std::string _svoFilepath = "";
+  std::string _svoDecryptionKey = "";
   bool _svoLoop = false;
   bool _svoRealtime = false;
   int _svoFrameStart = 0;

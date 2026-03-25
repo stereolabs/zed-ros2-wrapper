@@ -511,6 +511,7 @@ private:
   bool mAsyncImageRetrieval = false;
   int mImageValidityCheck = 1;
   std::string mSvoFilepath = "";
+  std::string mSvoDecryptionKey = "";
   bool mSvoLoop = false;
   bool mSvoRealtime = false;
   int mSvoFrameStart = 0;

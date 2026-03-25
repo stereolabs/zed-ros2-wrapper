@@ -308,6 +308,10 @@ void ZedCameraOne::getSvoParams()
       shared_from_this(), "svo.play_from_frame",
       _svoFrameStart, _svoFrameStart,
       " * SVO start frame: ", false, 0);
+
+    sl_tools::getParam(
+      shared_from_this(), "svo.decryption_key", std::string(),
+      _svoDecryptionKey);
   }
 }
 
@@ -876,6 +880,7 @@ void ZedCameraOne::configureZedInput()
     RCLCPP_INFO(get_logger(), "=== SVO OPENING ===");
     _initParams.input.setFromSVOFile(_svoFilepath.c_str());
     _initParams.svo_real_time_mode = _svoRealtime;
+    _initParams.svo_decryption_key = _svoDecryptionKey.c_str();
     _svoMode = true;
     return;
   }

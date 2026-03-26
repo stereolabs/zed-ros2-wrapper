@@ -1,0 +1,7 @@
+general:
+  grab_resolution: 'SVGA'
+  pub_frame_rate: 15.0
+  grab_frame_rate: 15
+
+object_detection:
+  od_enabled: false

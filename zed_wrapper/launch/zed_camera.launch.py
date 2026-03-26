@@ -116,6 +116,7 @@ def launch_setup(context, *args, **kwargs):
 
     enable_gnss = LaunchConfiguration('enable_gnss')
     gnss_antenna_offset = LaunchConfiguration('gnss_antenna_offset')
+    use_overide = LaunchConfiguration('use_overide')
 
     node_log_type_val = node_log_type.perform(context)
     container_name_val = container_name.perform(context)
@@ -125,6 +126,8 @@ def launch_setup(context, *args, **kwargs):
     node_name_val = node_name.perform(context)
     enable_gnss_val = enable_gnss.perform(context)
     gnss_coords = parse_array_param(gnss_antenna_offset.perform(context))
+    custom_baseline_val = custom_baseline.perform(context)
+    use_overide_val = use_overide.perform(context)
     serial_numbers_val = serial_numbers.perform(context)
     camera_ids_val = camera_ids.perform(context)
 
@@ -192,6 +195,9 @@ def launch_setup(context, *args, **kwargs):
     info = 'Using Custom Object Detection configuration file: ' + custom_object_detection_config_path.perform(context)
     return_array.append(LogInfo(msg=TextSubstitution(text=info)))
 
+    info = 'Using use_overide: ' + use_overide_val
+    return_array.append(LogInfo(msg=TextSubstitution(text=info)))
+    
     # ROS parameters override file
     ros_params_override_path_val = ros_params_override_path.perform(context)
     if(ros_params_override_path_val != ''):
@@ -274,9 +280,11 @@ def launch_setup(context, *args, **kwargs):
             object_detection_config_path, # Object detection parameters
             custom_object_detection_config_path # Custom object detection parameters
     ]
-
+ 
     if( ros_params_override_path_val != ''):
         node_parameters.append(ros_params_override_path)
+    elif use_overide_val == 'true':
+        node_parameters.append("/root/ros2_ws/install/zed_wrapper/share/zed_wrapper/config/stereo_side_cameras.yaml")
 
     node_parameters.append( 
             # Launch arguments must override the YAML files values
@@ -356,6 +364,11 @@ def generate_launch_description():
                 'camera_name',
                 default_value=TextSubstitution(text='zed'),
                 description='The name of the camera. It can be different from the camera model and it will be used as node `namespace`.'),
+            DeclareLaunchArgument(
+                'use_overide',
+                default_value='false',
+                description='If set to `true` the camera will run at 30 FPS.',
+                choices=['true', 'false']),
             DeclareLaunchArgument(
                 'camera_model',
                 description='[REQUIRED] The model of the camera. Using a wrong camera model can disable camera features.',

@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+
+<!--
+// Custom URDF for 4 ZED Cameras Setup
+// This file defines the transforms for 4 cameras mounted on a vehicle
+-->
+
+<!-- 
+  Camera Layout (top view):
+  
+       FRONT (0°)
+          | |
+          |_|
+          
+  LEFT   robot   RIGHT
+   (90°)   *     (270°)
+  
+       REAR (180°)
+          | |
+          |_|
+          
+  * = base_link (center reference point)
+-->
+
+<robot name="zed_quad_camera" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:property name="M_PI" value="3.1415926535897931" />
+  
+  <!-- Define the required parameters -->
+  <xacro:arg name="multi_link" default="base_link" />
+  <xacro:arg name="camera_name_0" default="zed0" /> 
+  <xacro:arg name="camera_name_1" default="zed1" /> 
+  <xacro:arg name="camera_name_2" default="zed2" /> 
+  <xacro:arg name="camera_name_3" default="zed3" /> 
+
+  <!-- Define the reference link (center of your robot/vehicle) -->
+  <link name="$(arg multi_link)" />
+  
+  <!-- Define camera links -->
+  <link name="$(arg camera_name_0)_camera_link" />
+  <link name="$(arg camera_name_1)_camera_link" />
+  <link name="$(arg camera_name_2)_camera_link" />
+  <link name="$(arg camera_name_3)_camera_link" />
+
+  <!-- 
+    CAMERA 0: FRONT
+    - Position: 0.5m forward from center, 4.0m high (roof mounted)
+    - Orientation: Looking forward (0° rotation), tilted up 30°
+  -->
+  <joint name="$(arg camera_name_2)_camera_joint" type="fixed">
+      <parent link="$(arg multi_link)"/>
+      <child link="$(arg camera_name_2)_camera_link"/>
+      <origin xyz="0.5 0.0 3.1" rpy="0.0 0.39 0" />
+  </joint>
+
+  <!-- 
+    CAMERA 1: REAR
+    - Position: 0.5m backward from center, 4.0m high (roof mounted)
+    - Orientation: Looking backward (180° rotation around Z axis), tilted up 30°
+  -->
+  <joint name="$(arg camera_name_0)_camera_joint" type="fixed">
+      <parent link="$(arg multi_link)"/>
+      <child link="$(arg camera_name_0)_camera_link"/>
+      <origin xyz="-0.5 0.0 0.4" rpy="0.0 0.0 ${M_PI}" />
+  </joint>
+
+  <!-- 
+    CAMERA 2: LEFT
+    - Position: 0.4m to the left of center, 4.0m high (roof mounted)
+    - Orientation: Looking left (90° rotation around Z axis), tilted up 30°
+  -->
+  <joint name="$(arg camera_name_3)_camera_joint" type="fixed">
+      <parent link="$(arg multi_link)"/>
+      <child link="$(arg camera_name_3)_camera_link"/>
+      <origin xyz="0.0 0.4 3.2" rpy="-0.0 0.39 ${M_PI/2}" />
+  </joint>
+
+  <!-- 
+    CAMERA 3: RIGHT
+    - Position: 0.4m to the right of center, 4.0m high (roof mounted)
+    - Orientation: Looking right (270° or -90° rotation around Z axis), tilted up 30°
+  -->
+  <joint name="$(arg camera_name_1)_camera_joint" type="fixed">
+      <parent link="$(arg multi_link)"/>
+      <child link="$(arg camera_name_1)_camera_link"/>
+      <origin xyz="0.0 0.0 0.4" rpy="-0.07 0.39 ${-M_PI/2}" />
+  </joint>
+
+  <!-- 
+    NOTE: Adjust the xyz and rpy values above to match YOUR actual camera positions!
+    
+    xyz format: [x, y, z] in meters
+      - x: forward(+)/backward(-)
+      - y: left(+)/right(-)
+      - z: up(+)/down(-)
+    
+    rpy format: [roll, pitch, yaw] in radians
+      - roll: rotation around X axis
+      - pitch: rotation around Y axis  
+      - yaw: rotation around Z axis
+      
+    Common yaw angles:
+      - 0° (0 rad): Forward
+      - 90° (π/2 rad): Left
+      - 180° (π rad): Backward
+      - 270° (-π/2 rad): Right
+  -->
+  
+</robot>
+

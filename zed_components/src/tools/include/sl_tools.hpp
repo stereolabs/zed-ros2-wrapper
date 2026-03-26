@@ -15,6 +15,8 @@
 #ifndef SL_TOOLS_HPP_
 #define SL_TOOLS_HPP_
 
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
@@ -29,6 +31,12 @@
 #include "sl_win_avg.hpp"
 
 #include <rcutils/logging_macros.h>
+
+// Used to enable ZED SDK RealTime SVO pause
+//#define USE_SVO_REALTIME_PAUSE
+
+// Used to enable Positional Tracking lock check
+//#define ENABLE_PT_LOCK_CHECK
 
 // CUDA includes and macros
 #ifdef FOUND_ISAAC_ROS_NITROS
@@ -162,8 +170,16 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi);
  *  \param input
  *  \param error_return
  *  Syntax is [[1.0, 2.0], [3.3, 4.4, 5.5], ...] */
-std::vector<std::vector<float>> parseStringVector(
+std::vector<std::vector<float>> parseStringMultiVector_float(
   const std::string & input, std::string & error_return);
+
+/*! \brief Parse a vector of integer values from a string.
+ *  \param input
+ *  \param error_return
+ *  Syntax is [1, 2, 3, ...] */
+std::vector<int> parseStringVector_int(
+  const std::string & input,
+  std::string & error_return);
 
 /*!
  * @brief Convert thread policy to string
@@ -214,6 +230,37 @@ private:
 };
 
 // ----> Template functions definitions
+
+// Match a YAML string (with underscores) to an sl:: SDK enum value.
+// Case-insensitive. Iterates from `first` up to (excluding) `last`,
+// comparing sl::toString() output (spaces replaced by underscores).
+// Returns true on match.
+template<typename EnumT>
+bool matchSdkEnum(
+  const std::string & str, EnumT first, EnumT last, EnumT & outVal)
+{
+  auto toUpper = [](std::string s) {
+      std::transform(
+        s.begin(), s.end(), s.begin(),
+        [](unsigned char c) {return std::toupper(c);});
+      return s;
+    };
+  const std::string upperStr = toUpper(str);
+
+  for (int idx = static_cast<int>(first);
+    idx < static_cast<int>(last); ++idx)
+  {
+    EnumT candidate = static_cast<EnumT>(idx);
+    std::string candidate_str = sl::toString(candidate).c_str();
+    std::replace(candidate_str.begin(), candidate_str.end(), ' ', '_');
+    if (upperStr == toUpper(candidate_str)) {
+      outVal = candidate;
+      return true;
+    }
+  }
+  return false;
+}
+
 template<typename T>
 void getParam(
   const std::shared_ptr<rclcpp::Node> node,
@@ -272,6 +319,39 @@ void getParam(
     }
     RCLCPP_INFO_STREAM(node->get_logger(), ss.str());
   }
+}
+// Validate and assign a dynamic parameter within [minVal, maxVal].
+// Returns true on success. On failure, sets result.successful = false with reason.
+template<typename T>
+bool checkParamRange(
+  const rclcpp::Parameter & param,
+  T & outVal,
+  T minVal, T maxVal,
+  rcl_interfaces::msg::SetParametersResult & result,
+  const rclcpp::Logger & logger)
+{
+  T val;
+  if constexpr (std::is_same_v<T, double>) {
+    val = param.as_double();
+  } else if constexpr (std::is_same_v<T, float>) {
+    val = static_cast<float>(param.as_double());
+  } else if constexpr (std::is_same_v<T, int>) {
+    val = param.as_int();
+  } else {
+    static_assert(
+      std::is_same_v<T, double>|| std::is_same_v<T, float>|| std::is_same_v<T, int>,
+      "checkParamRange only supports double, float and int");
+  }
+
+  if (val < minVal || val > maxVal) {
+    result.successful = false;
+    result.reason = param.get_name() + " must be in range [" +
+      std::to_string(minVal) + ", " + std::to_string(maxVal) + "]";
+    RCLCPP_WARN_STREAM(logger, result.reason);
+    return false;
+  }
+  outVal = val;
+  return true;
 }
 // <---- Template functions definitions
 

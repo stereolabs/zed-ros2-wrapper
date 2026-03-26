@@ -124,12 +124,13 @@ void computeCost(
         }
 
         if (normals_tmp.size() >= 3) {                                                                                                                              // minimum points
-          slope =
-            acos(
-            sl::float3::dot(
-              normal,
-              z_vector) / sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z)) *
-            57.295779513;                                                                                                                                           // the norm of z_vector is 1
+          float norm_len = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+          if (norm_len > 0.f) {
+            float cos_angle = std::clamp(
+              sl::float3::dot(normal, z_vector) / norm_len,
+              -1.0f, 1.0f);
+            slope = acos(cos_angle) * 57.295779513;                                                                                                                 // the norm of z_vector is 1
+          }
 
         }
         if (slope > 90) {

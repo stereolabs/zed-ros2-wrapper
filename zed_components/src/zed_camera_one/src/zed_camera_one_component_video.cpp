@@ -167,7 +167,7 @@ void ZedCameraOne::initVideoPublishers()
           transport_copy.erase(0, pos);
         }
         RCLCPP_INFO_STREAM(
-          get_logger(), " * Advertised on topic: "
+          get_logger(), "  * Advertised on topic: "
             << pub.getTopic() << transport_copy
             << " [image_transport]");
       }
@@ -289,54 +289,13 @@ void ZedCameraOne::fillCamInfo(
   // s4) distortion. Prism not currently used.
 
   // ROS2 order (OpenCV) -> k1,k2,p1,p2,k3,k4,k5,k6,s1,s2,s3,s4
-  switch (_camRealModel) {
-    case sl::MODEL::ZED_XONE_GS: // RATIONAL_POLYNOMIAL
+  // All ZED X One models use RATIONAL_POLYNOMIAL
+  camInfoMsg->distortion_model =
+    sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
 
-      camInfoMsg->distortion_model =
-        sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
-
-      camInfoMsg->d.resize(8);
-      camInfoMsg->d[0] = zedParam.disto[0];    // k1
-      camInfoMsg->d[1] = zedParam.disto[1];    // k2
-      camInfoMsg->d[2] = zedParam.disto[2];    // p1
-      camInfoMsg->d[3] = zedParam.disto[3];    // p2
-      camInfoMsg->d[4] = zedParam.disto[4];    // k3
-      camInfoMsg->d[5] = zedParam.disto[5];    // k4
-      camInfoMsg->d[6] = zedParam.disto[6];    // k5
-      camInfoMsg->d[7] = zedParam.disto[7];    // k6
-      break;
-
-    case sl::MODEL::ZED_XONE_UHD: // RATIONAL_POLYNOMIAL
-
-      camInfoMsg->distortion_model =
-        sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
-
-      camInfoMsg->d.resize(8);
-      camInfoMsg->d[0] = zedParam.disto[0];    // k1
-      camInfoMsg->d[1] = zedParam.disto[1];    // k2
-      camInfoMsg->d[2] = zedParam.disto[2];    // p1
-      camInfoMsg->d[3] = zedParam.disto[3];    // p2
-      camInfoMsg->d[4] = zedParam.disto[4];    // k3
-      camInfoMsg->d[5] = zedParam.disto[5];    // k4
-      camInfoMsg->d[6] = zedParam.disto[6];    // k5
-      camInfoMsg->d[7] = zedParam.disto[7];    // k6
-      break;
-
-    case sl::MODEL::ZED_XONE_HDR:  // RATIONAL_POLYNOMIAL
-
-      camInfoMsg->distortion_model =
-        sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
-
-      camInfoMsg->d.resize(8);
-      camInfoMsg->d[0] = zedParam.disto[0];  // k1
-      camInfoMsg->d[1] = zedParam.disto[1];  // k2
-      camInfoMsg->d[2] = zedParam.disto[2];  // p1
-      camInfoMsg->d[3] = zedParam.disto[3];  // p2
-      camInfoMsg->d[4] = zedParam.disto[4];  // k3
-      camInfoMsg->d[5] = zedParam.disto[5];  // k4
-      camInfoMsg->d[6] = zedParam.disto[6];  // k5
-      camInfoMsg->d[7] = zedParam.disto[7];  // k6
-      break;
+  camInfoMsg->d.resize(8);
+  for (size_t i = 0; i < 8; i++) {
+    camInfoMsg->d[i] = zedParam.disto[i];
   }
 
   // Intrinsic
@@ -430,6 +389,9 @@ void ZedCameraOne::handleImageRetrievalAndPublishing()
     _videoPublishing = true;
   } else {
     _videoPublishing = false;
+
+    // Publish camera infos even if no video/depth subscribers are present
+    publishCameraInfos();
   }
 }
 
@@ -442,8 +404,14 @@ void ZedCameraOne::retrieveImages(bool gpu)
   if (_colorSubCount > 0) {
     retrieved |=
       (sl::ERROR_CODE::SUCCESS ==
-      _zed->retrieveImage(_matColor, sl::VIEW::LEFT, gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
-    _sdkGrabTS = _matColor.timestamp;
+      _zed->retrieveImage(
+        _matColor,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+        _24bitMode ? sl::VIEW::LEFT_BGR : sl::VIEW::LEFT_BGRA,
+#else
+        sl::VIEW::LEFT,
+#endif
+        gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
     DEBUG_STREAM_VD(
       "Color image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " <<
         _sdkGrabTS.getNanoseconds() <<
@@ -452,9 +420,13 @@ void ZedCameraOne::retrieveImages(bool gpu)
   if (_colorRawSubCount > 0) {
     retrieved |= (sl::ERROR_CODE::SUCCESS ==
       _zed->retrieveImage(
-        _matColorRaw, sl::VIEW::LEFT_UNRECTIFIED,
+        _matColorRaw,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+        _24bitMode ? sl::VIEW::LEFT_UNRECTIFIED_BGR : sl::VIEW::LEFT_UNRECTIFIED_BGRA,
+#else
+        sl::VIEW::LEFT_UNRECTIFIED,
+#endif
         gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
-    _sdkGrabTS = _matColorRaw.timestamp;
     DEBUG_STREAM_VD(
       "Color raw image " << _matResol.width << "x" << _matResol.height <<
         " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
@@ -465,7 +437,6 @@ void ZedCameraOne::retrieveImages(bool gpu)
       _zed->retrieveImage(
         _matGray, sl::VIEW::LEFT_GRAY,
         gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
-    _sdkGrabTS = _matGray.timestamp;
     DEBUG_STREAM_VD(
       "Gray image " << _matResol.width << "x" << _matResol.height << " retrieved - timestamp: " <<
         _sdkGrabTS.getNanoseconds() <<
@@ -477,7 +448,6 @@ void ZedCameraOne::retrieveImages(bool gpu)
       _zed->retrieveImage(
         _matGrayRaw, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
         gpu ? sl::MEM::GPU : sl::MEM::CPU, _matResol));
-    _sdkGrabTS = _matGrayRaw.timestamp;
     DEBUG_STREAM_VD(
       "Gray raw image " << _matResol.width << "x" << _matResol.height <<
         " retrieved - timestamp: " << _sdkGrabTS.getNanoseconds() <<
@@ -562,6 +532,9 @@ void ZedCameraOne::publishColorImage(const rclcpp::Time & timeStamp)
         _camInfoMsg, _camOptFrameId, timeStamp);
 #endif
     }
+  } else {
+    publishCameraInfo(_pubColorImgInfo, _camInfoMsg, timeStamp);
+    publishCameraInfo(_pubColorImgInfoTrans, _camInfoMsg, timeStamp);
   }
 }
 
@@ -580,6 +553,9 @@ void ZedCameraOne::publishColorRawImage(const rclcpp::Time & timeStamp)
         _camInfoRawMsg, _camOptFrameId, timeStamp);
 #endif
     }
+  } else {
+    publishCameraInfo(_pubColorRawImgInfo, _camInfoRawMsg, timeStamp);
+    publishCameraInfo(_pubColorRawImgInfoTrans, _camInfoRawMsg, timeStamp);
   }
 }
 
@@ -598,6 +574,9 @@ void ZedCameraOne::publishGrayImage(const rclcpp::Time & timeStamp)
         _camInfoMsg, _camOptFrameId, timeStamp);
 #endif
     }
+  } else {
+    publishCameraInfo(_pubGrayImgInfo, _camInfoMsg, timeStamp);
+    publishCameraInfo(_pubGrayImgInfoTrans, _camInfoMsg, timeStamp);
   }
 }
 
@@ -616,6 +595,9 @@ void ZedCameraOne::publishGrayRawImage(const rclcpp::Time & timeStamp)
         _camInfoRawMsg, _camOptFrameId, timeStamp);
 #endif
     }
+  } else {
+    publishCameraInfo(_pubGrayRawImgInfo, _camInfoRawMsg, timeStamp);
+    publishCameraInfo(_pubGrayRawImgInfoTrans, _camInfoRawMsg, timeStamp);
   }
 }
 
@@ -624,12 +606,17 @@ void ZedCameraOne::publishCameraInfo(
   camInfoMsgPtr & camInfoMsg,
   const rclcpp::Time & t)
 {
-  camInfoMsg->header.stamp = _usePubTimestamps ? get_clock()->now() : t;
-  DEBUG_STREAM_VD(
-    " * Publishing Camera Info message: " << camInfoMsg->header.stamp.nanosec
-                                          << " nsec");
+  auto ts = _usePubTimestamps ? get_clock()->now() : t;
+  camInfoMsg->header.stamp = ts;
 
-  infoPub->publish(*camInfoMsg);
+  if (infoPub) {
+    if (count_subscribers(infoPub->get_topic_name()) > 0) {
+      infoPub->publish(*camInfoMsg);
+      DEBUG_STREAM_VD(
+        " * Camera Info message published: " << infoPub->get_topic_name());
+      DEBUG_STREAM_VD("   * Timestamp: " << ts.nanoseconds() << " nsec");
+    }
+  }
 }
 
 void ZedCameraOne::publishImageWithInfo(
@@ -1115,6 +1102,20 @@ void ZedCameraOne::applyExposureCompensationAndDenoising()
     "video.exposure_compensation");
 
   setVideoSetting(sl::VIDEO_SETTINGS::DENOISING, _camDenoising, "video.denoising");
+}
+
+void ZedCameraOne::publishCameraInfos()
+{
+  rclcpp::Time pub_ts = get_clock()->now();
+
+  publishCameraInfo(_pubColorImgInfo, _camInfoMsg, pub_ts);
+  publishCameraInfo(_pubColorRawImgInfo, _camInfoRawMsg, pub_ts);
+  publishCameraInfo(_pubGrayImgInfo, _camInfoMsg, pub_ts);
+  publishCameraInfo(_pubGrayRawImgInfo, _camInfoRawMsg, pub_ts);
+  publishCameraInfo(_pubColorImgInfoTrans, _camInfoMsg, pub_ts);
+  publishCameraInfo(_pubColorRawImgInfoTrans, _camInfoRawMsg, pub_ts);
+  publishCameraInfo(_pubGrayImgInfoTrans, _camInfoMsg, pub_ts);
+  publishCameraInfo(_pubGrayRawImgInfoTrans, _camInfoRawMsg, pub_ts);
 }
 
 }

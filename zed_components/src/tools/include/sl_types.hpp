@@ -66,8 +66,7 @@
 #include <zed_msgs/srv/set_pose.hpp>
 #include <zed_msgs/srv/set_roi.hpp>
 #include <zed_msgs/srv/start_svo_rec.hpp>
-// #include <zed_msgs/srv/save_area_memory.hpp> TODO(Walter): Uncomment when
-// available in `zed_msgs` package from APT
+#include <zed_msgs/srv/save_area_memory.hpp>
 
 #ifdef FOUND_ISAAC_ROS_NITROS
   #include "isaac_ros_managed_nitros/managed_nitros_publisher.hpp"
@@ -80,6 +79,9 @@
 
 #define TIMEZERO_ROS rclcpp::Time(0, 0, RCL_ROS_TIME)
 #define TIMEZERO_SYS rclcpp::Time(0, 0, RCL_SYSTEM_TIME)
+
+constexpr auto HEARTBEAT_INTERVAL_MS = 1000;  // Publish heartbeat every second
+constexpr auto TEMP_PUB_INTERVAL_MS = 1000;  // Publish temperature every second
 
 namespace stereolabs
 {
@@ -151,12 +153,12 @@ typedef rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr clicke
 typedef rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnssFixSub;
 typedef rclcpp::Subscription<rosgraph_msgs::msg::Clock>::SharedPtr clockSub;
 
+typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableDepthPtr;
+
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetOdomSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetPosTrkSrvPtr;
 typedef rclcpp::Service<zed_msgs::srv::SetPose>::SharedPtr setPoseSrvPtr;
-// typedef rclcpp::Service<zed_msgs::srv::SaveAreaMemory>::SharedPtr saveAreaMemorySrvPtr; TODO(Walter): Uncomment when available in `zed_msgs` package from APT
-typedef rclcpp::Service<zed_msgs::srv::SetROI>::SharedPtr saveAreaMemorySrvPtr;
-
+typedef rclcpp::Service<zed_msgs::srv::SaveAreaMemory>::SharedPtr saveAreaMemorySrvPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableObjDetPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableBodyTrkPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;

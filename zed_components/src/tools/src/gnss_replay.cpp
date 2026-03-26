@@ -280,14 +280,19 @@ sl::GNSSData GNSSReplay::getNextGNSSValue(uint64_t current_timestamp)
   int step = 1;
   while (1) {
     last_data = current__gnss_data;
-    int diff_last = current_timestamp - current__gnss_data.ts.data_ns;
+    int64_t diff_last =
+      static_cast<int64_t>(current_timestamp) -
+      static_cast<int64_t>(current__gnss_data.ts.data_ns);
     current__gnss_data = getGNSSData(_gnss_data, _current_gnss_idx + step++);
     if (current__gnss_data.ts.data_ns == 0) {   //error / end of file
       break;
     }
 
     if (current__gnss_data.ts.data_ns > current_timestamp) {
-      if ((current__gnss_data.ts.data_ns - current_timestamp) > diff_last) {     // keep last
+      int64_t diff_current =
+        static_cast<int64_t>(current__gnss_data.ts.data_ns) -
+        static_cast<int64_t>(current_timestamp);
+      if (diff_current > diff_last) {     // keep last
         current__gnss_data = last_data;
       }
       break;

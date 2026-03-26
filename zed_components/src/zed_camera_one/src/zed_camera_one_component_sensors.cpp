@@ -83,13 +83,30 @@ void ZedCameraOne::initSensorPublishers()
 void ZedCameraOne::threadFunc_pubSensorsData()
 {
   DEBUG_STREAM_SENS("Sensors thread started");
+
+  // Set the name of the pubSensorsData thread for easier identification in
+  // system monitors
+  pthread_setname_np(pthread_self(), (get_name() + std::string("_pubSensorsData")).c_str());
   setupSensorThreadScheduling();
 
   DEBUG_STREAM_SENS("Sensors thread loop starting...");
   _lastTs_imu = TIMEZERO_ROS;
 
+  constexpr auto SVO_PAUSE_POLL_INTERVAL =
+    100ms;    // Poll interval when SVO is paused
+
   while (true) {
     if (handleSensorThreadInterruption()) {break;}
+
+    if (_svoMode && _svoPause) {
+      if (!_grabImuOnce) {
+        rclcpp::sleep_for(SVO_PAUSE_POLL_INTERVAL);
+        continue;
+      } else {
+        _grabImuOnce = false;  // Reset the flag and grab the IMU data
+      }
+    }
+
     if (!waitForCameraOpen()) {continue;}
     if (!waitForSensorSubscribers()) {continue;}
     if (!handleSensorPublishing()) {continue;}
@@ -102,48 +119,57 @@ void ZedCameraOne::threadFunc_pubSensorsData()
 // Helper: Setup thread scheduling for sensors thread
 void ZedCameraOne::setupSensorThreadScheduling()
 {
-  DEBUG_STREAM_ADV("Sensors thread settings");
-  if (_debugAdvanced) {
-    int policy;
-    sched_param par;
-    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        " ! Failed to get thread policy! - " << std::strerror(errno));
-    } else {
-      DEBUG_STREAM_ADV(
-        " * Default Sensors thread (#" << pthread_self() << ") settings - Policy: "
-                                       << sl_tools::threadSched2Str(
-          policy).c_str() << " - Priority: " << par.sched_priority);
+  if (_changeThreadSched) {
+    DEBUG_STREAM_ADV("Sensors thread settings");
+    if (_debugAdvanced) {
+      int policy;
+      sched_param par;
+      if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+        RCLCPP_WARN_STREAM(
+          get_logger(), " ! Failed to get thread policy! - "
+            << std::strerror(errno));
+      } else {
+        DEBUG_STREAM_ADV(
+          " * Default Sensors thread (#"
+            << pthread_self() << ") settings - Policy: "
+            << sl_tools::threadSched2Str(policy).c_str()
+            << " - Priority: " << par.sched_priority);
+      }
     }
-  }
 
-  sched_param par;
-  par.sched_priority =
-    (_threadSchedPolicy == "SCHED_FIFO" ||
-    _threadSchedPolicy == "SCHED_RR") ? _threadPrioSens : 0;
-  int sched_policy = SCHED_OTHER;
-  if (_threadSchedPolicy == "SCHED_BATCH") {
-    sched_policy = SCHED_BATCH;
-  } else if (_threadSchedPolicy == "SCHED_FIFO") {
-    sched_policy = SCHED_FIFO;
-  } else if (_threadSchedPolicy == "SCHED_RR") {sched_policy = SCHED_RR;}
+    sched_param par;
+    par.sched_priority =
+      (_threadSchedPolicy == "SCHED_FIFO" || _threadSchedPolicy == "SCHED_RR") ?
+      _threadPrioSens :
+      0;
+    int sched_policy = SCHED_OTHER;
+    if (_threadSchedPolicy == "SCHED_BATCH") {
+      sched_policy = SCHED_BATCH;
+    } else if (_threadSchedPolicy == "SCHED_FIFO") {
+      sched_policy = SCHED_FIFO;
+    } else if (_threadSchedPolicy == "SCHED_RR") {
+      sched_policy = SCHED_RR;
+    }
 
-  if (pthread_setschedparam(pthread_self(), sched_policy, &par)) {
-    RCLCPP_WARN_STREAM(get_logger(), " ! Failed to set thread params! - " << std::strerror(errno));
-  }
-
-  if (_debugAdvanced) {
-    int policy;
-    if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+    if (pthread_setschedparam(pthread_self(), sched_policy, &par)) {
       RCLCPP_WARN_STREAM(
-        get_logger(),
-        " ! Failed to get thread policy! - " << std::strerror(errno));
-    } else {
-      DEBUG_STREAM_ADV(
-        " * New Sensors thread (#" << pthread_self() << ") settings - Policy: "
-                                   << sl_tools::threadSched2Str(
-          policy).c_str() << " - Priority: " << par.sched_priority);
+        get_logger(), " ! Failed to set thread params! - "
+          << std::strerror(errno));
+    }
+
+    if (_debugAdvanced) {
+      int policy;
+      if (pthread_getschedparam(pthread_self(), &policy, &par)) {
+        RCLCPP_WARN_STREAM(
+          get_logger(), " ! Failed to get thread policy! - "
+            << std::strerror(errno));
+      } else {
+        DEBUG_STREAM_ADV(
+          " * New Sensors thread (#"
+            << pthread_self() << ") settings - Policy: "
+            << sl_tools::threadSched2Str(policy).c_str()
+            << " - Priority: " << par.sched_priority);
+      }
     }
   }
 }
@@ -228,7 +254,7 @@ void ZedCameraOne::startTempPubTimer()
     _tempPubTimer->cancel();
   }
 
-  std::chrono::milliseconds pubPeriod_msec(static_cast<int>(1000.0));
+  std::chrono::milliseconds pubPeriod_msec(TEMP_PUB_INTERVAL_MS);
   _tempPubTimer = create_wall_timer(
     std::chrono::duration_cast<std::chrono::milliseconds>(pubPeriod_msec),
     std::bind(&ZedCameraOne::callback_pubTemp, this));
@@ -247,9 +273,14 @@ void ZedCameraOne::callback_pubTemp()
   sl::SensorsData sens_data;
   sl::ERROR_CODE err = _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    DEBUG_STREAM_SENS(
-      "[callback_pubTemp] sl::getSensorsData error: "
-        << sl::toString(err).c_str());
+    // Only warn if not in SVO mode or if the error is not a benign sensor
+    // unavailability
+    if (!_svoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "[callback_pubTemp] sl::getSensorsData error: "
+          << sl::toString(err).c_str());
+    }
     return;
   }
 
@@ -308,9 +339,12 @@ bool ZedCameraOne::publishSensorsData()
   sl::SensorsData sens_data;
   sl::ERROR_CODE err = _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "[publishSensorsData] sl::getSensorsData error: " << sl::toString(err).c_str());
+    // Only warn if not in SVO mode or if the error is not a benign sensor unavailability
+    if (!_svoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "[publishSensorsData] sl::getSensorsData error: " << sl::toString(err).c_str());
+    }
     return false;
   }
 
@@ -352,11 +386,12 @@ void ZedCameraOne::updateImuFreqDiagnostics(double dT)
 void ZedCameraOne::publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data)
 {
   if (!_pubImu) {
-    DEBUG_STREAM_SENS("[publishSensorsData] _pubImu is null");
+    DEBUG_STREAM_SENS("[publishImuMsg] _pubImu is null");
     return;
   }
 
-  DEBUG_STREAM_SENS("[publishSensorsData] IMU subscribers: " << static_cast<int>(_imuSubCount));
+  DEBUG_STREAM_SENS(
+    "[publishImuMsg] IMU subscribers: " << static_cast<int>(_imuSubCount));
   auto imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
   imuMsg->header.stamp = ts_imu;
   imuMsg->header.frame_id = _imuFrameId;
@@ -410,12 +445,13 @@ void ZedCameraOne::publishImuMsg(const rclcpp::Time & ts_imu, const sl::SensorsD
 void ZedCameraOne::publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data)
 {
   if (!_pubImuRaw) {
-    DEBUG_STREAM_SENS("[publishSensorsData] _pubImuRaw is null");
+    DEBUG_STREAM_SENS("[publishImuRawMsg] _pubImuRaw is null");
     return;
   }
 
   DEBUG_STREAM_SENS(
-    "[publishSensorsData] IMU RAW subscribers: " << static_cast<int>(_imuRawSubCount));
+    "[publishImuRawMsg] IMU RAW subscribers: "
+      << static_cast<int>(_imuRawSubCount));
   auto imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
   imuRawMsg->header.stamp = ts_imu;
   imuRawMsg->header.frame_id = _imuFrameId;
@@ -457,6 +493,12 @@ void ZedCameraOne::publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::Senso
 void ZedCameraOne::publishImuFrameAndTopic()
 {
   if (!_publishSensImuTF && !_publishSensImuTransf) {
+    return;
+  }
+
+  if (!_usingIPC && _staticImuTfPublished) {
+    DEBUG_ONCE_TF(
+      "Static Imu TF and Transient Local message already published");
     return;
   }
 
@@ -518,12 +560,44 @@ void ZedCameraOne::publishImuFrameAndTopic()
   transformStamped->transform.translation.y = sl_tr.y;
   transformStamped->transform.translation.z = sl_tr.z;
 
-  _tfBroadcaster->sendTransform(*transformStamped);
+  if (_usingIPC) {
+    _tfBroadcaster->sendTransform(*transformStamped);
+    DEBUG_STREAM_TF(
+      "Broadcasted new dynamic transform: "
+        << transformStamped->header.frame_id << " -> " << transformStamped->child_frame_id);
+  } else {
+    _staticTfBroadcaster->sendTransform(*transformStamped);
+    DEBUG_STREAM_TF(
+      "Broadcasted new static transform: "
+        << transformStamped->header.frame_id << " -> " << transformStamped->child_frame_id);
+  }
 
   double elapsed_sec = _imuTfFreqTimer.toc();
   _pubImuTF_sec->addValue(elapsed_sec);
   _imuTfFreqTimer.tic();
   // <---- Broadcast CAM/IMU TF
+
+  // Debug info
+  if (_debugTf) {
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(
+      tf2::Quaternion(
+        transformStamped->transform.rotation.x,
+        transformStamped->transform.rotation.y,
+        transformStamped->transform.rotation.z,
+        transformStamped->transform.rotation.w))
+    .getRPY(roll, pitch, yaw);
+    DEBUG_STREAM_TF(
+      "TF [" << transformStamped->header.frame_id << " -> "
+             << transformStamped->child_frame_id << "] Position: ("
+             << transformStamped->transform.translation.x << ", "
+             << transformStamped->transform.translation.y << ", "
+             << transformStamped->transform.translation.z
+             << ") - Orientation RPY: (" << roll * RAD2DEG << ", "
+             << pitch * RAD2DEG << ", " << yaw * RAD2DEG << ")");
+  }
+
+  _staticImuTfPublished = true;
 }
 
 bool ZedCameraOne::areSensorsTopicsSubscribed()

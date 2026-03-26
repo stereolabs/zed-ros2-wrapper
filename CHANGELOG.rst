@@ -1,26 +1,48 @@
 LATEST CHANGES
 ==============
 
-2025-10-31
+2026-03-03
 ----------
-- Fixed a bug that forced the maximum publishing rate of the point cloud topic to 15 Hz with SVO files
-- Set the default mode for positional tracking to `GEN_2` waiting for improvements in `GEN_3` stability
+- Default Positional Tracking mode changed back to `GEN_1` until the stability and reliability of `GEN_3` is improved. 
+  Users can still select a specific mode by setting the `pos_tracking.pos_tracking_mode` parameter to `GEN_1`, `GEN_2`, or `GEN_3` according to their needs and preferences.
+- Modified node behaviors when Positional Tracking is disabled [`pos_tracking.pos_tracking_enabled: false`]:
 
-2025-10-14
-----------
-- Added topic enabler feature to `sl::CameraOne`
+  - `publish_tf` is automatically disabled.
+  - The `odom` related topics are no longer advertised.
+  - The `pose` related topics are no longer advertised.
+  - The GNSS fusion is automatically disabled.
+  - The Plane Detection is automatically disabled.
+  - The Positional Tracking services are no longer advertised.
+  - Depth stability follows the ZED SDK behaviors.
+  - Object Tracking follows the ZED SDK behaviors.
+  - Body Tracking follows the ZED SDK behaviors.
 
-  - Added parameter `video.publish_rgb` to enable/disable RGB image publishing
-  - Added parameter `video.publish_raw` to enable/disable raw image publishing
-  - Added parameter `video.publish_gray` to enable/disable gray image publishing
-  - Added parameter `sensors.publish_imu`: Advertise the IMU topic that is published only if a node subscribes to it
-  - Added parameter `sensors.publish_imu_raw`: Advertise the raw IMU topic that is published only if a node subscribes to it
-  - Added parameter `sensors.publish_temp`: Advertise the temperature topics that are published only if a node subscribes to them
+v5.2.1
+------
+- Added the parameter `general.grab_compute_capping_fps` to define a computation upper limit to the grab frequency.
 
-2025-10-13
-----------
+  - This can be useful to get a known constant fixed rate or limit the computation load while keeping a short exposure time by setting a high camera capture framerate.
+  - If set to 0, the grab compute capping will be disabled, and the ZED SDK will process data at the grab rate.
+- URDF now belongs to the `zed_description` package, which is now a dependency of the `zed_wrapper` package. This allows to use the URDF files of the ZED ROS2 Wrapper in other packages without depending on the whole wrapper.
+
+  - The `zed_description` is available in binary form for ROS 2 Humble, Jazzy, and Rolling and can be installed with `sudo apt install ros-$ROS_DISTRO-zed-description`
+
+v5.2.0
+------
+- Removed the `zed_wrapper/urdf/include/materials.urdf.xacro` file and moved the material settings directly in the `zed_macro.urdf.xacro` file to avoid possible conflicts in multi-camera configurations. Thx @davesarmoury for the fix
+- Added the `enable_localization_only` parameter to the configuration to allow the camera to localize in the loaded area memory without updating the map with new information.
+- Added support for the ZED SDK Positional Tracking 2D mode if the SDK version is 5.1 or higher.
+- Added the `zed_debug` package for debugging ZED Components by loading them in a single C++ process.
+- Add `enable_depth` service to disable depth processing at runtime
+- Positional Tracking `GEN_3` is now the default mode when using ZED SDK v5.2 or newer, providing improved stability and performance. The `GEN_2` mode is still available as an option for users who prefer it or need it for specific use cases.
+- When using GEN_3 with ZED SDK v5.2 or newer, Positional Tracking continues to provide localization feedback even if depth is disabled at runtime or when the node starts by setting the `depth.depth_mode` parameter to `NONE`.
+- New diagnostic information regarding Positional Tracking status: "Mode", "Odometry Status", "Spatial Memory Status", "Tracking Fusion Status".
+
+v5.1.0
+------
 - Changed ZED Camera image topic names to match the cleaner convention used by ZED X One cameras:
-
+  
+  - **NOTE** THIS IS A BREAKING CHANGE.
   - Left sensor topics:
 
     - From `~/left/image_rect_color` to `~/left/color/rect/image`
@@ -44,6 +66,7 @@ LATEST CHANGES
 
 - Added parameters to select what topics will be advertised when the node starts:
 
+  - **NOTE** THIS IS A BREAKING CHANGE. TOPICS MAY NO LONGER BE AVAILABLE IF NOT ENABLED IN THE DEFAULT CONFIGURATION. Please check what topic you use and set the relevant parameter to `true`.
   - `general.publish_status`: Advertise the status topics that are published only if a node subscribes to them
   - `video.publish_rgb`: Advertise the RGB image topics that are published only if a node subscribes to them
   - `video.publish_left_right`:  Advertise the left and right image topics that are published only if a node subscribes to them
@@ -67,35 +90,79 @@ LATEST CHANGES
   - `pos_tracking.publish_cam_path`: Advertise the camera odometry and pose path topics that are published only if a node subscribes to them
   - `mapping.publish_det_plane`: Advertise the plane detection topics that is published only if a node subscribes to it
 
-**NOTE** THIS IS A BREAKING CHANGE. TOPICS MAY NO LONGER BE AVAILABLE IF NOT ENABLED IN THE DEFAULT CONFIGURATION. Please check what topic you use and set the relevant parameter to `true`.
-  
-2025-10-09
-----------
-- New feature: 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):
+- Added topic enabler feature to `sl::CameraOne`
 
-  - Added parameter `pos_tracking.publish_3d_landmarks` to enable/disable landmarks publishing
-  - Added parameter `pos_tracking.publish_lm_skip_frame` to set the frequency of landmarks publishing (0 to publish every frame)
+  - **NOTE** THIS IS A BREAKING CHANGE. TOPICS MAY NO LONGER BE AVAILABLE IF NOT ENABLED IN THE DEFAULT CONFIGURATION. Please check what topic you use and set the relevant parameter to `true`.
+  - Added parameter `video.publish_rgb` to enable/disable RGB image publishing
+  - Added parameter `video.publish_raw` to enable/disable raw image publishing
+  - Added parameter `video.publish_gray` to enable/disable gray image publishing
+  - Added parameter `sensors.publish_imu`: Advertise the IMU topic that is published only if a node subscribes to it
+  - Added parameter `sensors.publish_imu_raw`: Advertise the raw IMU topic that is published only if a node subscribes to it
+  - Added parameter `sensors.publish_temp`: Advertise the temperature topics that are published only if a node subscribes to them
 
-- Changed the default positional tracking mode from `GEN_1` to `GEN_3`
-- Removed Point Cloud Transport as a required dependency. Point Cloud Transport is now only automatically enabled if the `point_cloud_transport` package is installed on the system.
-- Removed FFMPEG Image Transport support because of a problem with the Humble distribution not allowing to set the transport parameters, and the lack of compatibility with NVIDIA® Jetson.
-
-2025-09-30
-----------
 - Enabled Isaac ROS NITROS integration for ZED X One cameras
-
-2025-09-29
-----------
+- Added debug parameter `debug.debug_nitros` to enable debug logs for NITROS-related operations.
+- Added debug parameter `debug.use_pub_timestamps` to use the current ROS time for the message timestamp instead of the camera timestamp.
+  This is useful to test data communication latency.
 - Added `camera_info` in transport namespace to reflect `rviz2` requirements with the Camera plugin.
 
   - Added new `camInfoPubTrans` publisher for each image topic to publish the `camera_info` in the transport namespace.
   - Updated `publishImageWithInfo` method to handle the new `camInfoPubTrans` publisher.
 
-2025-09-17
-----------
-- Added debug parameter `debug.debug_nitros` to enable debug logs for NITROS-related operations.
-- Added debug parameter `debug.use_pub_timestamps` to use the current ROS time for the message timestamp instead of the camera timestamp.
-  This is useful to test data communication latency.
+- Added 3D visualization of the positional tracking landmarks as a point cloud on topic `~/pose/landmarks` (only with GEN_2 and GEN_3 positional tracking modes):
+
+  - Added parameter `pos_tracking.publish_3d_landmarks` to enable/disable landmarks publishing
+  - Added parameter `pos_tracking.publish_lm_skip_frame` to set the frequency of landmarks publishing (0 to publish every frame)
+
+- Removed Point Cloud Transport as a required dependency. Point Cloud Transport is now only automatically enabled if the `point_cloud_transport` package is installed on the system.
+- Removed FFMPEG Image Transport support because of a problem with the Humble distribution not allowing to set the transport parameters, and the lack of compatibility with NVIDIA® Jetson.
+- Improved diagnostic information for 3D Mapping status in diagnostics
+- Fixed random crash when stopping 3D Mapping
+- Fixed a bug that forced the maximum publishing rate of the point cloud topic to 15 Hz with SVO files
+- Set the default mode for positional tracking to `GEN_2` waiting for improvements in `GEN_3` stability
+- Remapped `robot_description` topic to `<camera_name>_description` to allow multi-camera URDF integration
+- Changed minimum depth value to 0.01 meters when using ZED SDK v5.1 or higher
+- Added debug option for TF broadcasting
+
+  - Improved TF debug logs to show frame transformations when enabled
+
+- Static baseline information from URDF is now overwritten by the real baseline value retrieved from the camera calibration file.
+- Removed mandatory `custom_baseline` launch argument for virtual stereo cameras made with two ZED X One cameras.
+  The value is retrieved from the calibration file.
+- IMU TF is now broadcast as static if IPC is disabled.
+- IMU Transform topic is now published with TRANSIENT LOCAL durability if IPC is disabled.
+- Fixed `camera_info` publishing when no image topics are subscribed
+- Loop Closure log event is now displayed only in DEBUG mode to reduce log spam
+- Renamed camera optical frames to comply with ROS conventions:
+
+  - **NOTE** THIS IS A BREAKING CHANGE. Please update your TF references accordingly.
+  - From `<camera_name>_left_camera_optical_frame` to `<camera_name>_left_camera_frame_optical`
+  - From `<camera_name>_right_camera_optical_frame` to `<camera_name>_right_camera_frame_optical`
+  - From `<camera_name>_camera_optical_frame` to `<camera_name>_rgb_camera_frame_optical`
+
+- Added twist information to the `odom` topic
+- Added support for the new Virtual Stereo API with SDK v5.1.
+
+  - New launch arguments to setup the virtual camera: `serial_numbers` and `camera_ids`
+  - New `ZedCamera` component parameters to setup the virtual camera: `general.virtual_serial_numbers` and `general.virtual_camera_ids`
+  - **NOTE** ZED MEDIA SERVER IS NO LONGER REQUIRED to create a virtual Stereo camera using two ZED X One cameras.
+
+- Added 24-bit BGR image mode
+
+  - Added parameter `video.enable_24bit_output` to enable/disable 24-bit BGR image publishing to `common_stereo.yaml` and `common_mono.yaml` configuration files
+  - **NOTE**: `video.enable_24bit_output` is disabled by default to maintain backward compatibility. Enabling this parameter will change the image message encoding from `BGRA8` to `BGR8`, which may affect existing applications that rely on the previous encoding.
+
+- Enabled SVO support for ZED X One cameras (playback, recording, and diagnostic)
+- Set thread names according to the thread function name for easier identification in debuggers and profilers
+- Enable SVO for ZedCameraOne
+
+  - add service to pause SVO playback
+  - add service to set SVO frame ID
+  - add services to start/stop SVO recording
+  - publish SVO status
+  - publish SVO clock on `/clock` topic
+
+- Publish ZedCameraOne heartbeat status on `~/status/heartbeat` topic
 
 v5.0.0
 ------

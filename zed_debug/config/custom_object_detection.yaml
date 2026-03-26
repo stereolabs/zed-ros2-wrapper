@@ -41,10 +41,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_001:
             label: 'bicycle'
@@ -65,10 +61,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_002:
             label: 'car'
@@ -89,10 +81,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_003:
             label: 'motorcycle'
@@ -113,10 +101,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_004:
             label: 'airplane'
@@ -137,10 +121,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_005:
             label: 'bus'
@@ -161,10 +141,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_006:
             label: 'train'
@@ -185,10 +161,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_007:
             label: 'truck'
@@ -209,10 +181,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_008:
             label: 'boat'
@@ -233,10 +201,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_009:
             label: 'traffic light'
@@ -257,10 +221,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_010:
             label: 'fire hydrant'
@@ -281,10 +241,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_011:
             label: 'stop sign'
@@ -305,10 +261,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_012:
             label: 'parking meter'
@@ -329,10 +281,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_013:
             label: 'bench'
@@ -353,10 +301,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_014:
             label: 'bird'
@@ -377,10 +321,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_015:
             label: 'cat'
@@ -401,10 +341,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_016:
             label: 'dog'
@@ -425,10 +361,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_017:
             label: 'horse'
@@ -449,10 +381,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_018:
             label: 'sheep'
@@ -473,10 +401,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_019:
             label: 'cow'
@@ -497,10 +421,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_020:
             label: 'elephant'
@@ -521,10 +441,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_021:
             label: 'bear'
@@ -545,10 +461,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_022:
             label: 'zebra'
@@ -569,10 +481,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_023:
             label: 'giraffe'
@@ -593,10 +501,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_024:
             label: 'backpack'
@@ -617,10 +521,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_025:
             label: 'umbrella'
@@ -641,10 +541,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_026:
             label: 'handbag'
@@ -665,10 +561,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_027:
             label: 'tie'
@@ -689,10 +581,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_028:
             label: 'suitcase'
@@ -713,10 +601,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_029:
             label: 'frisbee'
@@ -737,10 +621,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_030:
             label: 'skis'
@@ -761,10 +641,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_031:
             label: 'snowboard'
@@ -785,13 +661,9 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_032:
-            label: 'pesports ballrson'
+            label: 'sports ball'
             model_class_id: 32 # Class ID of the object in the custom ONNX file (it is not required that this value matches the value in the 'class_XXX' identifier)
             enabled: true # Enable/disable the detection of this class
             confidence_threshold: 50.0 # Minimum value of the detection confidence of an object [0,99]
@@ -809,10 +681,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_033:
             label: 'kite'
@@ -833,10 +701,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_034:
             label: 'baseball bat'
@@ -857,10 +721,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_035:
             label: 'baseball glove'
@@ -881,10 +741,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_036:
             label: 'skateboard'
@@ -905,10 +761,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_037:
             label: 'surfboard'
@@ -929,10 +781,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_038:
             label: 'tennis racket'
@@ -953,10 +801,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_039:
             label: 'bottle'
@@ -977,10 +821,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_040:
             label: 'wine glass'
@@ -1001,10 +841,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_041:
             label: 'cup'
@@ -1025,10 +861,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_042:
             label: 'fork'
@@ -1049,10 +881,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_043:
             label: 'knife'
@@ -1073,10 +901,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_044:
             label: 'spoon'
@@ -1097,10 +921,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_045:
             label: 'bowl'
@@ -1121,10 +941,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_046:
             label: 'banana'
@@ -1145,10 +961,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_047:
             label: 'apple'
@@ -1169,10 +981,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_048:
             label: 'sandwich'
@@ -1193,10 +1001,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_049:
             label: 'orange'
@@ -1217,10 +1021,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_050:
             label: 'broccoli'
@@ -1241,10 +1041,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_051:
             label: 'carrot'
@@ -1265,10 +1061,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_052:
             label: 'hot dog'
@@ -1289,10 +1081,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_053:
             label: 'pizza'
@@ -1313,10 +1101,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_054:
             label: 'donut'
@@ -1337,10 +1121,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_055:
             label: 'cake'
@@ -1361,10 +1141,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_056:
             label: 'chair'
@@ -1385,10 +1161,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_057:
             label: 'couch'
@@ -1409,10 +1181,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_058:
             label: 'potted plant'
@@ -1433,10 +1201,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_059:
             label: 'bed'
@@ -1457,10 +1221,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_060:
             label: 'dining table'
@@ -1481,10 +1241,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_061:
             label: 'toilet'
@@ -1505,10 +1261,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_062:
             label: 'tv'
@@ -1529,10 +1281,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_063:
             label: 'laptop'
@@ -1553,10 +1301,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_064:
             label: 'mouse'
@@ -1577,10 +1321,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_065:
             label: 'remote'
@@ -1601,10 +1341,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_066:
             label: 'keyboard'
@@ -1625,10 +1361,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_067:
             label: 'cell phone'
@@ -1649,10 +1381,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_068:
             label: 'microwave'
@@ -1673,10 +1401,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_069:
             label: 'oven'
@@ -1697,10 +1421,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_070:
             label: 'toaster'
@@ -1721,10 +1441,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_071:
             label: 'sink'
@@ -1745,10 +1461,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_072:
             label: 'refrigerator'
@@ -1769,10 +1481,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_073:
             label: 'book'
@@ -1793,10 +1501,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_074:
             label: 'clock'
@@ -1817,10 +1521,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_075:
             label: 'vase'
@@ -1841,10 +1541,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_076:
             label: 'scissors'
@@ -1865,10 +1561,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_077:
             label: 'teddy bear'
@@ -1889,10 +1581,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_078:
             label: 'hair drier'
@@ -1913,10 +1601,6 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds
 
           class_079:
             label: 'toothbrush'
@@ -1937,7 +1621,3 @@
             min_box_height_meters: -1.0 # Minimum allowed 3D height
             object_acceleration_preset: 'DEFAULT' # Object acceleration preset. Possible values: 'DEFAULT', 'LOW', 'MEDIUM', 'HIGH'
             max_allowed_acceleration: 100000.0 # If set with a different value from the default [100000], this value takes precedence over the selected preset, allowing for a custom maximum acceleration. Unit is m/s^2.
-            velocity_smoothing_factor: 0.5 # Control the smoothing of the velocity estimation. Values between 0.0 and 1.0. Default: 0.5
-            min_velocity_threshold: 0.2 # Threshold to force an object's velocity to zero. Default: 0.2 m/s
-            prediction_timeout_s: 0.5 # Duration to keep predicting a track's position after occlusion. Default: 0.5 seconds
-            min_confirmation_time_s: 0.05 # Minimum confirmation time required to validate a track. Default: 0.05 seconds

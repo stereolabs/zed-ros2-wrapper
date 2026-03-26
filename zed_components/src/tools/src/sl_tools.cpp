@@ -17,7 +17,6 @@
 #include <unistd.h> // getuid
 
 #include <algorithm>
-#include <string>
 #include <sstream>
 #include <vector>
 
@@ -34,7 +33,7 @@ std::vector<float> convertRodrigues(sl::float3 r)
 
   std::vector<float> R = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 
-  if (theta < DBL_EPSILON) {
+  if (theta < FLT_EPSILON) {
     return R;
   } else {
     float c = cos(theta);
@@ -98,7 +97,8 @@ std::string getFullFilePath(const std::string & file_name)
 {
   std::string new_filename;
   if (file_name.front() == '~') {
-    std::string home_path = std::getenv("HOME");
+    const char * home_env = std::getenv("HOME");
+    std::string home_path = home_env ? home_env : "/tmp";
     if (!home_path.empty()) {
       new_filename = home_path;
       new_filename += file_name.substr(1, file_name.size() - 1);
@@ -174,51 +174,58 @@ std::unique_ptr<sensor_msgs::msg::Image> imageToROSmsg(
     case sl::MAT_TYPE::F32_C1: /**< float 1 channel.*/
       imgMessage->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
       data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::float1>());
-      imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::F32_C2: /**< float 2 channels.*/
       imgMessage->encoding = sensor_msgs::image_encodings::TYPE_32FC2;
       data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::float2>());
-      imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::F32_C3: /**< float 3 channels.*/
       imgMessage->encoding = sensor_msgs::image_encodings::TYPE_32FC3;
       data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::float3>());
-      imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::F32_C4: /**< float 4 channels.*/
       imgMessage->encoding = sensor_msgs::image_encodings::TYPE_32FC4;
       data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::float4>());
-      imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::U8_C1: /**< unsigned char 1 channel.*/
       imgMessage->encoding = sensor_msgs::image_encodings::MONO8;
       data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::uchar1>());
-      imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::U8_C2: /**< unsigned char 2 channels.*/
       imgMessage->encoding = sensor_msgs::image_encodings::TYPE_8UC2;
       data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::uchar2>());
-      imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::U8_C3: /**< unsigned char 3 channels.*/
       imgMessage->encoding = sensor_msgs::image_encodings::BGR8;
       data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::uchar3>());
-      imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
 
     case sl::MAT_TYPE::U8_C4: /**< unsigned char 4 channels.*/
       imgMessage->encoding = sensor_msgs::image_encodings::BGRA8;
       data_ptr = reinterpret_cast<uint8_t *>(img.getPtr<sl::uchar4>());
-      imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
       break;
+
+    default:
+      RCLCPP_ERROR(
+        rclcpp::get_logger("sl_tools"),
+        "imageToROSmsg: unsupported MAT_TYPE %d", static_cast<int>(dataType));
+      return imgMessage;
   }
+
+  if (data_ptr == nullptr) {
+    RCLCPP_ERROR(
+      rclcpp::get_logger("sl_tools"),
+      "imageToROSmsg: getPtr returned nullptr (GPU-only or unallocated Mat)");
+    return imgMessage;
+  }
+
+  imgMessage->data = std::vector<uint8_t>(data_ptr, data_ptr + size);
 
   return imgMessage;
 }
@@ -302,6 +309,19 @@ std::unique_ptr<sensor_msgs::msg::Image> imagesToROSmsg(
       srcL = reinterpret_cast<char *>(left.getPtr<sl::uchar4>());
       srcR = reinterpret_cast<char *>(right.getPtr<sl::uchar4>());
       break;
+
+    default:
+      RCLCPP_ERROR(
+        rclcpp::get_logger("sl_tools"),
+        "imagesToROSmsg: unsupported MAT_TYPE %d", static_cast<int>(dataType));
+      return imgMsgPtr;
+  }
+
+  if (srcL == nullptr || srcR == nullptr) {
+    RCLCPP_ERROR(
+      rclcpp::get_logger("sl_tools"),
+      "imagesToROSmsg: getPtr returned nullptr (GPU-only or unallocated Mat)");
+    return imgMsgPtr;
   }
 
   char * dest = reinterpret_cast<char *>((&imgMsgPtr->data[0]));
@@ -431,7 +451,54 @@ bool generateROI(const std::vector<sl::float2> & poly, sl::Mat & out_roi)
   return true;
 }
 
-std::vector<std::vector<float>> parseStringVector(
+std::vector<int> parseStringVector_int(
+  const std::string & input,
+  std::string & error_return)
+{
+  std::vector<int> result;
+
+  if (input == "[]") {
+    error_return = "";
+    return result;
+  }
+
+  if (input.empty() || input.front() != '[' || input.back() != ']') {
+    error_return = "Vector string must start with [ and end with ]";
+    return result;
+  }
+
+  std::string trimmed = input;
+  trimmed.erase(
+    std::remove(trimmed.begin(), trimmed.end(), '['),
+    trimmed.end());
+  trimmed.erase(
+    std::remove(trimmed.begin(), trimmed.end(), ']'),
+    trimmed.end());
+
+  std::stringstream ss(trimmed);
+  std::string token;
+  while (std::getline(ss, token, ',')) {
+    // Trim leading and trailing whitespace
+    token.erase(0, token.find_first_not_of(" \t\n\r"));
+    token.erase(token.find_last_not_of(" \t\n\r") + 1);
+
+    if (token.empty()) {
+      continue;
+    }
+
+    try {
+      int value = std::stoi(token);
+      result.push_back(value);
+    } catch (const std::exception & e) {
+      error_return = "Failed to parse integer: " + token;
+      return result;
+    }
+  }
+  error_return = "";
+  return result;
+}
+
+std::vector<std::vector<float>> parseStringMultiVector_float(
   const std::string & input, std::string & error_return)
 {
   std::vector<std::vector<float>> result;

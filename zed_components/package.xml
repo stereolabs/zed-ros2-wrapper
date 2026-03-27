@@ -2,67 +2,50 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
     <name>zed_components</name>
-    <version>5.3.0</version>
+    <version>5.2.3</version>
     <description>Contains the main ROS 2 components to use a camera of the Stereolabs ZED family</description>
     <maintainer email="support@stereolabs.com">STEREOLABS</maintainer>
     <license>Apache License 2.0</license>
     <url type="website">https://www.stereolabs.com/</url>
     <url type="repository">https://github.com/stereolabs/zed-ros2-wrapper</url>
     <url type="bugtracker">https://github.com/stereolabs/zed-ros2-wrapper/issues</url>
+
     <buildtool_depend>ament_cmake</buildtool_depend>
+
     <build_depend>ament_cmake_auto</build_depend>
 
     <depend>backward_ros</depend>
-    <depend>nlohmann-json-dev</depend>
+    <depend>nlohmann-json-dev</depend>    
+    <depend>zed_msgs</depend>
+
+    <depend>rclcpp</depend>
+    <depend>rclcpp_components</depend>
+    <depend>rcutils</depend>
+    <depend>builtin_interfaces</depend>
+    <depend>std_msgs</depend>
+    <depend>rosgraph_msgs</depend>
+    <depend>stereo_msgs</depend>
+    <depend>sensor_msgs</depend>
+    <depend>geometry_msgs</depend>
+    <depend>nav_msgs</depend>
+    <depend>nmea_msgs</depend>
+    <depend>geographic_msgs</depend>
+    <depend>tf2</depend>
+    <depend>tf2_ros</depend>
+    <depend>tf2_geometry_msgs</depend>
+    <depend>image_transport</depend>
+    <depend>std_srvs</depend>
+    <depend>diagnostic_msgs</depend>
+    <depend>diagnostic_updater</depend>
+    <depend>visualization_msgs</depend>
+    <depend>robot_localization</depend>
     
-    <build_depend>zed_msgs</build_depend>
-    <build_depend>rclcpp</build_depend>
-    <build_depend>rclcpp_components</build_depend>
-    <build_depend>rcutils</build_depend>
-    <build_depend>builtin_interfaces</build_depend>
-    <build_depend>std_msgs</build_depend>
-    <build_depend>rosgraph_msgs</build_depend>
-    <build_depend>stereo_msgs</build_depend>
-    <build_depend>sensor_msgs</build_depend>
-    <build_depend>geometry_msgs</build_depend>
-    <build_depend>nav_msgs</build_depend>
-    <build_depend>nmea_msgs</build_depend>
-    <build_depend>geographic_msgs</build_depend>    
-    <build_depend>tf2</build_depend>
-    <build_depend>tf2_ros</build_depend>
-    <build_depend>tf2_geometry_msgs</build_depend>
-    <build_depend>image_transport</build_depend>
-    <build_depend>std_srvs</build_depend>
-    <build_depend>diagnostic_msgs</build_depend>
-    <build_depend>diagnostic_updater</build_depend>
-    <build_depend>visualization_msgs</build_depend>
-    <build_depend>robot_localization</build_depend>
     <exec_depend>launch_ros</exec_depend>
-    <exec_depend>zed_msgs</exec_depend>
-    <exec_depend>rclcpp</exec_depend>
-    <exec_depend>rclcpp_components</exec_depend>
-    <exec_depend>rcutils</exec_depend>
-    <exec_depend>builtin_interfaces</exec_depend>
-    <exec_depend>std_msgs</exec_depend>
-    <exec_depend>rosgraph_msgs</exec_depend>
-    <exec_depend>stereo_msgs</exec_depend>
-    <exec_depend>sensor_msgs</exec_depend>
-    <exec_depend>geometry_msgs</exec_depend>
-    <exec_depend>nav_msgs</exec_depend>
-    <exec_depend>nmea_msgs</exec_depend>
-    <exec_depend>geographic_msgs</exec_depend>
-    <exec_depend>tf2</exec_depend>
-    <exec_depend>tf2_ros</exec_depend>
-    <exec_depend>tf2_geometry_msgs</exec_depend>
-    <exec_depend>image_transport</exec_depend>
-    <exec_depend>diagnostic_msgs</exec_depend>
-    <exec_depend>diagnostic_updater</exec_depend>
-    <exec_depend>visualization_msgs</exec_depend>
-    <exec_depend>robot_localization</exec_depend>
     <exec_depend>image_transport_plugins</exec_depend>
     <exec_depend>compressed_image_transport</exec_depend>
     <exec_depend>compressed_depth_image_transport</exec_depend>
     <exec_depend>theora_image_transport</exec_depend>
+    
     <test_depend>ament_lint_auto</test_depend>
     <test_depend>ament_cmake_copyright</test_depend>
     <test_depend>ament_cmake_cppcheck</test_depend>
@@ -70,6 +53,7 @@
     <test_depend>ament_cmake_pep257</test_depend>
     <test_depend>ament_cmake_uncrustify</test_depend>
     <test_depend>ament_cmake_xmllint</test_depend>
+
     <export>
         <build_type>ament_cmake</build_type>
     </export>

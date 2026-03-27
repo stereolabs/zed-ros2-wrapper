@@ -511,7 +511,9 @@ private:
   bool mAsyncImageRetrieval = false;
   int mImageValidityCheck = 1;
   std::string mSvoFilepath = "";
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   std::string mSvoDecryptionKey = "";
+#endif
   bool mSvoLoop = false;
   bool mSvoRealtime = false;
   int mSvoFrameStart = 0;

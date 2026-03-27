@@ -1225,8 +1225,10 @@ void ZedCamera::getGeneralParams()
         mCamResol = sl::RESOLUTION::SVGA;
       } else if (resol == "HD1536") {
         mCamResol = sl::RESOLUTION::HD1536;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
       } else if (resol == "XVGA") {
         mCamResol = sl::RESOLUTION::XVGA;
+#endif
       } else {
         RCLCPP_WARN(
           get_logger(),
@@ -1384,9 +1386,11 @@ void ZedCamera::getSvoParams()
       mSvoFrameStart, mSvoFrameStart,
       " * SVO start frame: ", false, 0);
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
     sl_tools::getParam(
       shared_from_this(), "svo.decryption_key", std::string(),
       mSvoDecryptionKey);
+#endif
 
     if (!mSvoRealtime) {
       sl_tools::getParam(
@@ -2702,7 +2706,9 @@ bool ZedCamera::startCamera()
 
     mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
     mInitParams.svo_real_time_mode = mSvoRealtime;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
     mInitParams.svo_decryption_key = mSvoDecryptionKey.c_str();
+#endif
   } else if (!mStreamAddr.empty()) {
     RCLCPP_INFO(get_logger(), "=== LOCAL STREAMING OPENING ===");
 

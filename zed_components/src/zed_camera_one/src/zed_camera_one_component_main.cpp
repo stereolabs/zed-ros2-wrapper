@@ -309,9 +309,11 @@ void ZedCameraOne::getSvoParams()
       _svoFrameStart, _svoFrameStart,
       " * SVO start frame: ", false, 0);
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
     sl_tools::getParam(
       shared_from_this(), "svo.decryption_key", std::string(),
       _svoDecryptionKey);
+#endif
   }
 }
 
@@ -429,8 +431,10 @@ void ZedCameraOne::getResolutionParams()
       _camResol = sl::RESOLUTION::QHDPLUS;
     } else if (resol == "HD1536" && _camUserModel == sl::MODEL::ZED_XONE_HDR) {
       _camResol = sl::RESOLUTION::HD1536;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
     } else if (resol == "XVGA" && _camUserModel == sl::MODEL::ZED_XONE_HDR) {
       _camResol = sl::RESOLUTION::XVGA;
+#endif
     } else if (resol == "HD1200" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
       _camResol = sl::RESOLUTION::HD1200;
     } else if (resol == "HD1080" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
@@ -880,7 +884,9 @@ void ZedCameraOne::configureZedInput()
     RCLCPP_INFO(get_logger(), "=== SVO OPENING ===");
     _initParams.input.setFromSVOFile(_svoFilepath.c_str());
     _initParams.svo_real_time_mode = _svoRealtime;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
     _initParams.svo_decryption_key = _svoDecryptionKey.c_str();
+#endif
     _svoMode = true;
     return;
   }

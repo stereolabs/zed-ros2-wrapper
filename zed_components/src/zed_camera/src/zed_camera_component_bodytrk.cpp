@@ -122,10 +122,10 @@ bool ZedCamera::handleBodyTrkDynamicParams(
 
     mBodyTrkConfThresh = val;
 
-    RCLCPP_INFO_STREAM(
-      get_logger(), "Parameter '" << param.get_name()
-                                  << "' correctly set to "
-                                  << val);
+    DEBUG_STREAM_DYN_PARAMS(
+      "Parameter '" << param.get_name()
+                    << "' correctly set to "
+                    << val);
   } else if (param.get_name() ==
     "body_tracking.minimum_keypoints_threshold")
   {
@@ -143,10 +143,10 @@ bool ZedCamera::handleBodyTrkDynamicParams(
       return false;
     }
 
-    RCLCPP_INFO_STREAM(
-      get_logger(), "Parameter '" << param.get_name()
-                                  << "' correctly set to "
-                                  << mBodyTrkMinKp);
+    DEBUG_STREAM_DYN_PARAMS(
+      "Parameter '" << param.get_name()
+                    << "' correctly set to "
+                    << mBodyTrkMinKp);
   }
 
   mBodyTrkRtParamsDirty = true;

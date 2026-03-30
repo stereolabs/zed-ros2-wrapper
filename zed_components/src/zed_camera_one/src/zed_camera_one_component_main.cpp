@@ -604,6 +604,10 @@ void ZedCameraOne::getDebugParams()
     shared_from_this(), "debug.debug_common", _debugCommon,
     _debugCommon, " * Debug Common: ");
   sl_tools::getParam(
+    shared_from_this(), "debug.debug_dyn_params",
+    _debugDynParams, _debugDynParams,
+    " * Debug Dynamic Parameters: ");
+  sl_tools::getParam(
     shared_from_this(), "debug.debug_video_depth",
     _debugVideoDepth, _debugVideoDepth,
     " * Debug Image/Depth: ");
@@ -628,7 +632,7 @@ void ZedCameraOne::getDebugParams()
     _debugNitros, " * Debug Nitros: ");
 
   // Set debug mode
-  _debugMode = _debugCommon || _debugVideoDepth || _debugCamCtrl ||
+  _debugMode = _debugCommon || _debugDynParams || _debugVideoDepth || _debugCamCtrl ||
     _debugSensors || _debugStreaming || _debugAdvanced ||
     _debugTf || _debugNitros;
 

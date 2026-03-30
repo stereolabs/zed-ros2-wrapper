@@ -3088,7 +3088,7 @@ bool ZedCamera::handleGmsl2Params(
       mGmslDenoising = val;
     }
     mCamSettingsDirty = true;
-    RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << name << "' correctly set to " << val);
+    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
     return true;
   }
   return false;
@@ -3123,7 +3123,7 @@ bool ZedCamera::handleUsb3Params(
       mCamHue = val;
     }
     mCamSettingsDirty = true;
-    RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << name << "' correctly set to " << val);
+    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
     return true;
   }
   return false;
@@ -3163,7 +3163,7 @@ bool ZedCamera::handleCommonVideoParams(
       mCamAutoWB = false;
     }
     mCamSettingsDirty = true;
-    RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << name << "' correctly set to " << val);
+    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
     return true;
   } else if (name == "video.auto_exposure_gain") {
     rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
@@ -3179,7 +3179,7 @@ bool ZedCamera::handleCommonVideoParams(
     }
     mCamAutoExpGain = val;
     mCamSettingsDirty = true;
-    RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << name << "' correctly set to " << val);
+    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
     return true;
   } else if (name == "video.auto_whitebalance") {
     rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
@@ -3195,7 +3195,7 @@ bool ZedCamera::handleCommonVideoParams(
     }
     mCamAutoWB = val;
     mCamSettingsDirty = true;
-    RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << name << "' correctly set to " << val);
+    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
     return true;
   } else if (name == "general.pub_frame_rate") {
     rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -3216,7 +3216,7 @@ bool ZedCamera::handleCommonVideoParams(
       val = static_cast<double>(mCamGrabFrameRate);
     }
     mVdPubRate = val;
-    RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << name << "' correctly set to " << val);
+    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
     return true;
   }
   return false;
@@ -3247,7 +3247,7 @@ bool ZedCamera::handleDepthParams(
       val = static_cast<double>(mCamGrabFrameRate);
     }
     mPcPubRate = val;
-    RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << name << "' correctly set to " << val);
+    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
     return true;
   } else if (name == "depth.depth_confidence" || name == "depth.depth_texture_conf") {
     rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_INTEGER;
@@ -3263,7 +3263,9 @@ bool ZedCamera::handleDepthParams(
     } else if (name == "depth.depth_texture_conf") {
       mDepthTextConf = val;
     }
-    RCLCPP_INFO_STREAM(get_logger(), "Parameter '" << name << "' correctly set to " << val);
+    DEBUG_STREAM_DYN_PARAMS(
+      "Parameter '" << name << "' correctly set to "
+                    << val);
     return true;
   } else if (name == "depth.remove_saturated_areas") {
     rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
@@ -3274,9 +3276,9 @@ bool ZedCamera::handleDepthParams(
       return true;
     }
     mRemoveSatAreas = param.as_bool();
-    RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Parameter '" << name << "' correctly set to " << (mRemoveSatAreas ? "TRUE" : "FALSE"));
+    DEBUG_STREAM_DYN_PARAMS(
+      "Parameter '" << name << "' correctly set to " <<
+        (mRemoveSatAreas ? "TRUE" : "FALSE"));
     return true;
   }
   return false;

@@ -359,8 +359,7 @@ bool ZedCamera::handleOdDynamicParams(
 
     mObjDetPeopleEnable = param.as_bool();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << (mObjDetPeopleEnable ? "TRUE" : "FALSE"));
@@ -376,8 +375,7 @@ bool ZedCamera::handleOdDynamicParams(
 
     mObjDetVehiclesEnable = param.as_bool();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << (mObjDetVehiclesEnable ? "TRUE" : "FALSE"));
@@ -393,8 +391,7 @@ bool ZedCamera::handleOdDynamicParams(
 
     mObjDetBagsEnable = param.as_bool();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << (mObjDetBagsEnable ? "TRUE" : "FALSE"));
@@ -410,8 +407,7 @@ bool ZedCamera::handleOdDynamicParams(
 
     mObjDetAnimalsEnable = param.as_bool();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << (mObjDetAnimalsEnable ? "TRUE" : "FALSE"));
@@ -429,8 +425,7 @@ bool ZedCamera::handleOdDynamicParams(
 
     mObjDetElectronicsEnable = param.as_bool();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << (mObjDetElectronicsEnable ? "TRUE" : "FALSE"));
@@ -448,8 +443,7 @@ bool ZedCamera::handleOdDynamicParams(
 
     mObjDetFruitsEnable = param.as_bool();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << (mObjDetFruitsEnable ? "TRUE" : "FALSE"));
@@ -465,8 +459,7 @@ bool ZedCamera::handleOdDynamicParams(
 
     mObjDetSportEnable = param.as_bool();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << (mObjDetSportEnable ? "TRUE" : "FALSE"));
@@ -484,8 +477,7 @@ bool ZedCamera::handleOdDynamicParams(
       return false;
     }
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mObjDetPeopleConf);
@@ -503,8 +495,7 @@ bool ZedCamera::handleOdDynamicParams(
       return false;
     }
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mObjDetVehiclesConf);
@@ -522,8 +513,7 @@ bool ZedCamera::handleOdDynamicParams(
       return false;
     }
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mObjDetBagsConf);
@@ -541,8 +531,7 @@ bool ZedCamera::handleOdDynamicParams(
       return false;
     }
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mObjDetAnimalsConf);
@@ -561,8 +550,7 @@ bool ZedCamera::handleOdDynamicParams(
     {
       return false;
     }
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mObjDetElectronicsConf);
@@ -580,8 +568,7 @@ bool ZedCamera::handleOdDynamicParams(
       return false;
     }
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mObjDetFruitsConf);
@@ -599,8 +586,7 @@ bool ZedCamera::handleOdDynamicParams(
       return false;
     }
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mObjDetSportConf);
@@ -655,8 +641,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
 
     mCustomOdProperties[class_id].enabled = param.as_bool();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << (mCustomOdProperties[class_id].enabled ? "TRUE" : "FALSE"));
@@ -677,8 +662,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
       return false;
     }
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].detection_confidence_threshold);
@@ -694,8 +678,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
 
     mCustomOdProperties[class_id].is_grounded = param.as_bool();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << (mCustomOdProperties[class_id].is_grounded ? "TRUE" : "FALSE"));
@@ -711,8 +694,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
 
     mCustomOdProperties[class_id].is_static = param.as_bool();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << (mCustomOdProperties[class_id].is_static ? "TRUE" : "FALSE"));
@@ -728,8 +710,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
 
     mCustomOdProperties[class_id].tracking_timeout = param.as_double();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].tracking_timeout);
@@ -745,8 +726,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
 
     mCustomOdProperties[class_id].tracking_max_dist = param.as_double();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].tracking_max_dist);
@@ -762,8 +742,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
 
     mCustomOdProperties[class_id].max_box_width_normalized = param.as_double();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].max_box_width_normalized);
@@ -779,8 +758,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
 
     mCustomOdProperties[class_id].min_box_width_normalized = param.as_double();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].min_box_width_normalized);
@@ -794,8 +772,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
       return false;
     }
     mCustomOdProperties[class_id].max_box_height_normalized = param.as_double();
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].max_box_height_normalized);
@@ -809,8 +786,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
       return false;
     }
     mCustomOdProperties[class_id].min_box_height_normalized = param.as_double();
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].min_box_height_normalized);
@@ -826,8 +802,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
 
     mCustomOdProperties[class_id].max_box_width_meters = param.as_double();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].max_box_width_meters);
@@ -843,8 +818,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
 
     mCustomOdProperties[class_id].min_box_width_meters = param.as_double();
 
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].min_box_width_meters);
@@ -858,8 +832,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
       return false;
     }
     mCustomOdProperties[class_id].max_box_height_meters = param.as_double();
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].max_box_height_meters);
@@ -874,8 +847,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
       return false;
     }
     mCustomOdProperties[class_id].max_allowed_acceleration = param.as_double();
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].max_allowed_acceleration);
@@ -891,8 +863,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
     }
     mCustomOdProperties[class_id].object_tracking_parameters.velocity_smoothing_factor =
       param.as_double();
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].object_tracking_parameters.velocity_smoothing_factor);
@@ -908,8 +879,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
     }
     mCustomOdProperties[class_id].object_tracking_parameters.min_velocity_threshold =
       param.as_double();
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].object_tracking_parameters.min_velocity_threshold);
@@ -925,8 +895,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
     }
     mCustomOdProperties[class_id].object_tracking_parameters.prediction_timeout_s =
       param.as_double();
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].object_tracking_parameters.prediction_timeout_s);
@@ -942,8 +911,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
     }
     mCustomOdProperties[class_id].object_tracking_parameters.min_confirmation_time_s =
       param.as_double();
-    RCLCPP_INFO_STREAM(
-      get_logger(),
+    DEBUG_STREAM_DYN_PARAMS(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].object_tracking_parameters.min_confirmation_time_s);

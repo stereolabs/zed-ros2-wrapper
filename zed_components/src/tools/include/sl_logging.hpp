@@ -26,6 +26,14 @@
 #define DEBUG_STREAM_COMM_ONCE(stream_arg) \
   if (_debugCommon) RCLCPP_DEBUG_STREAM_ONCE(get_logger(), stream_arg)
 
+// Dynamic parameters
+#define DEBUG_DYN_PARAMS(...) \
+  if (_debugDynParams) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)
+#define DEBUG_STREAM_DYN_PARAMS(stream_arg) \
+  if (_debugDynParams) RCLCPP_DEBUG_STREAM(get_logger(), stream_arg)
+#define DEBUG_STREAM_DYN_PARAMS_ONCE(stream_arg) \
+  if (_debugDynParams) RCLCPP_DEBUG_STREAM_ONCE(get_logger(), stream_arg)
+
 // Grab (low level)
 #define DEBUG_GRAB(...) \
   if (_debugGrab) RCLCPP_DEBUG(get_logger(), __VA_ARGS__)

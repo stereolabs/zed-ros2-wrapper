@@ -1,12 +1,12 @@
 LATEST CHANGES
 ==============
 
-v5.3.0
-------
-- Added ``XVGA`` as a valid ``grab_resolution`` option for ZED X HDR camera configurations (``zedxhdr``, ``zedxhdrmax``, ``zedxhdrmini``, ``zedxonehdr``).
-- Added ``XVGA`` resolution parsing in both stereo (``ZedCamera``) and mono (``ZedCameraOne``) components.
+2026-03-20
+----------
+- Added `XVGA` as a valid `grab_resolution` option for ZED X HDR camera configurations (`zedxhdr`, `zedxhdrmax`, `zedxhdrmini`, `zedxonehdr`).
+- Added `XVGA` resolution parsing in both stereo (`ZedCamera`) and mono (`ZedCameraOne`) components.
 
-2026-03-03
+v5.2.2
 ----------
 - Default Positional Tracking mode changed back to `GEN_1` until the stability and reliability of `GEN_3` is improved. 
   Users can still select a specific mode by setting the `pos_tracking.pos_tracking_mode` parameter to `GEN_1`, `GEN_2`, or `GEN_3` according to their needs and preferences.
@@ -21,6 +21,18 @@ v5.3.0
   - Depth stability follows the ZED SDK behaviors.
   - Object Tracking follows the ZED SDK behaviors.
   - Body Tracking follows the ZED SDK behaviors.
+
+- Add new parameter `debug.debug_dyn_params` to enable debug logs for dynamic parameters changes. 
+
+  - Dynamic parameters related logs are now displayed only if the new debug parameter `debug.debug_dyn_params` is set to `true` to avoid log spam when changing dynamic parameters.
+
+- IPC is now handled automatically disabling it when NITROS is enabled and enabling it when NITROS is disabled. The `debug.disable_nitros` parameter can be used to disable NITROS and enable IPC if needed.
+- Added dual-mode image publishers:
+
+  - using `image_transport` without IPC support
+  - standard ROS 2 publishers with IPC support
+
+- Added `ENABLE_TYPE_ADAPTATION` build option to enable the new automatic adaptation feature in beta version. When enabled, intra-process subscribers can receive sl::Mat directly without serialization/deserialization overhead
 
 v5.2.1
 ------

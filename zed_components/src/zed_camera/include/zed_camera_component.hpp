@@ -438,6 +438,7 @@ private:
   // ----> Parameter variables
   // Debug
   bool _debugCommon = false;
+  bool _debugDynParams = false;
   bool _debugGrab = false;
   bool _debugSim = false;
   bool _debugVideoDepth = false;

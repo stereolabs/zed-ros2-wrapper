@@ -246,6 +246,7 @@ private:
 
   // ----> Debug variables
   bool _debugCommon = false;
+  bool _debugDynParams = false;
   bool _debugVideoDepth = false;
   bool _debugSensors = false;
   bool _debugCamCtrl = false;

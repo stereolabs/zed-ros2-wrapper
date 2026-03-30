@@ -746,6 +746,9 @@ void ZedCamera::getDebugParams()
     shared_from_this(), "debug.debug_common", _debugCommon,
     _debugCommon, " * Debug Common: ");
   sl_tools::getParam(
+    shared_from_this(), "debug.debug_dyn_params", _debugDynParams,
+    _debugDynParams, " * Debug Dynamic Parameters: ");
+  sl_tools::getParam(
     shared_from_this(), "debug.debug_grab", _debugGrab,
     _debugGrab, " * Debug Grab (low level): ");
   sl_tools::getParam(
@@ -799,9 +802,9 @@ void ZedCamera::getDebugParams()
     shared_from_this(), "debug.debug_advanced", _debugAdvanced,
     _debugAdvanced, " * Debug Advanced: ");
 
-  mDebugMode = _debugCommon || _debugGrab || _debugSim || _debugVideoDepth ||
-    _debugCamCtrl || _debugPointCloud || _debugTf ||
-    _debugPosTracking || _debugGnss || _debugSensors ||
+  mDebugMode = _debugCommon || _debugDynParams || _debugGrab || _debugSim ||
+    _debugVideoDepth || _debugCamCtrl || _debugPointCloud ||
+    _debugTf || _debugPosTracking || _debugGnss || _debugSensors ||
     _debugMapping || _debugObjectDet || _debugBodyTrk ||
     _debugAdvanced || _debugRoi || _debugStreaming || _debugNitros;
 
@@ -2032,10 +2035,10 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
       double val = param.as_double();
       mTfOffset = val;
 
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name()
-                                    << "' correctly set to "
-                                    << val);
+      DEBUG_STREAM_DYN_PARAMS(
+        "Parameter '" << param.get_name()
+                      << "' correctly set to "
+                      << val);
     } else if (param.get_name() == "pos_tracking.path_pub_rate") {
       rclcpp::ParameterType correctType =
         rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -2063,10 +2066,10 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
 
       mPathPubRate = val;
 
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name()
-                                    << "' correctly set to "
-                                    << val);
+      DEBUG_STREAM_DYN_PARAMS(
+        "Parameter '" << param.get_name()
+                      << "' correctly set to "
+                      << val);
     } else if (param.get_name() == "mapping.fused_pointcloud_freq") {
       rclcpp::ParameterType correctType =
         rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -2094,10 +2097,10 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
       mFusedPcPubRate = val;
       startFusedPcTimer(mFusedPcPubRate);  // Reset publishing timer
 
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name()
-                                    << "' correctly set to "
-                                    << val);
+      DEBUG_STREAM_DYN_PARAMS(
+        "Parameter '" << param.get_name()
+                      << "' correctly set to "
+                      << val);
     } else if (param.get_name() == "sensors.sensors_pub_rate") {
       rclcpp::ParameterType correctType =
         rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -2113,10 +2116,10 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
         mSensPubRate = value;
         mPubImuTF_sec->setNewSize(static_cast<int>(mSensPubRate));
         mImuPeriodMean_sec->setNewSize(static_cast<int>(mSensPubRate));
-        RCLCPP_INFO_STREAM(
-          get_logger(), "Parameter '" << param.get_name()
-                                      << "' correctly set to "
-                                      << value);
+        DEBUG_STREAM_DYN_PARAMS(
+          "Parameter '" << param.get_name()
+                        << "' correctly set to "
+                        << value);
       }
     } else if (param.get_name() == "svo.replay_rate") {
       rclcpp::ParameterType correctType =
@@ -2131,10 +2134,10 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
       double value = param.as_double();
 
       mSvoRate = value;
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Parameter '" << param.get_name()
-                                    << "' correctly set to "
-                                    << value);
+      DEBUG_STREAM_DYN_PARAMS(
+        "Parameter '" << param.get_name()
+                      << "' correctly set to "
+                      << value);
     }
 
     // ----> Video/Depth dynamic parameters

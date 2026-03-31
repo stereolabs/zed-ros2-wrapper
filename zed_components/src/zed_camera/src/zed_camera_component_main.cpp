@@ -1236,6 +1236,8 @@ void ZedCamera::getGeneralParams()
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
       } else if (resol == "XVGA") {
         mCamResol = sl::RESOLUTION::XVGA;
+      } else if (resol == "TXGA") {
+        mCamResol = sl::RESOLUTION::TXGA;
 #endif
       } else {
         RCLCPP_WARN(

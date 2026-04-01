@@ -124,8 +124,7 @@ bool ZedCamera::handleBodyTrkDynamicParams(
 
     DEBUG_STREAM_DYN_PARAMS(
       "Parameter '" << param.get_name()
-                    << "' correctly set to "
-                    << val);
+                    << "' correctly set to " << val);
   } else if (param.get_name() ==
     "body_tracking.minimum_keypoints_threshold")
   {

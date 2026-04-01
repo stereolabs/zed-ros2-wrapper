@@ -3263,9 +3263,8 @@ bool ZedCamera::handleDepthParams(
     } else if (name == "depth.depth_texture_conf") {
       mDepthTextConf = val;
     }
-    DEBUG_STREAM_DYN_PARAMS(
-      "Parameter '" << name << "' correctly set to "
-                    << val);
+
+    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
     return true;
   } else if (name == "depth.remove_saturated_areas") {
     rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
@@ -3277,8 +3276,10 @@ bool ZedCamera::handleDepthParams(
     }
     mRemoveSatAreas = param.as_bool();
     DEBUG_STREAM_DYN_PARAMS(
-      "Parameter '" << name << "' correctly set to " <<
-        (mRemoveSatAreas ? "TRUE" : "FALSE"));
+
+      "Parameter '"
+        << name << "' correctly set to "
+        << (mRemoveSatAreas ? "TRUE" : "FALSE"));
     return true;
   }
   return false;

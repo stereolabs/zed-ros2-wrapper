@@ -645,7 +645,11 @@ void ZedCamera::initParameters()
   }
 
   // AI PARAMETERS
+#if ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 52)
   if (!mDepthDisabled && mPosTrackingEnabled) {
+#else
+  if (!mDepthDisabled) {
+#endif
     if (sl_tools::isObjDetAvailable(mCamUserModel)) {
       getOdParams();
       getBodyTrkParams();
@@ -746,8 +750,9 @@ void ZedCamera::getDebugParams()
     shared_from_this(), "debug.debug_common", _debugCommon,
     _debugCommon, " * Debug Common: ");
   sl_tools::getParam(
-    shared_from_this(), "debug.debug_dyn_params", _debugDynParams,
-    _debugDynParams, " * Debug Dynamic Parameters: ");
+    shared_from_this(), "debug.debug_dyn_params",
+    _debugDynParams, _debugDynParams,
+    " * Debug Dynamic Parameters: ");
   sl_tools::getParam(
     shared_from_this(), "debug.debug_grab", _debugGrab,
     _debugGrab, " * Debug Grab (low level): ");
@@ -2037,8 +2042,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
 
       DEBUG_STREAM_DYN_PARAMS(
         "Parameter '" << param.get_name()
-                      << "' correctly set to "
-                      << val);
+                      << "' correctly set to " << val);
     } else if (param.get_name() == "pos_tracking.path_pub_rate") {
       rclcpp::ParameterType correctType =
         rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -2068,8 +2072,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
 
       DEBUG_STREAM_DYN_PARAMS(
         "Parameter '" << param.get_name()
-                      << "' correctly set to "
-                      << val);
+                      << "' correctly set to " << val);
     } else if (param.get_name() == "mapping.fused_pointcloud_freq") {
       rclcpp::ParameterType correctType =
         rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -2099,8 +2102,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
 
       DEBUG_STREAM_DYN_PARAMS(
         "Parameter '" << param.get_name()
-                      << "' correctly set to "
-                      << val);
+                      << "' correctly set to " << val);
     } else if (param.get_name() == "sensors.sensors_pub_rate") {
       rclcpp::ParameterType correctType =
         rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -2136,8 +2138,7 @@ rcl_interfaces::msg::SetParametersResult ZedCamera::callback_dynamicParamChange(
       mSvoRate = value;
       DEBUG_STREAM_DYN_PARAMS(
         "Parameter '" << param.get_name()
-                      << "' correctly set to "
-                      << value);
+                      << "' correctly set to " << value);
     }
 
     // ----> Video/Depth dynamic parameters
@@ -7335,11 +7336,17 @@ bool ZedCamera::isPosTrackingRequired()
     DEBUG_ONCE_PT(
       "POS. TRACKING required: enabled by depth stabilization param.");
 
+#if ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 52)
+    if (mDepthStabilization < 0) {
+      mDepthStabilization = 30; // Set a default value if stabilization is enabled with the SDK default setting
+    }
+#endif
+
     if (!mPosTrackingEnabled) {
       RCLCPP_WARN_ONCE(
         get_logger(),
         "POSITIONAL TRACKING disabled in the parameters, but forced to "
-        "ENABLE because required by `depth.depth_stabilization > 0`");
+        "ENABLE because required by `depth.depth_stabilization > 0 or -1 (SDK default)`");
     }
 
     return true;

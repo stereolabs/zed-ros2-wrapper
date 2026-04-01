@@ -198,23 +198,23 @@
             sdk_verbose: 1 # Set the verbose level of the ZED SDK
             sdk_verbose_log_file: '' # Path to the file where the ZED SDK will log its messages. If empty, no file will be created. The log level can be set using the `sdk_verbose` parameter.
             use_pub_timestamps: false # Use the current ROS time for the message timestamp instead of the camera timestamp. This is useful to test data communication latency.
-            debug_common: false
-            debug_dyn_params: false
-            debug_grab: false
-            debug_sim: false
-            debug_video_depth: false
-            debug_camera_controls: false
-            debug_point_cloud: false
-            debug_tf: false
-            debug_positional_tracking: false
-            debug_gnss: false
-            debug_sensors: false
-            debug_mapping: false
-            debug_terrain_mapping: false
-            debug_object_detection: false
-            debug_body_tracking: false
-            debug_roi: false
-            debug_streaming: false
-            debug_advanced: false
-            debug_nitros: false
+            debug_common: false # Enable/Disable the printing of debug messages related to the common parameters and functionalities
+            debug_dyn_params: false # Enable/Disable the printing of debug messages related to dynamic parameters updates
+            debug_grab: false # Enable/Disable the printing of debug messages related to the grab function and thread
+            debug_sim: false # Enable/Disable the printing of debug messages related to the simulation mode and connection to the simulation server
+            debug_video_depth: false # Enable/Disable the printing of debug messages related to video and depth parameters and functionalities
+            debug_camera_controls: false # Enable/Disable the printing of debug messages related to camera controls (exposure, gain, white balance, etc)
+            debug_point_cloud: false # Enable/Disable the printing of debug messages related to point cloud generation and publishing
+            debug_tf: false # Enable/Disable the printing of debug messages related to TF broadcasting
+            debug_positional_tracking: false # Enable/Disable the printing of debug messages related to positional tracking
+            debug_gnss: false # Enable/Disable the printing of debug messages related to GNSS functionalities
+            debug_sensors: false # Enable/Disable the printing of debug messages related to sensor data
+            debug_mapping: false # Enable/Disable the printing of debug messages related to mapping functionalities
+            debug_terrain_mapping: false # Enable/Disable the printing of debug messages related to terrain mapping functionalities
+            debug_object_detection: false # Enable/Disable the printing of debug messages related to object detection functionalities
+            debug_body_tracking: false # Enable/Disable the printing of debug messages related to body tracking functionalities
+            debug_roi: false # Enable/Disable the printing of debug messages related to region of interest functionalities
+            debug_streaming: false # Enable/Disable the printing of debug messages related to the network streaming functionalities
+            debug_advanced: false # Enable/Disable the printing of debug messages related to advanced functionalities
+            debug_nitros: false # Enable/Disable the printing of debug messages related to NITROS functionalities
             disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes

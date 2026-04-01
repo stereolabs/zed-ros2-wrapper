@@ -632,9 +632,10 @@ void ZedCameraOne::getDebugParams()
     _debugNitros, " * Debug Nitros: ");
 
   // Set debug mode
-  _debugMode = _debugCommon || _debugDynParams || _debugVideoDepth || _debugCamCtrl ||
-    _debugSensors || _debugStreaming || _debugAdvanced ||
-    _debugTf || _debugNitros;
+
+  _debugMode = _debugCommon || _debugDynParams || _debugVideoDepth ||
+    _debugCamCtrl || _debugSensors || _debugStreaming ||
+    _debugAdvanced || _debugTf || _debugNitros;
 
   if (_debugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(

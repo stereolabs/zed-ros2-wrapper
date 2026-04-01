@@ -73,12 +73,12 @@
             sdk_verbose: 1 # Set the verbose level of the ZED SDK
             sdk_verbose_log_file: '' # Path to the file where the ZED SDK will log its messages. If empty, no file will be created. The log level can be set using the `sdk_verbose` parameter.
             use_pub_timestamps: false # Use the current ROS time for the message timestamp instead of the camera timestamp. This is useful to test data communication latency.
-            debug_common: false
-            debug_dyn_params: false
-            debug_video_depth: false
-            debug_camera_controls: false
-            debug_sensors: false
-            debug_streaming: false
-            debug_advanced: false
-            debug_nitros: false
+            debug_common: false # Enable/Disable the printing of debug messages related to the common parameters and functionalities
+            debug_dyn_params: false # Enable/Disable the printing of debug messages related to dynamic parameters updates
+            debug_video_depth: false # Enable/Disable the printing of debug messages related to video and depth parameters and functionalities
+            debug_camera_controls: false # Enable/Disable the printing of debug messages related to camera controls (exposure, gain, white balance, etc)
+            debug_sensors: false # Enable/Disable the printing of debug messages related to sensors data and functionalities
+            debug_streaming: false # Enable/Disable the printing of debug messages related to the network streaming functionalities
+            debug_advanced: false # Enable/Disable the printing of debug messages related to advanced thread parameters and functionalities
+            debug_nitros: false # Enable/Disable the printing of debug messages related to NITROS functionalities
             disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes

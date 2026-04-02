@@ -3089,6 +3089,7 @@ bool ZedCamera::handleGmsl2Params(
     }
     mCamSettingsDirty = true;
     DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
+    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
     return true;
   }
   return false;

@@ -83,6 +83,11 @@
 constexpr auto HEARTBEAT_INTERVAL_MS = 1000;  // Publish heartbeat every second
 constexpr auto TEMP_PUB_INTERVAL_MS = 1000;  // Publish temperature every second
 
+// TypeAdapter for sl::Mat <-> sensor_msgs::msg::Image (must be outside
+// namespace stereolabs to avoid pulling sensor_msgs into stereolabs scope)
+#include "sl_type_adapter.hpp"
+using SlImageAdapter = rclcpp::TypeAdapter<stereolabs::StampedSlMat, sensor_msgs::msg::Image>;
+
 namespace stereolabs
 {
 
@@ -122,6 +127,8 @@ typedef rclcpp::Publisher<zed_msgs::msg::Heartbeat>::SharedPtr heartbeatStatusPu
 
 typedef rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr imagePub;
 typedef rclcpp::Publisher<stereo_msgs::msg::DisparityImage>::SharedPtr disparityPub;
+
+typedef rclcpp::Publisher<SlImageAdapter>::SharedPtr adaptedImagePub;
 
 typedef rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloudPub;
 

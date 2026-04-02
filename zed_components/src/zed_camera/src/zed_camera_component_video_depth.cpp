@@ -106,6 +106,14 @@ void ZedCamera::initVideoDepthPublishers()
         }
 
         for (const auto & transport : transports) {
+          // Ignore topics that end with "raw" because we disabled the raw
+          // transport for these topics to avoid duplicates with the IPC
+          // TypeAdapter publisher
+          if (transport.size() >= 3 &&
+            transport.compare(transport.size() - 3, 3, "raw") == 0)
+          {
+            continue;
+          }
           std::string transport_copy = transport;
           auto pos = transport_copy.find('/');
           if (pos != std::string::npos) {
@@ -118,71 +126,115 @@ void ZedCamera::initVideoDepthPublishers()
         }
       };
 
+    // Lambda to create TypeAdapter IPC publisher (handles raw + zero-copy)
+    auto create_ipc_pub = [&](const std::string & topic) -> adaptedImagePub {
+        auto pub = create_publisher<SlImageAdapter>(topic, mQos);
+        RCLCPP_INFO_STREAM(
+          get_logger(),
+          " * Advertised on topic: " << pub->get_topic_name() << " [IPC type-adapted zero-copy]");
+        return pub;
+      };
+
+    // Lambda to disable image_transport raw plugin for a topic, so that
+    // only compression plugins (compressed, theora, zstd) are created.
+    // The TypeAdapter IPC publisher handles the base topic instead.
+    // Uses the enable_pub_plugins parameter supported by image_transport
+    // (stable from Humble through Rolling).
+    auto disable_raw_transport = [&](const std::string & topic) {
+        std::string resolved = rclcpp::expand_topic_or_service_name(
+          topic, get_name(), get_namespace());
+        auto ns_len = get_effective_namespace().length();
+        std::string param_base = resolved.substr(ns_len);
+        std::replace(param_base.begin(), param_base.end(), '/', '.');
+        if (param_base.front() == '.') {
+          param_base = param_base.substr(1);
+        }
+        std::vector<std::string> compression_only;
+        try {
+          auto all = image_transport::getDeclaredTransports();
+          for (const auto & t : all) {
+            if (t.find("/raw") == std::string::npos) {
+              compression_only.push_back(t);
+            }
+          }
+        } catch (...) {
+          RCLCPP_WARN(get_logger(), "Failed to get declared transports for raw plugin filtering");
+          return;
+        }
+        try {
+          declare_parameter(param_base + ".enable_pub_plugins", compression_only);
+        } catch (const rclcpp::exceptions::ParameterAlreadyDeclaredException &) {
+          auto val = get_parameter(
+            param_base + ".enable_pub_plugins").get_value<std::vector<std::string>>();
+          for (const auto & t : val) {
+            if (t.find("/raw") != std::string::npos) {
+              RCLCPP_WARN(
+                get_logger(),
+                "Raw transport enabled via parameter override — "
+                "this may cause duplicate messages on topic: %s", topic.c_str());
+            }
+          }
+        }
+      };
+
+    // Lambda to create both publishers for a topic:
+    // 1. TypeAdapter IPC publisher (handles raw + zero-copy)
+    // 2. image_transport publisher with raw plugin disabled (compression only)
+    auto create_dual_pub = [&](
+      const std::string & topic,
+      adaptedImagePub & ipcPub,
+      image_transport::Publisher & itPub) {
+        ipcPub = create_ipc_pub(topic);
+        disable_raw_transport(topic);
+        itPub = image_transport::create_publisher(this, topic, qos);
+        log_cam_pub(itPub);
+      };
+
     if (mPublishImgRgb) {
-      mPubRgb = image_transport::create_publisher(this, mRgbTopic, qos);
-      log_cam_pub(mPubRgb);
+      create_dual_pub(mRgbTopic, mPubIpcRgb, mPubRgb);
       if (mPublishImgGray) {
-        mPubRgbGray = image_transport::create_publisher(this, mRgbGrayTopic, qos);
-        log_cam_pub(mPubRgbGray);
+        create_dual_pub(mRgbGrayTopic, mPubIpcRgbGray, mPubRgbGray);
       }
       if (mPublishImgRaw) {
-        mPubRawRgb = image_transport::create_publisher(this, mRgbRawTopic, qos);
-        log_cam_pub(mPubRawRgb);
+        create_dual_pub(mRgbRawTopic, mPubIpcRawRgb, mPubRawRgb);
       }
       if (mPublishImgRaw && mPublishImgGray) {
-        mPubRawRgbGray = image_transport::create_publisher(this, mRgbRawGrayTopic, qos);
-        log_cam_pub(mPubRawRgbGray);
+        create_dual_pub(mRgbRawGrayTopic, mPubIpcRawRgbGray, mPubRawRgbGray);
       }
     }
     if (mPublishImgLeftRight) {
-      mPubLeft = image_transport::create_publisher(this, mLeftTopic, qos);
-      log_cam_pub(mPubLeft);
-      mPubRight = image_transport::create_publisher(this, mRightTopic, qos);
-      log_cam_pub(mPubRight);
+      create_dual_pub(mLeftTopic, mPubIpcLeft, mPubLeft);
+      create_dual_pub(mRightTopic, mPubIpcRight, mPubRight);
       if (mPublishImgGray) {
-        mPubLeftGray = image_transport::create_publisher(this, mLeftGrayTopic, qos);
-        log_cam_pub(mPubLeftGray);
-
-        mPubRightGray = image_transport::create_publisher(this, mRightGrayTopic, qos);
-        log_cam_pub(mPubRightGray);
+        create_dual_pub(mLeftGrayTopic, mPubIpcLeftGray, mPubLeftGray);
+        create_dual_pub(mRightGrayTopic, mPubIpcRightGray, mPubRightGray);
       }
       if (mPublishImgRaw) {
-        mPubRawLeft = image_transport::create_publisher(this, mLeftRawTopic, qos);
-        log_cam_pub(mPubRawLeft);
-        mPubRawRight = image_transport::create_publisher(this, mRightRawTopic, qos);
-        log_cam_pub(mPubRawRight);
+        create_dual_pub(mLeftRawTopic, mPubIpcRawLeft, mPubRawLeft);
+        create_dual_pub(mRightRawTopic, mPubIpcRawRight, mPubRawRight);
       }
-
       if (mPublishImgRaw && mPublishImgGray) {
-        mPubRawLeftGray = image_transport::create_publisher(this, mLeftRawGrayTopic, qos);
-        log_cam_pub(mPubRawLeftGray);
-        mPubRawRightGray = image_transport::create_publisher(this, mRightRawGrayTopic, qos);
-        log_cam_pub(mPubRawRightGray);
+        create_dual_pub(mLeftRawGrayTopic, mPubIpcRawLeftGray, mPubRawLeftGray);
+        create_dual_pub(mRightRawGrayTopic, mPubIpcRawRightGray, mPubRawRightGray);
       }
     }
 
     if (!mDepthDisabled) {
       if (mPublishImgRoiMask && (mAutoRoiEnabled || mManualRoiEnabled)) {
-        mPubRoiMask = image_transport::create_publisher(this, mRoiMaskTopic, qos);
-        log_cam_pub(mPubRoiMask);
+        create_dual_pub(mRoiMaskTopic, mPubIpcRoiMask, mPubRoiMask);
       }
       if (mPublishDepthMap) {
-        mPubDepth = image_transport::create_publisher(this, mDepthTopic, qos);
-        log_cam_pub(mPubDepth);
+        create_dual_pub(mDepthTopic, mPubIpcDepth, mPubDepth);
       }
       if (mPublishConfidence) {
-        mPubConfMap = image_transport::create_publisher(this, mConfMapTopic, qos);
-        log_cam_pub(mPubConfMap);
+        create_dual_pub(mConfMapTopic, mPubIpcConfMap, mPubConfMap);
       }
     }
 
     if (mPublishImgStereo) {
-      mPubStereo = image_transport::create_publisher(this, mStereoTopic, qos);
-      log_cam_pub(mPubStereo);
-
+      create_dual_pub(mStereoTopic, mPubIpcStereo, mPubStereo);
       if (mPublishImgRaw) {
-        mPubRawStereo = image_transport::create_publisher(this, mStereoRawTopic, qos);
-        log_cam_pub(mPubRawStereo);
+        create_dual_pub(mStereoRawTopic, mPubIpcRawStereo, mPubRawStereo);
       }
     }
   } else {
@@ -812,39 +864,47 @@ bool ZedCamera::updateVideoDepthSubscribers(bool force)
   mDepthInfoSubCount = 0;
   mPcSubCount = 0;
 
+  // Helper to count IPC publisher subscribers (generic lambda for imagePub or adaptedImagePub)
+  auto ipc_sub_count = [](const auto & pub) -> size_t {
+      return pub ? pub->get_subscription_count() : 0;
+    };
+
   try {
     if (_nitrosDisabled) {
       if (mPublishImgRgb) {
-        mRgbSubCount = mPubRgb.getNumSubscribers();
+        mRgbSubCount = mPubRgb.getNumSubscribers() + ipc_sub_count(mPubIpcRgb);
         if (mPublishImgRaw) {
-          mRgbRawSubCount = mPubRawRgb.getNumSubscribers();
+          mRgbRawSubCount = mPubRawRgb.getNumSubscribers() + ipc_sub_count(mPubIpcRawRgb);
         }
         if (mPublishImgGray) {
-          mRgbGraySubCount = mPubRgbGray.getNumSubscribers();
+          mRgbGraySubCount = mPubRgbGray.getNumSubscribers() + ipc_sub_count(mPubIpcRgbGray);
           if (mPublishImgRaw) {
-            mRgbGrayRawSubCount = mPubRawRgbGray.getNumSubscribers();
+            mRgbGrayRawSubCount =
+              mPubRawRgbGray.getNumSubscribers() + ipc_sub_count(mPubIpcRawRgbGray);
           }
         }
       }
       if (mPublishImgLeftRight) {
-        mLeftSubCount = mPubLeft.getNumSubscribers();
-        mRightSubCount = mPubRight.getNumSubscribers();
+        mLeftSubCount = mPubLeft.getNumSubscribers() + ipc_sub_count(mPubIpcLeft);
+        mRightSubCount = mPubRight.getNumSubscribers() + ipc_sub_count(mPubIpcRight);
         if (mPublishImgRaw) {
-          mLeftRawSubCount = mPubRawLeft.getNumSubscribers();
-          mRightRawSubCount = mPubRawRight.getNumSubscribers();
+          mLeftRawSubCount = mPubRawLeft.getNumSubscribers() + ipc_sub_count(mPubIpcRawLeft);
+          mRightRawSubCount = mPubRawRight.getNumSubscribers() + ipc_sub_count(mPubIpcRawRight);
         }
         if (mPublishImgGray) {
-          mLeftGraySubCount = mPubLeftGray.getNumSubscribers();
-          mRightGraySubCount = mPubRightGray.getNumSubscribers();
+          mLeftGraySubCount = mPubLeftGray.getNumSubscribers() + ipc_sub_count(mPubIpcLeftGray);
+          mRightGraySubCount = mPubRightGray.getNumSubscribers() + ipc_sub_count(mPubIpcRightGray);
           if (mPublishImgRaw) {
-            mLeftGrayRawSubCount = mPubRawLeftGray.getNumSubscribers();
-            mRightGrayRawSubCount = mPubRawRightGray.getNumSubscribers();
+            mLeftGrayRawSubCount =
+              mPubRawLeftGray.getNumSubscribers() + ipc_sub_count(mPubIpcRawLeftGray);
+            mRightGrayRawSubCount =
+              mPubRawRightGray.getNumSubscribers() + ipc_sub_count(mPubIpcRawRightGray);
           }
         }
       }
       if (mPublishImgStereo) {
-        mStereoSubCount = mPubStereo.getNumSubscribers();
-        mStereoRawSubCount = mPubRawStereo.getNumSubscribers();
+        mStereoSubCount = mPubStereo.getNumSubscribers() + ipc_sub_count(mPubIpcStereo);
+        mStereoRawSubCount = mPubRawStereo.getNumSubscribers() + ipc_sub_count(mPubIpcRawStereo);
       }
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
@@ -881,10 +941,10 @@ bool ZedCamera::updateVideoDepthSubscribers(bool force)
     if (!mDepthDisabled) {
       if (_nitrosDisabled) {
         if (mPublishDepthMap) {
-          mDepthSubCount = mPubDepth.getNumSubscribers();
+          mDepthSubCount = mPubDepth.getNumSubscribers() + ipc_sub_count(mPubIpcDepth);
         }
         if (mPublishConfidence) {
-          mConfMapSubCount = mPubConfMap.getNumSubscribers();
+          mConfMapSubCount = mPubConfMap.getNumSubscribers() + ipc_sub_count(mPubIpcConfMap);
         }
       } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
@@ -1845,7 +1905,7 @@ void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeft, mPubLeft, mPubLeftCamInfo, mPubLeftCamInfoTrans,
+        mMatLeft, mPubIpcLeft, mPubLeft, mPubLeftCamInfo, mPubLeftCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
@@ -1864,7 +1924,7 @@ void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeft, mPubRgb, mPubRgbCamInfo, mPubRgbCamInfoTrans, mLeftCamInfoMsg,
+        mMatLeft, mPubIpcRgb, mPubRgb, mPubRgbCamInfo, mPubRgbCamInfoTrans, mLeftCamInfoMsg,
         mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
@@ -1885,14 +1945,9 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mLeftRawSubCount: " << mLeftRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftRaw,
-        mPubRawLeft,
-        mPubRawLeftCamInfo,
-        mPubRawLeftCamInfoTrans,
-        mLeftCamInfoRawMsg,
-        mLeftCamOptFrameId,
-        t
-      );
+        mMatLeftRaw, mPubIpcRawLeft, mPubRawLeft,
+        mPubRawLeftCamInfo, mPubRawLeftCamInfoTrans,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
@@ -1909,7 +1964,7 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRgbRawSubCount: " << mRgbRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftRaw, mPubRawRgb, mPubRawRgbCamInfo, mPubRawRgbCamInfoTrans,
+        mMatLeftRaw, mPubIpcRawRgb, mPubRawRgb, mPubRawRgbCamInfo, mPubRawRgbCamInfoTrans,
         mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
@@ -1931,14 +1986,9 @@ void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftGray,
-        mPubLeftGray,
-        mPubLeftGrayCamInfo,
-        mPubLeftGrayCamInfoTrans,
-        mLeftCamInfoMsg,
-        mLeftCamOptFrameId,
-        t
-      );
+        mMatLeftGray, mPubIpcLeftGray, mPubLeftGray,
+        mPubLeftGrayCamInfo, mPubLeftGrayCamInfoTrans,
+        mLeftCamInfoMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
@@ -1955,14 +2005,9 @@ void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRgbGraySubCount: " << mRgbGraySubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftGray,
-        mPubRgbGray,
-        mPubRgbGrayCamInfo,
-        mPubRgbGrayCamInfoTrans,
-        mLeftCamInfoMsg,
-        mLeftCamOptFrameId,
-        t
-      );
+        mMatLeftGray, mPubIpcRgbGray, mPubRgbGray,
+        mPubRgbGrayCamInfo, mPubRgbGrayCamInfoTrans,
+        mLeftCamInfoMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
@@ -1982,14 +2027,9 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mLeftGrayRawSubCount: " << mLeftGrayRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftRawGray,
-        mPubRawLeftGray,
-        mPubRawLeftGrayCamInfo,
-        mPubRawLeftGrayCamInfoTrans,
-        mLeftCamInfoRawMsg,
-        mLeftCamOptFrameId,
-        t
-      );
+        mMatLeftRawGray, mPubIpcRawLeftGray, mPubRawLeftGray,
+        mPubRawLeftGrayCamInfo, mPubRawLeftGrayCamInfoTrans,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
@@ -2006,14 +2046,9 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRgbGrayRawSubCount: " << mRgbGrayRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatLeftRawGray,
-        mPubRawRgbGray,
-        mPubRawRgbGrayCamInfo,
-        mPubRawRgbGrayCamInfoTrans,
-        mLeftCamInfoRawMsg,
-        mLeftCamOptFrameId,
-        t
-      );
+        mMatLeftRawGray, mPubIpcRawRgbGray, mPubRawRgbGray,
+        mPubRawRgbGrayCamInfo, mPubRawRgbGrayCamInfoTrans,
+        mLeftCamInfoRawMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
@@ -2033,7 +2068,7 @@ void ZedCamera::publishRightImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRightSubCount: " << mRightSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatRight, mPubRight, mPubRightCamInfo, mPubRightCamInfoTrans,
+        mMatRight, mPubIpcRight, mPubRight, mPubRightCamInfo, mPubRightCamInfoTrans,
         mRightCamInfoMsg, mRightCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
@@ -2054,14 +2089,9 @@ void ZedCamera::publishRightRawImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRightRawSubCount: " << mRightRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatRightRaw,
-        mPubRawRight,
-        mPubRawRightCamInfo,
-        mPubRawRightCamInfoTrans,
-        mRightCamInfoRawMsg,
-        mRightCamOptFrameId,
-        t
-      );
+        mMatRightRaw, mPubIpcRawRight, mPubRawRight,
+        mPubRawRightCamInfo, mPubRawRightCamInfoTrans,
+        mRightCamInfoRawMsg, mRightCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
@@ -2081,14 +2111,9 @@ void ZedCamera::publishRightGrayImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRightGraySubCount: " << mRightGraySubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatRightGray,
-        mPubRightGray,
-        mPubRightGrayCamInfo,
-        mPubRightGrayCamInfoTrans,
-        mRightCamInfoMsg,
-        mRightCamOptFrameId,
-        t
-      );
+        mMatRightGray, mPubIpcRightGray, mPubRightGray,
+        mPubRightGrayCamInfo, mPubRightGrayCamInfoTrans,
+        mRightCamInfoMsg, mRightCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
@@ -2108,14 +2133,9 @@ void ZedCamera::publishRightRawGrayImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mRightGrayRawSubCount: " << mRightGrayRawSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatRightRawGray,
-        mPubRawRightGray,
-        mPubRawRightGrayCamInfo,
-        mPubRawRightGrayCamInfoTrans,
-        mRightCamInfoRawMsg,
-        mRightCamOptFrameId,
-        t
-      );
+        mMatRightRawGray, mPubIpcRawRightGray, mPubRawRightGray,
+        mPubRawRightGrayCamInfo, mPubRawRightGrayCamInfoTrans,
+        mRightCamInfoRawMsg, mRightCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
@@ -2138,7 +2158,16 @@ void ZedCamera::publishStereoImages(const rclcpp::Time & t)
       mMatLeft, mMatRight, mCenterFrameId, t, mUsePubTimestamps);
     DEBUG_STREAM_VD(" * Publishing SIDE-BY-SIDE message");
     try {
-      mPubStereo.publish(std::move(combined));
+      // TypeAdapter publisher handles raw + zero-copy
+      if (mPubIpcStereo && mPubIpcStereo->get_subscription_count() > 0) {
+        // Clone for IPC since combined may be moved to compression below
+        auto ipc_copy = std::make_unique<sensor_msgs::msg::Image>(*combined);
+        mPubIpcStereo->publish(std::move(ipc_copy));
+      }
+      // Compression only (raw plugin disabled via enable_pub_plugins)
+      if (mPubStereo.getNumSubscribers() > 0) {
+        mPubStereo.publish(std::move(combined));
+      }
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
     } catch (...) {
@@ -2155,7 +2184,16 @@ void ZedCamera::publishStereoRawImages(const rclcpp::Time & t)
       mMatLeftRaw, mMatRightRaw, mCenterFrameId, t, mUsePubTimestamps);
     DEBUG_STREAM_VD(" * Publishing SIDE-BY-SIDE RAW message");
     try {
-      mPubRawStereo.publish(std::move(combined));
+      // TypeAdapter publisher handles raw + zero-copy
+      if (mPubIpcRawStereo && mPubIpcRawStereo->get_subscription_count() > 0) {
+        // Clone for IPC since combined may be moved to compression below
+        auto ipc_copy = std::make_unique<sensor_msgs::msg::Image>(*combined);
+        mPubIpcRawStereo->publish(std::move(ipc_copy));
+      }
+      // Compression only (raw plugin disabled via enable_pub_plugins)
+      if (mPubRawStereo.getNumSubscribers() > 0) {
+        mPubRawStereo.publish(std::move(combined));
+      }
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
     } catch (...) {
@@ -2180,7 +2218,7 @@ void ZedCamera::publishConfidenceMap(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * mConfMapSubCount: " << mConfMapSubCount);
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatConf, mPubConfMap, mPubConfMapCamInfo, mPubConfMapCamInfoTrans,
+        mMatConf, mPubIpcConfMap, mPubConfMap, mPubConfMapCamInfo, mPubConfMapCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
@@ -2258,6 +2296,52 @@ void ZedCamera::publishImageWithInfo(
     publishCameraInfo(infoPub, camInfoMsg, image->header.stamp);
     publishCameraInfo(infoPubTrans, camInfoMsg, image->header.stamp);
     pubImg.publish(std::move(image));
+  } catch (std::system_error & e) {
+    DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
+  } catch (...) {
+    DEBUG_STREAM_COMM(" * Message publishing generic exception: ");
+  }
+}
+
+void ZedCamera::publishImageWithInfo(
+  const sl::Mat & img,
+  const adaptedImagePub & ipcPubImg,
+  const image_transport::Publisher & itPubImg,
+  const camInfoPub & infoPub,
+  const camInfoPub & infoPubTrans,
+  camInfoMsgPtr & camInfoMsg,
+  const std::string & imgFrameId,
+  const rclcpp::Time & t)
+{
+  auto stamp = mUsePubTimestamps ? get_clock()->now() : t;
+  DEBUG_STREAM_VD(
+    " * Publishing IMAGE message (IPC): " << stamp.nanoseconds() << " nsec");
+  try {
+    publishCameraInfo(infoPub, camInfoMsg, stamp);
+    publishCameraInfo(infoPubTrans, camInfoMsg, stamp);
+
+    // TypeAdapter path: handles raw inter-process (auto-converts to Image)
+    // and intra-process zero-copy (delivers StampedSlMat directly)
+    if (ipcPubImg && ipcPubImg->get_subscription_count() > 0) {
+      stereolabs::StampedSlMat adapted_msg;
+      // Clone the sl::Mat because the wrapper reuses member variables
+      // (mMatLeft, etc.) via retrieveImage() on the next grab() cycle.
+      // Intra-process publish is async, so the subscriber may still be
+      // processing when the buffer gets overwritten.
+      adapted_msg.mat.clone(img);
+      adapted_msg.frame_id = imgFrameId;
+      adapted_msg.stamp = stamp;
+      ipcPubImg->publish(std::move(adapted_msg));
+    }
+
+    // Compression path: only fires if compression plugin subscribers exist.
+    // The raw transport plugin is disabled via enable_pub_plugins parameter,
+    // so getNumSubscribers() counts only compression subscribers (compressed,
+    // theora, zstd). No duplicate on the base topic.
+    if (itPubImg.getNumSubscribers() > 0) {
+      auto image = sl_tools::imageToROSmsg(img, imgFrameId, t, mUsePubTimestamps);
+      itPubImg.publish(std::move(image));
+    }
   } catch (std::system_error & e) {
     DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
   } catch (...) {
@@ -2351,9 +2435,19 @@ void ZedCamera::publishDepthMapWithInfo(
         " * Publishing DEPTH message: " << t.nanoseconds()
                                         << " nsec");
       try {
-        mPubDepth.publish(std::move(depth_img));
         publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
         publishCameraInfo(mPubDepthCamInfoTrans, mLeftCamInfoMsg, t);
+
+        // TypeAdapter publisher handles raw + zero-copy
+        if (mPubIpcDepth && mPubIpcDepth->get_subscription_count() > 0) {
+          // Clone for IPC since depth_img may be moved to compression below
+          auto ipc_copy = std::make_unique<sensor_msgs::msg::Image>(*depth_img);
+          mPubIpcDepth->publish(std::move(ipc_copy));
+        }
+        // Compression only (raw plugin disabled via enable_pub_plugins)
+        if (mPubDepth.getNumSubscribers() > 0) {
+          mPubDepth.publish(std::move(depth_img));
+        }
       } catch (std::system_error & e) {
         DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
       } catch (...) {
@@ -2391,8 +2485,17 @@ void ZedCamera::publishDepthMapWithInfo(
 
     DEBUG_STREAM_VD(" * Publishing OPENNI DEPTH message");
     try {
-      mPubDepth.publish(std::move(openniDepthMsg));
       publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
+      // TypeAdapter publisher handles raw + zero-copy
+      if (mPubIpcDepth && mPubIpcDepth->get_subscription_count() > 0) {
+        // Clone for IPC since openniDepthMsg may be moved to compression below
+        auto ipc_copy = std::make_unique<sensor_msgs::msg::Image>(*openniDepthMsg);
+        mPubIpcDepth->publish(std::move(ipc_copy));
+      }
+      // Compression only (raw plugin disabled via enable_pub_plugins)
+      if (mPubDepth.getNumSubscribers() > 0) {
+        mPubDepth.publish(std::move(openniDepthMsg));
+      }
     } catch (std::system_error & e) {
       DEBUG_STREAM_COMM(" * Message publishing exception: " << e.what());
     } catch (...) {

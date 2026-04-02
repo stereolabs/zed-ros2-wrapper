@@ -239,6 +239,18 @@ protected:
     const std::string & imgFrameId,
     const rclcpp::Time & t);
 
+  // IPC-aware overload: publishes zero-copy via TypeAdapter rclcpp::Publisher
+  // and compressed via image_transport when compression subscribers exist
+  void publishImageWithInfo(
+    const sl::Mat & img,
+    const adaptedImagePub & ipcPubImg,
+    const image_transport::Publisher & itPubImg,
+    const camInfoPub & infoPub,
+    const camInfoPub & infoPubTrans,
+    camInfoMsgPtr & camInfoMsg,
+    const std::string & imgFrameId,
+    const rclcpp::Time & t);
+
 #ifdef FOUND_ISAAC_ROS_NITROS
   void publishImageWithInfo(
     const sl::Mat & img,
@@ -816,6 +828,28 @@ private:
   image_transport::Publisher mPubRoiMask;
   image_transport::Publisher mPubDepth;
   image_transport::Publisher mPubConfMap;
+
+  // IPC-aware image publishers (zero-copy capable via TypeAdapter)
+  // Intra-process subscribers receive StampedSlMat directly (no serialization),
+  // inter-process subscribers get auto-converted sensor_msgs::msg::Image
+  adaptedImagePub mPubIpcRgb;
+  adaptedImagePub mPubIpcRawRgb;
+  adaptedImagePub mPubIpcLeft;
+  adaptedImagePub mPubIpcRawLeft;
+  adaptedImagePub mPubIpcRight;
+  adaptedImagePub mPubIpcRawRight;
+  adaptedImagePub mPubIpcRgbGray;
+  adaptedImagePub mPubIpcRawRgbGray;
+  adaptedImagePub mPubIpcLeftGray;
+  adaptedImagePub mPubIpcRawLeftGray;
+  adaptedImagePub mPubIpcRightGray;
+  adaptedImagePub mPubIpcRawRightGray;
+  adaptedImagePub mPubIpcRoiMask;
+  adaptedImagePub mPubIpcDepth;
+  adaptedImagePub mPubIpcConfMap;
+  adaptedImagePub mPubIpcStereo;
+  adaptedImagePub mPubIpcRawStereo;
+
 #ifdef FOUND_ISAAC_ROS_NITROS
   // Nitros image publishers with camera info
   nitrosImgPub mNitrosPubRgb;

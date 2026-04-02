@@ -9806,8 +9806,8 @@ void ZedCamera::processRtRoi(rclcpp::Time ts)
 
       if (_nitrosDisabled) {
         publishImageWithInfo(
-          roi_mask, mPubRoiMask, mPubRoiMaskCamInfo, mPubRoiMaskCamInfoTrans, mLeftCamInfoMsg,
-          mLeftCamOptFrameId, ts);
+          roi_mask, mPubIpcRoiMask, mPubRoiMask, mPubRoiMaskCamInfo, mPubRoiMaskCamInfoTrans,
+          mLeftCamInfoMsg, mLeftCamOptFrameId, ts);
       } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
         publishImageWithInfo(

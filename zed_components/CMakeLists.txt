@@ -183,6 +183,18 @@ if(point_cloud_transport_FOUND)
   add_definitions(-DFOUND_POINT_CLOUD_TRANSPORT)
 endif()
 
+# Type Adaptation for sl::Mat <-> sensor_msgs::msg::Image
+# Intra-process subscribers can receive sl::Mat directly without serialization.
+# Requires rclcpp::TypeAdapter which is available from Humble onward.
+set(_PRE_HUMBLE_DISTROS "ardent;bouncy;crystal;dashing;eloquent;foxy;galactic")
+if(ROS2_FOUND AND ${FOUND_ROS2_DISTRO} IN_LIST _PRE_HUMBLE_DISTROS)
+  message(FATAL_ERROR
+    "ROS 2 ${FOUND_ROS2_DISTRO} is not supported by this version of zed_components. "
+    "rclcpp::TypeAdapter (required for zero-copy IPC) is only available "
+    "from Humble onward. Please upgrade to ROS 2 Humble or later.")
+endif()
+message(STATUS " * Type Adaptation for sl::Mat is enabled")
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
@@ -217,6 +229,7 @@ set(SL_TOOLS_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_logging.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/gnss_replay.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_types.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_type_adapter.hpp
 )
 
 set(SL_TOOLS_SRC

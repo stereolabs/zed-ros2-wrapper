@@ -88,40 +88,40 @@ void ZedCamera::initVideoDepthPublishers()
   // Camera publishers
   if (_nitrosDisabled) {
 
-    // Publishers logging
+    // Publishers logging — reads back the actual enabled plugins for this topic
     auto log_cam_pub = [&](const auto & pub) {
         RCLCPP_INFO_STREAM(
           get_logger(),
           " * Advertised on topic: " << pub.getTopic());
-        std::vector<std::string> transports{};
-        //transports = image_transport::getLoadableTransports();
-        try {
-          transports = image_transport::getDeclaredTransports();
-        } catch (const std::exception & e) {
-          RCLCPP_ERROR_STREAM(
-            get_logger(),
-            "Failed to get declared transports: " << e.what());
-        } catch (...) {
-          RCLCPP_ERROR(get_logger(), "Unknown error while getting declared transports");
+
+        // Derive param name the same way image_transport::Publisher does
+        auto ns_len = get_effective_namespace().length();
+        std::string param_base = pub.getTopic().substr(ns_len);
+        std::replace(param_base.begin(), param_base.end(), '/', '.');
+        if (!param_base.empty() && param_base.front() == '.') {
+          param_base = param_base.substr(1);
         }
 
-        for (const auto & transport : transports) {
-          // Ignore topics that end with "raw" because we disabled the raw
-          // transport for these topics to avoid duplicates with the IPC
-          // TypeAdapter publisher
-          if (transport.size() >= 3 &&
-            transport.compare(transport.size() - 3, 3, "raw") == 0)
-          {
-            continue;
-          }
-          std::string transport_copy = transport;
-          auto pos = transport_copy.find('/');
+        std::vector<std::string> enabled;
+        try {
+          enabled = get_parameter(
+            param_base + ".enable_pub_plugins").get_value<std::vector<std::string>>();
+        } catch (...) {
+          // Fallback if parameter not found (shouldn't happen)
+          try {
+            enabled = image_transport::getDeclaredTransports();
+          } catch (...) {}
+        }
+
+        for (const auto & transport : enabled) {
+          std::string suffix = transport;
+          auto pos = suffix.find('/');
           if (pos != std::string::npos) {
-            transport_copy.erase(0, pos);
+            suffix.erase(0, pos);
           }
           RCLCPP_INFO_STREAM(
             get_logger(), " * Advertised on topic: "
-              << pub.getTopic() << transport_copy
+              << pub.getTopic() << suffix
               << " [image_transport]");
         }
       };
@@ -135,12 +135,16 @@ void ZedCamera::initVideoDepthPublishers()
         return pub;
       };
 
-    // Lambda to disable image_transport raw plugin for a topic, so that
-    // only compression plugins (compressed, theora, zstd) are created.
-    // The TypeAdapter IPC publisher handles the base topic instead.
-    // Uses the enable_pub_plugins parameter supported by image_transport
-    // (stable from Humble through Rolling).
-    auto disable_raw_transport = [&](const std::string & topic) {
+    // Lambda to configure image_transport plugins for a topic based on its
+    // data type. The raw plugin is always excluded (IPC TypeAdapter handles
+    // the base topic). Additionally, plugins incompatible with the topic's
+    // encoding are filtered out:
+    //   IMAGE  (sl::VIEW, 8-bit):    compressed ✓, theora ✓, compressedDepth ✗
+    //   MEASURE (sl::MEASURE, float): compressedDepth ✓, compressed ✗, theora ✗
+    // Unknown/future plugins (e.g. zstd) are allowed for all types.
+    // Uses the enable_pub_plugins parameter supported by image_transport.
+    auto set_transport_plugins =
+      [&](const std::string & topic, ImageTopicType type = ImageTopicType::IMAGE) {
         std::string resolved = rclcpp::expand_topic_or_service_name(
           topic, get_name(), get_namespace());
         auto ns_len = get_effective_namespace().length();
@@ -149,20 +153,44 @@ void ZedCamera::initVideoDepthPublishers()
         if (param_base.front() == '.') {
           param_base = param_base.substr(1);
         }
-        std::vector<std::string> compression_only;
+        std::vector<std::string> allowed;
         try {
           auto all = image_transport::getDeclaredTransports();
           for (const auto & t : all) {
-            if (t.find("/raw") == std::string::npos) {
-              compression_only.push_back(t);
+            // Always exclude raw (IPC TypeAdapter handles base topic)
+            if (t.find("/raw") != std::string::npos) {
+              continue;
+            }
+            bool is_compressed_depth = (t.find("/compressedDepth") != std::string::npos);
+            bool is_compressed = !is_compressed_depth && (t.find("/compressed") != std::string::npos);
+            bool is_theora = (t.find("/theora") != std::string::npos);
+
+            if (is_compressed_depth) {
+              if (type == ImageTopicType::MEASURE) {
+                allowed.push_back(t);
+              }
+            } else if (is_compressed || is_theora) {
+              if (type == ImageTopicType::IMAGE) {
+                allowed.push_back(t);
+              }
+            } else {
+              // Unknown plugin (e.g. zstd) — allow for all types
+              allowed.push_back(t);
             }
           }
         } catch (...) {
-          RCLCPP_WARN(get_logger(), "Failed to get declared transports for raw plugin filtering");
+          RCLCPP_WARN(get_logger(), "Failed to get declared transports for plugin filtering");
+          return;
+        }
+        if (allowed.empty()) {
+          RCLCPP_WARN(
+            get_logger(),
+            "No compatible transports found for topic %s — falling back to all plugins",
+            topic.c_str());
           return;
         }
         try {
-          declare_parameter(param_base + ".enable_pub_plugins", compression_only);
+          declare_parameter(param_base + ".enable_pub_plugins", allowed);
         } catch (const rclcpp::exceptions::ParameterAlreadyDeclaredException &) {
           auto val = get_parameter(
             param_base + ".enable_pub_plugins").get_value<std::vector<std::string>>();
@@ -179,13 +207,14 @@ void ZedCamera::initVideoDepthPublishers()
 
     // Lambda to create both publishers for a topic:
     // 1. TypeAdapter IPC publisher (handles raw + zero-copy)
-    // 2. image_transport publisher with raw plugin disabled (compression only)
+    // 2. image_transport publisher with type-aware plugin filtering
     auto create_dual_pub = [&](
       const std::string & topic,
       adaptedImagePub & ipcPub,
-      image_transport::Publisher & itPub) {
+      image_transport::Publisher & itPub,
+      ImageTopicType type = ImageTopicType::IMAGE) {
         ipcPub = create_ipc_pub(topic);
-        disable_raw_transport(topic);
+        set_transport_plugins(topic, type);
         itPub = image_transport::create_publisher(this, topic, qos);
         log_cam_pub(itPub);
       };
@@ -224,10 +253,10 @@ void ZedCamera::initVideoDepthPublishers()
         create_dual_pub(mRoiMaskTopic, mPubIpcRoiMask, mPubRoiMask);
       }
       if (mPublishDepthMap) {
-        create_dual_pub(mDepthTopic, mPubIpcDepth, mPubDepth);
+        create_dual_pub(mDepthTopic, mPubIpcDepth, mPubDepth, ImageTopicType::MEASURE);
       }
       if (mPublishConfidence) {
-        create_dual_pub(mConfMapTopic, mPubIpcConfMap, mPubConfMap);
+        create_dual_pub(mConfMapTopic, mPubIpcConfMap, mPubConfMap, ImageTopicType::MEASURE);
       }
     }
 

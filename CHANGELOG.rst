@@ -9,6 +9,7 @@ v5.3
 - Added support to `rclcpp::TypeAdapter` for better handling of Image messages:
   - A `TypeAdapter` publisher handles the base "raw" topic. Intra-process subscribers receive `StampedSlMat`` (wrapping `sl::Mat``) directly without serialization. Inter-process subscribers receive `sensor_msgs/msg/Image` via automatic `TypeAdapter` conversion.
   - An `image_transport` publisher handles the transport-specific topics (e.g., `compressed`, `theora`). The "raw" transport is disabled to avoid duplicated messages.
+  - Image transport plugins are now filtered by topic type: visual topics (IMAGE) only advertise `compressed` and `theora`, while measurement topics (MEASURE) only advertise `compressedDepth`. This prevents silent data corruption from incompatible plugin/encoding combinations (e.g., JPEG on float depth).
   - When the package `isaac_ros_nitros` is installed and NITROS not disabled via the `debug.disable_nitros` parameter, NITROS publishers take priority and neither `TypeAdapter` nor `image_transport` publishers are created.
 
 v5.2.2

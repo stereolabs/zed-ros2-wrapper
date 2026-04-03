@@ -31,6 +31,14 @@
 namespace stereolabs
 {
 
+// Categorizes image topics for transport plugin filtering.
+// IMAGE: visual data from sl::VIEW (8-bit: BGRA8, BGR8, MONO8)
+// MEASURE: metric data from sl::MEASURE (float: 32FC1, or 16UC1 in OpenNI mode)
+#ifndef STEREOLABS_IMAGE_TOPIC_TYPE_DEFINED
+#define STEREOLABS_IMAGE_TOPIC_TYPE_DEFINED
+enum class ImageTopicType { IMAGE, MEASURE };
+#endif
+
 class ZedCamera : public rclcpp::Node
 {
 public:

@@ -2882,6 +2882,14 @@ bool ZedCamera::startCamera()
       return false;
     }
 
+    if (mConnStatus == sl::ERROR_CODE::CAMERA_EXCEEDS_BANDWIDTH) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "GMSL PHY CSI bandwidth overflow detected: " << sl::toVerbose(mConnStatus)
+        << ". Please reduce the camera resolution or FPS, adjust GMSL branching/hardware, or consult the GMSL documentation for platform limits.");
+      return false;
+    }
+
     if (mSvoMode) {
       RCLCPP_WARN(
         get_logger(), "Error opening SVO: %s",

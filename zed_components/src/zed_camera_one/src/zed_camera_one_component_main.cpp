@@ -978,6 +978,13 @@ bool ZedCameraOne::openZedCamera()
           "If the file exists, it may contain invalid information.");
       }
       return false;
+    }
+
+    if (_connStatus == sl::ERROR_CODE::CAMERA_EXCEEDS_BANDWIDTH) {
+      RCLCPP_ERROR_STREAM(get_logger(),
+        "GMSL PHY CSI bandwidth overflow detected: " << sl::toVerbose(_connStatus)
+        << ". Please reduce the camera resolution or FPS, adjust GMSL branching/hardware, or consult the GMSL documentation for platform limits.");
+      return false;
     } else if (_svoMode) {
       RCLCPP_WARN(
         get_logger(), "Error opening SVO: %s",

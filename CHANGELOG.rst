@@ -3,6 +3,7 @@ LATEST CHANGES
 
 v5.3
 ----------
+- Added handling of `ERROR_CODE::CAMERA_EXCEEDS_BANDWIDTH` during camera open in both stereo and mono components. When a GMSL PHY CSI bandwidth overflow is detected, the node logs an error and stops initialization.
 - Added `XVGA` as a valid `grab_resolution` option for ZED X HDR camera configurations (`zedxhdr`, `zedxhdrmax`, `zedxhdrmini`, `zedxonehdr`).
 - Added `XVGA` resolution parsing in both stereo (`ZedCamera`) and mono (`ZedCameraOne`) components.
 - IPC is now handled automatically disabling it when NITROS is enabled and enabling it when NITROS is disabled. The `debug.disable_nitros` parameter can be used to disable NITROS and enable IPC if needed.

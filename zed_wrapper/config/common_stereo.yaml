@@ -94,6 +94,10 @@
             publish_depth_map: true # Advertise the depth map topics that are published only if a node subscribes to them
             publish_depth_info: false # Advertise the depth info topic that is published only if a node subscribes to it
             publish_point_cloud: true # Advertise the point cloud topic that is published only if a node subscribes to it
+            voxel_point_cloud: false # [DYNAMIC] When true, publish voxel-decimated point cloud instead of full resolution
+            voxel_size_mm: -1.0 # [DYNAMIC] Voxel grid cell size in millimeters. -1 = 100mm default. Clamped to [5, max_depth_range]
+            voxel_resolution_mode: 'STEREO_UNCERTAINTY' # [DYNAMIC] Voxelization mode: 'FIXED', 'STEREO_UNCERTAINTY', 'LINEAR'
+            voxel_resolution_scale: 0.2 # [DYNAMIC] Scale factor for depth-adaptive voxel growth [0.01, 3.0]
             publish_depth_confidence: false # Advertise the depth confidence topic that is published only if a node subscribes to it
             publish_disparity: false # Advertise the disparity topic that is published only if a node subscribes to it
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'

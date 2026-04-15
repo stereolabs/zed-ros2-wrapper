@@ -664,6 +664,38 @@ void ZedCamera::getDepthParams()
       " * Point cloud resolution: " << out_resol.c_str());
 
     sl_tools::getParam(
+      shared_from_this(), "depth.voxel_point_cloud", mVoxelPointCloud,
+      mVoxelPointCloud, " * Voxel Point Cloud: ", true);
+    {
+      double voxel_size_mm = mVoxelParams.voxel_size < 0
+        ? -1.0 : static_cast<double>(mVoxelParams.voxel_size) * 1000.0;
+      sl_tools::getParam(
+        shared_from_this(), "depth.voxel_size_mm", voxel_size_mm,
+        voxel_size_mm, " * Voxel Size [mm]: ", true, -1.0, 10000.0);
+      mVoxelParams.voxel_size = voxel_size_mm <= 0
+        ? static_cast<float>(voxel_size_mm) : static_cast<float>(voxel_size_mm / 1000.0);
+
+      std::string voxel_mode = "STEREO_UNCERTAINTY";
+      sl_tools::getParam(
+        shared_from_this(), "depth.voxel_resolution_mode", voxel_mode,
+        voxel_mode);
+      if (voxel_mode == "FIXED") {
+        mVoxelParams.resolution_mode = sl::VOXELIZATION_MODE::FIXED;
+      } else if (voxel_mode == "LINEAR") {
+        mVoxelParams.resolution_mode = sl::VOXELIZATION_MODE::LINEAR;
+      } else {
+        mVoxelParams.resolution_mode = sl::VOXELIZATION_MODE::STEREO_UNCERTAINTY;
+      }
+      RCLCPP_INFO_STREAM(get_logger(), " * Voxel Resolution Mode: " << voxel_mode);
+
+      double voxel_scale = static_cast<double>(mVoxelParams.resolution_scale);
+      sl_tools::getParam(
+        shared_from_this(), "depth.voxel_resolution_scale", voxel_scale,
+        voxel_scale, " * Voxel Resolution Scale: ", true, 0.01, 3.0);
+      mVoxelParams.resolution_scale = static_cast<float>(voxel_scale);
+    }
+
+    sl_tools::getParam(
       shared_from_this(), "depth.depth_confidence", mDepthConf,
       mDepthConf, " * Depth Confidence: ", true, 0, 100);
     sl_tools::getParam(
@@ -2632,9 +2664,14 @@ void ZedCamera::processPointCloud()
       DEBUG_STREAM_PC(
         " * [processPointCloud] Retrieving point cloud size: " << mPcResol.width << "x" <<
           mPcResol.height);
-      auto pc_err = mZed->retrieveMeasure(
-        mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU,
-        mPcResol);
+      sl::ERROR_CODE pc_err;
+      if (mVoxelPointCloud) {
+        pc_err = mZed->retrieveVoxelMeasure(
+          mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mVoxelParams);
+      } else {
+        pc_err = mZed->retrieveMeasure(
+          mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mPcResol);
+      }
       if (pc_err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_WARN_STREAM(
           get_logger(),
@@ -2689,8 +2726,8 @@ void ZedCamera::publishPointCloud()
 {
   sl_tools::StopWatch pcElabTimer(get_clock());
 
-  int width = mPcResol.width;
-  int height = mPcResol.height;
+  int width = mMatCloud.getWidth();
+  int height = mMatCloud.getHeight();
 
   int ptsCount = width * height;
 
@@ -3398,6 +3435,61 @@ bool ZedCamera::handleDepthParams(
     }
 
     DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
+    return true;
+  } else if (name == "depth.voxel_point_cloud") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason = name + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return true;
+    }
+    mVoxelPointCloud = param.as_bool();
+    DEBUG_STREAM_DYN_PARAMS(
+      "Parameter '" << name << "' correctly set to " <<
+        (mVoxelPointCloud ? "TRUE" : "FALSE"));
+    return true;
+  } else if (name == "depth.voxel_size_mm") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason = name + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return true;
+    }
+    double voxel_size_mm = param.as_double();
+    mVoxelParams.voxel_size = voxel_size_mm <= 0
+      ? static_cast<float>(voxel_size_mm) : static_cast<float>(voxel_size_mm / 1000.0);
+    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << voxel_size_mm << " mm (" << mVoxelParams.voxel_size << " m)");
+    return true;
+  } else if (name == "depth.voxel_resolution_scale") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason = name + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return true;
+    }
+    mVoxelParams.resolution_scale = static_cast<float>(param.as_double());
+    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << mVoxelParams.resolution_scale);
+    return true;
+  } else if (name == "depth.voxel_resolution_mode") {
+    rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_STRING;
+    if (param.get_type() != correctType) {
+      result.successful = false;
+      result.reason = name + " must be a " + rclcpp::to_string(correctType);
+      RCLCPP_WARN_STREAM(get_logger(), result.reason);
+      return true;
+    }
+    std::string voxel_mode = param.as_string();
+    if (voxel_mode == "FIXED") {
+      mVoxelParams.resolution_mode = sl::VOXELIZATION_MODE::FIXED;
+    } else if (voxel_mode == "LINEAR") {
+      mVoxelParams.resolution_mode = sl::VOXELIZATION_MODE::LINEAR;
+    } else {
+      mVoxelParams.resolution_mode = sl::VOXELIZATION_MODE::STEREO_UNCERTAINTY;
+    }
+    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << voxel_mode);
     return true;
   } else if (name == "depth.remove_saturated_areas") {
     rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;

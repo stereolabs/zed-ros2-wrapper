@@ -559,6 +559,8 @@ private:
   sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::NEURAL;
   std::string mDepthModelOverride;  // Optional model file override for depth mode
   PcRes mPcResolution = PcRes::COMPACT;
+  bool mVoxelPointCloud = false;
+  sl::VoxelMeasureParameters mVoxelParams;
   std::atomic<bool> mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE)
   int mDepthStabilization = 0;
 

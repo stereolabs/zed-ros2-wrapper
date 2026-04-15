@@ -759,6 +759,7 @@ void ZedCamera::fillCamInfo(
     case sl::MODEL::ZED2i:   // RATIONAL_POLYNOMIAL
     case sl::MODEL::ZED_X:   // RATIONAL_POLYNOMIAL
     case sl::MODEL::ZED_XM:  // RATIONAL_POLYNOMIAL
+    case sl::MODEL::ZED_X_NANO:  // RATIONAL_POLYNOMIAL
     case sl::MODEL::VIRTUAL_ZED_X:  // RATIONAL_POLYNOMIAL
       leftCamInfoMsg->distortion_model =
         sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;

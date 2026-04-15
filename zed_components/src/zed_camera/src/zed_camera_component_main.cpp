@@ -1091,6 +1091,30 @@ void ZedCamera::getGeneralParams()
                         << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
+  } else if (camera_model == "zedxnano") {
+    mCamUserModel = sl::MODEL::ZED_X_NANO;
+    if (mSvoMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Playing an SVO for "
+          << sl::toString(mCamUserModel)
+          << " camera model.");
+    } else if (mStreamMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Playing a network stream from a "
+          << sl::toString(mCamUserModel)
+          << " camera model.");
+    } else if (mSimMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Simulating a "
+          << sl::toString(mCamUserModel)
+          << " camera model.");
+    } else if (!IS_JETSON) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "Camera model " << sl::toString(mCamUserModel).c_str()
+                        << " is available only with NVIDIA Jetson devices.");
+      exit(EXIT_FAILURE);
+    }
   } else if (camera_model == "virtual") {
     mCamUserModel = sl::MODEL::VIRTUAL_ZED_X;
 
@@ -3059,6 +3083,13 @@ bool ZedCamera::startCamera()
         get_logger(),
         "Camera model does not match user parameter. Please modify "
         "the value of the parameter 'general.camera_model' to 'zedxm'");
+    }
+  } else if (mCamRealModel == sl::MODEL::ZED_X_NANO) {
+    if (mCamUserModel != sl::MODEL::ZED_X_NANO) {
+      RCLCPP_WARN(
+        get_logger(),
+        "Camera model does not match user parameter. Please modify "
+        "the value of the parameter 'general.camera_model' to 'zedxnano'");
     }
   } else if (mCamRealModel == sl::MODEL::VIRTUAL_ZED_X) {
     if (mCamUserModel != sl::MODEL::VIRTUAL_ZED_X) {
@@ -5774,6 +5805,7 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
       break;
     case sl::MODEL::ZED_X:
     case sl::MODEL::ZED_XM:
+    case sl::MODEL::ZED_X_NANO:
     case sl::MODEL::ZED_X_HDR:
     case sl::MODEL::ZED_X_HDR_MAX:
     case sl::MODEL::ZED_X_HDR_MINI:

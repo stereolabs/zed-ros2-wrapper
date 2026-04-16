@@ -166,6 +166,7 @@ typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;
 
 typedef rclcpp::Service<zed_msgs::srv::StartSvoRec>::SharedPtr startSvoRecSrvPtr;
 typedef rclcpp::Service<zed_msgs::srv::SetROI>::SharedPtr setRoiSrvPtr;
+typedef rclcpp::Service<zed_msgs::srv::SetROI>::SharedPtr setAecAgcRoiSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoSrvPtr;
 typedef rclcpp::Service<zed_msgs::srv::SetSvoFrame>::SharedPtr setSvoFramePtr;

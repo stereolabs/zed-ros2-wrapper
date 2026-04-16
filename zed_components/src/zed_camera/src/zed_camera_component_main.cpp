@@ -409,9 +409,18 @@ void ZedCamera::initServices()
   srv_name = srv_prefix + mSrvSetRoiName;
   mSetRoiSrv = create_service<zed_msgs::srv::SetROI>(
     srv_name, std::bind(&ZedCamera::callback_setRoi, this, _1, _2, _3));
+<<<<<<< HEAD
   RCLCPP_INFO_STREAM(
     get_logger(),
     " * Advertised on service: '" << mSetRoiSrv->get_service_name() << "'");
+=======
+  RCLCPP_INFO(get_logger(), " * '%s'", mSetRoiSrv->get_service_name());
+  // Set AEC/AGC ROI
+  srv_name = srv_prefix + mSrvSetAecAgcRoiName;
+  mSetAecAgcRoiSrv = create_service<zed_msgs::srv::SetROI>(
+    srv_name, std::bind(&ZedCamera::callback_setAecAgcRoi, this, _1, _2, _3));
+  RCLCPP_INFO(get_logger(), " * '%s'", mSetAecAgcRoiSrv->get_service_name());
+>>>>>>> 6c71368 (Add autoexposure ROI ros service)
   // Reset ROI
   srv_name = srv_prefix + mSrvResetRoiName;
   mResetRoiSrv = create_service<std_srvs::srv::Trigger>(
@@ -8986,6 +8995,139 @@ void ZedCamera::callback_setRoi(
     }
   }
   // <---- Set Region of Interest
+}
+
+void ZedCamera::callback_setAecAgcRoi(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<zed_msgs::srv::SetROI_Request> req,
+  std::shared_ptr<zed_msgs::srv::SetROI_Response> res)
+{
+  (void)request_header;
+
+  RCLCPP_INFO(get_logger(), "** Set AEC/AGC ROI service called **");
+  RCLCPP_INFO_STREAM(get_logger(), " * ROI string: " << req->roi.c_str());
+
+  if (req->roi == "") {
+    std::string err_msg =
+      "Error while setting ZED SDK AEC/AGC ROI: a vector of "
+      "normalized points describing a "
+      "polygon is required. e.g. "
+      "'[[0.5,0.25],[0.75,0.5],[0.5,0.75],[0.25,0.5]]'";
+
+    RCLCPP_WARN_STREAM(get_logger(), " * " << err_msg);
+
+    res->message = err_msg;
+    res->success = false;
+    return;
+  }
+
+  std::string error;
+  std::vector<std::vector<float>> parsed_poly =
+    sl_tools::parseStringVector(req->roi, error);
+
+  if (error != "") {
+    std::string err_msg = "Error while setting ZED SDK AEC/AGC ROI: ";
+    err_msg += error;
+
+    RCLCPP_WARN_STREAM(get_logger(), " * " << err_msg);
+
+    res->message = err_msg;
+    res->success = false;
+    return;
+  }
+
+  std::vector<sl::float2> sl_poly;
+  parseRoiPoly(parsed_poly, sl_poly);
+  if (sl_poly.empty()) {
+    std::string err_msg =
+      "Error while setting ZED SDK AEC/AGC ROI: the provided polygon is not "
+      "valid.";
+
+    RCLCPP_WARN_STREAM(get_logger(), " * " << err_msg);
+
+    res->message = err_msg;
+    res->success = false;
+    return;
+  }
+
+  float min_x = sl_poly[0].x;
+  float max_x = sl_poly[0].x;
+  float min_y = sl_poly[0].y;
+  float max_y = sl_poly[0].y;
+  for (size_t i = 1; i < sl_poly.size(); ++i) {
+    if (sl_poly[i].x < min_x) {
+      min_x = sl_poly[i].x;
+    }
+    if (sl_poly[i].x > max_x) {
+      max_x = sl_poly[i].x;
+    }
+    if (sl_poly[i].y < min_y) {
+      min_y = sl_poly[i].y;
+    }
+    if (sl_poly[i].y > max_y) {
+      max_y = sl_poly[i].y;
+    }
+  }
+
+  const int max_x_px = mCamWidth > 0 ? (mCamWidth - 1) : 0;
+  const int max_y_px = mCamHeight > 0 ? (mCamHeight - 1) : 0;
+
+  int x_px = static_cast<int>(min_x * max_x_px);
+  int y_px = static_cast<int>(min_y * max_y_px);
+  int x2_px = static_cast<int>(max_x * max_x_px);
+  int y2_px = static_cast<int>(max_y * max_y_px);
+
+  if (x_px < 0) {
+    x_px = 0;
+  }
+  if (y_px < 0) {
+    y_px = 0;
+  }
+  if (x2_px > max_x_px) {
+    x2_px = max_x_px;
+  }
+  if (y2_px > max_y_px) {
+    y2_px = max_y_px;
+  }
+
+  int width_px = x2_px - x_px + 1;
+  int height_px = y2_px - y_px + 1;
+  if (width_px < 1) {
+    width_px = 1;
+  }
+  if (height_px < 1) {
+    height_px = 1;
+  }
+
+  sl::Rect roi_rect;
+  roi_rect.x = x_px;
+  roi_rect.y = y_px;
+  roi_rect.width = width_px;
+  roi_rect.height = height_px;
+
+  auto err =
+    mZed->setCameraSettings(sl::VIDEO_SETTINGS::AEC_AGC_ROI, roi_rect);
+  if (err != sl::ERROR_CODE::SUCCESS) {
+    std::string err_msg =
+      "Error while setting ZED SDK AEC/AGC ROI: ";
+    err_msg += sl::toString(err).c_str();
+
+    RCLCPP_WARN_STREAM(get_logger(), "  * " << err_msg);
+
+    res->message = err_msg;
+    res->success = false;
+    return;
+  }
+
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    "  * AEC/AGC ROI correctly set: x=" << roi_rect.x <<
+      " y=" << roi_rect.y <<
+      " width=" << roi_rect.width <<
+      " height=" << roi_rect.height);
+
+  res->message = "AEC/AGC ROI correctly set.";
+  res->success = true;
 }
 
 void ZedCamera::callback_resetRoi(

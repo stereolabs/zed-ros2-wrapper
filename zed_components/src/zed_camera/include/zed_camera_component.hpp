@@ -193,6 +193,10 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_msgs::srv::SetROI_Request> req,
     std::shared_ptr<zed_msgs::srv::SetROI_Response> res);
+  void callback_setAecAgcRoi(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<zed_msgs::srv::SetROI_Request> req,
+    std::shared_ptr<zed_msgs::srv::SetROI_Response> res);
   void callback_resetRoi(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
@@ -1125,6 +1129,7 @@ private:
   pauseSvoSrvPtr mPauseSvoSrv;
   setSvoFramePtr mSetSvoFrameSrv;
   setRoiSrvPtr mSetRoiSrv;
+  setAecAgcRoiSrvPtr mSetAecAgcRoiSrv;
   resetRoiSrvPtr mResetRoiSrv;
   toLLSrvPtr mToLlSrv;
   fromLLSrvPtr mFromLlSrv;
@@ -1147,6 +1152,7 @@ private:
   const std::string mSrvToggleSvoPauseName = "toggle_svo_pause";
   const std::string mSrvSetSvoFrameName = "set_svo_frame";
   const std::string mSrvSetRoiName = "set_roi";
+  const std::string mSrvSetAecAgcRoiName = "set_aec_agc_roi";
   const std::string mSrvResetRoiName = "reset_roi";
   const std::string mSrvToLlName = "toLL";  // Convert from `map` to `Lat Long`
   const std::string mSrvFromLlName = "fromLL";  // Convert from `Lat Long` to `map`

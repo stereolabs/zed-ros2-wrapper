@@ -41,7 +41,7 @@ This package enables the use of ZED cameras with ROS 2, providing access to a va
 
 The **zed_ros2_wrapper** is a [colcon](http://design.ros2.org/articles/build_tool.html) package.
 
-> :pushpin: **Note:** If you haven’t set up your colcon workspace yet, please follow this short [tutorial](https://index.ros.org/doc/ros2/Tutorials/Colcon-Tutorial/).
+> :pushpin: **Note:** If you haven’t set up your colcon workspace yet, please follow this short [tutorial](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html).
 
 To install the **zed_ros2_wrapper**, open a bash terminal, clone the package from GitHub, and build it:
 

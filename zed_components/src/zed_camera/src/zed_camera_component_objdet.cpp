@@ -1086,17 +1086,31 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
       mZed->setObjectDetectionRuntimeParameters(objectTracker_parameters_rt);
     }
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
-    else {
-      sl::CustomObjectDetectionRuntimeParameters custom_objectTracker_parameters_rt;
-      custom_objectTracker_parameters_rt.object_class_detection_properties = mCustomOdProperties;
-      mZed->setCustomObjectDetectionRuntimeParameters(custom_objectTracker_parameters_rt);
-    }
+    // Custom OD: do NOT call setCustomObjectDetectionRuntimeParameters here.
+    // On SDK 5.2.3 calling this corrupts internal state so that any later
+    // retrieveObjects() or retrieveCustomObjects() returns is_new=false
+    // forever, blocking /obj_det/objects publication. Verified empirically:
+    // both "set + retrieveObjects" and "set + retrieveCustomObjects(rt)"
+    // fail; only passing rt to retrieveCustomObjects() *without* a prior set
+    // call produces detections. The canonical Custom OD sample also follows
+    // this pattern (see ZED SDK samples: object detection/custom detector/
+    //   python/onnx_yolo_internal/custom_internal_detector.py).
 #endif
     mObjDetRtParamsDirty = false;
   }
   // <---- Update runtime parameters only when changed
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
+  if (mUsingCustomOd) {
+    sl::CustomObjectDetectionRuntimeParameters custom_rt;
+    custom_rt.object_class_detection_properties = mCustomOdProperties;
+    objDetRes = mZed->retrieveCustomObjects(objects, custom_rt);
+  } else {
+    objDetRes = mZed->retrieveObjects(objects);
+  }
+#else
   objDetRes = mZed->retrieveObjects(objects);
+#endif
 
   if (objDetRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(

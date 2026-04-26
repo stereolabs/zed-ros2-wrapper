@@ -945,7 +945,12 @@ bool ZedCamera::isDepthRequired()
     (mPosTrkMode != sl::POSITIONAL_TRACKING_MODE::GEN_3);
 #endif
 
-  return tot_sub > 0 || depth_required_for_pos_trk;
+  // Object Detection (especially CUSTOM_YOLOLIKE_BOX_OBJECTS) needs depth for
+  // 3D bbox lifting. Without this, grab() runs with enable_depth=false and
+  // the Custom OD inference never produces output (is_new stays false forever).
+  bool depth_required_for_od = mObjDetRunning;
+
+  return tot_sub > 0 || depth_required_for_pos_trk || depth_required_for_od;
 }
 
 void ZedCamera::applyDepthSettings()

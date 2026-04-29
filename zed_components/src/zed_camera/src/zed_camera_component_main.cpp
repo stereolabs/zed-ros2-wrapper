@@ -498,18 +498,12 @@ void ZedCamera::initServices()
   srv_name = srv_prefix + mSrvSetRoiName;
   mSetRoiSrv = create_service<zed_msgs::srv::SetROI>(
     srv_name, std::bind(&ZedCamera::callback_setRoi, this, _1, _2, _3));
-<<<<<<< HEAD
-  RCLCPP_INFO_STREAM(
-    get_logger(),
-    " * Advertised on service: '" << mSetRoiSrv->get_service_name() << "'");
-=======
   RCLCPP_INFO(get_logger(), " * '%s'", mSetRoiSrv->get_service_name());
   // Set AEC/AGC ROI
   srv_name = srv_prefix + mSrvSetAecAgcRoiName;
   mSetAecAgcRoiSrv = create_service<zed_msgs::srv::SetROI>(
     srv_name, std::bind(&ZedCamera::callback_setAecAgcRoi, this, _1, _2, _3));
   RCLCPP_INFO(get_logger(), " * '%s'", mSetAecAgcRoiSrv->get_service_name());
->>>>>>> 6c71368 (Add autoexposure ROI ros service)
   // Reset ROI
   srv_name = srv_prefix + mSrvResetRoiName;
   mResetRoiSrv = create_service<std_srvs::srv::Trigger>(

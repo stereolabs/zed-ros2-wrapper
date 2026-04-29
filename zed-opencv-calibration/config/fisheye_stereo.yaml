@@ -1,0 +1,36 @@
+# © 2026, Cargo Robotics
+# Shared config used by:
+# - zed_stereo_calibration
+# - zed_reprojection_viewer
+
+# Camera serial numbers (left and right of the virtual stereo pair).
+left_sn: 305932808
+right_sn: 305481469
+
+# Capture resolution mode (ZED SDK enum name).
+# Supported: HD1200, HD1080, HD720, SVGA
+resolution: HD1200
+
+# Directory containing calibration output files:
+# - SN<virtual_stereo_sn>.conf
+# - zed_calibration_<virtual_stereo_sn>.yml
+# zed_reprojection_viewer uses this as optional_settings_path.
+calibration_output_dir: "/root/zed-calibration-out"
+
+# Checkerboard target. Counts are inner edges (not squares).
+checkerboard:
+  h_edges: 9
+  v_edges: 6
+  square_size_mm: 23.5
+
+# Minimum / maximum number of good checkerboard pairs to collect in live mode.
+sample_collection:
+  min: 12
+  max: 35
+
+# Optional directory of pre-collected stereo image pairs (image_left_N.png / image_right_N.png).
+# If set, zed_stereo_calibration skips live capture and runs directly from these images.
+images_dir: "/root/zed-images"
+
+# Verbose logs.
+verbose: true

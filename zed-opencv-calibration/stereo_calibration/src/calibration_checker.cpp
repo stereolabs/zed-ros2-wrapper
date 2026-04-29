@@ -63,6 +63,22 @@ bool CalibrationChecker::testSample(const std::vector<cv::Point2f>& corners,
   return false;
 }
 
+void CalibrationChecker::removeSampleAt(size_t index) {
+  if (index >= paramDb_.size()) {
+    return;
+  }
+  paramDb_.erase(paramDb_.begin() + static_cast<std::ptrdiff_t>(index));
+  validCorners_.erase(validCorners_.begin() + static_cast<std::ptrdiff_t>(index));
+}
+
+const DetectedBoardParams& CalibrationChecker::getDetectedBoardParamsAt(size_t index) const {
+  static DetectedBoardParams empty_params = {cv::Point2f(-1.0f, -1.0f), -1.0f, -1.0f, -1.0f, -1.0f};
+  if (index >= paramDb_.size()) {
+    return empty_params;
+  }
+  return paramDb_[index];
+}
+
 float CalibrationChecker::compute_skew(
     const std::vector<cv::Point2f>& outside_corners) {
   /*  Get skew for given checkerboard detection.

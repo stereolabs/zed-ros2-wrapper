@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
 PROJECT(zed_reprojection_viewer)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE "Release")
 
@@ -16,6 +16,7 @@ endif()
 find_package(ZED REQUIRED)
 find_package(CUDA ${ZED_CUDA_VERSION} REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(yaml-cpp REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(GLEW REQUIRED)
 SET(OpenGL_GL_PREFERENCE GLVND)
@@ -55,7 +56,8 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
                         ${OPENGL_LIBRARIES}
                         ${GLUT_LIBRARIES}
                         ${GLEW_LIBRARIES}
-                        ${OpenCV_LIBRARIES})
+                        ${OpenCV_LIBRARIES}
+                        yaml-cpp)
 
 if(INSTALL_SAMPLES)
     LIST(APPEND SAMPLE_LIST ${PROJECT_NAME})

@@ -6,7 +6,9 @@
 #include <sl/Camera.hpp>
 #include <sl/CameraOne.hpp>
 
-constexpr int MIN_IMAGE = 20;
+// Default minimum stereo pairs (batch solve, live preview threshold, and fisheye drop floor).
+// Override via config `sample_collection.min` in zed_stereo_calibration main.
+constexpr int DEFAULT_MIN_STEREO_SAMPLES = 20;
 
 struct CameraCalib {
   cv::Mat K;
@@ -159,9 +161,38 @@ struct StereoCalib {
       const std::vector<std::vector<cv::Point3f>> &object_points,
       const std::vector<std::vector<cv::Point2f>> &image_points_left,
       const std::vector<std::vector<cv::Point2f>> &image_points_right,
-      const cv::Size &image_size, int flags, bool verbose) {
+      const cv::Size &image_size, int flags, bool verbose,
+      bool fisheye_retry_ill_conditioned = true,
+      int *fisheye_ill_conditioned_index_out = nullptr,
+      int min_pairs_after_drop = DEFAULT_MIN_STEREO_SAMPLES) {
     
     imageSize = image_size;
+    if (fisheye_ill_conditioned_index_out) {
+      *fisheye_ill_conditioned_index_out = -1;
+    }
+
+    if (image_size.width <= 0 || image_size.height <= 0) {
+      std::cerr << "[ERROR][stereo_calibrate] Invalid image size: " << image_size
+                << std::endl;
+      return -1.0;
+    }
+    if (object_points.empty() || image_points_left.empty() || image_points_right.empty()) {
+      std::cerr << "[ERROR][stereo_calibrate] Empty points input." << std::endl;
+      return -1.0;
+    }
+    if (object_points.size() != image_points_left.size() ||
+        object_points.size() != image_points_right.size()) {
+      std::cerr << "[ERROR][stereo_calibrate] Mismatched sample counts: object="
+                << object_points.size() << ", left=" << image_points_left.size()
+                << ", right=" << image_points_right.size() << std::endl;
+      return -1.0;
+    }
+    if (left.K.rows != 3 || left.K.cols != 3 || right.K.rows != 3 || right.K.cols != 3) {
+      std::cerr << "[ERROR][stereo_calibrate] Invalid intrinsic matrix shape."
+                << " left.K=" << left.K.rows << "x" << left.K.cols
+                << ", right.K=" << right.K.rows << "x" << right.K.cols << std::endl;
+      return -1.0;
+    }
     
     double rms = 0.0;
     cv::Mat E, F;
@@ -190,10 +221,139 @@ struct StereoCalib {
             << "[DEBUG][stereo_calibrate] Calibrating with Fisheye model..."
             << std::endl;
       }
-      rms = cv::fisheye::stereoCalibrate(object_points, image_points_left,
-                                         image_points_right, left.K, left.D,
-                                         right.K, right.D, image_size, R, T,
-                                         flags + cv::fisheye::CALIB_CHECK_COND);
+
+      // OpenCV fisheye::stereoCalibrate expects fisheye flag bits and 4-coeff distortion.
+      int fisheye_flags = 0;
+      if (flags & cv::CALIB_FIX_INTRINSIC) {
+        fisheye_flags |= cv::fisheye::CALIB_FIX_INTRINSIC;
+      }
+
+      cv::Mat left_d = left.D.clone();
+      cv::Mat right_d = right.D.clone();
+      if (left_d.total() < 4 || right_d.total() < 4) {
+        std::cerr << "[ERROR][stereo_calibrate] Invalid fisheye distortion size."
+                  << " left.D total=" << left_d.total()
+                  << ", right.D total=" << right_d.total() << std::endl;
+        return -1.0;
+      }
+      // Keep only k1..k4 and force explicit 4x1 CV_64F layout to match fisheye API expectations.
+      cv::Mat left_d_flat = left_d.reshape(1, static_cast<int>(left_d.total()));
+      cv::Mat right_d_flat = right_d.reshape(1, static_cast<int>(right_d.total()));
+      cv::Mat left_d4(4, 1, CV_64F);
+      cv::Mat right_d4(4, 1, CV_64F);
+      for (int i = 0; i < 4; ++i) {
+        left_d4.at<double>(i, 0) = left_d_flat.at<double>(i, 0);
+        right_d4.at<double>(i, 0) = right_d_flat.at<double>(i, 0);
+      }
+
+      cv::Mat left_k64, right_k64;
+      left.K.convertTo(left_k64, CV_64F);
+      right.K.convertTo(right_k64, CV_64F);
+
+      // Build explicit double-precision point vectors to avoid wrapper ambiguity in some OpenCV builds.
+      std::vector<std::vector<cv::Point3d>> object_points_d(object_points.size());
+      std::vector<std::vector<cv::Point2d>> image_points_left_d(image_points_left.size());
+      std::vector<std::vector<cv::Point2d>> image_points_right_d(image_points_right.size());
+      for (size_t i = 0; i < object_points.size(); ++i) {
+        object_points_d[i].reserve(object_points[i].size());
+        for (const auto& p : object_points[i]) {
+          object_points_d[i].emplace_back(static_cast<double>(p.x), static_cast<double>(p.y), static_cast<double>(p.z));
+        }
+      }
+      for (size_t i = 0; i < image_points_left.size(); ++i) {
+        image_points_left_d[i].reserve(image_points_left[i].size());
+        image_points_right_d[i].reserve(image_points_right[i].size());
+        for (const auto& p : image_points_left[i]) {
+          image_points_left_d[i].emplace_back(static_cast<double>(p.x), static_cast<double>(p.y));
+        }
+        for (const auto& p : image_points_right[i]) {
+          image_points_right_d[i].emplace_back(static_cast<double>(p.x), static_cast<double>(p.y));
+        }
+      }
+
+      auto parse_input_array_index = [](const char *what) -> int {
+        const std::string msg = what ? std::string(what) : std::string();
+        const std::string needle = "input array ";
+        auto pos = msg.find(needle);
+        if (pos == std::string::npos) return -1;
+        try {
+          return std::stoi(msg.substr(pos + needle.size()));
+        } catch (...) {
+          return -1;
+        }
+      };
+
+      if (fisheye_retry_ill_conditioned) {
+        const int initial_count = static_cast<int>(object_points_d.size());
+        const int max_drop_attempts = std::max(1, initial_count / 2);
+        int dropped = 0;
+        while (true) {
+          try {
+            rms = cv::fisheye::stereoCalibrate(object_points_d, image_points_left_d,
+                                               image_points_right_d, left_k64, left_d4,
+                                               right_k64, right_d4, image_size, R, T,
+                                               fisheye_flags);
+            break;
+          } catch (const cv::Exception& e) {
+            const int bad_idx = parse_input_array_index(e.what());
+
+            const int remaining = static_cast<int>(object_points_d.size());
+            const bool can_drop_indexed =
+                bad_idx >= 0 &&
+                bad_idx < remaining &&
+                dropped < max_drop_attempts &&
+                remaining - 1 >= min_pairs_after_drop;
+
+            // Only apply robustness for explicit "input array N" errors.
+            if (can_drop_indexed) {
+              std::cerr << "[WARN][stereo_calibrate] Dropping ill-conditioned sample #"
+                        << bad_idx << " and retrying (" << (remaining - 1)
+                        << " remaining). Reason: " << e.what() << std::endl;
+              object_points_d.erase(object_points_d.begin() + bad_idx);
+              image_points_left_d.erase(image_points_left_d.begin() + bad_idx);
+              image_points_right_d.erase(image_points_right_d.begin() + bad_idx);
+              ++dropped;
+              continue;
+            }
+
+            std::cerr << "[ERROR][stereo_calibrate] OpenCV exception: " << e.what() << std::endl;
+            std::cerr << "[ERROR][stereo_calibrate] image_size=" << image_size
+                      << ", left.K=" << left.K.rows << "x" << left.K.cols
+                      << ", right.K=" << right.K.rows << "x" << right.K.cols
+                      << ", left.D total=" << left_d4.total()
+                      << ", right.D total=" << right_d4.total()
+                      << ", fisheye_flags=" << fisheye_flags
+                      << ", samples_remaining=" << object_points_d.size()
+                      << ", dropped=" << dropped << std::endl;
+            return -1.0;
+          }
+        }
+        if (dropped > 0) {
+          std::cout << "[INFO][stereo_calibrate] Stereo calibration succeeded after dropping "
+                    << dropped << " explicit ill-conditioned sample(s). Final: "
+                    << object_points_d.size() << "/" << initial_count << " pairs."
+                    << std::endl;
+        }
+      } else {
+        try {
+          rms = cv::fisheye::stereoCalibrate(object_points_d, image_points_left_d,
+                                             image_points_right_d, left_k64, left_d4,
+                                             right_k64, right_d4, image_size, R, T,
+                                             fisheye_flags);
+        } catch (const cv::Exception& e) {
+          const int bad_idx = parse_input_array_index(e.what());
+          if (fisheye_ill_conditioned_index_out && bad_idx >= 0) {
+            *fisheye_ill_conditioned_index_out = bad_idx;
+          }
+          std::cerr << "[ERROR][stereo_calibrate] OpenCV exception: " << e.what() << std::endl;
+          return -1.0;
+        }
+      }
+
+      left.K = left_k64;
+      right.K = right_k64;
+      left.D = left_d4;
+      right.D = right_d4;
     }
 
     cv::Rodrigues(R, Rv);
@@ -221,12 +381,17 @@ struct StereoCalib {
     return rms;
   }
 
-  std::string saveCalibOpenCV(int serial);
-  std::string saveCalibZED(int serial, bool is_4k = false);
+  std::string saveCalibOpenCV(int serial, const std::string &calibration_output_dir = "");
+  std::string saveCalibZED(int serial, int left_sn, int right_sn, bool is_4k,
+                           const std::string &calibration_output_dir = "");
 };
 
 int calibrate(int img_count, const std::string &folder, StereoCalib &raw_data,
               int h_edges, int v_edges, double square_size, int serial,
+              int left_sn, int right_sn,
               bool is_dual_mono, bool is_4k, bool save_calib_mono = false,
-              bool use_intrinsic_prior = false, double max_repr_error = 0.5f,
-              bool verbose = false);
+              bool use_intrinsic_prior = false,
+              bool recalibrate_intrinsics = false,
+              double max_repr_error = 1.0f, bool verbose = false,
+              int min_stereo_samples = DEFAULT_MIN_STEREO_SAMPLES,
+              const std::string &calibration_output_dir = "");

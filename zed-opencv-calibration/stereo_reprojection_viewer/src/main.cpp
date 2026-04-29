@@ -24,6 +24,8 @@
 
 // Sample includes
 #include <opencv2/opencv.hpp>
+#include <yaml-cpp/yaml.h>
+#include <filesystem>
 
 #include "GLViewer.hpp"
 
@@ -33,6 +35,62 @@
 // Using std and sl namespaces
 using namespace std;
 using namespace sl;
+namespace fs = std::filesystem;
+
+struct ViewerConfig {
+  int left_sn = -1;
+  int right_sn = -1;
+  std::string resolution = "HD1200";
+  std::string calibration_output_dir = "/root/zed-calibration-out";
+  bool verbose = true;
+};
+
+bool parseResolution(const std::string &resolution, sl::RESOLUTION &out_resolution) {
+  if (resolution == "HD1200") {
+    out_resolution = sl::RESOLUTION::HD1200;
+    return true;
+  }
+  if (resolution == "HD1080") {
+    out_resolution = sl::RESOLUTION::HD1080;
+    return true;
+  }
+  if (resolution == "HD720") {
+    out_resolution = sl::RESOLUTION::HD720;
+    return true;
+  }
+  if (resolution == "SVGA") {
+    out_resolution = sl::RESOLUTION::SVGA;
+    return true;
+  }
+  return false;
+}
+
+bool loadViewerConfig(const std::string &path, ViewerConfig &cfg) {
+  YAML::Node node;
+  try {
+    node = YAML::LoadFile(path);
+  } catch (const std::exception &e) {
+    std::cerr << "Error: failed to load config file '" << path << "': " << e.what() << std::endl;
+    return false;
+  }
+
+  if (!node["left_sn"] || !node["right_sn"]) {
+    std::cerr << "Error: config must define 'left_sn' and 'right_sn'." << std::endl;
+    return false;
+  }
+  cfg.left_sn = node["left_sn"].as<int>();
+  cfg.right_sn = node["right_sn"].as<int>();
+  if (node["resolution"] && node["resolution"].IsScalar()) {
+    cfg.resolution = node["resolution"].as<std::string>();
+  }
+  if (node["calibration_output_dir"] && node["calibration_output_dir"].IsScalar()) {
+    cfg.calibration_output_dir = node["calibration_output_dir"].as<std::string>();
+  }
+  if (node["verbose"]) {
+    cfg.verbose = node["verbose"].as<bool>();
+  }
+  return true;
+}
 
 cv::Mat cvtDisto(const sl::CameraParameters &camera_param, bool fisheye) {
   cv::Mat disto;
@@ -215,94 +273,21 @@ cv::Mat createMaskUsingUndistortPoints(int width, int height,
   return mask;
 }
 #endif
-struct Args {
-  std::string app_name;
-  std::string svo_path = "";
-  bool is_zed_x_one_virtual_stereo = false;
-  int left_camera_id = -1;
-  int right_camera_id = -1;
-  int left_camera_sn = -1;
-  int right_camera_sn = -1;
-  bool is_fisheye_lens = false;
-  std::string optional_settings_path = "";
-  std::string optional_opencv_calib = "";
+int main(int argc, char **argv) {
+  if (argc > 1) {
+    std::cerr << "Error: zed_reprojection_viewer no longer accepts CLI arguments." << std::endl;
+    std::cerr << "It now reads everything from YAML config: /opt/zed-opencv-calibration/config/fisheye_stereo.yaml" << std::endl;
+    return EXIT_FAILURE;
+  }
 
-  void parse(int argc, char *argv[]) {
-    app_name = argv[0];
-    for (int i = 1; i < argc; i++) {
-      std::string arg = argv[i];
-      if (arg == "--svo" && i + 1 < argc) {
-        svo_path = argv[++i];
-      } else if (arg == "--fisheye") {
-        is_fisheye_lens = true;
-      } else if (arg == "--virtual") {
-        is_zed_x_one_virtual_stereo = true;
-      } else if (arg == "--left_id" && i + 1 < argc) {
-        left_camera_id = std::stoi(argv[++i]);
-      } else if (arg == "--right_id" && i + 1 < argc) {
-        right_camera_id = std::stoi(argv[++i]);
-      } else if (arg == "--left_sn" && i + 1 < argc) {
-        left_camera_sn = std::stoi(argv[++i]);
-      } else if (arg == "--right_sn" && i + 1 < argc) {
-        right_camera_sn = std::stoi(argv[++i]);
-      } else if (arg == "--calib_path" && i + 1 < argc) {
-        optional_settings_path = argv[++i];
-      }
-      if (arg == "--ocv" && i + 1 < argc) {
-        optional_opencv_calib = argv[++i];
-      } else if (arg == "--help" || arg == "-h") {
-        std::cout << "Usage: " << argv[0] << " [options]" << std::endl;
-        std::cout << "  --svo <file>\t\tPath to the SVO file." << std::endl;
-        std::cout << "  --calib_path <file>\tPath to the optional "
-                     "calibration file"
-                  << std::endl;
-        std::cout << "  --ocv <file>\t\tPath to an optional OpenCV"
-                  << std::endl;
-        std::cout << "  --fisheye\t\tUse fisheye lens model." << std::endl;
-        std::cout << "  --virtual\t\tUse ZED X One cameras as a virtual "
-                     "stereo pair."
-                  << std::endl;
-        std::cout << "  --left_id <id>\tId of the left camera if using "
-                     "virtual stereo."
-                  << std::endl;
-        std::cout << "  --right_id <id>\tId of the right camera if using "
-                     "virtual stereo."
-                  << std::endl;
-        std::cout << "  --left_sn <sn>\tS/N of the left camera if using "
-                     "virtual stereo."
-                  << std::endl;
-        std::cout << "  --right_sn <sn>\tS/N of the right camera if using "
-                     "virtual stereo."
-                  << std::endl;
-        std::cout << "  --help, -h\t\tShow this help message." << std::endl
-                  << std::endl
-                  << std::endl;
-        std::cout << "Examples:" << std::endl;
-        std::cout << std::endl
-                  << "* ZED Stereo Camera using an SVO file:" << std::endl;
-        std::cout << "  " << argv[0] << " --svo camera.svo" << std::endl;
-        std::cout << std::endl
-                  << "* Virtual Stereo Camera using camera IDs:" << std::endl;
-        std::cout << "  " << argv[0] << " --virtual --left_id 0 --right_id 1"
-                  << std::endl;
-        std::cout << std::endl
-                  << "* Virtual Stereo Camera with fisheye lenses using camera "
-                     "serial numbers:"
-                  << std::endl;
-        std::cout
-            << "  " << argv[0]
-            << " --fisheye --virtual --left_sn 301528071 --right_sn 300473441"
-            << std::endl;
-        std::cout << std::endl;
-        exit(0);
-      }
+  const std::string config_path = "/opt/zed-opencv-calibration/config/fisheye_stereo.yaml";
+  const std::string config_path_fallback = "/root/zed-opencv-calibration/config/fisheye_stereo.yaml";
+  ViewerConfig cfg;
+  if (!loadViewerConfig(config_path, cfg)) {
+    if (!loadViewerConfig(config_path_fallback, cfg)) {
+      return EXIT_FAILURE;
     }
   }
-};
-
-int main(int argc, char **argv) {
-  Args args;
-  args.parse(argc, argv);
 
   Camera zed;
   // Set configuration parameters for the ZED
@@ -311,109 +296,72 @@ int main(int argc, char **argv) {
   init_params.coordinate_system =
       COORDINATE_SYSTEM::RIGHT_HANDED_Y_UP;  // OpenGL's coordinate system is
                                              // right_handed
-  init_params.sdk_verbose = 0;
+  init_params.sdk_verbose = cfg.verbose ? 1 : 0;
   init_params.maximum_working_resolution = sl::Resolution(0, 0);
-
-  if (!args.svo_path.empty()) {
-    std::cout << "Using SVO file: " << args.svo_path << std::endl;
-    init_params.input.setFromSVOFile(sl::String(args.svo_path.c_str()));
-  } else {
-    init_params.camera_resolution =
-        RESOLUTION::AUTO;         // Set the camera resolution
-    init_params.camera_fps = 15;  // Set the camera FPS
+  init_params.camera_fps = 15;
+  if (!parseResolution(cfg.resolution, init_params.camera_resolution)) {
+    std::cerr << "Error: unsupported resolution '" << cfg.resolution
+              << "'. Expected one of: HD1200, HD1080, HD720, SVGA." << std::endl;
+    return EXIT_FAILURE;
   }
 
-  if (!args.optional_settings_path.empty()) {
-    std::cout << "Using optional settings from: " << args.optional_settings_path
-              << std::endl;
-    init_params.optional_settings_path =
-        sl::String(args.optional_settings_path.c_str());
-  }
+  int left_sn = cfg.left_sn;
+  int right_sn = cfg.right_sn;
+  int sn_stereo = sl::generateVirtualStereoSerialNumber(left_sn, right_sn);
+  std::cout << " * Virtual stereo SN (SDK-generated): " << sn_stereo << std::endl;
 
-  if (!args.optional_opencv_calib.empty()) {
-    std::cout << "Using optional OpenCV calibration: "
-              << args.optional_opencv_calib << std::endl;
-    init_params.optional_opencv_calibration_file =
-        sl::String(args.optional_opencv_calib.c_str());
-  }
+  // Paths must live until zed.open() (sl::String stores the pointer).
+  std::string optional_opencv_calib_abs;
+  std::string optional_settings_dir_abs;
 
-  // Configure the Virtual Stereo Camera if '--virtual' argument is provided
-  if (args.is_zed_x_one_virtual_stereo) {
-    std::cout << " * Virtual Stereo Camera mode enabled." << std::endl;
-    int sn_left = args.left_camera_sn;
-    int sn_right = args.right_camera_sn;
+  if (!cfg.calibration_output_dir.empty()) {
+    const fs::path calib_dir(cfg.calibration_output_dir);
+    auto path_sn_conf = [&](int sn) { return calib_dir / ("SN" + std::to_string(sn) + ".conf"); };
+    auto path_opencv_yml = [&](int sn) { return calib_dir / ("zed_calibration_" + std::to_string(sn) + ".yml"); };
 
-    if (sn_left != -1 && sn_right != -1) {
-      std::cout << " * Using serial numbers for left and right cameras: "
-                << sn_left << ", " << sn_right << std::endl;
+    fs::path expected_conf = path_sn_conf(sn_stereo);
+    if (!fs::exists(expected_conf)) {
+      const int swapped_sn = sl::generateVirtualStereoSerialNumber(right_sn, left_sn);
+      const fs::path swapped_conf = path_sn_conf(swapped_sn);
+      if (fs::exists(swapped_conf)) {
+        std::cout << " * Found calibration file for swapped serial order: " << swapped_conf << std::endl;
+        std::cout << " * Switching virtual stereo order to match existing calibration file." << std::endl;
+        std::swap(left_sn, right_sn);
+        sn_stereo = swapped_sn;
+        expected_conf = swapped_conf;
+      }
+    }
 
-      int sn_stereo = sl::generateVirtualStereoSerialNumber(sn_left, sn_right);
-      std::cout << " * Unique Virtual SN: " << sn_stereo
-                << " (Generated by the ZED SDK)" << std::endl;
-      init_params.input.setVirtualStereoFromSerialNumbers(sn_left, sn_right,
-                                                          sn_stereo);
+    const fs::path opencv_yml = path_opencv_yml(sn_stereo);
+    const bool have_yml = fs::exists(opencv_yml);
+    const bool have_conf = fs::exists(expected_conf);
+
+    std::cout << " * Calibration dir:            " << calib_dir << std::endl;
+    if (have_yml) {
+      std::cout << " * Found OpenCV calibration:   " << opencv_yml << std::endl;
+    }
+    if (have_conf) {
+      std::cout << " * Found SN*.conf:             " << expected_conf << std::endl;
+    }
+
+    // Prefer OpenCV YAML (same files produced by zed_stereo_calibration). The SDK parses this reliably;
+    // "Fail to load valid camera calibration" often comes from rejecting SN*.conf under optional_settings_path.
+    if (have_yml) {
+      optional_opencv_calib_abs = fs::absolute(opencv_yml).generic_string();
+      init_params.optional_opencv_calibration_file = sl::String(optional_opencv_calib_abs.c_str());
+      std::cout << " * Using optional_opencv_calibration_file (preferred)." << std::endl;
+    } else if (have_conf) {
+      optional_settings_dir_abs = fs::absolute(calib_dir).generic_string();
+      init_params.optional_settings_path = sl::String(optional_settings_dir_abs.c_str());
+      std::cout << " * Using optional_settings_path for SN*.conf only (no zed_calibration_*.yml found)." << std::endl;
     } else {
-      if (args.left_camera_id == -1 || args.right_camera_id == -1) {
-        std::cerr << "Error: Left and Right camera IDs or Left and Right "
-                     "camera Serial Numbers must be both provided."
-                  << std::endl;
-        std::cerr << " * use the command '" << args.app_name
-                  << " -h' for details." << std::endl;
-        return EXIT_FAILURE;
-      }
-
-      std::cout << "Using camera IDs for left and right cameras: "
-                << args.left_camera_id << ", " << args.right_camera_id
-                << std::endl;
-
-      auto cams = sl::CameraOne::getDeviceList();
-
-      for (auto &cam : cams) {
-        if (cam.id == args.left_camera_id) {
-          sn_left = cam.serial_number;
-        } else if (cam.id == args.right_camera_id) {
-          sn_right = cam.serial_number;
-        }
-      }
-
-      if (sn_left == -1 || sn_right == -1) {
-        std::cerr << "Error: Could not find serial numbers for the provided "
-                     "camera IDs."
-                  << std::endl;
-        std::cerr << " * use the command 'ZED_Explore --all' to get the camera "
-                     "ID or the Serial Number of the connected cameras."
-                  << std::endl;
-        return EXIT_FAILURE;
-      }
-
-      int sn_stereo = sl::generateVirtualStereoSerialNumber(sn_left, sn_right);
-      std::cout << " * Unique Virtual SN: " << sn_stereo
-                << " (Generated by the ZED SDK)" << std::endl;
-
-      init_params.input.setVirtualStereoFromCameraIDs(
-          args.left_camera_id, args.right_camera_id, sn_stereo);
-    }
-
-    int left_model = sn_left / 10000000;
-    int right_model = sn_right / 10000000;
-
-    if (left_model != right_model) {
-      std::cerr << "Error: Left and Right cameras must be of the same model."
-                << std::endl;
-      return EXIT_FAILURE;
-    }
-
-    if (left_model == static_cast<int>(sl::MODEL::ZED_XONE_UHD) &&
-        right_model == static_cast<int>(sl::MODEL::ZED_XONE_UHD)) {
-      init_params.camera_resolution = sl::RESOLUTION::HD4K;
-      std::cout << " * ZED X One 4K Virtual Stereo Camera detected."
-                << std::endl;
-    } else {
-      init_params.camera_resolution = sl::RESOLUTION::HD1200;
-      std::cout << " * ZED X One GS Virtual Stereo Camera detected."
-                << std::endl;
+      std::cerr << "Warning: no zed_calibration_" << sn_stereo << ".yml or SN" << sn_stereo << ".conf in "
+                << calib_dir << std::endl;
+      std::cerr << "         SDK will use factory/stream calibration; depth may not match your calibration run." << std::endl;
     }
   }
+
+  init_params.input.setVirtualStereoFromSerialNumbers(left_sn, right_sn, sn_stereo);
 
   // Open the camera
   auto returned_state = zed.open(init_params);
@@ -436,8 +384,9 @@ int main(int argc, char **argv) {
   Mat image_rect(res, sl::MAT_TYPE::U8_C4, MEM::CPU);
   auto im_rect_ocv = slMat2cvMat(image_rect);
 
-  const bool fisheye = args.is_fisheye_lens;  // Set to true if using fisheye
-                                              // camera, false for non-fisheye
+  const sl::CameraParameters &left_cam = camera_config.calibration_parameters_raw.left_cam;
+  const bool fisheye = (left_cam.disto[2] == 0.0f && left_cam.disto[3] == 0.0f &&
+                        left_cam.disto[4] != 0.0f && left_cam.disto[5] != 0.0f);
 
   auto stream = zed.getCUDAStream();
 

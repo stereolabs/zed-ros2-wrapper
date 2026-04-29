@@ -57,6 +57,11 @@ class CalibrationChecker {
   // Retrieve valid sample count
   size_t getValidSampleCount() const { return validCorners_.size(); }
 
+  // Remove one accepted sample by index (keeps paramDb_ and validCorners_ aligned).
+  void removeSampleAt(size_t index);
+
+  const DetectedBoardParams& getDetectedBoardParamsAt(size_t index) const;
+
   // Calculate the sample collection status according to the stored samples
   bool evaluateSampleCollectionStatus(float& size_score, float& skew_score,
                                       float& pos_score_x,

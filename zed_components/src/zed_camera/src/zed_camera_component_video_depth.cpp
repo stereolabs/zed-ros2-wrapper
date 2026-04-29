@@ -110,7 +110,8 @@ void ZedCamera::initVideoDepthPublishers()
           // Fallback if parameter not found (shouldn't happen)
           try {
             enabled = image_transport::getDeclaredTransports();
-          } catch (...) {}
+          } catch (...) {
+          }
         }
 
         for (const auto & transport : enabled) {
@@ -162,7 +163,8 @@ void ZedCamera::initVideoDepthPublishers()
               continue;
             }
             bool is_compressed_depth = (t.find("/compressedDepth") != std::string::npos);
-            bool is_compressed = !is_compressed_depth && (t.find("/compressed") != std::string::npos);
+            bool is_compressed = !is_compressed_depth &&
+              (t.find("/compressed") != std::string::npos);
             bool is_theora = (t.find("/theora") != std::string::npos);
 
             if (is_compressed_depth) {
@@ -667,13 +669,13 @@ void ZedCamera::getDepthParams()
       shared_from_this(), "depth.voxel_point_cloud", mVoxelPointCloud,
       mVoxelPointCloud, " * Voxel Point Cloud: ", true);
     {
-      double voxel_size_mm = mVoxelParams.voxel_size < 0
-        ? -1.0 : static_cast<double>(mVoxelParams.voxel_size) * 1000.0;
+      double voxel_size_mm = mVoxelParams.voxel_size < 0 ?
+        -1.0 : static_cast<double>(mVoxelParams.voxel_size) * 1000.0;
       sl_tools::getParam(
         shared_from_this(), "depth.voxel_size_mm", voxel_size_mm,
         voxel_size_mm, " * Voxel Size [mm]: ", true, -1.0, 10000.0);
-      mVoxelParams.voxel_size = voxel_size_mm <= 0
-        ? static_cast<float>(voxel_size_mm) : static_cast<float>(voxel_size_mm / 1000.0);
+      mVoxelParams.voxel_size = voxel_size_mm <= 0 ?
+        static_cast<float>(voxel_size_mm) : static_cast<float>(voxel_size_mm / 1000.0);
 
       std::string voxel_mode = "STEREO_UNCERTAINTY";
       sl_tools::getParam(
@@ -3459,9 +3461,11 @@ bool ZedCamera::handleDepthParams(
       return true;
     }
     double voxel_size_mm = param.as_double();
-    mVoxelParams.voxel_size = voxel_size_mm <= 0
-      ? static_cast<float>(voxel_size_mm) : static_cast<float>(voxel_size_mm / 1000.0);
-    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << voxel_size_mm << " mm (" << mVoxelParams.voxel_size << " m)");
+    mVoxelParams.voxel_size = voxel_size_mm <= 0 ?
+      static_cast<float>(voxel_size_mm) : static_cast<float>(voxel_size_mm / 1000.0);
+    DEBUG_STREAM_DYN_PARAMS(
+      "Parameter '" << name << "' correctly set to " << voxel_size_mm << " mm (" << mVoxelParams.voxel_size <<
+        " m)");
     return true;
   } else if (name == "depth.voxel_resolution_scale") {
     rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -3472,7 +3476,8 @@ bool ZedCamera::handleDepthParams(
       return true;
     }
     mVoxelParams.resolution_scale = static_cast<float>(param.as_double());
-    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << mVoxelParams.resolution_scale);
+    DEBUG_STREAM_DYN_PARAMS(
+      "Parameter '" << name << "' correctly set to " << mVoxelParams.resolution_scale);
     return true;
   } else if (name == "depth.voxel_resolution_mode") {
     rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_STRING;

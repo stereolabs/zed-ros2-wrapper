@@ -174,7 +174,8 @@ void ZedCameraOne::initVideoPublishers()
       } catch (...) {
         try {
           enabled = image_transport::getDeclaredTransports();
-        } catch (...) {}
+        } catch (...) {
+        }
       }
 
       for (const auto & transport : enabled) {

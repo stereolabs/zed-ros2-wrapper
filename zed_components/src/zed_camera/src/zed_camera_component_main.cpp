@@ -9726,7 +9726,7 @@ void ZedCamera::callback_setAecAgcRoi(
 
   std::string error;
   std::vector<std::vector<float>> parsed_poly =
-    sl_tools::parseStringVector(req->roi, error);
+    sl_tools::parseStringMultiVector_float(req->roi, error);
 
   if (error != "") {
     std::string err_msg = "Error while setting ZED SDK AEC/AGC ROI: ";

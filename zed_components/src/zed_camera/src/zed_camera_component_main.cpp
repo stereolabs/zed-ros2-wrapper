@@ -2858,11 +2858,20 @@ bool ZedCamera::startCamera()
     true;    // Camera recovery is handled asynchronously to provide information
              // about this status
 
-  // Set the maximum working resolution between video and point cloud to boost the pipeline processing
-  if (mMatResol.width > mPcResol.width) {
-    mInitParams.maximum_working_resolution = mMatResol;
-  } else {
-    mInitParams.maximum_working_resolution = mPcResol;
+  // Set the maximum working resolution between video and point cloud to boost the pipeline processing.
+  // NOTE: mMatResol and mPcResol are derived from getCameraInformation(), which is only valid AFTER
+  // open() has succeeded. On the very first startCamera() call they are still (0, 0); passing a
+  // zero Resolution to the SDK has been observed to make open() reject the parameter combination
+  // with INVALID_FUNCTION_CALL (especially on virtual stereo). Only set the field when we already
+  // have meaningful values cached from a previous open() in this lifecycle.
+  if (mMatResol.width > 0 && mMatResol.height > 0 &&
+    mPcResol.width > 0 && mPcResol.height > 0)
+  {
+    if (mMatResol.width > mPcResol.width) {
+      mInitParams.maximum_working_resolution = mMatResol;
+    } else {
+      mInitParams.maximum_working_resolution = mPcResol;
+    }
   }
   // <---- ZED configuration
 

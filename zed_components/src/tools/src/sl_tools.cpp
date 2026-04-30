@@ -674,9 +674,11 @@ bool isZEDX(sl::MODEL camModel)
   if (camModel == sl::MODEL::ZED_XM) {
     return true;
   }
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   if (camModel == sl::MODEL::ZED_X_NANO) {
     return true;
   }
+#endif
   if (camModel == sl::MODEL::VIRTUAL_ZED_X) {
     return true;
   }

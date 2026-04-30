@@ -980,6 +980,7 @@ bool ZedCameraOne::openZedCamera()
       return false;
     }
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
     if (_connStatus == sl::ERROR_CODE::CAMERA_EXCEEDS_BANDWIDTH) {
       RCLCPP_ERROR_STREAM(
         get_logger(),
@@ -987,7 +988,10 @@ bool ZedCameraOne::openZedCamera()
           _connStatus)
                                                      << ". Please reduce the camera resolution or FPS, adjust GMSL branching/hardware, or consult the GMSL documentation for platform limits.");
       return false;
-    } else if (_svoMode) {
+    }
+#endif
+
+    if (_svoMode) {
       RCLCPP_WARN(
         get_logger(), "Error opening SVO: %s",
         sl::toString(_connStatus).c_str());

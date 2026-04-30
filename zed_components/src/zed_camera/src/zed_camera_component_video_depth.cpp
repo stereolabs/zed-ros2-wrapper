@@ -665,6 +665,7 @@ void ZedCamera::getDepthParams()
       get_logger(),
       " * Point cloud resolution: " << out_resol.c_str());
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
     sl_tools::getParam(
       shared_from_this(), "depth.voxel_point_cloud", mVoxelPointCloud,
       mVoxelPointCloud, " * Voxel Point Cloud: ", true);
@@ -696,6 +697,7 @@ void ZedCamera::getDepthParams()
         voxel_scale, " * Voxel Resolution Scale: ", true, 0.01, 3.0);
       mVoxelParams.resolution_scale = static_cast<float>(voxel_scale);
     }
+#endif
 
     sl_tools::getParam(
       shared_from_this(), "depth.depth_confidence", mDepthConf,
@@ -761,7 +763,9 @@ void ZedCamera::fillCamInfo(
     case sl::MODEL::ZED2i:   // RATIONAL_POLYNOMIAL
     case sl::MODEL::ZED_X:   // RATIONAL_POLYNOMIAL
     case sl::MODEL::ZED_XM:  // RATIONAL_POLYNOMIAL
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
     case sl::MODEL::ZED_X_NANO:  // RATIONAL_POLYNOMIAL
+#endif
     case sl::MODEL::VIRTUAL_ZED_X:  // RATIONAL_POLYNOMIAL
       leftCamInfoMsg->distortion_model =
         sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
@@ -2673,10 +2677,13 @@ void ZedCamera::processPointCloud()
         " * [processPointCloud] Retrieving point cloud size: " << mPcResol.width << "x" <<
           mPcResol.height);
       sl::ERROR_CODE pc_err;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
       if (mVoxelPointCloud) {
         pc_err = mZed->retrieveVoxelMeasure(
           mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mVoxelParams);
-      } else {
+      } else
+#endif
+      {
         pc_err = mZed->retrieveMeasure(
           mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mPcResol);
       }
@@ -3444,6 +3451,7 @@ bool ZedCamera::handleDepthParams(
 
     DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
     return true;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   } else if (name == "depth.voxel_point_cloud") {
     rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
     if (param.get_type() != correctType) {
@@ -3502,6 +3510,7 @@ bool ZedCamera::handleDepthParams(
     }
     DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << voxel_mode);
     return true;
+#endif
   } else if (name == "depth.remove_saturated_areas") {
     rclcpp::ParameterType correctType = rclcpp::ParameterType::PARAMETER_BOOL;
     if (param.get_type() != correctType) {

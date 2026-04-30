@@ -1,3 +1,5 @@
+# © 2026, Cargo Robotics
+# Adopted from https://github.com/stereolabs/zed-opencv-calibration (upstream Stereolabs subtree; Cargo maintains local patches — see README).
 CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
 PROJECT(zed_reprojection_viewer)
 

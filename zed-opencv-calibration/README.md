@@ -1,6 +1,10 @@
 # ZED OpenCV Calibration
 
+© 2026, Cargo Robotics.
+
 A camera calibration toolkit for ZED cameras using OpenCV.
+
+**Provenance:** Everything under **`stereo_calibration/`** and **`stereo_reprojection_viewer/`** (sources, headers, and those subtrees’ CMake files) is **adopted from** [Stereolabs’ upstream repository](https://github.com/stereolabs/zed-opencv-calibration), not authored as original Cargo Robotics software. Cargo maintains separate additions and forks here—such as **`config/`**, **`scripts/`**, this **README**, Docker/compose workflow notes, and occasional patches inside those trees—under our usual copyright where noted in headers. Refer to the upstream project and per-file license blocks (e.g. Stereolabs’ BSD-style header in the reprojection viewer) for third-party terms.
 
 ## Overview
 
@@ -155,6 +159,18 @@ checkerboard:
   square_size_mm: 23.5
 images_dir: ""   # non-empty => load existing pairs from this dir and skip live capture
 ```
+
+**Finding `left_sn` and `right_sn`:** Each physical ZED camera has a numeric serial used in `fisheye_stereo.yaml` and by the SDK. You can obtain it in several ways:
+
+- **Product packaging** — Often printed on the box or included documentation for the unit.
+- **Hardware** — A small label or tag on the camera body lists the serial number.
+- **ZED Explorer (in the ZED container)** — With cameras connected, run the Stereolabs tool shipped with the SDK and list all devices, for example:
+
+  ```bash
+  /usr/local/zed/tools/ZED_Explorer --all
+  ```
+
+  Use the same shell as your calibration workflow (e.g. after `docker compose … run zed-end-effector bash`) so the tool sees the GMSL/USB devices. Match each serial to the **left** and **right** camera in your rig when filling in `left_sn` and `right_sn`.
 
 Live capture uses **`capture_images_dir`** (default in code is `/var/cargo/zed-calibration/images/` if the key is omitted). **`images_dir`** is only for extrinsics-only mode from pre-collected `image_left_*.png` / `image_right_*.png`.
 

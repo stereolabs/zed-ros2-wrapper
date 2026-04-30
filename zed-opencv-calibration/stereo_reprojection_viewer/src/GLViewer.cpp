@@ -1,3 +1,6 @@
+// © 2026, Cargo Robotics
+// Adopted from https://github.com/stereolabs/zed-opencv-calibration (upstream Stereolabs sources; Cargo maintains local patches — see README).
+
 #include "GLViewer.hpp"
 
 
@@ -327,7 +330,7 @@ void Simple3DObject::addPoint(sl::float3 pt, sl::float3 clr) {
     colors_.push_back(clr.r);
     colors_.push_back(clr.g);
     colors_.push_back(clr.b);
-    indices_.push_back((int) indices_.size());
+    indices_.push_back(static_cast<int>(indices_.size()));
 }
 
 void Simple3DObject::addFace(sl::float3 p1, sl::float3 p2, sl::float3 p3, sl::float3 clr) {
@@ -355,9 +358,9 @@ void Simple3DObject::addFace(sl::float3 p1, sl::float3 p2, sl::float3 p3, sl::fl
     colors_.push_back(clr.g);
     colors_.push_back(clr.b);
 
-    indices_.push_back((int) indices_.size());
-    indices_.push_back((int) indices_.size());
-    indices_.push_back((int) indices_.size());
+    indices_.push_back(static_cast<int>(indices_.size()));
+    indices_.push_back(static_cast<int>(indices_.size()));
+    indices_.push_back(static_cast<int>(indices_.size()));
 }
 
 void Simple3DObject::pushToGPU() {

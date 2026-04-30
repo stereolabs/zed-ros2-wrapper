@@ -1,3 +1,5 @@
+// © 2026, Cargo Robotics
+// Adopted from https://github.com/stereolabs/zed-opencv-calibration (upstream Stereolabs sources; Cargo maintains local patches — see README).
 #pragma once
 
 #include <cmath>

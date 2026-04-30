@@ -1,3 +1,6 @@
+// © 2026, Cargo Robotics
+// Adopted from https://github.com/stereolabs/zed-opencv-calibration (upstream Stereolabs sources; Cargo maintains local patches — see README).
+
 #ifndef __VIEWER_INCLUDE__
 #define __VIEWER_INCLUDE__
 

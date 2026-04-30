@@ -17,6 +17,10 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 ///////////////////////////////////////////////////////////////////////////
+//
+// © 2026, Cargo Robotics — YAML-driven virtual stereo config and container paths.
+// Adopted from https://github.com/stereolabs/zed-opencv-calibration (upstream Stereolabs sources; Stereolabs license above; Cargo patches — see README).
+//
 
 // ZED includes
 #include <sl/Camera.hpp>

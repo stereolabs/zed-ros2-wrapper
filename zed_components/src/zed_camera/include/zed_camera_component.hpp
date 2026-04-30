@@ -1072,7 +1072,7 @@ private:
   bool mAreaFileExists = false;
   bool mResetOdomFromSrv = false;
   bool mSpatialMappingRunning = false;
-  bool mObjDetRunning = false;
+  std::atomic<bool> mObjDetRunning{false};
   bool mBodyTrkRunning = false;
   bool mRgbSubscribed = false;
   bool mGnssMsgReceived = false;  // Indicates if a NavSatFix topic has been

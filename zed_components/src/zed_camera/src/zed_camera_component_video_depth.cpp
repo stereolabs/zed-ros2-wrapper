@@ -2681,12 +2681,15 @@ void ZedCamera::processPointCloud()
       if (mVoxelPointCloud) {
         pc_err = mZed->retrieveVoxelMeasure(
           mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mVoxelParams);
-      } else
-#endif
-      {
+      } else {
         pc_err = mZed->retrieveMeasure(
           mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::CPU, mPcResol);
       }
+#else
+      pc_err = mZed->retrieveMeasure(
+        mMatCloud, sl::MEASURE::XYZBGRA,
+        sl::MEM::CPU, mPcResol);
+#endif
       if (pc_err != sl::ERROR_CODE::SUCCESS) {
         RCLCPP_WARN_STREAM(
           get_logger(),

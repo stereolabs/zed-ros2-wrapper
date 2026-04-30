@@ -6,57 +6,117 @@ A camera calibration toolkit for ZED cameras using OpenCV.
 
 This project provides two main applications for working with ZED cameras:
 
-1. **Stereo Calibration Tool** - Interactive calibration data acquisition and processing.
-2. **Stereo Reprojection Viewer** - Real-time reprojection tool to visualize calibration results on unrectified images.
+1. **Stereo Calibration Tool** (`zed_stereo_calibration`) — Interactive calibration data acquisition and processing.
+2. **Stereo Reprojection Viewer** (`zed_reprojection_viewer`) — Real-time reprojection to validate calibration on unrectified images.
+
+## Run on the vehicle (recommended)
+
+Use the same ZED SDK and ROS image as the rest of the stack: start an interactive shell with the **`zed-end-effector`** service (does not launch the ROS node; `--rm` drops the container when you exit).
+
+**GUI / X11 on the host:** `zed_stereo_calibration` and `zed_reprojection_viewer` open interactive windows. Before starting the container, run this **on the host** in the same graphical session you will use (so `DISPLAY` is valid, e.g. `:0`):
+
+```bash
+xhost +local:docker
+```
+
+That allows local Docker clients to connect to your X server. Without it, OpenCV/GL windows from the container usually fail to open.
+
+From the repository root:
+
+```bash
+docker compose -f docker-compose-deploy.yml run --rm zed-end-effector bash
+```
+
+### 1. One-time setup inside the container
+
+Binaries are produced by the workspace build (typical layout):
+
+- `zed_stereo_calibration` → `/root/ros2_ws/build/zed_opencv_calibration/stereo_calibration/`
+- `zed_reprojection_viewer` → `/root/ros2_ws/build/zed_opencv_calibration/stereo_reprojection_viewer/`
+
+Put them on `PATH` (they are not there by default):
+
+```bash
+export PATH="/root/ros2_ws/build/zed_opencv_calibration/stereo_calibration:/root/ros2_ws/build/zed_opencv_calibration/stereo_reprojection_viewer:${PATH}"
+```
+
+`docker-compose-deploy.yml` bind-mounts this package at **`/opt/zed-opencv-calibration`** as well as under `src/` so **`zed_reprojection_viewer`** finds **`/opt/zed-opencv-calibration/config/fisheye_stereo.yaml`** with no extra symlink step.
+
+### 2. Calibration data paths and YAML
+
+`docker-compose-deploy.yml` bind-mounts **`/var/cargo/zed-calibration/images`** and **`/var/cargo/zed-calibration/calibration_config`** into the container. Point `images_dir` and `calibration_output_dir` in the YAML at those paths (see the checked-in `config/fisheye_stereo.yaml`). All calibration I/O happens **inside the container**; the mounts persist captures and `SN*.conf` / `zed_calibration_*.yml` on the vehicle under `/var/cargo/`.
+
+If a path is missing the first time, create it from the same shell session (before running the tools):
+
+```bash
+mkdir -p /var/cargo/zed-calibration/images /var/cargo/zed-calibration/calibration_config
+```
+
+Edit **`config/fisheye_stereo.yaml`** at `/root/ros2_ws/src/zed-opencv-calibration/config/fisheye_stereo.yaml` when you use the compose bind-mount of the repo.
+
+### 3. Run the tools
+
+**Reprojection viewer** (after `PATH` is set):
+
+```bash
+zed_reprojection_viewer
+```
+
+**Stereo calibration**:
+
+```bash
+zed_stereo_calibration --config /root/ros2_ws/src/zed-opencv-calibration/config/fisheye_stereo.yaml
+```
+
+**Stereo calibration + prompt to install `SN*.conf`** into `/usr/local/zed/settings/` after success (asks again if the destination file already exists):
+
+```bash
+bash /root/ros2_ws/src/zed-opencv-calibration/scripts/zed_stereo_calibration_with_install_prompt.sh \
+  --config /root/ros2_ws/src/zed-opencv-calibration/config/fisheye_stereo.yaml
+```
+
+**Install `SN*.conf` only** (e.g. after a run without the wrapper):
+
+```bash
+bash /root/ros2_ws/src/zed-opencv-calibration/scripts/install_conf_to_zed_settings.sh /var/cargo/zed-calibration/calibration_config
+```
+
+`/usr/local/zed/settings` in the container is the same folder as on the host, so installs persist.
+
+**Host prerequisites:** `xhost +local:docker` (see above); ZED X GMSL stack — e.g. `nvargus-daemon` and `zed_x_daemon` running; same as the full `zed-end-effector` service. Compose passes **`DISPLAY`** into the service for GUI apps.
 
 ## Requirements
 
 ### Dependencies
 
-- **ZED SDK** (version 5.1 or higher)
+- **ZED SDK** (version 5.1 or higher, aligned with the vehicle ZED image)
 - **OpenCV** (4.x recommended)
 - **CUDA** (compatible with ZED SDK version)
-- **OpenGL libraries**:
-  - GLEW
-  - FreeGLUT
-  - OpenGL
+- **OpenGL libraries**: GLEW, FreeGLUT, OpenGL
 - **CMake** (3.5 or higher)
 - **C++17** compatible compiler
 
-## Installation and building
+## Building the tools
 
-### Build Instructions
+### In the Cargo Robotics ZED workspace (Jetson / vehicle image)
 
-Open a terminal on your Linux system and execute the following commands:
+This tree is built as part of **`colcon build`** for the ZED ROS workspace. Outputs are normally under:
+
+`/root/ros2_ws/build/zed_opencv_calibration/stereo_calibration`  
+`/root/ros2_ws/build/zed_opencv_calibration/stereo_reprojection_viewer`
+
+If those directories are missing, rebuild the workspace from `/root/ros2_ws` (see vehicle documentation).
+
+### Standalone CMake (optional, native dev)
+
+Outside Docker you can build only this project, as in the upstream Stereolabs workflow:
 
 ```bash
-git clone https://github.com/stereolabs/zed-opencv-calibration.git
 cd zed-opencv-calibration
-
-# Build the stereo calibration tool and the reprojection viewer
 mkdir build && cd build
 cmake ..
 make -j$(nproc)
 ```
-
-### Docker (Jetson only, pinned ZED SDK 5.1.x)
-
-From this directory on the Jetson:
-
-```bash
-./calibrate_virtual_stereo_pair.sh build
-./calibrate_virtual_stereo_pair.sh run
-```
-
-Match the Stereolabs L4T segment to your JetPack line (defaults `L4T_MAJOR=35` `L4T_MINOR=4`). Set `L4T_*` and optionally `CALIBRATION_JETSON_BASE_IMAGE` before `build` if needed.
-
-**GMSL / ZED X:** `run` matches `docker-compose-deploy.yml` `zed`: **`--pid=host`**, **`-v /tmp:/tmp`**, **`-v /var/nvidia/nvcam/settings/`**, **`-v /etc/systemd/system/zed_x_daemon.service`**, plus host **tegra** library bind-mounts and **`LD_LIBRARY_PATH`** for Argus / `nvargus-daemon` on the host.
-
-**Saved images:** calibration captures written to `~/zed-images` inside the container persist to host path `${HOME}/zed-images` by default. Override with `HOST_ZED_IMAGES_DIR=/your/path` before `run`.
-
-**Extrinsics-only from a directory:** set `images_dir` in the YAML config (or pass `--images_dir <dir>`) to skip acquisition and run directly on stored stereo pairs (`image_left_N.png` / `image_right_N.png`). The factory fisheye intrinsics are still pulled live from the SDK, so both ZED XOne GS cameras must be connected.
-
-Files: `Dockerfile.calibration`, `.dockerignore`, `calibrate_virtual_stereo_pair.sh`.
 
 ## Usage
 
@@ -68,7 +128,7 @@ The **Stereo Calibration Tool** is targeted at ZED XOne **GS** fisheye stereo pa
 
 The calibration requires a printed checkerboard pattern with:
 
-- **Default configuration**: [9x6 checkerboard with 23.5 mm squares](https://github.com/opencv/opencv/blob/4.x/doc/pattern.png/)
+- **Default configuration**: [9×6 checkerboard with 23.5 mm squares](https://github.com/opencv/opencv/blob/4.x/doc/pattern.png/)
 - **Custom patterns**: Set `checkerboard.h_edges` / `v_edges` / `square_size_mm` in the YAML config.
 
 **Important**: The pattern dimensions refer to the number of **inner corners** (where black and white squares meet), not the number of squares.
@@ -81,33 +141,35 @@ The calibration requires a printed checkerboard pattern with:
 
 #### Configure the Calibration
 
-Edit `config/fisheye_stereo.yaml` (or copy to your own path) with your camera serials, ZED SDK native resolution mode, calibration output directory, and checkerboard parameters:
+Edit `config/fisheye_stereo.yaml` with your camera serials, ZED SDK resolution mode, directories, and checkerboard parameters. For **`zed-end-effector`** with the default compose mounts, paths look like:
 
 ```yaml
 left_sn: 305932808
 right_sn: 305481469
 resolution: HD1200
-calibration_output_dir: "/root/zed-calibration-out"
+calibration_output_dir: "/var/cargo/zed-calibration/calibration_config"
+capture_images_dir: "/var/cargo/zed-calibration/images"   # live capture writes PNG pairs here
 checkerboard:
   h_edges: 9
   v_edges: 6
   square_size_mm: 23.5
-images_dir: ""   # optional: skip live capture and run from these pairs
+images_dir: ""   # non-empty => load existing pairs from this dir and skip live capture
 ```
+
+Live capture uses **`capture_images_dir`** (default in code is `/var/cargo/zed-calibration/images/` if the key is omitted). **`images_dir`** is only for extrinsics-only mode from pre-collected `image_left_*.png` / `image_right_*.png`.
 
 #### Run the Calibration
 
+Inside the **`zed-end-effector`** shell (see [Run on the vehicle](#run-on-the-vehicle-recommended)):
+
 ```bash
-zed_stereo_calibration --config /opt/zed-opencv-calibration/config/fisheye_stereo.yaml
+export PATH="/root/ros2_ws/build/zed_opencv_calibration/stereo_calibration:/root/ros2_ws/build/zed_opencv_calibration/stereo_reprojection_viewer:${PATH}"
+zed_stereo_calibration --config /root/ros2_ws/src/zed-opencv-calibration/config/fisheye_stereo.yaml
 ```
 
-Inside the calibration Docker container (`./calibrate_virtual_stereo_pair.sh run`), you can run with the source-mounted config:
+CLI reference:
 
-```bash
-zed_stereo_calibration --config /root/zed-opencv-calibration/config/fisheye_stereo.yaml
-```
-
-```bash
+```text
 Usage: zed_stereo_calibration --config <yaml> [--images_dir <dir>] [--verbose]
 
   --config <yaml>      Path to the fisheye stereo calibration config (required).
@@ -205,7 +267,7 @@ You can use these files in your ZED SDK applications:
   - Windows: `C:\ProgramData\Stereolabs\settings`
 - [Use the `sl::InitParameters::optional_settings_path` to indicate to the ZED SDK where to find the custom `SN<serial_number>.conf` calibration file](https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#aa8262e36d2d4872410f982a735b92294).
 
->:pushpin: **Note**: When calibrating a virtual ZED X One stereo rig, the serial number of the Virtual Stereo Camera is generated by the ZED SDK using the serial numbers of the two individual cameras. Make sure to use this generated serial number when loading the calibration in your application to have a unique identifier for the virtual stereo setup.
+**Note:** When calibrating a virtual ZED X One stereo rig, the serial number of the virtual stereo camera is generated by the ZED SDK from the two individual camera serials. Use that virtual serial number when naming and loading calibration files.
 
 ### Stereo Reprojection Viewer
 
@@ -217,9 +279,9 @@ The tool opens the stereo camera and loads calibration parameters either from a 
 
 The application provides three synchronized views:
 
-1. **3D Point Cloud** - The computed depth data in 3D space
-2. **Rectified Left Image** - The corrected, distortion-free left camera image
-3. **Unrectified Left Image with Reprojection Overlay** - The raw left camera image overlaid with reprojected 3D points color-coded by depth (blue for close, red for far)
+1. **3D Point Cloud** — The computed depth data in 3D space
+2. **Rectified Left Image** — The corrected, distortion-free left camera image
+3. **Unrectified Left Image with Reprojection Overlay** — The raw left camera image overlaid with reprojected 3D points color-coded by depth (blue for close, red for far)
 
 #### Evaluating Calibration Quality
 
@@ -238,19 +300,23 @@ For virtual stereo camera setups (e.g., two ZED X One cameras), the reprojection
 
 #### Run the Reprojection Viewer
 
-Default command to start the reprojection viewer:
+After [setting up `PATH`](#1-one-time-setup-inside-the-container) in the **`zed-end-effector`** shell (compose mounts config at `/opt/zed-opencv-calibration/config/`):
 
 ```bash
 zed_reprojection_viewer
 ```
 
-The viewer reads all settings from `config/fisheye_stereo.yaml`:
+The viewer reads all settings from `config/fisheye_stereo.yaml` at **`/opt/zed-opencv-calibration/config/fisheye_stereo.yaml`**:
+
 - uses `left_sn` / `right_sn`,
 - regenerates the virtual stereo SN with `sl::generateVirtualStereoSerialNumber`,
 - and uses `calibration_output_dir` as the ZED SDK optional settings directory.
 
-Inside the calibration Docker container (`./calibrate_virtual_stereo_pair.sh run`):
+### Helper scripts
 
-```bash
-zed_reprojection_viewer
-```
+| Script | Purpose |
+|--------|---------|
+| `scripts/install_conf_to_zed_settings.sh` | Interactively copy the newest `SN*.conf` from your calibration output directory to `/usr/local/zed/settings/` (confirms before overwriting an existing file). |
+| `scripts/zed_stereo_calibration_with_install_prompt.sh` | Runs `zed_stereo_calibration`, then invokes the install script on success (prepends default build dirs to `PATH` if needed). |
+
+Environment overrides (optional): `ZED_CALIB_STEREO_BUILD_DIR`, `ZED_CALIB_REPROJ_BUILD_DIR`, `ZED_OPENCV_CALIB_SRC`, `ZED_CALIB_OUTPUT_DIR`.

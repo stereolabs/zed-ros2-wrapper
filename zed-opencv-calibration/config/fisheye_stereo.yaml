@@ -15,7 +15,9 @@ resolution: HD1200
 # - SN<virtual_stereo_sn>.conf
 # - zed_calibration_<virtual_stereo_sn>.yml
 # zed_reprojection_viewer uses this as optional_settings_path.
-calibration_output_dir: "/root/zed-calibration-out"
+# Must match a host bind-mount for `zed-end-effector` in docker-compose-deploy.yml
+# (default: /var/cargo/zed-calibration/calibration_config on the vehicle).
+calibration_output_dir: "/var/cargo/zed-calibration/calibration_config"
 
 # Checkerboard target. Counts are inner edges (not squares).
 checkerboard:
@@ -28,9 +30,14 @@ sample_collection:
   min: 12
   max: 35
 
+# Live capture: PNG pairs are written here (ignored if images_dir is set below).
+# Default in code matches this path; override with capture_images_dir if needed.
+capture_images_dir: "/var/cargo/zed-calibration/images"
+
 # Optional directory of pre-collected stereo image pairs (image_left_N.png / image_right_N.png).
-# If set, zed_stereo_calibration skips live capture and runs directly from these images.
-images_dir: "/root/zed-images"
+# If non-empty, zed_stereo_calibration skips live capture and runs directly from these images.
+# Same compose service mounts this path on the host.
+images_dir: ""
 
 # Verbose logs.
 verbose: true

@@ -33,8 +33,8 @@ int h_edges;
 int v_edges;
 float square_size;
 
-// Folder used when capturing live; mounted to host ~/zed-images via Docker.
-std::string image_folder = "/root/zed-images/";
+// Folder used when capturing live (see capture_images_dir in fisheye_stereo.yaml; default matches zed-end-effector bind-mount).
+std::string image_folder = "/var/cargo/zed-calibration/images/";
 
 // Coverage indicator fill helpers (defined at the bottom of this file).
 void addNewCheckerboardPosition(cv::Mat& coverage_indicator, cv::Mat& pos_indicator, cv::Mat& limits_indicator, float norm_x, float norm_y,
@@ -201,6 +201,8 @@ struct StereoConfig {
     int v_edges = 0;
     float square_size_mm = 0.0f;
     std::string images_dir;
+    /// Live-capture output directory (only when images_dir is empty). Overrides default /var/cargo/zed-calibration/images/.
+    std::string capture_images_dir;
     /// Where to write SN<virtual>.conf and zed_calibration_<virtual>.yml (see calibration_output_dir in YAML).
     std::string calibration_output_dir;
     bool verbose = true;
@@ -244,6 +246,9 @@ bool loadStereoConfig(const std::string& path, StereoConfig& cfg) {
     cfg.square_size_mm = node["checkerboard"]["square_size_mm"].as<float>();
     if (node["images_dir"]) {
         cfg.images_dir = node["images_dir"].as<std::string>("");
+    }
+    if (node["capture_images_dir"]) {
+        cfg.capture_images_dir = node["capture_images_dir"].as<std::string>("");
     }
     if (node["calibration_output_dir"]) {
         cfg.calibration_output_dir = node["calibration_output_dir"].as<std::string>("");
@@ -765,6 +770,15 @@ int main(int argc, char* argv[]) {
         std::cout << " * Mode:                      EXTRINSICS-ONLY (images_dir: " << cfg.images_dir << ")" << std::endl;
     } else {
         std::cout << " * Mode:                      LIVE CAPTURE + EXTRINSICS" << std::endl;
+        if (!cfg.capture_images_dir.empty()) {
+            image_folder = cfg.capture_images_dir;
+            if (image_folder.back() != '/') {
+                image_folder += "/";
+            }
+        } else {
+            image_folder = "/var/cargo/zed-calibration/images/";
+        }
+        std::cout << " * Live capture output dir:   " << image_folder << std::endl;
     }
 
     // ---------- Pull factory fisheye intrinsics from each camera (kept FIXED) ----------

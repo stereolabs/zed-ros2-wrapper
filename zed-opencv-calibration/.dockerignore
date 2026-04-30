@@ -1,5 +1,0 @@
-# Keep image build context small; do not copy host build tree or tooling.
-build/
-Dockerfile.calibration
-calibrate_virtual_stereo_pair.sh
-.dockerignore

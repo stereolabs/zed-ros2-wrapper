@@ -1091,6 +1091,7 @@ void ZedCamera::getGeneralParams()
                         << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   } else if (camera_model == "zedxnano") {
     mCamUserModel = sl::MODEL::ZED_X_NANO;
     if (mSvoMode) {
@@ -1115,6 +1116,7 @@ void ZedCamera::getGeneralParams()
                         << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
+#endif
   } else if (camera_model == "virtual") {
     mCamUserModel = sl::MODEL::VIRTUAL_ZED_X;
 
@@ -2906,14 +2908,17 @@ bool ZedCamera::startCamera()
       return false;
     }
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
     if (mConnStatus == sl::ERROR_CODE::CAMERA_EXCEEDS_BANDWIDTH) {
       RCLCPP_ERROR_STREAM(
         get_logger(),
-        "GMSL PHY CSI bandwidth overflow detected: " << sl::toVerbose(
+        "GMSL PHY CSI bandwidth overflow detected: "
+          << sl::toVerbose(
           mConnStatus)
-                                                     << ". Please reduce the camera resolution or FPS, adjust GMSL branching/hardware, or consult the GMSL documentation for platform limits.");
+          << ". Please reduce the camera resolution or FPS, adjust GMSL branching/hardware, or consult the GMSL documentation for platform limits.");
       return false;
     }
+#endif
 
     if (mSvoMode) {
       RCLCPP_WARN(
@@ -3085,6 +3090,7 @@ bool ZedCamera::startCamera()
         "Camera model does not match user parameter. Please modify "
         "the value of the parameter 'general.camera_model' to 'zedxm'");
     }
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   } else if (mCamRealModel == sl::MODEL::ZED_X_NANO) {
     if (mCamUserModel != sl::MODEL::ZED_X_NANO) {
       RCLCPP_WARN(
@@ -3092,6 +3098,7 @@ bool ZedCamera::startCamera()
         "Camera model does not match user parameter. Please modify "
         "the value of the parameter 'general.camera_model' to 'zedxnano'");
     }
+#endif
   } else if (mCamRealModel == sl::MODEL::VIRTUAL_ZED_X) {
     if (mCamUserModel != sl::MODEL::VIRTUAL_ZED_X) {
       RCLCPP_WARN(
@@ -5806,7 +5813,9 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
       break;
     case sl::MODEL::ZED_X:
     case sl::MODEL::ZED_XM:
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
     case sl::MODEL::ZED_X_NANO:
+#endif
     case sl::MODEL::ZED_X_HDR:
     case sl::MODEL::ZED_X_HDR_MAX:
     case sl::MODEL::ZED_X_HDR_MINI:

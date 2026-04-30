@@ -560,7 +560,9 @@ private:
   std::string mDepthModelOverride;  // Optional model file override for depth mode
   PcRes mPcResolution = PcRes::COMPACT;
   bool mVoxelPointCloud = false;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   sl::VoxelMeasureParameters mVoxelParams;
+#endif
   std::atomic<bool> mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE)
   int mDepthStabilization = 0;
 

@@ -29,7 +29,7 @@
             pub_resolution: 'NATIVE' # The resolution used for image and depth map publishing. 'NATIVE' to use the same `general.grab_resolution` - 'CUSTOM' to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
             grab_compute_capping_fps: 0.0 # Define a computation upper limit to the grab frequency. This can be useful to get a known constant fixed rate or limit the computation load while keeping a short exposure time by setting a high camera capture framerate. If set to 0, the grab compute capping will be disabled and the ZED SDK will process data at the grab rate.
-            pub_frame_rate: 0.0 # [DYNAMIC] Frequency of publishing of visual images and depth data (not the Point Cloud, see 'depth.point_cloud_freq'). This value must be <= the camera framerate. Set to 0 for no limit (= grab_frame_rate).
+            pub_frame_rate: 30.0 # [DYNAMIC] Frequency of publishing of visual images and depth data (not the Point Cloud, see 'depth.point_cloud_freq'). This value must be <= the camera framerate. Set to 0 for no limit (= grab_frame_rate).
             enable_image_validity_check: 1 # [SDK5 required] Sets the image validity check. If set to 1, the SDK will check if the frames are valid before processing.
             gpu_id: -1
             optional_opencv_calibration_file: '' # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
@@ -83,8 +83,8 @@
             publish_roi_mask: false # Advertise the ROI mask image topic that is published only if a node subscribes to it
 
         depth:
-            depth_mode: 'NEURAL_LIGHT' # Matches the ZED SDK setting: 'NONE', 'NEURAL_LIGHT', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
-            depth_stabilization: -1 # Negative value takes SDK default, 0 is disabled - Range: [0,100]
+            depth_mode: 'NEURAL' # Matches the ZED SDK setting: 'NONE', 'NEURAL_LIGHT', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
+            depth_stabilization: 0 # 0 disables temporal smoothing for minimum latency. Set to ~30 if depth jitter is unacceptable.
             openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
             point_cloud_freq: 10.0 # [DYNAMIC] Frequency of the pointcloud publishing. This value must be <= the camera framerate. Set to 0 for no limit (= grab_frame_rate).
             point_cloud_res: 'COMPACT' # The resolution used for point cloud publishing - 'COMPACT'-Standard resolution. Optimizes processing and bandwidth, 'REDUCED'-Half resolution. Low processing and bandwidth requirements
@@ -93,14 +93,14 @@
             remove_saturated_areas: true # [DYNAMIC]
             publish_depth_map: true # Advertise the depth map topics that are published only if a node subscribes to them
             publish_depth_info: false # Advertise the depth info topic that is published only if a node subscribes to it
-            publish_point_cloud: true # Advertise the point cloud topic that is published only if a node subscribes to it
+            publish_point_cloud: false # Advertise the point cloud topic that is published only if a node subscribes to it
             publish_depth_confidence: false # Advertise the depth confidence topic that is published only if a node subscribes to it
             publish_disparity: false # Advertise the disparity topic that is published only if a node subscribes to it
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
             # 'zedx.yaml', 'zedxmini.yaml', 'virtual.yaml' files
 
         pos_tracking:
-            pos_tracking_enabled: true # True to enable positional tracking from start
+            pos_tracking_enabled: false # True to enable positional tracking from start
             pos_tracking_mode: 'AUTO' # 'AUTO' uses the SDK default; also supports 'GEN_1', 'GEN_3'
             imu_fusion: true # enable/disable IMU fusion. When set to false, only the optical odometry will be used.
             publish_tf: true # [overwritten by launch file options] publish `odom -> camera_link` TF

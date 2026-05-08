@@ -304,18 +304,29 @@ def launch_setup(context, *args, **kwargs):
         nitros_disabled_effective = inline_disable_nitros
 
     if enable_ipc_effective and not nitros_disabled_effective:
-        conflict_msg = (
-            'Invalid configuration: `enable_ipc:=true` with '
-            '`debug.disable_nitros:=false` can cause NITROS startup failure '
-            '(volatile durability conflict).'
-        )
+        # Only enforce the conflict if NITROS is actually installed
+        try:
+            get_package_share_directory('isaac_ros_nitros')
+            nitros_installed = True
+        except Exception:
+            nitros_installed = False
 
-        if ipc_nitros_conflict_policy_val == 'disable_ipc':
-            enable_ipc_effective = False
-            return_array.append(LogInfo(msg=TextSubstitution(
-                text='WARNING: ' + conflict_msg + ' Forcing `enable_ipc:=false` for this launch.')))
+        if nitros_installed:
+            conflict_msg = (
+                'Invalid configuration: `enable_ipc:=true` with '
+                '`debug.disable_nitros:=false` can cause NITROS startup failure '
+                '(volatile durability conflict).'
+            )
+
+            if ipc_nitros_conflict_policy_val == 'disable_ipc':
+                enable_ipc_effective = False
+                return_array.append(LogInfo(msg=TextSubstitution(
+                    text='WARNING: ' + conflict_msg + ' Forcing `enable_ipc:=false` for this launch.')))
+            else:
+                raise RuntimeError(conflict_msg + ' Set `enable_ipc:=false` or `debug.disable_nitros:=true`.')
         else:
-            raise RuntimeError(conflict_msg + ' Set `enable_ipc:=false` or `debug.disable_nitros:=true`.')
+            return_array.append(LogInfo(msg=TextSubstitution(
+                text='NITROS not installed, skipping IPC/NITROS conflict check.')))
 
     # Xacro command with options
     xacro_command = []
@@ -558,7 +569,10 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'enable_ipc',
                 default_value='true',
-                description='Enable intra-process communication (IPC) with ROS 2 Composition',
+                description='Enable intra-process communication (IPC) with ROS 2 Composition. '
+                            'When enabled, images are published via TypeAdapter rclcpp publishers '
+                            'for zero-copy intra-process delivery, while image_transport compression '
+                            'plugins (compressed, theora, zstd) remain available on demand.',
                 choices=['true', 'false']),
             DeclareLaunchArgument(
                 'ipc_nitros_conflict_policy',

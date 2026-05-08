@@ -12,7 +12,7 @@
             sim_port: 30000 # The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.
 
         svo:
-            decryption_key: "" # Optional decryption key/passphrase when opening encrypted SVO files
+            decryption_key: "" # Optional decryption key/passphrase when opening encrypted SVO files [ZED SDK >= 5.3]
             use_svo_timestamps: true # Use the SVO timestamps to publish data. If false, data will be published at the system time.
             publish_svo_clock: false # [overwritten by launch file options] When use_svo_timestamps is true allows to publish the SVO clock to the `/clock` topic. This is useful for synchronous rosbag playback.
             svo_loop: false # Enable loop mode when using an SVO as input source. NOTE: ignored if SVO timestamping is used
@@ -26,7 +26,7 @@
             camera_flip: false
             self_calib: true # Enable the self-calibration process at camera opening. See https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#affeaa06cfc1d849e311e484ceb8edcc5
             serial_number: 0 # overwritten by launch file
-            pub_resolution: 'NATIVE' # The resolution used for image and depth map publishing. 'NATIVE' to use the same `general.grab_resolution` - 'CUSTOM' to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
+            pub_resolution: 'NATIVE' # The resolution used for image and depth map publishing. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
             grab_compute_capping_fps: 0.0 # Define a computation upper limit to the grab frequency. This can be useful to get a known constant fixed rate or limit the computation load while keeping a short exposure time by setting a high camera capture framerate. If set to 0, the grab compute capping will be disabled and the ZED SDK will process data at the grab rate.
             pub_frame_rate: 30.0 # [DYNAMIC] Frequency of publishing of visual images and depth data (not the Point Cloud, see 'depth.point_cloud_freq'). This value must be <= the camera framerate. Set to 0 for no limit (= grab_frame_rate).
@@ -94,6 +94,10 @@
             publish_depth_map: true # Advertise the depth map topics that are published only if a node subscribes to them
             publish_depth_info: false # Advertise the depth info topic that is published only if a node subscribes to it
             publish_point_cloud: false # Advertise the point cloud topic that is published only if a node subscribes to it
+            voxel_point_cloud: false # [DYNAMIC] When true, publish voxel-decimated point cloud instead of full resolution [ZED SDK >= 5.3]
+            voxel_size_mm: -1.0 # [DYNAMIC] Voxel grid cell size in millimeters. -1 = 100mm default. Clamped to [5, max_depth_range] [ZED SDK >= 5.3]
+            voxel_resolution_mode: 'STEREO_UNCERTAINTY' # [DYNAMIC] Voxelization mode: 'FIXED', 'STEREO_UNCERTAINTY', 'LINEAR' [ZED SDK >= 5.3]
+            voxel_resolution_scale: 0.2 # [DYNAMIC] Scale factor for depth-adaptive voxel growth [0.01, 3.0] [ZED SDK >= 5.3]
             publish_depth_confidence: false # Advertise the depth confidence topic that is published only if a node subscribes to it
             publish_disparity: false # Advertise the disparity topic that is published only if a node subscribes to it
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'

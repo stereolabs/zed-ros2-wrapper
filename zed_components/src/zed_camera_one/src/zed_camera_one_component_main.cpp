@@ -434,6 +434,8 @@ void ZedCameraOne::getResolutionParams()
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
     } else if (resol == "XVGA" && _camUserModel == sl::MODEL::ZED_XONE_HDR) {
       _camResol = sl::RESOLUTION::XVGA;
+    } else if (resol == "TXGA" && _camUserModel == sl::MODEL::ZED_XONE_HDR) {
+      _camResol = sl::RESOLUTION::TXGA;
 #endif
     } else if (resol == "HD1200" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
       _camResol = sl::RESOLUTION::HD1200;
@@ -603,6 +605,10 @@ void ZedCameraOne::getDebugParams()
   sl_tools::getParam(
     shared_from_this(), "debug.debug_common", _debugCommon,
     _debugCommon, " * Debug Common: ");
+  sl_tools::getParam(
+    shared_from_this(), "debug.debug_dyn_params",
+    _debugDynParams, _debugDynParams,
+    " * Debug Dynamic Parameters: ");
   sl_tools::getParam(
     shared_from_this(), "debug.debug_dyn_params",
     _debugDynParams, _debugDynParams,
@@ -972,7 +978,20 @@ bool ZedCameraOne::openZedCamera()
           "If the file exists, it may contain invalid information.");
       }
       return false;
-    } else if (_svoMode) {
+    }
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
+    if (_connStatus == sl::ERROR_CODE::CAMERA_EXCEEDS_BANDWIDTH) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "GMSL PHY CSI bandwidth overflow detected: " << sl::toVerbose(
+          _connStatus)
+                                                     << ". Please reduce the camera resolution or FPS, adjust GMSL branching/hardware, or consult the GMSL documentation for platform limits.");
+      return false;
+    }
+#endif
+
+    if (_svoMode) {
       RCLCPP_WARN(
         get_logger(), "Error opening SVO: %s",
         sl::toString(_connStatus).c_str());

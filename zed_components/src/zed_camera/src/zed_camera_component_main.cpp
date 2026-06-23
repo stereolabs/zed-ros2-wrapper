@@ -3970,6 +3970,11 @@ bool ZedCamera::startPosTrackingLocked()
 {
   // Caller must hold mPtMutex.
 
+  //EMILIS
+  if (!mPosTrackingEnabled) {
+    return false;
+  }
+
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 52
   // With ZED SDK v5.2 we can use Positional Tracking `GEN_3` even if depth is
   // disabled

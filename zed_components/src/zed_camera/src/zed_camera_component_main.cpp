@@ -3256,6 +3256,13 @@ bool ZedCamera::startCamera()
       RCLCPP_INFO_STREAM(
         get_logger(),
         " * Sensors FW Version -> " << mSensFwVersion);
+
+      // Hardware IMU output data rate, used to decimate the drained IMU FIFO
+      // down to the requested `sensors.sensors_pub_rate`.
+      mImuOdr = camInfo.sensors_configuration.gyroscope_parameters.sampling_rate;
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " * IMU sampling rate  -> " << mImuOdr << " Hz");
     }
   }
 
@@ -5477,6 +5484,98 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   }
   // <---- Subscribers count
 
+  // ----> Default live mode: drain the whole IMU FIFO
+  // The ZED SDK buffers every IMU sample. getSensorsDataBatch() returns all the
+  // samples received since the previous call, ordered by timestamp. Draining
+  // the FIFO here (instead of reading only the most recent sample with
+  // TIME_REFERENCE::CURRENT) guarantees that no sample is dropped and that the
+  // published hardware timestamps keep a constant rate, fixing the unstable IMU
+  // rate reported in issues #249 and #445.
+  if (!mSensCameraSync && !mSvoMode && !mSimMode) {
+    std::vector<sl::SensorsData> sens_data_batch;
+    sl::ERROR_CODE batch_err = mZed->getSensorsDataBatch(sens_data_batch);
+    if (batch_err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "[publishSensorsData] sl::getSensorsDataBatch error: "
+          << sl::toString(batch_err).c_str());
+      return false;
+    }
+    if (sens_data_batch.empty()) {
+      DEBUG_STREAM_SENS("No new sensors data");
+      return false;
+    }
+
+    // Decimate the drained IMU stream down to the requested
+    // `sensors.sensors_pub_rate`. The FIFO is filled at the camera's hardware
+    // ODR; a fractional accumulator selects samples as uniformly as possible so
+    // the average output rate matches mSensPubRate (capped at the hardware ODR),
+    // while every published sample keeps its real hardware timestamp. If the ODR
+    // is unknown or the requested rate is >= ODR, every sample is published.
+    double decim_ratio = 1.0;
+    if (mImuOdr > 0.0 && mSensPubRate > 0.0 && mSensPubRate < mImuOdr) {
+      decim_ratio = mSensPubRate / mImuOdr;
+    }
+
+    bool published = false;
+    for (const auto & sample : sens_data_batch) {
+      rclcpp::Time s_ts_imu = sl_tools::slTime2Ros(sample.imu.timestamp);
+
+      // ----> IMU (decimated to the requested rate)
+      // Skip duplicated / out-of-order samples (defensive: the FIFO is already
+      // ordered and de-duplicated, but never publish a non-increasing stamp).
+      if (mLastTs_imu == TIMEZERO_ROS || s_ts_imu > mLastTs_imu) {
+        mImuDecimAccum += decim_ratio;
+        if (mImuDecimAccum >= 1.0) {
+          mImuDecimAccum -= 1.0;
+
+          double s_dT = s_ts_imu.seconds() - mLastTs_imu.seconds();
+          mLastTs_imu = s_ts_imu;
+
+          // IMU frequency diagnostic (measured on the real published cadence)
+          double imu_mean = mImuPeriodMean_sec->addValue(mImuFreqTimer.toc());
+          mImuFreqTimer.tic();
+          DEBUG_STREAM_SENS(
+            "SENSOR LAST PERIOD: " << s_dT << " sec @" << 1. / s_dT
+                                   << " Hz - MEAN freq: " << 1. / imu_mean);
+
+          publishImuFrameAndTopic();
+          publishImuMessages(sample, s_ts_imu, imu_SubCount, imu_RawSubCount);
+          published = true;
+        }
+      }
+      // <---- IMU
+
+      // ----> Barometer (lower rate, de-duplicated by its own hardware ts)
+      if (sample.barometer.is_available) {
+        rclcpp::Time s_ts_baro = sl_tools::slTime2Ros(sample.barometer.timestamp);
+        if (s_ts_baro != mLastTs_baro) {
+          mLastTs_baro = s_ts_baro;
+          double baro_mean = mBaroPeriodMean_sec->addValue(mBaroFreqTimer.toc());
+          mBaroFreqTimer.tic();
+          DEBUG_STREAM_SENS("Barometer freq: " << 1. / baro_mean);
+          publishBaroMessage(sample, s_ts_baro, pressSubCount);
+        }
+      }
+      // <---- Barometer
+
+      // ----> Magnetometer (lower rate, de-duplicated by its own hardware ts)
+      if (sample.magnetometer.is_available) {
+        rclcpp::Time s_ts_mag = sl_tools::slTime2Ros(sample.magnetometer.timestamp);
+        if (s_ts_mag != mLastTs_mag) {
+          mLastTs_mag = s_ts_mag;
+          double mag_mean = mMagPeriodMean_sec->addValue(mMagFreqTimer.toc());
+          mMagFreqTimer.tic();
+          DEBUG_STREAM_SENS("Magnetometer freq: " << 1. / mag_mean);
+          publishMagMessage(sample, s_ts_mag, imu_MagSubCount);
+        }
+      }
+      // <---- Magnetometer
+    }
+    return published;
+  }
+  // <---- Default live mode: drain the whole IMU FIFO
+
   // ----> Grab data and setup timestamps
   DEBUG_STREAM_ONCE_SENS("Sensors callback: Grab data and setup timestamps");
   rclcpp::Time ts_imu;
@@ -5589,211 +5688,231 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   }
   // <---- Sensors freq for diagnostic
 
-  // ----> Sensors data publishing
+  // ----> Sensors data publishing (single-sample path: sync / SVO / sim modes)
   if (new_imu_data) {
     publishImuFrameAndTopic();
-
-    if (imu_SubCount > 0) {
-      mImuPublishing = true;
-
-      auto imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
-
-      imuMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_imu;
-      imuMsg->header.frame_id = mImuFrameId;
-
-      imuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
-      imuMsg->orientation.y = sens_data.imu.pose.getOrientation()[1];
-      imuMsg->orientation.z = sens_data.imu.pose.getOrientation()[2];
-      imuMsg->orientation.w = sens_data.imu.pose.getOrientation()[3];
-
-      imuMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
-      imuMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
-      imuMsg->angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
-
-      imuMsg->linear_acceleration.x = sens_data.imu.linear_acceleration[0];
-      imuMsg->linear_acceleration.y = sens_data.imu.linear_acceleration[1];
-      imuMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
-
-      // ----> Covariances copy
-      // Note: memcpy not allowed because ROS 2 uses double and ZED SDK uses
-      // float
-      for (int i = 0; i < 3; ++i) {
-        int r = 0;
-
-        if (i == 0) {
-          r = 0;
-        } else if (i == 1) {
-          r = 1;
-        } else {
-          r = 2;
-        }
-
-        imuMsg->orientation_covariance[i * 3 + 0] =
-          sens_data.imu.pose_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
-        imuMsg->orientation_covariance[i * 3 + 1] =
-          sens_data.imu.pose_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
-        imuMsg->orientation_covariance[i * 3 + 2] =
-          sens_data.imu.pose_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
-
-        imuMsg->linear_acceleration_covariance[i * 3 + 0] =
-          sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
-        imuMsg->linear_acceleration_covariance[i * 3 + 1] =
-          sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
-        imuMsg->linear_acceleration_covariance[i * 3 + 2] =
-          sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
-
-        imuMsg->angular_velocity_covariance[i * 3 + 0] =
-          sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD *
-          DEG2RAD;
-        imuMsg->angular_velocity_covariance[i * 3 + 1] =
-          sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD *
-          DEG2RAD;
-        imuMsg->angular_velocity_covariance[i * 3 + 2] =
-          sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD *
-          DEG2RAD;
-      }
-      // <---- Covariances copy
-
-      DEBUG_STREAM_SENS("Publishing IMU message");
-      try {
-        if (mPubImu) {mPubImu->publish(std::move(imuMsg));}
-      } catch (std::system_error & e) {
-        DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
-      } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic exception: ");
-      }
-    } else {
-      mImuPublishing = false;
-    }
-
-    if (imu_RawSubCount > 0) {
-      mImuPublishing = true;
-
-      auto imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
-
-      imuRawMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_imu;
-      imuRawMsg->header.frame_id = mImuFrameId;
-
-      imuRawMsg->angular_velocity.x =
-        sens_data.imu.angular_velocity_uncalibrated[0] * DEG2RAD;
-      imuRawMsg->angular_velocity.y =
-        sens_data.imu.angular_velocity_uncalibrated[1] * DEG2RAD;
-      imuRawMsg->angular_velocity.z =
-        sens_data.imu.angular_velocity_uncalibrated[2] * DEG2RAD;
-
-      imuRawMsg->linear_acceleration.x = sens_data.imu.linear_acceleration_uncalibrated[0];
-      imuRawMsg->linear_acceleration.y = sens_data.imu.linear_acceleration_uncalibrated[1];
-      imuRawMsg->linear_acceleration.z = sens_data.imu.linear_acceleration_uncalibrated[2];
-
-      // ----> Covariances copy
-      // Note: memcpy not allowed because ROS 2 uses double and ZED SDK uses
-      // float
-      for (int i = 0; i < 3; ++i) {
-        int r = 0;
-
-        if (i == 0) {
-          r = 0;
-        } else if (i == 1) {
-          r = 1;
-        } else {
-          r = 2;
-        }
-
-        imuRawMsg->linear_acceleration_covariance[i * 3 + 0] =
-          sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
-        imuRawMsg->linear_acceleration_covariance[i * 3 + 1] =
-          sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
-        imuRawMsg->linear_acceleration_covariance[i * 3 + 2] =
-          sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
-
-        imuRawMsg->angular_velocity_covariance[i * 3 + 0] =
-          sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD *
-          DEG2RAD;
-        imuRawMsg->angular_velocity_covariance[i * 3 + 1] =
-          sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD *
-          DEG2RAD;
-        imuRawMsg->angular_velocity_covariance[i * 3 + 2] =
-          sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD *
-          DEG2RAD;
-      }
-      // <---- Covariances copy
-
-      DEBUG_STREAM_SENS("Publishing IMU RAW message");
-      try {
-        if (mPubImuRaw) {mPubImuRaw->publish(std::move(imuRawMsg));}
-      } catch (std::system_error & e) {
-        DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
-      } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic exception: ");
-      }
-    }
+    publishImuMessages(sens_data, ts_imu, imu_SubCount, imu_RawSubCount);
   }
 
   if (sens_data.barometer.is_available && new_baro_data) {
-    if (pressSubCount > 0) {
-      mBaroPublishing = true;
-
-      auto pressMsg = std::make_unique<sensor_msgs::msg::FluidPressure>();
-
-      pressMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_baro;
-      pressMsg->header.frame_id = mBaroFrameId;
-      pressMsg->fluid_pressure =
-        sens_data.barometer.pressure;    // Pascals -> see
-      // https://github.com/ros2/common_interfaces/blob/humble/sensor_msgs/msg/FluidPressure.msg
-      pressMsg->variance = 1.0585e-2;
-
-      DEBUG_STREAM_SENS("Publishing PRESS message");
-      try {
-        if (mPubPressure) {mPubPressure->publish(std::move(pressMsg));}
-      } catch (std::system_error & e) {
-        DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
-      } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic exception: ");
-      }
-    } else {
-      mBaroPublishing = false;
-    }
+    publishBaroMessage(sens_data, ts_baro, pressSubCount);
   }
 
   if (sens_data.magnetometer.is_available && new_mag_data) {
-    if (imu_MagSubCount > 0) {
-      mMagPublishing = true;
-
-      auto magMsg = std::make_unique<sensor_msgs::msg::MagneticField>();
-
-      magMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_mag;
-      magMsg->header.frame_id = mMagFrameId;
-      magMsg->magnetic_field.x =
-        sens_data.magnetometer.magnetic_field_calibrated.x * 1e-6;    // Tesla
-      magMsg->magnetic_field.y =
-        sens_data.magnetometer.magnetic_field_calibrated.y * 1e-6;    // Tesla
-      magMsg->magnetic_field.z =
-        sens_data.magnetometer.magnetic_field_calibrated.z * 1e-6;    // Tesla
-      magMsg->magnetic_field_covariance[0] = 0.039e-6;
-      magMsg->magnetic_field_covariance[1] = 0.0f;
-      magMsg->magnetic_field_covariance[2] = 0.0f;
-      magMsg->magnetic_field_covariance[3] = 0.0f;
-      magMsg->magnetic_field_covariance[4] = 0.037e-6;
-      magMsg->magnetic_field_covariance[5] = 0.0f;
-      magMsg->magnetic_field_covariance[6] = 0.0f;
-      magMsg->magnetic_field_covariance[7] = 0.0f;
-      magMsg->magnetic_field_covariance[8] = 0.047e-6;
-
-      DEBUG_STREAM_SENS("Publishing MAG message");
-      try {
-        if (mPubImuMag) {mPubImuMag->publish(std::move(magMsg));}
-      } catch (std::system_error & e) {
-        DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
-      } catch (...) {
-        DEBUG_STREAM_COMM("Message publishing generic exception: ");
-      }
-    } else {
-      mMagPublishing = false;
-    }
+    publishMagMessage(sens_data, ts_mag, imu_MagSubCount);
   }
   // <---- Sensors data publishing
 
   return true;
+}
+
+void ZedCamera::publishImuMessages(
+  const sl::SensorsData & sens_data, const rclcpp::Time & ts_imu,
+  size_t imu_SubCount, size_t imu_RawSubCount)
+{
+  if (imu_SubCount > 0) {
+    mImuPublishing = true;
+
+    auto imuMsg = std::make_unique<sensor_msgs::msg::Imu>();
+
+    imuMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_imu;
+    imuMsg->header.frame_id = mImuFrameId;
+
+    imuMsg->orientation.x = sens_data.imu.pose.getOrientation()[0];
+    imuMsg->orientation.y = sens_data.imu.pose.getOrientation()[1];
+    imuMsg->orientation.z = sens_data.imu.pose.getOrientation()[2];
+    imuMsg->orientation.w = sens_data.imu.pose.getOrientation()[3];
+
+    imuMsg->angular_velocity.x = sens_data.imu.angular_velocity[0] * DEG2RAD;
+    imuMsg->angular_velocity.y = sens_data.imu.angular_velocity[1] * DEG2RAD;
+    imuMsg->angular_velocity.z = sens_data.imu.angular_velocity[2] * DEG2RAD;
+
+    imuMsg->linear_acceleration.x = sens_data.imu.linear_acceleration[0];
+    imuMsg->linear_acceleration.y = sens_data.imu.linear_acceleration[1];
+    imuMsg->linear_acceleration.z = sens_data.imu.linear_acceleration[2];
+
+    // ----> Covariances copy
+    // Note: memcpy not allowed because ROS 2 uses double and ZED SDK uses
+    // float
+    for (int i = 0; i < 3; ++i) {
+      int r = 0;
+
+      if (i == 0) {
+        r = 0;
+      } else if (i == 1) {
+        r = 1;
+      } else {
+        r = 2;
+      }
+
+      imuMsg->orientation_covariance[i * 3 + 0] =
+        sens_data.imu.pose_covariance.r[r * 3 + 0] * DEG2RAD * DEG2RAD;
+      imuMsg->orientation_covariance[i * 3 + 1] =
+        sens_data.imu.pose_covariance.r[r * 3 + 1] * DEG2RAD * DEG2RAD;
+      imuMsg->orientation_covariance[i * 3 + 2] =
+        sens_data.imu.pose_covariance.r[r * 3 + 2] * DEG2RAD * DEG2RAD;
+
+      imuMsg->linear_acceleration_covariance[i * 3 + 0] =
+        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
+      imuMsg->linear_acceleration_covariance[i * 3 + 1] =
+        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
+      imuMsg->linear_acceleration_covariance[i * 3 + 2] =
+        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
+
+      imuMsg->angular_velocity_covariance[i * 3 + 0] =
+        sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD *
+        DEG2RAD;
+      imuMsg->angular_velocity_covariance[i * 3 + 1] =
+        sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD *
+        DEG2RAD;
+      imuMsg->angular_velocity_covariance[i * 3 + 2] =
+        sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD *
+        DEG2RAD;
+    }
+    // <---- Covariances copy
+
+    DEBUG_STREAM_SENS("Publishing IMU message");
+    try {
+      if (mPubImu) {mPubImu->publish(std::move(imuMsg));}
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
+    }
+  } else {
+    mImuPublishing = false;
+  }
+
+  if (imu_RawSubCount > 0) {
+    mImuPublishing = true;
+
+    auto imuRawMsg = std::make_unique<sensor_msgs::msg::Imu>();
+
+    imuRawMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_imu;
+    imuRawMsg->header.frame_id = mImuFrameId;
+
+    imuRawMsg->angular_velocity.x =
+      sens_data.imu.angular_velocity_uncalibrated[0] * DEG2RAD;
+    imuRawMsg->angular_velocity.y =
+      sens_data.imu.angular_velocity_uncalibrated[1] * DEG2RAD;
+    imuRawMsg->angular_velocity.z =
+      sens_data.imu.angular_velocity_uncalibrated[2] * DEG2RAD;
+
+    imuRawMsg->linear_acceleration.x = sens_data.imu.linear_acceleration_uncalibrated[0];
+    imuRawMsg->linear_acceleration.y = sens_data.imu.linear_acceleration_uncalibrated[1];
+    imuRawMsg->linear_acceleration.z = sens_data.imu.linear_acceleration_uncalibrated[2];
+
+    // ----> Covariances copy
+    // Note: memcpy not allowed because ROS 2 uses double and ZED SDK uses
+    // float
+    for (int i = 0; i < 3; ++i) {
+      int r = 0;
+
+      if (i == 0) {
+        r = 0;
+      } else if (i == 1) {
+        r = 1;
+      } else {
+        r = 2;
+      }
+
+      imuRawMsg->linear_acceleration_covariance[i * 3 + 0] =
+        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 0];
+      imuRawMsg->linear_acceleration_covariance[i * 3 + 1] =
+        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 1];
+      imuRawMsg->linear_acceleration_covariance[i * 3 + 2] =
+        sens_data.imu.linear_acceleration_covariance.r[r * 3 + 2];
+
+      imuRawMsg->angular_velocity_covariance[i * 3 + 0] =
+        sens_data.imu.angular_velocity_covariance.r[r * 3 + 0] * DEG2RAD *
+        DEG2RAD;
+      imuRawMsg->angular_velocity_covariance[i * 3 + 1] =
+        sens_data.imu.angular_velocity_covariance.r[r * 3 + 1] * DEG2RAD *
+        DEG2RAD;
+      imuRawMsg->angular_velocity_covariance[i * 3 + 2] =
+        sens_data.imu.angular_velocity_covariance.r[r * 3 + 2] * DEG2RAD *
+        DEG2RAD;
+    }
+    // <---- Covariances copy
+
+    DEBUG_STREAM_SENS("Publishing IMU RAW message");
+    try {
+      if (mPubImuRaw) {mPubImuRaw->publish(std::move(imuRawMsg));}
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
+    }
+  }
+}
+
+void ZedCamera::publishBaroMessage(
+  const sl::SensorsData & sens_data, const rclcpp::Time & ts_baro,
+  size_t pressSubCount)
+{
+  if (pressSubCount > 0) {
+    mBaroPublishing = true;
+
+    auto pressMsg = std::make_unique<sensor_msgs::msg::FluidPressure>();
+
+    pressMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_baro;
+    pressMsg->header.frame_id = mBaroFrameId;
+    pressMsg->fluid_pressure =
+      sens_data.barometer.pressure;    // Pascals -> see
+    // https://github.com/ros2/common_interfaces/blob/humble/sensor_msgs/msg/FluidPressure.msg
+    pressMsg->variance = 1.0585e-2;
+
+    DEBUG_STREAM_SENS("Publishing PRESS message");
+    try {
+      if (mPubPressure) {mPubPressure->publish(std::move(pressMsg));}
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
+    }
+  } else {
+    mBaroPublishing = false;
+  }
+}
+
+void ZedCamera::publishMagMessage(
+  const sl::SensorsData & sens_data, const rclcpp::Time & ts_mag,
+  size_t imu_MagSubCount)
+{
+  if (imu_MagSubCount > 0) {
+    mMagPublishing = true;
+
+    auto magMsg = std::make_unique<sensor_msgs::msg::MagneticField>();
+
+    magMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : ts_mag;
+    magMsg->header.frame_id = mMagFrameId;
+    magMsg->magnetic_field.x =
+      sens_data.magnetometer.magnetic_field_calibrated.x * 1e-6;    // Tesla
+    magMsg->magnetic_field.y =
+      sens_data.magnetometer.magnetic_field_calibrated.y * 1e-6;    // Tesla
+    magMsg->magnetic_field.z =
+      sens_data.magnetometer.magnetic_field_calibrated.z * 1e-6;    // Tesla
+    magMsg->magnetic_field_covariance[0] = 0.039e-6;
+    magMsg->magnetic_field_covariance[1] = 0.0f;
+    magMsg->magnetic_field_covariance[2] = 0.0f;
+    magMsg->magnetic_field_covariance[3] = 0.0f;
+    magMsg->magnetic_field_covariance[4] = 0.037e-6;
+    magMsg->magnetic_field_covariance[5] = 0.0f;
+    magMsg->magnetic_field_covariance[6] = 0.0f;
+    magMsg->magnetic_field_covariance[7] = 0.0f;
+    magMsg->magnetic_field_covariance[8] = 0.047e-6;
+
+    DEBUG_STREAM_SENS("Publishing MAG message");
+    try {
+      if (mPubImuMag) {mPubImuMag->publish(std::move(magMsg));}
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_COMM("Message publishing exception: " << e.what());
+    } catch (...) {
+      DEBUG_STREAM_COMM("Message publishing generic exception: ");
+    }
+  } else {
+    mMagPublishing = false;
+  }
 }
 
 void ZedCamera::publishTFs(rclcpp::Time t)
@@ -6280,37 +6399,23 @@ void ZedCamera::threadFunc_pubSensorsData()
         continue;
       }
 
-      if (!publishSensorsData()) {
-        auto sleep_usec =
-          static_cast<int>(mSensRateComp * (1000000. / mSensPubRate));
-        sleep_usec = std::max(100, sleep_usec);
-        DEBUG_STREAM_SENS(
-          "[threadFunc_pubSensorsData] Thread sleep: "
-            << sleep_usec << " µsec");
-        rclcpp::sleep_for(
-          std::chrono::microseconds(sleep_usec));      // Avoid busy-waiting
-        continue;
-      }
+      publishSensorsData();
 
-      // ----> Check publishing frequency
-      double sens_period_usec = 1e6 / mSensPubRate;
-      double avg_freq = 1. / mImuPeriodMean_sec->getAvg();
-
-      double err = std::fabs(mSensPubRate - avg_freq);
-
-      const double COMP_P_GAIN = 0.0005;
-
-      if (avg_freq < mSensPubRate) {
-        mSensRateComp -= COMP_P_GAIN * err;
-      } else if (avg_freq > mSensPubRate) {
-        mSensRateComp += COMP_P_GAIN * err;
-      }
-
-      mSensRateComp = std::max(0.001, mSensRateComp);
-      mSensRateComp = std::min(3.0, mSensRateComp);
+      // ----> Poll cadence
+      // getSensorsDataBatch() drains the whole IMU FIFO on every call and the
+      // output rate is set by decimation (see publishSensorsData), so this
+      // period only needs to keep the FIFO drained and bound the latency. Poll
+      // at the hardware IMU rate when known (so a single sample is waiting on
+      // average); fall back to the requested rate otherwise. The old
+      // rate-compensation feedback loop (which caused sample aliasing) is gone.
+      double poll_rate = (mImuOdr > 0.0) ? mImuOdr : mSensPubRate;
+      int poll_usec = static_cast<int>(1000000. / poll_rate);
+      poll_usec = std::max(100, poll_usec);
       DEBUG_STREAM_SENS(
-        "[threadFunc_pubSensorsData] mSensRateComp: " << mSensRateComp);
-      // <---- Check publishing frequency
+        "[threadFunc_pubSensorsData] Poll period: " << poll_usec << " µsec");
+      rclcpp::sleep_for(
+        std::chrono::microseconds(poll_usec));      // Avoid busy-waiting
+      // <---- Poll cadence
     } catch (...) {
       rcutils_reset_error();
       DEBUG_STREAM_COMM("threadFunc_pubSensorsData: Generic exception.");

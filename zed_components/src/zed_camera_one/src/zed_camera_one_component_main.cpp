@@ -1162,6 +1162,13 @@ void ZedCameraOne::processCameraInformation()
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Sensors FW Version -> " << _sensFwVersion);
+
+    // Hardware IMU output data rate, used to decimate the drained IMU FIFO
+    // down to the requested `sensors.sensors_pub_rate`.
+    _imuOdr = camInfo.sensors_configuration.gyroscope_parameters.sampling_rate;
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * IMU sampling rate  -> " << _imuOdr << " Hz");
   }
 
   _slCamImuTransf = camInfo.sensors_configuration.camera_imu_transform;

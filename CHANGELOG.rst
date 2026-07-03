@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+v5.4.1
+----------
+- Fixed unstable IMU publishing rate (issues #249 and #445). Sensor data is now retrieved by draining the full IMU FIFO with `getSensorsDataBatch()` instead of polling only the latest sample, so no sample is dropped and every published sample keeps its hardware timestamp. The drained stream is decimated to the requested `sensors.sensors_pub_rate` with a fractional accumulator that selects samples uniformly, so the parameter is still honored while the inter-sample interval stays constant. Measured on a ZED 2i: `sensors_pub_rate` 100/200/400 Hz yields a steady 101/202/404 Hz output with std-dev ~0.07 ms (vs ~1 ms before, with frequent missed-sample gaps up to ~12.7 ms).
+
 v5.4
 ----------
 - Improved point cloud publishing by eliminating one full-cloud copy per published frame (~44 MB at HD2K, proportional at lower res) and removing a second full-cloud CPU allocation.

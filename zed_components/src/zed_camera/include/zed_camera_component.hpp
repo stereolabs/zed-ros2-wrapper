@@ -337,6 +337,15 @@ protected:
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
   bool publishSensorsData(rclcpp::Time force_ts = TIMEZERO_ROS);
+  void publishImuMessages(
+    const sl::SensorsData & sens_data, const rclcpp::Time & ts_imu,
+    size_t imu_SubCount, size_t imu_RawSubCount);
+  void publishBaroMessage(
+    const sl::SensorsData & sens_data, const rclcpp::Time & ts_baro,
+    size_t pressSubCount);
+  void publishMagMessage(
+    const sl::SensorsData & sens_data, const rclcpp::Time & ts_mag,
+    size_t imu_MagSubCount);
   void publishHealthStatus();
   bool publishSvoStatus(uint64_t frame_ts);
 
@@ -583,6 +592,8 @@ private:
 
   bool mSensCameraSync = false;
   double mSensPubRate = 200.;
+  double mImuOdr = 0.0;          // Hardware IMU output data rate [Hz] (0 = unknown)
+  double mImuDecimAccum = 0.0;   // Fractional accumulator for IMU rate decimation
 
   std::vector<std::vector<float>> mRoyPolyParam;  // Manual ROI polygon
   bool mAutoRoiEnabled = false;
@@ -1048,7 +1059,6 @@ private:
     mTempPubTimer;    // Timer to retrieve and publish CMOS temperatures
   rclcpp::TimerBase::SharedPtr mGnssPubCheckTimer;
   rclcpp::TimerBase::SharedPtr mHeartbeatTimer;
-  double mSensRateComp = 1.0;
   // <---- Threads and Timers
 
   // ----> Thread Sync

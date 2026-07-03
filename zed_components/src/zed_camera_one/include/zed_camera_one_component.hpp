@@ -187,7 +187,6 @@ protected:
   bool waitForCameraOpen();
   bool waitForSensorSubscribers();
   bool handleSensorPublishing();
-  void adjustSensorPublishingFrequency();
 
   bool handleDynamicVideoParam(
     const rclcpp::Parameter & param, const std::string & param_name,
@@ -361,7 +360,6 @@ private:
 
   std::atomic<size_t> _imuSubCount;
   std::atomic<size_t> _imuRawSubCount;
-  double _sensRateComp = 1.0;
 
   sl::Mat _matColor, _matColorRaw;
   sl::Mat _matGray, _matGrayRaw;
@@ -431,6 +429,8 @@ private:
   int _streamingServerTargetFramerate = 0;
 
   double _sensPubRate = 200.;
+  double _imuOdr = 0.0;          // Hardware IMU output data rate [Hz] (0 = unknown)
+  double _imuDecimAccum = 0.0;   // Fractional accumulator for IMU rate decimation
   // <---- Parameters
 
   // ----> Dynamic params

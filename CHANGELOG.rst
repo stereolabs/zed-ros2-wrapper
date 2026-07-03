@@ -2,7 +2,8 @@ LATEST CHANGES
 ==============
 
 v5.4.1
-----------
+------
+- Fixed camera video settings (exposure, gain, white balance, brightness, etc.) not being reliably applied at start-up. The node now always enforces the configured values when it starts, instead of keeping whatever was left in the camera by a previous application (e.g. ZED Explorer or an earlier run). This fixes two identically-configured cameras showing different images, and the case where the image did not match the configured exposure/gain after opening the node. The apply is also retried if the camera is not ready yet (e.g. during USB bandwidth contention when several cameras are opened at once).
 - Fixed unstable IMU publishing rate (issues #249 and #445). Sensor data is now retrieved by draining the full IMU FIFO with `getSensorsDataBatch()` instead of polling only the latest sample, so no sample is dropped and every published sample keeps its hardware timestamp. The drained stream is decimated to the requested `sensors.sensors_pub_rate` with a fractional accumulator that selects samples uniformly, so the parameter is still honored while the inter-sample interval stays constant. Measured on a ZED 2i: `sensors_pub_rate` 100/200/400 Hz yields a steady 101/202/404 Hz output with std-dev ~0.07 ms (vs ~1 ms before, with frequent missed-sample gaps up to ~12.7 ms).
 
 v5.4

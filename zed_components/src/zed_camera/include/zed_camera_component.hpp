@@ -358,6 +358,11 @@ protected:
   bool isPosTrackingRequired();
 
   void applyVideoSettings();
+  // Robustly enforce a single integer video setting on the camera.
+  // Writes `value` when the current value cannot be read (read error) or
+  // differs from `value`. Returns false if the write failed, so the caller
+  // can keep the settings "dirty" and retry on a later cycle.
+  bool applyVideoSetting(sl::VIDEO_SETTINGS setting, int value);
   void applyAutoExposureGainSettings();
   void applyExposureGainSettings();
   void applyWhiteBalanceSettings();
@@ -1094,6 +1099,11 @@ private:
   bool mTriggerAutoExpGain = true;  // Triggered on start
   bool mTriggerAutoWB = true;       // Triggered on start
   bool mCamSettingsDirty = true;    // Force initial apply on start
+  bool mVideoSettingsApplyOk = true;  // Set false when a video setting could
+                                      // not be applied, so that the apply is
+                                      // retried instead of being lost
+  int mVideoSettingsRetryCount = 0;   // Bounded retries of a failing apply
+  static const int mVideoSettingsMaxRetries = 20;  // ~ first seconds of stream
   bool mRecording = false;
   sl::RecordingStatus mRecStatus = sl::RecordingStatus();
   bool mPosTrackingReady = false;

@@ -3970,11 +3970,6 @@ bool ZedCamera::startPosTrackingLocked()
 {
   // Caller must hold mPtMutex.
 
-  //EMILIS
-  if (!mPosTrackingEnabled) {
-    return false;
-  }
-
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 52
   // With ZED SDK v5.2 we can use Positional Tracking `GEN_3` even if depth is
   // disabled
@@ -5147,7 +5142,7 @@ void ZedCamera::threadFunc_zedGrab()
             rclcpp::sleep_for(
               std::chrono::microseconds(
                 static_cast<int>(mGrabPeriodMean_sec->getAvg() * 1e6)));
-            if (mResetPoseWithSvoLoop) {
+            if (mPosTrackingEnabled && mResetPoseWithSvoLoop) {
               RCLCPP_WARN(
                 get_logger(),
                 " * Camera pose reset to initial conditions.");
@@ -9752,7 +9747,7 @@ void ZedCamera::callback_setRoi(
             nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
               nvidia::isaac_ros::nitros::NitrosImage>>(
             this, mRoiMaskTopic,
-            nvidia::isaac_ros::nitros::nitros_image_bgra8_t::
+            nvidia::isaac_ros::nitros::nitros_image_rgb8_t::
             supported_type_name,
             nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
           RCLCPP_INFO_STREAM(

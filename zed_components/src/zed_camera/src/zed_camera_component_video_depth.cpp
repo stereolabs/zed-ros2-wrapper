@@ -292,7 +292,7 @@ void ZedCamera::initVideoDepthPublishers()
     auto make_nitros_img_pub = [&](const std::string & topic) {
         auto ret = std::make_shared<nvidia::isaac_ros::nitros::ManagedNitrosPublisher<
               nvidia::isaac_ros::nitros::NitrosImage>>(
-          this, topic, nvidia::isaac_ros::nitros::nitros_image_bgra8_t::supported_type_name,
+          this, topic, nvidia::isaac_ros::nitros::nitros_image_rgb8_t::supported_type_name,
           nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
         RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << topic);
         RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << topic + "/nitros");
@@ -2530,11 +2530,11 @@ void ZedCamera::publishImageWithInfo(
     header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
     header.frame_id = imgFrameId;
 
-    auto encoding = img_encodings::BGRA8; // Default encoding
+    auto encoding = img_encodings::RGBA8; // Default encoding
     if (img.getDataType() == sl::MAT_TYPE::U8_C1) {
       encoding = img_encodings::MONO8; // Mono image
     } else if (img.getDataType() == sl::MAT_TYPE::U8_C3) {
-      encoding = img_encodings::BGR8; // BGR image
+      encoding = img_encodings::RGB8; // BGR image
     } else if (img.getDataType() == sl::MAT_TYPE::F32_C1) {
       encoding = img_encodings::TYPE_32FC1; // Float image
     }

@@ -20,14 +20,14 @@
 namespace stereolabs
 {
 const size_t WRAPPER_MAJOR = 5;
-const size_t WRAPPER_MINOR = 3;
-const size_t WRAPPER_PATCH = 1;
+const size_t WRAPPER_MINOR = 4;
+const size_t WRAPPER_PATCH = 0;
 
 const size_t SDK_MAJOR_MIN_SUPP = 4;
 const size_t SDK_MINOR_MIN_SUPP = 2;
 
-const size_t SDK_MAJOR_MAX_SUPP = 5;
-const size_t SDK_MINOR_MAX_SUPP = 3;
+const size_t SDK_MAJOR_MAX_SUPP = WRAPPER_MAJOR; // Set to manual values to force newer versions while developing
+const size_t SDK_MINOR_MAX_SUPP = WRAPPER_MINOR; // Set to manual values to force newer versions while developing
 }  // namespace stereolabs
 
 #endif  // VERSION_HPP_

@@ -1,9 +1,23 @@
 LATEST CHANGES
 ==============
 
+v5.4
+----------
+- Improved point cloud publishing by eliminating one full-cloud copy per published frame (~44 MB at HD2K, proportional at lower res) and removing a second full-cloud CPU allocation.
+- Fixed node lock when calling the `set_svo_frame` service with Positional Tracking enabled
+- Fixed Disparity Map data (bad pixel value sign).
+- Changed disparity map publishing policy:
+
+  - The topic `~/disparity/disparity_image` of type `stereo_msgs/msg/disparity_image` is now obsolete.  
+  - Added two new topics:
+
+    - `~/disparity/map` of type `stereo_msgs/msg/disparity_image` containing the Disparity Map for depth processing. This replaces the obsolete `~/disparity/disparity_image` topic.
+      Use `ros2 run image_view disparity_view --ros-args -r image:=/zed/zed_node/disparity/disparity_image` to visualize this topic.
+    - `~/disparity/image` of type `sensor_msgs/msg/image` containing the Normalized Disparity Map as an image for visualization purposes. You can subscribe to this topic in RViz2.
+
 v5.3
 ----------
-- Added voxel point cloud support. When `depth.voxel_point_cloud` is enabled, the point cloud topic publishes voxel-decimated data using ``retrieveVoxelMeasure()``. New parameters: ``depth.voxel_size_mm`` (voxel cell size in millimeters), ``depth.voxel_resolution_mode`` (``FIXED``, ``STEREO_UNCERTAINTY``, ``LINEAR``), and ``depth.voxel_resolution_scale``. All voxel parameters are dynamically reconfigurable.
+- Added voxel point cloud support. When `depth.voxel_point_cloud` is enabled, the point cloud topic publishes voxel-decimated data using `retrieveVoxelMeasure()`. New parameters: `depth.voxel_size_mm` (voxel cell size in millimeters), `depth.voxel_resolution_mode` (`FIXED`, `STEREO_UNCERTAINTY`, `LINEAR`), and `depth.voxel_resolution_scale`. All voxel parameters are dynamically reconfigurable.
 - Added handling of `ERROR_CODE::CAMERA_EXCEEDS_BANDWIDTH` during camera open in both stereo and mono components. When a GMSL PHY CSI bandwidth overflow is detected, the node logs an error and stops initialization.
 - Added `XVGA` and `TXGA` as valid `grab_resolution` options for ZED X HDR camera configurations (`zedxhdr`, `zedxhdrmax`, `zedxhdrmini`, `zedxonehdr`).
 - Added `XVGA` and `TXGA` resolution parsing in both stereo (`ZedCamera`) and mono (`ZedCameraOne`) components.
@@ -17,7 +31,7 @@ v5.3
 - IPC is now handled automatically disabling it when NITROS is enabled and enabling it when NITROS is disabled. The `debug.disable_nitros` parameter can be used to disable NITROS and enable IPC if needed.
 - Added support to `rclcpp::TypeAdapter` for better handling of Image messages:
 
-  - A `TypeAdapter` publisher handles the base "raw" topic. Intra-process subscribers receive `StampedSlMat`` (wrapping `sl::Mat``) directly without serialization. Inter-process subscribers receive `sensor_msgs/msg/Image` via automatic `TypeAdapter` conversion.
+  - A `TypeAdapter` publisher handles the base "raw" topic. Intra-process subscribers receive `StampedSlMat` (wrapping `sl::Mat`) directly without serialization. Inter-process subscribers receive `sensor_msgs/msg/Image` via automatic `TypeAdapter` conversion.
   - An `image_transport` publisher handles the transport-specific topics (e.g., `compressed`, `theora`). The "raw" transport is disabled to avoid duplicate messages.
   - Image transport plugins are now filtered by topic type: visual topics (IMAGE) only advertise `compressed` and `theora`, while measurement topics (MEASURE) only advertise `compressedDepth`. This prevents silent data corruption from incompatible plugin/encoding combinations (e.g., JPEG on float depth).
   - When the package `isaac_ros_nitros` is installed and NITROS not disabled via the `debug.disable_nitros` parameter, NITROS publishers take priority, and neither `TypeAdapter` nor `image_transport` publishers are created.

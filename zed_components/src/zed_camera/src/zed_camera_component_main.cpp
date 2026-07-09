@@ -8605,8 +8605,13 @@ void ZedCamera::callback_setSvoFrame(
   mSetSvoFrameCheckTimer.tic();
   // <---- Check service call frequency
 
-  std::lock_guard<std::mutex> lock(mRecMutex);
-
+  // NOTE: no mRecMutex here. This is a playback (seek) operation, not a
+  // recording one: mSvoMode is set once at init, and recording is mutually
+  // exclusive with SVO playback, so mRecMutex would guard nothing useful. The
+  // only real hazard is calling the SDK concurrently with the grab thread's
+  // grab(), which mGrabMutex covers. Taking mRecMutex here would also invert
+  // the grab loop's mPtMutex -> mRecMutex order (via startPosTracking() below)
+  // and deadlock the grab loop right after resetting the odometry.
   if (!mSvoMode) {
     RCLCPP_WARN(get_logger(), "The node is not using an SVO as input");
     res->message = "The node is not using an SVO as input";
@@ -8615,6 +8620,8 @@ void ZedCamera::callback_setSvoFrame(
   }
 
   int frame = req->frame_id;
+
+  // ----> Set the SVO position
   int svo_frames = mZed->getSVONumberOfFrames();
   if (frame >= svo_frames) {
     std::stringstream ss;
@@ -8625,9 +8632,14 @@ void ZedCamera::callback_setSvoFrame(
     return;
   }
 
-  mZed->setSVOPosition(frame);
+  // Guard the SDK call against a concurrent grab() in the grab thread
+  {
+    std::lock_guard<std::mutex> grab_lock(mGrabMutex);
+    mZed->setSVOPosition(frame);
+  }
   RCLCPP_INFO_STREAM(get_logger(), "SVO frame set to " << frame);
   res->message = "SVO frame set to " + std::to_string(frame);
+  // <---- Set the SVO position
 
   if (isPosTrackingRequired()) {
     // Reset odometry and paths

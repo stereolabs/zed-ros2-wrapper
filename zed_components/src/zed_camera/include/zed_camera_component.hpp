@@ -341,7 +341,9 @@ protected:
   // <---- Publishing functions
 
   // ----> Utility functions
+  bool isDepthDisabled() { return mDepthDisabledByRate || mDepthDisabledByService || (mDepthMode == sl::DEPTH_MODE::NONE);}
   bool isDepthRequired();
+  void updateDepthRateDisabling();
   bool updatePosTrackingSubscribers(bool force = false);
   bool isPosTrackingRequired();
 
@@ -567,8 +569,11 @@ private:
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   sl::VoxelMeasureParameters mVoxelParams;
 #endif
-  std::atomic<bool> mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE)
+  std::atomic<bool> mDepthDisabledByRate = false; // frequently updated depending on mDepthRate
+  std::atomic<bool> mDepthDisabledByService = false; // toggled by enable_depth service
+  std::mutex mDepthTimerMutex;
   int mDepthStabilization = 0;
+  double mDepthRate = 15.0; 
 
   int mCamTimeoutSec = 5;
   int mMaxReconnectTemp = 5;
@@ -968,6 +973,7 @@ private:
 
   // <---- Publisher variables
   sl::Timestamp mSdkGrabTS = 0;
+  sl::Timestamp mSdkDepthGrabTS = 0;
   size_t mRgbSubCount = 0;
   size_t mRgbRawSubCount = 0;
   size_t mRgbGraySubCount = 0;
@@ -1128,6 +1134,7 @@ private:
   std::unique_ptr<sl_tools::WinAvg> mElabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mGrabPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mVideoDepthPeriodMean_sec;
+  std::unique_ptr<sl_tools::WinAvg> mDepthPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mVideoDepthElabMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mPcPeriodMean_sec;
   std::unique_ptr<sl_tools::WinAvg> mPcProcMean_sec;
@@ -1165,12 +1172,14 @@ private:
   sl_tools::StopWatch mBtFreqTimer;
   sl_tools::StopWatch mPcFreqTimer;
   sl_tools::StopWatch mGnssFixFreqTimer;
+  sl_tools::StopWatch mDepthRateTimer;
 
   int mSysOverloadCount = 0;
   // <---- Diagnostic
 
   // ----> Timestamps
   sl::Timestamp mLastTs_grab = 0;  // Used to calculate stable publish frequency
+  sl::Timestamp mLastTs_depthGrab = 0;
   rclcpp::Time mFrameTimestamp;
   rclcpp::Time mGnssTimestamp;
   rclcpp::Time mLastTs_imu;

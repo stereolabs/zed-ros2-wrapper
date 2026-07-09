@@ -109,8 +109,7 @@ void ZedCameraOne::threadFunc_pubSensorsData()
 
     if (!waitForCameraOpen()) {continue;}
     if (!waitForSensorSubscribers()) {continue;}
-    if (!handleSensorPublishing()) {continue;}
-    adjustSensorPublishingFrequency();
+    handleSensorPublishing();
   }
 
   DEBUG_STREAM_SENS("Sensors thread finished");
@@ -217,35 +216,22 @@ bool ZedCameraOne::waitForSensorSubscribers()
   return true;
 }
 
-// Helper: Handle sensor publishing and sleep if needed
+// Helper: Drain the IMU FIFO and sleep a fixed poll period
 bool ZedCameraOne::handleSensorPublishing()
 {
-  if (!publishSensorsData()) {
-    auto sleep_msec = static_cast<int>(_sensRateComp * (1000. / _sensPubRate));
-    sleep_msec = std::max(1, sleep_msec);
-    DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] Thread sleep: " << sleep_msec << " msec");
-    rclcpp::sleep_for(std::chrono::milliseconds(sleep_msec));
-    return false;
-  }
+  publishSensorsData();
+
+  // getSensorsDataBatch() drains the whole IMU FIFO each call and the output
+  // rate is set by decimation (see publishSensorsData), so this period only
+  // needs to keep the FIFO drained and bound the latency. Poll at the hardware
+  // IMU rate when known; fall back to the requested rate otherwise. The previous
+  // rate-compensation feedback loop (which aliased the IMU stream) is gone.
+  double poll_rate = (_imuOdr > 0.0) ? _imuOdr : _sensPubRate;
+  int poll_msec = static_cast<int>(1000. / poll_rate);
+  poll_msec = std::max(1, poll_msec);
+  DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] Poll period: " << poll_msec << " msec");
+  rclcpp::sleep_for(std::chrono::milliseconds(poll_msec));
   return true;
-}
-
-// Helper: Adjust publishing frequency compensation
-void ZedCameraOne::adjustSensorPublishingFrequency()
-{
-  double avg_freq = 1. / _imuPeriodMean_sec->getAvg();
-  double err = std::fabs(_sensPubRate - avg_freq);
-  const double COMP_P_GAIN = 0.0005;
-
-  if (avg_freq < _sensPubRate) {
-    _sensRateComp -= COMP_P_GAIN * err;
-  } else if (avg_freq > _sensPubRate) {
-    _sensRateComp += COMP_P_GAIN * err;
-  }
-
-  _sensRateComp = std::max(0.05, _sensRateComp);
-  _sensRateComp = std::min(2.0, _sensRateComp);
-  DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] _sensRateComp: " << _sensRateComp);
 }
 
 void ZedCameraOne::startTempPubTimer()
@@ -336,41 +322,75 @@ bool ZedCameraOne::publishSensorsData()
     return false;
   }
 
-  sl::SensorsData sens_data;
-  sl::ERROR_CODE err = _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+  // Drain the whole IMU FIFO so that no sample is dropped and the published
+  // hardware timestamps keep a constant rate. getSensorsDataBatch() returns all
+  // the samples buffered since the previous call, ordered by timestamp. Reading
+  // only the latest sample (TIME_REFERENCE::CURRENT) aliased the stream and
+  // produced the unstable IMU rate reported in issues #249 and #445.
+  std::vector<sl::SensorsData> sens_data_batch;
+  sl::ERROR_CODE err = _zed->getSensorsDataBatch(sens_data_batch);
   if (err != sl::ERROR_CODE::SUCCESS) {
     // Only warn if not in SVO mode or if the error is not a benign sensor unavailability
     if (!_svoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
       RCLCPP_WARN_STREAM(
         get_logger(),
-        "[publishSensorsData] sl::getSensorsData error: " << sl::toString(err).c_str());
+        "[publishSensorsData] sl::getSensorsDataBatch error: " << sl::toString(err).c_str());
     }
     return false;
   }
 
-  rclcpp::Time ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
-  double dT = ts_imu.seconds() - _lastTs_imu.seconds();
-  _lastTs_imu = ts_imu;
-  bool new_imu_data = (dT > 0.0);
-
-  if (!new_imu_data) {
+  if (sens_data_batch.empty()) {
     DEBUG_STREAM_SENS("[publishSensorsData] No new sensors data");
     return false;
   }
 
-  updateImuFreqDiagnostics(dT);
-
-  publishImuFrameAndTopic();
-
-  if (_imuSubCount > 0) {
-    publishImuMsg(ts_imu, sens_data);
+  // Decimate the drained IMU stream down to the requested
+  // `sensors.sensors_pub_rate`. The FIFO is filled at the camera's hardware ODR;
+  // a fractional accumulator selects samples as uniformly as possible so the
+  // average output rate matches _sensPubRate (capped at the hardware ODR), while
+  // every published sample keeps its real hardware timestamp. If the ODR is
+  // unknown or the requested rate is >= ODR, every sample is published.
+  double decim_ratio = 1.0;
+  if (_imuOdr > 0.0 && _sensPubRate > 0.0 && _sensPubRate < _imuOdr) {
+    decim_ratio = _sensPubRate / _imuOdr;
   }
 
-  if (_imuRawSubCount > 0) {
-    publishImuRawMsg(ts_imu, sens_data);
+  bool published = false;
+  for (const auto & sens_data : sens_data_batch) {
+    rclcpp::Time ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
+    double dT = ts_imu.seconds() - _lastTs_imu.seconds();
+
+    // Skip duplicated / out-of-order IMU samples (defensive: the FIFO is
+    // already ordered and de-duplicated).
+    if (_lastTs_imu != TIMEZERO_ROS && dT <= 0.0) {
+      continue;
+    }
+
+    // Decimation gate
+    _imuDecimAccum += decim_ratio;
+    if (_imuDecimAccum < 1.0) {
+      continue;
+    }
+    _imuDecimAccum -= 1.0;
+
+    _lastTs_imu = ts_imu;
+
+    updateImuFreqDiagnostics(dT);
+
+    publishImuFrameAndTopic();
+
+    if (_imuSubCount > 0) {
+      publishImuMsg(ts_imu, sens_data);
+    }
+
+    if (_imuRawSubCount > 0) {
+      publishImuRawMsg(ts_imu, sens_data);
+    }
+
+    published = true;
   }
 
-  return true;
+  return published;
 }
 
 void ZedCameraOne::updateImuFreqDiagnostics(double dT)

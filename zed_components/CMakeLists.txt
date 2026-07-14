@@ -15,7 +15,7 @@ if(DEFINED ENV{ROS_DISTRO})
     #message("* Found ROS2 ${FOUND_ROS2_DISTRO}")
 else()
     message("* ROS2 distro variable not set. Trying to figure it out...")
-    set(ROS2_DISTROS "ardent;bouncy;crystal;dashing;eloquent;foxy;galactic;humble;iron;jazzy;kilted;rolling")
+    set(ROS2_DISTROS "ardent;bouncy;crystal;dashing;eloquent;foxy;galactic;humble;iron;jazzy;kilted;lyrical;rolling")
     set(ROS2_FOUND FALSE)
     foreach(distro ${ROS2_DISTROS})
         if(NOT ROS2_FOUND)
@@ -36,12 +36,13 @@ if(ROS2_FOUND)
     elseif(${FOUND_ROS2_DISTRO} STREQUAL "humble")
         #message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
         add_definitions(-DFOUND_HUMBLE)
-    elseif(${FOUND_ROS2_DISTRO} STREQUAL "iron")
-        #message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
-	    add_definitions(-DFOUND_IRON)    
     elseif(${FOUND_ROS2_DISTRO} STREQUAL "jazzy")
         #message("* ROS2 ${FOUND_ROS2_DISTRO} is officially supported by this package.")
         add_definitions(-DFOUND_JAZZY)
+    elseif(${FOUND_ROS2_DISTRO} STREQUAL "lyrical")
+        add_definitions(-DFOUND_LYRICAL)
+    elseif(${FOUND_ROS2_DISTRO} STREQUAL "rolling")
+        add_definitions(-DFOUND_ROLLING)
     else()
         message("*** WARNING *** Unsupported ROS2 ${FOUND_ROS2_DISTRO}. '${PROJECT_NAME}' may not work correctly.")
     endif()
@@ -228,6 +229,27 @@ file(GLOB_RECURSE all_files ${CMAKE_CURRENT_SOURCE_DIR}/*)
 add_custom_target(all_${PROJECT_NAME}_files SOURCES ${all_files})
 
 ###############################################################################
+# ament_target_dependencies() replacement: ROS 2 Lyrical's ament_cmake removed
+# that macro outright. For each dependency, link its exported modern CMake
+# target(s) (${dep}_TARGETS), falling back to the classic
+# ${dep}_INCLUDE_DIRS / ${dep}_LIBRARIES variables for dependencies that only
+# export those (e.g. backward_ros).
+macro(zed_link_ros_dependencies target)
+  foreach(_dep ${ARGN})
+    if(${_dep}_TARGETS)
+      target_link_libraries(${target} ${${_dep}_TARGETS})
+    else()
+      if(${_dep}_INCLUDE_DIRS)
+        target_include_directories(${target} PUBLIC ${${_dep}_INCLUDE_DIRS})
+      endif()
+      if(${_dep}_LIBRARIES)
+        target_link_libraries(${target} ${${_dep}_LIBRARIES})
+      endif()
+    endif()
+  endforeach()
+endmacro()
+
+###############################################################################
 # LIBS
 
 
@@ -307,9 +329,7 @@ target_compile_definitions(zed_camera_component
 target_link_libraries(zed_camera_component
     ${ZED_LIBS}
 )
-ament_target_dependencies(zed_camera_component
-    ${DEPENDENCIES}
-)
+zed_link_ros_dependencies(zed_camera_component ${DEPENDENCIES})
 
 rclcpp_components_register_nodes(zed_camera_component "stereolabs::ZedCamera")
 set(node_plugins "${node_plugins}stereolabs::ZedCamera;$<TARGET_FILE:zed_camera_component>\n")
@@ -334,9 +354,7 @@ target_compile_definitions(zed_camera_one_component
 target_link_libraries(zed_camera_one_component
     ${ZED_LIBS}
 )
-ament_target_dependencies(zed_camera_one_component
-    ${DEPENDENCIES}
-)
+zed_link_ros_dependencies(zed_camera_one_component ${DEPENDENCIES})
 
 rclcpp_components_register_nodes(zed_camera_one_component "stereolabs::ZedCameraOne")
 set(node_plugins "${node_plugins}stereolabs::ZedCameraOne;$<TARGET_FILE:zed_camera_one_component>\n")

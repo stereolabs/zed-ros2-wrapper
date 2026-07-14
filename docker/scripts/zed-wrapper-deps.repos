@@ -1,0 +1,65 @@
+# ZED ROS 2 Wrapper dependencies that are NOT part of the ROS 2 core
+# (ros2.repos). These are only fetched and built when ROS 2 is installed from
+# source (i.e. when no APT binaries exist for the selected distribution /
+# Ubuntu pair, such as Jazzy on Ubuntu 22.04 / L4T r36.x).
+#
+# In APT mode these packages are installed with rosdep instead and this file is
+# ignored. Packages already provided by ros2.repos (image_common /
+# image_transport, geometry2 / tf2_geometry_msgs, rmw_cyclonedds, ament_lint,
+# ...) are intentionally NOT listed here.
+#
+# The ${ROS_DISTRO} placeholder is substituted with the selected ROS 2
+# distribution at build time. If a build for a new distribution fails to find a
+# branch, adjust the corresponding `version` field below.
+repositories:
+  xacro:
+    type: git
+    url: https://github.com/ros/xacro.git
+    version: ros2
+  diagnostics:
+    type: git
+    url: https://github.com/ros/diagnostics.git
+    version: ros2
+  angles:
+    type: git
+    url: https://github.com/ros/angles.git
+    version: ros2
+  robot_localization:
+    type: git
+    url: https://github.com/cra-ros-pkg/robot_localization.git
+    # ${ROBOT_LOCALIZATION_VERSION} is ${ROS_DISTRO}-devel, or the
+    # distro-agnostic 'rolling-devel' when no per-distro branch exists yet
+    # (see build_wrapper.sh).
+    version: ${ROBOT_LOCALIZATION_VERSION}
+  nmea_msgs:
+    type: git
+    url: https://github.com/ros-drivers/nmea_msgs.git
+    version: ros2
+  geographic_info:
+    type: git
+    url: https://github.com/ros-geographic-info/geographic_info.git
+    version: ros2
+  backward_ros:
+    type: git
+    url: https://github.com/pal-robotics/backward_ros.git
+    version: 1.0.8
+  vision_opencv:
+    type: git
+    url: https://github.com/ros-perception/vision_opencv.git
+    # No per-distro branch beyond 'iron': Jazzy/Lyrical/Rolling are all
+    # released from 'rolling'.
+    version: rolling
+  image_transport_plugins:
+    type: git
+    url: https://github.com/ros-perception/image_transport_plugins.git
+    version: ${ROS_DISTRO}
+  zed-ros2-interfaces:
+    type: git
+    url: https://github.com/stereolabs/zed-ros2-interfaces.git
+    # StereoLabs-owned repo with no per-distro branches: always track master.
+    version: master
+  zed-ros2-description:
+    type: git
+    url: https://github.com/stereolabs/zed-ros2-description.git
+    # StereoLabs-owned repo with no per-distro branches: always track main.
+    version: main

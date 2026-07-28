@@ -298,7 +298,8 @@ def launch_setup(context, *args, **kwargs):
     exe_args = []
     if (camera_model_val == 'zedxonegs' or
         camera_model_val == 'zedxone4k' or
-            camera_model_val == 'zedxonehdr'):
+            camera_model_val == 'zedxonehdr' or
+            camera_model_val == 'zedxonecore'):
         exe_args.append('--monocular')
 
     # ZED Wrapper node with hardcoded container
@@ -333,7 +334,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'camera_model',
                 description='[REQUIRED] The model of the camera. Using a wrong camera model can disable camera features.',
-                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'zedxnano', 'zedxhdr', 'zedxhdrmini', 'zedxhdrmax', 'virtual', 'zedxonegs', 'zedxone4k', 'zedxonehdr']),
+                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'zedxnano', 'zedxhdr', 'zedxhdrmini', 'zedxhdrmax', 'virtual', 'zedxonegs', 'zedxone4k', 'zedxonehdr', 'zedxonecore']),
             DeclareLaunchArgument(
                 'namespace',
                 default_value='',

@@ -1,6 +1,10 @@
 LATEST CHANGES
 ==============
 
+2026-07-29
+----------
+- Fixed version check error on `zed_msgs` that blocked `scene_illuminance` information in health status messages.
+
 v5.4.1
 ------
 - Fixed camera video settings (exposure, gain, white balance, brightness, etc.) not being reliably applied at start-up. The node now always enforces the configured values when it starts, instead of keeping whatever was left in the camera by a previous application (e.g. ZED Explorer or an earlier run). This fixes two identically-configured cameras showing different images, and the case where the image did not match the configured exposure/gain after opening the node. The apply is also retried if the camera is not ready yet (e.g. during USB bandwidth contention when several cameras are opened at once).
@@ -11,6 +15,7 @@ v5.4.1
   - Single parameterized `Dockerfile` with new `build_desktop.sh`/`build_jetson.sh` scripts, replacing the previous per-variant Dockerfiles.
   - Added Jetson cross-compilation from an x86_64 host via QEMU.
   - `--sdk-url` now also accepts a local ZED SDK `.run` file, not just a URL.
+
 
 v5.4.0
 ----------

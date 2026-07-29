@@ -751,7 +751,9 @@ private:
   int mGmslAutoDigitalGainRangeMax = 256;
   int mGmslDenoising = 50;
   int mGmslAEAntibanding = 1;  // 0=OFF, 1=AUTO, 2=50Hz, 3=60Hz
-  int mSceneIlluminance = -1;  // Read-only, populated from SDK getCameraSettings
+  // Read-only, populated from SDK getCameraSettings by the grab thread and read
+  // by the diagnostic updater thread
+  std::atomic<int> mSceneIlluminance{-1};
   // <---- Dynamic params
 
   // ----> QoS

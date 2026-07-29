@@ -5306,6 +5306,16 @@ void ZedCamera::threadFunc_zedGrab()
         }
       }
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
+      // Refresh the scene illuminance from the camera. This must not live in
+      // applyVideoSettings(): that only runs while mCamSettingsDirty is set, so
+      // the value would be read once at start-up and then stay frozen for the
+      // whole session. Both the health status message and the diagnostic
+      // updater read it, so it is refreshed here regardless of subscribers.
+      DEBUG_STREAM_GRAB("Grab thread: reading scene illuminance");
+      readSceneIlluminance();
+#endif
+
       DEBUG_STREAM_GRAB("Grab thread: publishing health status");
       publishHealthStatus();
 
@@ -8856,8 +8866,9 @@ void ZedCamera::callback_updateDiagnostic(
     // <---- Frame drop count
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
-    if (sl_tools::isZEDX(mCamRealModel) && mSceneIlluminance >= 0) {
-      stat.add("Scene Illuminance", mSceneIlluminance);
+    int scene_illuminance = mSceneIlluminance.load();
+    if (sl_tools::isZEDX(mCamRealModel) && scene_illuminance >= 0) {
+      stat.add("Scene Illuminance", scene_illuminance);
     }
 #endif
 
@@ -10198,8 +10209,8 @@ void ZedCamera::publishHealthStatus()
     status.low_motion_sensors_reliability;
 #if defined(ZED_MSGS_ILLUMINANCE_AVAIL) && \
   (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
-  // Populated periodically in applyZEDXSettings; -1 means unread / unsupported.
-  msg->scene_illuminance = mSceneIlluminance;
+  // Refreshed just above; -1 means unread or unsupported by this camera model.
+  msg->scene_illuminance = mSceneIlluminance.load();
 #endif
 
   mPubHealthStatus->publish(std::move(msg));

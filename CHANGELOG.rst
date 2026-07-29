@@ -4,6 +4,7 @@ LATEST CHANGES
 2026-07-29
 ----------
 - Fixed version check error on `zed_msgs` that blocked `scene_illuminance` information in health status messages.
+- Fixed `scene_illuminance` reporting a value frozen at start-up in both the health status message and the `Scene Illuminance` diagnostic. The metric was only read while camera video settings were being applied, so it stopped updating once they were applied and then changed only when a video parameter was modified. It is now refreshed while grabbing, and tracks the actual scene light level.
 
 v5.4.1
 ------

@@ -722,6 +722,15 @@ private:
   OnSetParametersCallbackHandle::SharedPtr mParamChangeCallbackHandle;
 
   double mVdPubRate = 15.0;
+  // When true, decimate publishing on the synchronized hardware IMAGE
+  // timestamp instead of the free-running throttles (SDK grab compute cap +
+  // publish-thread sleeps), so multiple GMSL-synced cameras select the same
+  // grabbed frame and publish in phase. mLastPubBucket is the last emitted
+  // floor(ts / pub_period) bucket (shared by video/depth and point cloud).
+  bool mSyncPubToTs = false;
+  int64_t mLastPubBucket = -1;
+  int64_t mLastGrabTsNs = 0;          // previous grab timestamp (predictive depth gating)
+  bool mForceDepthNextFrame = false;  // force depth after startup / a deferred window
   int mCamBrightness = 4;
   int mCamContrast = 4;
   int mCamHue = 0;

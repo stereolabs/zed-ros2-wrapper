@@ -1369,6 +1369,10 @@ void ZedCamera::getGeneralParams()
     " * Grab Compute Capping FPS: ", false, 0.0,
     static_cast<double>(mCamGrabFrameRate));
 
+  sl_tools::getParam(
+    shared_from_this(), "general.sync_pub_to_timestamp", mSyncPubToTs,
+    mSyncPubToTs, " * Sync publishing to HW timestamp: ");
+
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   sl_tools::getParam(
     shared_from_this(), "general.sdk_use_monotonic_clock",
@@ -2787,7 +2791,14 @@ bool ZedCamera::startCamera()
     RCLCPP_INFO(get_logger(), "=== CAMERA OPENING ===");
 
     mInitParams.camera_fps = mCamGrabFrameRate;
-    mInitParams.grab_compute_capping_fps = static_cast<float>(mGrabComputeCappingFps);
+    // Timestamp-sync mode: grab must run at full rate so every frame's
+    // hardware timestamp is visible to the bucket gate; the SDK compute cap
+    // would hide frames behind a free-running phase and prevent cross-camera
+    // alignment. Depth compute stays at ~pub_frame_rate via the predictive
+    // enable_depth gate in the grab loop.
+    mInitParams.grab_compute_capping_fps = mSyncPubToTs
+      ? static_cast<float>(mCamGrabFrameRate)
+      : static_cast<float>(mGrabComputeCappingFps);
     mInitParams.camera_resolution = static_cast<sl::RESOLUTION>(mCamResol);
     mInitParams.async_image_retrieval = mAsyncImageRetrieval;
     mInitParams.enable_image_validity_check = mImageValidityCheck;
@@ -5004,6 +5015,27 @@ void ZedCamera::threadFunc_zedGrab()
       // ----> Apply depth settings
       DEBUG_STREAM_GRAB("Grab thread: applying depth settings");
       applyDepthSettings();
+      // Timestamp-sync mode: predictive depth gating. Compute depth only on
+      // the grabbed frames we will actually publish (the first of each
+      // pub_frame_rate window). This frame's timestamp isn't known before the
+      // grab, so predict it from the previous grab timestamp plus one grab
+      // period — the capture grid is regular (66.7 ms at 15 Hz) so this is
+      // reliable. Forced true at startup and after a deferred window so a
+      // window is never published without depth. This only ever *reduces*
+      // enable_depth set by applyDepthSettings, so video-only operation is
+      // unaffected.
+      if (mSyncPubToTs && mRunParams.enable_depth && mVdPubRate > 0.0 &&
+        mCamGrabFrameRate > 0)
+      {
+        bool want_depth = true;
+        if (!mForceDepthNextFrame && mLastGrabTsNs > 0) {
+          const int64_t period_ns = static_cast<int64_t>(1.0e9 / mVdPubRate);
+          const int64_t grab_ns = static_cast<int64_t>(1.0e9 / mCamGrabFrameRate);
+          const int64_t predicted_ns = mLastGrabTsNs + grab_ns;
+          want_depth = (predicted_ns / period_ns) != mLastPubBucket;
+        }
+        mRunParams.enable_depth = want_depth;
+      }
       // <---- Apply depth settings
 
       // ----> Apply video dynamic parameters
@@ -5340,15 +5372,55 @@ void ZedCamera::threadFunc_zedGrab()
       }
       // <---- Check recording status
 
+      // Timestamp-sync mode: timestamp-bucket gate. Publish only the first
+      // grabbed frame of each pub_frame_rate window, keyed on the synchronized
+      // hardware IMAGE timestamp so GMSL-synced cameras pick the same frame
+      // and publish in phase. Retrieval happens right here in the grab thread
+      // (async_image_retrieval off => the retrieved frame IS this grab), so
+      // the selection is deterministic. If a new window arrives whose depth
+      // was not computed (a dropped/mispredicted frame), publishing is
+      // deferred one grab and depth is forced on the next frame. The point
+      // cloud is gated on the same bucket so it stays on depth-computed
+      // frames (in sync mode point_cloud_freq is effectively pub_frame_rate).
+      // When mSyncPubToTs is false this stays true; behavior unchanged.
+      bool pub_this_frame = true;
+      if (mSyncPubToTs && mVdPubRate > 0.0 && !mSvoPause) {
+        const int64_t period_ns = static_cast<int64_t>(1.0e9 / mVdPubRate);
+        const int64_t bucket = mFrameTimestamp.nanoseconds() / period_ns;
+        pub_this_frame = false;
+        if (bucket != mLastPubBucket) {
+          if (mRunParams.enable_depth || !isDepthRequired()) {
+            mLastPubBucket = bucket;
+            pub_this_frame = true;
+            mForceDepthNextFrame = false;
+          } else {
+            // Deferring shifts this window's publish one grab period
+            // (~66.7 ms) later than the other cameras' — visible downstream
+            // as a one-frame stamp offset for this window only.
+            mForceDepthNextFrame = true;  // wait one grab for depth
+            rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+            RCLCPP_INFO_THROTTLE(
+              get_logger(), steady_clock, 1000.0,
+              "[timestamp-sync] publish window deferred one grab: boundary "
+              "frame has no depth (dropped or mispredicted frame)");
+          }
+        }
+        mLastGrabTsNs = mFrameTimestamp.nanoseconds();
+      }
+
       // ----> Retrieve Image/Depth data if someone has subscribed to
       DEBUG_STREAM_GRAB("Grab thread: retrieving Image/Depth data");
-      processVideoDepth();
+      if (pub_this_frame) {
+        processVideoDepth();
+      }
       // <---- Retrieve Image/Depth data if someone has subscribed to
 
       if (!mDepthDisabled) {
         // ----> Retrieve the point cloud if someone has subscribed to
         DEBUG_STREAM_GRAB("Grab thread: retrieving Point Cloud data");
-        processPointCloud();
+        if (pub_this_frame) {
+          processPointCloud();
+        }
         // <---- Retrieve the point cloud if someone has subscribed to
       }
 

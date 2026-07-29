@@ -1530,6 +1530,16 @@ void ZedCamera::processVideoDepth()
       mVdPublishing = true;
       mVdDataReadyCondVar.notify_one();
     } else {
+      if (mSyncPubToTs) {
+        // Timestamp-sync mode: the publish thread should always be back on
+        // the condition variable before the next bucket boundary; losing the
+        // boundary frame here means a whole pub window is skipped.
+        rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), steady_clock, 5000.0,
+          "[timestamp-sync] boundary frame dropped: video/depth publish "
+          "thread still busy at bucket boundary");
+      }
       DEBUG_VD(" * [processVideoDepth] vd_lock not locked");
     }
   } else {
@@ -2753,6 +2763,15 @@ void ZedCamera::processPointCloud()
       DEBUG_STREAM_PC(
         " * [processPointCloud] Extracted point cloud: " << mMatCloud.getInfos().c_str() );
     } else {
+      if (mSyncPubToTs) {
+        // Timestamp-sync mode: see processVideoDepth — a busy publish thread
+        // at a bucket boundary silently skips a whole point cloud window.
+        rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), steady_clock, 5000.0,
+          "[timestamp-sync] boundary frame dropped: point cloud publish "
+          "thread still busy at bucket boundary");
+      }
       DEBUG_PC(" * [processPointCloud] pc_lock not locked");
     }
   } else {
@@ -3038,22 +3057,28 @@ void ZedCamera::handleVideoDepthPublishing()
   // <---- Publish sync sensors data if needed
 
   // ----> Check publishing frequency
-  double vd_period_usec = 1e6 / mVdPubRate;
-  double elapsed_usec = mVdPubFreqTimer.toc() * 1e6;
+  // Timestamp-sync mode: no free-running throttle — the grab thread's
+  // timestamp bucket gate is the only decimator. Sleeping here (while holding
+  // mVdMutex) would make the grab thread's try_lock fail on bucket-boundary
+  // frames and drop them.
+  if (!mSyncPubToTs) {
+    double vd_period_usec = 1e6 / mVdPubRate;
+    double elapsed_usec = mVdPubFreqTimer.toc() * 1e6;
 
-  DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] elapsed_usec " << elapsed_usec);
+    DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] elapsed_usec " << elapsed_usec);
 
-  int wait_usec = 100;
-  if (elapsed_usec < vd_period_usec) {
-    wait_usec = static_cast<int>(vd_period_usec - elapsed_usec);
-    rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
-    DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] wait_usec " << wait_usec);
-  } else {
-    rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+    int wait_usec = 100;
+    if (elapsed_usec < vd_period_usec) {
+      wait_usec = static_cast<int>(vd_period_usec - elapsed_usec);
+      rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+      DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] wait_usec " << wait_usec);
+    } else {
+      rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+    }
+    DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] sleeped for " << wait_usec << " µsec");
+
+    mVdPubFreqTimer.tic();
   }
-  DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] sleeped for " << wait_usec << " µsec");
-
-  mVdPubFreqTimer.tic();
   // <---- Check publishing frequency
 }
 
@@ -3200,23 +3225,26 @@ void ZedCamera::handlePointCloudPublishing()
   publishPointCloud();
 
   // ----> Check publishing frequency
-  double pc_period_usec = 1e6 / mPcPubRate;
+  // Timestamp-sync mode: no free-running throttle — see handleVideoDepthPublishing.
+  if (!mSyncPubToTs) {
+    double pc_period_usec = 1e6 / mPcPubRate;
 
-  double elapsed_usec = mPcPubFreqTimer.toc() * 1e6;
+    double elapsed_usec = mPcPubFreqTimer.toc() * 1e6;
 
-  DEBUG_STREAM_PC(" * [handlePointCloudPublishing] elapsed_usec " << elapsed_usec);
+    DEBUG_STREAM_PC(" * [handlePointCloudPublishing] elapsed_usec " << elapsed_usec);
 
-  int wait_usec = 100;
-  if (elapsed_usec < pc_period_usec) {
-    wait_usec = static_cast<int>(pc_period_usec - elapsed_usec);
-    rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
-    DEBUG_STREAM_PC(" * [handlePointCloudPublishing] wait_usec " << wait_usec);
-  } else {
-    rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+    int wait_usec = 100;
+    if (elapsed_usec < pc_period_usec) {
+      wait_usec = static_cast<int>(pc_period_usec - elapsed_usec);
+      rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+      DEBUG_STREAM_PC(" * [handlePointCloudPublishing] wait_usec " << wait_usec);
+    } else {
+      rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+    }
+    DEBUG_STREAM_PC(" * [handlePointCloudPublishing] sleeped for " << wait_usec << " µsec");
+
+    mPcPubFreqTimer.tic();
   }
-  DEBUG_STREAM_PC(" * [handlePointCloudPublishing] sleeped for " << wait_usec << " µsec");
-
-  mPcPubFreqTimer.tic();
   // <---- Check publishing frequency
 
   mPcDataReady = false;

@@ -8882,6 +8882,11 @@ void ZedCamera::callback_updateDiagnostic(
       stat.add("Input mode", "Live Camera");
     }
 
+    freq = 1. / mGrabPeriodMean_sec->getAvg();
+    freq_perc = 100. * freq / mCamGrabFrameRate;
+    stat.addf("Grabbing thread", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
+
+
     if (mVdPublishing) {
       if (mSvoMode && !mSvoRealtime) {
         freq = 1. / mGrabPeriodMean_sec->getAvg();

@@ -15,6 +15,7 @@
 #ifndef ZED_CAMERA_COMPONENT_HPP_
 #define ZED_CAMERA_COMPONENT_HPP_
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <sl/Camera.hpp>
@@ -309,9 +310,7 @@ protected:
   void publishConfidenceMap(const rclcpp::Time & t);
   void publishDisparity(const rclcpp::Time & t);
   void publishDepthInfo(const rclcpp::Time & t);
-  void publishCameraInfos(); // Used to publish camera infos when no video/depth is subscribed
 
-  void checkRgbDepthSync();
   bool checkGrabAndUpdateTimestamp(rclcpp::Time & out_pub_ts);
 
   void processPointCloud();
@@ -353,9 +352,19 @@ protected:
   // <---- Publishing functions
 
   // ----> Utility functions
+  bool isDepthDisabled() { return mDepthDisabledByService || (mDepthMode == sl::DEPTH_MODE::NONE);}
+  bool shouldGrabDepthThisFrame() { return !mDepthDisabledByRate && !isDepthDisabled(); }
   bool isDepthRequired();
+  bool shouldGrabThisFrame();
+  void updateDepthRateDisabling();
+  bool shouldProcessPointCloudThisFrame();
   bool updatePosTrackingSubscribers(bool force = false);
   bool isPosTrackingRequired();
+
+  void lockAndWait(std::condition_variable &cv, bool *signal);
+  void lockAndWait(std::condition_variable &cv, const std::vector<bool*> &signals);
+  void lockAndNotify(std::condition_variable &cv, bool *signal);
+  void lockAndNotify(std::condition_variable &cv, const std::vector<bool*> &signals);
 
   void applyVideoSettings();
   // Robustly enforce a single integer video setting on the camera.
@@ -722,6 +731,7 @@ private:
   OnSetParametersCallbackHandle::SharedPtr mParamChangeCallbackHandle;
 
   double mVdPubRate = 15.0;
+  double mShouldGrabTimerCarry = 0.0;
   int mCamBrightness = 4;
   int mCamContrast = 4;
   int mCamHue = 0;
@@ -736,6 +746,7 @@ private:
   int mDepthConf = 95;
   int mDepthTextConf = 100;
   double mPcPubRate = 10.0;
+  double mShouldProcPointCloudTimerCarry = 0.0;
   double mFusedPcPubRate = 1.0;
   bool mRemoveSatAreas = true;
 
@@ -999,7 +1010,13 @@ private:
   // <---- Publishers
 
   // <---- Publisher variables
-  sl::Timestamp mSdkGrabTS = 0;
+  std::array<sl::Timestamp, 2> mSdkGrabTS{};
+  std::array<sl::Timestamp, 2> mSdkDepthGrabTS{};
+  std::array<sl::Timestamp, 2> mSdkPcGrabTS{};
+  sl::Timestamp mSdkLastPublishTS = 0;
+  sl::Timestamp mSdkLastDepthPublishTS = 0;
+  sl::Timestamp mSdkLastPcPublishTS = 0;
+
   size_t mRgbSubCount = 0;
   size_t mRgbRawSubCount = 0;
   size_t mRgbGraySubCount = 0;
@@ -1027,18 +1044,18 @@ private:
   std::chrono::steady_clock::time_point mLastPosTrackingSubCountQuery;
   bool mPosTrackingSubCountInit = false;
 
-  sl::Mat mMatLeft, mMatLeftRaw;
-  sl::Mat mMatRight, mMatRightRaw;
-  sl::Mat mMatLeftGray, mMatLeftRawGray;
-  sl::Mat mMatRightGray, mMatRightRawGray;
-  sl::Mat mMatDepth, mMatDispMap, mMatDispImg, mMatConf;
+  std::array<sl::Mat, 2> mMatLeft, mMatLeftRaw;
+  std::array<sl::Mat, 2> mMatRight, mMatRightRaw;
+  std::array<sl::Mat, 2> mMatLeftGray, mMatLeftRawGray;
+  std::array<sl::Mat, 2> mMatRightGray, mMatRightRawGray;
+  std::array<sl::Mat, 2> mMatDepth, mMatDisp, mMatConf;
 
-  float mMinDepth = 0.0f;
-  float mMaxDepth = 0.0f;
+  std::array<float, 2> mMinDepth{};
+  std::array<float, 2> mMaxDepth{};
   // <---- Publisher variables
 
   // ----> Point cloud variables
-  sl::Mat mMatCloud;
+  std::array<sl::Mat, 2> mMatCloud;
   sl::FusedPointCloud mFusedPC;
   sensor_msgs::msg::PointCloud2 mPcMsg;  // Reused across frames to avoid per-frame allocation
   // <---- Point cloud variables
@@ -1083,6 +1100,17 @@ private:
   std::mutex mVdMutex;
   std::condition_variable mVdDataReadyCondVar;
   std::atomic_bool mVdDataReady;
+  std::mutex mPipelineMutex;
+  std::condition_variable mCvPub;
+  std::condition_variable mCvGrab;
+  // Initial values are important here
+  bool mPublishVdSignal = true;
+  bool mPublishPcSignal = true;
+  bool mGrabVdSignal = false;
+  bool mGrabPcSignal = false;
+  int mGrabBufIdx = 0;
+  int mVdBufIdx = 0;
+  int mPcBufIdx = 0;
   // <---- Thread Sync
 
   // ----> Status Flags
@@ -1094,8 +1122,6 @@ private:
   bool mPosTrackingStarted = false;
   std::atomic_bool mPoseLocked = false;
   std::atomic<uint64_t> mPoseLockCount{0};
-  bool mVdPublishing = false;  // Indicates if video and depth data are
-                               // subscribed and then published
   bool mPcPublishing =
     false;    // Indicates if point cloud data are subscribed and then published
   bool mTriggerAutoExpGain = true;  // Triggered on start
@@ -1203,6 +1229,8 @@ private:
   sl_tools::StopWatch mBtFreqTimer;
   sl_tools::StopWatch mPcFreqTimer;
   sl_tools::StopWatch mGnssFixFreqTimer;
+  sl_tools::StopWatch mShouldGrabTimer;
+  sl_tools::StopWatch mShouldProcPointCloudTimer;
 
   int mSysOverloadCount = 0;
   // <---- Diagnostic

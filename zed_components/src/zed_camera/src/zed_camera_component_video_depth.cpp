@@ -272,7 +272,7 @@ void ZedCamera::initVideoDepthPublishers()
       }
     }
 
-    if (!mDepthDisabled) {
+    if (!isDepthDisabled()) {
       if (mPublishImgRoiMask && (mAutoRoiEnabled || mManualRoiEnabled)) {
         create_dual_pub(mRoiMaskTopic, mPubIpcRoiMask, mPubRoiMask);
       }
@@ -431,7 +431,7 @@ void ZedCamera::initVideoDepthPublishers()
   // <---- Camera Info publishers
 
   // ----> Other depth-related publishers
-  if (!mDepthDisabled) {
+  if (!isDepthDisabled()) {
     if (mPublishDepthInfo) {
       mPubDepthInfo = create_publisher<zed_msgs::msg::DepthInfoStamped>(
         mDepthInfoTopic, mQos, mPubOpt);
@@ -629,14 +629,12 @@ void ZedCamera::getDepthParams()
   }
 
   if (mDepthMode == sl::DEPTH_MODE::NONE) {
-    mDepthDisabled = true;
     mDepthStabilization = 0;
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Depth mode: " << sl::toString(mDepthMode).c_str()
                         << " - DEPTH DISABLED");
   } else {
-    mDepthDisabled = false;
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * Depth mode: " << sl::toString(mDepthMode).c_str()
@@ -644,7 +642,7 @@ void ZedCamera::getDepthParams()
                         << "]");
   }
 
-  if (!mDepthDisabled) {
+  if (!isDepthDisabled()) {
 #if ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51)
     const double default_min_depth = 0.1;
 #else
@@ -663,6 +661,14 @@ void ZedCamera::getDepthParams()
       mDepthStabilization, mDepthStabilization,
       " * Depth Stabilization: ", false, -1, 100);
     // -1 means use SDK default (mInitParams keeps its constructed default value)
+
+    sl_tools::getParam(
+      shared_from_this(), "depth.depth_freq",
+      mDepthRate, mDepthRate,
+      " * Depth Rate: ", true, -1.0, static_cast<double>(mCamGrabFrameRate));
+    if (mDepthRate <= 0.0) {
+      mDepthRate = static_cast<double>(mCamGrabFrameRate);
+    }
 
     if (_nitrosDisabled) {
       sl_tools::getParam(
@@ -949,11 +955,6 @@ bool ZedCamera::updateVideoDepthSubscribers(bool force)
   constexpr auto kSubQueryInterval = std::chrono::milliseconds(200);
   auto now = std::chrono::steady_clock::now();
 
-  if (!force && mVideoDepthSubCountInit &&
-    (now - mLastVideoDepthSubCountQuery) < kSubQueryInterval)
-  {
-    return true;
-  }
 
   mLastVideoDepthSubCountQuery = now;
   mVideoDepthSubCountInit = true;
@@ -1053,7 +1054,7 @@ bool ZedCamera::updateVideoDepthSubscribers(bool force)
 #endif
     }
 
-    if (!mDepthDisabled) {
+    if (!isDepthDisabled()) {
       if (_nitrosDisabled) {
         if (mPublishDepthMap) {
           mDepthSubCount = mPubDepth.getNumSubscribers() + ipc_sub_count(mPubIpcDepth);
@@ -1792,7 +1793,7 @@ bool ZedCamera::retrieveDisparityMap()
     DEBUG_STREAM_VD(" * Retrieving Disparity Map");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveMeasure(
-      mMatDisp[mGrabBufIdx], sl::MEASURE::DISPARITY,
+      mMatDispMap[mGrabBufIdx], sl::MEASURE::DISPARITY,
       sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_VD(" * Disparity map retrieved");
@@ -1852,6 +1853,8 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
     publishRightRawGrayImages(timeStamp);
     publishStereoImages(timeStamp);
     publishStereoRawImages(timeStamp);
+
+    out_pub_ts = timeStamp;
   }
 
   if (mSdkLastDepthPublishTS < mSdkDepthGrabTS[mVdBufIdx]) {
@@ -1860,15 +1863,14 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
 
     publishDepthImage(timeStamp);
     publishConfidenceMap(timeStamp);
-    publishDisparityImage(timeStamp);
+    publishDisparity(timeStamp);
     publishDepthInfo(timeStamp);
-    mDepthPublishPeriodMean_sec->addValue(mDepthPublishFreqTimer.toc());
+    mDepthPeriodMean_sec->addValue(mDepthPublishFreqTimer.toc());
     mDepthPublishFreqTimer.tic();
  }
 
   mVideoDepthElabMean_sec->addValue(vdElabTimer.toc());
 
-  out_pub_ts = timeStamp;
 
   DEBUG_VD("=== Video and Depth topics published === ");
 }
@@ -2594,14 +2596,14 @@ void ZedCamera::publishDisparityMap(
     int width = static_cast<int>(disparity.getWidth());
     int height = static_cast<int>(disparity.getHeight());
 
-    if (mMatDispImg.getWidth() != static_cast<size_t>(width) ||
-      mMatDispImg.getHeight() != static_cast<size_t>(height))
+    if (mMatDispImg[mPcBufIdx].getWidth() != static_cast<size_t>(width) ||
+      mMatDispImg[mPcBufIdx].getHeight() != static_cast<size_t>(height))
     {
-      mMatDispImg.alloc(sl::Resolution(width, height), sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
+      mMatDispImg[mPcBufIdx].alloc(sl::Resolution(width, height), sl::MAT_TYPE::U8_C1, sl::MEM::CPU);
     }
 
     const float * src = reinterpret_cast<const float *>(disparity.getPtr<sl::float1>());
-    uint8_t * dst = reinterpret_cast<uint8_t *>(mMatDispImg.getPtr<sl::uchar1>());
+    uint8_t * dst = reinterpret_cast<uint8_t *>(mMatDispImg[mPcBufIdx].getPtr<sl::uchar1>());
     int data_size = width * height;
 
     // Per-frame min/max normalization on valid pixels.
@@ -2635,12 +2637,12 @@ void ZedCamera::publishDisparityMap(
     DEBUG_STREAM_VD(" * Publishing DISPARITY IMAGE message");
     if (_nitrosDisabled) {
       publishImageWithInfo(
-        mMatDispImg, mPubIpcDispImg, mPubDispImg, mPubDispImgCamInfo, mPubDispImgCamInfoTrans,
+        mMatDispImg[mPcBufIdx], mPubIpcDispImg, mPubDispImg, mPubDispImgCamInfo, mPubDispImgCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
     } else {
 #ifdef FOUND_ISAAC_ROS_NITROS
       publishImageWithInfo(
-        mMatDispImg, mNitrosPubDispImg, mPubDispImgCamInfo, mPubDispImgCamInfoTrans,
+        mMatDispImg[mPcBufIdx], mNitrosPubDispImg, mPubDispImgCamInfo, mPubDispImgCamInfoTrans,
         mLeftCamInfoMsg, mLeftCamOptFrameId, t);
 #endif
     }
@@ -2731,8 +2733,10 @@ bool ZedCamera::prepareCloudMsg(size_t width, size_t height)
 }
 
 void ZedCamera::publishPointCloud()
-{
-  if (!(mSdkLastPcPublishTS < mSdkPcGrabTS[mPcBufIdx])) { return };
+{  
+  sl_tools::StopWatch pcElabTimer(get_clock());
+
+  if (!(mSdkLastPcPublishTS < mSdkPcGrabTS[mPcBufIdx])) { return; }
   mSdkLastPcPublishTS = mSdkPcGrabTS[mPcBufIdx];
 
   int width = mMatCloud[mPcBufIdx].getWidth();
@@ -2748,11 +2752,11 @@ void ZedCamera::publishPointCloud()
       stamp = mUsePubTimestamps ? get_clock()->now() : mFrameTimestamp;
     } else {
       stamp = mUsePubTimestamps ? get_clock()->now() : sl_tools::slTime2Ros(
-        mMatCloud.timestamp);
+        mMatCloud[mPcBufIdx].timestamp);
     }
   } else {
     stamp = mUsePubTimestamps ? get_clock()->now() : sl_tools::slTime2Ros(
-      mMatCloud.timestamp);
+      mMatCloud[mPcBufIdx].timestamp);
   }
 
   // Resize the reusable message buffer only when resolution changes

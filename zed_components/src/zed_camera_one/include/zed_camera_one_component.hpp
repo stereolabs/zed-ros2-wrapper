@@ -546,8 +546,6 @@ private:
   sl_tools::StopWatch _imuFreqTimer;
   sl_tools::StopWatch _imuTfFreqTimer;
   sl_tools::StopWatch _imgPubFreqTimer;
-  sl_tools::StopWatch _shouldGrabTimer;
-  double _shouldGrabTimerCarry = 0.0;
   int _sysOverloadCount = 0;
 
   std::atomic<bool> _streamingServerRunning;

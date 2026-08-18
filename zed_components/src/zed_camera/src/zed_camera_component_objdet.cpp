@@ -948,7 +948,7 @@ bool ZedCamera::startObjDetect()
     return false;
   }
 
-  if (mDepthDisabled) {
+  if (isDepthDisabled()) {
     RCLCPP_WARN(
       get_logger(),
       "Cannot start Object Detection if "

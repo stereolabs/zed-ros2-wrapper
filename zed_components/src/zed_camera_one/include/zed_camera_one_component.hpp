@@ -175,6 +175,7 @@ protected:
   bool checkGrabThreadInterruption();
   void handleDynamicSettings();
   void updateGrabFrequency();
+  bool shouldGrabThisFrame();
   bool performCameraGrab();
   void updateFrameTimestamp();
   void publishSvoClock();
@@ -368,6 +369,7 @@ private:
   // ----> Parameters
   std::string _cameraName = "zed_one";  // Name of the camera
   int _camGrabFrameRate = 30; // Grab frame rate
+  double _vdPubRate = 30.0;
   sl::RESOLUTION _camResol = sl::RESOLUTION::HD1080; // Default resolution: RESOLUTION_HD1080
   PubRes _pubResolution = PubRes::NATIVE; // Use native grab resolution by default
   double _customDownscaleFactor = 1.0;  // Used to rescale data with user factor

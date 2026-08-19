@@ -94,7 +94,7 @@ colcon build \
   --symlink-install \
   --event-handlers console_direct+ \
   --base-paths src \
-  --packages-up-to zed_ros2 zed_debug \
+  --packages-up-to zed_msgs zed_ros2 zed_debug \
   --cmake-args "${CMAKE_ARGS[@]}"
 
 rm -rf /var/lib/apt/lists/*

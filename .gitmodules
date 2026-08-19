@@ -1,0 +1,4 @@
+[submodule "zed-ros2-interfaces"]
+	path = zed-ros2-interfaces
+	url = https://github.com/felipesanmartin/zed-ros2-interfaces.git
+	branch = save_map

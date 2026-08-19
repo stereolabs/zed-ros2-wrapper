@@ -440,6 +440,16 @@ void ZedCamera::initServices()
         get_logger(),
         " * Advertised on service: '"
           << mEnableMappingSrv->get_service_name() << "'");
+
+      // Save Map
+      srv_name = srv_prefix + mSrvSaveMapName;
+      mSaveMapSrv = create_service<zed_msgs::srv::SaveMap>(
+        srv_name,
+        std::bind(&ZedCamera::callback_saveMap, this, _1, _2, _3));
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " * Advertised on service: '"
+          << mSaveMapSrv->get_service_name() << "'");
     }
   }
 
@@ -8467,6 +8477,59 @@ void ZedCamera::callback_enableMapping(
     res->success = true;
     return;
   }
+}
+
+void ZedCamera::callback_saveMap(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<zed_msgs::srv::SaveMap_Request> req,
+  std::shared_ptr<zed_msgs::srv::SaveMap_Response> res)
+{
+  (void)request_header;
+
+  RCLCPP_INFO(get_logger(), "** Save 3D Map service called **");
+
+  if (!mMappingEnabled)
+  {
+    RCLCPP_WARN(get_logger(), "Can't save 3D map. Spatial Mapping was not active");
+    res->success = false;
+    res->message = "Spatial Mapping was not active";
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(mMappingMutex);
+  
+  sl::String filename = req->map_filename.c_str();
+  if (req->file_format < 0 || req->file_format > static_cast<int>(sl::MESH_FILE_FORMAT::OBJ))
+  {
+    res->success = false;
+    res->message = "File format not correct";
+    RCLCPP_WARN(get_logger(), "Can't save 3D map. File format not correct");
+    return;
+  }
+
+  if (filename.empty()) {
+    RCLCPP_WARN(get_logger(), "Can't save 3D map. Filename is empty");
+    res->success = false;
+    res->message = "Filename is empty";
+    return;
+  }
+
+    RCLCPP_INFO(get_logger(), "Saving 3D Spatial Mapping");
+    sl::MESH_FILE_FORMAT file_format = static_cast<sl::MESH_FILE_FORMAT>(req->file_format);
+
+    bool success = mFusedPC.save(filename, file_format);
+
+  if (!success)
+  {
+    res->success = false;
+    res->message = "3D Map not saved";
+    RCLCPP_INFO(get_logger(), "3D Spatial Map not saved.");
+    return;
+  }
+
+  res->message = "3D map saved";
+  res->success = true;
+  return;
 }
 
 void ZedCamera::callback_enableStreaming(

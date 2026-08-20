@@ -383,7 +383,7 @@ protected:
   void applyZEDXAEAntibanding();
   void readSceneIlluminance();
 
-  void applyDepthSettings();
+  void applyDepthSettings(bool force = false);
 
   void processOdometry();
   void processPose();

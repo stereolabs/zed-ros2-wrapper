@@ -5013,7 +5013,7 @@ void ZedCamera::threadFunc_zedGrab()
 
       // ----> Apply depth settings
       DEBUG_STREAM_GRAB("Grab thread: applying depth settings");
-      applyDepthSettings();
+      applyDepthSettings(mMappingEnabled);
       // <---- Apply depth settings
 
       // ----> Apply video dynamic parameters
@@ -7892,10 +7892,6 @@ void ZedCamera::callback_pubFusedPc()
     return;
   }
 
-  if (fusedCloudSubCount == 0) {
-    return;
-  }
-
   if (!mZed->isOpened()) {
     return;
   }
@@ -7908,11 +7904,15 @@ void ZedCamera::callback_pubFusedPc()
   }
 
   sl::ERROR_CODE res = mZed->retrieveSpatialMapAsync(mFusedPC);
-
+  
   if (res != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(
       get_logger(), "Fused point cloud not extracted: "
         << sl::toString(res).c_str());
+    return;
+  }
+
+  if (fusedCloudSubCount == 0) {
     return;
   }
 
@@ -8497,6 +8497,24 @@ void ZedCamera::callback_saveMap(
   }
 
   std::lock_guard<std::mutex> lock(mMappingMutex);
+
+  mZed->requestSpatialMapAsync();
+
+  while (mZed->getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::FAILURE) {
+    // Mesh is still generating
+    rclcpp::sleep_for(1ms);
+  }
+
+  sl::ERROR_CODE res_rsma = mZed->retrieveSpatialMapAsync(mFusedPC);
+
+  if (res_rsma != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Fused point cloud not extracted: "
+        << sl::toString(res_rsma).c_str());
+    res->success = false;
+    res->message = "Fused point cloud not extracted";
+    return;
+  }
   
   sl::String filename = req->map_filename.c_str();
   if (req->file_format < 0 || req->file_format > static_cast<int>(sl::MESH_FILE_FORMAT::OBJ))

@@ -1137,9 +1137,9 @@ bool ZedCamera::isDepthRequired()
   return tot_sub > 0 || depth_required_for_pos_trk || depth_required_for_od;
 }
 
-void ZedCamera::applyDepthSettings()
+void ZedCamera::applyDepthSettings(bool force)
 {
-  if (isDepthRequired()) {
+  if (isDepthRequired() || force) {
     std::lock_guard<std::mutex> lock(mDynParMutex);
     mRunParams.confidence_threshold =
       mDepthConf;      // Update depth confidence if changed

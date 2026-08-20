@@ -67,6 +67,7 @@
 #include <zed_msgs/srv/set_roi.hpp>
 #include <zed_msgs/srv/start_svo_rec.hpp>
 #include <zed_msgs/srv/save_area_memory.hpp>
+#include <zed_msgs/srv/save_map.hpp>
 
 #ifdef FOUND_ISAAC_ROS_NITROS
   #include "isaac_ros_managed_nitros/managed_nitros_publisher.hpp"
@@ -169,6 +170,7 @@ typedef rclcpp::Service<zed_msgs::srv::SaveAreaMemory>::SharedPtr saveAreaMemory
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableObjDetPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableBodyTrkPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;
+typedef rclcpp::Service<zed_msgs::srv::SaveMap>::SharedPtr saveMapPtr;
 
 typedef rclcpp::Service<zed_msgs::srv::StartSvoRec>::SharedPtr startSvoRecSrvPtr;
 typedef rclcpp::Service<zed_msgs::srv::SetROI>::SharedPtr setRoiSrvPtr;

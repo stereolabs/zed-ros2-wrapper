@@ -392,6 +392,7 @@ void ZedCameraOne::getCameraModelParams()
           _camUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
   } else if (camera_model == "zedxonecore") {
     _camUserModel = sl::MODEL::ZED_XONE_CORE;
     if (_svoMode) {
@@ -408,6 +409,7 @@ void ZedCameraOne::getCameraModelParams()
           _camUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
+#endif
   } else if (camera_model == "zedxone4k") {
     _camUserModel = sl::MODEL::ZED_XONE_UHD;
     if (_svoMode) {
@@ -1130,9 +1132,13 @@ void ZedCameraOne::processCameraInformation()
       RCLCPP_WARN(get_logger(), "Please set the parameter 'general.camera_model' to 'zedxone4k'");
     } else if (_camRealModel == sl::MODEL::ZED_XONE_HDR) {
       RCLCPP_WARN(get_logger(), "Please set the parameter 'general.camera_model' to 'zedxonehdr'");
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
     } else if (_camRealModel == sl::MODEL::ZED_XONE_CORE) {
       RCLCPP_WARN(get_logger(), "Please set the parameter 'general.camera_model' to 'zedxonecore'");
     }
+#else
+    }
+#endif
   }
 
   RCLCPP_INFO_STREAM(

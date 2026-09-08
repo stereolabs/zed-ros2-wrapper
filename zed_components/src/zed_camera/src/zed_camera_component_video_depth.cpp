@@ -3444,7 +3444,8 @@ bool ZedCamera::handleCommonVideoParams(
       RCLCPP_WARN_STREAM(get_logger(), result.reason);
       return true;
     }
-    if (val <= 0.0) {
+    mVdPubRateAuto = (val <= 0.0);
+    if (mVdPubRateAuto) {
       val = static_cast<double>(mCamGrabFrameRate);
     }
     mVdPubRate = val;

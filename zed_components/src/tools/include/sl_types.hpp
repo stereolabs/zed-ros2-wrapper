@@ -83,6 +83,10 @@
 constexpr auto HEARTBEAT_INTERVAL_MS = 1000;  // Publish heartbeat every second
 constexpr auto TEMP_PUB_INTERVAL_MS = 1000;  // Publish temperature every second
 
+// Simulation server connection
+constexpr auto SIM_CONN_RETRY_PERIOD_SEC = 1;  // Delay between connection attempts
+constexpr auto SIM_CONN_TIMEOUT_SEC = 30.0;  // Give up connecting after this time
+
 // TypeAdapter for sl::Mat <-> sensor_msgs::msg::Image (must be outside
 // namespace stereolabs to avoid pulling sensor_msgs into stereolabs scope)
 #include "sl_type_adapter.hpp"

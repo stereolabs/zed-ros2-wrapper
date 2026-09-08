@@ -4,6 +4,13 @@
 ---
 /**:
     ros__parameters:
+        use_sim_time: false
+
+        simulation:
+            sim_enabled: false
+            sim_address: '127.0.0.1'
+            sim_port: 30000
+
         general:
             serial_number: 0 # overwritten by launch file
             pub_resolution: "CUSTOM" # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
@@ -84,4 +91,5 @@
             debug_streaming: false
             debug_advanced: false
             debug_nitros: false
+            debug_sim: false
             disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes

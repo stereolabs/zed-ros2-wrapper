@@ -330,8 +330,9 @@ bool ZedCameraOne::publishSensorsData()
   std::vector<sl::SensorsData> sens_data_batch;
   sl::ERROR_CODE err = _zed->getSensorsDataBatch(sens_data_batch);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    // Only warn if not in SVO mode or if the error is not a benign sensor unavailability
-    if (!_svoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+    // Only warn if the input is a live camera or if the error is not a benign
+    // sensor unavailability
+    if ((!_svoMode && !_simMode) || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "[publishSensorsData] sl::getSensorsDataBatch error: " << sl::toString(err).c_str());
@@ -342,6 +343,16 @@ bool ZedCameraOne::publishSensorsData()
   if (sens_data_batch.empty()) {
     DEBUG_STREAM_SENS("[publishSensorsData] No new sensors data");
     return false;
+  }
+
+  // In simulation with `use_sim_time`, the timestamps carried by the stream do
+  // not belong to the simulation timeline, so every sample must be stamped with
+  // the current ROS (simulation) time. All the samples drained by a single call
+  // would then share the same stamp, so keep only the most recent one: the
+  // duplicate and decimation gates below cannot tell apart samples that have no
+  // distinct timestamps.
+  if (_simMode && _useSimTime && sens_data_batch.size() > 1) {
+    sens_data_batch.erase(sens_data_batch.begin(), sens_data_batch.end() - 1);
   }
 
   // Decimate the drained IMU stream down to the requested
@@ -357,7 +368,9 @@ bool ZedCameraOne::publishSensorsData()
 
   bool published = false;
   for (const auto & sens_data : sens_data_batch) {
-    rclcpp::Time ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
+    rclcpp::Time ts_imu = (_simMode && _useSimTime) ?
+      get_clock()->now() :
+      sl_tools::slTime2Ros(sens_data.imu.timestamp);
     double dT = ts_imu.seconds() - _lastTs_imu.seconds();
 
     // Skip duplicated / out-of-order IMU samples (defensive: the FIFO is

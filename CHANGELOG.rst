@@ -1,6 +1,19 @@
 LATEST CHANGES
 ==============
 
+v5.5.0
+------
+- Improved simulation mode to match the features of the ZED extension for NVIDIA Isaac Sim:
+
+  - The grab resolution and framerate are no longer forced to `HD1080` @ 60 Hz. Both are now defined by the simulated camera (the `Resolution` and `FPS` fields of the `ZED Camera Helper` Action Graph node) and read back from the stream, so a simulation running at the extension default of 30 FPS is reported and published correctly. This also removes the bogus "`general.grab_frame_rate` value is not valid, please fix the parameter" warning that was printed at every start-up in simulation, and fixes the capture diagnostics reporting 50% of the expected rate.
+  - `general.pub_frame_rate: 0` ("no limit") now follows the real grab rate even when it is only known after the input is open, instead of staying at the rate assumed before opening.
+  - Fixed the unstable IMU publishing rate in simulation. The stereo node now drains the IMU FIFO with `getSensorsDataBatch()` in simulation too, as the mono node and the live path already did, instead of polling only the latest sample.
+  - Fixed the simulation connection timeout never expiring when `use_sim_time:=true` and no `/clock` publisher was running yet. The stereo node now uses a steady-clock deadline and retries every second, like the mono node, and the timeout error reports the configured `simulation.sim_address` / `simulation.sim_port` and the `Streaming Port` to check.
+  - A simulated Virtual Stereo Camera (`camera_model:=virtual`) no longer requires `serial_numbers` or `camera_ids`: the simulator streams the already paired stereo images.
+  - The "system overloaded" diagnostic now points to the simulator `FPS` / `Resolution` fields instead of node parameters that have no effect in simulation.
+  - Silenced the spurious `SENSORS_NOT_AVAILABLE` warnings produced by a simulated camera without an IMU.
+- Added simulation mode support for the ZED X One monocular cameras. The `ZedCameraOne` node can now take its input from a simulation server, like the stereo node already did: launch it with `sim_mode:=true` (plus the optional `sim_address`, `sim_port` and `use_sim_time` options) and the images and IMU data are published from the simulated camera. When `use_sim_time` is enabled the node waits for a valid `/clock` and stamps every published topic with the simulation time.
+
 v5.4.1
 ------
 - Fixed camera video settings (exposure, gain, white balance, brightness, etc.) not being reliably applied at start-up. The node now always enforces the configured values when it starts, instead of keeping whatever was left in the camera by a previous application (e.g. ZED Explorer or an earlier run). This fixes two identically-configured cameras showing different images, and the case where the image did not match the configured exposure/gain after opening the node. The apply is also retried if the camera is not ready yet (e.g. during USB bandwidth contention when several cameras are opened at once).

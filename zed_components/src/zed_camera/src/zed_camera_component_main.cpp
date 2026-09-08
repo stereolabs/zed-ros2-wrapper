@@ -1183,8 +1183,15 @@ void ZedCamera::getGeneralParams()
       }
 
       // With a live virtual stereo camera at least one of "general.virtual_camera_ids"  and "general.virtual_serial_numbers"
-      // must contain two valid values
-      if (ids.size() != 2 && serials.size() != 2) {
+      // must contain two valid values.
+      // In simulation the paired stereo stream comes from the simulator, so no
+      // real camera identification is required.
+      if (mSimMode) {
+        RCLCPP_INFO(
+          get_logger(),
+          " * [Simulation mode] The virtual stereo pair is streamed by the "
+          "simulator: no camera identification required");
+      } else if (ids.size() != 2 && serials.size() != 2) {
         RCLCPP_ERROR(
           get_logger(),
           "With a Virtual Stereo Camera setup, one of 'general.virtual_serial_numbers' "
@@ -1209,16 +1216,20 @@ void ZedCamera::getGeneralParams()
       shared_from_this(), "general.camera_max_reconnect",
       mMaxReconnectTemp, mMaxReconnectTemp,
       " * Camera reconnection temptatives: ", false, 0, 9999);
+    sl_tools::getParam(
+      shared_from_this(), "general.grab_frame_rate",
+      mCamGrabFrameRate, mCamGrabFrameRate,
+      " * Camera framerate: ", false, 0, 120);
     if (mSimMode) {
+      // The framerate of a simulated camera is decided by the simulator (`FPS`
+      // field of the `ZED Camera Helper` Action Graph node), not by this
+      // parameter. The value above is only used to size the diagnostic windows
+      // and to bound the publishing rates until the real streamed rate is read
+      // in `processCameraInformation()`.
       RCLCPP_INFO(
         get_logger(),
-        "* [Simulation mode] Camera framerate forced to 60 Hz");
-      mCamGrabFrameRate = 60;
-    } else {
-      sl_tools::getParam(
-        shared_from_this(), "general.grab_frame_rate",
-        mCamGrabFrameRate, mCamGrabFrameRate,
-        " * Camera framerate: ", false, 0, 120);
+        " * [Simulation mode] The streamed framerate is defined by the "
+        "simulator and will replace the value above");
     }
   } else {
     // Set it to the maximum possible frame rate to avoid problem on the next validations
@@ -1241,10 +1252,15 @@ void ZedCamera::getGeneralParams()
   // TODO(walter) ADD SVO SAVE COMPRESSION PARAMETERS
 
   if (mSimMode) {
+    // `InitParameters::camera_resolution` is not used for a stream input: the
+    // resolution is the one configured in the simulator (`Resolution` field of
+    // the `ZED Camera Helper` Action Graph node) and is read back from the
+    // stream in `processCameraInformation()`.
     RCLCPP_INFO(
       get_logger(),
-      "* [Simulation mode] Camera resolution forced to 'HD1080'");
-    mCamResol = sl::RESOLUTION::HD1080;
+      " * [Simulation mode] The streamed resolution is defined by the "
+      "simulator");
+    mCamResol = sl::RESOLUTION::AUTO;
   } else {
     std::string resol = "AUTO";
     sl_tools::getParam(
@@ -1342,13 +1358,6 @@ void ZedCamera::getGeneralParams()
 
   // Dynamic parameters
 
-  if (mSimMode) {
-    RCLCPP_INFO(
-      get_logger(),
-      "* [Simulation mode] Publish framerate forced to 60 Hz");
-    mVdPubRate = 60;
-  }
-
   if (mSvoMode && !mSvoRealtime) {
     RCLCPP_INFO(
       get_logger(),
@@ -1359,7 +1368,8 @@ void ZedCamera::getGeneralParams()
       shared_from_this(), "general.pub_frame_rate", mVdPubRate,
       mVdPubRate, " * Publish framerate [Hz]:  ", true, -1.0,
       static_cast<double>(mCamGrabFrameRate));
-    if (mVdPubRate <= 0.0) {
+    mVdPubRateAuto = (mVdPubRate <= 0.0);
+    if (mVdPubRateAuto) {
       mVdPubRate = static_cast<double>(mCamGrabFrameRate);
     }
   }
@@ -2902,6 +2912,11 @@ bool ZedCamera::startCamera()
   // ----> Try to connect to a camera, to a stream, or to load an SVO
   sl_tools::StopWatch connectTimer(get_clock());
 
+  // Simulation mode uses a steady-clock deadline: with `use_sim_time` enabled
+  // the ROS clock is still stuck at zero until the simulator starts publishing
+  // on `/clock`, so a ROS-clock timeout would never expire.
+  const auto simConnectStart = std::chrono::steady_clock::now();
+
   mThreadStop = false;
   mGrabStatus = sl::ERROR_CODE::LAST;
 
@@ -3000,7 +3015,8 @@ bool ZedCamera::startCamera()
       return false;
     } else if (mSimMode) {
       RCLCPP_WARN(
-        get_logger(), "Error connecting to the simulation server: %s",
+        get_logger(),
+        "Error connecting to the simulation server: %s. Retrying...",
         sl::toString(mConnStatus).c_str());
     } else {
       RCLCPP_WARN(
@@ -3023,14 +3039,32 @@ bool ZedCamera::startCamera()
       return false;
     }
 
-    if (connectTimer.toc() > mMaxReconnectTemp * mCamTimeoutSec) {
+    if (mSimMode) {
+      const double sim_elapsed_sec =
+        std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - simConnectStart).count();
+
+      if (sim_elapsed_sec > SIM_CONN_TIMEOUT_SEC) {
+        RCLCPP_ERROR_STREAM(
+          get_logger(),
+          "Simulation server connection timeout. Please verify that the "
+          "simulator is running, that the simulation is playing, and that "
+          "'simulation.sim_address' [" << mSimAddr.c_str()
+                                       << "] and 'simulation.sim_port' ["
+                                       << mSimPort << "] match the "
+            "`Streaming Port` of the `ZED Camera Helper` Action Graph node.");
+        return false;
+      }
+    } else if (connectTimer.toc() > mMaxReconnectTemp * mCamTimeoutSec) {
       RCLCPP_ERROR(get_logger(), "Camera detection timeout");
       return false;
     }
 
     mDiagUpdater.force_update();
 
-    rclcpp::sleep_for(std::chrono::seconds(mCamTimeoutSec));
+    rclcpp::sleep_for(
+      std::chrono::seconds(
+        mSimMode ? SIM_CONN_RETRY_PERIOD_SEC : mCamTimeoutSec));
   }
   // ----> Try to connect to a camera, to a stream, or to load an SVO
 
@@ -3082,7 +3116,12 @@ bool ZedCamera::startCamera()
 
   float realFps = camInfo.camera_configuration.fps;
   if (realFps != static_cast<float>(mCamGrabFrameRate)) {
-    if (!mSvoMode) {
+    if (mSimMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " * [Simulation mode] Camera framerate set to '"
+          << realFps << "' by the simulator");
+    } else if (!mSvoMode) {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "!!! `general.grab_frame_rate` value is not valid: '"
@@ -3093,6 +3132,15 @@ bool ZedCamera::startCamera()
     mCamGrabFrameRate = realFps;
 
     // ----> Check publishing rates
+    if (mVdPubRateAuto) {
+      // No user limit: follow the real grab rate, which in simulation is the
+      // one configured in the simulator.
+      mVdPubRate = static_cast<double>(mCamGrabFrameRate);
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "Video/Depth publishing rate set to the real grab rate: "
+          << mVdPubRate << " Hz");
+    }
     if (mVdPubRate > mCamGrabFrameRate) {
       mVdPubRate = mCamGrabFrameRate;
       RCLCPP_WARN_STREAM(
@@ -5486,26 +5534,41 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   }
   // <---- Subscribers count
 
-  // ----> Default live mode: drain the whole IMU FIFO
+  // ----> Live and simulation modes: drain the whole IMU FIFO
   // The ZED SDK buffers every IMU sample. getSensorsDataBatch() returns all the
   // samples received since the previous call, ordered by timestamp. Draining
   // the FIFO here (instead of reading only the most recent sample with
   // TIME_REFERENCE::CURRENT) guarantees that no sample is dropped and that the
   // published hardware timestamps keep a constant rate, fixing the unstable IMU
-  // rate reported in issues #249 and #445.
-  if (!mSensCameraSync && !mSvoMode && !mSimMode) {
+  // rate reported in issues #249 and #445. The simulator streams the IMU faster
+  // than the image rate, so the same reasoning applies to simulation mode.
+  if (!mSensCameraSync && !mSvoMode) {
     std::vector<sl::SensorsData> sens_data_batch;
     sl::ERROR_CODE batch_err = mZed->getSensorsDataBatch(sens_data_batch);
     if (batch_err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        "[publishSensorsData] sl::getSensorsDataBatch error: "
-          << sl::toString(batch_err).c_str());
+      // A simulated camera without an IMU reports SENSORS_NOT_AVAILABLE at
+      // every call: that is expected, not an error worth warning about.
+      if (!mSimMode || batch_err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+        RCLCPP_WARN_STREAM(
+          get_logger(),
+          "[publishSensorsData] sl::getSensorsDataBatch error: "
+            << sl::toString(batch_err).c_str());
+      }
       return false;
     }
     if (sens_data_batch.empty()) {
       DEBUG_STREAM_SENS("No new sensors data");
       return false;
+    }
+
+    // In simulation with `use_sim_time`, the timestamps carried by the stream
+    // do not belong to the simulation timeline, so every sample is stamped with
+    // the current ROS (simulation) time. All the samples drained by a single
+    // call would then share the same stamp, and the duplicate/decimation gates
+    // below cannot tell apart samples with identical timestamps: keep only the
+    // most recent one.
+    if (mSimMode && mUseSimTime && sens_data_batch.size() > 1) {
+      sens_data_batch.erase(sens_data_batch.begin(), sens_data_batch.end() - 1);
     }
 
     // Decimate the drained IMU stream down to the requested
@@ -5521,7 +5584,9 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
     bool published = false;
     for (const auto & sample : sens_data_batch) {
-      rclcpp::Time s_ts_imu = sl_tools::slTime2Ros(sample.imu.timestamp);
+      rclcpp::Time s_ts_imu = (mSimMode && mUseSimTime) ?
+        get_clock()->now() :
+        sl_tools::slTime2Ros(sample.imu.timestamp);
 
       // ----> IMU (decimated to the requested rate)
       // Skip duplicated / out-of-order samples (defensive: the FIFO is already
@@ -5549,7 +5614,8 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       // <---- IMU
 
       // ----> Barometer (lower rate, de-duplicated by its own hardware ts)
-      if (sample.barometer.is_available) {
+      // Not simulated: the simulator only streams images and the IMU.
+      if (!mSimMode && sample.barometer.is_available) {
         rclcpp::Time s_ts_baro = sl_tools::slTime2Ros(sample.barometer.timestamp);
         if (s_ts_baro != mLastTs_baro) {
           mLastTs_baro = s_ts_baro;
@@ -5562,7 +5628,8 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
       // <---- Barometer
 
       // ----> Magnetometer (lower rate, de-duplicated by its own hardware ts)
-      if (sample.magnetometer.is_available) {
+      // Not simulated: the simulator only streams images and the IMU.
+      if (!mSimMode && sample.magnetometer.is_available) {
         rclcpp::Time s_ts_mag = sl_tools::slTime2Ros(sample.magnetometer.timestamp);
         if (s_ts_mag != mLastTs_mag) {
           mLastTs_mag = s_ts_mag;
@@ -5596,9 +5663,11 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   }
 
   if (err != sl::ERROR_CODE::SUCCESS) {
-    // Only warn if not in SVO mode or if the error is not a benign sensor
-    // unavailability
-    if (!mSvoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+    // Only warn if the input is a live camera or if the error is not a benign
+    // sensor unavailability
+    if ((!mSvoMode && !mSimMode) ||
+      err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE)
+    {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "[publishSensorsData] sl::getSensorsData error: "
@@ -8834,6 +8903,9 @@ void ZedCamera::callback_updateDiagnostic(
     if (mSysOverloadCount >= 10) {
       stat.summary(
         diagnostic_msgs::msg::DiagnosticStatus::WARN,
+        mSimMode ?
+        "System overloaded. Consider reducing the `FPS` or `Resolution` "
+        "fields of the `ZED Camera Helper` Action Graph node" :
         "System overloaded. Consider reducing "
         "'general.pub_frame_rate' or 'general.grab_resolution'");
     } else {

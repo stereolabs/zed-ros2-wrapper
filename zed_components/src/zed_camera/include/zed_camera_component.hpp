@@ -722,6 +722,10 @@ private:
   OnSetParametersCallbackHandle::SharedPtr mParamChangeCallbackHandle;
 
   double mVdPubRate = 15.0;
+  // `general.pub_frame_rate` <= 0 means "publish at the grab rate": the real
+  // grab rate is known only after the input is open, so the request is stored
+  // here and re-applied in `processCameraInformation()`.
+  bool mVdPubRateAuto = false;
   int mCamBrightness = 4;
   int mCamContrast = 4;
   int mCamHue = 0;

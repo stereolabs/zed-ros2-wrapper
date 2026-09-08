@@ -615,7 +615,10 @@ void ZedCameraOne::publishImages()
   _lastTs_grab = _sdkGrabTS;
 
   rclcpp::Time timeStamp;
-  if (_svoMode) {
+  if (_svoMode || _simMode) {
+    // Replayed and simulated frames are stamped by `updateFrameTimestamp()`,
+    // which is the only place that knows whether the SVO/simulation clock has
+    // to replace the SDK timestamp.
     timeStamp = _frameTimestamp;
   } else {
     timeStamp = sl_tools::slTime2Ros(_sdkGrabTS, get_clock()->get_clock_type());

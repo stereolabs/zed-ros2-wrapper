@@ -37,6 +37,8 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   _imgPubFreqTimer(get_clock()),
   _frameTimestamp(TIMEZERO_ROS),
   _lastTs_imu(TIMEZERO_ROS),
+  _lastClock(TIMEZERO_ROS),
+  _clockAvailable(false),
   _colorSubCount(0),
   _colorRawSubCount(0),
   _graySubCount(0),
@@ -153,6 +155,8 @@ void ZedCameraOne::deInitNode()
   // ----> Close the ZED camera
   closeCamera();
   // <---- Close the ZED camera
+
+  _clockSub.reset();
 }
 
 void ZedCameraOne::closeCamera()
@@ -172,6 +176,9 @@ void ZedCameraOne::initParameters()
   // DEBUG parameters
   getDebugParams();
 
+  // SIMULATION parameters
+  getSimParams();
+
   // SVO parameters
   getSvoParams();
 
@@ -182,7 +189,7 @@ void ZedCameraOne::initParameters()
   getTopicEnableParams();
 
   // Image Parameters
-  if (!_svoMode) {
+  if (!_svoMode && !_simMode) {
     getVideoParams();
   }
 
@@ -208,7 +215,7 @@ void ZedCameraOne::getGeneralParams()
     " * SDK Monotonic Clock: ");
 #endif
 
-  if (!_svoMode) {
+  if (!_svoMode && !_simMode) {
     getStreamParams();
   }
   getCameraModelParams();
@@ -305,6 +312,13 @@ void ZedCameraOne::getSvoParams()
 
   if (_svoFilepath == "") {
     _svoMode = false;
+  } else if (_simMode) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Simulation mode is enabled, the SVO input '"
+        << _svoFilepath.c_str() << "' is ignored.");
+    _svoFilepath = "";
+    _svoMode = false;
   } else {
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -351,6 +365,40 @@ void ZedCameraOne::getSvoParams()
   }
 }
 
+void ZedCameraOne::getSimParams()
+{
+  // SIMULATION active?
+  sl_tools::getParam(
+    shared_from_this(), "simulation.sim_enabled", _simMode,
+    _simMode);
+
+  if (!get_parameter("use_sim_time", _useSimTime)) {
+    RCLCPP_WARN(
+      get_logger(),
+      "The parameter 'use_sim_time' is not available or is not "
+      "valid, using the default value.");
+  }
+
+  if (_simMode) {
+    RCLCPP_INFO(get_logger(), " === SIMULATION MODE ACTIVE ===");
+    sl_tools::getParam(
+      shared_from_this(), "simulation.sim_address", _simAddr,
+      _simAddr, " * Sim. server address: ");
+    sl_tools::getParam(
+      shared_from_this(), "simulation.sim_port", _simPort,
+      _simPort, " * Sim. server port: ");
+
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * Use Sim Time: " << (_useSimTime ? "TRUE" : "FALSE"));
+  } else if (_useSimTime) {
+    RCLCPP_WARN(
+      get_logger(),
+      "The parameter 'use_sim_time' is set to 'true', but simulation "
+      "mode is not enabled. UNPREDICTABLE BEHAVIORS EXPECTED.");
+  }
+}
+
 void ZedCameraOne::getStreamParams()
 {
   _streamMode = false;
@@ -386,6 +434,10 @@ void ZedCameraOne::getCameraModelParams()
       RCLCPP_INFO_STREAM(
         get_logger(),
         " + Playing a network stream from a " << sl::toString(_camUserModel) << " camera model.");
+    } else if (_simMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " + Simulating a " << sl::toString(_camUserModel) << " camera model.");
     } else if (!IS_JETSON) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Camera model " << sl::toString(
@@ -403,6 +455,10 @@ void ZedCameraOne::getCameraModelParams()
       RCLCPP_INFO_STREAM(
         get_logger(),
         " + Playing a network stream from a " << sl::toString(_camUserModel) << " camera model.");
+    } else if (_simMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " + Simulating a " << sl::toString(_camUserModel) << " camera model.");
     } else if (!IS_JETSON) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Camera model " << sl::toString(
@@ -420,6 +476,10 @@ void ZedCameraOne::getCameraModelParams()
       RCLCPP_INFO_STREAM(
         get_logger(),
         " + Playing a network stream from a " << sl::toString(_camUserModel) << " camera model.");
+    } else if (_simMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " + Simulating a " << sl::toString(_camUserModel) << " camera model.");
     } else if (!IS_JETSON) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Camera model " << sl::toString(
@@ -436,6 +496,11 @@ void ZedCameraOne::getCameraModelParams()
     } else if (_streamMode) {
       RCLCPP_INFO_STREAM(
         get_logger(), " + Playing a network stream from a "
+          << sl::toString(_camUserModel)
+          << " camera model.");
+    } else if (_simMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Simulating a "
           << sl::toString(_camUserModel)
           << " camera model.");
     } else if (!IS_JETSON) {
@@ -457,7 +522,20 @@ void ZedCameraOne::getCameraInfoParams()
 {
   sl_tools::getParam(
     shared_from_this(), "general.camera_name", _cameraName, _cameraName, " * Camera name: ");
-  if (!_svoMode) {
+  if (_simMode) {
+    // The framerate of a simulated camera is decided by the simulator (`FPS`
+    // field of the `ZED Camera One Helper` Action Graph node), not by this
+    // parameter. The value below is only used to size the diagnostic windows
+    // until the real streamed rate is read in `processCameraInformation()`.
+    sl_tools::getParam(
+      shared_from_this(), "general.grab_frame_rate", _camGrabFrameRate, _camGrabFrameRate,
+      " * Camera framerate: ", false, 15,
+      120);
+    RCLCPP_INFO(
+      get_logger(),
+      " * [Simulation mode] The streamed framerate is defined by the "
+      "simulator and will replace the value above");
+  } else if (!_svoMode) {
     sl_tools::getParam(
       shared_from_this(), "general.serial_number", _camSerialNumber, _camSerialNumber,
       " * Camera SN: ");
@@ -473,7 +551,17 @@ void ZedCameraOne::getCameraInfoParams()
 
 void ZedCameraOne::getResolutionParams()
 {
-  if (!_svoMode) {
+  if (_simMode) {
+    // `InitParameters::camera_resolution` is not used for a stream input: the
+    // resolution is the one configured in the simulator (`Resolution` field of
+    // the `ZED Camera One Helper` Action Graph node) and is read back from the
+    // stream in `processCameraInformation()`.
+    RCLCPP_INFO(
+      get_logger(),
+      " * [Simulation mode] The streamed resolution is defined by the "
+      "simulator");
+    _camResol = sl::RESOLUTION::AUTO;
+  } else if (!_svoMode) {
     std::string resol = "AUTO";
     sl_tools::getParam(shared_from_this(), "general.grab_resolution", resol, resol);
     if (resol == "AUTO") {
@@ -682,6 +770,9 @@ void ZedCameraOne::getDebugParams()
     shared_from_this(), "debug.debug_advanced", _debugAdvanced,
     _debugAdvanced, " * Debug Advanced: ");
   sl_tools::getParam(
+    shared_from_this(), "debug.debug_sim", _debugSim,
+    _debugSim, " * Debug Simulation: ");
+  sl_tools::getParam(
     shared_from_this(), "debug.debug_tf", _debugTf, _debugTf,
     " * Debug TF: ");
   sl_tools::getParam(
@@ -692,7 +783,7 @@ void ZedCameraOne::getDebugParams()
 
   _debugMode = _debugCommon || _debugDynParams || _debugVideoDepth ||
     _debugCamCtrl || _debugSensors || _debugStreaming ||
-    _debugAdvanced || _debugTf || _debugNitros;
+    _debugAdvanced || _debugTf || _debugNitros || _debugSim;
 
   if (_debugMode) {
     rcutils_ret_t res = rcutils_logging_set_logger_level(
@@ -869,6 +960,7 @@ bool ZedCameraOne::startCamera()
   createZedObject();
   logSdkVersion();
   setupTf2();
+  initSubscribers();
   configureZedInput();
   setZedInitParams();
 
@@ -941,6 +1033,16 @@ void ZedCameraOne::setupTf2()
 
 void ZedCameraOne::configureZedInput()
 {
+  if (_simMode) {
+    RCLCPP_INFO_STREAM(
+      get_logger(), "=== CONNECTING TO THE SIMULATION SERVER ["
+        << _simAddr.c_str() << ":" << _simPort << "] ===");
+
+    _initParams.input.setFromStream(
+      _simAddr.c_str(),
+      static_cast<unsigned short>(_simPort));
+    return;
+  }
 
   if (!_svoFilepath.empty()) {
     RCLCPP_INFO(get_logger(), "=== SVO OPENING ===");
@@ -998,10 +1100,10 @@ bool ZedCameraOne::openZedCamera()
 {
   _grabStatus = sl::ERROR_CODE::LAST;
 
-  // Tell sl_tools whether timestamps come from a replay source (SVO) so
-  // slTime2Ros bypasses the live monotonic-clock offset for recorded values.
-  // Mono component has no simulation mode.
-  sl_tools::setSdkReplayMode(_svoMode);
+  // Tell sl_tools whether timestamps come from a replay source (SVO or
+  // simulation) so slTime2Ros bypasses the live monotonic-clock offset for
+  // values that are not generated by the host monotonic clock.
+  sl_tools::setSdkReplayMode(_svoMode || _simMode);
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   if (_useSdkMonotonicClock) {
@@ -1021,6 +1123,45 @@ bool ZedCameraOne::openZedCamera()
 #endif
 
   _connStatus = _zed->open(_initParams);
+
+  // ----> Wait for the simulation server
+  // The simulator is often not streaming yet when the node starts, so keep
+  // retrying the connection until it is accepted, the timeout expires, or the
+  // user stops the node.
+  if (_simMode && _connStatus != sl::ERROR_CODE::SUCCESS) {
+    const auto connectStart = std::chrono::steady_clock::now();
+
+    while (_connStatus != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "Error connecting to the simulation server: "
+          << sl::toString(_connStatus).c_str() << ". Retrying...");
+      _diagUpdater.force_update();
+      rclcpp::sleep_for(std::chrono::seconds(SIM_CONN_RETRY_PERIOD_SEC));
+
+      if (!rclcpp::ok() || _threadStop) {
+        RCLCPP_INFO(get_logger(), "ZED activation interrupted by user.");
+        return false;
+      }
+
+      const double elapsed_sec =
+        std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - connectStart).count();
+
+      if (elapsed_sec > SIM_CONN_TIMEOUT_SEC) {
+        RCLCPP_ERROR_STREAM(
+          get_logger(),
+          "Simulation server connection timeout. Please verify that the "
+          "simulator is running and that 'simulation.sim_address' ["
+            << _simAddr.c_str() << "] and 'simulation.sim_port' [" << _simPort
+            << "] are correct.");
+        return false;
+      }
+
+      _connStatus = _zed->open(_initParams);
+    }
+  }
+  // <---- Wait for the simulation server
 
   if (_connStatus != sl::ERROR_CODE::SUCCESS) {
 
@@ -1086,7 +1227,7 @@ bool ZedCameraOne::openZedCamera()
   } else {
     DEBUG_STREAM_COMM("Opening successfull");
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
-    if (_useSdkMonotonicClock && !_svoMode) {
+    if (_useSdkMonotonicClock && !_svoMode && !_simMode) {
       const sl::Timestamp sdk_now = sl::getCurrentTimeStamp();
       const rclcpp::Time ros_now = get_clock()->now();
       const int64_t offset_ns =
@@ -1109,12 +1250,19 @@ void ZedCameraOne::processCameraInformation()
 
   float realFps = camInfo.camera_configuration.fps;
   if (realFps != static_cast<float>(_camGrabFrameRate)) {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "!!! `general.grab_frame_rate` value is not valid: '"
-        << _camGrabFrameRate
-        << "'. Automatically replaced with '" << realFps
-        << "'. Please fix the parameter !!!");
+    if (_simMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        " * [Simulation mode] Camera framerate set to '" << realFps
+                                                         << "' by the simulator");
+    } else {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "!!! `general.grab_frame_rate` value is not valid: '"
+          << _camGrabFrameRate
+          << "'. Automatically replaced with '" << realFps
+          << "'. Please fix the parameter !!!");
+    }
     _camGrabFrameRate = realFps;
   }
 
@@ -1236,6 +1384,8 @@ void ZedCameraOne::initializeTimestamp()
       _frameTimestamp =
         sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
     }
+  } else if (_simMode && _useSimTime) {
+    _frameTimestamp = get_clock()->now();
   } else {
     _frameTimestamp =
       sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
@@ -1259,7 +1409,9 @@ void ZedCameraOne::initThreadsAndTimers()
   startHeartbeatTimer();
 
   // ----> Start CMOS Temperatures thread
-  startTempPubTimer();
+  if (!_simMode) {
+    startTempPubTimer();
+  }
   // <---- Start CMOS Temperatures thread
 
   // Start sensor thread
@@ -1331,6 +1483,9 @@ void ZedCameraOne::updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatus
   if (_sysOverloadCount >= 10) {
     stat.summary(
       diagnostic_msgs::msg::DiagnosticStatus::WARN,
+      _simMode ?
+      "System overloaded. Consider reducing the `FPS` or `Resolution` "
+      "fields of the `ZED Camera One Helper` Action Graph node" :
       "System overloaded. Consider reducing "
       "'general.grab_frame_rate' or 'general.grab_resolution'");
   } else {
@@ -1361,7 +1516,9 @@ void ZedCameraOne::updateInputModeDiagnostics(diagnostic_updater::DiagnosticStat
     return;
   }
 
-  if (_streamMode) {
+  if (_simMode) {
+    stat.add("Input mode", "SIMULATION");
+  } else if (_streamMode) {
     stat.add("Input mode", "LOCAL STREAM");
   } else {
     stat.add("Input mode", "Live Camera");
@@ -1423,6 +1580,10 @@ void ZedCameraOne::updateImuDiagnostics(diagnostic_updater::DiagnosticStatusWrap
 
 void ZedCameraOne::updateTemperatureDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
 {
+  if (_simMode) {
+    return;
+  }
+
   stat.addf("Camera Temp.", "%.1f °C", _tempImu);
 
   if (_tempImu > 70.f) {
@@ -1947,6 +2108,51 @@ void ZedCameraOne::initPublishers()
   }
 }
 
+void ZedCameraOne::initSubscribers()
+{
+  if (!_useSimTime) {
+    return;
+  }
+
+  RCLCPP_INFO(get_logger(), "=== SUBSCRIBED TOPICS ===");
+
+  _clockAvailable = false;
+  _clockSub = create_subscription<rosgraph_msgs::msg::Clock>(
+    "/clock", _qos, std::bind(&ZedCameraOne::callback_clock, this, _1),
+    _subOpt);
+
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Sim Clock: '" << _clockSub->get_topic_name() << "'");
+}
+
+void ZedCameraOne::callback_clock(
+  const rosgraph_msgs::msg::Clock::SharedPtr msg)
+{
+  DEBUG_SIM("=== CLOCK CALLBACK ===");
+  rclcpp::Time msg_time(msg->clock, RCL_ROS_TIME);
+
+  try {
+    if (msg_time != _lastClock) {
+      _clockAvailable = true;
+      DEBUG_SIM("Received an updated '/clock' message.");
+    } else {
+      _clockAvailable = false;
+      DEBUG_SIM("Received a NOT updated '/clock' message.");
+    }
+    _lastClock = msg_time;
+  } catch (...) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "Error comparing clock messages: "
+        << static_cast<int>(msg_time.get_clock_type())
+        << " vs "
+        << static_cast<int>(_lastClock.get_clock_type()));
+
+    _clockAvailable = false;
+  }
+}
+
 void ZedCameraOne::threadFunc_zedGrab()
 {
   DEBUG_STREAM_COMM("Grab thread started");
@@ -1978,6 +2184,15 @@ void ZedCameraOne::threadFunc_zedGrab()
         } else {
           _grabOnce = false;  // Reset the flag and grab once
         }
+      }
+
+      if (_useSimTime && !_clockAvailable) {
+        rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), steady_clock, 5000.0,
+          "Waiting for a valid simulation time on the '/clock' topic...");
+        rclcpp::sleep_for(1ms);
+        continue;
       }
 
       handleDynamicSettings();
@@ -2103,7 +2318,7 @@ bool ZedCameraOne::checkGrabThreadInterruption()
 
 void ZedCameraOne::handleDynamicSettings()
 {
-  if (!_svoMode && _triggerUpdateDynParams) {
+  if (!_svoMode && !_simMode && _triggerUpdateDynParams) {
     applyDynamicSettings();
   }
 }
@@ -2198,6 +2413,8 @@ void ZedCameraOne::updateFrameTimestamp()
     } else {
       _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
     }
+  } else if (_simMode && _useSimTime) {
+    _frameTimestamp = get_clock()->now();
   } else {
     _frameTimestamp = sl_tools::slTime2Ros(_sdkGrabTS);
   }
@@ -2330,7 +2547,7 @@ void ZedCameraOne::callback_pubHeartbeat()
   msg->full_name = this->get_fully_qualified_name();
   msg->node_name = this->get_name();
   msg->node_ns = this->get_namespace();
-  msg->simul_mode = false; //mSimMode;
+  msg->simul_mode = _simMode;
   msg->svo_mode = _svoMode;
   // <---- Fill the message
 

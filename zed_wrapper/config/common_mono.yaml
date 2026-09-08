@@ -4,6 +4,13 @@
 ---
 /**:
     ros__parameters:
+        use_sim_time: false # Set to `true` only if there is a publisher for the simulated clock to the `/clock` topic. Normally used in simulation mode.
+
+        simulation:
+            sim_enabled: false # Set to `true` to enable the simulation mode and connect to a simulation server
+            sim_address: '127.0.0.1' # The connection address of the simulation server. See the documentation of the supported simulation plugins for more information.
+            sim_port: 30000 # The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.
+
         general:
             serial_number: 0 # overwritten by launch file
             pub_resolution: "CUSTOM" # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
@@ -84,4 +91,5 @@
             debug_streaming: false # Enable/Disable the printing of debug messages related to the network streaming functionalities
             debug_advanced: false # Enable/Disable the printing of debug messages related to advanced thread parameters and functionalities
             debug_nitros: false # Enable/Disable the printing of debug messages related to NITROS functionalities
+            debug_sim: false # Enable/Disable the printing of debug messages related to the simulation mode and connection to the simulation server
             disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes

@@ -53,6 +53,7 @@ protected:
   void initServices();
   void initTFCoordFrameNames();
   void initPublishers();
+  void initSubscribers();
   void initVideoPublishers();
   void initSensorPublishers();
   void initializeTimestamp();
@@ -65,6 +66,7 @@ protected:
   void getGeneralParams();
   void getTopicEnableParams();
   void getSvoParams();
+  void getSimParams();
   void getStreamParams();
   void getCameraModelParams();
   void getCameraInfoParams();
@@ -215,6 +217,7 @@ protected:
     diagnostic_updater::DiagnosticStatusWrapper & stat);
   void callback_pubTemp();
   void callback_pubHeartbeat();
+  void callback_clock(const rosgraph_msgs::msg::Clock::SharedPtr msg);
 
   void callback_enableStreaming(
     const std::shared_ptr<rmw_request_id_t> request_header,
@@ -272,6 +275,7 @@ private:
   bool _debugCamCtrl = false;
   bool _debugStreaming = false;
   bool _debugAdvanced = false;
+  bool _debugSim = false;
   bool _debugNitros = false;
   bool _debugTf = false;
   // If available, force disable NITROS usage for debugging and testing
@@ -349,6 +353,11 @@ private:
   heartbeatStatusPub _pubHeartbeatStatus;
   // <---- Publishers
 
+  // ----> Subscribers
+  // Simulation clock subscriber, used when `use_sim_time` is true
+  clockSub _clockSub;
+  // <---- Subscribers
+
   // ----> Publisher variables
   bool _usingIPC = false;
   sl::Timestamp _lastTs_grab = 0;  // Used to calculate stable publish frequency
@@ -410,6 +419,12 @@ private:
   bool _useSvoTimestamp = false;
   bool _publishSvoClock = false;
   bool _publishStatus = true;
+
+  bool _simMode = false;     // Expecting simulation data?
+  bool _useSimTime = false;  // Use sim time?
+  std::string _simAddr =
+    "127.0.0.1";           // The local address of the machine running the simulator
+  int _simPort = 30000;    // The port to be used to connect to the simulator
 
   std::string _streamAddr = "";      // Address for local streaming input
   int _streamPort = 10000;
@@ -480,6 +495,9 @@ private:
   // ----> Timestamps
   rclcpp::Time _frameTimestamp;
   rclcpp::Time _lastTs_imu;
+  rclcpp::Time _lastClock;  // Last received simulation clock value
+  // Indicates if the "/clock" topic is publishing a valid simulation time
+  std::atomic<bool> _clockAvailable;
   // <---- Timestamps
 
   // ----> TF handling

@@ -23,7 +23,7 @@
 
 namespace
 {
-// Same race guard as in zed_camera_component_video_depth.cpp — see comment there.
+// Same race guard as in zed_camera_component_video_depth.cpp: see comment there.
 std::mutex g_it_pub_init_mutex;
 }
 
@@ -169,7 +169,7 @@ void ZedCameraOne::initVideoPublishers()
   // ----> Create publishers
   auto qos = _qos.get_rmw_qos_profile();
 
-  // Publishers logging — reads back the actual enabled plugins for this topic
+  // Publishers logging: reads back the actual enabled plugins for this topic
   auto log_cam_pub = [&](const auto & pub) {
       RCLCPP_INFO_STREAM(
         get_logger(),
@@ -253,7 +253,7 @@ void ZedCameraOne::initVideoPublishers()
       if (allowed.empty()) {
         RCLCPP_WARN(
           get_logger(),
-          "No compatible transports found for topic %s — falling back to all plugins",
+          "No compatible transports found for topic %s, falling back to all plugins",
           topic.c_str());
         return;
       }
@@ -266,7 +266,7 @@ void ZedCameraOne::initVideoPublishers()
           if (t.find("/raw") != std::string::npos) {
             RCLCPP_WARN(
               get_logger(),
-              "Raw transport enabled via parameter override — "
+              "Raw transport enabled via parameter override: "
               "this may cause duplicate messages on topic: %s", topic.c_str());
           }
         }

@@ -96,7 +96,7 @@ std::string getSDKVersion(int & major, int & minor, int & sub_minor);
 
 /*! \brief Convert a Stereolabs timestamp to ROS timestamp.
  *
- *  Single conversion entry point — works for any source (live grab, SVO
+ *  Single conversion entry point: works for any source (live grab, SVO
  *  replay, sim-injected, /clock topic, etc.). The live-time offset configured
  *  via \ref setSdkLiveTimeOffsetNs is applied automatically, except when
  *  replay mode is active (set via \ref setSdkReplayMode), in which case the

@@ -103,7 +103,7 @@ void ZedCamera::initVideoDepthPublishers()
   // Camera publishers
   if (_nitrosDisabled) {
 
-    // Publishers logging — reads back the actual enabled plugins for this topic
+    // Publishers logging: reads back the actual enabled plugins for this topic
     auto log_cam_pub = [&](const auto & pub) {
         RCLCPP_INFO_STREAM(
           get_logger(),
@@ -191,7 +191,7 @@ void ZedCamera::initVideoDepthPublishers()
                 allowed.push_back(t);
               }
             } else {
-              // Unknown plugin (e.g. zstd) — allow for all types
+              // Unknown plugin (e.g. zstd): allow for all types
               allowed.push_back(t);
             }
           }
@@ -202,7 +202,7 @@ void ZedCamera::initVideoDepthPublishers()
         if (allowed.empty()) {
           RCLCPP_WARN(
             get_logger(),
-            "No compatible transports found for topic %s — falling back to all plugins",
+            "No compatible transports found for topic %s, falling back to all plugins",
             topic.c_str());
           return;
         }
@@ -215,7 +215,7 @@ void ZedCamera::initVideoDepthPublishers()
             if (t.find("/raw") != std::string::npos) {
               RCLCPP_WARN(
                 get_logger(),
-                "Raw transport enabled via parameter override — "
+                "Raw transport enabled via parameter override: "
                 "this may cause duplicate messages on topic: %s", topic.c_str());
             }
           }

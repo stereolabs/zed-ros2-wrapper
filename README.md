@@ -5,7 +5,7 @@
 
 <p align="center">
   ROS 2 packages for using Stereolabs ZED Camera cameras.<br>
-  Supported on ROS 2 Humble, Jazzy, and Lyrical (LTS) — plus Foxy (backward compatibility) and Rolling (developers)
+  Supported on ROS 2 Humble, Jazzy, and Lyrical (LTS), plus Foxy (backward compatibility) and Rolling (developers)
 </p>
 
 <hr>
@@ -33,11 +33,11 @@ This package enables the use of ZED cameras with ROS 2, providing access to a va
 - [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v5.2 (to support older versions please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - A supported ROS 2 distribution (see [Supported ROS 2 distributions](#supported-ros-2-distributions) below):
-  - [Humble Hawksbill on Ubuntu 22.04](https://docs.ros.org/en/humble/Installation/Linux-Install-Debians.html) — LTS [EOL May 2027]
-  - [Jazzy Jalisco on Ubuntu 24.04](https://docs.ros.org/en/jazzy/Installation/Linux-Install-Debians.html) — LTS [EOL May 2029]
-  - [Lyrical on Ubuntu 26.04](https://docs.ros.org/en/lyrical/Installation/Linux-Install-Debians.html) — LTS
-  - [Foxy Fitzroy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html) — backward compatibility only [EOL reached]
-  - [Rolling Ridley](https://docs.ros.org/en/rolling/Installation/Linux-Install-Debians.html) — for developers
+  - [Humble Hawksbill on Ubuntu 22.04](https://docs.ros.org/en/humble/Installation/Linux-Install-Debians.html): LTS [EOL May 2027]
+  - [Jazzy Jalisco on Ubuntu 24.04](https://docs.ros.org/en/jazzy/Installation/Linux-Install-Debians.html): LTS [EOL May 2029]
+  - [Lyrical on Ubuntu 26.04](https://docs.ros.org/en/lyrical/Installation/Linux-Install-Debians.html): LTS
+  - [Foxy Fitzroy on Ubuntu 20.04](https://docs.ros.org/en/foxy/Installation/Linux-Install-Debians.html): backward compatibility only [EOL reached]
+  - [Rolling Ridley](https://docs.ros.org/en/rolling/Installation/Linux-Install-Debians.html), for developers
 
 ### Supported ROS 2 distributions
 

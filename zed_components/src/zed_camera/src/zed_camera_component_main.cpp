@@ -1688,7 +1688,7 @@ void ZedCamera::getPosTrackingParams()
     bool auto_pt = false;
     if (sl_tools::toUpper(pos_trk_mode_str) == "AUTO") {
       // Use the SDK's own constructed default, except for 5.2.0 where
-      // it defaults to GEN_3 which has known issues — force GEN_1 instead
+      // it defaults to GEN_3 which has known issues: force GEN_1 instead
 #if (ZED_SDK_MAJOR_VERSION == 5 && ZED_SDK_MINOR_VERSION == 2 && \
       ZED_SDK_PATCH_VERSION == 0)
       mPosTrkMode = sl::POSITIONAL_TRACKING_MODE::GEN_1;
@@ -5208,7 +5208,7 @@ void ZedCamera::threadFunc_zedGrab()
               mOdomPath.clear();
               mPosePath.clear();
 
-              // Restart tracking — mPtMutex is already held by the grab loop
+              // Restart tracking: mPtMutex is already held by the grab loop
               startPosTrackingLocked();
             }
             continue;

@@ -333,7 +333,7 @@ get_rss_mb() {
 # Format a delta as colored +/-
 fmt_delta() {
   local curr="$1" base="$2" unit="$3" higher_is_better="${4:-true}"
-  [[ "$curr" == "N/A" || "$base" == "N/A" ]] && { echo "—"; return; }
+  [[ "$curr" == "N/A" || "$base" == "N/A" ]] && { echo "-"; return; }
   local diff pct color sign
   diff=$(awk "BEGIN { print $curr - $base }")
   pct=$(awk "BEGIN { d=$base; if(d==0) print 0; else printf \"%.1f\", ($diff/d)*100 }")
@@ -444,7 +444,7 @@ test_subscriber_counting() {
   section "TEST SUITE: Subscriber counting"
   launch_zed "true" || return 1
 
-  # T1: No subscribers — check node is alive but not flooding logs
+  # T1: No subscribers, check node is alive but not flooding logs
   if node_alive; then
     pass "Node alive with no subscribers"
   else
@@ -659,7 +659,7 @@ measure_perf() {
     info "    ${labels[$idx]} external Hz: $hz"
   done
 
-  # CPU + RSS (shared — same node session)
+  # CPU + RSS (shared: same node session)
   local cpu rss
   cpu=$(get_avg_cpu "$ZED_PID")
   rss=$(get_rss_mb "$ZED_PID")

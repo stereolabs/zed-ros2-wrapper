@@ -1326,7 +1326,6 @@ void ZedCamera::applyZEDXSettings()
   applyZEDXDenoising();
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   applyZEDXAEAntibanding();
-  readSceneIlluminance();
 #endif
 }
 
@@ -1484,6 +1483,20 @@ void ZedCamera::applyZEDXAEAntibanding()
 
 void ZedCamera::readSceneIlluminance()
 {
+  // Only GMSL2 (ZED X) cameras expose this metric. Leave mSceneIlluminance at
+  // -1 on every other model, and when there is no live camera to query, so
+  // subscribers can tell "unsupported" from a real reading.
+  if (mSvoMode || mSimMode || !sl_tools::isZEDX(mCamRealModel)) {
+    return;
+  }
+
+  // The scene illuminance is a live measurement, so it must not be tied to the
+  // video settings apply cycle: throttle it on the frame counter instead, the
+  // same way applyVideoSettings() bounds its own camera queries.
+  if (mFrameCount % 10 != 0) {
+    return;
+  }
+
   sl::ERROR_CODE err;
   int value = -1;
   err = mZed->getCameraSettings(sl::VIDEO_SETTINGS::SCENE_ILLUMINANCE, value);
@@ -3319,7 +3332,6 @@ bool ZedCamera::handleGmsl2Params(
       mGmslAEAntibanding = val;
     }
     mCamSettingsDirty = true;
-    DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
     DEBUG_STREAM_DYN_PARAMS("Parameter '" << name << "' correctly set to " << val);
     return true;
   }

@@ -87,11 +87,17 @@ void ZedCamera::getOdParams()
     get_logger(), " * Object Det. model: "
       << sl::toString(mObjDetModel).c_str());
 
-  if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS) {
-    mUsingCustomOd = true;
-  } else {
-    mUsingCustomOd = false;
-  }
+  // Every model running a user-provided ONNX file inside the ZED SDK shares the
+  // same wrapper path: custom parameters, `retrieveCustomObjects()` and raw
+  // labels. 'CUSTOM_BOX_OBJECTS' is not one of them (external inference) and is
+  // rejected above.
+  mUsingCustomOd =
+    (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_YOLOLIKE_BOX_OBJECTS);
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  mUsingCustomOd = mUsingCustomOd ||
+    (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_RFDETRLIKE_BOX_OBJECTS) ||
+    (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS_AUTODETECT);
+#endif
   // <---- Object Detection model
 
   if (mUsingCustomOd) {
@@ -300,6 +306,13 @@ void ZedCamera::getCustomOdParams()
     sl_tools::getParam(
       shared_from_this(), param_name,
       customOdProperties.max_box_height_meters, customOdProperties.max_box_height_meters,
+      std::string(
+        "  * ") + param_name + ": ", true, -1.0f,
+      10000.0f);
+    param_name = param_prefix + "min_box_height_meters";
+    sl_tools::getParam(
+      shared_from_this(), param_name,
+      customOdProperties.min_box_height_meters, customOdProperties.min_box_height_meters,
       std::string(
         "  * ") + param_name + ": ", true, -1.0f,
       10000.0f);
@@ -972,7 +985,14 @@ bool ZedCamera::startObjDetect()
   od_p.max_range = mObjDetMaxRange;
 
   if (mUsingCustomOd) {
-    od_p.custom_onnx_dynamic_input_shape = mYoloOnnxSize;
+    // Square input tensor: 'object_detection.custom_onnx_input_size' = 512 means
+    // 1x3x512x512. Assigning the bare int would build a Resolution(size, 0),
+    // since sl::Resolution has default arguments. The value must also match the
+    // one the model was optimized with ahead of time (sl::optimizeCustomAIModel()
+    // or 'ZED_Diagnostic -onnx'), otherwise the cached engine is not reused and
+    // the model is optimized again on the first run.
+    od_p.custom_onnx_dynamic_input_shape =
+      sl::Resolution(mYoloOnnxSize, mYoloOnnxSize);
     od_p.custom_onnx_file = mYoloOnnxPath;
   }
 

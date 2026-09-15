@@ -18,7 +18,6 @@
 #include <mutex>
 #include <image_transport/camera_common.hpp>
 
-#include <sensor_msgs/distortion_models.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 
 namespace
@@ -405,19 +404,11 @@ void ZedCameraOne::fillCamInfo(
   // https://docs.ros2.org/latest/api/sensor_msgs/msg/CameraInfo.html
 
   // ----> Distortion models
-  // ZED SDK params order: [ k1, k2, p1, p2, k3, k4, k5, k6, s1, s2, s3, s4]
-  // Radial (k1, k2, k3, k4, k5, k6), Tangential (p1,p2) and Prism (s1, s2, s3,
-  // s4) distortion. Prism not currently used.
-
-  // ROS2 order (OpenCV) -> k1,k2,p1,p2,k3,k4,k5,k6,s1,s2,s3,s4
-  // All ZED X One models use RATIONAL_POLYNOMIAL
-  camInfoMsg->distortion_model =
-    sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
-
-  camInfoMsg->d.resize(8);
-  for (size_t i = 0; i < 8; i++) {
-    camInfoMsg->d[i] = zedParam.disto[i];
-  }
+  // Taken from the model reported by the ZED SDK for these calibration
+  // parameters, not assumed to be the same for every ZED X One: a fisheye lens
+  // uses a different model than the wide and narrow ones.
+  sl_tools::fillCamInfoDistortion(zedParam, *camInfoMsg);
+  // <---- Distortion models
 
   // Intrinsic
   camInfoMsg->k.fill(0.0);

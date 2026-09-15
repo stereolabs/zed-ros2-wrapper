@@ -178,6 +178,7 @@ typedef rclcpp::Service<zed_msgs::srv::StartSvoRec>::SharedPtr startSvoRecSrvPtr
 typedef rclcpp::Service<zed_msgs::srv::SetROI>::SharedPtr setRoiSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoSrvPtr;
+typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr pauseSvoRecSrvPtr;
 typedef rclcpp::Service<zed_msgs::srv::SetSvoFrame>::SharedPtr setSvoFramePtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetRoiSrvPtr;
 typedef rclcpp::Service<robot_localization::srv::ToLL>::SharedPtr toLLSrvPtr;

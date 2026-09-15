@@ -161,6 +161,12 @@ protected:
   void publishImuRawMsg(const rclcpp::Time & ts_imu, const sl::SensorsData & sens_data);
 
   void publishClock(const sl::Timestamp & ts);
+  /*! \brief Get the SDK timestamp of the last grabbed frame, using the
+   * reference selected by the `general.timestamp_reference` parameter.
+   * Falls back to `TIME_REFERENCE::IMAGE` for the rest of the session if the
+   * input does not provide a per-frame exposure (the SDK then returns 0).
+   */
+  sl::Timestamp getFrameSdkTimestamp();
 
   void updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
   void updateInputModeDiagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat);
@@ -231,6 +237,10 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_pauseSvoRec(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+    std::shared_ptr<std_srvs::srv::SetBool_Response> res);
   void callback_pauseSvoInput(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
@@ -387,12 +397,24 @@ private:
   std::string _sdkVerboseLogFile = ""; // SDK Verbose Log file
   int _gpuId = -1; // GPU ID
   bool _usePubTimestamps = false; // Use publishing timestamp instead of grab timestamp
-  bool _useSdkMonotonicClock = false; // [SDK >= 5.3] Use sl::TIMESTAMP_CLOCK::MONOTONIC_CLOCK
+  bool _useSdkMonotonicClock = false;  // true when a monotonic clock is selected
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
+  // Clock source used for every SDK timestamp. Process-wide setting.
+  sl::TIMESTAMP_CLOCK _sdkTimestampClock = sl::TIMESTAMP_CLOCK::SYSTEM_CLOCK;
+  // Maximum backward host-clock step followed per sample, in ms, in
+  // SYSTEM_CLOCK mode. 4.0 is the ZED SDK default; negative disables clamping.
+  double _maxSysClockStepMs = 4.0;
+#endif
+  // Time reference used for the frame timestamps of the published data
+  sl::TIME_REFERENCE _tsReference = sl::TIME_REFERENCE::IMAGE;
   bool _grabOnce = false;
   bool _grabImuOnce = false;
 
   int _camSerialNumber = 0; // Camera serial number
   int _camId = -1; // Camera ID
+  // Bus the camera is opened from when selecting it by ID. AUTO lets the ZED
+  // SDK look on every bus, which is what the serial number path already does.
+  sl::BUS_TYPE _camBusType = sl::BUS_TYPE::AUTO;
 
   sl::MODEL _camUserModel = sl::MODEL::ZED_XONE_GS;  // Default camera model
 
@@ -412,6 +434,7 @@ private:
   std::string _svoFilepath = "";
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   std::string _svoDecryptionKey = "";
+  std::string _svoRecEncryptionKey = "";
 #endif
   bool _svoLoop = false;
   bool _svoRealtime = false;
@@ -582,6 +605,7 @@ private:
   enableStreamingPtr _srvEnableStreaming;
   startSvoRecSrvPtr _srvStartSvoRec;
   stopSvoRecSrvPtr _srvStopSvoRec;
+  pauseSvoRecSrvPtr _srvPauseSvoRec;
   pauseSvoSrvPtr _srvPauseSvo;
   setSvoFramePtr _srvSetSvoFrame;
 
@@ -592,6 +616,7 @@ private:
   const std::string _srvEnableStreamingName = "enable_streaming";
   const std::string _srvStartSvoRecName = "start_svo_rec";
   const std::string _srvStopSvoRecName = "stop_svo_rec";
+  const std::string _srvPauseSvoRecName = "pause_svo_rec";
   const std::string _srvToggleSvoPauseName = "toggle_svo_pause";
   const std::string _srvSetSvoFrameName = "set_svo_frame";
   // <---- Services names

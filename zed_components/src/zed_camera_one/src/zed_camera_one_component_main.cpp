@@ -209,10 +209,64 @@ void ZedCameraOne::getGeneralParams()
   RCLCPP_INFO(get_logger(), "=== GENERAL parameters ===");
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
+  sl_tools::getEnumParam(
+    shared_from_this(), "general.sdk_timestamp_clock", "SYSTEM_CLOCK",
+    sl::TIMESTAMP_CLOCK::SYSTEM_CLOCK, sl::TIMESTAMP_CLOCK::LAST,
+    _sdkTimestampClock, " * SDK timestamp clock: ");
+
+  // 'general.sdk_use_monotonic_clock' is the boolean this parameter replaces: it
+  // could only select MONOTONIC_CLOCK. Still honored so that existing
+  // configuration files keep working.
+  bool legacy_monotonic = false;
   sl_tools::getParam(
     shared_from_this(), "general.sdk_use_monotonic_clock",
-    _useSdkMonotonicClock, _useSdkMonotonicClock,
-    " * SDK Monotonic Clock: ");
+    legacy_monotonic, legacy_monotonic);
+  if (legacy_monotonic) {
+    if (_sdkTimestampClock == sl::TIMESTAMP_CLOCK::SYSTEM_CLOCK) {
+      _sdkTimestampClock = sl::TIMESTAMP_CLOCK::MONOTONIC_CLOCK;
+      RCLCPP_WARN(
+        get_logger(),
+        "'general.sdk_use_monotonic_clock' is deprecated. Use "
+        "'general.sdk_timestamp_clock: MONOTONIC_CLOCK' instead, or "
+        "'MONOTONIC_RAW_CLOCK' to also be immune to NTP/PTP frequency slewing.");
+    } else {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "'general.sdk_use_monotonic_clock' is deprecated and ignored: "
+        "'general.sdk_timestamp_clock' is set to "
+          << sl::toString(_sdkTimestampClock).c_str() << ".");
+    }
+  }
+
+  _useSdkMonotonicClock = (_sdkTimestampClock != sl::TIMESTAMP_CLOCK::SYSTEM_CLOCK);
+
+  sl_tools::getParam(
+    shared_from_this(), "general.max_system_clock_step_ms",
+    _maxSysClockStepMs, _maxSysClockStepMs,
+    " * Max system clock step [ms]: ", false, -1.0, 1000.0);
+#endif
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  // Only 'IMAGE' and 'IMAGE_CENTER_OF_EXPOSURE' are valid here: 'CURRENT' is not a
+  // frame reference, so `sl_tools::getEnumParam` cannot be used on the full enum.
+  std::string ts_ref_str = "IMAGE";
+  sl_tools::getParam(
+    shared_from_this(), "general.timestamp_reference", ts_ref_str, ts_ref_str);
+  if (sl_tools::toUpper(ts_ref_str) == "IMAGE_CENTER_OF_EXPOSURE") {
+    _tsReference = sl::TIME_REFERENCE::IMAGE_CENTER_OF_EXPOSURE;
+  } else {
+    if (sl_tools::toUpper(ts_ref_str) != "IMAGE") {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "The value of the parameter 'general.timestamp_reference' is not valid: '"
+          << ts_ref_str << "'. Valid values are 'IMAGE' and 'IMAGE_CENTER_OF_EXPOSURE'. "
+          "Using the default value.");
+    }
+    _tsReference = sl::TIME_REFERENCE::IMAGE;
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Timestamp reference: " << sl::toString(_tsReference).c_str());
 #endif
 
   if (!_svoMode && !_simMode) {
@@ -299,6 +353,15 @@ void ZedCameraOne::getSvoParams()
     }
     _svoRecEncodingPreset = sl::SVO_ENCODING_PRESET::DEFAULT;
   }
+
+  // Read without logging: the value is a secret. Only its presence is reported.
+  sl_tools::getParam(
+    shared_from_this(), "svo.encryption_key", std::string(),
+    _svoRecEncryptionKey);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * SVO Recording encryption: " <<
+      (_svoRecEncryptionKey.empty() ? "DISABLED" : "ENABLED"));
 #endif
 
   RCLCPP_INFO(get_logger(), "=== SVO INPUT parameters ===");
@@ -540,6 +603,10 @@ void ZedCameraOne::getCameraInfoParams()
       shared_from_this(), "general.serial_number", _camSerialNumber, _camSerialNumber,
       " * Camera SN: ");
     sl_tools::getParam(shared_from_this(), "general.camera_id", _camId, _camId, " * Camera ID: ");
+    sl_tools::getEnumParam(
+      shared_from_this(), "general.bus_type", "AUTO",
+      sl::BUS_TYPE::USB, sl::BUS_TYPE::LAST, _camBusType,
+      " * Camera bus type: ");
     sl_tools::getParam(
       shared_from_this(), "general.grab_frame_rate", _camGrabFrameRate, _camGrabFrameRate,
       " * Camera framerate: ", false, 15,
@@ -926,6 +993,15 @@ void ZedCameraOne::initServices()
       << _srvStopSvoRec->get_service_name()
       << "'");
 
+  // Pause/resume SVO Recording
+  srv_name = srv_prefix + _srvPauseSvoRecName;
+  _srvPauseSvoRec = create_service<std_srvs::srv::SetBool>(
+    srv_name, std::bind(&ZedCameraOne::callback_pauseSvoRec, this, _1, _2, _3));
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Advertised on service: '"
+      << _srvPauseSvoRec->get_service_name()
+      << "'");
+
   // Pause SVO (only if the realtime playing mode is disabled)
   if (_svoMode) {
 #ifndef USE_SVO_REALTIME_PAUSE
@@ -1077,7 +1153,10 @@ void ZedCameraOne::configureZedInput()
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
     _initParams.input.setFromCameraID(_camId, sl::BUS_TYPE::GMSL, sl::CAMERA_TYPE::MONO);
 #else
-    _initParams.input.setFromCameraID(_camId, sl::BUS_TYPE::GMSL);
+    // 'general.bus_type' decides where to look. GMSL was hard-coded here, which
+    // filters out a camera reached over MIPI or through a Holoscan sensor bridge:
+    // the ZED SDK matches the bus type against the camera transport exactly.
+    _initParams.input.setFromCameraID(_camId, _camBusType);
 #endif
   }
 }
@@ -1107,18 +1186,32 @@ bool ZedCameraOne::openZedCamera()
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   if (_useSdkMonotonicClock) {
-    sl::Camera::setTimestampClock(sl::TIMESTAMP_CLOCK::MONOTONIC_CLOCK);
-    if (sl::Camera::getTimestampClock() != sl::TIMESTAMP_CLOCK::MONOTONIC_CLOCK) {
-      RCLCPP_WARN(
+    sl::Camera::setTimestampClock(_sdkTimestampClock);
+    if (sl::Camera::getTimestampClock() != _sdkTimestampClock) {
+      RCLCPP_WARN_STREAM(
         get_logger(),
-        "Another node in this process already set the SDK timestamp clock; "
-        "this node's 'debug.sdk_use_monotonic_clock' request was ignored.");
+        "Another node in this process already set the SDK timestamp clock to "
+          << sl::toString(sl::Camera::getTimestampClock()).c_str()
+          << "; this node's 'general.sdk_timestamp_clock' request was ignored.");
       _useSdkMonotonicClock = false;
     } else {
-      RCLCPP_INFO(
+      RCLCPP_INFO_STREAM(
         get_logger(),
-        "SDK timestamp clock set to MONOTONIC_CLOCK (process-wide).");
+        "SDK timestamp clock set to " << sl::toString(_sdkTimestampClock).c_str()
+                                      << " (process-wide).");
     }
+  } else {
+    // The step clamp only exists to keep SYSTEM_CLOCK timestamps coherent across a
+    // backward host-clock adjustment: monotonic clocks never step. Applying it
+    // there would be a no-op, and would warn for nothing when the
+    // 'ZED_SDK_MAX_SYSTEM_CLOCK_STEP_MS' environment variable is in use.
+    sl::setMaxSystemClockStepMs(static_cast<float>(_maxSysClockStepMs));
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "SDK max system clock step set to " << _maxSysClockStepMs << " ms (process-wide)"
+                                          << (_maxSysClockStepMs <
+      0.0 ? ": clamping disabled, steps land instantly." :
+      (_maxSysClockStepMs == 0.0 ? ": the offset captured on first use is frozen." : ".")));
   }
 #endif
 
@@ -1379,7 +1472,7 @@ void ZedCameraOne::initializeTimestamp()
 {
   if (_svoMode) {
     if (_useSvoTimestamp) {
-      _frameTimestamp = sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+      _frameTimestamp = sl_tools::slTime2Ros(getFrameSdkTimestamp());
     } else {
       _frameTimestamp =
         sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
@@ -1387,8 +1480,7 @@ void ZedCameraOne::initializeTimestamp()
   } else if (_simMode && _useSimTime) {
     _frameTimestamp = get_clock()->now();
   } else {
-    _frameTimestamp =
-      sl_tools::slTime2Ros(_zed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+    _frameTimestamp = sl_tools::slTime2Ros(getFrameSdkTimestamp());
   }
 }
 
@@ -1604,7 +1696,7 @@ void ZedCameraOne::updateSvoRecordingDiagnostics(diagnostic_updater::DiagnosticS
         "Check "
         "free disk space");
     } else {
-      stat.add("SVO Recording", "ACTIVE");
+      stat.add("SVO Recording", _recStatus.is_paused ? "PAUSED" : "ACTIVE");
       stat.addf(
         "SVO compression time", "%g msec",
         _recStatus.average_compression_time);
@@ -2405,7 +2497,7 @@ bool ZedCameraOne::performCameraGrab()
 
 void ZedCameraOne::updateFrameTimestamp()
 {
-  _sdkGrabTS = _zed->getTimestamp(sl::TIME_REFERENCE::IMAGE);
+  _sdkGrabTS = getFrameSdkTimestamp();
 
   if (_svoMode) {
     if (_useSvoTimestamp) {
@@ -2429,6 +2521,28 @@ void ZedCameraOne::publishSvoClock()
     }
     // <---- Publish Clock if required
   }
+}
+
+sl::Timestamp ZedCameraOne::getFrameSdkTimestamp()
+{
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  if (_tsReference == sl::TIME_REFERENCE::IMAGE_CENTER_OF_EXPOSURE) {
+    sl::Timestamp ts =
+      _zed->getTimestamp(sl::TIME_REFERENCE::IMAGE_CENTER_OF_EXPOSURE);
+    if (ts.data_ns != 0) {
+      return ts;
+    }
+    // The input carries no per-frame exposure (USB and HDR camera models): the SDK
+    // returns 0. Fall back for the rest of the session instead of publishing
+    // zeroed timestamps.
+    _tsReference = sl::TIME_REFERENCE::IMAGE;
+    RCLCPP_WARN(
+      get_logger(),
+      "'general.timestamp_reference' is set to 'IMAGE_CENTER_OF_EXPOSURE', but this "
+      "input does not provide a per-frame exposure. Falling back to 'IMAGE'.");
+  }
+#endif
+  return _zed->getTimestamp(sl::TIME_REFERENCE::IMAGE);
 }
 
 void ZedCameraOne::publishClock(const sl::Timestamp & ts)
@@ -2801,6 +2915,36 @@ void ZedCameraOne::callback_stopSvoRec(
   res->success = true;
 }
 
+void ZedCameraOne::callback_pauseSvoRec(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+  std::shared_ptr<std_srvs::srv::SetBool_Response> res)
+{
+  (void)request_header;
+
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    "** " << (req->data ? "Pause" : "Resume") <<
+      " SVO Recording service called **");
+
+  std::lock_guard<std::mutex> lock(_recMutex);
+
+  if (!_recording) {
+    RCLCPP_WARN(get_logger(), "SVO Recording is NOT enabled");
+    res->message = "SVO Recording is NOT enabled";
+    res->success = false;
+    return;
+  }
+
+  // The frames grabbed while paused are simply not written: the recording stays
+  // open and resumes into the same file.
+  _zed->pauseRecording(req->data);
+
+  res->message = req->data ? "SVO Recording paused" : "SVO Recording resumed";
+  res->success = true;
+  RCLCPP_INFO_STREAM(get_logger(), res->message);
+}
+
 void ZedCameraOne::callback_pauseSvoInput(
   const std::shared_ptr<rmw_request_id_t> request_header,
   const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
@@ -2909,6 +3053,9 @@ bool ZedCameraOne::startSvoRecording(std::string & errMsg)
   params.video_filename = _svoRecFilename.c_str();
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   params.encoding_preset = _svoRecEncodingPreset;
+  // AES-256-CTR encryption of the SVO file. The same value must be given as
+  // 'svo.decryption_key' to play the recording back. Needs OpenSSL at runtime.
+  params.encryption_key = _svoRecEncryptionKey.c_str();
 #endif
 
   sl::ERROR_CODE err = _zed->enableRecording(params);

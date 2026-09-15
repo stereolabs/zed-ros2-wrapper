@@ -471,6 +471,15 @@ void ZedCamera::initServices()
       << mStopSvoRecSrv->get_service_name()
       << "'");
 
+  // Pause/resume SVO Recording
+  srv_name = srv_prefix + mSrvPauseSvoRecName;
+  mPauseSvoRecSrv = create_service<std_srvs::srv::SetBool>(
+    srv_name, std::bind(&ZedCamera::callback_pauseSvoRec, this, _1, _2, _3));
+  RCLCPP_INFO_STREAM(
+    get_logger(), " * Advertised on service: '"
+      << mPauseSvoRecSrv->get_service_name()
+      << "'");
+
   // Pause SVO (only if the realtime playing mode is disabled)
   if (mSvoMode) {
 #ifndef USE_SVO_REALTIME_PAUSE
@@ -1380,10 +1389,64 @@ void ZedCamera::getGeneralParams()
     static_cast<double>(mCamGrabFrameRate));
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
+  sl_tools::getEnumParam(
+    shared_from_this(), "general.sdk_timestamp_clock", "SYSTEM_CLOCK",
+    sl::TIMESTAMP_CLOCK::SYSTEM_CLOCK, sl::TIMESTAMP_CLOCK::LAST,
+    mSdkTimestampClock, " * SDK timestamp clock: ");
+
+  // 'general.sdk_use_monotonic_clock' is the boolean this parameter replaces: it
+  // could only select MONOTONIC_CLOCK. Still honored so that existing
+  // configuration files keep working.
+  bool legacy_monotonic = false;
   sl_tools::getParam(
     shared_from_this(), "general.sdk_use_monotonic_clock",
-    mUseSdkMonotonicClock, mUseSdkMonotonicClock,
-    " * SDK Monotonic Clock: ");
+    legacy_monotonic, legacy_monotonic);
+  if (legacy_monotonic) {
+    if (mSdkTimestampClock == sl::TIMESTAMP_CLOCK::SYSTEM_CLOCK) {
+      mSdkTimestampClock = sl::TIMESTAMP_CLOCK::MONOTONIC_CLOCK;
+      RCLCPP_WARN(
+        get_logger(),
+        "'general.sdk_use_monotonic_clock' is deprecated. Use "
+        "'general.sdk_timestamp_clock: MONOTONIC_CLOCK' instead, or "
+        "'MONOTONIC_RAW_CLOCK' to also be immune to NTP/PTP frequency slewing.");
+    } else {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "'general.sdk_use_monotonic_clock' is deprecated and ignored: "
+        "'general.sdk_timestamp_clock' is set to "
+          << sl::toString(mSdkTimestampClock).c_str() << ".");
+    }
+  }
+
+  mUseSdkMonotonicClock = (mSdkTimestampClock != sl::TIMESTAMP_CLOCK::SYSTEM_CLOCK);
+
+  sl_tools::getParam(
+    shared_from_this(), "general.max_system_clock_step_ms",
+    mMaxSysClockStepMs, mMaxSysClockStepMs,
+    " * Max system clock step [ms]: ", false, -1.0, 1000.0);
+#endif
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  // Only 'IMAGE' and 'IMAGE_CENTER_OF_EXPOSURE' are valid here: 'CURRENT' is not a
+  // frame reference, so `sl_tools::getEnumParam` cannot be used on the full enum.
+  std::string ts_ref_str = "IMAGE";
+  sl_tools::getParam(
+    shared_from_this(), "general.timestamp_reference", ts_ref_str, ts_ref_str);
+  if (sl_tools::toUpper(ts_ref_str) == "IMAGE_CENTER_OF_EXPOSURE") {
+    mTsReference = sl::TIME_REFERENCE::IMAGE_CENTER_OF_EXPOSURE;
+  } else {
+    if (sl_tools::toUpper(ts_ref_str) != "IMAGE") {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "The value of the parameter 'general.timestamp_reference' is not valid: '"
+          << ts_ref_str << "'. Valid values are 'IMAGE' and 'IMAGE_CENTER_OF_EXPOSURE'. "
+          "Using the default value.");
+    }
+    mTsReference = sl::TIME_REFERENCE::IMAGE;
+  }
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * Timestamp reference: " << sl::toString(mTsReference).c_str());
 #endif
 }
 
@@ -1416,6 +1479,15 @@ void ZedCamera::getSvoParams()
     }
     mSvoRecEncodingPreset = sl::SVO_ENCODING_PRESET::DEFAULT;
   }
+
+  // Read without logging: the value is a secret. Only its presence is reported.
+  sl_tools::getParam(
+    shared_from_this(), "svo.encryption_key", std::string(),
+    mSvoRecEncryptionKey);
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    " * SVO Recording encryption: " <<
+      (mSvoRecEncryptionKey.empty() ? "DISABLED" : "ENABLED"));
 #endif
 
   RCLCPP_INFO(get_logger(), "=== SVO INPUT parameters ===");
@@ -1719,6 +1791,24 @@ void ZedCamera::getPosTrackingParams()
     RCLCPP_INFO_STREAM(
       get_logger(), " * Positional tracking mode" << (auto_pt ? " [AUTO]: " : ": ") << sl::toString(
         mPosTrkMode).c_str());
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+    sl_tools::getEnumParam(
+      shared_from_this(), "pos_tracking.compute_preference", "AUTO",
+      sl::COMPUTE_PREFERENCE::AUTO,
+      sl::COMPUTE_PREFERENCE::LAST, mPosTrkComputePref,
+      " * Positional tracking compute preference: ");
+    if (mPosTrkComputePref != sl::COMPUTE_PREFERENCE::AUTO &&
+      mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_1)
+    {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "'pos_tracking.compute_preference' is set to '"
+          << sl::toString(mPosTrkComputePref).c_str()
+          << "', but 'GEN_1' computes depth and so uses the GPU whatever the setting. "
+          "Use 'GEN_3' for the preference to have an effect.");
+    }
+#endif
 
     sl_tools::getParam(
       shared_from_this(), "pos_tracking.publish_tf", mPublishTF,
@@ -2855,6 +2945,10 @@ bool ZedCamera::startCamera()
   mInitParams.coordinate_system = ROS_COORDINATE_SYSTEM;
   mInitParams.coordinate_units = ROS_MEAS_UNITS;
   mInitParams.depth_mode = mDepthMode;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  mInitParams.depth_precision = mDepthPrecision;
+  mInitParams.allow_depth_cuda_graph = mAllowDepthCudaGraph;
+#endif
 
   // Set env var for custom depth model override if specified
   if (!mDepthModelOverride.empty()) {
@@ -2927,18 +3021,32 @@ bool ZedCamera::startCamera()
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   if (mUseSdkMonotonicClock) {
-    sl::Camera::setTimestampClock(sl::TIMESTAMP_CLOCK::MONOTONIC_CLOCK);
-    if (sl::Camera::getTimestampClock() != sl::TIMESTAMP_CLOCK::MONOTONIC_CLOCK) {
-      RCLCPP_WARN(
+    sl::Camera::setTimestampClock(mSdkTimestampClock);
+    if (sl::Camera::getTimestampClock() != mSdkTimestampClock) {
+      RCLCPP_WARN_STREAM(
         get_logger(),
-        "Another node in this process already set the SDK timestamp clock; "
-        "this node's 'general.sdk_use_monotonic_clock' request was ignored.");
+        "Another node in this process already set the SDK timestamp clock to "
+          << sl::toString(sl::Camera::getTimestampClock()).c_str()
+          << "; this node's 'general.sdk_timestamp_clock' request was ignored.");
       mUseSdkMonotonicClock = false;
     } else {
-      RCLCPP_INFO(
+      RCLCPP_INFO_STREAM(
         get_logger(),
-        "SDK timestamp clock set to MONOTONIC_CLOCK (process-wide).");
+        "SDK timestamp clock set to " << sl::toString(mSdkTimestampClock).c_str()
+                                      << " (process-wide).");
     }
+  } else {
+    // The step clamp only exists to keep SYSTEM_CLOCK timestamps coherent across a
+    // backward host-clock adjustment: monotonic clocks never step. Applying it
+    // there would be a no-op, and would warn for nothing when the
+    // 'ZED_SDK_MAX_SYSTEM_CLOCK_STEP_MS' environment variable is in use.
+    sl::setMaxSystemClockStepMs(static_cast<float>(mMaxSysClockStepMs));
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "SDK max system clock step set to " << mMaxSysClockStepMs << " ms (process-wide)"
+                                          << (mMaxSysClockStepMs <
+      0.0 ? ": clamping disabled, steps land instantly." :
+      (mMaxSysClockStepMs == 0.0 ? ": the offset captured on first use is frozen." : ".")));
   }
 #endif
 
@@ -3752,7 +3860,7 @@ bool ZedCamera::startCamera()
   // ----> Timestamp
   if (mSvoMode) {
     if (mUseSvoTimestamp) {
-      mFrameTimestamp = sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+      mFrameTimestamp = sl_tools::slTime2Ros(getFrameSdkTimestamp());
 
       DEBUG_COMM("=========================================================*");
       DEBUG_STREAM_COMM("SVO Timestamp\t\t" << mFrameTimestamp.nanoseconds() << " nsec");
@@ -3774,8 +3882,7 @@ bool ZedCamera::startCamera()
         sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
     }
   } else {
-    mFrameTimestamp = sl_tools::slTime2Ros(
-      mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+    mFrameTimestamp = sl_tools::slTime2Ros(getFrameSdkTimestamp());
   }
   // <---- Timestamp
 
@@ -4134,6 +4241,9 @@ bool ZedCamera::startPosTrackingLocked()
   ptParams.set_as_static = mSetAsStatic;
   ptParams.set_gravity_as_origin = mSetGravityAsOrigin;
   ptParams.mode = mPosTrkMode;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  ptParams.compute_preference = mPosTrkComputePref;
+#endif
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
   if (mPosTrkMode == sl::POSITIONAL_TRACKING_MODE::GEN_3) {
@@ -4427,6 +4537,9 @@ bool ZedCamera::startSvoRecording(std::string & errMsg)
   params.video_filename = mSvoRecFilename.c_str();
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   params.encoding_preset = mSvoRecEncodingPreset;
+  // AES-256-CTR encryption of the SVO file. The same value must be given as
+  // 'svo.decryption_key' to play the recording back. Needs OpenSSL at runtime.
+  params.encryption_key = mSvoRecEncryptionKey.c_str();
 #endif
 
   sl::ERROR_CODE err = mZed->enableRecording(params);
@@ -5303,7 +5416,7 @@ void ZedCamera::threadFunc_zedGrab()
       // ----> Timestamp
       if (mSvoMode) {
         if (mUseSvoTimestamp) {
-          mFrameTimestamp = sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+          mFrameTimestamp = sl_tools::slTime2Ros(getFrameSdkTimestamp());
         } else {
           mFrameTimestamp =
             sl_tools::slTime2Ros(mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT));
@@ -5316,8 +5429,7 @@ void ZedCamera::threadFunc_zedGrab()
             mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
         }
       } else {
-        mFrameTimestamp = sl_tools::slTime2Ros(
-          mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE));
+        mFrameTimestamp = sl_tools::slTime2Ros(getFrameSdkTimestamp());
       }
       //DEBUG_STREAM_COMM("Grab timestamp: " << mFrameTimestamp.nanoseconds() << " nsec");
       // <---- Timestamp
@@ -5363,6 +5475,9 @@ void ZedCamera::threadFunc_zedGrab()
       DEBUG_STREAM_GRAB("Grab thread: reading scene illuminance");
       readSceneIlluminance();
 #endif
+
+      DEBUG_STREAM_GRAB("Grab thread: reading health status");
+      readHealthStatus();
 
       DEBUG_STREAM_GRAB("Grab thread: publishing health status");
       publishHealthStatus();
@@ -6828,6 +6943,12 @@ void ZedCamera::processPose()
   // Update last pose
   mLastZedPose = pose;
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 54
+  // Confidence of the pose estimation [0,100]: 0 means the tracking is lost, 100
+  // that it can be fully trusted. Only 'POSITIONAL_TRACKING_MODE::GEN_3' fills it.
+  mPoseConfidence.store(mLastZedPose.pose_confidence);
+#endif
+
   publishPoseStatus();
   publishGnssPoseStatus();
 
@@ -6957,6 +7078,11 @@ void ZedCamera::publishPoseStatus()
     auto msg = std::make_unique<zed_msgs::msg::PosTrackStatus>();
     msg->odometry_status = static_cast<uint8_t>(mPosTrackingStatus.odometry_status);
     msg->spatial_memory_status = static_cast<uint8_t>(mPosTrackingStatus.spatial_memory_status);
+#if defined(ZED_MSGS_POSE_CONFIDENCE_AVAIL) && \
+    (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 54
+    // Cached by processPose(); -1 until the first pose is retrieved.
+    msg->pose_confidence = mPoseConfidence.load();
+#endif
 
     try {
       if (mPubPoseStatus) {mPubPoseStatus->publish(std::move(msg));}
@@ -8713,6 +8839,37 @@ void ZedCamera::callback_stopSvoRec(
 }
 
 
+void ZedCamera::callback_pauseSvoRec(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+  std::shared_ptr<std_srvs::srv::SetBool_Response> res)
+{
+  (void)request_header;
+
+  RCLCPP_INFO_STREAM(
+    get_logger(),
+    "** " << (req->data ? "Pause" : "Resume") <<
+      " SVO Recording service called **");
+
+  std::lock_guard<std::mutex> lock(mRecMutex);
+
+  if (!mRecording) {
+    RCLCPP_WARN(get_logger(), "SVO Recording is NOT enabled");
+    res->message = "SVO Recording is NOT enabled";
+    res->success = false;
+    return;
+  }
+
+  // The frames grabbed while paused are simply not written: the recording stays
+  // open and resumes into the same file.
+  mZed->pauseRecording(req->data);
+
+  res->message = req->data ? "SVO Recording paused" : "SVO Recording resumed";
+  res->success = true;
+  RCLCPP_INFO_STREAM(get_logger(), res->message);
+}
+
+
 void ZedCamera::callback_pauseSvoInput(
   const std::shared_ptr<rmw_request_id_t> request_header,
   const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
@@ -8954,6 +9111,51 @@ void ZedCamera::callback_updateDiagnostic(
       stat.add("Input mode", "Live Camera");
     }
 
+    // ----> Camera health status
+    if (mImageValidityCheck <= 0) {
+      stat.add(
+        "Camera Health", "DISABLED - enable 'general.enable_image_validity_check'");
+    } else {
+      // Values cached by readHealthStatus() in the grab thread.
+      const bool low_img_qual = mHealthLowImageQuality.load();
+      const bool low_light = mHealthLowLighting.load();
+      const bool low_depth_rel = mHealthLowDepthReliability.load();
+      const bool low_motion_rel = mHealthLowMotionSensReliability.load();
+
+      stat.add("Health: Image quality", low_img_qual ? "LOW" : "OK");
+      stat.add("Health: Lighting", low_light ? "LOW" : "OK");
+      stat.add("Health: Depth reliability", low_depth_rel ? "LOW" : "OK");
+      stat.add(
+        "Health: Motion sensors reliability", low_motion_rel ? "LOW" : "OK");
+
+      std::string health_issues;
+      auto add_issue = [&health_issues](bool raised, const char * label) {
+          if (!raised) {
+            return;
+          }
+          if (!health_issues.empty()) {
+            health_issues += ", ";
+          }
+          health_issues += label;
+        };
+      add_issue(low_img_qual, "low image quality");
+      add_issue(low_light, "low lighting");
+      add_issue(low_depth_rel, "low depth reliability");
+      add_issue(low_motion_rel, "low motion sensors reliability");
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+      const bool dup_image = mHealthDuplicatedImage.load();
+      stat.add("Health: Duplicated image", dup_image ? "YES" : "NO");
+      add_issue(dup_image, "duplicated image");
+#endif
+
+      if (!health_issues.empty()) {
+        stat.summary(
+          diagnostic_msgs::msg::DiagnosticStatus::WARN,
+          "Camera health issue: " + health_issues);
+      }
+    }
+    // <---- Camera health status
+
     if (mVdPublishing) {
       if (mSvoMode && !mSvoRealtime) {
         freq = 1. / mGrabPeriodMean_sec->getAvg();
@@ -8995,6 +9197,11 @@ void ZedCamera::callback_updateDiagnostic(
     if (!mDepthDisabled) {
       stat.add("Depth status", "ACTIVE");
       stat.add("Depth mode", sl::toString(mDepthMode).c_str());
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+      // Requested precision. The ZED SDK falls back to FP16, and logs it, when
+      // the depth mode or the GPU does not support INT8.
+      stat.add("Depth precision (requested)", sl::toString(mDepthPrecision).c_str());
+#endif
 
       if (mPcPublishing) {
         freq = 1. / mPcPeriodMean_sec->getAvg();
@@ -9083,6 +9290,17 @@ void ZedCamera::callback_updateDiagnostic(
         stat.addf(
           "Tracking Fusion status", "%s",
           sl::toString(mPosTrackingStatus.tracking_fusion_status).c_str());
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 54
+        // Only 'GEN_3' fills the pose confidence, and it stays at -1 until the
+        // first pose is retrieved.
+        int pose_conf = mPoseConfidence.load();
+        if (pose_conf >= 0) {
+          stat.addf("Pose confidence", "%d%%", pose_conf);
+        } else {
+          stat.add("Pose confidence", "N/A");
+        }
+#endif
 
         if (mPublishTF) {
           freq = 1. / mPubOdomTF_sec->getAvg();
@@ -9225,7 +9443,7 @@ void ZedCamera::callback_updateDiagnostic(
           "free disk space");
       }
     } else {
-      stat.add("SVO Recording", "ACTIVE");
+      stat.add("SVO Recording", mRecStatus.is_paused ? "PAUSED" : "ACTIVE");
       stat.addf(
         "SVO compression time", "%g msec",
         mRecStatus.average_compression_time);
@@ -10243,6 +10461,25 @@ void ZedCamera::stopStreamingServer()
   mStreamingServerRequired = false;
 }
 
+void ZedCamera::readHealthStatus()
+{
+  // The health checks are only computed by the ZED SDK when
+  // 'general.enable_image_validity_check' is enabled: leave the flags cleared
+  // otherwise, so nothing is reported as a camera issue.
+  if (mImageValidityCheck <= 0) {
+    return;
+  }
+
+  sl::HealthStatus status = mZed->getHealthStatus();
+  mHealthLowImageQuality.store(status.low_image_quality);
+  mHealthLowLighting.store(status.low_lighting);
+  mHealthLowDepthReliability.store(status.low_depth_reliability);
+  mHealthLowMotionSensReliability.store(status.low_motion_sensors_reliability);
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  mHealthDuplicatedImage.store(status.duplicated_image);
+#endif
+}
+
 void ZedCamera::publishHealthStatus()
 {
   if (!mPubHealthStatus) {
@@ -10266,7 +10503,8 @@ void ZedCamera::publishHealthStatus()
     return;
   }
 
-  sl::HealthStatus status = mZed->getHealthStatus();
+  // Values cached by readHealthStatus(), called by the grab thread just before
+  // this method.
   auto msg = std::make_unique<zed_msgs::msg::HealthStatusStamped>();
   msg->header.stamp = mUsePubTimestamps ?
     get_clock()->now() :
@@ -10274,15 +10512,21 @@ void ZedCamera::publishHealthStatus()
   msg->header.frame_id = mBaseFrameId;
   msg->serial_number = mCamSerialNumber;
   msg->camera_name = mCameraName;
-  msg->low_image_quality = status.low_image_quality;
-  msg->low_lighting = status.low_lighting;
-  msg->low_depth_reliability = status.low_depth_reliability;
+  msg->low_image_quality = mHealthLowImageQuality.load();
+  msg->low_lighting = mHealthLowLighting.load();
+  msg->low_depth_reliability = mHealthLowDepthReliability.load();
   msg->low_motion_sensors_reliability =
-    status.low_motion_sensors_reliability;
+    mHealthLowMotionSensReliability.load();
 #if defined(ZED_MSGS_ILLUMINANCE_AVAIL) && \
   (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   // Refreshed just above; -1 means unread or unsupported by this camera model.
   msg->scene_illuminance = mSceneIlluminance.load();
+#endif
+#if defined(ZED_MSGS_DUPLICATED_IMAGE_AVAIL) && \
+  (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  // Raised when the content of a frame is identical to one already received even
+  // though its timestamp is new: a repeating or stalled stream.
+  msg->duplicated_image = mHealthDuplicatedImage.load();
 #endif
 
   mPubHealthStatus->publish(std::move(msg));
@@ -10379,6 +10623,28 @@ void ZedCamera::callback_pubHeartbeat()
 
   // Publish the heartbeat
   if (mPubHeartbeatStatus) {mPubHeartbeatStatus->publish(std::move(msg));}
+}
+
+sl::Timestamp ZedCamera::getFrameSdkTimestamp()
+{
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  if (mTsReference == sl::TIME_REFERENCE::IMAGE_CENTER_OF_EXPOSURE) {
+    sl::Timestamp ts =
+      mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE_CENTER_OF_EXPOSURE);
+    if (ts.data_ns != 0) {
+      return ts;
+    }
+    // The input carries no per-frame exposure (USB and HDR camera models): the SDK
+    // returns 0. Fall back for the rest of the session instead of publishing
+    // zeroed timestamps.
+    mTsReference = sl::TIME_REFERENCE::IMAGE;
+    RCLCPP_WARN(
+      get_logger(),
+      "'general.timestamp_reference' is set to 'IMAGE_CENTER_OF_EXPOSURE', but this "
+      "input does not provide a per-frame exposure. Falling back to 'IMAGE'.");
+  }
+#endif
+  return mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE);
 }
 
 void ZedCamera::publishClock(const sl::Timestamp & ts)

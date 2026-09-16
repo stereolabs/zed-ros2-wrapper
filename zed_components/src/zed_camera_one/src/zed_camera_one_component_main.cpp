@@ -37,6 +37,7 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
   _imgPubFreqTimer(get_clock()),
   _frameTimestamp(TIMEZERO_ROS),
   _lastTs_imu(TIMEZERO_ROS),
+  _lastSeenTs_imu(TIMEZERO_ROS),
   _lastClock(TIMEZERO_ROS),
   _clockAvailable(false),
   _colorSubCount(0),

@@ -729,7 +729,7 @@ void ZedCameraOne::publishCameraInfo(
   camInfoMsg->header.stamp = ts;
 
   if (infoPub) {
-    if (count_subscribers(infoPub->get_topic_name()) > 0) {
+    if (infoPub->get_subscription_count() > 0) {
       infoPub->publish(*camInfoMsg);
       DEBUG_STREAM_VD(
         " * Camera Info message published: " << infoPub->get_topic_name());

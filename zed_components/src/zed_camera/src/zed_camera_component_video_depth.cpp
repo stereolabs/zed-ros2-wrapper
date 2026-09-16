@@ -1016,20 +1016,20 @@ bool ZedCamera::updateVideoDepthSubscribers(bool force)
 #endif
       }
       if (mPubDepthInfo) {
-        mDepthInfoSubCount = count_subscribers(mPubDepthInfo->get_topic_name());
+        mDepthInfoSubCount = mPubDepthInfo->get_subscription_count();
       }
       if (mPubDisparity) {
-        mDisparitySubCount = count_subscribers(mPubDisparity->get_topic_name());
+        mDisparitySubCount = mPubDisparity->get_subscription_count();
       }
       if (mPubDispMap) {
-        mDispMapSubCount = count_subscribers(mPubDispMap->get_topic_name());
+        mDispMapSubCount = mPubDispMap->get_subscription_count();
       }
 
 #ifdef FOUND_POINT_CLOUD_TRANSPORT
       mPcSubCount = mPubCloud.getNumSubscribers();
 #else
       if (mPubCloud) {
-        mPcSubCount = count_subscribers(mPubCloud->get_topic_name());
+        mPcSubCount = mPubCloud->get_subscription_count();
       }
 #endif
     }
@@ -2227,7 +2227,7 @@ void ZedCamera::publishCameraInfo(
   camInfoMsg->header.stamp = ts;
 
   if (infoPub) {
-    if (count_subscribers(infoPub->get_topic_name()) > 0) {
+    if (infoPub->get_subscription_count() > 0) {
       infoPub->publish(*camInfoMsg);
       DEBUG_STREAM_VD(" * Camera Info message published: " << infoPub->get_topic_name());
       DEBUG_STREAM_VD("   * Timestamp: " << ts.nanoseconds() << " nsec");
@@ -2714,7 +2714,7 @@ bool ZedCamera::isPointCloudSubscribed()
     cloudSubCount = mPubCloud.getNumSubscribers();
 #else
     if (mPubCloud) {
-      cloudSubCount = count_subscribers(mPubCloud->get_topic_name());
+      cloudSubCount = mPubCloud->get_subscription_count();
     }
 #endif
   } catch (...) {

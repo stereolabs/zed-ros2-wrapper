@@ -517,7 +517,9 @@ private:
 
   // ----> Timestamps
   rclcpp::Time _frameTimestamp;
-  rclcpp::Time _lastTs_imu;
+  rclcpp::Time _lastTs_imu;      // Timestamp of the last PUBLISHED IMU sample
+  rclcpp::Time _lastSeenTs_imu;  // Timestamp of the last IMU sample READ from the SDK
+  double _imuSamplePeriod = 0.0;  // Measured interval between IMU samples [sec] (0 = not yet known)
   rclcpp::Time _lastClock;  // Last received simulation clock value
   // Indicates if the "/clock" topic is publishing a valid simulation time
   std::atomic<bool> _clockAvailable;
@@ -578,6 +580,10 @@ private:
   std::unique_ptr<sl_tools::WinAvg> _pubImuTF_sec;
   std::unique_ptr<sl_tools::WinAvg> _pubImu_sec;
   bool _imuPublishing = false;
+  // Refreshed every SENS_SUB_COUNT_REFRESH_SEC instead of on every poll of the
+  // (multi-kHz) sensors thread
+  std::chrono::steady_clock::time_point _sensSubCountLastCheck;
+  bool _sensSubCountInit = false;
   bool _videoPublishing = false;
   bool _imageSubscribed = false;
 

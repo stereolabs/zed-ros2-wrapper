@@ -92,6 +92,7 @@ ZedCamera::ZedCamera(const rclcpp::NodeOptions & options)
   mFrameTimestamp(TIMEZERO_ROS),           // 1097
   mGnssTimestamp(TIMEZERO_ROS),            // 1098
   mLastTs_imu(TIMEZERO_ROS),               // 1099
+  mLastSeenTs_imu(TIMEZERO_ROS),           // 1099
   mLastTs_baro(TIMEZERO_ROS),              // 1100
   mLastTs_mag(TIMEZERO_ROS),               // 1101
   mLastTs_odom(TIMEZERO_ROS),              // 1102
@@ -5636,44 +5637,169 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
   // ----> Subscribers count
   DEBUG_STREAM_SENS("Sensors callback: counting subscribers");
 
-  size_t imu_SubCount = 0;
-  size_t imu_RawSubCount = 0;
   size_t imu_TempSubCount = 0;
-  size_t imu_MagSubCount = 0;
-  size_t pressSubCount = 0;
 
-  try {
-    if (mPubImu) {imu_SubCount = count_subscribers(mPubImu->get_topic_name());}
-    if (mPubImuRaw) {imu_RawSubCount = count_subscribers(mPubImuRaw->get_topic_name());}
-    imu_MagSubCount = 0;
-    pressSubCount = 0;
+  // The sensors thread polls at several kHz, so the subscriber counts are
+  // refreshed on a timer rather than on every iteration: each count is a graph
+  // query, and querying them in the hot loop cost ~5% of a CPU core even when
+  // nothing was subscribed to the sensors topics.
+  auto sub_count_now = std::chrono::steady_clock::now();
+  if (!mSensSubCountInit ||
+    std::chrono::duration<double>(sub_count_now - mSensSubCountLastCheck).count() >=
+    SENS_SUB_COUNT_REFRESH_SEC)
+  {
+    try {
+      mImuSubCountCache = mPubImu ? mPubImu->get_subscription_count() : 0;
+      mImuRawSubCountCache = mPubImuRaw ? mPubImuRaw->get_subscription_count() : 0;
+      mImuMagSubCountCache = 0;
+      mPressSubCountCache = 0;
 
-    if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-      if (mPubImuMag) {imu_MagSubCount = count_subscribers(mPubImuMag->get_topic_name());}
-      if (mPubPressure) {pressSubCount = count_subscribers(mPubPressure->get_topic_name());}
+      if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
+        if (mPubImuMag) {
+          mImuMagSubCountCache = mPubImuMag->get_subscription_count();
+        }
+        if (mPubPressure) {
+          mPressSubCountCache = mPubPressure->get_subscription_count();
+        }
+      }
+    } catch (...) {
+      rcutils_reset_error();
+      DEBUG_STREAM_SENS("pubSensorsData: Exception while counting subscribers");
+      return false;
     }
-  } catch (...) {
-    rcutils_reset_error();
-    DEBUG_STREAM_SENS("pubSensorsData: Exception while counting subscribers");
-    return false;
+    mSensSubCountLastCheck = sub_count_now;
+    mSensSubCountInit = true;
   }
+
+  size_t imu_SubCount = mImuSubCountCache;
+  size_t imu_RawSubCount = mImuRawSubCountCache;
+  size_t imu_MagSubCount = mImuMagSubCountCache;
+  size_t pressSubCount = mPressSubCountCache;
   // <---- Subscribers count
 
-  // ----> Live and simulation modes: drain the whole IMU FIFO
-  // The ZED SDK buffers every IMU sample. getSensorsDataBatch() returns all the
-  // samples received since the previous call, ordered by timestamp. Draining
-  // the FIFO here (instead of reading only the most recent sample with
-  // TIME_REFERENCE::CURRENT) guarantees that no sample is dropped and that the
-  // published hardware timestamps keep a constant rate, fixing the unstable IMU
-  // rate reported in issues #249 and #445. The simulator streams the IMU faster
-  // than the image rate, so the same reasoning applies to simulation mode.
+  // ----> Live mode: read the IMU decoupled from grab()
+  // getSensorsDataBatch() only returns the samples attached to the most recent
+  // grabbed frame, so its latency is tied to the grab/compute cadence: with
+  // `general.grab_compute_capping_fps` set to 5 Hz the samples reach this thread
+  // in 5 Hz bursts, hundreds of milliseconds late, even though the IMU keeps
+  // running at its own ODR. getSensorsData(TIME_REFERENCE::CURRENT) reads the
+  // newest sample straight from the sensors stream instead, so the publish delay
+  // stays around one millisecond whatever the grab rate is.
+  // Every sample is still captured: the sensors thread polls faster than the
+  // hardware ODR (see IMU_POLL_OVERSAMPLING), because polling exactly at the ODR
+  // aliases and silently drops ~10% of the samples - which is what made the
+  // published rate unstable in issues #249 and #445.
+  if (!mSensCameraSync && !mSvoMode && !mSimMode) {
+    sl::SensorsData sens_data;
+    sl::ERROR_CODE err =
+      mZed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "[publishSensorsData] sl::getSensorsData error: "
+          << sl::toString(err).c_str());
+      return false;
+    }
+
+    bool published = false;
+    rclcpp::Time s_ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
+
+    // ----> IMU (decimated to the requested rate)
+    // The poll runs faster than the IMU ODR, so the same sample is read back
+    // several times in a row: only a brand new hardware timestamp feeds the
+    // decimator, otherwise the accumulator would count one sample many times.
+    if (mLastSeenTs_imu == TIMEZERO_ROS || s_ts_imu > mLastSeenTs_imu) {
+      // Track the real interval between samples. The ODR advertised by the SDK is
+      // not always the rate the IMU actually delivers (a ZED X One GS reports
+      // 400 Hz and delivers 200 Hz), and decimating against the advertised value
+      // then halves the output rate, so `sensors.sensors_pub_rate` is not honored.
+      if (mLastSeenTs_imu != TIMEZERO_ROS) {
+        double dt = s_ts_imu.seconds() - mLastSeenTs_imu.seconds();
+        if (dt > 0.0 && dt < 1.0) {
+          mImuSamplePeriod =
+            (mImuSamplePeriod > 0.0) ? (0.99 * mImuSamplePeriod + 0.01 * dt) : dt;
+        }
+      }
+      mLastSeenTs_imu = s_ts_imu;
+
+      // Decimate the IMU stream down to the requested `sensors.sensors_pub_rate`.
+      // A fractional accumulator selects samples as uniformly as possible so the
+      // average output rate matches mSensPubRate (capped at the real sample rate),
+      // while every published sample keeps its real hardware timestamp. The
+      // measured rate is used, falling back to the advertised ODR until enough
+      // samples have been seen to measure it.
+      double sample_rate =
+        (mImuSamplePeriod > 0.0) ? (1.0 / mImuSamplePeriod) : mImuOdr;
+      double decim_ratio = 1.0;
+      if (sample_rate > 0.0 && mSensPubRate > 0.0 && mSensPubRate < sample_rate) {
+        decim_ratio = mSensPubRate / sample_rate;
+      }
+
+      mImuDecimAccum += decim_ratio;
+      if (mImuDecimAccum >= 1.0) {
+        mImuDecimAccum -= 1.0;
+
+        // Defensive: never publish a non-increasing stamp.
+        if (mLastTs_imu == TIMEZERO_ROS || s_ts_imu > mLastTs_imu) {
+          double s_dT = s_ts_imu.seconds() - mLastTs_imu.seconds();
+          mLastTs_imu = s_ts_imu;
+
+          // IMU frequency diagnostic (measured on the real published cadence)
+          double imu_mean = mImuPeriodMean_sec->addValue(mImuFreqTimer.toc());
+          mImuFreqTimer.tic();
+          DEBUG_STREAM_SENS(
+            "SENSOR LAST PERIOD: " << s_dT << " sec @" << 1. / s_dT
+                                   << " Hz - MEAN freq: " << 1. / imu_mean);
+
+          publishImuFrameAndTopic();
+          publishImuMessages(sens_data, s_ts_imu, imu_SubCount, imu_RawSubCount);
+          published = true;
+        }
+      }
+    }
+    // <---- IMU
+
+    // ----> Barometer (lower rate, de-duplicated by its own hardware ts)
+    if (sens_data.barometer.is_available) {
+      rclcpp::Time s_ts_baro = sl_tools::slTime2Ros(sens_data.barometer.timestamp);
+      if (s_ts_baro != mLastTs_baro) {
+        mLastTs_baro = s_ts_baro;
+        double baro_mean = mBaroPeriodMean_sec->addValue(mBaroFreqTimer.toc());
+        mBaroFreqTimer.tic();
+        DEBUG_STREAM_SENS("Barometer freq: " << 1. / baro_mean);
+        publishBaroMessage(sens_data, s_ts_baro, pressSubCount);
+      }
+    }
+    // <---- Barometer
+
+    // ----> Magnetometer (lower rate, de-duplicated by its own hardware ts)
+    if (sens_data.magnetometer.is_available) {
+      rclcpp::Time s_ts_mag = sl_tools::slTime2Ros(sens_data.magnetometer.timestamp);
+      if (s_ts_mag != mLastTs_mag) {
+        mLastTs_mag = s_ts_mag;
+        double mag_mean = mMagPeriodMean_sec->addValue(mMagFreqTimer.toc());
+        mMagFreqTimer.tic();
+        DEBUG_STREAM_SENS("Magnetometer freq: " << 1. / mag_mean);
+        publishMagMessage(sens_data, s_ts_mag, imu_MagSubCount);
+      }
+    }
+    // <---- Magnetometer
+
+    return published;
+  }
+  // <---- Live mode: read the IMU decoupled from grab()
+
+  // ----> Simulation mode: drain the whole IMU FIFO
+  // The simulator streams the IMU faster than the image rate and is not subject
+  // to the grab-compute capping, so draining the batch is both correct and cheap
+  // here. Only the IMU is simulated: barometer and magnetometer are not.
   if (!mSensCameraSync && !mSvoMode) {
     std::vector<sl::SensorsData> sens_data_batch;
     sl::ERROR_CODE batch_err = mZed->getSensorsDataBatch(sens_data_batch);
     if (batch_err != sl::ERROR_CODE::SUCCESS) {
       // A simulated camera without an IMU reports SENSORS_NOT_AVAILABLE at
       // every call: that is expected, not an error worth warning about.
-      if (!mSimMode || batch_err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+      if (batch_err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
         RCLCPP_WARN_STREAM(
           get_logger(),
           "[publishSensorsData] sl::getSensorsDataBatch error: "
@@ -5692,16 +5818,10 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
     // call would then share the same stamp, and the duplicate/decimation gates
     // below cannot tell apart samples with identical timestamps: keep only the
     // most recent one.
-    if (mSimMode && mUseSimTime && sens_data_batch.size() > 1) {
+    if (mUseSimTime && sens_data_batch.size() > 1) {
       sens_data_batch.erase(sens_data_batch.begin(), sens_data_batch.end() - 1);
     }
 
-    // Decimate the drained IMU stream down to the requested
-    // `sensors.sensors_pub_rate`. The FIFO is filled at the camera's hardware
-    // ODR; a fractional accumulator selects samples as uniformly as possible so
-    // the average output rate matches mSensPubRate (capped at the hardware ODR),
-    // while every published sample keeps its real hardware timestamp. If the ODR
-    // is unknown or the requested rate is >= ODR, every sample is published.
     double decim_ratio = 1.0;
     if (mImuOdr > 0.0 && mSensPubRate > 0.0 && mSensPubRate < mImuOdr) {
       decim_ratio = mSensPubRate / mImuOdr;
@@ -5709,11 +5829,10 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
 
     bool published = false;
     for (const auto & sample : sens_data_batch) {
-      rclcpp::Time s_ts_imu = (mSimMode && mUseSimTime) ?
+      rclcpp::Time s_ts_imu = mUseSimTime ?
         get_clock()->now() :
         sl_tools::slTime2Ros(sample.imu.timestamp);
 
-      // ----> IMU (decimated to the requested rate)
       // Skip duplicated / out-of-order samples (defensive: the FIFO is already
       // ordered and de-duplicated, but never publish a non-increasing stamp).
       if (mLastTs_imu == TIMEZERO_ROS || s_ts_imu > mLastTs_imu) {
@@ -5724,7 +5843,6 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
           double s_dT = s_ts_imu.seconds() - mLastTs_imu.seconds();
           mLastTs_imu = s_ts_imu;
 
-          // IMU frequency diagnostic (measured on the real published cadence)
           double imu_mean = mImuPeriodMean_sec->addValue(mImuFreqTimer.toc());
           mImuFreqTimer.tic();
           DEBUG_STREAM_SENS(
@@ -5736,39 +5854,10 @@ bool ZedCamera::publishSensorsData(rclcpp::Time force_ts)
           published = true;
         }
       }
-      // <---- IMU
-
-      // ----> Barometer (lower rate, de-duplicated by its own hardware ts)
-      // Not simulated: the simulator only streams images and the IMU.
-      if (!mSimMode && sample.barometer.is_available) {
-        rclcpp::Time s_ts_baro = sl_tools::slTime2Ros(sample.barometer.timestamp);
-        if (s_ts_baro != mLastTs_baro) {
-          mLastTs_baro = s_ts_baro;
-          double baro_mean = mBaroPeriodMean_sec->addValue(mBaroFreqTimer.toc());
-          mBaroFreqTimer.tic();
-          DEBUG_STREAM_SENS("Barometer freq: " << 1. / baro_mean);
-          publishBaroMessage(sample, s_ts_baro, pressSubCount);
-        }
-      }
-      // <---- Barometer
-
-      // ----> Magnetometer (lower rate, de-duplicated by its own hardware ts)
-      // Not simulated: the simulator only streams images and the IMU.
-      if (!mSimMode && sample.magnetometer.is_available) {
-        rclcpp::Time s_ts_mag = sl_tools::slTime2Ros(sample.magnetometer.timestamp);
-        if (s_ts_mag != mLastTs_mag) {
-          mLastTs_mag = s_ts_mag;
-          double mag_mean = mMagPeriodMean_sec->addValue(mMagFreqTimer.toc());
-          mMagFreqTimer.tic();
-          DEBUG_STREAM_SENS("Magnetometer freq: " << 1. / mag_mean);
-          publishMagMessage(sample, s_ts_mag, imu_MagSubCount);
-        }
-      }
-      // <---- Magnetometer
     }
     return published;
   }
-  // <---- Default live mode: drain the whole IMU FIFO
+  // <---- Simulation mode: drain the whole IMU FIFO
 
   // ----> Grab data and setup timestamps
   DEBUG_STREAM_ONCE_SENS("Sensors callback: Grab data and setup timestamps");
@@ -6598,13 +6687,22 @@ void ZedCamera::threadFunc_pubSensorsData()
       publishSensorsData();
 
       // ----> Poll cadence
-      // getSensorsDataBatch() drains the whole IMU FIFO on every call and the
-      // output rate is set by decimation (see publishSensorsData), so this
-      // period only needs to keep the FIFO drained and bound the latency. Poll
-      // at the hardware IMU rate when known (so a single sample is waiting on
-      // average); fall back to the requested rate otherwise. The old
-      // rate-compensation feedback loop (which caused sample aliasing) is gone.
-      double poll_rate = (mImuOdr > 0.0) ? mImuOdr : mSensPubRate;
+      // In live mode publishSensorsData() reads the newest sample with
+      // getSensorsData(TIME_REFERENCE::CURRENT), so the poll must run FASTER
+      // than the hardware ODR to catch every sample: polling exactly at the ODR
+      // aliases and loses ~10% of them (the cause of the unstable rate in issues
+      // #249 and #445). Oversampling by IMU_POLL_OVERSAMPLING captures the whole
+      // stream and keeps the publish delay around one millisecond, independently
+      // of `general.grab_compute_capping_fps`.
+      // SVO and simulation still drain the FIFO with getSensorsDataBatch(), for
+      // which one poll per sample period is enough.
+      // The output rate is set by decimation, not by this period.
+      double poll_rate;
+      if (!mSensCameraSync && !mSvoMode && !mSimMode && mImuOdr > 0.0) {
+        poll_rate = std::min(mImuOdr * IMU_POLL_OVERSAMPLING, IMU_POLL_MAX_HZ);
+      } else {
+        poll_rate = (mImuOdr > 0.0) ? mImuOdr : mSensPubRate;
+      }
       int poll_usec = static_cast<int>(1000000. / poll_rate);
       poll_usec = std::max(100, poll_usec);
       DEBUG_STREAM_SENS(
@@ -6806,7 +6904,7 @@ void ZedCamera::publishOdom(
   size_t odomSub = 0;
 
   try {
-    odomSub = count_subscribers(mOdomTopic);  // mPubOdom subscribers
+    odomSub = mPubOdom ? mPubOdom->get_subscription_count() : 0;
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
@@ -7066,8 +7164,7 @@ void ZedCamera::publishPoseStatus()
   size_t statusSub = 0;
 
   try {
-    statusSub =
-      count_subscribers(mPoseStatusTopic);    // mPubPoseStatus subscribers
+    statusSub = mPubPoseStatus ? mPubPoseStatus->get_subscription_count() : 0;
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
@@ -7099,8 +7196,7 @@ void ZedCamera::publishGnssPoseStatus()
   size_t statusSub = 0;
 
   try {
-    statusSub = count_subscribers(
-      mGnssPoseStatusTopic);    // mPubGnssPoseStatus subscribers
+    statusSub = mPubGnssPoseStatus ? mPubGnssPoseStatus->get_subscription_count() : 0;
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
@@ -7127,8 +7223,7 @@ void ZedCamera::publishGeoPoseStatus()
   size_t statusSub = 0;
 
   try {
-    statusSub = count_subscribers(
-      mGeoPoseStatusTopic);    // mPubGnssPoseStatus subscribers
+    statusSub = mPubGeoPoseStatus ? mPubGeoPoseStatus->get_subscription_count() : 0;
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
@@ -7156,8 +7251,11 @@ void ZedCamera::publishPoseLandmarks()
   size_t landmarksSub = 0;
 
   try {
-    landmarksSub =
-      count_subscribers(mPointcloud3DLandmarksTopic);    // mPubPoseLandmarks subscribers
+#ifdef FOUND_POINT_CLOUD_TRANSPORT
+    landmarksSub = mPub3DLandmarks.getNumSubscribers();
+#else
+    landmarksSub = mPub3DLandmarks ? mPub3DLandmarks->get_subscription_count() : 0;
+#endif
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
@@ -7316,8 +7414,8 @@ void ZedCamera::publishPose()
   size_t poseCovSub = 0;
 
   try {
-    poseSub = count_subscribers(mPoseTopic);        // mPubPose subscribers
-    poseCovSub = count_subscribers(mPoseCovTopic);   // mPubPoseCov subscribers
+    poseSub = mPubPose ? mPubPose->get_subscription_count() : 0;
+    poseCovSub = mPubPoseCov ? mPubPoseCov->get_subscription_count() : 0;
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_PT("publishPose: Exception while counting subscribers");
@@ -7592,10 +7690,10 @@ void ZedCamera::publishGnssPose()
   size_t originFixSub = 0;
 
   try {
-    gnssSub = count_subscribers(mGnssPoseTopic);
-    geoPoseSub = count_subscribers(mGeoPoseTopic);
-    fusedFixSub = count_subscribers(mFusedFixTopic);
-    originFixSub = count_subscribers(mOriginFixTopic);
+    gnssSub = mPubGnssPose ? mPubGnssPose->get_subscription_count() : 0;
+    geoPoseSub = mPubGeoPose ? mPubGeoPose->get_subscription_count() : 0;
+    fusedFixSub = mPubFusedFix ? mPubFusedFix->get_subscription_count() : 0;
+    originFixSub = mPubOriginFix ? mPubOriginFix->get_subscription_count() : 0;
   } catch (...) {
     rcutils_reset_error();
     DEBUG_GNSS("publishGnssPose: Exception while counting subscribers");
@@ -7912,11 +8010,11 @@ bool ZedCamera::updatePosTrackingSubscribers(bool force)
   mPosTrackingSubCount = 0;
 
   try {
-    if (mPubPose) {mPosTrackingSubCount += count_subscribers(mPubPose->get_topic_name());}
-    if (mPubPoseCov) {mPosTrackingSubCount += count_subscribers(mPubPoseCov->get_topic_name());}
-    if (mPubPosePath) {mPosTrackingSubCount += count_subscribers(mPubPosePath->get_topic_name());}
-    if (mPubOdom) {mPosTrackingSubCount += count_subscribers(mPubOdom->get_topic_name());}
-    if (mPubOdomPath) {mPosTrackingSubCount += count_subscribers(mPubOdomPath->get_topic_name());}
+    if (mPubPose) {mPosTrackingSubCount += mPubPose->get_subscription_count();}
+    if (mPubPoseCov) {mPosTrackingSubCount += mPubPoseCov->get_subscription_count();}
+    if (mPubPosePath) {mPosTrackingSubCount += mPubPosePath->get_subscription_count();}
+    if (mPubOdom) {mPosTrackingSubCount += mPubOdom->get_subscription_count();}
+    if (mPubOdomPath) {mPosTrackingSubCount += mPubOdomPath->get_subscription_count();}
   } catch (...) {
     rcutils_reset_error();
     return false;
@@ -7987,10 +8085,10 @@ void ZedCamera::callback_pubTemp()
     tempImuSubCount = 0;
 
     if (sl_tools::isZED2OrZED2i(mCamRealModel)) {
-      if (mPubTempL) {tempLeftSubCount = count_subscribers(mPubTempL->get_topic_name());}
-      if (mPubTempR) {tempRightSubCount = count_subscribers(mPubTempR->get_topic_name());}
+      if (mPubTempL) {tempLeftSubCount = mPubTempL->get_subscription_count();}
+      if (mPubTempR) {tempRightSubCount = mPubTempR->get_subscription_count();}
     }
-    if (mPubImuTemp) {tempImuSubCount = count_subscribers(mPubImuTemp->get_topic_name());}
+    if (mPubImuTemp) {tempImuSubCount = mPubImuTemp->get_subscription_count();}
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_SENS(
@@ -8069,7 +8167,7 @@ void ZedCamera::callback_pubFusedPc()
 #ifdef FOUND_POINT_CLOUD_TRANSPORT
     fusedCloudSubCount = mPubFusedCloud.getNumSubscribers();
 #else
-    if (mPubFusedCloud) {fusedCloudSubCount = count_subscribers(mPubFusedCloud->get_topic_name());}
+    if (mPubFusedCloud) {fusedCloudSubCount = mPubFusedCloud->get_subscription_count();}
 #endif
   } catch (...) {
     rcutils_reset_error();
@@ -8193,8 +8291,8 @@ void ZedCamera::callback_pubPaths()
   uint32_t utmPathSub = 0;
 
   try {
-    mapPathSub = count_subscribers(mPosePathTopic);
-    odomPathSub = count_subscribers(mOdomPathTopic);
+    mapPathSub = mPubPosePath ? mPubPosePath->get_subscription_count() : 0;
+    odomPathSub = mPubOdomPath ? mPubOdomPath->get_subscription_count() : 0;
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_PT("pubPaths: Exception while counting subscribers");
@@ -9729,8 +9827,8 @@ void ZedCamera::callback_clickedPoint(
   size_t markerSubCount = 0;
   size_t planeSubCount = 0;
   try {
-    if (mPubMarker) {markerSubCount = count_subscribers(mPubMarker->get_topic_name());}
-    if (mPubPlane) {planeSubCount = count_subscribers(mPubPlane->get_topic_name());}
+    if (mPubMarker) {markerSubCount = mPubMarker->get_subscription_count();}
+    if (mPubPlane) {planeSubCount = mPubPlane->get_subscription_count();}
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_MAP(

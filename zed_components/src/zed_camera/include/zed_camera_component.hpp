@@ -1264,7 +1264,18 @@ private:
   sl::Timestamp mLastTs_grab = 0;  // Used to calculate stable publish frequency
   rclcpp::Time mFrameTimestamp;
   rclcpp::Time mGnssTimestamp;
-  rclcpp::Time mLastTs_imu;
+  rclcpp::Time mLastTs_imu;       // Timestamp of the last PUBLISHED IMU sample
+  rclcpp::Time mLastSeenTs_imu;   // Timestamp of the last IMU sample READ from the SDK
+  double mImuSamplePeriod = 0.0;  // Measured interval between IMU samples [sec] (0 = not yet known)
+
+  // Sensors subscriber counts, refreshed every SENS_SUB_COUNT_REFRESH_SEC
+  // instead of on every poll of the (multi-kHz) sensors thread
+  size_t mImuSubCountCache = 0;
+  size_t mImuRawSubCountCache = 0;
+  size_t mImuMagSubCountCache = 0;
+  size_t mPressSubCountCache = 0;
+  std::chrono::steady_clock::time_point mSensSubCountLastCheck;
+  bool mSensSubCountInit = false;
   rclcpp::Time mLastTs_baro;
   rclcpp::Time mLastTs_mag;
   rclcpp::Time mLastTs_odom;

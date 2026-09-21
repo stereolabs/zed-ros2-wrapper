@@ -17,7 +17,6 @@
 #include "sl_tools.hpp"
 
 #include <mutex>
-#include <sensor_msgs/distortion_models.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
@@ -103,7 +102,7 @@ void ZedCamera::initVideoDepthPublishers()
   // Camera publishers
   if (_nitrosDisabled) {
 
-    // Publishers logging — reads back the actual enabled plugins for this topic
+    // Publishers logging: reads back the actual enabled plugins for this topic
     auto log_cam_pub = [&](const auto & pub) {
         RCLCPP_INFO_STREAM(
           get_logger(),
@@ -191,7 +190,7 @@ void ZedCamera::initVideoDepthPublishers()
                 allowed.push_back(t);
               }
             } else {
-              // Unknown plugin (e.g. zstd) — allow for all types
+              // Unknown plugin (e.g. zstd): allow for all types
               allowed.push_back(t);
             }
           }
@@ -202,7 +201,7 @@ void ZedCamera::initVideoDepthPublishers()
         if (allowed.empty()) {
           RCLCPP_WARN(
             get_logger(),
-            "No compatible transports found for topic %s — falling back to all plugins",
+            "No compatible transports found for topic %s, falling back to all plugins",
             topic.c_str());
           return;
         }
@@ -215,7 +214,7 @@ void ZedCamera::initVideoDepthPublishers()
             if (t.find("/raw") != std::string::npos) {
               RCLCPP_WARN(
                 get_logger(),
-                "Raw transport enabled via parameter override — "
+                "Raw transport enabled via parameter override: "
                 "this may cause duplicate messages on topic: %s", topic.c_str());
             }
           }
@@ -645,6 +644,39 @@ void ZedCamera::getDepthParams()
   }
 
   if (!mDepthDisabled) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+    sl_tools::getEnumParam(
+      shared_from_this(), "depth.depth_precision", "FP16",
+      sl::DEPTH_PRECISION::FP16,
+      sl::DEPTH_PRECISION::LAST, mDepthPrecision,
+      " * Depth precision: ");
+    if (mDepthPrecision == sl::DEPTH_PRECISION::INT8 &&
+      mDepthMode != sl::DEPTH_MODE::NEURAL)
+    {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "'depth.depth_precision' is set to 'INT8', but only 'NEURAL' provides an INT8 model. "
+        "The ZED SDK will fall back to 'FP16' with the current 'depth.depth_mode' value: "
+          << sl::toString(mDepthMode).c_str());
+    }
+
+    sl_tools::getParam(
+      shared_from_this(), "depth.allow_depth_cuda_graph",
+      mAllowDepthCudaGraph, mAllowDepthCudaGraph,
+      " * Allow depth CUDA Graph: ");
+    if (mAllowDepthCudaGraph &&
+      mDepthMode != sl::DEPTH_MODE::NEURAL_LIGHT &&
+      mDepthMode != sl::DEPTH_MODE::NEURAL &&
+      mDepthMode != sl::DEPTH_MODE::NEURAL_PLUS)
+    {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "'depth.allow_depth_cuda_graph' is enabled, but the CUDA Graph is only used by the "
+        "'NEURAL' depth mode family. It will be ignored with the current 'depth.depth_mode' "
+        "value: " << sl::toString(mDepthMode).c_str());
+    }
+#endif
+
 #if ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51)
     const double default_min_depth = 0.1;
 #else
@@ -779,102 +811,11 @@ void ZedCamera::fillCamInfo(
   float baseline = zedParam.getCameraBaseline();
 
   // ----> Distortion models
-  // ZED SDK params order: [ k1, k2, p1, p2, k3, k4, k5, k6, s1, s2, s3, s4]
-  // Radial (k1, k2, k3, k4, k5, k6), Tangential (p1,p2) and Prism (s1, s2, s3,
-  // s4) distortion. Prism not currently used.
-
-  // ROS2 order (OpenCV) -> k1,k2,p1,p2,k3,k4,k5,k6,s1,s2,s3,s4
-  switch (mCamRealModel) {
-    case sl::MODEL::ZED:  // PLUMB_BOB
-      leftCamInfoMsg->distortion_model =
-        sensor_msgs::distortion_models::PLUMB_BOB;
-      rightCamInfoMsg->distortion_model =
-        sensor_msgs::distortion_models::PLUMB_BOB;
-      leftCamInfoMsg->d.resize(5);
-      rightCamInfoMsg->d.resize(5);
-      leftCamInfoMsg->d[0] = zedParam.left_cam.disto[0];    // k1
-      leftCamInfoMsg->d[1] = zedParam.left_cam.disto[1];    // k2
-      leftCamInfoMsg->d[2] = zedParam.left_cam.disto[2];    // p1
-      leftCamInfoMsg->d[3] = zedParam.left_cam.disto[3];    // p2
-      leftCamInfoMsg->d[4] = zedParam.left_cam.disto[4];    // k3
-      rightCamInfoMsg->d[0] = zedParam.right_cam.disto[0];  // k1
-      rightCamInfoMsg->d[1] = zedParam.right_cam.disto[1];  // k2
-      rightCamInfoMsg->d[2] = zedParam.right_cam.disto[2];  // p1
-      rightCamInfoMsg->d[3] = zedParam.right_cam.disto[3];  // p2
-      rightCamInfoMsg->d[4] = zedParam.right_cam.disto[4];  // k3
-      break;
-
-    case sl::MODEL::ZED2:    // RATIONAL_POLYNOMIAL
-    case sl::MODEL::ZED2i:   // RATIONAL_POLYNOMIAL
-    case sl::MODEL::ZED_X:   // RATIONAL_POLYNOMIAL
-    case sl::MODEL::ZED_XM:  // RATIONAL_POLYNOMIAL
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
-    case sl::MODEL::ZED_X_NANO:  // RATIONAL_POLYNOMIAL
-#endif
-    case sl::MODEL::VIRTUAL_ZED_X:  // RATIONAL_POLYNOMIAL
-      leftCamInfoMsg->distortion_model =
-        sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
-      rightCamInfoMsg->distortion_model =
-        sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
-      leftCamInfoMsg->d.resize(8);
-      rightCamInfoMsg->d.resize(8);
-      leftCamInfoMsg->d[0] = zedParam.left_cam.disto[0];    // k1
-      leftCamInfoMsg->d[1] = zedParam.left_cam.disto[1];    // k2
-      leftCamInfoMsg->d[2] = zedParam.left_cam.disto[2];    // p1
-      leftCamInfoMsg->d[3] = zedParam.left_cam.disto[3];    // p2
-      leftCamInfoMsg->d[4] = zedParam.left_cam.disto[4];    // k3
-      leftCamInfoMsg->d[5] = zedParam.left_cam.disto[5];    // k4
-      leftCamInfoMsg->d[6] = zedParam.left_cam.disto[6];    // k5
-      leftCamInfoMsg->d[7] = zedParam.left_cam.disto[7];    // k6
-      rightCamInfoMsg->d[0] = zedParam.right_cam.disto[0];  // k1
-      rightCamInfoMsg->d[1] = zedParam.right_cam.disto[1];  // k2
-      rightCamInfoMsg->d[2] = zedParam.right_cam.disto[2];  // p1
-      rightCamInfoMsg->d[3] = zedParam.right_cam.disto[3];  // p2
-      rightCamInfoMsg->d[4] = zedParam.right_cam.disto[4];  // k3
-      rightCamInfoMsg->d[5] = zedParam.right_cam.disto[5];  // k4
-      rightCamInfoMsg->d[6] = zedParam.right_cam.disto[6];  // k5
-      rightCamInfoMsg->d[7] = zedParam.right_cam.disto[7];  // k6
-      break;
-
-    case sl::MODEL::ZED_M:
-      if (zedParam.left_cam.disto[5] != 0 &&   // k4!=0
-        zedParam.right_cam.disto[2] == 0 &&    // p1==0
-        zedParam.right_cam.disto[3] == 0)      // p2==0
-      {
-        leftCamInfoMsg->distortion_model =
-          sensor_msgs::distortion_models::EQUIDISTANT;
-        rightCamInfoMsg->distortion_model =
-          sensor_msgs::distortion_models::EQUIDISTANT;
-
-        leftCamInfoMsg->d.resize(4);
-        rightCamInfoMsg->d.resize(4);
-        leftCamInfoMsg->d[0] = zedParam.left_cam.disto[0];    // k1
-        leftCamInfoMsg->d[1] = zedParam.left_cam.disto[1];    // k2
-        leftCamInfoMsg->d[2] = zedParam.left_cam.disto[4];    // k3
-        leftCamInfoMsg->d[3] = zedParam.left_cam.disto[5];    // k4
-        rightCamInfoMsg->d[0] = zedParam.right_cam.disto[0];  // k1
-        rightCamInfoMsg->d[1] = zedParam.right_cam.disto[1];  // k2
-        rightCamInfoMsg->d[2] = zedParam.right_cam.disto[4];  // k3
-        rightCamInfoMsg->d[3] = zedParam.right_cam.disto[5];  // k4
-      } else {
-        leftCamInfoMsg->distortion_model =
-          sensor_msgs::distortion_models::PLUMB_BOB;
-        rightCamInfoMsg->distortion_model =
-          sensor_msgs::distortion_models::PLUMB_BOB;
-        leftCamInfoMsg->d.resize(5);
-        rightCamInfoMsg->d.resize(5);
-        leftCamInfoMsg->d[0] = zedParam.left_cam.disto[0];    // k1
-        leftCamInfoMsg->d[1] = zedParam.left_cam.disto[1];    // k2
-        leftCamInfoMsg->d[2] = zedParam.left_cam.disto[2];    // p1
-        leftCamInfoMsg->d[3] = zedParam.left_cam.disto[3];    // p2
-        leftCamInfoMsg->d[4] = zedParam.left_cam.disto[4];    // k3
-        rightCamInfoMsg->d[0] = zedParam.right_cam.disto[0];  // k1
-        rightCamInfoMsg->d[1] = zedParam.right_cam.disto[1];  // k2
-        rightCamInfoMsg->d[2] = zedParam.right_cam.disto[2];  // p1
-        rightCamInfoMsg->d[3] = zedParam.right_cam.disto[3];  // p2
-        rightCamInfoMsg->d[4] = zedParam.right_cam.disto[4];  // k3
-      }
-  }
+  // Taken from the model reported by the ZED SDK for these calibration
+  // parameters, not guessed from the camera model: the lens decides it.
+  sl_tools::fillCamInfoDistortion(zedParam.left_cam, *leftCamInfoMsg);
+  sl_tools::fillCamInfoDistortion(zedParam.right_cam, *rightCamInfoMsg);
+  // <---- Distortion models
 
   leftCamInfoMsg->k.fill(0.0);
   rightCamInfoMsg->k.fill(0.0);
@@ -1075,20 +1016,20 @@ bool ZedCamera::updateVideoDepthSubscribers(bool force)
 #endif
       }
       if (mPubDepthInfo) {
-        mDepthInfoSubCount = count_subscribers(mPubDepthInfo->get_topic_name());
+        mDepthInfoSubCount = mPubDepthInfo->get_subscription_count();
       }
       if (mPubDisparity) {
-        mDisparitySubCount = count_subscribers(mPubDisparity->get_topic_name());
+        mDisparitySubCount = mPubDisparity->get_subscription_count();
       }
       if (mPubDispMap) {
-        mDispMapSubCount = count_subscribers(mPubDispMap->get_topic_name());
+        mDispMapSubCount = mPubDispMap->get_subscription_count();
       }
 
 #ifdef FOUND_POINT_CLOUD_TRANSPORT
       mPcSubCount = mPubCloud.getNumSubscribers();
 #else
       if (mPubCloud) {
-        mPcSubCount = count_subscribers(mPubCloud->get_topic_name());
+        mPcSubCount = mPubCloud->get_subscription_count();
       }
 #endif
     }
@@ -1574,7 +1515,9 @@ void ZedCamera::retrieveVideoDepth(bool gpu)
   }
 
   if (retrieved_video || retrieved_depth) {
-    mSdkGrabTS = mZed->getTimestamp(sl::TIME_REFERENCE::IMAGE);
+    mSdkGrabTS = getFrameSdkTimestamp();
+    // Note: with 'IMAGE_CENTER_OF_EXPOSURE' this latency includes half an exposure
+    // more than with 'IMAGE', since the reference sits earlier in the frame.
     auto now = mZed->getTimestamp(sl::TIME_REFERENCE::CURRENT);
     DEBUG_STREAM_VD(
       " * Video/Depth Latency: " << static_cast<double>(now - mSdkGrabTS) * 1e-9 << " sec");
@@ -2284,7 +2227,7 @@ void ZedCamera::publishCameraInfo(
   camInfoMsg->header.stamp = ts;
 
   if (infoPub) {
-    if (count_subscribers(infoPub->get_topic_name()) > 0) {
+    if (infoPub->get_subscription_count() > 0) {
       infoPub->publish(*camInfoMsg);
       DEBUG_STREAM_VD(" * Camera Info message published: " << infoPub->get_topic_name());
       DEBUG_STREAM_VD("   * Timestamp: " << ts.nanoseconds() << " nsec");
@@ -2771,7 +2714,7 @@ bool ZedCamera::isPointCloudSubscribed()
     cloudSubCount = mPubCloud.getNumSubscribers();
 #else
     if (mPubCloud) {
-      cloudSubCount = count_subscribers(mPubCloud->get_topic_name());
+      cloudSubCount = mPubCloud->get_subscription_count();
     }
 #endif
   } catch (...) {
@@ -3456,7 +3399,8 @@ bool ZedCamera::handleCommonVideoParams(
       RCLCPP_WARN_STREAM(get_logger(), result.reason);
       return true;
     }
-    if (val <= 0.0) {
+    mVdPubRateAuto = (val <= 0.0);
+    if (mVdPubRateAuto) {
       val = static_cast<double>(mCamGrabFrameRate);
     }
     mVdPubRate = val;

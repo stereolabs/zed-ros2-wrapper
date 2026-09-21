@@ -4,17 +4,29 @@
 ---
 /**:
     ros__parameters:
+        use_sim_time: false
+
+        simulation:
+            sim_enabled: false
+            sim_address: '127.0.0.1'
+            sim_port: 30000
+
         general:
             serial_number: 0 # overwritten by launch file
+            bus_type: 'AUTO' # Bus searched when the camera is selected with 'camera_id': 'AUTO' (default, any bus), 'GMSL', 'MIPI' (camera on a MIPI capture card, e.g. a ZED X One Core) or 'HOLOSCAN' (camera behind a Holoscan sensor bridge, Camera-over-Ethernet) [ZED SDK >= 5.5 for 'MIPI' and 'HOLOSCAN']. The ZED SDK matches the bus type against the camera transport exactly, so a value other than 'AUTO' hides the cameras reached over another bus. Ignored when the camera is selected with 'serial_number'
             pub_resolution: "CUSTOM" # The resolution used for output. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
             gpu_id: -1
             optional_opencv_calibration_file: "" # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
             publish_status: true # Enable/Disable the publishing of the camera status topic
-            sdk_use_monotonic_clock: false # [SDK >= 5.3] Use sl::TIMESTAMP_CLOCK::MONOTONIC_CLOCK so SDK timestamps are immune to host clock steps (NTP/PTP). Process-wide; first node in a composition wins. When true and 'use_pub_timestamps' is false, an offset captured at camera open keeps Header.stamp ROS-epoch-shaped while inter-frame deltas remain monotonic across system clock steps that happen after open.
+            sdk_timestamp_clock: 'SYSTEM_CLOCK' # Clock source used for every SDK timestamp (images and sensors): 'SYSTEM_CLOCK' (default, wall clock, affected by NTP/PTP), 'MONOTONIC_CLOCK' (immune to clock steps, but still frequency-slewed by NTP/PTP) or 'MONOTONIC_RAW_CLOCK' (immune to steps and slewing, drifts against wall clock) [ZED SDK >= 5.3, 'MONOTONIC_RAW_CLOCK' >= 5.4]. Process-wide; the first node in a composition wins. When not 'SYSTEM_CLOCK' and 'use_pub_timestamps' is false, an offset captured at camera open keeps Header.stamp ROS-epoch-shaped while inter-frame deltas stay monotonic
+            max_system_clock_step_ms: 4.0 # Maximum backward host-clock adjustment (NTP/PTP step, manual date change) the SDK follows per sample, in milliseconds, when 'sdk_timestamp_clock' is 'SYSTEM_CLOCK'. 4.0 is the ZED SDK default and suits slew-only NTP/PTP; use a negative value for PTP setups where step corrections must land instantly, 0.0 to freeze the offset captured on first use. Ignored with a monotonic clock, and always overridden by the 'ZED_SDK_MAX_SYSTEM_CLOCK_STEP_MS' environment variable [ZED SDK >= 5.3]
+            sdk_use_monotonic_clock: false # [DEPRECATED - use 'sdk_timestamp_clock'] Kept for backward compatibility: when true and 'sdk_timestamp_clock' is left at 'SYSTEM_CLOCK', the SDK clock is set to 'MONOTONIC_CLOCK'
+            timestamp_reference: 'IMAGE' # Time reference used to stamp the published data: 'IMAGE' (default, start of the sensor readout) or 'IMAGE_CENTER_OF_EXPOSURE' (middle of the frame exposure, half an exposure earlier, to align frames with sensors timestamped when they measure, e.g. a LiDAR). 'IMAGE_CENTER_OF_EXPOSURE' requires a per-frame exposure (ZED X, ZED X Mini, ZED X One GS, ZED X One 4K; live, SVO and streams): on USB and HDR models the node warns and falls back to 'IMAGE'. Not applied to sensors data, to the SVO '/clock' topic and in simulation [ZED SDK >= 5.5]
 
         svo:
             svo_encoding_preset: 'DEFAULT' # [SDK >= 5.3] SVO encoder speed/quality preset used by the 'start_svo_rec' service. One of 'DEFAULT', 'ULTRAFAST', 'FAST', 'MEDIUM', 'SLOW'
+            encryption_key: "" # Optional key/passphrase used to encrypt the SVO files created by the 'start_svo_rec' service (AES-256-CTR). Interpreted as a path to a 32-byte key file, a 64-character hex key, or a passphrase. The same value must be set as 'svo.decryption_key' to play the recording back: if it is lost the data is unrecoverable. Requires OpenSSL (libcrypto) at runtime. Empty disables encryption [ZED SDK >= 5.3]
             decryption_key: "" # Optional decryption key/passphrase when opening encrypted SVO files
             use_svo_timestamps: true # Use the SVO timestamps to publish data. If false, data will be published at the system time.
             publish_svo_clock: true # [overwritten by launch file options] When use_svo_timestamps is true allows to publish the SVO clock to the `/clock` topic. This is useful for synchronous rosbag playback.
@@ -67,6 +79,7 @@
             target_framerate: 0 # Framerate for the streaming output. This framerate must be below or equal to the camera framerate. Allowed framerates are 15, 30, 60 or 100 if possible. Any other values will be discarded and camera FPS will be taken.
             
         advanced: # WARNING: do not modify unless you are confident of what you are doing
+            change_thread_priority: false # Enable to change the thread scheduling policy and priorities below. The other 'advanced' parameters are ignored when this is false
             # Reference documentation: https://man7.org/linux/man-pages/man7/sched.7.html
             thread_sched_policy: "SCHED_BATCH" # 'SCHED_OTHER', 'SCHED_BATCH', 'SCHED_FIFO', 'SCHED_RR' - NOTE: 'SCHED_FIFO' and 'SCHED_RR' require 'sudo'
             thread_grab_priority: 50 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
@@ -84,4 +97,5 @@
             debug_streaming: false
             debug_advanced: false
             debug_nitros: false
+            debug_sim: false
             disable_nitros: false # If available, disable NITROS usage for debugging and testing purposes

@@ -768,4 +768,63 @@ double StopWatch::toc(std::string func_name)
   return elapsed_nsec / 1e9;  // Returns elapsed time in seconds
 }
 
+void fillCamInfoDistortion(
+  const sl::CameraParameters & zed_params,
+  sensor_msgs::msg::CameraInfo & cam_info)
+{
+  // ZED SDK layout: [k1, k2, p1, p2, k3, k4, k5, k6, s1, s2, s3, s4]
+  // Radial (k1, k2, k3, k4, k5, k6), tangential (p1, p2) and prism (s1..s4)
+  // distortion. The prism terms are not used.
+  const double * disto = zed_params.disto;
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 54
+  const bool fisheye =
+    (zed_params.lens_distortion_model == sl::LENS_DISTORTION_MODEL::FISHEYE);
+  const bool pinhole =
+    (zed_params.lens_distortion_model == sl::LENS_DISTORTION_MODEL::PINHOLE);
+#else
+  // Before ZED SDK 5.4 the model is not reported: a fisheye calibration is the
+  // only one filling k4 while leaving the tangential terms empty.
+  const bool fisheye = (disto[5] != 0.0 && disto[2] == 0.0 && disto[3] == 0.0);
+  const bool pinhole = false;
+#endif
+
+  if (fisheye) {
+    // Kannala-Brandt: the four coefficients live at 0, 1, 4 and 5, since
+    // indices 2 and 3 hold the tangential terms this model does not use.
+    cam_info.distortion_model = sensor_msgs::distortion_models::EQUIDISTANT;
+    cam_info.d.resize(4);
+    cam_info.d[0] = disto[0];  // k1
+    cam_info.d[1] = disto[1];  // k2
+    cam_info.d[2] = disto[4];  // k3
+    cam_info.d[3] = disto[5];  // k4
+    return;
+  }
+
+  if (pinhole) {
+    // Rectified parameters: there is no distortion left to model.
+    cam_info.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+    cam_info.d.assign(5, 0.0);
+    return;
+  }
+
+  // Radial-tangential (Brown-Conrady). The ZED SDK order matches the OpenCV one,
+  // so the coefficients are copied as they are. The 8-coefficient model is only
+  // advertised when the higher order radial terms are actually used.
+  if (disto[5] != 0.0 || disto[6] != 0.0 || disto[7] != 0.0) {
+    cam_info.distortion_model =
+      sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
+    cam_info.d.resize(8);
+    for (size_t i = 0; i < 8; ++i) {
+      cam_info.d[i] = disto[i];
+    }
+  } else {
+    cam_info.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+    cam_info.d.resize(5);
+    for (size_t i = 0; i < 5; ++i) {
+      cam_info.d[i] = disto[i];
+    }
+  }
+}
+
 }  // namespace sl_tools

@@ -45,16 +45,47 @@ void ZedCamera::getBodyTrkParams()
     " * Body Track. model: ");
 
   sl_tools::getEnumParam(
-    shared_from_this(), "body_tracking.body_format", "BODY_70",
+    shared_from_this(), "body_tracking.body_format", "BODY_34",
     sl::BODY_FORMAT::BODY_18,
     sl::BODY_FORMAT::LAST, mBodyTrkFmt,
     " * Body Track. format: ");
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  sl_tools::getEnumParam(
+    shared_from_this(), "body_tracking.model_gen", "GEN_2",
+    sl::BODY_TRACKING_MODEL_GEN::GEN_1,
+    sl::BODY_TRACKING_MODEL_GEN::LAST, mBodyTrkModelGen,
+    " * Body Track. model generation: ");
+
+  // Only 'BODY_18' and 'BODY_34' have a GEN_2 network. The ZED SDK falls back to
+  // the most recent generation it has for the requested model/format, and logs it.
+  bool gen2_format = (mBodyTrkFmt == sl::BODY_FORMAT::BODY_18 ||
+    mBodyTrkFmt == sl::BODY_FORMAT::BODY_34);
+  if (mBodyTrkModelGen == sl::BODY_TRACKING_MODEL_GEN::GEN_2 && !gen2_format) {
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "'body_tracking.model_gen' is set to 'GEN_2', but '"
+        << sl::toString(mBodyTrkFmt).c_str()
+        << "' has no GEN_2 network. The ZED SDK will fall back to 'GEN_1'. "
+        "Set 'body_tracking.body_format' to 'BODY_18' or 'BODY_34' to run GEN_2.");
+  }
+#endif
 
   sl_tools::getParam(
     shared_from_this(),
     "body_tracking.allow_reduced_precision_inference",
     mBodyTrkReducedPrecision, mBodyTrkReducedPrecision,
     " * Body Track. allow reduced precision: ");
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  if (mBodyTrkReducedPrecision &&
+    mBodyTrkModelGen == sl::BODY_TRACKING_MODEL_GEN::GEN_2 && gen2_format)
+  {
+    RCLCPP_WARN(
+      get_logger(),
+      "'body_tracking.allow_reduced_precision_inference' has no effect on 'GEN_2', "
+      "which always runs in FP16.");
+  }
+#endif
 
   sl_tools::getParam(
     shared_from_this(), "body_tracking.max_range",
@@ -70,6 +101,13 @@ void ZedCamera::getBodyTrkParams()
   sl_tools::getParam(
     shared_from_this(), "body_tracking.enable_body_fitting",
     mBodyTrkFitting, mBodyTrkFitting, " * Body fitting: ");
+  if (mBodyTrkFmt == sl::BODY_FORMAT::BODY_34 && !mBodyTrkFitting) {
+    RCLCPP_WARN(
+      get_logger(),
+      "'body_tracking.body_format' is set to 'BODY_34', which requires body fitting. "
+      "The ZED SDK will enable it even though "
+      "'body_tracking.enable_body_fitting' is false.");
+  }
 
   sl_tools::getParam(
     shared_from_this(), "body_tracking.enable_tracking",
@@ -194,6 +232,9 @@ bool ZedCamera::startBodyTracking()
   bt_p.body_format = mBodyTrkFmt;
   bt_p.body_selection = mBodyTrkKpSelection;
   bt_p.detection_model = mBodyTrkModel;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  bt_p.model_gen = mBodyTrkModelGen;
+#endif
   bt_p.enable_body_fitting = mBodyTrkFitting;
   bt_p.enable_segmentation = false;
   bt_p.enable_tracking = mBodyTrkEnableTracking;
@@ -277,7 +318,7 @@ void ZedCamera::processBodies(rclcpp::Time t)
   size_t bt_sub_count = 0;
 
   try {
-    if (mPubBodyTrk) {bt_sub_count = count_subscribers(mPubBodyTrk->get_topic_name());}
+    if (mPubBodyTrk) {bt_sub_count = mPubBodyTrk->get_subscription_count();}
   } catch (...) {
     rcutils_reset_error();
     DEBUG_STREAM_OD("processBodies: Exception while counting subscribers");

@@ -12,8 +12,8 @@ A single, parameterized `Dockerfile` is used for every target. Two entry-point
 scripts, at the top level of this folder, select the right StereoLabs base
 image and pass the build arguments:
 
-* `build_desktop.sh` — desktop / dGPU images (CUDA + Ubuntu base).
-* `build_jetson.sh` — NVIDIA Jetson images (L4T base).
+* `build_desktop.sh`: desktop / dGPU images (CUDA + Ubuntu base).
+* `build_jetson.sh`: NVIDIA Jetson images (L4T base).
 
 Everything else these two scripts and the `Dockerfile` rely on lives in
 `scripts/` and is not meant to be run directly:
@@ -103,7 +103,7 @@ installed from APT or built from source):
 
 The [Available configurations](#available-configurations) table above lists
 what Docker Hub *publishes*; this one is a running record of what has actually
-been **built and verified** (build success, and — where noted — a live camera
+been **built and verified** (build success, and where noted a live camera
 streaming real data). Untested combinations may still work; they just haven't
 been checked yet.
 
@@ -112,16 +112,16 @@ been checked yet.
 | Humble | Jetson AGX Orin, JP6.2.2 (native) | published | 5.4.x (latest) | ✅ Built + live ZED X camera @ ~28 Hz |
 | Jazzy | Jetson AGX Orin, JP6.2.2 (native) | published | 5.4.x (latest) | ✅ Built + live ZED X camera @ ~29 Hz |
 | Jazzy | Jetson AGX Orin, JP6.2.2 (native) | `--sdk-url` (custom) | 5.4.x | ✅ Built + live ZED X camera @ ~30 Hz |
-| Lyrical | Jetson AGX Orin, JP6.2.2 (native) | — | — | ✅ Correctly rejected (needs Ubuntu 24.04/26.04) |
+| Lyrical | Jetson AGX Orin, JP6.2.2 (native) | - | - | ✅ Correctly rejected (needs Ubuntu 24.04/26.04) |
 | Humble | x86_64 desktop → arm64 (QEMU) | published | 5.4.x (latest) | ✅ Built, ~15 min total |
 | Jazzy | x86_64 desktop → arm64 (QEMU) | published | 5.4.x (latest) | ✅ Built, ~2h 15min total (from-source ROS 2 core) |
-| Lyrical | x86_64 desktop → arm64 (QEMU) | — | — | ✅ Correctly rejected (same gate, arch-independent) |
+| Lyrical | x86_64 desktop → arm64 (QEMU) | - | - | ✅ Correctly rejected (same gate, arch-independent) |
 | Jazzy | Jetson Thor, JP7.1 (native) | published | 5.4.x (latest) | ✅ Built, ~3 min total (APT mode; no camera attached to this unit, build-only) |
 | Lyrical | Jetson Thor, JP7.1 (native) | published | 5.4.x (latest) | ✅ Built, ~4 min total (from-source ROS 2 core; no camera on this unit, build-only) |
 | Humble | x86_64 desktop (native) | published | 5.4.x (latest) | ✅ Built, ~35 s total (build-only, no camera) |
 | Jazzy | x86_64 desktop (native) | published | 5.4.x (latest) | ✅ Built, ~47 s total (build-only, no camera) |
 | Lyrical | x86_64 desktop (native) | published | 5.4.x (latest) | ✅ Built, ~13 min total (from-source ROS 2 core; build-only, no camera) |
-| Lyrical | x86_64 desktop (native) | published, Ubuntu 26.04 | — | ⏳ Not available yet — no `stereolabs/zed` image published for Ubuntu 26.04 |
+| Lyrical | x86_64 desktop (native) | published, Ubuntu 26.04 | - | ⏳ Not available yet: no `stereolabs/zed` image published for Ubuntu 26.04 |
 | Jazzy | x86_64 desktop (native) | `--sdk-url` (local `.run` file) | 5.4.0 | ✅ Built, ~18 min total (from-source ROS 2 core; real ZED SDK `.run` installer, not a stand-in) |
 
 ## Build the Docker images
@@ -141,7 +141,7 @@ git checkout <branch_or_tag>
 
 Defaults: `--ros-distro jazzy --os ubuntu-24.04 --sdk latest --cuda 12.8`.
 These build scripts target the LTS distributions with published StereoLabs base
-images — **Humble, Jazzy, Lyrical**. Desktop images always use the StereoLabs
+images: **Humble, Jazzy, Lyrical**. Desktop images always use the StereoLabs
 `gl-devel` base variant. (The wrapper *packages* also build on Foxy and Rolling;
 see [Supported ROS 2 distributions](../README.md#supported-ros-2-distributions).)
 
@@ -161,9 +161,9 @@ see [Supported ROS 2 distributions](../README.md#supported-ros-2-distributions).
 ```
 
 Defaults: `--ros-distro humble --os jp6.2.2 --sdk latest`
-(JetPack 6.2.2 = L4T r36.5, **Ubuntu 22.04** — whose supported distribution is Humble).
+(JetPack 6.2.2 = L4T r36.5, **Ubuntu 22.04**, whose supported distribution is Humble).
 These build scripts target the LTS distributions with published StereoLabs base
-images — **Humble, Jazzy, Lyrical**. Jetson images always use the StereoLabs
+images: **Humble, Jazzy, Lyrical**. Jetson images always use the StereoLabs
 `devel` base variant. (The wrapper *packages* also build on Foxy and Rolling;
 see [Supported ROS 2 distributions](../README.md#supported-ros-2-distributions).)
 
@@ -171,7 +171,7 @@ see [Supported ROS 2 distributions](../README.md#supported-ros-2-distributions).
 # Default: ROS 2 Humble on JetPack 6.2.2 (Ubuntu 22.04), latest ZED SDK
 ./build_jetson.sh
 
-# ROS 2 Lyrical on JetPack 7.1 (Ubuntu 24.04) — built from source
+# ROS 2 Lyrical on JetPack 7.1 (Ubuntu 24.04): built from source
 ./build_jetson.sh --ros-distro lyrical --os jp7.1.0
 ```
 
@@ -183,7 +183,7 @@ see [Supported ROS 2 distributions](../README.md#supported-ros-2-distributions).
   resolves to the latest SDK published for that platform (e.g. `5.3.1`, since
   newer SDKs may not yet ship a JP6.2.2 image).
 * **`--sdk-url <URL>`** builds against a custom/unreleased ZED SDK `.run`
-  installer instead of a published image — see
+  installer instead of a published image: see
   [Build against a custom or unreleased ZED SDK](#build-against-a-custom-or-unreleased-zed-sdk).
 * The base image tag is validated against Docker Hub before building. If a
   combination does not exist (e.g. a given ZED SDK for a given Ubuntu/CUDA/L4T
@@ -207,7 +207,7 @@ see [Supported ROS 2 distributions](../README.md#supported-ros-2-distributions).
 
 By default the image is built on a `stereolabs/zed` base that already ships a
 **published** ZED SDK version. To build against a ZED SDK that is **not**
-published as a Docker image — a local build or a pre-release `.run` installer —
+published as a Docker image (a local build or a pre-release `.run` installer)
 pass it to `--sdk-url`, either as a **URL** or as a path to a **local `.run`
 file**:
 
@@ -235,11 +235,11 @@ When `--sdk-url` is set:
   (`silent skip_tools skip_cuda`).
 * `--sdk` is ignored, and no Docker Hub tag lookup is done. The full version is
   required (`--cuda X.Y.Z` on desktop, `--os l4t-rX.Y.Z` on Jetson) because the
-  NVIDIA base image tag is derived from it — make sure that tag exists on
+  NVIDIA base image tag is derived from it: make sure that tag exists on
   [nvcr.io](https://catalog.ngc.nvidia.com/) / Docker Hub.
 * If `--sdk-url` is a **path to an existing local file**, it is staged into the
   build context (a Docker build cannot see the host filesystem otherwise) and
-  copied in directly — no network fetch. Otherwise it's treated as a **URL**:
+  copied in directly, no network fetch. Otherwise it's treated as a **URL**:
   it must return HTTP 200 (checked during the build) and point to a ZED SDK
   Linux `.run` installer matching the base CUDA/L4T and Ubuntu version.
 
@@ -256,7 +256,7 @@ image on a JetPack 7 / Ubuntu 24.04 base.
    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
    ```
 
-2. *(Optional)* Check that `arm64` emulation works — this should print `aarch64`:
+2. *(Optional)* Check that `arm64` emulation works: this should print `aarch64`:
 
    ```bash
    docker run --rm --platform linux/arm64 arm64v8/ubuntu:24.04 uname -m
@@ -273,7 +273,7 @@ image on a JetPack 7 / Ubuntu 24.04 base.
      ./build_jetson.sh --ros-distro lyrical --os jp7.1.0
    ```
 
-> :warning: **From-source + emulation is slow — measured, not a guess.**
+> :warning: **From-source + emulation is slow, measured, not a guess.**
 > Lyrical has no APT binaries for Ubuntu 24.04 (it targets Ubuntu 26.04), so
 > `scripts/install_ros2.sh` builds the whole ROS 2 core from source. Under QEMU this is
 > **~2h 15min total** for a from-source distro (measured for Jazzy on a
@@ -281,11 +281,11 @@ image on a JetPack 7 / Ubuntu 24.04 base.
 > the ROS 2 core itself, ~25min for the wrapper). Lyrical on JetPack 7 compiles
 > a similarly-sized ROS 2 core set, so expect a comparable multi-hour build.
 > Building the *wrapper alone* on top of an already-built ROS 2 core (native,
-> no emulation) measured ~7 minutes on a Jetson AGX Orin — a useful reference
+> no emulation) measured ~7 minutes on a Jetson AGX Orin: a useful reference
 > for how much of the total is emulation overhead vs. inherent compile time,
 > though the ROS 2 core step itself wasn't independently re-timed natively.
 > For a fast, binary (APT) Jetson build under QEMU, pick a distribution whose
-> target Ubuntu matches the base — this is genuinely fast, measured at **~15
+> target Ubuntu matches the base: this is genuinely fast, measured at **~15
 > minutes total** for Humble on JP6.2.2:
 >
 > ```bash
@@ -324,11 +324,11 @@ Share the host `DISPLAY` with `-e DISPLAY=$DISPLAY` and mount
 
 ### Volumes
 
-* `/tmp/.X11-unix/:/tmp/.X11-unix` — X11 server communication for CUDA apps.
-* `/usr/local/zed/settings:/usr/local/zed/settings` — to reuse downloaded camera calibration files ([guide](https://support.stereolabs.com/hc/en-us/articles/21614848880791-How-can-I-use-the-ZED-with-Docker-on-a-robot-with-no-internet-connection)).
-* `/usr/local/zed/resources:/usr/local/zed/resources` — to persist the AI models (Object Detection, Skeleton Tracking, NEURAL depth) across runs. Use a different host folder per SDK version.
-* `/dev:/dev` — to share the video and other devices.
-* `/dev/shm:/dev/shm` — to use ROS 2 with shared memory.
+* `/tmp/.X11-unix/:/tmp/.X11-unix`: X11 server communication for CUDA apps.
+* `/usr/local/zed/settings:/usr/local/zed/settings`, to reuse downloaded camera calibration files ([guide](https://support.stereolabs.com/hc/en-us/articles/21614848880791-How-can-I-use-the-ZED-with-Docker-on-a-robot-with-no-internet-connection)).
+* `/usr/local/zed/resources:/usr/local/zed/resources`, to persist the AI models (Object Detection, Skeleton Tracking, NEURAL depth) across runs. Use a different host folder per SDK version.
+* `/dev:/dev`, to share the video and other devices.
+* `/dev/shm:/dev/shm`, to use ROS 2 with shared memory.
 * For GMSL2 cameras (ZED X, ZED X One) also add:
   * `/tmp:/tmp`
   * `/var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/`

@@ -189,6 +189,10 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_pauseSvoRec(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::SetBool_Request> req,
+    std::shared_ptr<std_srvs::srv::SetBool_Response> res);
   void callback_pauseSvoInput(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
@@ -347,9 +351,20 @@ protected:
     const sl::SensorsData & sens_data, const rclcpp::Time & ts_mag,
     size_t imu_MagSubCount);
   void publishHealthStatus();
+  /*! \brief Read the camera health status and cache it, so that both the
+   * health status topic and the diagnostic updater use the same values
+   * without querying the SDK from two different threads.
+   */
+  void readHealthStatus();
   bool publishSvoStatus(uint64_t frame_ts);
 
   void publishClock(const sl::Timestamp & ts);
+  /*! \brief Get the SDK timestamp of the last grabbed frame, using the
+   * reference selected by the `general.timestamp_reference` parameter.
+   * Falls back to `TIME_REFERENCE::IMAGE` for the rest of the session if the
+   * input does not provide a per-frame exposure (the SDK then returns 0).
+   */
+  sl::Timestamp getFrameSdkTimestamp();
   // <---- Publishing functions
 
   // ----> Utility functions
@@ -556,6 +571,7 @@ private:
   std::string mSvoFilepath = "";
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
   std::string mSvoDecryptionKey = "";
+  std::string mSvoRecEncryptionKey = "";
 #endif
   bool mSvoLoop = false;
   bool mSvoRealtime = false;
@@ -564,7 +580,16 @@ private:
   double mSvoExpectedPeriod = 0.0;
   bool mUseSvoTimestamp = false;
   bool mUsePubTimestamps = false;
-  bool mUseSdkMonotonicClock = false;
+  bool mUseSdkMonotonicClock = false;  // true when a monotonic clock is selected
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
+  // Clock source used for every SDK timestamp. Process-wide setting.
+  sl::TIMESTAMP_CLOCK mSdkTimestampClock = sl::TIMESTAMP_CLOCK::SYSTEM_CLOCK;
+  // Maximum backward host-clock step followed per sample, in ms, in
+  // SYSTEM_CLOCK mode. 4.0 is the ZED SDK default; negative disables clamping.
+  double mMaxSysClockStepMs = 4.0;
+#endif
+  // Time reference used for the frame timestamps of the published data
+  sl::TIME_REFERENCE mTsReference = sl::TIME_REFERENCE::IMAGE;
   bool mGrabOnce = false;
   bool mGrabImuOnce = false;
   int mVerbose = 1;
@@ -581,6 +606,10 @@ private:
   double mCamMaxDepth = 15.0;
   sl::DEPTH_MODE mDepthMode = sl::DEPTH_MODE::NEURAL;
   std::string mDepthModelOverride;  // Optional model file override for depth mode
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  sl::DEPTH_PRECISION mDepthPrecision = sl::DEPTH_PRECISION::FP16;
+  bool mAllowDepthCudaGraph = false;
+#endif
   PcRes mPcResolution = PcRes::COMPACT;
   bool mVoxelPointCloud = false;
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
@@ -617,6 +646,9 @@ private:
   bool mLocalizationOnly = false;
   sl::POSITIONAL_TRACKING_MODE mPosTrkMode =
     sl::POSITIONAL_TRACKING_MODE::GEN_1;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  sl::COMPUTE_PREFERENCE mPosTrkComputePref = sl::COMPUTE_PREFERENCE::AUTO;
+#endif
   bool mSaveAreaMemoryOnClosing = true;
   bool mImuFusion = true;
   bool mFloorAlignment = false;
@@ -687,7 +719,11 @@ private:
   bool mBodyTrkEnabled = false;
   sl::BODY_TRACKING_MODEL mBodyTrkModel =
     sl::BODY_TRACKING_MODEL::HUMAN_BODY_FAST;
-  sl::BODY_FORMAT mBodyTrkFmt = sl::BODY_FORMAT::BODY_38;
+  sl::BODY_FORMAT mBodyTrkFmt = sl::BODY_FORMAT::BODY_34;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  sl::BODY_TRACKING_MODEL_GEN mBodyTrkModelGen =
+    sl::BODY_TRACKING_MODEL_GEN::GEN_2;
+#endif
   bool mBodyTrkReducedPrecision = false;
   double mBodyTrkMaxRange = 15.0f;
   sl::BODY_KEYPOINTS_SELECTION mBodyTrkKpSelection =
@@ -722,6 +758,10 @@ private:
   OnSetParametersCallbackHandle::SharedPtr mParamChangeCallbackHandle;
 
   double mVdPubRate = 15.0;
+  // `general.pub_frame_rate` <= 0 means "publish at the grab rate": the real
+  // grab rate is known only after the input is open, so the request is stored
+  // here and re-applied in `processCameraInformation()`.
+  bool mVdPubRateAuto = false;
   int mCamBrightness = 4;
   int mCamContrast = 4;
   int mCamHue = 0;
@@ -754,6 +794,16 @@ private:
   // Read-only, populated from SDK getCameraSettings by the grab thread and read
   // by the diagnostic updater thread
   std::atomic<int> mSceneIlluminance{-1};
+  // Camera health status, populated from the SDK by the grab thread and read by
+  // the diagnostic updater thread. All false when the health checks are disabled
+  // with 'general.enable_image_validity_check'.
+  std::atomic<bool> mHealthLowImageQuality{false};
+  std::atomic<bool> mHealthLowLighting{false};
+  std::atomic<bool> mHealthLowDepthReliability{false};
+  std::atomic<bool> mHealthLowMotionSensReliability{false};
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+  std::atomic<bool> mHealthDuplicatedImage{false};
+#endif
   // <---- Dynamic params
 
   // ----> QoS
@@ -1139,6 +1189,9 @@ private:
 
   // ----> Positional Tracking
   sl::Pose mLastZedPose;
+  // Confidence of the last pose [0,100], cached by the grab thread and read by
+  // the diagnostic updater thread. -1 while no pose has been retrieved yet.
+  std::atomic<int> mPoseConfidence{-1};
   sl::Pose mLastZedDeltaOdom;
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
@@ -1211,7 +1264,18 @@ private:
   sl::Timestamp mLastTs_grab = 0;  // Used to calculate stable publish frequency
   rclcpp::Time mFrameTimestamp;
   rclcpp::Time mGnssTimestamp;
-  rclcpp::Time mLastTs_imu;
+  rclcpp::Time mLastTs_imu;       // Timestamp of the last PUBLISHED IMU sample
+  rclcpp::Time mLastSeenTs_imu;   // Timestamp of the last IMU sample READ from the SDK
+  double mImuSamplePeriod = 0.0;  // Measured interval between IMU samples [sec] (0 = not yet known)
+
+  // Sensors subscriber counts, refreshed every SENS_SUB_COUNT_REFRESH_SEC
+  // instead of on every poll of the (multi-kHz) sensors thread
+  size_t mImuSubCountCache = 0;
+  size_t mImuRawSubCountCache = 0;
+  size_t mImuMagSubCountCache = 0;
+  size_t mPressSubCountCache = 0;
+  std::chrono::steady_clock::time_point mSensSubCountLastCheck;
+  bool mSensSubCountInit = false;
   rclcpp::Time mLastTs_baro;
   rclcpp::Time mLastTs_mag;
   rclcpp::Time mLastTs_odom;
@@ -1244,6 +1308,7 @@ private:
   enableMappingPtr mEnableMappingSrv;
   startSvoRecSrvPtr mStartSvoRecSrv;
   stopSvoRecSrvPtr mStopSvoRecSrv;
+  pauseSvoRecSrvPtr mPauseSvoRecSrv;
   pauseSvoSrvPtr mPauseSvoSrv;
   setSvoFramePtr mSetSvoFrameSrv;
   setRoiSrvPtr mSetRoiSrv;
@@ -1267,6 +1332,7 @@ private:
   const std::string mSrvEnableStreamingName = "enable_streaming";
   const std::string mSrvStartSvoRecName = "start_svo_rec";
   const std::string mSrvStopSvoRecName = "stop_svo_rec";
+  const std::string mSrvPauseSvoRecName = "pause_svo_rec";
   const std::string mSrvToggleSvoPauseName = "toggle_svo_pause";
   const std::string mSrvSetSvoFrameName = "set_svo_frame";
   const std::string mSrvSetRoiName = "set_roi";

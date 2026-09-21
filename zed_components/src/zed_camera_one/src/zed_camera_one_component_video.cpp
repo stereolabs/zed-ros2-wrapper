@@ -18,12 +18,11 @@
 #include <mutex>
 #include <image_transport/camera_common.hpp>
 
-#include <sensor_msgs/distortion_models.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 
 namespace
 {
-// Same race guard as in zed_camera_component_video_depth.cpp — see comment there.
+// Same race guard as in zed_camera_component_video_depth.cpp: see comment there.
 std::mutex g_it_pub_init_mutex;
 }
 
@@ -169,7 +168,7 @@ void ZedCameraOne::initVideoPublishers()
   // ----> Create publishers
   auto qos = _qos.get_rmw_qos_profile();
 
-  // Publishers logging — reads back the actual enabled plugins for this topic
+  // Publishers logging: reads back the actual enabled plugins for this topic
   auto log_cam_pub = [&](const auto & pub) {
       RCLCPP_INFO_STREAM(
         get_logger(),
@@ -253,7 +252,7 @@ void ZedCameraOne::initVideoPublishers()
       if (allowed.empty()) {
         RCLCPP_WARN(
           get_logger(),
-          "No compatible transports found for topic %s — falling back to all plugins",
+          "No compatible transports found for topic %s, falling back to all plugins",
           topic.c_str());
         return;
       }
@@ -266,7 +265,7 @@ void ZedCameraOne::initVideoPublishers()
           if (t.find("/raw") != std::string::npos) {
             RCLCPP_WARN(
               get_logger(),
-              "Raw transport enabled via parameter override — "
+              "Raw transport enabled via parameter override: "
               "this may cause duplicate messages on topic: %s", topic.c_str());
           }
         }
@@ -405,19 +404,11 @@ void ZedCameraOne::fillCamInfo(
   // https://docs.ros2.org/latest/api/sensor_msgs/msg/CameraInfo.html
 
   // ----> Distortion models
-  // ZED SDK params order: [ k1, k2, p1, p2, k3, k4, k5, k6, s1, s2, s3, s4]
-  // Radial (k1, k2, k3, k4, k5, k6), Tangential (p1,p2) and Prism (s1, s2, s3,
-  // s4) distortion. Prism not currently used.
-
-  // ROS2 order (OpenCV) -> k1,k2,p1,p2,k3,k4,k5,k6,s1,s2,s3,s4
-  // All ZED X One models use RATIONAL_POLYNOMIAL
-  camInfoMsg->distortion_model =
-    sensor_msgs::distortion_models::RATIONAL_POLYNOMIAL;
-
-  camInfoMsg->d.resize(8);
-  for (size_t i = 0; i < 8; i++) {
-    camInfoMsg->d[i] = zedParam.disto[i];
-  }
+  // Taken from the model reported by the ZED SDK for these calibration
+  // parameters, not assumed to be the same for every ZED X One: a fisheye lens
+  // uses a different model than the wide and narrow ones.
+  sl_tools::fillCamInfoDistortion(zedParam, *camInfoMsg);
+  // <---- Distortion models
 
   // Intrinsic
   camInfoMsg->k.fill(0.0);
@@ -615,7 +606,10 @@ void ZedCameraOne::publishImages()
   _lastTs_grab = _sdkGrabTS;
 
   rclcpp::Time timeStamp;
-  if (_svoMode) {
+  if (_svoMode || _simMode) {
+    // Replayed and simulated frames are stamped by `updateFrameTimestamp()`,
+    // which is the only place that knows whether the SVO/simulation clock has
+    // to replace the SDK timestamp.
     timeStamp = _frameTimestamp;
   } else {
     timeStamp = sl_tools::slTime2Ros(_sdkGrabTS, get_clock()->get_clock_type());
@@ -735,7 +729,7 @@ void ZedCameraOne::publishCameraInfo(
   camInfoMsg->header.stamp = ts;
 
   if (infoPub) {
-    if (count_subscribers(infoPub->get_topic_name()) > 0) {
+    if (infoPub->get_subscription_count() > 0) {
       infoPub->publish(*camInfoMsg);
       DEBUG_STREAM_VD(
         " * Camera Info message published: " << infoPub->get_topic_name());

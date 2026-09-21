@@ -238,8 +238,12 @@ def launch_setup(context, *args, **kwargs):
         serials = parse_array_param(serial_numbers_val)
         ids = parse_array_param(camera_ids_val)
 
-        # If not in live mode, at least one of serials or ids must be a valid 2-values array
-        if (len(serials) != 2 and len(ids) != 2 and svo_path.perform(context) == 'live'):
+        # If not in live mode, at least one of serials or ids must be a valid 2-values array.
+        # In simulation mode the virtual stereo pair is streamed by the simulator,
+        # so no real camera identification is required.
+        is_live = (svo_path.perform(context) == 'live' and
+                   sim_mode.perform(context).lower() != 'true')
+        if (len(serials) != 2 and len(ids) != 2 and is_live):
             return [
                 LogInfo(msg=TextSubstitution(
                     text='With a Virtual Stereo Camera setup, one of `serial_numbers` or `camera_ids` launch arguments must contain two valid values (Left and Right camera identification).'))
@@ -501,7 +505,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'camera_model',
                 description='[REQUIRED] The model of the camera. Using a wrong camera model can disable camera features.',
-                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'zedxnano', 'zedxhdr', 'zedxhdrmini', 'zedxhdrmax', 'virtual', 'zedxonegs', 'zedxone4k', 'zedxonehdr']),
+                choices=['zed', 'zedm', 'zed2', 'zed2i', 'zedx', 'zedxm', 'zedxnano', 'zedxhdr', 'zedxhdrmini', 'zedxhdrmax', 'virtual', 'zedxonegs', 'zedxone4k', 'zedxonehdr', 'zedxonecore']),
             DeclareLaunchArgument(
                 'container_name',
                 default_value='',

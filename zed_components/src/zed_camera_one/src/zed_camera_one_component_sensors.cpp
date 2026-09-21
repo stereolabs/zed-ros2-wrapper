@@ -208,7 +208,18 @@ bool ZedCameraOne::waitForCameraOpen()
 // Helper: Wait for sensor topic subscribers
 bool ZedCameraOne::waitForSensorSubscribers()
 {
-  _imuPublishing = areSensorsTopicsSubscribed();
+  // The sensors thread polls at several kHz: refresh the subscriber counts on a
+  // timer rather than on every iteration. While nothing is subscribed the thread
+  // sleeps 200 ms below, so a new subscriber is still picked up promptly.
+  auto sub_count_now = std::chrono::steady_clock::now();
+  if (!_sensSubCountInit ||
+    std::chrono::duration<double>(sub_count_now - _sensSubCountLastCheck).count() >=
+    SENS_SUB_COUNT_REFRESH_SEC)
+  {
+    _imuPublishing = areSensorsTopicsSubscribed();
+    _sensSubCountLastCheck = sub_count_now;
+    _sensSubCountInit = true;
+  }
   if (!_imuPublishing && !_publishSensImuTF) {
     rclcpp::sleep_for(200ms);
     return false;
@@ -221,16 +232,26 @@ bool ZedCameraOne::handleSensorPublishing()
 {
   publishSensorsData();
 
-  // getSensorsDataBatch() drains the whole IMU FIFO each call and the output
-  // rate is set by decimation (see publishSensorsData), so this period only
-  // needs to keep the FIFO drained and bound the latency. Poll at the hardware
-  // IMU rate when known; fall back to the requested rate otherwise. The previous
-  // rate-compensation feedback loop (which aliased the IMU stream) is gone.
-  double poll_rate = (_imuOdr > 0.0) ? _imuOdr : _sensPubRate;
-  int poll_msec = static_cast<int>(1000. / poll_rate);
-  poll_msec = std::max(1, poll_msec);
-  DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] Poll period: " << poll_msec << " msec");
-  rclcpp::sleep_for(std::chrono::milliseconds(poll_msec));
+  // In live mode publishSensorsData() reads the newest sample with
+  // getSensorsData(TIME_REFERENCE::CURRENT), so the poll must run FASTER than
+  // the hardware ODR to catch every sample: GMSL cameras deliver the IMU in
+  // tight bursts and a poll at the ODR loses most of the samples for good
+  // (the cause of the unstable rate in issues #249 and #445). Oversampling by
+  // IMU_POLL_OVERSAMPLING captures the whole stream and keeps the publish delay
+  // around one millisecond, independently of the grab rate.
+  // SVO and simulation still drain the FIFO with getSensorsDataBatch(), for
+  // which one poll per sample period is enough.
+  // The output rate is set by decimation, not by this period.
+  double poll_rate;
+  if (!_svoMode && !_simMode && _imuOdr > 0.0) {
+    poll_rate = std::min(_imuOdr * IMU_POLL_OVERSAMPLING, IMU_POLL_MAX_HZ);
+  } else {
+    poll_rate = (_imuOdr > 0.0) ? _imuOdr : _sensPubRate;
+  }
+  int poll_usec = static_cast<int>(1000000. / poll_rate);
+  poll_usec = std::max(100, poll_usec);
+  DEBUG_STREAM_SENS("[threadFunc_pubSensorsData] Poll period: " << poll_usec << " usec");
+  rclcpp::sleep_for(std::chrono::microseconds(poll_usec));
   return true;
 }
 
@@ -280,7 +301,7 @@ void ZedCameraOne::callback_pubTemp()
 
   try {
     if (_pubTemp) {
-      tempSubCount = count_subscribers(_pubTemp->get_topic_name());
+      tempSubCount = _pubTemp->get_subscription_count();
       DEBUG_STREAM_SENS("Temperature subscribers: " << static_cast<int>(tempSubCount));
     }
   } catch (...) {
@@ -322,16 +343,90 @@ bool ZedCameraOne::publishSensorsData()
     return false;
   }
 
-  // Drain the whole IMU FIFO so that no sample is dropped and the published
-  // hardware timestamps keep a constant rate. getSensorsDataBatch() returns all
-  // the samples buffered since the previous call, ordered by timestamp. Reading
-  // only the latest sample (TIME_REFERENCE::CURRENT) aliased the stream and
-  // produced the unstable IMU rate reported in issues #249 and #445.
+  // ----> Live mode: read the IMU decoupled from grab()
+  // getSensorsDataBatch() only returns the samples attached to the most recent
+  // grabbed frame, so its latency is tied to the grab cadence rather than to the
+  // IMU's own rate: with `general.grab_frame_rate` at 15 the samples arrived in
+  // 15 Hz bursts, ~100 ms late, even though the IMU keeps running at its own ODR
+  // (this node has no compute capping; the stereo node, which does, was hit much
+  // harder). getSensorsData(TIME_REFERENCE::CURRENT) reads the newest sample
+  // straight from the sensors stream, so the publish delay stays around one
+  // millisecond whatever the grab rate is. Every sample is still captured: the
+  // sensors thread polls far above the ODR (see IMU_POLL_OVERSAMPLING), because
+  // GMSL cameras deliver the IMU in bursts and a slow poll drops most of them -
+  // the unstable rate reported in issues #249 and #445.
+  if (!_svoMode && !_simMode) {
+    sl::SensorsData sens_data;
+    sl::ERROR_CODE err = _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+    if (err != sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "[publishSensorsData] sl::getSensorsData error: " << sl::toString(err).c_str());
+      return false;
+    }
+
+    rclcpp::Time ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
+
+    // The poll runs faster than the IMU ODR, so the same sample is read back
+    // several times in a row: only a brand new hardware timestamp feeds the
+    // decimator, otherwise the accumulator would count one sample many times.
+    if (_lastSeenTs_imu != TIMEZERO_ROS &&
+      ts_imu.seconds() <= _lastSeenTs_imu.seconds())
+    {
+      return false;
+    }
+    // Track the real interval between samples. The ODR advertised by the SDK is
+    // not always the rate the IMU actually delivers (a ZED X One GS reports
+    // 400 Hz and delivers 200 Hz), and decimating against the advertised value
+    // then halves the output rate, so `sensors.sensors_pub_rate` is not honored.
+    if (_lastSeenTs_imu != TIMEZERO_ROS) {
+      double dt = ts_imu.seconds() - _lastSeenTs_imu.seconds();
+      if (dt > 0.0 && dt < 1.0) {
+        _imuSamplePeriod =
+          (_imuSamplePeriod > 0.0) ? (0.99 * _imuSamplePeriod + 0.01 * dt) : dt;
+      }
+    }
+    _lastSeenTs_imu = ts_imu;
+
+    // Decimate against the measured rate, falling back to the advertised ODR
+    // until enough samples have been seen to measure it.
+    double sample_rate = (_imuSamplePeriod > 0.0) ? (1.0 / _imuSamplePeriod) : _imuOdr;
+    double decim_ratio = 1.0;
+    if (sample_rate > 0.0 && _sensPubRate > 0.0 && _sensPubRate < sample_rate) {
+      decim_ratio = _sensPubRate / sample_rate;
+    }
+
+    _imuDecimAccum += decim_ratio;
+    if (_imuDecimAccum < 1.0) {
+      return false;
+    }
+    _imuDecimAccum -= 1.0;
+
+    double dT = ts_imu.seconds() - _lastTs_imu.seconds();
+    _lastTs_imu = ts_imu;
+
+    updateImuFreqDiagnostics(dT);
+    publishImuFrameAndTopic();
+
+    if (_imuSubCount > 0) {
+      publishImuMsg(ts_imu, sens_data);
+    }
+    if (_imuRawSubCount > 0) {
+      publishImuRawMsg(ts_imu, sens_data);
+    }
+    return true;
+  }
+  // <---- Live mode: read the IMU decoupled from grab()
+
+  // ----> SVO and simulation: drain the whole IMU FIFO
+  // Neither is subject to the grab-compute capping, so draining the batch is
+  // both correct and cheap here, and it guarantees no sample is dropped.
   std::vector<sl::SensorsData> sens_data_batch;
   sl::ERROR_CODE err = _zed->getSensorsDataBatch(sens_data_batch);
   if (err != sl::ERROR_CODE::SUCCESS) {
-    // Only warn if not in SVO mode or if the error is not a benign sensor unavailability
-    if (!_svoMode || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
+    // Only warn if the input is a live camera or if the error is not a benign
+    // sensor unavailability
+    if ((!_svoMode && !_simMode) || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "[publishSensorsData] sl::getSensorsDataBatch error: " << sl::toString(err).c_str());
@@ -342,6 +437,16 @@ bool ZedCameraOne::publishSensorsData()
   if (sens_data_batch.empty()) {
     DEBUG_STREAM_SENS("[publishSensorsData] No new sensors data");
     return false;
+  }
+
+  // In simulation with `use_sim_time`, the timestamps carried by the stream do
+  // not belong to the simulation timeline, so every sample must be stamped with
+  // the current ROS (simulation) time. All the samples drained by a single call
+  // would then share the same stamp, so keep only the most recent one: the
+  // duplicate and decimation gates below cannot tell apart samples that have no
+  // distinct timestamps.
+  if (_simMode && _useSimTime && sens_data_batch.size() > 1) {
+    sens_data_batch.erase(sens_data_batch.begin(), sens_data_batch.end() - 1);
   }
 
   // Decimate the drained IMU stream down to the requested
@@ -357,7 +462,9 @@ bool ZedCameraOne::publishSensorsData()
 
   bool published = false;
   for (const auto & sens_data : sens_data_batch) {
-    rclcpp::Time ts_imu = sl_tools::slTime2Ros(sens_data.imu.timestamp);
+    rclcpp::Time ts_imu = (_simMode && _useSimTime) ?
+      get_clock()->now() :
+      sl_tools::slTime2Ros(sens_data.imu.timestamp);
     double dT = ts_imu.seconds() - _lastTs_imu.seconds();
 
     // Skip duplicated / out-of-order IMU samples (defensive: the FIFO is
@@ -391,6 +498,7 @@ bool ZedCameraOne::publishSensorsData()
   }
 
   return published;
+  // <---- SVO and simulation: drain the whole IMU FIFO
 }
 
 void ZedCameraOne::updateImuFreqDiagnostics(double dT)
@@ -545,7 +653,7 @@ void ZedCameraOne::publishImuFrameAndTopic()
     try {
       size_t sub_count = 0;
       if (_pubCamImuTransf) {
-        sub_count = count_subscribers(_pubCamImuTransf->get_topic_name());
+        sub_count = _pubCamImuTransf->get_subscription_count();
         DEBUG_STREAM_SENS("Camera-IMU Transform subscribers: " << static_cast<int>(sub_count));
       }
 

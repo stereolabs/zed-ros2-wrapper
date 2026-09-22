@@ -4,7 +4,7 @@ LATEST CHANGES
 v5.5.1-dev
 ----------
 - Added the `image.publish_depth_image` parameter (default `false`) to publish the colorized depth visualization (`sl::VIEW::DEPTH`) on `~/image/depth_image`, separate from the raw depth measurement already published on `~/depth/depth_registered`. Like the other image topics, it follows `video.enable_24bit_output` (BGR 24-bit or BGRA 32-bit), and is only advertised if enabled and only retrieved/published while a node subscribes to it.
-
+- Removed the folder `urdf` because it now belongs to the `zed_description` package
 
 v5.5.0
 ------

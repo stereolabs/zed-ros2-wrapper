@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+v5.5.1-dev
+----------
+- Added the `image.publish_depth_image` parameter (default `false`) to publish the colorized depth visualization (`sl::VIEW::DEPTH`) on `~/image/depth_image`, separate from the raw depth measurement already published on `~/depth/depth_registered`. Like the other image topics, it follows `video.enable_24bit_output` (BGR 24-bit or BGRA 32-bit), and is only advertised if enabled and only retrieved/published while a node subscribes to it.
+
+
 v5.5.0
 ------
 - Fixed the large IMU publishing delay caused by the IMU being read in step with `grab()` (stereo and mono). With `general.grab_frame_rate: 15` and `general.grab_compute_capping_fps: 5` the samples arrived in 5 Hz bursts several hundred milliseconds late; the mono node, which has no compute capping, was delayed by the grab rate alone. Both nodes now read the sensors stream independently of `grab()`, polling well above the hardware ODR so that no sample is lost. Measured on a ZED X on an AGX Orin: median publish delay 411 ms -> 10.5 ms, output rate 92.6 -> 100.0 Hz, and the delay no longer depends on `general.grab_compute_capping_fps`. SVO and simulation are unchanged.

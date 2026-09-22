@@ -1722,7 +1722,12 @@ bool ZedCamera::retrieveDepthImage(bool gpu)
     DEBUG_STREAM_VD(" * Retrieving Depth image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
-      mMatDepthImage, sl::VIEW::DEPTH,
+      mMatDepthImage,
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+      m24bitMode ? sl::VIEW::DEPTH_BGR : sl::VIEW::DEPTH_BGRA,
+#else
+      sl::VIEW::DEPTH,
+#endif
       gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(

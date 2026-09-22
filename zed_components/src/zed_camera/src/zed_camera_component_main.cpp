@@ -925,6 +925,9 @@ void ZedCamera::getTopicEnableParams()
   sl_tools::getParam(
     shared_from_this(), "video.publish_stereo", mPublishImgStereo,
     mPublishImgStereo, " * Publish Stereo image: ");
+  sl_tools::getParam(
+    shared_from_this(), "image.publish_depth_image", mPublishDepthImage,
+    mPublishDepthImage, " * Publish Depth Image: ");
 
   // Region of Interest topics
   sl_tools::getParam(

@@ -78,6 +78,7 @@ void ZedCamera::initVideoDepthPublishers()
   mDispMapTopic = mTopicRoot + "disparity/map";
   mDispImgTopic = mTopicRoot + "disparity/image";
   mDepthTopic = mTopicRoot + "depth/depth_registered";
+  mDepthImageTopic = mTopicRoot + "image/depth_image";
   mDepthInfoTopic = mTopicRoot + "depth/depth_info";
   mConfMapTopic = mTopicRoot + "confidence/confidence_map";
   mPointcloudTopic = mTopicRoot + "point_cloud/cloud_registered";
@@ -88,6 +89,7 @@ void ZedCamera::initVideoDepthPublishers()
   mDispMapTopic = get_node_topics_interface()->resolve_topic_name(mDispMapTopic);
   mDispImgTopic = get_node_topics_interface()->resolve_topic_name(mDispImgTopic);
   mDepthTopic = get_node_topics_interface()->resolve_topic_name(mDepthTopic);
+  mDepthImageTopic = get_node_topics_interface()->resolve_topic_name(mDepthImageTopic);
   mDepthInfoTopic = get_node_topics_interface()->resolve_topic_name(mDepthInfoTopic);
   mConfMapTopic = get_node_topics_interface()->resolve_topic_name(mConfMapTopic);
   mPointcloudTopic = get_node_topics_interface()->resolve_topic_name(mPointcloudTopic);
@@ -278,6 +280,9 @@ void ZedCamera::initVideoDepthPublishers()
       if (mPublishDepthMap) {
         create_dual_pub(mDepthTopic, mPubIpcDepth, mPubDepth, ImageTopicType::MEASURE);
       }
+      if (mPublishDepthImage) {
+        create_dual_pub(mDepthImageTopic, mPubIpcDepthImage, mPubDepthImage);
+      }
       if (mPublishConfidence) {
         create_dual_pub(mConfMapTopic, mPubIpcConfMap, mPubConfMap, ImageTopicType::MEASURE);
       }
@@ -344,6 +349,9 @@ void ZedCamera::initVideoDepthPublishers()
         nvidia::isaac_ros::nitros::NitrosDiagnosticsConfig(), mQos);
       RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << mDepthTopic);
       RCLCPP_INFO_STREAM(get_logger(), " * Advertised on topic: " << mDepthTopic + "/nitros");
+    }
+    if (mPublishDepthImage) {
+      mNitrosPubDepthImage = make_nitros_img_pub(mDepthImageTopic);
     }
     if (mPublishConfidence) {
       mNitrosPubConfMap = make_nitros_img_pub(mConfMapTopic);
@@ -418,6 +426,10 @@ void ZedCamera::initVideoDepthPublishers()
   if (mPublishDepthMap) {
     mPubDepthCamInfo = make_cam_info_pub(mDepthTopic);
     mPubDepthCamInfoTrans = make_cam_info_trans_pub(mDepthTopic);
+  }
+  if (mPublishDepthImage) {
+    mPubDepthImageCamInfo = make_cam_info_pub(mDepthImageTopic);
+    mPubDepthImageCamInfoTrans = make_cam_info_trans_pub(mDepthImageTopic);
   }
   if (mPublishConfidence) {
     mPubConfMapCamInfo = make_cam_info_pub(mConfMapTopic);
@@ -880,7 +892,7 @@ bool ZedCamera::areVideoDepthSubscribed()
     mLeftSubCount + mLeftRawSubCount + mLeftGraySubCount + mLeftGrayRawSubCount +
     mRightSubCount + mRightRawSubCount + mRightGraySubCount + mRightGrayRawSubCount +
     mStereoSubCount + mStereoRawSubCount +
-    mDepthSubCount + mConfMapSubCount + mDisparitySubCount +
+    mDepthSubCount + mDepthImageSubCount + mConfMapSubCount + mDisparitySubCount +
     mDispMapSubCount + mDispImgSubCount + mDepthInfoSubCount
   ) > 0;
 }
@@ -914,6 +926,7 @@ bool ZedCamera::updateVideoDepthSubscribers(bool force)
   mStereoSubCount = 0;
   mStereoRawSubCount = 0;
   mDepthSubCount = 0;
+  mDepthImageSubCount = 0;
   mConfMapSubCount = 0;
   mDisparitySubCount = 0;
   mDispMapSubCount = 0;
@@ -999,6 +1012,9 @@ bool ZedCamera::updateVideoDepthSubscribers(bool force)
         if (mPublishDepthMap) {
           mDepthSubCount = mPubDepth.getNumSubscribers() + ipc_sub_count(mPubIpcDepth);
         }
+        if (mPublishDepthImage) {
+          mDepthImageSubCount = mPubDepthImage.getNumSubscribers() + ipc_sub_count(mPubIpcDepthImage);
+        }
         if (mPublishConfidence) {
           mConfMapSubCount = mPubConfMap.getNumSubscribers() + ipc_sub_count(mPubIpcConfMap);
         }
@@ -1009,6 +1025,8 @@ bool ZedCamera::updateVideoDepthSubscribers(bool force)
 #ifdef FOUND_ISAAC_ROS_NITROS
         mDepthSubCount = count_subscribers(mDepthTopic) + count_subscribers(
           mDepthTopic + "/nitros");
+        mDepthImageSubCount = count_subscribers(mDepthImageTopic) + count_subscribers(
+          mDepthImageTopic + "/nitros");
         mConfMapSubCount = count_subscribers(mConfMapTopic) + count_subscribers(
           mConfMapTopic + "/nitros");
         mDispImgSubCount = count_subscribers(mDispImgTopic) + count_subscribers(
@@ -1056,7 +1074,8 @@ bool ZedCamera::isDepthRequired()
   }
 
   size_t tot_sub =
-    mDepthSubCount + mConfMapSubCount + mDisparitySubCount + mDispImgSubCount + mDispMapSubCount +
+    mDepthSubCount + mDepthImageSubCount + mConfMapSubCount + mDisparitySubCount +
+    mDispImgSubCount + mDispMapSubCount +
     mPcSubCount +
     mDepthInfoSubCount;
 
@@ -1506,6 +1525,7 @@ void ZedCamera::retrieveVideoDepth(bool gpu)
 
   DEBUG_STREAM_VD(" *** Retrieving Depth Data ***");
   retrieved_depth |= retrieveDepthMap(gpu);
+  retrieved_depth |= retrieveDepthImage(gpu);
   retrieved_depth |= retrieveConfidence(gpu);
   retrieved_depth |= retrieveDisparityMap();
   retrieved_depth |= retrieveDepthInfo();
@@ -1696,6 +1716,23 @@ bool ZedCamera::retrieveDepthMap(bool gpu)
   return false;
 }
 
+bool ZedCamera::retrieveDepthImage(bool gpu)
+{
+  if (mDepthImageSubCount > 0) {
+    DEBUG_STREAM_VD(" * Retrieving Depth image");
+    bool ok = sl::ERROR_CODE::SUCCESS ==
+      mZed->retrieveImage(
+      mMatDepthImage, sl::VIEW::DEPTH,
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
+    if (ok) {
+      DEBUG_STREAM_VD(
+        " * Depth image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
+    }
+    return ok;
+  }
+  return false;
+}
+
 bool ZedCamera::retrieveDisparityMap()
 {
   if (mDisparitySubCount > 0 || mDispMapSubCount > 0 || mDispImgSubCount > 0) {
@@ -1766,6 +1803,7 @@ void ZedCamera::publishVideoDepth(rclcpp::Time & out_pub_ts)
   publishStereoImages(timeStamp);
   publishStereoRawImages(timeStamp);
   publishDepthImage(timeStamp);
+  publishDepthColorImage(timeStamp);
   publishConfidenceMap(timeStamp);
   publishDisparity(timeStamp);
   publishDepthInfo(timeStamp);
@@ -2165,6 +2203,28 @@ void ZedCamera::publishDepthImage(const rclcpp::Time & t)
   } else {
     publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
     publishCameraInfo(mPubDepthCamInfoTrans, mLeftCamInfoMsg, t);
+  }
+}
+
+void ZedCamera::publishDepthColorImage(const rclcpp::Time & t)
+{
+  if (mDepthImageSubCount > 0) {
+    DEBUG_STREAM_VD(" * mDepthImageSubCount: " << mDepthImageSubCount);
+
+    if (_nitrosDisabled) {
+      publishImageWithInfo(
+        mMatDepthImage, mPubIpcDepthImage, mPubDepthImage, mPubDepthImageCamInfo,
+        mPubDepthImageCamInfoTrans, mLeftCamInfoMsg, mDepthOptFrameId, t);
+    } else {
+#ifdef FOUND_ISAAC_ROS_NITROS
+      publishImageWithInfo(
+        mMatDepthImage, mNitrosPubDepthImage, mPubDepthImageCamInfo, mPubDepthImageCamInfoTrans,
+        mLeftCamInfoMsg, mDepthOptFrameId, t);
+#endif
+    }
+  } else {
+    publishCameraInfo(mPubDepthImageCamInfo, mLeftCamInfoMsg, t);
+    publishCameraInfo(mPubDepthImageCamInfoTrans, mLeftCamInfoMsg, t);
   }
 }
 

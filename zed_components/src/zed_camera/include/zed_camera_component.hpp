@@ -294,6 +294,7 @@ protected:
   bool retrieveRightGrayImage(bool gpu);
   bool retrieveRightRawGrayImage(bool gpu);
   bool retrieveDepthMap(bool gpu);
+  bool retrieveDepthImage(bool gpu);
   bool retrieveConfidence(bool gpu);
   bool retrieveDisparityMap();
   bool retrieveDepthInfo();
@@ -310,6 +311,7 @@ protected:
   void publishStereoImages(const rclcpp::Time & t);
   void publishStereoRawImages(const rclcpp::Time & t);
   void publishDepthImage(const rclcpp::Time & t);
+  void publishDepthColorImage(const rclcpp::Time & t);
   void publishConfidenceMap(const rclcpp::Time & t);
   void publishDisparity(const rclcpp::Time & t);
   void publishDepthInfo(const rclcpp::Time & t);
@@ -467,6 +469,7 @@ private:
   std::string mDispMapTopic;
   std::string mDispImgTopic;
   std::string mDepthTopic;
+  std::string mDepthImageTopic;
   std::string mDepthInfoTopic;
   std::string mConfMapTopic;
   std::string mPointcloudTopic;
@@ -537,6 +540,7 @@ private:
   bool mPublishPath = false;
   bool mPublishDetPlane = false;
   bool mPublishDepthMap = true;
+  bool mPublishDepthImage = false;
   bool mPublishDepthInfo = false;
   bool mPublishPointcloud = true;
   bool mPublishConfidence = false;
@@ -918,6 +922,7 @@ private:
   image_transport::Publisher mPubRawRightGray;
   image_transport::Publisher mPubRoiMask;
   image_transport::Publisher mPubDepth;
+  image_transport::Publisher mPubDepthImage;
   image_transport::Publisher mPubConfMap;
 
   // IPC-aware image publishers (zero-copy capable via TypeAdapter)
@@ -937,6 +942,7 @@ private:
   adaptedImagePub mPubIpcRawRightGray;
   adaptedImagePub mPubIpcRoiMask;
   adaptedImagePub mPubIpcDepth;
+  adaptedImagePub mPubIpcDepthImage;
   adaptedImagePub mPubIpcConfMap;
   adaptedImagePub mPubIpcStereo;
   adaptedImagePub mPubIpcRawStereo;
@@ -957,6 +963,7 @@ private:
   nitrosImgPub mNitrosPubRawRightGray;
   nitrosImgPub mNitrosPubRoiMask;
   nitrosImgPub mNitrosPubDepth;
+  nitrosImgPub mNitrosPubDepthImage;
   nitrosImgPub mNitrosPubConfMap;
   nitrosImgPub mNitrosPubDispImg;
 #endif
@@ -980,6 +987,7 @@ private:
   camInfoPub mPubRawRightGrayCamInfo;
   camInfoPub mPubRoiMaskCamInfo;
   camInfoPub mPubDepthCamInfo;
+  camInfoPub mPubDepthImageCamInfo;
   camInfoPub mPubConfMapCamInfo;
   camInfoPub mPubDispImgCamInfo;
   camInfoPub mPubRgbCamInfoTrans;
@@ -996,6 +1004,7 @@ private:
   camInfoPub mPubRawRightGrayCamInfoTrans;
   camInfoPub mPubRoiMaskCamInfoTrans;
   camInfoPub mPubDepthCamInfoTrans;
+  camInfoPub mPubDepthImageCamInfoTrans;
   camInfoPub mPubConfMapCamInfoTrans;
   camInfoPub mPubDispImgCamInfoTrans;
 
@@ -1065,6 +1074,7 @@ private:
   size_t mStereoSubCount = 0;
   size_t mStereoRawSubCount = 0;
   size_t mDepthSubCount = 0;
+  size_t mDepthImageSubCount = 0;
   size_t mConfMapSubCount = 0;
   size_t mDisparitySubCount = 0; // Obsolete
   size_t mDispMapSubCount = 0;
@@ -1081,7 +1091,7 @@ private:
   sl::Mat mMatRight, mMatRightRaw;
   sl::Mat mMatLeftGray, mMatLeftRawGray;
   sl::Mat mMatRightGray, mMatRightRawGray;
-  sl::Mat mMatDepth, mMatDispMap, mMatDispImg, mMatConf;
+  sl::Mat mMatDepth, mMatDepthImage, mMatDispMap, mMatDispImg, mMatConf;
 
   float mMinDepth = 0.0f;
   float mMaxDepth = 0.0f;

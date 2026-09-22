@@ -62,6 +62,9 @@
             # Other parameters are defined, according to the camera model, in the 'zed.yaml', 'zedm.yaml', 'zed2.yaml', 'zed2i.yaml'
             # 'zedx.yaml', 'zedxmini.yaml', 'virtual.yaml' files
 
+        image:
+            publish_depth_image: false # Advertise the colorized depth image topic (sl::VIEW::DEPTH) that is published only if a node subscribes to it
+
         sensors:
             publish_imu_tf: true # [overwritten by launch file options] enable/disable the IMU TF broadcasting
             sensors_image_sync: false # Synchronize Sensors messages with latest published video/depth message

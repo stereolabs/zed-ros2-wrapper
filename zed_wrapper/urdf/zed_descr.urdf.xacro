@@ -26,7 +26,7 @@
   <xacro:arg name="gnss_y" default="0.0" />
   <xacro:arg name="gnss_z" default="0.0" />
 
-  <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
+<xacro:include filename="$(find zed_description)/urdf/zed_macro.urdf.xacro" />
   <xacro:zed_camera name="$(arg camera_name)" model="$(arg camera_model)" custom_baseline="$(arg custom_baseline)" enable_gnss="$(arg enable_gnss)">
 	    <origin xyz="$(arg gnss_x) $(arg gnss_y) $(arg gnss_z)" rpy="0 0 0"/>
   </xacro:zed_camera>

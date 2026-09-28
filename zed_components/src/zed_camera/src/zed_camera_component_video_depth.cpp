@@ -1013,7 +1013,8 @@ bool ZedCamera::updateVideoDepthSubscribers(bool force)
           mDepthSubCount = mPubDepth.getNumSubscribers() + ipc_sub_count(mPubIpcDepth);
         }
         if (mPublishDepthImage) {
-          mDepthImageSubCount = mPubDepthImage.getNumSubscribers() + ipc_sub_count(mPubIpcDepthImage);
+          mDepthImageSubCount = mPubDepthImage.getNumSubscribers() +
+            ipc_sub_count(mPubIpcDepthImage);
         }
         if (mPublishConfidence) {
           mConfMapSubCount = mPubConfMap.getNumSubscribers() + ipc_sub_count(mPubIpcConfMap);

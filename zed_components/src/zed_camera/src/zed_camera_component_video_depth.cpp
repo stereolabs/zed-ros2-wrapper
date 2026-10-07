@@ -3033,7 +3033,7 @@ bool ZedCamera::waitForVideoDepthData(std::unique_lock<std::mutex> & lock)
 // Helper: Handle publishing and frequency control
 void ZedCamera::handleVideoDepthPublishing()
 {
-  rclcpp::Time pub_ts;
+  rclcpp::Time pub_ts = TIMEZERO_ROS;
   publishVideoDepth(pub_ts);
 
   // ----> Publish sync sensors data if needed

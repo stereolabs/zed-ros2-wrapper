@@ -6321,30 +6321,37 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
 
   switch (mCamRealModel) {
     case sl::MODEL::ZED:
-      optical_offset_x = -0.01;
+      optical_offset_x = -0.005;
       break;
     case sl::MODEL::ZED_M:
       optical_offset_x = 0.0;
       break;
     case sl::MODEL::ZED2:
-      optical_offset_x = -0.01;
+      optical_offset_x = -0.005;
       break;
     case sl::MODEL::ZED2i:
-      optical_offset_x = -0.01;
+      optical_offset_x = -0.005;
       break;
     case sl::MODEL::ZED_X:
     case sl::MODEL::ZED_XM:
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
-    case sl::MODEL::ZED_X_NANO:
-#endif
     case sl::MODEL::ZED_X_HDR:
     case sl::MODEL::ZED_X_HDR_MAX:
     case sl::MODEL::ZED_X_HDR_MINI:
-      optical_offset_x = -0.01;
+      optical_offset_x = -0.005;
       break;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
+    case sl::MODEL::ZED_X_NANO:
+      optical_offset_x = -0.0035;
+      break;
+#endif
     case sl::MODEL::VIRTUAL_ZED_X:
       optical_offset_x = -0.01;
       break;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+    case sl::MODEL::ZED_XONE_CORE:
+      optical_offset_x = 0.00086;
+      break;
+#endif
     default:
       RCLCPP_ERROR_STREAM(
         get_logger(),

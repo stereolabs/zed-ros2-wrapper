@@ -6,6 +6,9 @@ v5.5.1-dev
 - Fixed the stereo node aborting with `can't compare times with different time sources` when `sensors.sensors_image_sync` is enabled on a non-ZED camera model. `handleVideoDepthPublishing()` compared its publish stamp against `TIMEZERO_ROS`, but when `publishVideoDepth()` had no new data to publish it left the stamp default-constructed with `RCL_SYSTEM_TIME`, so the comparison threw and the uncaught exception took down the component container.
 - Added the `depth.publish_depth_image` parameter (default `false`) to publish the colorized depth visualization (`sl::VIEW::DEPTH`) on `~/image/depth_image`, separate from the raw depth measurement already published on `~/depth/depth_registered`. Like the other image topics, it follows `video.enable_24bit_output` (BGR 24-bit or BGRA 32-bit), and is only advertised if enabled and only retrieved/published while a node subscribes to it.
 - Removed the folder `urdf` because it now belongs to the `zed_description` package
+- Fix optical_offset_x for different camera models
+- Fixed the deprecated `status` field of `PosTrackStatus` on `~/pose/status`, which was always published as `0` (read as `SEARCHING`) since the GEN_3 status fields were introduced. It now carries the positional tracking state returned by the ZED SDK (`sl::POSITIONAL_TRACKING_STATE`: `SEARCHING`, `OK`, `OFF`, `FPS_TOO_LOW`, `SEARCHING_FLOOR_PLANE`, `UNAVAILABLE`) for code still relying on it. New code should use `odometry_status` and `spatial_memory_status`.
+- Fixed `pose_confidence` on `~/pose/status` being able to wrap around in the `uint8` field: the value is now clamped to the documented [0,100] range.
 
 v5.5.0
 ------

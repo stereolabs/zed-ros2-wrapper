@@ -26,6 +26,7 @@
 #include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 
+#include <algorithm>
 #include <cstdlib>
 #include <sstream>
 #include <stdexcept>
@@ -6321,30 +6322,37 @@ void ZedCamera::publishCameraTFs(rclcpp::Time t)
 
   switch (mCamRealModel) {
     case sl::MODEL::ZED:
-      optical_offset_x = -0.01;
+      optical_offset_x = -0.005;
       break;
     case sl::MODEL::ZED_M:
       optical_offset_x = 0.0;
       break;
     case sl::MODEL::ZED2:
-      optical_offset_x = -0.01;
+      optical_offset_x = -0.005;
       break;
     case sl::MODEL::ZED2i:
-      optical_offset_x = -0.01;
+      optical_offset_x = -0.005;
       break;
     case sl::MODEL::ZED_X:
     case sl::MODEL::ZED_XM:
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
-    case sl::MODEL::ZED_X_NANO:
-#endif
     case sl::MODEL::ZED_X_HDR:
     case sl::MODEL::ZED_X_HDR_MAX:
     case sl::MODEL::ZED_X_HDR_MINI:
-      optical_offset_x = -0.01;
+      optical_offset_x = -0.005;
       break;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
+    case sl::MODEL::ZED_X_NANO:
+      optical_offset_x = -0.0035;
+      break;
+#endif
     case sl::MODEL::VIRTUAL_ZED_X:
       optical_offset_x = -0.01;
       break;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
+    case sl::MODEL::ZED_XONE_CORE:
+      optical_offset_x = 0.00086;
+      break;
+#endif
     default:
       RCLCPP_ERROR_STREAM(
         get_logger(),
@@ -7013,6 +7021,7 @@ void ZedCamera::processPose()
       sl::CameraIdentifier(),
       sl::POSITION_TYPE::FUSION);
   }
+  mPosTrackingState = pt_state;
 
 #ifdef ENABLE_PT_LOCK_CHECK
   // ----> Check for locked Positional Tracking
@@ -7178,10 +7187,13 @@ void ZedCamera::publishPoseStatus()
     auto msg = std::make_unique<zed_msgs::msg::PosTrackStatus>();
     msg->odometry_status = static_cast<uint8_t>(mPosTrackingStatus.odometry_status);
     msg->spatial_memory_status = static_cast<uint8_t>(mPosTrackingStatus.spatial_memory_status);
+    // Deprecated field, kept for backward compatibility: `sl::POSITIONAL_TRACKING_STATE`
+    msg->status = static_cast<uint8_t>(mPosTrackingState);
 #if defined(ZED_MSGS_POSE_CONFIDENCE_AVAIL) && \
     (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 54
     // Cached by processPose(); -1 until the first pose is retrieved.
-    msg->pose_confidence = mPoseConfidence.load();
+    // Clamp to [0,100] to avoid wrap-around in the uint8 message field.
+    msg->pose_confidence = static_cast<uint8_t>(std::clamp(mPoseConfidence.load(), 0, 100));
 #endif
 
     try {

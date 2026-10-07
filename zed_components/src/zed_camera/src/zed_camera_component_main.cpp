@@ -26,6 +26,7 @@
 #include <sensor_msgs/msg/point_field.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 
+#include <algorithm>
 #include <cstdlib>
 #include <sstream>
 #include <stdexcept>
@@ -7020,6 +7021,7 @@ void ZedCamera::processPose()
       sl::CameraIdentifier(),
       sl::POSITION_TYPE::FUSION);
   }
+  mPosTrackingState = pt_state;
 
 #ifdef ENABLE_PT_LOCK_CHECK
   // ----> Check for locked Positional Tracking
@@ -7185,10 +7187,13 @@ void ZedCamera::publishPoseStatus()
     auto msg = std::make_unique<zed_msgs::msg::PosTrackStatus>();
     msg->odometry_status = static_cast<uint8_t>(mPosTrackingStatus.odometry_status);
     msg->spatial_memory_status = static_cast<uint8_t>(mPosTrackingStatus.spatial_memory_status);
+    // Deprecated field, kept for backward compatibility: `sl::POSITIONAL_TRACKING_STATE`
+    msg->status = static_cast<uint8_t>(mPosTrackingState);
 #if defined(ZED_MSGS_POSE_CONFIDENCE_AVAIL) && \
     (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 54
     // Cached by processPose(); -1 until the first pose is retrieved.
-    msg->pose_confidence = mPoseConfidence.load();
+    // Clamp to [0,100] to avoid wrap-around in the uint8 message field.
+    msg->pose_confidence = static_cast<uint8_t>(std::clamp(mPoseConfidence.load(), 0, 100));
 #endif
 
     try {

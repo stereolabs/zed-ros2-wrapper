@@ -1172,6 +1172,8 @@ private:
 
   sl::FusedPositionalTrackingStatus mFusedPosTrackingStatus;
   sl::PositionalTrackingStatus mPosTrackingStatus;
+  sl::POSITIONAL_TRACKING_STATE mPosTrackingState =
+    sl::POSITIONAL_TRACKING_STATE::OFF;
 
   sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE mAutoRoiStatus =
     sl::REGION_OF_INTEREST_AUTO_DETECTION_STATE::NOT_ENABLED;

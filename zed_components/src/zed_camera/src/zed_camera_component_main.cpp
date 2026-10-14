@@ -5289,8 +5289,16 @@ void ZedCamera::threadFunc_zedGrab()
 
       // ----> Safe grab
       {
+        // SVO recording is fed by grab() only: read() does not push frames to
+        // the encoder, so the SVO file would be empty/corrupted
+        bool recording;
+        {
+          std::lock_guard<std::mutex> rec_lock(mRecMutex);
+          recording = mRecording;
+        }
+
         std::lock_guard<std::mutex> grab_lock(mGrabMutex);
-        if (isDepthRequired() || isPosTrackingRequired()) {
+        if (recording || isDepthRequired() || isPosTrackingRequired()) {
           DEBUG_STREAM_GRAB("Grab thread: grabbing...");
           mGrabStatus = mZed->grab(mRunParams);  // Process the full pipeline with depth
 

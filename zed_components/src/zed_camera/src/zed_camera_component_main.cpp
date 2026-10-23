@@ -4271,7 +4271,16 @@ bool ZedCamera::startPosTrackingLocked()
     std::lock_guard<std::mutex> grab_lock(mGrabMutex);
     err = mZed->enablePositionalTracking(ptParams);
 
-    if (err != sl::ERROR_CODE::SUCCESS) {
+    // Negative error codes are warnings: positional tracking is enabled.
+    // E.g. GEN_3 with IMU fusion on an input without high-frequency IMU data
+    // (network stream, Isaac Sim) returns SENSORS_DATA_REQUIRED and uses the
+    // integrated orientation as a rotation prior (ZED SDK >= 5.4.1).
+    if (err < sl::ERROR_CODE::SUCCESS) {
+      RCLCPP_WARN(
+        get_logger(), "Pos. Tracking started with a warning: %s",
+        sl::toString(err).c_str());
+      err = sl::ERROR_CODE::SUCCESS;
+    } else if (err != sl::ERROR_CODE::SUCCESS) {
       mPosTrackingStarted = false;
       RCLCPP_WARN(
         get_logger(), "Pos. Tracking not started: %s",

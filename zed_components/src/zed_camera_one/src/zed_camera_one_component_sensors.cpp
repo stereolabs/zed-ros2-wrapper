@@ -36,6 +36,26 @@ void ZedCameraOne::getSensorsParams()
     shared_from_this(), "sensors.sensors_pub_rate",
     _sensPubRate, _sensPubRate,
     " * Sensors publishing rate [Hz]: ", true, 1.0, 400.0);
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 56
+  // IMU configuration, ZED X family only (ZED X driver >= 1.5.0).
+  // The nodes need the IMU: a newer SDK value that disables it (`OFF`) is
+  // reported as not valid and replaced by the default
+  const auto kImuSamplingRateEnd = static_cast<sl::IMU_SAMPLING_RATE>(
+    static_cast<int>(sl::IMU_SAMPLING_RATE::HZ_400) + 1);
+  sl_tools::getEnumParam(
+    shared_from_this(), "sensors.imu_sampling_rate", "DEFAULT",
+    sl::IMU_SAMPLING_RATE::DEFAULT, kImuSamplingRateEnd,
+    _ImuSamplingRate, " * IMU sampling rate: ");
+  sl_tools::getEnumParam(
+    shared_from_this(), "sensors.imu_accelerometer_range", "DEFAULT",
+    sl::ACCELEROMETER_RANGE::DEFAULT, sl::ACCELEROMETER_RANGE::LAST,
+    _ImuAccelRange, " * IMU accelerometer range: ");
+  sl_tools::getEnumParam(
+    shared_from_this(), "sensors.imu_gyroscope_range", "DEFAULT",
+    sl::GYROSCOPE_RANGE::DEFAULT, sl::GYROSCOPE_RANGE::LAST,
+    _ImuGyroRange, " * IMU gyroscope range: ");
+#endif
 }
 
 void ZedCameraOne::initSensorPublishers()
@@ -220,7 +240,11 @@ bool ZedCameraOne::waitForSensorSubscribers()
     _sensSubCountLastCheck = sub_count_now;
     _sensSubCountInit = true;
   }
-  if (!_imuPublishing && !_publishSensImuTF) {
+  // The camera to IMU transform is sent once, or with each sample when the
+  // intra-process communication is used (no static TF)
+  const bool imu_transf_needed = (_publishSensImuTF || _publishSensImuTransf) &&
+    (_usingIPC || !_staticImuTfPublished);
+  if (!_imuPublishing && !imu_transf_needed) {
     rclcpp::sleep_for(200ms);
     return false;
   }
@@ -358,9 +382,17 @@ bool ZedCameraOne::publishSensorsData()
   if (!_svoMode && !_simMode) {
     sl::SensorsData sens_data;
     sl::ERROR_CODE err = _zed->getSensorsData(sens_data, sl::TIME_REFERENCE::CURRENT);
+    if (err == sl::ERROR_CODE::CAMERA_NOT_DETECTED) {
+      // Camera disconnected: the grab thread reports it. Do not spin on the
+      // error while the ZED SDK reopens the camera
+      DEBUG_SENS("[publishSensorsData] Camera not detected");
+      rclcpp::sleep_for(100ms);
+      return false;
+    }
     if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
+      rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+      RCLCPP_WARN_STREAM_THROTTLE(
+        get_logger(), steady_clock, 1000.0,
         "[publishSensorsData] sl::getSensorsData error: " << sl::toString(err).c_str());
       return false;
     }
@@ -422,13 +454,20 @@ bool ZedCameraOne::publishSensorsData()
   // Neither is subject to the grab-compute capping, so draining the batch is
   // both correct and cheap here, and it guarantees no sample is dropped.
   std::vector<sl::SensorsData> sens_data_batch;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
   sl::ERROR_CODE err = _zed->getSensorsDataBatch(sens_data_batch);
+#else
+  // `getSensorsDataBatch` requires ZED SDK 5.1: read the latest sample only
+  sens_data_batch.resize(1);
+  sl::ERROR_CODE err = _zed->getSensorsData(sens_data_batch[0], sl::TIME_REFERENCE::CURRENT);
+#endif
   if (err != sl::ERROR_CODE::SUCCESS) {
     // Only warn if the input is a live camera or if the error is not a benign
     // sensor unavailability
     if ((!_svoMode && !_simMode) || err != sl::ERROR_CODE::SENSORS_NOT_AVAILABLE) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
+      rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+      RCLCPP_WARN_STREAM_THROTTLE(
+        get_logger(), steady_clock, 1000.0,
         "[publishSensorsData] sl::getSensorsDataBatch error: " << sl::toString(err).c_str());
     }
     return false;

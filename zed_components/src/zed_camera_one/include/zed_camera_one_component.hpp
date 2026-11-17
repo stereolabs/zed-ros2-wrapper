@@ -48,7 +48,10 @@ public:
 protected:
   // ----> Initialization functions
   void initNode();
+  void initNodeImpl();
   void deInitNode();
+  void stopOnFatalError(const std::string & reason);
+  void callback_fatalError();
 
   void initParameters();
   void initServices();
@@ -79,6 +82,8 @@ protected:
 
   bool startCamera();
   void closeCamera();
+  void rebootCamera(std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  bool reopenCamera();
   void createZedObject();
   void logSdkVersion();
   void setupTf2();
@@ -102,6 +107,15 @@ protected:
     const std::string & frameId, bool rawParam = false);
 
   void applyDynamicSettings();
+  // Apply a changed video setting (or range). A setting refused for good by the
+  // camera or the input is reported once and not retried until it changes again.
+  void setVideoSetting(sl::VIDEO_SETTINGS setting, int value, const std::string & settingName);
+  bool setVideoSettingRange(
+    sl::VIDEO_SETTINGS setting, int value_min, int value_max,
+    const std::string & settingName_min, const std::string & settingName_max);
+  // False if the live camera does not have this setting (e.g. no white balance
+  // on the ZED X One HDR): the node then does not send it
+  bool isVideoSettingAvailable(sl::VIDEO_SETTINGS setting);
   void applySaturationSharpnessGamma();
   void applyWhiteBalance();
   void applyExposure();
@@ -199,6 +213,9 @@ protected:
   void handleStreamingServer();
   void handleSvoRecordingStatus();
   void handleImageRetrievalAndPublishing();
+  // True if the frame just grabbed must be published, following
+  // `general.pub_frame_rate` and `general.sync_pub_to_timestamp`
+  bool isFrameToPublish();
 
   void setupSensorThreadScheduling();
   bool handleSensorThreadInterruption();
@@ -259,6 +276,10 @@ protected:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_msgs::srv::SetSvoFrame_Request> req,
     std::shared_ptr<zed_msgs::srv::SetSvoFrame_Response> res);
+  void callback_reboot(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
 
   // <---- Callbacks functions
 
@@ -278,13 +299,26 @@ private:
   std::thread _sensThread;        // Sensors data publish thread
 
   std::atomic<bool> _threadStop;
+  std::atomic<bool> _nodeDeinitialized{false};
+#ifndef FOUND_FOXY
+  rclcpp::PreShutdownCallbackHandle _preShutdownHandle;  // Removed in the destructor
+#endif
   rclcpp::TimerBase::SharedPtr _initTimer;
+  // ----> Fatal error: the node stops, the process keeps running (SDK-515)
+  std::mutex _fatalErrMutex;
+  std::atomic<bool> _fatalError{false};
+  std::atomic<bool> _fatalErrorHandled{false};
+  std::string _fatalErrReason;
+  rclcpp::TimerBase::SharedPtr _fatalErrTimer;  // Stops the node from its executor
+  // <---- Fatal error
   rclcpp::TimerBase::SharedPtr _tempPubTimer;    // Timer to retrieve and publish camera temperature
   rclcpp::TimerBase::SharedPtr _heartbeatTimer;
   // <---- Threads and Timers
 
   // ----> Thread Sync
   std::mutex _recMutex;
+  std::mutex _rebootMutex;  // Camera reboot against node shutdown
+  std::mutex _grabMutex;  // SDK calls that must not overlap grab() (e.g. SVO seek)
   // <---- Thread Sync
 
   // ----> Debug variables
@@ -407,10 +441,16 @@ private:
   // ----> Parameters
   std::string _cameraName = "zed_one";  // Name of the camera
   int _camGrabFrameRate = 30; // Grab frame rate
+  double _pubFrameRate = 0.0; // `general.pub_frame_rate`: 0 = grab rate
+  // `general.sync_pub_to_timestamp`: select the frames to publish on their image
+  // timestamp, so GMSL cameras capturing at the same instant publish the same
+  // captures. _lastPubBucket is the last published floor(ts / pub_period)
+  bool _syncPubToTs = false;
+  int64_t _lastPubBucket = -1;
+  double _pubDecimAccum = 1.0;  // Frame decimation: the first frame is published
   sl::RESOLUTION _camResol = sl::RESOLUTION::HD1080; // Default resolution: RESOLUTION_HD1080
   PubRes _pubResolution = PubRes::NATIVE; // Use native grab resolution by default
   double _customDownscaleFactor = 1.0;  // Used to rescale data with user factor
-  bool _cameraFlip = false; // Camera flipped?
   bool _enableHDR = false; // Enable HDR if supported?
   std::string _opencvCalibFile; // Custom OpenCV calibration file
   int _sdkVerbose = 0; // SDK verbose level
@@ -427,11 +467,21 @@ private:
 #endif
   // Time reference used for the frame timestamps of the published data
   sl::TIME_REFERENCE _tsReference = sl::TIME_REFERENCE::IMAGE;
-  bool _grabOnce = false;
-  bool _grabImuOnce = false;
+  std::atomic<bool> _grabOnce{false};     // Set by the SVO seek service
+  std::atomic<bool> _grabImuOnce{false};  // Set by the SVO seek service
 
   int _camSerialNumber = 0; // Camera serial number
   int _camId = -1; // Camera ID
+  int _camTimeoutSec = 5; // Camera timeout [sec]
+  int _maxReconnectTemp = 5; // Camera reconnection attempts
+  // On a fatal error (camera that cannot be opened or that is lost for good),
+  // stop the whole process instead of this node only: set by the launch file
+  // when the node runs alone in the container it creates
+  bool _exitOnFailure = false;
+  // A disconnected camera is waited for `_camTimeoutSec` x `_maxReconnectTemp`
+  // seconds, then the node is shut down
+  sl_tools::CameraDisconnection _camDisconn;
+  sl_tools::CameraReboot _camReboot;  // `~/reboot_camera` service calls
   // Bus the camera is opened from when selecting it by ID. AUTO lets the ZED
   // SDK look on every bus, which is what the serial number path already does.
   sl::BUS_TYPE _camBusType = sl::BUS_TYPE::AUTO;
@@ -487,6 +537,12 @@ private:
   int _streamingServerTargetFramerate = 0;
 
   double _sensPubRate = 200.;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 56
+  // Requested IMU configuration (ZED X family)
+  sl::IMU_SAMPLING_RATE _ImuSamplingRate = sl::IMU_SAMPLING_RATE::DEFAULT;
+  sl::ACCELEROMETER_RANGE _ImuAccelRange = sl::ACCELEROMETER_RANGE::DEFAULT;
+  sl::GYROSCOPE_RANGE _ImuGyroRange = sl::GYROSCOPE_RANGE::DEFAULT;
+#endif
   double _imuOdr = 0.0;          // Hardware IMU output data rate [Hz] (0 = unknown)
   double _imuDecimAccum = 0.0;   // Fractional accumulator for IMU rate decimation
   // <---- Parameters
@@ -546,8 +602,6 @@ private:
   // <---- Timestamps
 
   // ----> TF handling
-  std::unique_ptr<tf2_ros::Buffer> _tfBuffer;
-  std::unique_ptr<tf2_ros::TransformListener> _tfListener;
   std::unique_ptr<tf2_ros::TransformBroadcaster> _tfBroadcaster;
   std::unique_ptr<tf2_ros::StaticTransformBroadcaster> _staticTfBroadcaster;
 
@@ -634,6 +688,7 @@ private:
   pauseSvoRecSrvPtr _srvPauseSvoRec;
   pauseSvoSrvPtr _srvPauseSvo;
   setSvoFramePtr _srvSetSvoFrame;
+  rebootSrvPtr _srvReboot;
 
   sl_tools::StopWatch _setSvoFrameCheckTimer;
   // <---- Services
@@ -645,6 +700,7 @@ private:
   const std::string _srvPauseSvoRecName = "pause_svo_rec";
   const std::string _srvToggleSvoPauseName = "toggle_svo_pause";
   const std::string _srvSetSvoFrameName = "set_svo_frame";
+  const std::string _srvRebootName = "reboot_camera";
   // <---- Services names
 };
 

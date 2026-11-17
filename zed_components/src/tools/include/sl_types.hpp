@@ -105,6 +105,13 @@ constexpr auto SENS_SUB_COUNT_REFRESH_SEC = 0.25;
 // 10 kHz; 5 kHz (a 200 us period) is enough for every current camera. On an AGX
 // Orin the resulting poll costs ~1.5% of one core.
 constexpr auto IMU_POLL_MAX_HZ = 5000.0;
+// ZED SDK >= 5.6 forwards the camera settings to the simulator: the simulated
+// cameras then accept the video parameters the simulator supports
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 56
+constexpr bool SIM_VIDEO_SETTINGS = true;
+#else
+constexpr bool SIM_VIDEO_SETTINGS = false;
+#endif
 
 // Simulation server connection
 constexpr auto SIM_CONN_RETRY_PERIOD_SEC = 1;  // Delay between connection attempts
@@ -207,6 +214,7 @@ typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetRoiSrvPtr;
 typedef rclcpp::Service<robot_localization::srv::ToLL>::SharedPtr toLLSrvPtr;
 typedef rclcpp::Service<robot_localization::srv::FromLL>::SharedPtr fromLLSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableStreamingPtr;
+typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr rebootSrvPtr;
 
 
 /*!

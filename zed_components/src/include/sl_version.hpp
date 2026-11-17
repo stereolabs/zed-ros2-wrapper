@@ -23,8 +23,9 @@ const size_t WRAPPER_MAJOR = 5;
 const size_t WRAPPER_MINOR = 6;
 const size_t WRAPPER_PATCH = 0;
 
-const size_t SDK_MAJOR_MIN_SUPP = 4;
-const size_t SDK_MINOR_MIN_SUPP = 2;
+const size_t SDK_MAJOR_MIN_SUPP = 5;
+const size_t SDK_MINOR_MIN_SUPP = 0;
+const size_t SDK_PATCH_MIN_SUPP = 7;
 
 const size_t SDK_MAJOR_MAX_SUPP = WRAPPER_MAJOR; // Set to manual values to force newer versions while developing
 const size_t SDK_MINOR_MAX_SUPP = WRAPPER_MINOR; // Set to manual values to force newer versions while developing

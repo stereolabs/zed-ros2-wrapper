@@ -10,9 +10,10 @@
 #                             Supported: humble, jazzy, lyrical
 #   --os <ubuntu-XX.XX>     Ubuntu version            (default: ubuntu-24.04)
 #   --sdk <X.Y.Z|latest>    ZED SDK version           (default: latest)
-#   --cuda <XX.X>           CUDA version of the base  (default: 12.8)
-#                             For the 'gl-devel' variant, ZED SDK >= 5.2 only
-#                             ships CUDA 12.8 (see the README configuration table).
+#   --cuda <XX.X>           CUDA version of the base  (default: 13.0, or 13.3
+#                             on Ubuntu 26.04)
+#                             See the README configuration table for the
+#                             CUDA/Ubuntu combinations published per ZED SDK.
 #   --sdk-url <URL|path>    Build against a custom ZED SDK '.run' installer
 #                             (e.g. a local or pre-release build) instead of a
 #                             published 'stereolabs/zed' image. Accepts either
@@ -24,11 +25,15 @@
 #                             '--cuda' must be a full version (e.g. 12.6.3)
 #                             and '--sdk' is ignored.
 #
-# The desktop images always use the StereoLabs 'gl-devel' base variant (unless
-# --sdk-url is used, which builds on a plain CUDA base).
+# The desktop images always use the StereoLabs 'devel' base variant (unless
+# --sdk-url is used, which builds on a plain CUDA base). The OpenGL runtime
+# libraries, needed by graphical tools such as RViz 2, are added by the
+# Dockerfile.
 #
 # Examples:
 #   ./build_desktop.sh --ros-distro jazzy --os ubuntu-24.04 --sdk latest
+#   ./build_desktop.sh --ros-distro lyrical --os ubuntu-26.04
+#   ./build_desktop.sh --ros-distro jazzy --os ubuntu-24.04 --cuda 12.8
 #   ./build_desktop.sh --ros-distro humble --os ubuntu-22.04 --cuda 12.6.3 \
 #                      --sdk-url https://download.stereolabs.com/.../ZED_SDK_....run
 #   ./build_desktop.sh --ros-distro humble --os ubuntu-22.04 --cuda 12.6.3 \
@@ -46,9 +51,9 @@ require_cmd docker
 ROS_DISTRO="jazzy"
 OS="ubuntu-24.04"
 SDK="latest"
-CUDA="12.8"
+CUDA=""              # empty => default for the selected Ubuntu, set below
 SDK_URL=""           # custom ZED SDK .run installer URL (empty => published image)
-VARIANT="gl-devel"   # desktop images always use the 'gl-devel' base variant
+VARIANT="devel"      # desktop images always use the 'devel' base variant
 
 # --- Parse arguments ---------------------------------------------------------
 while [ "$#" -gt 0 ]; do
@@ -76,13 +81,23 @@ fi
 # Fail fast on an unsupported ROS 2 distro / Ubuntu combination.
 assert_distro_ubuntu_supported "${ROS_DISTRO}" "${UBUNTU}"
 
+# --- Default CUDA version ----------------------------------------------------
+# CUDA 13.0 is published for Ubuntu 22.04 and 24.04; Ubuntu 26.04 images ship
+# CUDA 13.3 only. With --sdk-url there is no default: a full version is needed.
+if [ -z "${CUDA}" ] && [ -z "${SDK_URL}" ]; then
+  case "${UBUNTU}" in
+    26.04) CUDA="13.3" ;;
+    *)     CUDA="13.0" ;;
+  esac
+fi
+
 # --- Select the base image ---------------------------------------------------
 if [ -n "${SDK_URL}" ]; then
   # Custom SDK mode: build on a plain NVIDIA CUDA base and install the ZED SDK
   # from the given .run installer URL. A full CUDA version (XX.X.X) is required
   # to select an 'nvcr.io/nvidia/cuda' tag.
   if ! [[ "${CUDA}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    die "With --sdk-url, --cuda must be a full version (e.g. 12.6.3) to select an 'nvcr.io/nvidia/cuda' base image. Got '${CUDA}'."
+    die "With --sdk-url, --cuda must be a full version (e.g. 12.6.3) to select an 'nvcr.io/nvidia/cuda' base image. Got '${CUDA:-none}'."
   fi
   BASE_IMAGE="nvcr.io/nvidia/cuda:${CUDA}-devel-ubuntu${UBUNTU}"
   IMAGE_TAG="zed_ros2_desktop_${ROS_DISTRO}_u${UBUNTU}_sdkcustom_cuda${CUDA}"
@@ -91,7 +106,7 @@ else
   # Published SDK mode: build on a 'stereolabs/zed' image that already ships the
   # SDK.
   if ! [[ "${CUDA}" =~ ^[0-9]+\.[0-9]+$ ]]; then
-    die "Invalid CUDA version '${CUDA}'. Expected e.g. '12.8'."
+    die "Invalid CUDA version '${CUDA}'. Expected e.g. '13.0'."
   fi
 
   # --- Resolve the ZED SDK version ------------------------------------------

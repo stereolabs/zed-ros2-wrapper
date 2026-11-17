@@ -38,10 +38,10 @@ reading the actual Ubuntu codename of the base image.
 | ROS 2 distro | Target Ubuntu | Base image OS | Mode |
 |--------------|---------------|---------------|------|
 | Humble | 22.04 | Ubuntu 22.04 / L4T r36.x | APT |
-| Jazzy | 24.04 | Ubuntu 24.04 / L4T r38.x (JP7) | APT |
+| Jazzy | 24.04 | Ubuntu 24.04 / L4T r38.x, r39.x (JP7) | APT |
 | Jazzy | 24.04 | Ubuntu 22.04 / L4T r36.x (JP6) | **from source** |
 | Lyrical | 26.04 | Ubuntu 26.04 | APT |
-| Lyrical | 26.04 | Ubuntu 24.04 / L4T r38.x (JP7) | **from source** |
+| Lyrical | 26.04 | Ubuntu 24.04 / L4T r38.x, r39.x (JP7) | **from source** |
 
 > :warning: **From-source builds are heavy and best-effort.** Building ROS 2
 > from source (e.g. Jazzy on an L4T r36.x / Ubuntu 22.04 base, or Lyrical on a
@@ -55,38 +55,47 @@ reading the actual Ubuntu codename of the base image.
 
 The base images come from the StereoLabs registry
 ([hub.docker.com/r/stereolabs/zed](https://hub.docker.com/r/stereolabs/zed/tags)).
-The desktop build uses the **`gl-devel`** variant and the Jetson build uses the
-**`devel`** variant. The combinations published for those variants are listed
-below.
+Both the desktop and the Jetson builds use the **`devel`** variant. The
+combinations published for that variant are listed below.
 
-> :calendar: **Updated: 2026-06-22.** The lists below are a snapshot. For the
+> :calendar: **Updated: 2026-11-12.** The lists below are a snapshot. For the
 > live, authoritative set always check
 > [hub.docker.com/r/stereolabs/zed/tags](https://hub.docker.com/r/stereolabs/zed/tags);
 > any combination is validated against Docker Hub before the build starts.
 
-### Desktop (`gl-devel`)
+### Desktop (`devel`)
 
 | ZED SDK | CUDA | Ubuntu |
 |---------|------|--------|
-| 5.4.x *(latest)* | 12.8 | 22.04, 24.04 |
-| 5.3.1, 5.3.0 | 12.8 | 22.04, 24.04 |
-| 5.2.0 – 5.2.3 | 12.8 | 22.04, 24.04 |
-| 5.1.0 – 5.1.2 | 12.8 | 22.04, 24.04 |
-| 5.1.0 – 5.1.2 | 11.8 | 22.04 |
+| 5.5.0 *(latest)* | 13.0 | 22.04, 24.04 |
+| 5.5.0 *(latest)* | 13.3 | 26.04 |
+| 5.5.0 *(latest)* | 12.8 | 24.04 |
+| 5.4.1 | 12.8, 13.0 | 22.04, 24.04 |
+| 5.4.1 | 13.3 | 26.04 |
+| 5.2.0 to 5.4.0 | 12.8, 13.0 | 22.04, 24.04 |
+| 5.1.0 to 5.1.2 | 12.8, 13.0 | 22.04, 24.04 |
+| 5.1.0 to 5.1.2 | 11.8 | 22.04 |
 
-> :pushpin: The plain `devel` variant also offers CUDA 13.0, but the wrapper
-> desktop image uses `gl-devel`, which currently ships **only CUDA 12.8** (plus
-> CUDA 11.8 for ZED SDK 5.1.x). Pass `--cuda` to select it explicitly.
+When `--cuda` is not set, the desktop build uses **CUDA 13.0** on Ubuntu 22.04
+and 24.04, and **CUDA 13.3** on Ubuntu 26.04. Pass `--cuda` to select another
+published version, for example `--cuda 12.8` when the NVIDIA driver of the host
+does not support CUDA 13.
+
+> :pushpin: The `gl-devel` variant (the `devel` image with OpenGL support),
+> used by earlier versions of these scripts, is published up to ZED SDK 5.4.1
+> and only for CUDA 12.8 (plus CUDA 11.8 for ZED SDK 5.1.x). The desktop build now uses `devel` for every ZED SDK
+> version, and the `Dockerfile` adds the OpenGL runtime libraries, so graphical
+> tools such as RViz 2 keep working.
 
 ### Jetson (`devel`)
 
 | ZED SDK | Available JetPack / L4T targets |
 |---------|---------------------------------|
-| 5.4.x *(latest)* | JP6.1 / r36.4 |
-| 5.3.1, 5.3.0 | JP6.1 / r36.4 · JP6.2.2 / r36.5 · JP7.1 / r38.4 |
+| 5.5.0 *(latest)*, 5.4.1 | JP6.1 / r36.4 · JP6.2.2 / r36.5 · JP7.1 / r38.4 · JP7.2.1 / r39.2 |
+| 5.3.0 to 5.4.0 | JP6.1 / r36.4 · JP6.2.2 / r36.5 · JP7.1 / r38.4 |
 | 5.2.3 | JP5.1.2 / r35.4 · JP6.0 / r36.3 · JP6.1 / r36.4 · JP6.2.2 / r36.5 · JP7.1 / r38.4 |
-| 5.2.0 – 5.2.2 | JP5.1.2 / r35.4 · JP6.0 / r36.3 · JP6.1 / r36.4 |
-| 5.1.0 – 5.1.2 | JP5.1.2 / r35.4 · JP6.0 / r36.3 · JP6.1 / r36.4 |
+| 5.2.0 to 5.2.2 | JP5.1.2 / r35.4 · JP6.0 / r36.3 · JP6.1 / r36.4 |
+| 5.1.0 to 5.1.2 | JP5.1.2 / r35.4 · JP6.0 / r36.3 · JP6.1 / r36.4 |
 
 JetPack / L4T / Ubuntu mapping (the Ubuntu base decides whether ROS 2 is
 installed from APT or built from source):
@@ -98,6 +107,7 @@ installed from APT or built from source):
 | JP6.1 | r36.4 | 22.04 |
 | JP6.2.2 | r36.5 | 22.04 |
 | JP7.1 | r38.4 | 24.04 |
+| JP7.2.1 | r39.2 | 24.04 |
 
 ## Tested configurations
 
@@ -121,7 +131,9 @@ been checked yet.
 | Humble | x86_64 desktop (native) | published | 5.4.x (latest) | ✅ Built, ~35 s total (build-only, no camera) |
 | Jazzy | x86_64 desktop (native) | published | 5.4.x (latest) | ✅ Built, ~47 s total (build-only, no camera) |
 | Lyrical | x86_64 desktop (native) | published | 5.4.x (latest) | ✅ Built, ~13 min total (from-source ROS 2 core; build-only, no camera) |
-| Lyrical | x86_64 desktop (native) | published, Ubuntu 26.04 | - | ⏳ Not available yet: no `stereolabs/zed` image published for Ubuntu 26.04 |
+| Jazzy | x86_64 desktop (native), Ubuntu 24.04, CUDA 13.0 | published | 5.5.0 (latest) | ✅ Built, ~15 min total including the base image pull (APT mode; build-only, no camera) |
+| Humble | x86_64 desktop (native), Ubuntu 22.04, CUDA 13.0 | published | 5.5.0 (latest) | ✅ Built, ~6 min total including the base image pull (APT mode; build-only, no camera) |
+| Lyrical | x86_64 desktop (native), Ubuntu 26.04, CUDA 13.3 | published | 5.5.0 (latest) | ✅ Built, ~11 min total including the base image pull (APT mode; build-only, no camera) |
 | Jazzy | x86_64 desktop (native) | `--sdk-url` (local `.run` file) | 5.4.0 | ✅ Built, ~18 min total (from-source ROS 2 core; real ZED SDK `.run` installer, not a stand-in) |
 
 ## Build the Docker images
@@ -139,18 +151,25 @@ git checkout <branch_or_tag>
                    [--sdk <X.Y.Z|latest>] [--cuda <XX.X>] [--sdk-url <URL>]
 ```
 
-Defaults: `--ros-distro jazzy --os ubuntu-24.04 --sdk latest --cuda 12.8`.
+Defaults: `--ros-distro jazzy --os ubuntu-24.04 --sdk latest --cuda 13.0`
+(`--cuda 13.3` on Ubuntu 26.04).
 These build scripts target the LTS distributions with published StereoLabs base
 images: **Humble, Jazzy, Lyrical**. Desktop images always use the StereoLabs
-`gl-devel` base variant. (The wrapper *packages* also build on Foxy and Rolling;
+`devel` base variant. (The wrapper *packages* also build on Foxy and Rolling;
 see [Supported ROS 2 distributions](../README.md#supported-ros-2-distributions).)
 
 ```bash
-# Defaults: ROS 2 Jazzy, Ubuntu 24.04, latest ZED SDK, CUDA 12.8
+# Defaults: ROS 2 Jazzy, Ubuntu 24.04, latest ZED SDK, CUDA 13.0
 ./build_desktop.sh
 
 # ROS 2 Humble on Ubuntu 22.04 with a specific ZED SDK
 ./build_desktop.sh --ros-distro humble --os ubuntu-22.04 --sdk 5.4.1
+
+# ROS 2 Lyrical on Ubuntu 26.04 (CUDA 13.3)
+./build_desktop.sh --ros-distro lyrical --os ubuntu-26.04
+
+# ROS 2 Jazzy on Ubuntu 24.04 with CUDA 12.8
+./build_desktop.sh --cuda 12.8
 ```
 
 ### Jetson
@@ -171,6 +190,9 @@ see [Supported ROS 2 distributions](../README.md#supported-ros-2-distributions).
 # Default: ROS 2 Humble on JetPack 6.2.2 (Ubuntu 22.04), latest ZED SDK
 ./build_jetson.sh
 
+# ROS 2 Jazzy on JetPack 7.2.1 (L4T r39.2, Ubuntu 24.04)
+./build_jetson.sh --ros-distro jazzy --os jp7.2.1
+
 # ROS 2 Lyrical on JetPack 7.1 (Ubuntu 24.04): built from source
 ./build_jetson.sh --ros-distro lyrical --os jp7.1.0
 ```
@@ -178,10 +200,10 @@ see [Supported ROS 2 distributions](../README.md#supported-ros-2-distributions).
 ### Notes on inputs
 
 * **`--sdk latest`** resolves to the newest ZED SDK that has an image for the
-  chosen platform on Docker Hub. For example, on a desktop Ubuntu 24.04 base it
-  resolves to the latest SDK (e.g. `5.4.1`), while on a JetPack 6.2.2 base it
-  resolves to the latest SDK published for that platform (e.g. `5.3.1`, since
-  newer SDKs may not yet ship a JP6.2.2 image).
+  chosen platform on Docker Hub. A platform may not have an image for the very
+  latest SDK: for example, on a desktop Ubuntu 22.04 base with `--cuda 12.8` it
+  resolves to `5.4.1`, the last SDK published for that combination, while with
+  the default CUDA 13.0 it resolves to `5.5.0`.
 * **`--sdk-url <URL>`** builds against a custom/unreleased ZED SDK `.run`
   installer instead of a published image: see
   [Build against a custom or unreleased ZED SDK](#build-against-a-custom-or-unreleased-zed-sdk).
@@ -195,8 +217,8 @@ see [Supported ROS 2 distributions](../README.md#supported-ros-2-distributions).
   | ROS 2 distro | Supported Ubuntu | Jetson (JetPack) |
   |--------------|------------------|------------------|
   | Humble | 22.04 | JP6 (L4T r36.x) |
-  | Jazzy | 22.04 (Tier 3), 24.04 (Tier 1) | JP6 (L4T r36.x) or JP7 (L4T r38.x) |
-  | Lyrical | 24.04 (Tier 3), 26.04 (Tier 1) | JP7 (L4T r38.x) |
+  | Jazzy | 22.04 (Tier 3), 24.04 (Tier 1) | JP6 (L4T r36.x) or JP7 (L4T r38.x, r39.x) |
+  | Lyrical | 24.04 (Tier 3), 26.04 (Tier 1) | JP7 (L4T r38.x, r39.x) |
 
   Lyrical on Ubuntu 22.04 (JetPack 6), or Humble on Ubuntu 24.04, are rejected
   up front. On a supported pairing with no published APT binaries (e.g.
@@ -334,6 +356,13 @@ Share the host `DISPLAY` with `-e DISPLAY=$DISPLAY` and mount
   * `/var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/`
   * `/etc/systemd/system/zed_x_daemon.service:/etc/systemd/system/zed_x_daemon.service`
 
+### Real-time priority (GMSL cameras)
+
+With ZED SDK >= 5.6 and ZED X driver >= 1.5.0, the ZED SDK runs the GMSL capture and sensors
+threads at real-time priority (`SCHED_RR`, priority 5). Start the container with
+`--ulimit rtprio=5` to allow it (check it in the container with `ulimit -r`, which must print `5`);
+otherwise the threads run at normal priority and the ZED SDK logs how to allow it.
+
 ### Start the container
 
 Allow the container to access EGL display resources (once):
@@ -366,5 +395,6 @@ docker run --runtime nvidia -it --privileged --network=host --ipc=host --pid=hos
   -v /etc/systemd/system/zed_x_daemon.service:/etc/systemd/system/zed_x_daemon.service \
   -v /usr/local/zed/resources/:/usr/local/zed/resources/ \
   -v /usr/local/zed/settings/:/usr/local/zed/settings/ \
+  --ulimit rtprio=5 \
   <docker_image_tag>
 ```

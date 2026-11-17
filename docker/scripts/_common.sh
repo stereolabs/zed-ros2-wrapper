@@ -39,12 +39,12 @@ supported_ubuntu_for() {
 }
 
 # jetson_ubuntu_version <platform_suffix> : Ubuntu version of a JetPack/L4T base
-# (L4T r35/JP5 -> 20.04, r36/JP6 -> 22.04, r38/JP7 -> 24.04).
+# (L4T r35/JP5 -> 20.04, r36/JP6 -> 22.04, r38 and r39/JP7 -> 24.04).
 jetson_ubuntu_version() {
   case "$1" in
     *l4t-r35*|*jp5*) echo "20.04" ;;
     *l4t-r36*|*jp6*) echo "22.04" ;;
-    *l4t-r38*|*jp7*) echo "24.04" ;;
+    *l4t-r38*|*l4t-r39*|*jp7*) echo "24.04" ;;
     *)               echo "" ;;
   esac
 }
@@ -78,14 +78,16 @@ tag_exists() {
 }
 
 # resolve_latest_sdk <suffix> : print the highest ZED SDK version (X.Y.Z) that
-# has an image whose tag ends with "-<suffix>" (e.g. "devel-cuda12.8-ubuntu24.04"
-# or "devel-l4t-r36.5"). Queries the Docker Hub tag list with pagination.
+# has an image whose tag is exactly "X.Y.Z-<suffix>" (e.g.
+# "devel-cuda13.0-ubuntu24.04" or "devel-l4t-r36.5"). The Docker Hub tag list is
+# filtered by name on the server: the repository holds more tags than an
+# anonymous request can page through, so the full list cannot be scanned.
 resolve_latest_sdk() {
   local suffix="$1"
   local page=1 names latest
   latest=""
-  while [ "${page}" -le 20 ]; do
-    names="$(curl -L -s "${DOCKERHUB_API}/?page_size=100&page=${page}")"
+  while [ "${page}" -le 10 ]; do
+    names="$(curl -L -s "${DOCKERHUB_API}/?page_size=100&page=${page}&name=${suffix}")"
     # Stop when the page has no results.
     echo "${names}" | grep -q '"name"' || break
     # Extract "X.Y.Z-<suffix>" tags and keep the version part.

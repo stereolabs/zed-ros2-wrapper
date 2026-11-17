@@ -20,7 +20,8 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     OpaqueFunction,
-    LogInfo
+    LogInfo,
+    Shutdown
 )
 from launch.conditions import IfCondition
 from launch.substitutions import (
@@ -61,6 +62,16 @@ default_xacro_path = os.path.join(
     'urdf',
     'zed_descr.urdf.xacro'
 )
+
+
+def _shutdown_on_exit(event, context):
+    # The ZED node exits when the camera is lost for good: stop the whole launch,
+    # as zed_camera.launch.py does. Not while the launch is already shutting down
+    # (Ctrl+C): a second shutdown raises an exception.
+    if getattr(context, 'is_shutdown', False):
+        return None
+    return [Shutdown(reason='ZED node exited')]
+
 
 # Function to parse array-like launch arguments
 
@@ -294,7 +305,9 @@ def launch_setup(context, *args, **kwargs):
             'sensors.publish_imu_tf': publish_imu_tf,
             'gnss_fusion.gnss_fusion_enabled': enable_gnss,
             'general.virtual_serial_numbers': serial_numbers_val,
-            'general.virtual_camera_ids': camera_ids_val
+            'general.virtual_camera_ids': camera_ids_val,
+            # The debug process runs this node only
+            'general.exit_on_failure': True
         }
     )
 
@@ -315,7 +328,8 @@ def launch_setup(context, *args, **kwargs):
         parameters=node_parameters,
         output='screen',
         prefix=[prefix_string],
-        arguments=exe_args + ['--ros-args', '--log-level', 'debug']
+        arguments=exe_args + ['--ros-args', '--log-level', 'debug'],
+        on_exit=_shutdown_on_exit
     )
     return_array.append(zed_node)
 

@@ -29,7 +29,7 @@
 #
 # Note: the ROS 2 distribution must be supported on the JetPack base Ubuntu:
 #   * JetPack 6.x (L4T r36.x) = Ubuntu 22.04 -> Humble (APT), or Jazzy (Tier 3, from source)
-#   * JetPack 7.x (L4T r38.x) = Ubuntu 24.04 -> Jazzy, or Lyrical (from source)
+#   * JetPack 7.x (L4T r38.x, r39.x) = Ubuntu 24.04 -> Jazzy, or Lyrical (from source)
 # Unsupported pairings (e.g. Lyrical on JetPack 6 / Ubuntu 22.04) are rejected
 # up front.
 #
@@ -39,6 +39,7 @@
 # Examples:
 #   ./build_jetson.sh --ros-distro humble --os jp6.2.2          # Ubuntu 22.04
 #   ./build_jetson.sh --ros-distro jazzy --os jp6.2.2 --sdk latest     # Ubuntu 22.04, from source
+#   ./build_jetson.sh --ros-distro jazzy --os jp7.2.1                  # Ubuntu 24.04
 #   ./build_jetson.sh --ros-distro lyrical --os jp7.1.0 --sdk latest   # Ubuntu 24.04, from source
 # =============================================================================
 set -e

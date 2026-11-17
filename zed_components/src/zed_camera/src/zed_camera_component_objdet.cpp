@@ -73,15 +73,14 @@ void ZedCamera::getOdParams()
       sl::OBJECT_DETECTION_MODEL::MULTI_CLASS_BOX_FAST,
       sl::OBJECT_DETECTION_MODEL::LAST, mObjDetModel))
   {
-    RCLCPP_ERROR(get_logger(), "Stopping the node.");
-    exit(EXIT_FAILURE);
+    throw sl_tools::NodeFatalError("Invalid configuration");
   }
   if (mObjDetModel == sl::OBJECT_DETECTION_MODEL::CUSTOM_BOX_OBJECTS) {
     RCLCPP_ERROR_STREAM(
       get_logger(),
       "The value of the parameter 'object_detection.detection_model' is not supported: '"
-        << sl::toString(mObjDetModel).c_str() << "'. Stopping the node");
-    exit(EXIT_FAILURE);
+        << sl::toString(mObjDetModel).c_str() << "'.");
+    throw sl_tools::NodeFatalError("Invalid configuration");
   }
   RCLCPP_INFO_STREAM(
     get_logger(), " * Object Det. model: "
@@ -187,7 +186,7 @@ void ZedCamera::getCustomOdParams()
       get_logger(),
       "The parameter 'object_detection.custom_onnx_file' is empty. "
       "Please check the value in the YAML file.");
-    exit(EXIT_FAILURE);
+    throw sl_tools::NodeFatalError("Invalid configuration");
   }
   sl_tools::getParam(
     shared_from_this(),
@@ -323,6 +322,7 @@ void ZedCamera::getCustomOdParams()
       std::string(
         "  * ") + param_name + ": ", true, 0.0f,
       100000.0f);
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 52  // Object tracking parameters
     param_name = param_prefix + "velocity_smoothing_factor";
     sl_tools::getParam(
       shared_from_this(), param_name,
@@ -359,6 +359,7 @@ void ZedCamera::getCustomOdParams()
       sl::OBJECT_ACCELERATION_PRESET::LAST,
       customOdProperties.object_tracking_parameters.object_acceleration_preset,
       std::string("  * ") + param_name + ": ");
+#endif
 
     mCustomOdProperties[class_id] = customOdProperties; // Update the Custom OD Properties information
   }
@@ -875,6 +876,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].max_allowed_acceleration);
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 52  // Object tracking parameters
   } else if (param_name == "velocity_smoothing_factor") {
     rclcpp::ParameterType
       correctType = rclcpp::ParameterType::PARAMETER_DOUBLE;
@@ -939,6 +941,7 @@ bool ZedCamera::handleCustomOdDynamicParams(
       "Parameter '"
         << param.get_name() << "' correctly set to "
         << mCustomOdProperties[class_id].object_tracking_parameters.min_confirmation_time_s);
+#endif
   } else {
     RCLCPP_WARN_STREAM(get_logger(), "Unknown parameter: " << param.get_name());
   }
@@ -1089,7 +1092,7 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
 
   // ----> Update runtime parameters only when changed (B2 optimization)
   if (mObjDetRtParamsDirty) {
-    if (!mUsingCustomOd || ZED_SDK_MAJOR_VERSION < 5) {
+    if (!mUsingCustomOd) {
       sl::ObjectDetectionRuntimeParameters objectTracker_parameters_rt;
       objectTracker_parameters_rt.detection_confidence_threshold = 50.0f;
       mObjDetFilter.clear();
@@ -1127,7 +1130,6 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
       objectTracker_parameters_rt.object_class_detection_confidence_threshold = mObjDetClassConfMap;
       mZed->setObjectDetectionRuntimeParameters(objectTracker_parameters_rt);
     }
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
     // Custom OD: do NOT call setCustomObjectDetectionRuntimeParameters here.
     // On SDK 5.2.3 calling this corrupts internal state so that any later
     // retrieveObjects() or retrieveCustomObjects() returns is_new=false
@@ -1137,12 +1139,10 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
     // call produces detections. The canonical Custom OD sample also follows
     // this pattern (see ZED SDK samples: object detection/custom detector/
     //   python/onnx_yolo_internal/custom_internal_detector.py).
-#endif
     mObjDetRtParamsDirty = false;
   }
   // <---- Update runtime parameters only when changed
 
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
   if (mUsingCustomOd) {
     sl::CustomObjectDetectionRuntimeParameters custom_rt;
     custom_rt.object_class_detection_properties = mCustomOdProperties;
@@ -1150,9 +1150,6 @@ void ZedCamera::processDetectedObjects(rclcpp::Time t)
   } else {
     objDetRes = mZed->retrieveObjects(objects);
   }
-#else
-  objDetRes = mZed->retrieveObjects(objects);
-#endif
 
   if (objDetRes != sl::ERROR_CODE::SUCCESS) {
     RCLCPP_WARN_STREAM(

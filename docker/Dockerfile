@@ -11,12 +11,12 @@
 # =============================================================================
 
 # Full StereoLabs base image tag, e.g.:
-#   stereolabs/zed:5.4-devel-cuda12.8-ubuntu24.04   (desktop)
-#   stereolabs/zed:5.3-devel-l4t-r36.5              (Jetson)
+#   stereolabs/zed:5.5-devel-cuda13.0-ubuntu24.04   (desktop)
+#   stereolabs/zed:5.5-devel-l4t-r36.5              (Jetson)
 #
 # When building against a custom/unreleased ZED SDK (build_*.sh --sdk-url), this
 # is instead a plain CUDA / L4T image and the SDK is installed further below.
-ARG BASE_IMAGE=stereolabs/zed:5.4-devel-cuda12.8-ubuntu24.04
+ARG BASE_IMAGE=stereolabs/zed:5.5-devel-cuda13.0-ubuntu24.04
 FROM ${BASE_IMAGE}
 
 # ROS 2 distribution to install (default: Jazzy)
@@ -26,7 +26,7 @@ ENV ROS_DISTRO=${ROS2_DISTRO}
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Paris
 
-ENV NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility
+ENV NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility,graphics
 
 # --- Common build/runtime tooling and locale --------------------------------
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
@@ -42,6 +42,27 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone &
     rm -rf /var/lib/apt/lists/*
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
+
+# --- OpenGL runtime (desktop only) -------------------------------------------
+# The desktop 'devel' base images ship no OpenGL libraries (the 'gl-devel'
+# variant that did is not published for ZED SDK >= 5.5). Add the GLVND runtime
+# and the NVIDIA EGL vendor file so that graphical tools such as RViz 2 can
+# render on the GPU when the container runs with the NVIDIA runtime. Skipped on
+# Jetson, where the NVIDIA runtime mounts the L4T graphics stack from the host.
+RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+      (apt-get update || true) && \
+      apt-get install -y --no-install-recommends \
+        libglvnd0 libgl1 libglx0 libegl1 libgles2 && \
+      mkdir -p /usr/share/glvnd/egl_vendor.d && \
+      printf '%s\n' \
+        '{' \
+        '    "file_format_version" : "1.0.0",' \
+        '    "ICD" : {' \
+        '        "library_path" : "libEGL_nvidia.so.0"' \
+        '    }' \
+        '}' > /usr/share/glvnd/egl_vendor.d/10_nvidia.json && \
+      rm -rf /var/lib/apt/lists/* || exit 1 ; \
+    fi
 
 # --- Optional: install a custom/unreleased ZED SDK, either from a URL or
 #     from a local '.run' file staged into the build context ----------------

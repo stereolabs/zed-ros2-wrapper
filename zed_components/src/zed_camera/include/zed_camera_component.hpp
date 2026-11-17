@@ -51,7 +51,10 @@ public:
 protected:
   // ----> Initialization functions
   void initNode();
+  void initNodeImpl();
   void deInitNode();
+  void stopOnFatalError(const std::string & reason);
+  void callback_fatalError();
 
   void initParameters();
   void initServices();
@@ -103,6 +106,10 @@ protected:
   bool startStreamingServer();
   void stopStreamingServer();
   void closeCamera();
+  void rebootCamera(std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  bool reopenCamera();
+  bool isCameraListed() const;
+  void restoreRegionOfInterest();
   // <---- Initialization functions
 
   // ----> Dynamic Parameters Handlers
@@ -205,12 +212,21 @@ protected:
   void callback_clickedPoint(
     const geometry_msgs::msg::PointStamped::SharedPtr msg);
   void callback_gnssFix(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 56
+  void callback_motionPrior(const nav_msgs::msg::Odometry::SharedPtr msg);
+  void getMotionPriorParams();
+  void publishMotionPriorLinks();
+#endif
   void callback_clock(const rosgraph_msgs::msg::Clock::SharedPtr msg);
   void callback_setRoi(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<zed_msgs::srv::SetROI_Request> req,
     std::shared_ptr<zed_msgs::srv::SetROI_Response> res);
   void callback_resetRoi(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+    std::shared_ptr<std_srvs::srv::Trigger_Response> res);
+  void callback_reboot(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
     std::shared_ptr<std_srvs::srv::Trigger_Response> res);
@@ -348,6 +364,7 @@ protected:
   bool prepareCloudMsg(size_t width, size_t height);
   void publishPointCloud();
   void publishImuFrameAndTopic();
+  bool areSensorsDataNeeded() const;
 
   void publishOdom(
     tf2::Transform & odom2baseTransf, sl::Pose & slPose, const tf2::Vector3 & linear_velocity,
@@ -364,6 +381,9 @@ protected:
   void publishOdomTF(rclcpp::Time t);
   void publishPoseTF(rclcpp::Time t);
   bool publishSensorsData(rclcpp::Time force_ts = TIMEZERO_ROS);
+  // True (and logged once) if `err` means that the input cannot provide the
+  // sensors data for the whole session
+  bool isSensorsDataUnavailable(sl::ERROR_CODE err);
   void publishImuMessages(
     const sl::SensorsData & sens_data, const rclcpp::Time & ts_imu,
     size_t imu_SubCount, size_t imu_RawSubCount);
@@ -392,6 +412,12 @@ protected:
 
   // ----> Utility functions
   bool isDepthRequired();
+  // Synchronized publishing selects the frames only when it publishes fewer
+  // frames than it grabs
+  bool isSyncPubGated() const
+  {
+    return mSyncPubToTs && mVdPubRate > 0.0 && mVdPubRate < mCamGrabFrameRate;
+  }
   bool updatePosTrackingSubscribers(bool force = false);
   bool isPosTrackingRequired();
 
@@ -401,6 +427,10 @@ protected:
   // differs from `value`. Returns false if the write failed, so the caller
   // can keep the settings "dirty" and retry on a later cycle.
   bool applyVideoSetting(sl::VIDEO_SETTINGS setting, int value);
+  // Reports a failed video setting. Returns true if retrying cannot help (the
+  // setting or its value is refused by the camera or the input): it is then
+  // reported once per apply cycle and not retried.
+  bool checkVideoSettingError(sl::VIDEO_SETTINGS setting, sl::ERROR_CODE err);
   void applyAutoExposureGainSettings();
   void applyExposureGainSettings();
   void applyWhiteBalanceSettings();
@@ -420,6 +450,9 @@ protected:
   void applyDepthSettings();
 
   void processOdometry();
+  // True when the last pose can be used: the visual-inertial odometry tracked the
+  // frame, or the pose followed the motion prior because the images could not be used
+  bool isTrackedPoseValid() const;
   void processPose();
   void processGeoPose();
   void processSvoGnssData();
@@ -431,6 +464,9 @@ protected:
 
   bool setPose(float xt, float yt, float zt, float rr, float pr, float yr);
   void initTransforms();
+  const std::string & poseFrameId() const;
+  void selectPoseFrame(bool keepOdometry);
+  void updateStaticTransforms();
   bool getSens2BaseTransform();
   bool getSens2CameraTransform();
   bool getCamera2BaseTransform();
@@ -645,6 +681,10 @@ private:
   sl::DEPTH_PRECISION mDepthPrecision = sl::DEPTH_PRECISION::FP16;
   bool mAllowDepthCudaGraph = false;
 #endif
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 56
+  sl::DEPTH_COMPUTE_DEVICE mDepthComputeDevice = sl::DEPTH_COMPUTE_DEVICE::AUTO;  // Requested
+  sl::DEPTH_COMPUTE_DEVICE mDepthComputeDeviceInUse = sl::DEPTH_COMPUTE_DEVICE::AUTO;  // After open
+#endif
   PcRes mPcResolution = PcRes::COMPACT;
   bool mVoxelPointCloud = false;
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
@@ -653,20 +693,52 @@ private:
   std::atomic<bool> mDepthDisabled = false;  // Indicates if depth calculation is not required (DEPTH_MODE::NONE)
   int mDepthStabilization = 0;
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 56
+  // ----> Motion prior (`pos_tracking.motion_prior.*`)
+  bool mMotionPriorEnabled = false;
+  std::string mMotionPriorTopic = "/odometry/wheel";
+  sl::POSE_AXIS mMotionPriorAxes = sl::POSE_AXIS::TX | sl::POSE_AXIS::TY | sl::POSE_AXIS::RZ;
+  double mMotionPriorRejThresh = 3.0;
+  double mMotionPriorTransStdPerM = 0.02;  // Fallback when the twist covariance is not set
+  double mMotionPriorRotStdPerRad = 0.02;
+  bool mMotionPriorHasPrev = false;  // A previous sample starts the next interval
+  tf2::Transform mMotionPriorPrevPose;
+  rclcpp::Time mMotionPriorPrevStamp;
+  bool mMotionPriorTfOk = false;  // Mounting of the source, read once from TF
+  sl::Transform mMotionPriorSensorTransf;
+  // <---- Motion prior
+#endif
   int mCamTimeoutSec = 5;
   int mMaxReconnectTemp = 5;
+  // On a fatal error (camera that cannot be opened or that is lost for good),
+  // stop the whole process instead of this node only: set by the launch file
+  // when the node runs alone in the container it creates
+  bool mExitOnFailure = false;
+  // A disconnected camera is waited for `mCamTimeoutSec` x `mMaxReconnectTemp`
+  // seconds, then the node is shut down
+  sl_tools::CameraDisconnection mCamDisconn;
+  sl_tools::CameraReboot mCamReboot;  // `~/reboot_camera` service calls
   bool mCameraSelfCalib = true;
   bool mCameraFlip = false;
 
 
   bool mSensCameraSync = false;
   double mSensPubRate = 200.;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 56
+  // Requested IMU configuration (ZED X family)
+  sl::IMU_SAMPLING_RATE mImuSamplingRate = sl::IMU_SAMPLING_RATE::DEFAULT;
+  sl::ACCELEROMETER_RANGE mImuAccelRange = sl::ACCELEROMETER_RANGE::DEFAULT;
+  sl::GYROSCOPE_RANGE mImuGyroRange = sl::GYROSCOPE_RANGE::DEFAULT;
+#endif
   double mImuOdr = 0.0;          // Hardware IMU output data rate [Hz] (0 = unknown)
   double mImuDecimAccum = 0.0;   // Fractional accumulator for IMU rate decimation
 
   std::vector<std::vector<float>> mRoyPolyParam;  // Manual ROI polygon
   bool mAutoRoiEnabled = false;
   bool mManualRoiEnabled = false;
+  // Manual ROI in use, applied again when the camera is reopened after a reboot
+  sl::Mat mManualRoiMask;
+  std::unordered_set<sl::MODULE> mManualRoiModules;
   float mRoiDepthFarThresh = 2.5f;
   float mRoiImgHeightRationCutOff = 0.5f;
   std::unordered_set<sl::MODULE> mRoiModules;
@@ -797,6 +869,15 @@ private:
   // grab rate is known only after the input is open, so the request is stored
   // here and re-applied in `processCameraInformation()`.
   bool mVdPubRateAuto = false;
+  // `general.sync_pub_to_timestamp`: decimate publishing on the image
+  // timestamp instead of the free-running throttles (SDK grab compute cap and
+  // publish-thread sleeps), so multiple GMSL-synced cameras select the same
+  // grabbed frame and publish in phase. mLastPubBucket is the last emitted
+  // floor(ts / pub_period) bucket (shared by video/depth and point cloud).
+  bool mSyncPubToTs = false;
+  int64_t mLastPubBucket = -1;
+  int64_t mLastGrabTsNs = 0;          // previous grab timestamp (predictive depth gating)
+  bool mForceDepthNextFrame = false;  // force depth after startup / a deferred window
   int mCamBrightness = 4;
   int mCamContrast = 4;
   int mCamHue = 0;
@@ -814,14 +895,14 @@ private:
   double mFusedPcPubRate = 1.0;
   bool mRemoveSatAreas = true;
 
-  int mGmslExpTime = 16666;
+  int mGmslExpTime = 16000;
   int mGmslAutoExpTimeRangeMin = 28;
   int mGmslAutoExpTimeRangeMax = 30000;
   int mGmslExposureComp = 50;
-  int mGmslAnalogGain = 8000;
+  int mGmslAnalogGain = 1255;
   int mGmslAnalogGainRangeMin = 1000;
   int mGmslAnalogGainRangeMax = 16000;
-  int mGmslDigitalGain = 128;
+  int mGmslDigitalGain = 1;
   int mGmslAutoDigitalGainRangeMin = 1;
   int mGmslAutoDigitalGainRangeMax = 256;
   int mGmslDenoising = 50;
@@ -900,6 +981,10 @@ private:
     mMap2OdomTransf;    // Coordinates of the odometry frame in map frame
   tf2::Transform mOdom2BaseTransf;  // Coordinates of the base in odometry frame
   tf2::Transform mMap2BaseTransf;   // Coordinates of the base in map frame
+  // Last valid poses before a camera reboot: the positional tracking restarts from them
+  bool mRebootPoseRestore = false;
+  tf2::Transform mRebootOdom2BaseTransf;
+  tf2::Transform mRebootMap2BaseTransf;
   tf2::Transform
     mSensor2BaseTransf;    // Coordinates of the base frame in sensor frame
   tf2::Vector3 linear_base; // Linear twist in the camera base link frame
@@ -920,6 +1005,15 @@ private:
   bool mSensor2CameraTransfFirstErr = true;
   bool mCamera2BaseTransfValid = false;
   bool mCamera2BaseFirstErr = true;
+  // The wait for the static transforms expired once: do not wait again
+  bool mStaticTfWaitExpired = false;
+  // Frame the pose, the odometry and the TF are referred to: the base frame,
+  // or the camera center (the left camera frame until that one is known) while
+  // the static transform to the base frame is missing
+  enum class PoseFrame {BASE, CENTER, SENSOR};
+  PoseFrame mPoseFrame = PoseFrame::BASE;
+  tf2::Transform mSensor2PoseTransf = tf2::Transform::getIdentity();
+  std::chrono::steady_clock::time_point mLastStaticTfCheck;
   bool mGnss2BaseTransfValid = false;
   bool mGnss2BaseTransfFirstErr = true;
   bool mMap2UtmTransfValid = false;
@@ -1137,6 +1231,11 @@ private:
   // ----> Subscribers
   clickedPtSub mClickedPtSub;
   gnssFixSub mGnssFixSub;
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 56
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr mMotionPriorSub;
+  markerPub mPubMotionPriorLinks;
+  int mFrameSkipCountMpLinks = 0;
+#endif
   clockSub mClockSub;
   // <---- Subscribers
 
@@ -1150,7 +1249,17 @@ private:
   std::thread mSensThread;        // Sensors data publish thread
   std::atomic<bool> mThreadStop;
   std::atomic<bool> mNodeDeinitialized;
+#ifndef FOUND_FOXY
+  rclcpp::PreShutdownCallbackHandle mPreShutdownHandle;  // Removed in the destructor
+#endif
   rclcpp::TimerBase::SharedPtr mInitTimer;
+  // ----> Fatal error: the node stops, the process keeps running (SDK-515)
+  std::mutex mFatalErrMutex;
+  std::atomic<bool> mFatalError{false};
+  std::atomic<bool> mFatalErrorHandled{false};
+  std::string mFatalErrReason;
+  rclcpp::TimerBase::SharedPtr mFatalErrTimer;  // Stops the node from its executor
+  // <---- Fatal error
   rclcpp::TimerBase::SharedPtr mPathTimer;
   rclcpp::TimerBase::SharedPtr mFusedPcTimer;
   rclcpp::TimerBase::SharedPtr
@@ -1168,6 +1277,7 @@ private:
   std::mutex mBodyTrkMutex;
   std::mutex mPcMutex;
   std::mutex mCloseCameraMutex;
+  std::mutex mRebootMutex;  // Camera reboot against node shutdown
   std::mutex mPtMutex;
   std::condition_variable mPcDataReadyCondVar;
   std::atomic_bool mPcDataReady;
@@ -1183,6 +1293,7 @@ private:
   int mSvoFrameId = 0;
   int mSvoFrameCount = 0;
   bool mPosTrackingStarted = false;
+  int mPosTrkStartErrCount = 0;  // Consecutive positional tracking start failures
   std::atomic_bool mPoseLocked = false;
   std::atomic<uint64_t> mPoseLockCount{0};
   bool mVdPublishing = false;  // Indicates if video and depth data are
@@ -1197,7 +1308,9 @@ private:
                                       // retried instead of being lost
   int mVideoSettingsRetryCount = 0;   // Bounded retries of a failing apply
   static const int mVideoSettingsMaxRetries = 20;  // ~ first seconds of stream
+  std::unordered_set<sl::VIDEO_SETTINGS> mVideoSettingsRejected;  // Reported once per apply cycle
   bool mRecording = false;
+  int mSvoRecErrCount = 0;  // Consecutive SVO frame recording errors
   sl::RecordingStatus mRecStatus = sl::RecordingStatus();
   bool mPosTrackingReady = false;
 
@@ -1235,7 +1348,6 @@ private:
   // Confidence of the last pose [0,100], cached by the grab thread and read by
   // the diagnostic updater thread. -1 while no pose has been retrieved yet.
   std::atomic<int> mPoseConfidence{-1};
-  sl::Pose mLastZedDeltaOdom;
   sl::Transform mInitialPoseSl;
   std::vector<geometry_msgs::msg::PoseStamped> mOdomPath;
   std::vector<geometry_msgs::msg::PoseStamped> mPosePath;
@@ -1245,11 +1357,10 @@ private:
   sl::LatLng mLastLatLongPose;
   double mLastHeading;
   tf2::Quaternion mLastHeadingQuat;
-  sl::ECEF mInitEcefPose;
-  sl::UTM mInitUtmPose;
   sl::LatLng mInitLatLongPose;
-  double mInitHeading;
   bool mGnssInitGood = false;
+  // Last GNSS fusion status logged, to log it on change only
+  sl::GNSS_FUSION_STATUS mGnssStatusLogged = sl::GNSS_FUSION_STATUS::LAST;
   sl::float3 mGnssAntennaPose;
   // <---- Positional Tracking
 
@@ -1294,7 +1405,8 @@ private:
   sl_tools::StopWatch mPoseFreqTimer;
   sl_tools::StopWatch mPcPubFreqTimer;
   sl_tools::StopWatch mVdPubFreqTimer;
-  sl_tools::StopWatch mSensPubFreqTimer;
+  // Last camera infos published by the grab thread without video/depth subscribers
+  std::chrono::steady_clock::time_point mCamInfoLastPub;
   sl_tools::StopWatch mOdFreqTimer;
   sl_tools::StopWatch mBtFreqTimer;
   sl_tools::StopWatch mPcFreqTimer;
@@ -1319,6 +1431,8 @@ private:
   size_t mPressSubCountCache = 0;
   std::chrono::steady_clock::time_point mSensSubCountLastCheck;
   bool mSensSubCountInit = false;
+  std::atomic<bool> mSensDataUnavailable{false};  // The input has no sensors data to publish
+  bool mSensDataReceived = false;  // At least one sensors sample was read from the input
   rclcpp::Time mLastTs_baro;
   rclcpp::Time mLastTs_mag;
   rclcpp::Time mLastTs_odom;
@@ -1359,6 +1473,7 @@ private:
   toLLSrvPtr mToLlSrv;
   fromLLSrvPtr mFromLlSrv;
   enableStreamingPtr mEnableStreamingSrv;
+  rebootSrvPtr mRebootSrv;
 
   sl_tools::StopWatch mSetSvoFrameCheckTimer;
   // <---- Services
@@ -1382,10 +1497,12 @@ private:
   const std::string mSrvResetRoiName = "reset_roi";
   const std::string mSrvToLlName = "toLL";  // Convert from `map` to `Lat Long`
   const std::string mSrvFromLlName = "fromLL";  // Convert from `Lat Long` to `map`
+  const std::string mSrvRebootName = "reboot_camera";
   // <---- Services names
 
   // ----> SVO v2
   std::unique_ptr<sl_tools::GNSSReplay> mGnssReplay;
+  uint64_t mGnssReplayLastTs = 0;  // Timestamp of the last pose used for GNSS replay
   // <---- SVO v2
 };
 

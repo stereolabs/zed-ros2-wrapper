@@ -20,6 +20,9 @@
 
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
 
+#include <iomanip>
+#include <sstream>
+
 using namespace std::chrono_literals;
 using namespace std::placeholders;
 
@@ -68,8 +71,8 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
     pthread_self(),
     (get_name() + std::string("_main")).c_str());
 
-  if (((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) <
-    (SDK_MAJOR_MIN_SUPP * 10 + SDK_MINOR_MIN_SUPP)) ||
+  if (((ZED_SDK_MAJOR_VERSION * 10000 + ZED_SDK_MINOR_VERSION * 100 + ZED_SDK_PATCH_VERSION) <
+    (SDK_MAJOR_MIN_SUPP * 10000 + SDK_MINOR_MIN_SUPP * 100 + SDK_PATCH_MIN_SUPP)) ||
     ((ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >
     (SDK_MAJOR_MAX_SUPP * 10 + SDK_MINOR_MAX_SUPP)))
   {
@@ -78,6 +81,7 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
       "This version of the ZED ROS2 wrapper is designed to work with ZED SDK "
       "v" << static_cast<int>(SDK_MAJOR_MIN_SUPP)
           << "." << static_cast<int>(SDK_MINOR_MIN_SUPP)
+          << "." << static_cast<int>(SDK_PATCH_MIN_SUPP)
           << " or newer up to v" << static_cast<int>(SDK_MAJOR_MAX_SUPP)
           << "." << static_cast<int>(SDK_MINOR_MAX_SUPP) << ".");
     RCLCPP_INFO_STREAM(
@@ -86,13 +90,11 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
         << ZED_SDK_MINOR_VERSION << "."
         << ZED_SDK_PATCH_VERSION << "-"
         << ZED_SDK_BUILD_ID);
-    RCLCPP_INFO(get_logger(), "Node stopped. Press Ctrl+C to exit.");
-    exit(EXIT_FAILURE);
+    // The container reports the failed load and keeps running
+    throw std::runtime_error("unsupported ZED SDK version");
   }
 
-#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 50
   sl::setEnvironmentVariable("ZED_SDK_DISABLE_PROGRESS_BAR_LOG", "1");
-#endif
 
 // ----> Publishers/Subscribers options
 #ifndef FOUND_FOXY
@@ -114,13 +116,100 @@ ZedCameraOne::ZedCameraOne(const rclcpp::NodeOptions & options)
 
 ZedCameraOne::~ZedCameraOne()
 {
+#ifndef FOUND_FOXY
+  // A component can be unloaded before the shutdown: the callback must not run
+  // on the destroyed node
+  rclcpp::contexts::get_global_default_context()->remove_pre_shutdown_callback(
+    _preShutdownHandle);
+#endif
   deInitNode();
   DEBUG_STREAM_COMM(
     "ZED Component destroyed:" << this->get_fully_qualified_name());
 }
 
+void ZedCameraOne::stopOnFatalError(const std::string & reason)
+{
+  std::lock_guard<std::mutex> lock(_fatalErrMutex);
+  // The first error wins; nothing to do while the node is being destroyed
+  if (_fatalError.exchange(true) || _nodeDeinitialized) {
+    return;
+  }
+  _fatalErrReason = reason;
+  _threadStop = true;
+
+  RCLCPP_ERROR_STREAM(get_logger(), reason << ". Stopping the node.");
+
+  // `deInitNode` joins the data threads and waits for a camera reboot in
+  // progress, and this function can be called from both: run it from the node
+  // executor instead. Created under the lock, so the callback always sees it.
+  try {
+    _fatalErrTimer = create_wall_timer(
+      std::chrono::milliseconds(1),
+      std::bind(&ZedCameraOne::callback_fatalError, this));
+  } catch (const std::exception & e) {
+    // The context is shutting down: the pre-shutdown callback or the
+    // destructor stops the node. Never throw from here (called in handlers).
+    DEBUG_STREAM_COMM("Fatal error timer not created: " << e.what());
+  }
+}
+
+void ZedCameraOne::callback_fatalError()
+{
+  {
+    std::lock_guard<std::mutex> lock(_fatalErrMutex);
+    _fatalErrTimer->cancel();
+  }
+  if (_fatalErrorHandled.exchange(true)) {
+    return;
+  }
+
+  // Stop the threads and close the camera
+  deInitNode();
+
+  // ----> Leave an inert node: nothing can reach the closed camera anymore
+  for (auto timer : {_initTimer, _tempPubTimer, _heartbeatTimer}) {
+    if (timer) {
+      timer->cancel();
+    }
+  }
+  if (_paramChangeCallbackHandle) {
+    remove_on_set_parameters_callback(_paramChangeCallbackHandle.get());
+    _paramChangeCallbackHandle.reset();
+  }
+  _srvEnableStreaming.reset();
+  _srvStartSvoRec.reset();
+  _srvStopSvoRec.reset();
+  _srvPauseSvoRec.reset();
+  _srvPauseSvo.reset();
+  _srvSetSvoFrame.reset();
+  _srvReboot.reset();
+  // <---- Leave an inert node
+
+  if (_exitOnFailure) {
+    RCLCPP_ERROR(
+      get_logger(),
+      "Stopping the process ('general.exit_on_failure' is true).");
+    // From another thread: `rclcpp::shutdown` runs the pre-shutdown callbacks
+    // of every node of the process, which must not run inside this executor
+    std::thread([]() {rclcpp::shutdown();}).detach();
+  } else {
+    RCLCPP_ERROR(
+      get_logger(),
+      "The node is stopped, the other nodes of the process keep running. "
+      "Unload it with 'ros2 component unload' before loading it again.");
+  }
+}
+
 void ZedCameraOne::deInitNode()
 {
+  // Once only, also when called from two threads (pre-shutdown and destructor)
+  if (_nodeDeinitialized.exchange(true)) {
+    return;
+  }
+
+  // Wait for a camera reboot in progress: it stops when it sees the flag above
+  std::lock_guard<std::mutex> reboot_lock(_rebootMutex);
+
   DEBUG_STREAM_SENS("Stopping temperatures timer");
   if (_tempPubTimer) {
     _tempPubTimer->cancel();
@@ -175,6 +264,11 @@ void ZedCameraOne::closeCamera()
 
 void ZedCameraOne::initParameters()
 {
+  // First: it decides what happens when one of the parameters below is invalid
+  sl_tools::getParam(
+    shared_from_this(), "general.exit_on_failure", _exitOnFailure,
+    _exitOnFailure, " * Exit the process on failure: ");
+
   // DEBUG parameters
   getDebugParams();
 
@@ -191,7 +285,7 @@ void ZedCameraOne::initParameters()
   getTopicEnableParams();
 
   // Image Parameters
-  if (!_svoMode && !_simMode) {
+  if (!_svoMode && (!_simMode || SIM_VIDEO_SETTINGS)) {
     getVideoParams();
   }
 
@@ -479,7 +573,7 @@ void ZedCameraOne::getStreamParams()
       RCLCPP_ERROR_STREAM(
         get_logger(),
         "Local stream input is not enabled in this version. This feature will be available later");
-      exit(EXIT_FAILURE);
+      throw sl_tools::NodeFatalError("Invalid configuration");
 #endif
     }
   }
@@ -507,7 +601,7 @@ void ZedCameraOne::getCameraModelParams()
       RCLCPP_ERROR_STREAM(
         get_logger(), "Camera model " << sl::toString(
           _camUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
-      exit(EXIT_FAILURE);
+      throw sl_tools::NodeFatalError("Invalid configuration");
     }
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
   } else if (camera_model == "zedxonecore") {
@@ -528,7 +622,7 @@ void ZedCameraOne::getCameraModelParams()
       RCLCPP_ERROR_STREAM(
         get_logger(), "Camera model " << sl::toString(
           _camUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
-      exit(EXIT_FAILURE);
+      throw sl_tools::NodeFatalError("Invalid configuration");
     }
 #endif
   } else if (camera_model == "zedxone4k") {
@@ -549,7 +643,7 @@ void ZedCameraOne::getCameraModelParams()
       RCLCPP_ERROR_STREAM(
         get_logger(), "Camera model " << sl::toString(
           _camUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
-      exit(EXIT_FAILURE);
+      throw sl_tools::NodeFatalError("Invalid configuration");
     }
   } else if (camera_model == "zedxonehdr") {
     _camUserModel = sl::MODEL::ZED_XONE_HDR;
@@ -573,7 +667,7 @@ void ZedCameraOne::getCameraModelParams()
         get_logger(),
         "Camera model " << sl::toString(_camUserModel).c_str()
                         << " is available only with NVIDIA Jetson devices.");
-      exit(EXIT_FAILURE);
+      throw sl_tools::NodeFatalError("Invalid configuration");
     }
   } else {
     RCLCPP_ERROR_STREAM(
@@ -605,6 +699,12 @@ void ZedCameraOne::getCameraInfoParams()
       shared_from_this(), "general.serial_number", _camSerialNumber, _camSerialNumber,
       " * Camera SN: ");
     sl_tools::getParam(shared_from_this(), "general.camera_id", _camId, _camId, " * Camera ID: ");
+    sl_tools::getParam(
+      shared_from_this(), "general.camera_timeout_sec", _camTimeoutSec, _camTimeoutSec,
+      " * Camera timeout [sec]: ", false, 0, 9999);
+    sl_tools::getParam(
+      shared_from_this(), "general.camera_max_reconnect", _maxReconnectTemp, _maxReconnectTemp,
+      " * Camera reconnection temptatives: ", false, 0, 9999);
     sl_tools::getEnumParam(
       shared_from_this(), "general.bus_type", "AUTO",
       sl::BUS_TYPE::USB, sl::BUS_TYPE::LAST, _camBusType,
@@ -614,6 +714,12 @@ void ZedCameraOne::getCameraInfoParams()
       " * Camera framerate: ", false, 15,
       120);
   }
+  sl_tools::getParam(
+    shared_from_this(), "general.pub_frame_rate", _pubFrameRate, _pubFrameRate,
+    " * Publish framerate [Hz]: ", false, 0.0, 120.0);
+  sl_tools::getParam(
+    shared_from_this(), "general.sync_pub_to_timestamp", _syncPubToTs, _syncPubToTs,
+    " * Sync publishing to HW timestamp: ");
   sl_tools::getParam(
     shared_from_this(), "general.gpu_id", _gpuId, _gpuId, " * GPU ID: ", false, -1, 256);
 
@@ -662,7 +768,9 @@ void ZedCameraOne::getResolutionParams()
       _camResol = sl::RESOLUTION::HD1200;
     } else if (resol == "HD1080" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
       _camResol = sl::RESOLUTION::HD1080;
-    } else if (resol == "SVGA" && _camUserModel != sl::MODEL::ZED_XONE_HDR) {
+    } else if (resol == "SVGA" && _camUserModel != sl::MODEL::ZED_XONE_HDR &&
+      _camUserModel != sl::MODEL::ZED_XONE_UHD)
+    {
       _camResol = sl::RESOLUTION::SVGA;
     } else {
       RCLCPP_WARN(
@@ -935,6 +1043,21 @@ void ZedCameraOne::initNode()
   // Stop the timer for "one shot" initialization
   _initTimer->cancel();
 
+  // Never let an error escape: it would end the executor of the container,
+  // and with it every other node of the process
+  try {
+    initNodeImpl();
+  } catch (const sl_tools::NodeFatalError & e) {
+    stopOnFatalError(e.what());
+  } catch (const std::exception & e) {
+    stopOnFatalError(std::string("Initialization error: ") + e.what());
+  } catch (...) {
+    stopOnFatalError("Unknown initialization error");
+  }
+}
+
+void ZedCameraOne::initNodeImpl()
+{
   // ----> Diagnostic initialization
   std::string info = sl::toString(_camUserModel).c_str();
   _diagUpdater.add(
@@ -952,8 +1075,7 @@ void ZedCameraOne::initNode()
 
   // ----> Start camera
   if (!startCamera()) {
-    _zed.reset();
-    exit(EXIT_FAILURE);
+    throw sl_tools::NodeFatalError("The camera could not be started");
   }
   // <---- Start camera
 
@@ -963,6 +1085,9 @@ void ZedCameraOne::initNode()
 
   // Close camera callback before shutdown
   using rclcpp::contexts::get_global_default_context;
+#ifndef FOUND_FOXY
+  _preShutdownHandle =
+#endif
   get_global_default_context()->add_pre_shutdown_callback(
     [this]() {
       DEBUG_COMM("ZED X One Component is shutting down");
@@ -1017,20 +1142,16 @@ void ZedCameraOne::initServices()
 
   // Pause SVO (only if the realtime playing mode is disabled)
   if (_svoMode) {
-#ifndef USE_SVO_REALTIME_PAUSE
     if (!_svoRealtime) {
-#endif
-    srv_name = srv_prefix + _srvToggleSvoPauseName;
-    _srvPauseSvo = create_service<std_srvs::srv::Trigger>(
-      srv_name,
-      std::bind(&ZedCameraOne::callback_pauseSvoInput, this, _1, _2, _3));
-    RCLCPP_INFO_STREAM(
-      get_logger(), " * Advertised on service: '"
-        << _srvPauseSvo->get_service_name()
-        << "'");
-#ifndef USE_SVO_REALTIME_PAUSE
-  }
-#endif
+      srv_name = srv_prefix + _srvToggleSvoPauseName;
+      _srvPauseSvo = create_service<std_srvs::srv::Trigger>(
+        srv_name,
+        std::bind(&ZedCameraOne::callback_pauseSvoInput, this, _1, _2, _3));
+      RCLCPP_INFO_STREAM(
+        get_logger(), " * Advertised on service: '"
+          << _srvPauseSvo->get_service_name()
+          << "'");
+    }
     // Set Service for SVO frame
     srv_name = srv_prefix + _srvSetSvoFrameName;
     _srvSetSvoFrame = create_service<zed_msgs::srv::SetSvoFrame>(
@@ -1038,6 +1159,17 @@ void ZedCameraOne::initServices()
     RCLCPP_INFO_STREAM(
       get_logger(), " * Advertised on service: '"
         << _srvSetSvoFrame->get_service_name()
+        << "'");
+  }
+
+  if (!_svoMode && !_simMode && !_streamMode) {
+    // Reboot the camera
+    srv_name = srv_prefix + _srvRebootName;
+    _srvReboot = create_service<std_srvs::srv::Trigger>(
+      srv_name, std::bind(&ZedCameraOne::callback_reboot, this, _1, _2, _3));
+    RCLCPP_INFO_STREAM(
+      get_logger(), " * Advertised on service: '"
+        << _srvReboot->get_service_name()
         << "'");
   }
 }
@@ -1073,7 +1205,10 @@ bool ZedCameraOne::startCamera()
       return false;
     }
 
-    _zed->setSVOPosition(_svoFrameStart);
+    {
+      std::lock_guard<std::mutex> grab_lock(_grabMutex);
+      _zed->setSVOPosition(_svoFrameStart);
+    }
     RCLCPP_WARN_STREAM(
       get_logger(),
       "SVO playing from frame #" << _svoFrameStart);
@@ -1112,8 +1247,6 @@ void ZedCameraOne::logSdkVersion()
 
 void ZedCameraOne::setupTf2()
 {
-  _tfBuffer = std::make_unique<tf2_ros::Buffer>(get_clock());
-  _tfListener = std::make_unique<tf2_ros::TransformListener>(*_tfBuffer);
   _tfBroadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
   _staticImuTfPublished = false;
@@ -1181,7 +1314,12 @@ void ZedCameraOne::configureZedInput()
 void ZedCameraOne::setZedInitParams()
 {
   _initParams.async_grab_camera_recovery = true;
-  _initParams.camera_image_flip = (_cameraFlip ? sl::FLIP_MODE::ON : sl::FLIP_MODE::OFF);
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 56
+  _initParams.imu_sampling_rate = _ImuSamplingRate;
+  _initParams.imu_accelerometer_range = _ImuAccelRange;
+  _initParams.imu_gyroscope_range = _ImuGyroRange;
+#endif
+  _initParams.camera_image_flip = sl::FLIP_MODE::OFF;
   _initParams.coordinate_system = ROS_COORDINATE_SYSTEM;
   _initParams.coordinate_units = ROS_MEAS_UNITS;
   _initParams.enable_hdr = _enableHDR;
@@ -1232,7 +1370,41 @@ bool ZedCameraOne::openZedCamera()
   }
 #endif
 
-  _connStatus = _zed->open(_initParams);
+  // Negative codes are warnings: the camera is open, but with a fallback.
+  // Retrying `open()` would fail on an already opened camera.
+  auto openCamera = [this]() {
+      _connStatus = _zed->open(_initParams);
+      if (_connStatus < sl::ERROR_CODE::SUCCESS) {
+        RCLCPP_WARN_STREAM(
+          get_logger(),
+          "Camera opened with a warning (" << sl::toString(
+            _connStatus).c_str()
+                                           << "). Check the ZED SDK messages above for the setting that was changed.");
+        _connStatus = sl::ERROR_CODE::SUCCESS;
+      }
+    };
+
+  // A stereo camera makes `open()` fail with MODULE_NOT_COMPATIBLE: say that
+  // the camera needs the stereo node instead of retrying
+  if (!_simMode && !_svoMode && !_streamMode && _camSerialNumber > 0) {
+    sl::MODEL model;
+    if (!sl_tools::findDeviceBySerial(sl::CameraOne::getDeviceList(), _camSerialNumber, model) &&
+      sl_tools::findDeviceBySerial(sl::Camera::getDeviceList(), _camSerialNumber, model))
+    {
+      const std::string launch_value = sl_tools::cameraModelLaunchValue(model);
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "The camera with S/N " << _camSerialNumber << " is a "
+                               << sl::toString(
+          model).c_str()
+                               << ", a stereo camera that this node cannot open: set 'camera_model' to "
+                               << (launch_value.empty() ? "its model" : "'" + launch_value + "'")
+                               << " to start the stereo camera node.");
+      return false;
+    }
+  }
+
+  openCamera();
 
   // ----> Wait for the simulation server
   // The simulator is often not streaming yet when the node starts, so keep
@@ -1268,10 +1440,53 @@ bool ZedCameraOne::openZedCamera()
         return false;
       }
 
-      _connStatus = _zed->open(_initParams);
+      openCamera();
     }
   }
   // <---- Wait for the simulation server
+
+  // ----> Wait for the camera
+  // The camera can be busy for a few seconds, e.g. while another node of the
+  // same device opens its own camera: retry as the stereo node does, for
+  // `general.camera_timeout_sec` x `general.camera_max_reconnect` seconds
+  auto retryable = [](sl::ERROR_CODE err) {
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 51
+      if (err == sl::ERROR_CODE::DRIVER_FAILURE) {return false;}
+#endif
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
+      if (err == sl::ERROR_CODE::CAMERA_EXCEEDS_BANDWIDTH) {return false;}
+#endif
+      return err != sl::ERROR_CODE::INVALID_CALIBRATION_FILE;
+    };
+
+  if (!_simMode && !_svoMode && !_streamMode) {
+    const auto connectStart = std::chrono::steady_clock::now();
+    const int timeout_sec = _camTimeoutSec * _maxReconnectTemp;
+
+    while (_connStatus != sl::ERROR_CODE::SUCCESS && retryable(_connStatus)) {
+      const double elapsed_sec =
+        std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - connectStart).count();
+      if (elapsed_sec + _camTimeoutSec > timeout_sec) {
+        break;
+      }
+
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "Error opening camera: " << sl::toString(_connStatus).c_str()
+                                 << ". Retrying in " << _camTimeoutSec << " sec...");
+      _diagUpdater.force_update();
+      rclcpp::sleep_for(std::chrono::seconds(_camTimeoutSec));
+
+      if (!rclcpp::ok()) {
+        RCLCPP_INFO(get_logger(), "ZED activation interrupted by user.");
+        return false;
+      }
+
+      openCamera();
+    }
+  }
+  // <---- Wait for the camera
 
   if (_connStatus != sl::ERROR_CODE::SUCCESS) {
 
@@ -1375,6 +1590,11 @@ void ZedCameraOne::processCameraInformation()
     }
     _camGrabFrameRate = realFps;
   }
+  // 0 or more than the grab rate: publish every grabbed frame
+  if (_pubFrameRate <= 0.0 || _pubFrameRate > _camGrabFrameRate) {
+    _pubFrameRate = _camGrabFrameRate;
+  }
+  RCLCPP_INFO_STREAM(get_logger(), " * Publishing framerate: " << _pubFrameRate << " Hz");
 
   cuCtxGetDevice(&_gpuId);
   RCLCPP_INFO_STREAM(get_logger(), "ZED SDK running on GPU #" << _gpuId);
@@ -1451,6 +1671,13 @@ void ZedCameraOne::processCameraInformation()
     RCLCPP_INFO_STREAM(
       get_logger(),
       " * IMU sampling rate  -> " << _imuOdr << " Hz");
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      " * IMU ranges       -> accelerometer +/-"
+        << camInfo.sensors_configuration.accelerometer_parameters.range.y << " "
+        << sl::toString(camInfo.sensors_configuration.accelerometer_parameters.sensor_unit).c_str()
+        << ", gyroscope +/-" << camInfo.sensors_configuration.gyroscope_parameters.range.y << " "
+        << sl::toString(camInfo.sensors_configuration.gyroscope_parameters.sensor_unit).c_str());
   }
 
   _slCamImuTransf = camInfo.sensors_configuration.camera_imu_transform;
@@ -1535,6 +1762,22 @@ void ZedCameraOne::callback_updateDiagnostic(
 {
   DEBUG_COMM("=== Update Diagnostic ===");
 
+  if (_fatalError) {
+    std::lock_guard<std::mutex> lock(_fatalErrMutex);
+    stat.summaryf(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+      "Node stopped: %s", _fatalErrReason.c_str());
+    return;
+  }
+
+  if (_camReboot.active()) {
+    stat.summaryf(
+      diagnostic_msgs::msg::DiagnosticStatus::WARN,
+      "Camera rebooting (%.0f sec)", _camReboot.elapsedSec());
+    stat.addf("Reboots", "%d", _camReboot.count());
+    return;
+  }
+
   if (_connStatus != sl::ERROR_CODE::SUCCESS) {
     stat.summary(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
@@ -1543,6 +1786,17 @@ void ZedCameraOne::callback_updateDiagnostic(
   }
 
   stat.addf("Uptime", "%s", sl_tools::seconds2str(_uptimer.toc()).c_str());
+
+  if (_camDisconn.count() > 0) {
+    const std::string last_reconn = _camDisconn.lastReconnection();
+    stat.addf(
+      "Disconnections", "%d (last reconnection: %s)", _camDisconn.count(),
+      last_reconn.empty() ? "none" : last_reconn.c_str());
+  }
+
+  if (_camReboot.count() > 0 && !_camReboot.active()) {
+    stat.addf("Reboots", "%d (last: %s)", _camReboot.count(), _camReboot.last().c_str());
+  }
 
   if (_grabStatus == sl::ERROR_CODE::SUCCESS) {
     updateCaptureDiagnostics(stat);
@@ -1559,6 +1813,11 @@ void ZedCameraOne::callback_updateDiagnostic(
     stat.summary(
       diagnostic_msgs::msg::DiagnosticStatus::OK,
       "Camera initializing");
+  } else if (_camDisconn.active()) {
+    stat.summaryf(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+      "Camera disconnected: waiting for it to come back (%.0f / %d sec)",
+      _camDisconn.elapsedSec(), _camTimeoutSec * _maxReconnectTemp);
   } else {
     stat.summaryf(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
@@ -1585,8 +1844,15 @@ void ZedCameraOne::updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatus
     "Capture", "Tot. Processing Time: %.6f sec (Max. %.3f sec)",
     frame_proc_sec, frame_grab_period);
 
-  if (frame_proc_sec > frame_grab_period) {
-    _sysOverloadCount++;
+  // The processing time includes the wait for the next frame: it equals the
+  // grab period when the system keeps up. Warn after 10 consecutive updates
+  // more than 10% above it, i.e. when frames are lost
+  if (frame_proc_sec > 1.1 * frame_grab_period) {
+    if (_sysOverloadCount < 10) {
+      _sysOverloadCount++;
+    }
+  } else {
+    _sysOverloadCount = 0;
   }
 
   if (_sysOverloadCount >= 10) {
@@ -1598,7 +1864,6 @@ void ZedCameraOne::updateCaptureDiagnostics(diagnostic_updater::DiagnosticStatus
       "System overloaded. Consider reducing "
       "'general.grab_frame_rate' or 'general.grab_resolution'");
   } else {
-    _sysOverloadCount = 0;
     stat.summary(
       diagnostic_msgs::msg::DiagnosticStatus::OK,
       "Camera grabbing");
@@ -1638,7 +1903,7 @@ void ZedCameraOne::updateImageDiagnostics(diagnostic_updater::DiagnosticStatusWr
 {
   if (_videoPublishing) {
     double freq = 1. / _imagePeriodMean_sec->getAvg();
-    double freq_perc = 100. * freq / _camGrabFrameRate;
+    double freq_perc = 100. * freq / _pubFrameRate;
     double frame_grab_period = 1. / _camGrabFrameRate;
     stat.addf("Image", "Mean Frequency: %.1f Hz (%.1f%%)", freq, freq_perc);
     stat.addf(
@@ -1802,9 +2067,10 @@ ZedCameraOne::callback_dynamicParamChange(
 
   DEBUG_STREAM_COMM("Updated parameters: " << count_ok << "/" << parameters.size());
 
-  _triggerUpdateDynParams = (count_ok > 0);
-
   if (count_ok > 0) {
+    // Never cleared here: settings changed before can still be waiting to be applied
+    _triggerUpdateDynParams = true;
+
     if (_debugCommon) {
       DEBUG_COMM("Settings to be applied: ");
       for (auto & param: _camDynParMapChanged) {
@@ -2285,10 +2551,6 @@ void ZedCameraOne::threadFunc_zedGrab()
       if (_svoMode && _svoPause) {
         if (!_grabOnce) {
           rclcpp::sleep_for(100ms);
-#ifdef USE_SVO_REALTIME_PAUSE
-          // Dummy grab
-          mZed->grab();
-#endif
           continue;
         } else {
           _grabOnce = false;  // Reset the flag and grab once
@@ -2323,7 +2585,9 @@ void ZedCameraOne::threadFunc_zedGrab()
 
       handleSvoRecordingStatus();
 
-      handleImageRetrievalAndPublishing();
+      if (_svoPause || isFrameToPublish()) {
+        handleImageRetrievalAndPublishing();
+      }
 
       _elabPeriodMean_sec->addValue(grabElabTimer.toc());
     } catch (rclcpp::exceptions::ParameterNotDeclaredException & ex) {
@@ -2407,8 +2671,9 @@ void ZedCameraOne::setupGrabThreadPolicy()
 
 void ZedCameraOne::initializeGrabThreadStatus()
 {
+  // `_threadStop` is cleared before the thread starts: clearing it here would
+  // cancel a stop requested meanwhile (e.g. Ctrl+C during a camera reboot)
   _frameCount = 0;
-  _threadStop = false;
 }
 
 bool ZedCameraOne::checkGrabThreadInterruption()
@@ -2427,7 +2692,8 @@ bool ZedCameraOne::checkGrabThreadInterruption()
 
 void ZedCameraOne::handleDynamicSettings()
 {
-  if (!_svoMode && !_simMode && _triggerUpdateDynParams) {
+  // Cleared before applying: a change requested meanwhile sets it again
+  if (!_svoMode && (!_simMode || SIM_VIDEO_SETTINGS) && _triggerUpdateDynParams.exchange(false)) {
     applyDynamicSettings();
   }
 }
@@ -2441,13 +2707,21 @@ void ZedCameraOne::updateGrabFrequency()
 
 bool ZedCameraOne::performCameraGrab()
 {
-  _grabStatus = _zed->grab();
+  // Serialized with the SDK calls of the service threads (SVO seek): running
+  // them concurrently corrupts the SVO reader state (SDK-517)
+  {
+    std::lock_guard<std::mutex> grab_lock(_grabMutex);
+    _grabStatus = _zed->grab();
+  }
   if (_grabStatus != sl::ERROR_CODE::SUCCESS) {
     if (_svoMode && _grabStatus == sl::ERROR_CODE::END_OF_SVOFILE_REACHED) {
       // ----> Check SVO status
       if (_svoLoop) {
         _svoLoopCount++;
-        _zed->setSVOPosition(_svoFrameStart);
+        {
+          std::lock_guard<std::mutex> grab_lock(_grabMutex);
+          _zed->setSVOPosition(_svoFrameStart);
+        }
         RCLCPP_WARN_STREAM(
           get_logger(),
           "SVO reached the end and it has been restarted from frame #"
@@ -2484,10 +2758,25 @@ bool ZedCameraOne::performCameraGrab()
         }
       }
       //<---- Check SVO status
-    } else if (_grabStatus == sl::ERROR_CODE::CAMERA_REBOOTING) {
-      RCLCPP_ERROR_STREAM(
-        get_logger(), "Connection issue detected: " << sl::toString(
-          _grabStatus).c_str());
+    } else if (_grabStatus == sl::ERROR_CODE::CAMERA_REBOOTING ||
+      _grabStatus == sl::ERROR_CODE::CAMERA_NOT_DETECTED)
+    {
+      // The ZED SDK reopens a lost camera by itself: CAMERA_REBOOTING while it
+      // does (GMSL restart), CAMERA_NOT_DETECTED when unplugged
+      const int timeout_sec = _camTimeoutSec * _maxReconnectTemp;
+      if (_camDisconn.start()) {
+        RCLCPP_ERROR_STREAM(
+          get_logger(),
+          "Camera disconnected (" << sl::toString(_grabStatus).c_str()
+                                  << "). Waiting up to " << timeout_sec
+                                  << " sec for it to come back...");
+      }
+      if (_camDisconn.elapsedSec() > timeout_sec) {
+        stopOnFatalError(
+          "The camera did not come back within " + std::to_string(timeout_sec) +
+          " sec ('general.camera_timeout_sec' x 'general.camera_max_reconnect')");
+        return false;
+      }
       rclcpp::sleep_for(1s);
       return true;
     } else if (_grabStatus == sl::ERROR_CODE::CAMERA_NOT_INITIALIZED ||
@@ -2500,15 +2789,52 @@ bool ZedCameraOne::performCameraGrab()
       rclcpp::sleep_for(1s);
       return true;
     } else {
-      RCLCPP_ERROR_STREAM(
-        get_logger(), "Critical camera error: "
-          << sl::toString(_grabStatus).c_str() << ". " << sl::toVerbose(_grabStatus).c_str()
-          << ". NODE KILLED.");
-      _zed.reset();
-      exit(EXIT_FAILURE);
+      // The camera is closed by `deInitNode`, once the grab thread has stopped
+      stopOnFatalError(
+        std::string("Critical camera error: ") + sl::toString(_grabStatus).c_str() + ". " +
+        sl::toVerbose(_grabStatus).c_str());
+      return false;
     }
   }
+  if (_camDisconn.stop()) {
+    RCLCPP_INFO(get_logger(), "Camera reconnected.");
+  }
   _frameCount++;
+  return true;
+}
+
+bool ZedCameraOne::isFrameToPublish()
+{
+  if (_pubFrameRate <= 0.0 || _pubFrameRate >= _camGrabFrameRate) {
+    return true;
+  }
+
+  if (_syncPubToTs) {
+    // Publish the first frame of each publishing period of the image
+    // timestamp: GMSL cameras capturing at the same instant share it, so they
+    // all select the same captures. The raw image timestamp is used: the
+    // published one can include a per-process clock offset and half of each
+    // camera's exposure, which would make the cameras select different frames.
+    const int64_t period_ns = static_cast<int64_t>(1.0e9 / _pubFrameRate);
+    const int64_t img_ts_ns = static_cast<int64_t>(
+      _zed->getTimestamp(sl::TIME_REFERENCE::IMAGE).getNanoseconds());
+    const int64_t bucket = img_ts_ns / period_ns;
+    if (bucket == _lastPubBucket) {
+      return false;
+    }
+    _lastPubBucket = bucket;
+    return true;
+  }
+
+  // Free-running decimation on the grabbed frames: publishes
+  // `pub_frame_rate` / `grab_frame_rate` of them, evenly spread, also when
+  // the ratio is not an integer. Counting frames instead of measuring time
+  // keeps the grab jitter out and also suits an SVO not played in real time.
+  _pubDecimAccum += _pubFrameRate / _camGrabFrameRate;
+  if (_pubDecimAccum < 1.0) {
+    return false;
+  }
+  _pubDecimAccum -= 1.0;
   return true;
 }
 
@@ -3046,7 +3372,11 @@ void ZedCameraOne::callback_setSvoFrame(
     return;
   }
 
-  _zed->setSVOPosition(frame);
+  // Guard the SDK call against a concurrent grab() in the grab thread (SDK-517)
+  {
+    std::lock_guard<std::mutex> grab_lock(_grabMutex);
+    _zed->setSVOPosition(frame);
+  }
   RCLCPP_INFO_STREAM(get_logger(), "SVO frame set to " << frame);
   res->message = "SVO frame set to " + std::to_string(frame);
 
@@ -3096,6 +3426,226 @@ void ZedCameraOne::stopSvoRecording()
     _recording = false;
     _zed->disableRecording();
   }
+}
+
+void ZedCameraOne::callback_reboot(
+  const std::shared_ptr<rmw_request_id_t> request_header,
+  const std::shared_ptr<std_srvs::srv::Trigger_Request> req,
+  std::shared_ptr<std_srvs::srv::Trigger_Response> res)
+{
+  (void)request_header;
+  (void)req;
+
+  RCLCPP_INFO(get_logger(), "** Reboot camera service called **");
+
+  // Every callback of the node that uses the camera (timers, services,
+  // parameters, diagnostic) belongs to the default mutually exclusive callback
+  // group, like this one: none of them runs before this callback returns. The
+  // data threads are stopped and started again here.
+  std::lock_guard<std::mutex> lock(_rebootMutex);
+
+  if (_nodeDeinitialized || _zed == nullptr) {
+    res->message = "The node is shutting down.";
+    res->success = false;
+    return;
+  }
+
+  try {
+    rebootCamera(res);
+  } catch (const std::exception & e) {
+    // The camera and the data threads are in an unknown state: stop the node
+    // instead of leaving it running without data
+    _camReboot.stop("failed");
+    res->success = false;
+    const std::string reason = std::string("The camera reboot failed (") + e.what() + ")";
+    res->message = reason + ": the node is stopped.";
+    stopOnFatalError(reason);
+  }
+}
+
+void ZedCameraOne::rebootCamera(std::shared_ptr<std_srvs::srv::Trigger_Response> res)
+{
+  if (_zed->getCameraInformation().input_type != sl::INPUT_TYPE::GMSL) {
+    res->message = "Only the GMSL cameras can be rebooted.";
+    res->success = false;
+    RCLCPP_WARN_STREAM(get_logger(), res->message);
+    return;
+  }
+
+  RCLCPP_WARN(
+    get_logger(),
+    "Rebooting the camera: no data is published until it is reopened.");
+  RCLCPP_WARN(
+    get_logger(),
+    "The other GMSL cameras of this device can stop for a few seconds.");
+  const auto reboot_start = std::chrono::steady_clock::now();
+  _camReboot.start();
+  _diagUpdater.force_update();
+
+  // ----> Stop the data threads
+  _threadStop = true;
+  for (std::thread * th : {&_grabThread, &_sensThread}) {
+    try {
+      if (th->joinable()) {
+        th->join();
+      }
+    } catch (std::system_error & e) {
+      DEBUG_STREAM_COMM("Thread joining exception: " << e.what());
+    }
+  }
+  if (_tempPubTimer) {
+    _tempPubTimer->cancel();
+  }
+  // <---- Stop the data threads
+
+  // ----> Close the camera
+  std::string rec_msg;
+  {
+    std::lock_guard<std::mutex> rec_lock(_recMutex);
+    if (_recording) {
+      stopSvoRecording();
+      rec_msg = " The SVO recording has been stopped.";
+      RCLCPP_WARN(get_logger(), "SVO recording stopped by the camera reboot.");
+    }
+  }
+
+  // The streaming server is started again with the camera
+  const bool streaming = _streamingServerRunning;
+  if (streaming) {
+    _zed->disableStreaming();
+    _streamingServerRunning = false;
+  }
+
+  closeCamera();
+  // <---- Close the camera
+
+  sl::ERROR_CODE reboot_err = sl::CameraOne::reboot();
+  if (reboot_err != sl::ERROR_CODE::SUCCESS) {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "The camera could not be rebooted ("
+        << sl::toString(reboot_err).c_str() << "): reopening it.");
+  }
+
+  // ----> Reopen the camera
+  createZedObject();
+  if (!reopenCamera()) {
+    res->success = false;
+    if (_nodeDeinitialized) {
+      _camReboot.stop("interrupted by the node shutdown");
+      res->message = "The node is shutting down.";
+      return;
+    }
+    _camReboot.stop("the camera did not come back");
+    res->message = "The camera did not come back after the reboot: the node is stopped.";
+    stopOnFatalError("The camera did not come back after the reboot");
+    return;
+  }
+  if (_nodeDeinitialized) {
+    // Ctrl+C during the reopening: `deInitNode` closes the camera
+    _camReboot.stop("interrupted by the node shutdown");
+    res->message = "The node is shutting down.";
+    res->success = false;
+    return;
+  }
+  // A disconnection in progress before the reboot is over: its timeout must
+  // not apply to the reopened camera
+  _camDisconn.stop();
+  _grabStatus = sl::ERROR_CODE::LAST;
+  _uptimer.tic();
+
+  // The self-calibration can refine the calibration at each opening
+  setupCameraInfoMessages();
+
+  // The reboot restored the default video settings: apply all of them again
+  for (auto & param : _camDynParMapChanged) {
+    param.second = true;
+  }
+  _triggerUpdateDynParams = true;
+
+  if (streaming) {
+    startStreamingServer();
+  }
+
+  initCudaBufferTransport();
+
+  _threadStop = false;
+  initThreadsAndTimers();
+  // <---- Reopen the camera
+
+  const double elapsed_sec = std::chrono::duration<double>(
+    std::chrono::steady_clock::now() - reboot_start).count();
+
+  std::ostringstream msg;
+  if (reboot_err == sl::ERROR_CODE::SUCCESS) {
+    msg << "Camera rebooted and reopened in " << std::fixed << std::setprecision(1)
+        << elapsed_sec << " sec.";
+  } else {
+    msg << "The camera could not be rebooted (" << sl::toString(reboot_err).c_str()
+        << "): it has been closed and reopened.";
+  }
+  std::ostringstream result;
+  if (reboot_err != sl::ERROR_CODE::SUCCESS) {
+    result << "not rebooted (" << sl::toString(reboot_err).c_str() << "), ";
+  }
+  result << "reopened in " << std::fixed << std::setprecision(1) << elapsed_sec << " sec";
+  _camReboot.stop(result.str());
+  _diagUpdater.force_update();
+
+  msg << rec_msg;
+  res->message = msg.str();
+  res->success = (reboot_err == sl::ERROR_CODE::SUCCESS);
+  RCLCPP_INFO_STREAM(get_logger(), res->message);
+}
+
+bool ZedCameraOne::reopenCamera()
+{
+  // Open the same camera again, also if it was selected by ID: the IDs can
+  // change when the cameras restart
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 51
+  _initParams.input.setFromSerialNumber(_camSerialNumber, sl::BUS_TYPE::GMSL);
+#else
+  _initParams.input.setFromSerialNumber(_camSerialNumber);
+#endif
+
+  // The camera is waited for as after a disconnection
+  const int timeout_sec = _camTimeoutSec * _maxReconnectTemp;
+  const auto start = std::chrono::steady_clock::now();
+
+  while (!_nodeDeinitialized) {
+    // Wait for the camera to be listed again before opening it, so that the
+    // ZED SDK does not log an error for each attempt while it restarts
+    const auto devices = sl::CameraOne::getDeviceList();
+    const bool listed = std::any_of(
+      devices.begin(), devices.end(), [this](const sl::DeviceProperties & dev) {
+        return dev.serial_number == static_cast<unsigned int>(_camSerialNumber) &&
+        dev.camera_state == sl::CAMERA_STATE::AVAILABLE;
+      });
+    _connStatus = listed ? _zed->open(_initParams) : sl::ERROR_CODE::CAMERA_NOT_DETECTED;
+
+    // Negative codes are warnings: the camera is open, with a fallback
+    if (_connStatus <= sl::ERROR_CODE::SUCCESS) {
+      _connStatus = sl::ERROR_CODE::SUCCESS;
+      return true;
+    }
+
+    const double elapsed_sec = std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - start).count();
+    if (elapsed_sec > timeout_sec) {
+      RCLCPP_ERROR_STREAM(
+        get_logger(),
+        "The camera is not available " << timeout_sec
+                                       << " sec after the reboot ('general.camera_timeout_sec' x "
+          "'general.camera_max_reconnect'): " << sl::toString(_connStatus).c_str());
+      return false;
+    }
+
+    _diagUpdater.force_update();
+    DEBUG_STREAM_COMM(
+      "Camera not available yet after the reboot: " << sl::toString(_connStatus).c_str());
+    rclcpp::sleep_for(1s);
+  }
+
+  return false;
 }
 
 void ZedCameraOne::startHeartbeatTimer()

@@ -22,7 +22,8 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     OpaqueFunction,
-    LogInfo
+    LogInfo,
+    Shutdown
 )
 from launch.conditions import IfCondition
 from launch.substitutions import (
@@ -106,6 +107,15 @@ def _parse_param_overrides(overrides_str):
             key, value = pair.split(':=', 1)
             result[key.strip()] = _auto_type(value.strip())
     return result
+
+
+def _shutdown_on_container_exit(event, context):
+    # The ZED node shuts the container down when the camera is lost for good:
+    # stop the whole launch, so a supervisor can restart it. Not while the launch
+    # is already shutting down (Ctrl+C): a second shutdown raises an exception.
+    if getattr(context, 'is_shutdown', False):
+        return None
+    return [Shutdown(reason='ZED container exited')]
 
 
 def _to_bool(value):
@@ -391,7 +401,8 @@ def launch_setup(context, *args, **kwargs):
     return_array.append(rsp_node)
 
     # ROS 2 Component Container
-    if (container_name_val == ''):
+    create_container = (container_name_val == '')
+    if create_container:
         container_name_val = 'zed_container'
         distro = os.environ['ROS_DISTRO']
         if distro == 'foxy':
@@ -417,7 +428,8 @@ def launch_setup(context, *args, **kwargs):
             executable=container_exec,
             arguments=arguments_val,
             output=node_log_effective,
-            composable_node_descriptions=[]
+            composable_node_descriptions=[],
+            on_exit=_shutdown_on_container_exit
         )
         return_array.append(zed_container)
 
@@ -453,7 +465,12 @@ def launch_setup(context, *args, **kwargs):
             'sensors.publish_imu_tf': publish_imu_tf,
             'gnss_fusion.gnss_fusion_enabled': enable_gnss,
             'general.virtual_serial_numbers': serial_numbers_val,
-            'general.virtual_camera_ids': camera_ids_val
+            'general.virtual_camera_ids': camera_ids_val,
+            # A node alone in the container created here stops the process when
+            # it fails for good, so the launch ends and a supervisor can restart
+            # it. In an existing container it stops alone: the other nodes keep
+            # running.
+            'general.exit_on_failure': create_container
         }
     )
 

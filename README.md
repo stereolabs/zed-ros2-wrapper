@@ -30,7 +30,7 @@ This package enables the use of ZED cameras with ROS 2, providing access to a va
 ### Prerequisites
 
 - [Ubuntu 20.04 (Focal Fossa)](https://releases.ubuntu.com/focal/), [Ubuntu 22.04 (Jammy Jellyfish)](https://releases.ubuntu.com/jammy/), [Ubuntu 24.04 (Noble Numbat)](https://releases.ubuntu.com/noble/), or [Ubuntu 26.04 (Resolute Raccoon)](https://releases.ubuntu.com/26.04/)
-- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v5.2 (to support older versions please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
+- [ZED SDK](https://www.stereolabs.com/developers/release/latest/) v5.6 (v5.0.7 or newer is supported; for older versions please check the [releases](https://github.com/stereolabs/zed-ros2-wrapper/releases))
 - [CUDA](https://developer.nvidia.com/cuda-downloads) dependency
 - A supported ROS 2 distribution (see [Supported ROS 2 distributions](#supported-ros-2-distributions) below):
   - [Humble Hawksbill on Ubuntu 22.04](https://docs.ros.org/en/humble/Installation/Linux-Install-Debians.html): LTS [EOL May 2027]

@@ -31,6 +31,38 @@ namespace
 // This mutex serializes image_transport publisher creation across all instances
 // of this component type in the same process.
 std::mutex g_it_pub_init_mutex;
+
+// Name of the node parameter that sets a video setting, to name it in the messages
+std::string videoSettingParamName(sl::VIDEO_SETTINGS setting)
+{
+  switch (setting) {
+    case sl::VIDEO_SETTINGS::BRIGHTNESS: return "video.brightness";
+    case sl::VIDEO_SETTINGS::CONTRAST: return "video.contrast";
+    case sl::VIDEO_SETTINGS::HUE: return "video.hue";
+    case sl::VIDEO_SETTINGS::SATURATION: return "video.saturation";
+    case sl::VIDEO_SETTINGS::SHARPNESS: return "video.sharpness";
+    case sl::VIDEO_SETTINGS::GAMMA: return "video.gamma";
+    case sl::VIDEO_SETTINGS::GAIN: return "video.gain";
+    case sl::VIDEO_SETTINGS::EXPOSURE: return "video.exposure";
+    case sl::VIDEO_SETTINGS::AEC_AGC: return "video.auto_exposure_gain";
+    case sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO: return "video.auto_whitebalance";
+    case sl::VIDEO_SETTINGS::WHITEBALANCE_TEMPERATURE: return "video.whitebalance_temperature";
+    case sl::VIDEO_SETTINGS::EXPOSURE_TIME: return "video.exposure_time";
+    case sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE:
+      return "video.auto_exposure_time_range_min/max";
+    case sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION: return "video.exposure_compensation";
+    case sl::VIDEO_SETTINGS::ANALOG_GAIN: return "video.analog_gain";
+    case sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE: return "video.auto_analog_gain_range_min/max";
+    case sl::VIDEO_SETTINGS::DIGITAL_GAIN: return "video.digital_gain";
+    case sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE:
+      return "video.auto_digital_gain_range_min/max";
+    case sl::VIDEO_SETTINGS::DENOISING: return "video.denoising";
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
+    case sl::VIDEO_SETTINGS::AE_ANTIBANDING: return "video.ae_antibanding";
+#endif
+    default: return sl::toString(setting).c_str();
+  }
+}
 }
 
 namespace stereolabs
@@ -523,17 +555,37 @@ void ZedCamera::getVideoParams()
   sl_tools::getParam(
     shared_from_this(), "video.gain", mCamGain, mCamGain,
     " * Gain: ", true, 0, 100);
-  sl_tools::getParam(
-    shared_from_this(), "video.auto_whitebalance", mCamAutoWB,
-    mCamAutoWB, " * Auto White Balance: ", true);
-  if (mCamAutoWB) {
-    mTriggerAutoWB = true;
+  // The white balance is fixed on the ZED X HDR cameras
+  if (!sl_tools::isZEDXHDR(mCamUserModel)) {
+    sl_tools::getParam(
+      shared_from_this(), "video.auto_whitebalance", mCamAutoWB,
+      mCamAutoWB, " * Auto White Balance: ", true);
+    if (mCamAutoWB) {
+      mTriggerAutoWB = true;
+    }
+    int wb = 42;
+    sl_tools::getParam(
+      shared_from_this(), "video.whitebalance_temperature", wb,
+      wb, " * White Balance Temperature: ", true, 28, 65);
+    mCamWBTemp = wb * 100;
+  } else {
+    mTriggerAutoWB = false;
   }
-  int wb = 42;
-  sl_tools::getParam(
-    shared_from_this(), "video.whitebalance_temperature", wb,
-    wb, " * White Balance Temperature: ", true, 28, 65);
-  mCamWBTemp = wb * 100;
+
+  // ZED X HDR cameras: manual exposure time and gains only (analog and
+  // digital gain in mdB), the other GMSL settings are not available
+  if (sl_tools::isZEDXHDR(mCamUserModel)) {
+    sl_tools::getParam(
+      shared_from_this(), "video.exposure_time", mGmslExpTime,
+      mGmslExpTime, " * Exposure time: ", true, 100, 33000);
+    sl_tools::getParam(
+      shared_from_this(), "video.analog_gain", mGmslAnalogGain,
+      mGmslAnalogGain, " * Analog Gain: ", true, 0, 30000);
+    sl_tools::getParam(
+      shared_from_this(), "video.digital_gain",
+      mGmslDigitalGain, mGmslDigitalGain,
+      " * Digital Gain: ", true, 0, 5000);
+  }
 
   if (sl_tools::isZEDX(mCamUserModel)) {
     sl_tools::getParam(
@@ -551,7 +603,7 @@ void ZedCamera::getVideoParams()
     sl_tools::getParam(
       shared_from_this(), "video.exposure_compensation",
       mGmslExposureComp, mGmslExposureComp,
-      " * ZED X Exposure comp.: ", true, 0, 100);
+      " * ZED X Exposure comp.: ", true, -1, 100);
     sl_tools::getParam(
       shared_from_this(), "video.analog_gain", mGmslAnalogGain,
       mGmslAnalogGain, " * ZED X Analog Gain: ", true, 1000,
@@ -583,12 +635,12 @@ void ZedCamera::getVideoParams()
     sl_tools::getParam(
       shared_from_this(), "video.denoising", mGmslDenoising,
       mGmslDenoising,
-      " * ZED X Auto Digital Gain range max: ", true, 0, 100);
+      " * ZED X Denoising: ", true, 0, 100);
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
     sl_tools::getParam(
       shared_from_this(), "video.ae_antibanding", mGmslAEAntibanding,
       mGmslAEAntibanding,
-      " * ZED X AE Anti-banding (0=OFF,1=AUTO,2=50Hz,3=60Hz): ", true, 0, 3);
+      " * ZED X AE Anti-banding (-1=not set,0=OFF,1=AUTO,2=50Hz,3=60Hz): ", true, -1, 3);
 #endif
   }
 }
@@ -633,6 +685,18 @@ void ZedCamera::getDepthParams()
     }
   }
 
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 54
+  // CUSTOM expects the application to provide the depth at every frame: not
+  // supported by the ROS 2 Wrapper
+  if (mDepthMode == sl::DEPTH_MODE::CUSTOM) {
+    mDepthMode = sl::DEPTH_MODE::NEURAL;
+    RCLCPP_WARN_STREAM(
+      get_logger(),
+      "The value 'CUSTOM' of the parameter 'depth.depth_mode' is not supported by the ROS 2 "
+      "Wrapper. Using default value: " << sl::toString(mDepthMode).c_str());
+  }
+#endif
+
   if (!mDepthModelOverride.empty()) {
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -662,6 +726,9 @@ void ZedCamera::getDepthParams()
       sl::DEPTH_PRECISION::FP16,
       sl::DEPTH_PRECISION::LAST, mDepthPrecision,
       " * Depth precision: ");
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) < 56
+    // Since ZED SDK 5.6 every NEURAL depth mode has an INT8 model, and the ZED SDK
+    // itself warns when the depth mode or the GPU cannot use it
     if (mDepthPrecision == sl::DEPTH_PRECISION::INT8 &&
       mDepthMode != sl::DEPTH_MODE::NEURAL)
     {
@@ -671,21 +738,44 @@ void ZedCamera::getDepthParams()
         "The ZED SDK will fall back to 'FP16' with the current 'depth.depth_mode' value: "
           << sl::toString(mDepthMode).c_str());
     }
+#endif
 
     sl_tools::getParam(
       shared_from_this(), "depth.allow_depth_cuda_graph",
       mAllowDepthCudaGraph, mAllowDepthCudaGraph,
       " * Allow depth CUDA Graph: ");
-    if (mAllowDepthCudaGraph &&
-      mDepthMode != sl::DEPTH_MODE::NEURAL_LIGHT &&
-      mDepthMode != sl::DEPTH_MODE::NEURAL &&
-      mDepthMode != sl::DEPTH_MODE::NEURAL_PLUS)
-    {
+    if (mAllowDepthCudaGraph && !sl_tools::isNeuralDepthMode(mDepthMode)) {
       RCLCPP_WARN_STREAM(
         get_logger(),
         "'depth.allow_depth_cuda_graph' is enabled, but the CUDA Graph is only used by the "
         "'NEURAL' depth mode family. It will be ignored with the current 'depth.depth_mode' "
         "value: " << sl::toString(mDepthMode).c_str());
+    }
+#endif
+
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 56
+    sl_tools::getEnumParam(
+      shared_from_this(), "depth.depth_compute_device", "AUTO",
+      sl::DEPTH_COMPUTE_DEVICE::AUTO, sl::DEPTH_COMPUTE_DEVICE::LAST,
+      mDepthComputeDevice, " * Depth compute device: ");
+    const bool accelerator =
+      mDepthComputeDevice == sl::DEPTH_COMPUTE_DEVICE::DLA ||
+      mDepthComputeDevice == sl::DEPTH_COMPUTE_DEVICE::PVA;
+    if (accelerator && mDepthMode != sl::DEPTH_MODE::NEURAL_LIGHT) {
+      // The ZED SDK refuses to open the camera with DLA and another depth mode
+      const std::string device = sl::toString(mDepthComputeDevice).c_str();
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "'depth.depth_compute_device' is set to '" << device
+                                                   << "', which only runs the 'NEURAL_LIGHT' depth mode. "
+          "Using 'AUTO' with the current 'depth.depth_mode' value: "
+                                                   << sl::toString(mDepthMode).c_str());
+      mDepthComputeDevice = sl::DEPTH_COMPUTE_DEVICE::AUTO;
+    } else if (accelerator) {
+      RCLCPP_INFO(
+        get_logger(),
+        "   The depth runs on an accelerator at its own precision: 'depth.depth_precision' "
+        "is ignored.");
     }
 #endif
 
@@ -1122,13 +1212,21 @@ void ZedCamera::applyVideoSettings()
   if (!mSvoMode && mCamSettingsDirty && mFrameCount % 10 == 0) {
     std::lock_guard<std::mutex> lock(mDynParMutex);
 
+    // A new apply cycle (start-up or parameter change): report the refused
+    // settings again
+    if (mVideoSettingsRetryCount == 0) {
+      mVideoSettingsRejected.clear();
+    }
+
     // Assume success; each helper sets this to false if a setting could not
     // be applied to the camera.
     mVideoSettingsApplyOk = true;
 
     applyAutoExposureGainSettings();
     applyExposureGainSettings();
-    applyWhiteBalanceSettings();
+    if (!sl_tools::isZEDXHDR(mCamRealModel)) {
+      applyWhiteBalanceSettings();
+    }
     applyBrightnessContrastHueSettings();
     applySaturationSharpnessGammaSettings();
     applyZEDXSettings();
@@ -1170,16 +1268,41 @@ bool ZedCamera::applyVideoSetting(sl::VIDEO_SETTINGS setting, int value)
   if (err != sl::ERROR_CODE::SUCCESS || current != value) {
     err = mZed->setCameraSettings(setting, value);
     if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        "Error setting " << sl::toString(setting).c_str() << ": "
-                         << sl::toString(err).c_str());
-      return false;
+      return checkVideoSettingError(setting, err);
     }
     DEBUG_STREAM_CTRL(
       "New setting for " << sl::toString(setting).c_str() << ": " << value);
   }
   return true;
+}
+
+bool ZedCamera::checkVideoSettingError(sl::VIDEO_SETTINGS setting, sl::ERROR_CODE err)
+{
+  if (sl_tools::isVideoSettingRejected(err)) {
+    if (!mVideoSettingsRejected.insert(setting).second) {
+      return true;  // Already reported in this apply cycle
+    }
+    if (mSimMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "'" << videoSettingParamName(setting) <<
+          "' is not supported by the simulator: not applied.");
+    } else {
+      RCLCPP_WARN_STREAM(
+        get_logger(),
+        "'" << videoSettingParamName(setting) << "' not applied ("
+            << sl::toString(err).c_str()
+            << "): see the ZED SDK message for the reason. It is not retried until "
+          "the video parameters change.");
+    }
+    return true;
+  }
+
+  RCLCPP_WARN_STREAM(
+    get_logger(),
+    "Error setting " << sl::toString(setting).c_str() << ": "
+                     << sl::toString(err).c_str());
+  return false;
 }
 
 // Helper: Auto Exposure/Gain
@@ -1192,10 +1315,11 @@ void ZedCamera::applyAutoExposureGainSettings()
     setting = sl::VIDEO_SETTINGS::AEC_AGC;
     err = mZed->setCameraSettings(setting, (mCamAutoExpGain ? 1 : 0));
     if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), "Error setting AEC_AGC: "
-          << sl::toString(err).c_str());
-      mVideoSettingsApplyOk = false;
+      if (checkVideoSettingError(setting, err)) {
+        mTriggerAutoExpGain = false;
+      } else {
+        mVideoSettingsApplyOk = false;
+      }
     } else {
       mTriggerAutoExpGain = false;
       DEBUG_STREAM_CTRL(
@@ -1227,12 +1351,11 @@ void ZedCamera::applyWhiteBalanceSettings()
     setting = sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO;
     err = mZed->setCameraSettings(setting, (mCamAutoWB ? 1 : 0));
     if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), "Error setting "
-          << sl::toString(setting).c_str()
-          << ": "
-          << sl::toString(err).c_str());
-      mVideoSettingsApplyOk = false;
+      if (checkVideoSettingError(setting, err)) {
+        mTriggerAutoWB = false;
+      } else {
+        mVideoSettingsApplyOk = false;
+      }
     } else {
       mTriggerAutoWB = false;
       DEBUG_STREAM_CTRL(
@@ -1274,6 +1397,11 @@ void ZedCamera::applySaturationSharpnessGammaSettings()
 // Helper: ZED X specific settings
 void ZedCamera::applyZEDXSettings()
 {
+  if (sl_tools::isZEDXHDR(mCamRealModel)) {
+    applyZEDXExposureSettings();
+    applyZEDXAnalogDigitalGain();
+    return;
+  }
   if (!sl_tools::isZEDX(mCamRealModel)) {
     return;
   }
@@ -1322,20 +1450,16 @@ void ZedCamera::applyZEDXAutoExposureTimeRange()
       sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE,
       mGmslAutoExpTimeRangeMin, mGmslAutoExpTimeRangeMax);
     if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(), "Error setting "
-          << sl::toString(
-          sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE)
-          .c_str()
-          << ": " << sl::toString(err).c_str());
-      mVideoSettingsApplyOk = false;
+      mVideoSettingsApplyOk &=
+        checkVideoSettingError(sl::VIDEO_SETTINGS::AUTO_EXPOSURE_TIME_RANGE, err);
     }
   }
 }
 
 void ZedCamera::applyZEDXExposureCompensation()
 {
-  if (!mStreamMode) {
+  // -1: not set by the node, the camera keeps its current value
+  if (!mStreamMode && mGmslExposureComp >= 0) {
     mVideoSettingsApplyOk &= applyVideoSetting(
       sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION, mGmslExposureComp);
   }
@@ -1377,13 +1501,8 @@ void ZedCamera::applyZEDXAutoAnalogGainRange()
       mGmslAnalogGainRangeMax);
 
     if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        "Error setting "
-          << sl::toString(sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE)
-          .c_str()
-          << ": " << sl::toString(err).c_str());
-      mVideoSettingsApplyOk = false;
+      mVideoSettingsApplyOk &=
+        checkVideoSettingError(sl::VIDEO_SETTINGS::AUTO_ANALOG_GAIN_RANGE, err);
     }
   }
 }
@@ -1413,14 +1532,8 @@ void ZedCamera::applyZEDXAutoDigitalGainRange()
       mGmslAutoDigitalGainRangeMin,
       mGmslAutoDigitalGainRangeMax);
     if (err != sl::ERROR_CODE::SUCCESS) {
-      RCLCPP_WARN_STREAM(
-        get_logger(),
-        "Error setting "
-          << sl::toString(
-          sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE)
-          .c_str()
-          << ": " << sl::toString(err).c_str());
-      mVideoSettingsApplyOk = false;
+      mVideoSettingsApplyOk &=
+        checkVideoSettingError(sl::VIDEO_SETTINGS::AUTO_DIGITAL_GAIN_RANGE, err);
     }
   }
 }
@@ -1436,7 +1549,8 @@ void ZedCamera::applyZEDXDenoising()
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
 void ZedCamera::applyZEDXAEAntibanding()
 {
-  if (!mStreamMode) {
+  // -1: not set by the node, the camera keeps its current value
+  if (!mStreamMode && mGmslAEAntibanding >= 0) {
     mVideoSettingsApplyOk &=
       applyVideoSetting(sl::VIDEO_SETTINGS::AE_ANTIBANDING, mGmslAEAntibanding);
   }
@@ -1492,14 +1606,38 @@ void ZedCamera::processVideoDepth()
       mVdPublishing = true;
       mVdDataReadyCondVar.notify_one();
     } else {
+      if (mSyncPubToTs) {
+        // Timestamp-sync mode: the publish thread should always be back on
+        // the condition variable before the next bucket boundary; losing the
+        // boundary frame here means a whole pub window is skipped.
+        rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), steady_clock, 5000.0,
+          "Synchronized publishing: images skipped because the previous ones "
+          "were still being published. Reduce 'general.pub_frame_rate' if it "
+          "happens often.");
+      }
       DEBUG_VD(" * [processVideoDepth] vd_lock not locked");
     }
   } else {
     mVdPublishing = false;
     DEBUG_VD(" * [processVideoDepth] No video/depth subscribers");
 
-    // Publish camera infos even if no video/depth subscribers are present
-    publishCameraInfos();
+    // Publish camera infos even if no video/depth subscribers are present, at
+    // `general.pub_frame_rate` like the images. This runs at every grab: half a
+    // grab period of tolerance keeps the grab jitter from skipping a frame.
+    auto now = std::chrono::steady_clock::now();
+    double min_period = 0.0;
+    if (mVdPubRate > 0.0) {
+      min_period = 1.0 / mVdPubRate;
+      if (mCamGrabFrameRate > 0) {
+        min_period -= 0.5 / mCamGrabFrameRate;
+      }
+    }
+    if (std::chrono::duration<double>(now - mCamInfoLastPub).count() >= min_period) {
+      mCamInfoLastPub = now;
+      publishCameraInfos();
+    }
   }
   DEBUG_VD("=== Process Video/Depth done ===");
 }
@@ -2175,13 +2313,14 @@ void ZedCamera::publishStereoImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * Publishing SIDE-BY-SIDE message");
     try {
       // TypeAdapter publisher handles raw + zero-copy
-      if (mPubIpcStereo && mPubIpcStereo->get_subscription_count() > 0) {
-        // Clone for IPC since combined may be moved to compression below
-        auto ipc_copy = std::make_unique<sensor_msgs::msg::Image>(*combined);
-        mPubIpcStereo->publish(std::move(ipc_copy));
-      }
       // Compression only (raw plugin disabled via enable_pub_plugins)
-      if (mPubStereo.getNumSubscribers() > 0) {
+      const bool it_sub = mPubStereo.getNumSubscribers() > 0;
+      if (mPubIpcStereo && mPubIpcStereo->get_subscription_count() > 0) {
+        // Copied only when the compression publisher also needs the message
+        mPubIpcStereo->publish(
+          it_sub ? std::make_unique<sensor_msgs::msg::Image>(*combined) : std::move(combined));
+      }
+      if (it_sub) {
         mPubStereo.publish(std::move(combined));
       }
     } catch (std::system_error & e) {
@@ -2205,13 +2344,14 @@ void ZedCamera::publishStereoRawImages(const rclcpp::Time & t)
     DEBUG_STREAM_VD(" * Publishing SIDE-BY-SIDE RAW message");
     try {
       // TypeAdapter publisher handles raw + zero-copy
-      if (mPubIpcRawStereo && mPubIpcRawStereo->get_subscription_count() > 0) {
-        // Clone for IPC since combined may be moved to compression below
-        auto ipc_copy = std::make_unique<sensor_msgs::msg::Image>(*combined);
-        mPubIpcRawStereo->publish(std::move(ipc_copy));
-      }
       // Compression only (raw plugin disabled via enable_pub_plugins)
-      if (mPubRawStereo.getNumSubscribers() > 0) {
+      const bool it_sub = mPubRawStereo.getNumSubscribers() > 0;
+      if (mPubIpcRawStereo && mPubIpcRawStereo->get_subscription_count() > 0) {
+        // Copied only when the compression publisher also needs the message
+        mPubIpcRawStereo->publish(
+          it_sub ? std::make_unique<sensor_msgs::msg::Image>(*combined) : std::move(combined));
+      }
+      if (it_sub) {
         mPubRawStereo.publish(std::move(combined));
       }
     } catch (std::system_error & e) {
@@ -2372,11 +2512,17 @@ void ZedCamera::publishImageWithInfo(
     // and intra-process zero-copy (delivers StampedSlMat directly)
     if (ipcPubImg && ipcPubImg->get_subscription_count() > 0) {
       stereolabs::StampedSlMat adapted_msg;
-      // Clone the sl::Mat because the wrapper reuses member variables
-      // (mMatLeft, etc.) via retrieveImage() on the next grab() cycle.
-      // Intra-process publish is async, so the subscriber may still be
-      // processing when the buffer gets overwritten.
-      adapted_msg.mat.clone(img);
+      if (ipcPubImg->get_intra_process_subscription_count() > 0) {
+        // Clone the sl::Mat because the wrapper reuses member variables
+        // (mMatLeft, etc.) via retrieveImage() on the next grab() cycle.
+        // Intra-process publish is async, so the subscriber may still be
+        // processing when the buffer gets overwritten.
+        adapted_msg.mat.clone(img);
+      } else {
+        // Only subscribers in other processes: the message is converted to
+        // a ROS message inside publish(), the shallow copy is enough
+        adapted_msg.mat = img;
+      }
       adapted_msg.frame_id = imgFrameId;
       adapted_msg.stamp = stamp;
       ipcPubImg->publish(std::move(adapted_msg));
@@ -2522,13 +2668,14 @@ void ZedCamera::publishDepthMapWithInfo(
         publishCameraInfo(mPubDepthCamInfoTrans, mLeftCamInfoMsg, t);
 
         // TypeAdapter publisher handles raw + zero-copy
-        if (!cuda_sent && mPubIpcDepth && mPubIpcDepth->get_subscription_count() > 0) {
-          // Clone for IPC since depth_img may be moved to compression below
-          auto ipc_copy = std::make_unique<sensor_msgs::msg::Image>(*depth_img);
-          mPubIpcDepth->publish(std::move(ipc_copy));
-        }
         // Compression only (raw plugin disabled via enable_pub_plugins)
-        if (mPubDepth.getNumSubscribers() > 0) {
+        const bool it_sub = mPubDepth.getNumSubscribers() > 0;
+        if (!cuda_sent && mPubIpcDepth && mPubIpcDepth->get_subscription_count() > 0) {
+          // Copied only when the compression publisher also needs the message
+          mPubIpcDepth->publish(
+            it_sub ? std::make_unique<sensor_msgs::msg::Image>(*depth_img) : std::move(depth_img));
+        }
+        if (it_sub) {
           mPubDepth.publish(std::move(depth_img));
         }
       } catch (std::system_error & e) {
@@ -2570,13 +2717,15 @@ void ZedCamera::publishDepthMapWithInfo(
     try {
       publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
       // TypeAdapter publisher handles raw + zero-copy
-      if (mPubIpcDepth && mPubIpcDepth->get_subscription_count() > 0) {
-        // Clone for IPC since openniDepthMsg may be moved to compression below
-        auto ipc_copy = std::make_unique<sensor_msgs::msg::Image>(*openniDepthMsg);
-        mPubIpcDepth->publish(std::move(ipc_copy));
-      }
       // Compression only (raw plugin disabled via enable_pub_plugins)
-      if (mPubDepth.getNumSubscribers() > 0) {
+      const bool it_sub = mPubDepth.getNumSubscribers() > 0;
+      if (mPubIpcDepth && mPubIpcDepth->get_subscription_count() > 0) {
+        // Copied only when the compression publisher also needs the message
+        mPubIpcDepth->publish(
+          it_sub ? std::make_unique<sensor_msgs::msg::Image>(*openniDepthMsg) : std::move(
+            openniDepthMsg));
+      }
+      if (it_sub) {
         mPubDepth.publish(std::move(openniDepthMsg));
       }
     } catch (std::system_error & e) {
@@ -2639,27 +2788,29 @@ void ZedCamera::publishDisparityMap(
   const sl::Mat & disparity,
   const rclcpp::Time & t)
 {
-  sl::CameraInformation zedParam = mZed->getCameraInformation(mMatResol);
-  float f = zedParam.camera_configuration.calibration_parameters.left_cam.fx;
-  // Use positive baseline and positive disparity convention (standard stereo_msgs expectation).
-  // ZED SDK returns negative d; we negate pixel values and T together so depth = f*T/d stays valid.
-  float baseline = zedParam.camera_configuration.calibration_parameters.getCameraBaseline();
-
-  // Actual scene depth range: getCurrentMinMaxDepth gives per-frame observed depths,
-  // which produce a meaningful disparity range for visualization (unlike depth_minimum_distance
-  // which is a SDK filter threshold that can be as small as 1 cm).
-  float actual_min_depth, actual_max_depth;
-  if (mZed->getCurrentMinMaxDepth(actual_min_depth, actual_max_depth) != sl::ERROR_CODE::SUCCESS ||
-    actual_min_depth <= 0.0f || actual_max_depth <= actual_min_depth)
-  {
-    actual_min_depth = mCamMinDepth > 0.0f ? static_cast<float>(mCamMinDepth) : 0.3f;
-    actual_max_depth = mCamMaxDepth > 0.0f ? static_cast<float>(mCamMaxDepth) : 15.0f;
-  }
-  // min_disparity = far objects (small), max_disparity = near objects (large).
-  float min_disp = f * baseline / actual_max_depth;
-  float max_disp = f * baseline / actual_min_depth;
-
   if (mDisparitySubCount > 0 || mDispMapSubCount > 0) {
+    sl::CameraInformation zedParam = mZed->getCameraInformation(mMatResol);
+    float f = zedParam.camera_configuration.calibration_parameters.left_cam.fx;
+    // Use positive baseline and positive disparity convention (standard stereo_msgs expectation).
+    // ZED SDK returns negative d; we negate pixel values and T together so depth = f*T/d stays valid.
+    float baseline = zedParam.camera_configuration.calibration_parameters.getCameraBaseline();
+
+    // Actual scene depth range: getCurrentMinMaxDepth gives per-frame observed depths,
+    // which produce a meaningful disparity range for visualization (unlike depth_minimum_distance
+    // which is a SDK filter threshold that can be as small as 1 cm).
+    float actual_min_depth, actual_max_depth;
+    if (mZed->getCurrentMinMaxDepth(
+        actual_min_depth,
+        actual_max_depth) != sl::ERROR_CODE::SUCCESS ||
+      actual_min_depth <= 0.0f || actual_max_depth <= actual_min_depth)
+    {
+      actual_min_depth = mCamMinDepth > 0.0f ? static_cast<float>(mCamMinDepth) : 0.3f;
+      actual_max_depth = mCamMaxDepth > 0.0f ? static_cast<float>(mCamMaxDepth) : 15.0f;
+    }
+    // min_disparity = far objects (small), max_disparity = near objects (large).
+    float min_disp = f * baseline / actual_max_depth;
+    float max_disp = f * baseline / actual_min_depth;
+
     std::unique_ptr<sensor_msgs::msg::Image> disparity_image =
       sl_tools::imageToROSmsg(disparity, mDepthOptFrameId, t, mUsePubTimestamps);
 
@@ -2673,7 +2824,7 @@ void ZedCamera::publishDisparityMap(
     }
 
     auto disparityMsg = std::make_unique<stereo_msgs::msg::DisparityImage>();
-    disparityMsg->image = *disparity_image.get();
+    disparityMsg->image = std::move(*disparity_image);
     disparityMsg->header = disparityMsg->image.header;
     disparityMsg->f = f;
     disparityMsg->t = baseline;
@@ -2683,11 +2834,14 @@ void ZedCamera::publishDisparityMap(
 
     DEBUG_STREAM_VD(" * Publishing DISPARITY message");
     try {
-      if (mPubDisparity) {
-        auto copy = std::make_unique<stereo_msgs::msg::DisparityImage>(*disparityMsg);
-        mPubDisparity->publish(std::move(copy));
+      // `mPubDisparity` is the deprecated topic: copied only when both have subscribers
+      const bool disp_map_sub = mPubDispMap && mDispMapSubCount > 0;
+      if (mPubDisparity && mDisparitySubCount > 0) {
+        mPubDisparity->publish(
+          disp_map_sub ? std::make_unique<stereo_msgs::msg::DisparityImage>(*disparityMsg) :
+          std::move(disparityMsg));
       }
-      if (mPubDispMap) {
+      if (disp_map_sub) {
         mPubDispMap->publish(std::move(disparityMsg));
       }
     } catch (std::system_error & e) {
@@ -2832,8 +2986,9 @@ void ZedCamera::processPointCloud()
 #endif
       }
       if (pc_err != sl::ERROR_CODE::SUCCESS) {
-        RCLCPP_WARN_STREAM(
-          get_logger(),
+        rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+        RCLCPP_WARN_STREAM_THROTTLE(
+          get_logger(), steady_clock, 1000.0,
           "Point cloud retrieve error: " << sl::toString(pc_err));
         return;
       }
@@ -2849,6 +3004,16 @@ void ZedCamera::processPointCloud()
       DEBUG_STREAM_PC(
         " * [processPointCloud] Extracted point cloud: " << mMatCloud.getInfos().c_str() );
     } else {
+      if (mSyncPubToTs) {
+        // Timestamp-sync mode: see processVideoDepth, a busy publish thread
+        // at a bucket boundary silently skips a whole point cloud window.
+        rclcpp::Clock steady_clock(RCL_STEADY_TIME);
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), steady_clock, 5000.0,
+          "Synchronized publishing: point cloud skipped because the previous "
+          "one was still being published. Reduce 'general.pub_frame_rate' if "
+          "it happens often.");
+      }
       DEBUG_PC(" * [processPointCloud] pc_lock not locked");
     }
   } else {
@@ -3160,22 +3325,28 @@ void ZedCamera::handleVideoDepthPublishing()
   // <---- Publish sync sensors data if needed
 
   // ----> Check publishing frequency
-  double vd_period_usec = 1e6 / mVdPubRate;
-  double elapsed_usec = mVdPubFreqTimer.toc() * 1e6;
+  // Timestamp-sync mode: no free-running throttle, the grab thread's
+  // timestamp bucket gate is the only decimator. Sleeping here (while holding
+  // mVdMutex) would make the grab thread's try_lock fail on bucket-boundary
+  // frames and drop them.
+  if (!mSyncPubToTs) {
+    double vd_period_usec = 1e6 / mVdPubRate;
+    double elapsed_usec = mVdPubFreqTimer.toc() * 1e6;
 
-  DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] elapsed_usec " << elapsed_usec);
+    DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] elapsed_usec " << elapsed_usec);
 
-  int wait_usec = 100;
-  if (elapsed_usec < vd_period_usec) {
-    wait_usec = static_cast<int>(vd_period_usec - elapsed_usec);
-    rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
-    DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] wait_usec " << wait_usec);
-  } else {
-    rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+    int wait_usec = 100;
+    if (elapsed_usec < vd_period_usec) {
+      wait_usec = static_cast<int>(vd_period_usec - elapsed_usec);
+      rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+      DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] wait_usec " << wait_usec);
+    } else {
+      rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+    }
+    DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] sleeped for " << wait_usec << " µsec");
+
+    mVdPubFreqTimer.tic();
   }
-  DEBUG_STREAM_VD(" * [handleVideoDepthPublishing] sleeped for " << wait_usec << " µsec");
-
-  mVdPubFreqTimer.tic();
   // <---- Check publishing frequency
 }
 
@@ -3322,23 +3493,26 @@ void ZedCamera::handlePointCloudPublishing()
   publishPointCloud();
 
   // ----> Check publishing frequency
-  double pc_period_usec = 1e6 / mPcPubRate;
+  // Timestamp-sync mode: no free-running throttle, see handleVideoDepthPublishing.
+  if (!mSyncPubToTs) {
+    double pc_period_usec = 1e6 / mPcPubRate;
 
-  double elapsed_usec = mPcPubFreqTimer.toc() * 1e6;
+    double elapsed_usec = mPcPubFreqTimer.toc() * 1e6;
 
-  DEBUG_STREAM_PC(" * [handlePointCloudPublishing] elapsed_usec " << elapsed_usec);
+    DEBUG_STREAM_PC(" * [handlePointCloudPublishing] elapsed_usec " << elapsed_usec);
 
-  int wait_usec = 100;
-  if (elapsed_usec < pc_period_usec) {
-    wait_usec = static_cast<int>(pc_period_usec - elapsed_usec);
-    rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
-    DEBUG_STREAM_PC(" * [handlePointCloudPublishing] wait_usec " << wait_usec);
-  } else {
-    rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+    int wait_usec = 100;
+    if (elapsed_usec < pc_period_usec) {
+      wait_usec = static_cast<int>(pc_period_usec - elapsed_usec);
+      rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+      DEBUG_STREAM_PC(" * [handlePointCloudPublishing] wait_usec " << wait_usec);
+    } else {
+      rclcpp::sleep_for(std::chrono::microseconds(wait_usec));
+    }
+    DEBUG_STREAM_PC(" * [handlePointCloudPublishing] sleeped for " << wait_usec << " µsec");
+
+    mPcPubFreqTimer.tic();
   }
-  DEBUG_STREAM_PC(" * [handlePointCloudPublishing] sleeped for " << wait_usec << " µsec");
-
-  mPcPubFreqTimer.tic();
   // <---- Check publishing frequency
 
   mPcDataReady = false;
@@ -3389,6 +3563,9 @@ bool ZedCamera::handleVideoDepthDynamicParams(
   if (sl_tools::isZEDX(mCamRealModel)) {
     if (handleGmsl2Params(param, result)) {return true;}
   } else {
+    // The ZED X HDR cameras have both brightness/contrast/hue and the GMSL
+    // exposure time and gains
+    if (sl_tools::isZEDXHDR(mCamRealModel) && handleGmsl2Params(param, result)) {return true;}
     if (handleUsb3Params(param, result)) {return true;}
   }
   if (handleCommonVideoParams(param, result)) {return true;}

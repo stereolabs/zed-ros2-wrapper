@@ -83,7 +83,7 @@ void ZedCameraOne::getVideoParams()
   sl_tools::getParam(
     shared_from_this(), "video.exposure_compensation",
     _camExposureComp, _camExposureComp,
-    " * Exposure Compensation: ", true, 0, 100);
+    " * Exposure Compensation: ", true, -1, 100);
   _camDynParMapChanged["video.exposure_compensation"] = true;
   sl_tools::getParam(
     shared_from_this(), "video.auto_analog_gain",
@@ -132,7 +132,7 @@ void ZedCameraOne::getVideoParams()
   sl_tools::getParam(
     shared_from_this(), "video.ae_antibanding", _camAEAntibanding,
     _camAEAntibanding,
-    " * AE Anti-banding (0=OFF,1=AUTO,2=50Hz,3=60Hz): ", true, 0, 3);
+    " * AE Anti-banding (-1=not set,0=OFF,1=AUTO,2=50Hz,3=60Hz): ", true, -1, 3);
   _camDynParMapChanged["video.ae_antibanding"] = true;
 #endif
 
@@ -798,7 +798,15 @@ void ZedCameraOne::publishImageWithInfo(
     // Publish sl::Mat directly via type-adapted publisher (zero-copy for IPC)
     if (ipcPubImg && ipcPubImg->get_subscription_count() > 0) {
       stereolabs::StampedSlMat adapted_msg;
-      adapted_msg.mat.clone(img);
+      if (ipcPubImg->get_intra_process_subscription_count() > 0) {
+        // Intra-process delivery is asynchronous and the image buffer is
+        // reused at the next grab: the subscriber needs its own copy
+        adapted_msg.mat.clone(img);
+      } else {
+        // Only subscribers in other processes: the message is converted to
+        // a ROS message inside publish(), the shallow copy is enough
+        adapted_msg.mat = img;
+      }
       adapted_msg.frame_id = imgFrameId;
       adapted_msg.stamp = stamp;
       ipcPubImg->publish(adapted_msg);
@@ -906,30 +914,105 @@ void ZedCameraOne::applyDynamicSettings()
     DEBUG_COMM(" * NONE");
   }
 
-  _triggerUpdateDynParams = (count > 0);
+  // Settings not applied yet are retried at the next grab
+  if (count > 0) {
+    _triggerUpdateDynParams = true;
+  }
 
   DEBUG_STREAM_COMM("=== Dynamic settings applied ===");
+}
+
+void ZedCameraOne::setVideoSetting(
+  sl::VIDEO_SETTINGS setting, int value,
+  const std::string & settingName)
+{
+  if (!_camDynParMapChanged[settingName]) {
+    return;
+  }
+  if (!isVideoSettingAvailable(setting)) {
+    _camDynParMapChanged[settingName] = false;
+    DEBUG_STREAM_COMM(
+      "'" << settingName <<
+        "' not available on this camera or in its current mode: not set");
+    return;
+  }
+  sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
+  if (ret_code == sl::ERROR_CODE::SUCCESS) {
+    _camDynParMapChanged[settingName] = false;
+    DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
+  } else if (sl_tools::isVideoSettingRejected(ret_code)) {
+    // Retrying cannot help: report it once, until the parameter changes again
+    _camDynParMapChanged[settingName] = false;
+    if (_simMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), "'" << settingName << "' is not supported by the simulator: not applied.");
+      return;
+    }
+    RCLCPP_WARN_STREAM(
+      get_logger(), "'" << settingName << "' not applied (" << sl::toString(ret_code).c_str()
+                        << "): see the ZED SDK message for the reason. It is not retried until "
+        "it changes.");
+  } else {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Error setting "
+        << settingName << ": "
+        << sl::toString(ret_code));
+  }
+}
+
+bool ZedCameraOne::setVideoSettingRange(
+  sl::VIDEO_SETTINGS setting, int value_min, int value_max,
+  const std::string & settingName_min, const std::string & settingName_max)
+{
+  if (!_camDynParMapChanged[settingName_min] && !_camDynParMapChanged[settingName_max]) {
+    return true;
+  }
+  if (!isVideoSettingAvailable(setting)) {
+    _camDynParMapChanged[settingName_min] = false;
+    _camDynParMapChanged[settingName_max] = false;
+    DEBUG_STREAM_COMM(
+      "The range ['" << settingName_min << "','" << settingName_max
+                     << "'] not available on this camera or in its current mode: not set");
+    return false;
+  }
+  sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value_min, value_max);
+  if (ret_code == sl::ERROR_CODE::SUCCESS) {
+    _camDynParMapChanged[settingName_min] = false;
+    _camDynParMapChanged[settingName_max] = false;
+    DEBUG_STREAM_COMM("Set " << settingName_min << " to " << value_min);
+    DEBUG_STREAM_COMM("Set " << settingName_max << " to " << value_max);
+    return true;
+  }
+  if (sl_tools::isVideoSettingRejected(ret_code)) {
+    // Retrying cannot help: report it once, until the parameters change again
+    _camDynParMapChanged[settingName_min] = false;
+    _camDynParMapChanged[settingName_max] = false;
+    RCLCPP_WARN_STREAM(
+      get_logger(), "The range ['" << settingName_min << "','" << settingName_max
+                                   << "'] not applied (" << sl::toString(ret_code).c_str()
+                                   << "): see the ZED SDK message for the reason. It is not "
+        "retried until it changes.");
+  } else {
+    RCLCPP_WARN_STREAM(
+      get_logger(), "Error setting the range of ["
+        << settingName_min << "," << settingName_max << "]: "
+        << sl::toString(ret_code));
+  }
+  return false;
+}
+
+bool ZedCameraOne::isVideoSettingAvailable(sl::VIDEO_SETTINGS setting)
+{
+  // SVO, stream and simulation: the setting is sent and the input reports it
+  if (_svoMode || _streamMode || _simMode) {
+    return true;
+  }
+  return _zed->isCameraSettingSupported(setting);
 }
 
 // Helper function for saturation, sharpness, gamma
 void ZedCameraOne::applySaturationSharpnessGamma()
 {
-  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
-      const std::string & settingName) {
-      if (this->_camDynParMapChanged[settingName]) {
-        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
-        if (ret_code != sl::ERROR_CODE::SUCCESS) {
-          RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting "
-              << settingName << ": "
-              << sl::toString(ret_code));
-        } else {
-          this->_camDynParMapChanged[settingName] = false;
-          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
-        }
-      }
-    };
-
   setVideoSetting(sl::VIDEO_SETTINGS::SATURATION, _camSaturation, "video.saturation");
   setVideoSetting(sl::VIDEO_SETTINGS::SHARPNESS, _camSharpness, "video.sharpness");
   setVideoSetting(sl::VIDEO_SETTINGS::GAMMA, _camGamma, "video.gamma");
@@ -938,22 +1021,6 @@ void ZedCameraOne::applySaturationSharpnessGamma()
 // Helper function for white balance
 void ZedCameraOne::applyWhiteBalance()
 {
-  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
-      const std::string & settingName) {
-      if (this->_camDynParMapChanged[settingName]) {
-        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
-        if (ret_code != sl::ERROR_CODE::SUCCESS) {
-          RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting "
-              << settingName << ": "
-              << sl::toString(ret_code));
-        } else {
-          this->_camDynParMapChanged[settingName] = false;
-          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
-        }
-      }
-    };
-
   setVideoSetting(sl::VIDEO_SETTINGS::WHITEBALANCE_AUTO, _camAutoWB, "video.auto_whitebalance");
   if (!_camAutoWB) {
     setVideoSetting(
@@ -968,46 +1035,6 @@ void ZedCameraOne::applyWhiteBalance()
 // Helper function for exposure
 void ZedCameraOne::applyExposure()
 {
-  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
-      const std::string & settingName) {
-      if (this->_camDynParMapChanged[settingName]) {
-        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
-        if (ret_code != sl::ERROR_CODE::SUCCESS) {
-          RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting "
-              << settingName << ": "
-              << sl::toString(ret_code));
-        } else {
-          this->_camDynParMapChanged[settingName] = false;
-          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
-        }
-      }
-    };
-
-  auto setVideoSettingRange = [this](sl::VIDEO_SETTINGS setting, int value_min,
-      int value_max, const std::string & settingName_min, const std::string & settingName_max) {
-      if (this->_camDynParMapChanged[settingName_min] ||
-        this->_camDynParMapChanged[settingName_max])
-      {
-        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value_min, value_max);
-        if (ret_code != sl::ERROR_CODE::SUCCESS) {
-          RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting the range of ["
-              << settingName_min << "," << settingName_max << ": "
-              << sl::toString(ret_code));
-          return false;
-        } else {
-          this->_camDynParMapChanged[settingName_min] = false;
-          this->_camDynParMapChanged[settingName_max] = false;
-          DEBUG_STREAM_COMM("Set " << settingName_min << " to " << value_min);
-          DEBUG_STREAM_COMM("Set " << settingName_max << " to " << value_max);
-          return true;
-        }
-        return false;
-      }
-      return true;
-    };
-
   if (_camAutoExposure) {
     if (_camDynParMapChanged["video.auto_exposure"]) {
       set_parameters(
@@ -1063,46 +1090,6 @@ void ZedCameraOne::applyExposure()
 // Helper function for analog gain
 void ZedCameraOne::applyAnalogGain()
 {
-  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
-      const std::string & settingName) {
-      if (this->_camDynParMapChanged[settingName]) {
-        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
-        if (ret_code != sl::ERROR_CODE::SUCCESS) {
-          RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting "
-              << settingName << ": "
-              << sl::toString(ret_code));
-        } else {
-          this->_camDynParMapChanged[settingName] = false;
-          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
-        }
-      }
-    };
-
-  auto setVideoSettingRange = [this](sl::VIDEO_SETTINGS setting, int value_min,
-      int value_max, const std::string & settingName_min, const std::string & settingName_max) {
-      if (this->_camDynParMapChanged[settingName_min] ||
-        this->_camDynParMapChanged[settingName_max])
-      {
-        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value_min, value_max);
-        if (ret_code != sl::ERROR_CODE::SUCCESS) {
-          RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting the range of ["
-              << settingName_min << "," << settingName_max << ": "
-              << sl::toString(ret_code));
-          return false;
-        } else {
-          this->_camDynParMapChanged[settingName_min] = false;
-          this->_camDynParMapChanged[settingName_max] = false;
-          DEBUG_STREAM_COMM("Set " << settingName_min << " to " << value_min);
-          DEBUG_STREAM_COMM("Set " << settingName_max << " to " << value_max);
-          return true;
-        }
-        return false;
-      }
-      return true;
-    };
-
   if (_camAutoAnalogGain) {
     if (_camDynParMapChanged["video.auto_analog_gain"]) {
       set_parameters(
@@ -1157,46 +1144,6 @@ void ZedCameraOne::applyAnalogGain()
 // Helper function for digital gain
 void ZedCameraOne::applyDigitalGain()
 {
-  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
-      const std::string & settingName) {
-      if (this->_camDynParMapChanged[settingName]) {
-        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
-        if (ret_code != sl::ERROR_CODE::SUCCESS) {
-          RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting "
-              << settingName << ": "
-              << sl::toString(ret_code));
-        } else {
-          this->_camDynParMapChanged[settingName] = false;
-          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
-        }
-      }
-    };
-
-  auto setVideoSettingRange = [this](sl::VIDEO_SETTINGS setting, int value_min,
-      int value_max, const std::string & settingName_min, const std::string & settingName_max) {
-      if (this->_camDynParMapChanged[settingName_min] ||
-        this->_camDynParMapChanged[settingName_max])
-      {
-        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value_min, value_max);
-        if (ret_code != sl::ERROR_CODE::SUCCESS) {
-          RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting the range of ["
-              << settingName_min << "," << settingName_max << ": "
-              << sl::toString(ret_code));
-          return false;
-        } else {
-          this->_camDynParMapChanged[settingName_min] = false;
-          this->_camDynParMapChanged[settingName_max] = false;
-          DEBUG_STREAM_COMM("Set " << settingName_min << " to " << value_min);
-          DEBUG_STREAM_COMM("Set " << settingName_max << " to " << value_max);
-          return true;
-        }
-        return false;
-      }
-      return true;
-    };
-
   if (_camAutoDigitalGain) {
     if (_camDynParMapChanged["video.auto_digital_gain"]) {
       set_parameters(
@@ -1251,32 +1198,25 @@ void ZedCameraOne::applyDigitalGain()
 // Helper function for exposure compensation and denoising
 void ZedCameraOne::applyExposureCompensationAndDenoising()
 {
-  auto setVideoSetting = [this](sl::VIDEO_SETTINGS setting, int value,
-      const std::string & settingName) {
-      if (this->_camDynParMapChanged[settingName]) {
-        sl::ERROR_CODE ret_code = _zed->setCameraSettings(setting, value);
-        if (ret_code != sl::ERROR_CODE::SUCCESS) {
-          RCLCPP_WARN_STREAM(
-            get_logger(), "Error setting "
-              << settingName << ": "
-              << sl::toString(ret_code));
-        } else {
-          this->_camDynParMapChanged[settingName] = false;
-          DEBUG_STREAM_COMM("Set " << settingName << " to " << value);
-        }
-      }
-    };
-
-  setVideoSetting(
-    sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION, _camExposureComp,
-    "video.exposure_compensation");
+  // -1: not set by the node, the camera keeps its current value
+  if (_camExposureComp >= 0) {
+    setVideoSetting(
+      sl::VIDEO_SETTINGS::EXPOSURE_COMPENSATION, _camExposureComp,
+      "video.exposure_compensation");
+  } else {
+    _camDynParMapChanged["video.exposure_compensation"] = false;
+  }
 
   setVideoSetting(sl::VIDEO_SETTINGS::DENOISING, _camDenoising, "video.denoising");
 
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
-  setVideoSetting(
-    sl::VIDEO_SETTINGS::AE_ANTIBANDING, _camAEAntibanding,
-    "video.ae_antibanding");
+  if (_camAEAntibanding >= 0) {
+    setVideoSetting(
+      sl::VIDEO_SETTINGS::AE_ANTIBANDING, _camAEAntibanding,
+      "video.ae_antibanding");
+  } else {
+    _camDynParMapChanged["video.ae_antibanding"] = false;
+  }
 
   // Read-only metric: scene illuminance (cached for diagnostic publication)
   int illum = -1;
@@ -1344,7 +1284,11 @@ void ZedCameraOne::initCudaBufferTransport()
 
   // sl::CameraOne does not expose its CUDA context: use the one of its CUDA
   // stream, or the one made current by `open()`
+#if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 52
   CUstream sdk_stream = _zed->getCUDAStream();
+#else
+  CUstream sdk_stream = nullptr;  // `sl::CameraOne::getCUDAStream` requires ZED SDK 5.2
+#endif
   CUcontext sdk_ctx = nullptr;
   if (!sdk_stream) {
     cuCtxGetCurrent(&sdk_ctx);

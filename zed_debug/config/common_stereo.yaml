@@ -10,6 +10,7 @@
             sim_enabled: false # Set to `true` to enable the simulation mode and connect to a simulation server
             sim_address: '127.0.0.1' # The connection address of the simulation server. See the documentation of the supported simulation plugins for more information.
             sim_port: 30000 # The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.
+            self_calib: false # Enable the self-calibration process at camera opening in simulation, replacing 'general.self_calib'. Disabled by default, for reproducible simulation results
 
         svo:
             svo_encoding_preset: 'DEFAULT' # [SDK >= 5.3] SVO encoder speed/quality preset used by the 'start_svo_rec' service. One of 'DEFAULT', 'ULTRAFAST', 'FAST', 'MEDIUM', 'SLOW'
@@ -23,15 +24,17 @@
             replay_rate: 1.0 # Replay rate for the SVO when not used in realtime mode (between [0.10-5.0])
 
         general:
-            camera_timeout_sec: 5
-            camera_max_reconnect: 5
+            camera_timeout_sec: 5 # Seconds between two attempts to open the camera at start-up
+            camera_max_reconnect: 5 # Attempts to open the camera at start-up. The camera is also waited for 'camera_timeout_sec' x 'camera_max_reconnect' seconds when it is disconnected while running and after a reboot; if it does not come back, the node stops (see 'exit_on_failure')
+            exit_on_failure: false # Overwritten by the launch file ('true': the debug process runs this node only). What happens when the node fails for good (camera that cannot be opened or that does not come back, invalid configuration): 'true' stops the whole process, so that a supervisor can restart it; 'false' stops this node only, and the other nodes of its container keep running.
             camera_flip: false
             self_calib: true # Enable the self-calibration process at camera opening. See https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#affeaa06cfc1d849e311e484ceb8edcc5
             serial_number: 0 # overwritten by launch file
             pub_resolution: 'CUSTOM' # The resolution used for image and depth map publishing. 'NATIVE' to use the same `general.grab_resolution` - `CUSTOM` to apply the `general.pub_downscale_factor` downscale factory to reduce bandwidth in transmission
             pub_downscale_factor: 2.0 # rescale factor used to rescale image before publishing when 'pub_resolution' is 'CUSTOM'
-            grab_compute_capping_fps: 0.0 # Define a computation upper limit to the grab frequency. This can be useful to get a known constant fixed rate or limit the computation load while keeping a short exposure time by setting a high camera capture framerate. If set to 0, the grab compute capping will be disabled and the ZED SDK will process data at the grab rate.
+            grab_compute_capping_fps: 0.0 # Define a computation upper limit to the grab frequency. This can be useful to get a known constant fixed rate or limit the computation load while keeping a short exposure time by setting a high camera capture framerate. If set to 0, the grab compute capping will be disabled and the ZED SDK will process data at the grab rate. With ZED SDK >= 5.6 the newest image is processed at each capped grab, and the capping also applies to stream inputs.
             pub_frame_rate: 15.0 # [DYNAMIC] Frequency of publishing of visual images and depth data (not the Point Cloud, see 'depth.point_cloud_freq'). This value must be equal or less than the camera framerate.
+            sync_pub_to_timestamp: false # Synchronized publishing for multiple GMSL cameras with a shared hardware sync: if true, the frames to publish are selected on their image timestamp instead of the publishing timer, so all the cameras with the same 'pub_frame_rate' publish the frames captured at the same instant. The camera is grabbed at 'grab_frame_rate' ('grab_compute_capping_fps' is ignored), the point cloud follows 'pub_frame_rate', and the depth is only computed for the published frames when no other module needs it. Leave false for a single camera.
             enable_image_validity_check: 1 # [SDK5 required] Sets the image validity check. If set to 1, the SDK will check if the frames are valid before processing.
             gpu_id: -1
             optional_opencv_calibration_file: '' # Optional path where the ZED SDK can find a file containing the calibration information of the camera computed by OpenCV. Read the ZED SDK documentation for more information: https://www.stereolabs.com/docs/api/structsl_1_1InitParameters.html#a9eab2753374ef3baec1d31960859ba19
@@ -67,6 +70,9 @@
             publish_imu_tf: false # [overwritten by launch file options] enable/disable the IMU TF broadcasting
             sensors_image_sync: false # Synchronize Sensors messages with latest published video/depth message
             sensors_pub_rate: 100. # frequency of publishing of sensors data. MAX: 400. - MIN: grab rate
+            imu_sampling_rate: 'DEFAULT' # IMU sampling rate: 'DEFAULT' (camera default, 200 Hz on ZED X cameras), 'HZ_200', 'HZ_400'. Set 'sensors_pub_rate' to 400.0 to publish every sample. ZED X family only, with ZED X driver >= 1.5.0 [ZED SDK >= 5.6]
+            imu_accelerometer_range: 'DEFAULT' # Accelerometer full-scale range: 'DEFAULT' (camera default, +/-12 g on ZED X cameras), 'G_3', 'G_6', 'G_12', 'G_24'. A smaller range gives a finer resolution, a larger one avoids saturation. ZED X family only, with ZED X driver >= 1.5.0 [ZED SDK >= 5.6]
+            imu_gyroscope_range: 'DEFAULT' # Gyroscope full-scale range: 'DEFAULT' (camera default, +/-1000 deg/s on ZED X cameras), 'DPS_250', 'DPS_500', 'DPS_1000', 'DPS_2000'. ZED X family only, with ZED X driver >= 1.5.0 [ZED SDK >= 5.6]
             publish_imu: false # Advertise the IMU topic that is published only if a node subscribes to it
             publish_imu_raw: false # Advertise the raw IMU topic that is published only if a node subscribes to it
             publish_cam_imu_transf: false # Advertise the CAMERA-IMU transformation topic that is published only if a node subscribes to it
@@ -90,8 +96,9 @@
             publish_roi_mask: false # Advertise the ROI mask image topic that is published only if a node subscribes to it
 
         depth:
-            depth_mode: 'NEURAL_LIGHT' # Matches the ZED SDK setting: 'NONE', 'NEURAL_LIGHT', 'NEURAL', 'NEURAL_PLUS' - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Pos. Tracking, Obj. Detection, Mapping, ...)
-            depth_precision: 'FP16' # Precision of the neural depth inference: 'FP16' (default), 'INT8' - 'INT8' is faster and uses less memory, for a small accuracy cost, and is only available with 'NEURAL'. Always safe to set: the ZED SDK falls back to 'FP16' when the depth mode or the GPU does not support 'INT8' [ZED SDK >= 5.5]
+            depth_mode: 'NEURAL_LIGHT' # Matches the ZED SDK setting: 'NONE', 'NEURAL_LIGHT', 'NEURAL', 'NEURAL_PLUS', 'NEURAL_MAX' [ZED SDK >= 5.6: the most accurate, needs about 1 GB of GPU memory, for high-end GPUs such as Jetson AGX Thor or for offline SVO processing]. 'CUSTOM' (depth provided by the application) is not supported - Note: if 'NONE' all the modules that requires depth extraction are disabled by default (Obj. Detection, Mapping, ...), and Pos. Tracking unless 'pos_tracking_mode' is 'GEN_3'
+            depth_precision: 'FP16' # Precision of the neural depth inference: 'FP16' (default), 'INT8' - 'INT8' is faster and uses less memory, for a small accuracy cost, and is available with every NEURAL depth mode [ZED SDK >= 5.6; 'NEURAL' only with ZED SDK 5.5] on Jetson Orin, Jetson Thor, DGX Spark and RTX 30, 40 and 50 series GPUs ('NEURAL_MAX' runs in FP8 where the GPU supports it). Always safe to set: the ZED SDK falls back to 'FP16' when the depth mode or the GPU does not support 'INT8' [ZED SDK >= 5.5]
+            depth_compute_device: 'AUTO' # Processor that runs the neural depth network: 'AUTO' (default, currently the GPU), 'GPU', 'DLA' (experimental, Jetson AGX Orin and Orin NX with JetPack 6), 'PVA' (experimental, Jetson with JetPack 7.2). 'DLA' and 'PVA' only run 'NEURAL_LIGHT' at their own precision ('depth_precision' is ignored) and leave the GPU to the application; when the accelerator cannot be used the depth runs on the GPU [ZED SDK >= 5.6]
             allow_depth_cuda_graph: false # Allow the ZED SDK to record the depth computation once and replay it at each grab, lowering its CPU launch cost (most useful on Jetson). Depth output is unchanged. Best-effort: it only applies to the 'NEURAL' depth mode family, and the SDK reverts to the regular computation if the recording fails [ZED SDK >= 5.5]
             depth_stabilization: 30 # Forces positional tracking to start if major than 0 - Range: [0,100]
             openni_depth_mode: false # 'false': 32bit float [meters], 'true': 16bit unsigned int [millimeters]
@@ -101,6 +108,7 @@
             depth_texture_conf: 100 # [DYNAMIC]
             remove_saturated_areas: true # [DYNAMIC]
             publish_depth_map: true # Advertise the depth map topics that are published only if a node subscribes to them
+            publish_depth_image: false # Advertise the colorized depth image topic (sl::VIEW::DEPTH) that is published only if a node subscribes to it
             publish_depth_info: false # Advertise the depth info topic that is published only if a node subscribes to it
             publish_point_cloud: true # Advertise the point cloud topic that is published only if a node subscribes to it
             voxel_point_cloud: false # [DYNAMIC] When true, publish voxel-decimated point cloud instead of full resolution [ZED SDK >= 5.3]
@@ -122,7 +130,7 @@
             map_frame: 'map'
             odometry_frame: 'odom'
             area_memory: true # Enable to detect loop closure
-            area_file_path: '' # Path to the area memory file for relocalization and loop closure in a previously explored environment. 
+            area_file_path: '' # Path to the area memory file for relocalization and loop closure in a previously explored environment. Ignored when 'area_memory' is false. With 'GEN_3' and ZED SDK >= 5.6 the file is saved in a format older ZED SDK versions cannot load: keep a copy of an older file before it is saved again
             enable_localization_only: false # If true, the camera will only localize in the loaded area memory without updating the map with new information.
             save_area_memory_on_closing: false # Save Area memory before closing the camera if `area_file_path` is not empty. You can also use the `save_area_memory` service to save the area memory at any time.
             reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
@@ -139,6 +147,13 @@
             fixed_z_value: 0.0 # Value to be used for Z coordinate if `two_d_mode` is true
             transform_time_offset: 0.0 # The value added to the timestamp of `map->odom` and `odom->camera_link` transform being generated
             reset_pose_with_svo_loop: true # Reset the camera pose the `initial_base_pose` when the SVO loop is enabled and the SVO playback reaches the end of the file.
+            motion_prior: # [ZED SDK >= 5.6] Motion measured by your own source (wheel odometry, external VIO, ...) used by the 'GEN_3' positional tracking to stay accurate in fast motion, low texture or occlusions. Live camera only
+                enabled: false # Subscribe to 'topic' and send the motion to the positional tracking
+                topic: '/odometry/wheel' # 'nav_msgs/Odometry' topic of the motion source. The 'child_frame_id' of the messages must be available in TF, to know where the source is mounted
+                measured_axes: "['TX','TY','RZ']" # Axes measured by the source, among 'TX', 'TY', 'TZ', 'RX', 'RY', 'RZ' (wheel odometry: forward, sideways, heading). Never list an axis the source does not measure
+                rejection_threshold: 3.0 # How far the motion may disagree with the images before it is discarded, as a multiple of its uncertainty. Lower values trust the images more
+                translation_std_per_m: 0.02 # Translation uncertainty per meter travelled, used when the 'twist.covariance' of the messages is not set
+                rotation_std_per_rad: 0.02 # Rotation uncertainty per radian, used when the 'twist.covariance' of the messages is not set
             publish_odom_pose: true # Advertise the odometry and pose topics that are published only if a node subscribes to them
             publish_pose_cov: false # Advertise the pose with covariance topic that is published only if a node subscribes to it
             publish_cam_path: false # Advertise the camera odometry and pose path topics that are published only if a node subscribes to them
@@ -205,10 +220,10 @@
         advanced: # WARNING: do not modify unless you are confident of what you are doing
             # Reference documentation: https://man7.org/linux/man-pages/man7/sched.7.html
             change_thread_priority: false # Enable to change the thread scheduling policy and priorities below. The other 'advanced' parameters are ignored when this is false
-            thread_sched_policy: 'SCHED_BATCH' # 'SCHED_OTHER', 'SCHED_BATCH', 'SCHED_FIFO', 'SCHED_RR' - NOTE: 'SCHED_FIFO' and 'SCHED_RR' require 'sudo'
-            thread_grab_priority: 50 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
-            thread_sensor_priority: 70 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
-            thread_pointcloud_priority: 60 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) z-> 99 (HIGH)] - NOTE: 'sudo' required
+            thread_sched_policy: 'SCHED_BATCH' # 'SCHED_OTHER', 'SCHED_BATCH', 'SCHED_FIFO', 'SCHED_RR' - NOTE: 'SCHED_FIFO' and 'SCHED_RR' require root, the 'CAP_SYS_NICE' capability or an RTPRIO limit at least equal to the priorities below. With GMSL cameras, ZED SDK >= 5.6 runs its capture and sensors threads at 'SCHED_RR' priority 5: higher priorities here can delay them
+            thread_grab_priority: 50 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) -> 99 (HIGH)]
+            thread_sensor_priority: 70 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) -> 99 (HIGH)]
+            thread_pointcloud_priority: 60 # ONLY with 'SCHED_FIFO' and 'SCHED_RR' - [1 (LOW) -> 99 (HIGH)]
 
         debug:
             sdk_verbose: 1 # Set the verbose level of the ZED SDK

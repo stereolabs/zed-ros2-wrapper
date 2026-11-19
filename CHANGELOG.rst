@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+v5.6.1-dev
+----------
+
+- Fixed the stereo node publishing, on a topic that a node starts subscribing to while other image or depth topics are published, one empty image or one image from a previous subscription with the current timestamp. All the image, depth, depth info, confidence and disparity topics were affected.
+
 v5.6.0
 ------
 

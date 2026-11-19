@@ -1,6 +1,11 @@
 LATEST CHANGES
 ==============
 
+v5.6.1-dev
+----------
+
+- Fixed the stereo node publishing the same image on the left and right image topics with the CUDA zero-copy transport (`general.buffer_backend: 'cuda'`, ROS 2 Lyrical), when the GPU is busy (#464). The images, depth maps and point clouds are now retrieved on the default CUDA stream of the ZED SDK, as in the mono node. `general.buffer_backend: 'cpu'` was not affected.
+
 v5.6.0
 ------
 

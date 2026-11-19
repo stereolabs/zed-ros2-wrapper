@@ -1700,8 +1700,7 @@ bool ZedCamera::retrieveLeftImage(bool gpu)
 #else
       sl::VIEW::LEFT,
 #endif
-      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol,
-      getRetrieveStream(gpu && _nitrosDisabled));
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       mRgbSubscribed = true;
       DEBUG_STREAM_VD(" * Left image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
@@ -1723,8 +1722,7 @@ bool ZedCamera::retrieveLeftRawImage(bool gpu)
 #else
       sl::VIEW::LEFT_UNRECTIFIED,
 #endif
-      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol,
-      getRetrieveStream(gpu && _nitrosDisabled));
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Left raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
@@ -1745,8 +1743,7 @@ bool ZedCamera::retrieveRightImage(bool gpu)
 #else
       sl::VIEW::RIGHT,
 #endif
-      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol,
-      getRetrieveStream(gpu && _nitrosDisabled));
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Right image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
@@ -1767,8 +1764,7 @@ bool ZedCamera::retrieveRightRawImage(bool gpu)
 #else
       sl::VIEW::RIGHT_UNRECTIFIED,
 #endif
-      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol,
-      getRetrieveStream(gpu && _nitrosDisabled));
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Right raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
@@ -1784,8 +1780,7 @@ bool ZedCamera::retrieveLeftGrayImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatLeftGray, sl::VIEW::LEFT_GRAY,
-      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol,
-      getRetrieveStream(gpu && _nitrosDisabled));
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Left gray image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
@@ -1801,8 +1796,7 @@ bool ZedCamera::retrieveLeftRawGrayImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatLeftRawGray, sl::VIEW::LEFT_UNRECTIFIED_GRAY,
-      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol,
-      getRetrieveStream(gpu && _nitrosDisabled));
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(
         " * Left gray raw image retrieved into " << (gpu ? "GPU" : "CPU") <<
@@ -1820,8 +1814,7 @@ bool ZedCamera::retrieveRightGrayImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatRightGray, sl::VIEW::RIGHT_GRAY,
-      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol,
-      getRetrieveStream(gpu && _nitrosDisabled));
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Right gray image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
@@ -1837,8 +1830,7 @@ bool ZedCamera::retrieveRightRawGrayImage(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
       mMatRightRawGray, sl::VIEW::RIGHT_UNRECTIFIED_GRAY,
-      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol,
-      getRetrieveStream(gpu && _nitrosDisabled));
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(
         " * Right gray raw image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
@@ -1855,8 +1847,7 @@ bool ZedCamera::retrieveDepthMap(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveMeasure(
       mMatDepth, sl::MEASURE::DEPTH,
-      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol,
-      getRetrieveStream(gpu && _nitrosDisabled));
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Depth map retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
@@ -1877,8 +1868,7 @@ bool ZedCamera::retrieveDepthImage(bool gpu)
 #else
       sl::VIEW::DEPTH,
 #endif
-      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol,
-      getRetrieveStream(gpu && _nitrosDisabled));
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(
         " * Depth image retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
@@ -1911,8 +1901,7 @@ bool ZedCamera::retrieveConfidence(bool gpu)
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveMeasure(
       mMatConf, sl::MEASURE::CONFIDENCE,
-      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol,
-      getRetrieveStream(gpu && _nitrosDisabled));
+      gpu ? sl::MEM::GPU : sl::MEM::CPU, mMatResol);
     if (ok) {
       DEBUG_STREAM_VD(" * Confidence map retrieved into " << (gpu ? "GPU" : "CPU") << " memory");
     }
@@ -2938,17 +2927,14 @@ void ZedCamera::processPointCloud()
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 55
         if (mVoxelPointCloud) {
           pc_err = mZed->retrieveVoxelMeasure(
-            mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::GPU, mVoxelParams,
-            getRetrieveStream(true));
+            mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::GPU, mVoxelParams);
         } else {
           pc_err = mZed->retrieveMeasure(
-            mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::GPU, mPcResol,
-            getRetrieveStream(true));
+            mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::GPU, mPcResol);
         }
 #else
         pc_err = mZed->retrieveMeasure(
-          mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::GPU, mPcResol,
-          getRetrieveStream(true));
+          mMatCloud, sl::MEASURE::XYZBGRA, sl::MEM::GPU, mPcResol);
 #endif
       } else {
 #if (ZED_SDK_MAJOR_VERSION * 10 + ZED_SDK_MINOR_VERSION) >= 53
@@ -3932,8 +3918,13 @@ void ZedCamera::initCudaBufferTransport()
 
   mCudaBuffer = std::make_unique<sl_tools::CudaBufferTransport>();
   std::string err;
-  // The data are retrieved on the transport stream (see `getRetrieveStream()`)
-  if (!mCudaBuffer->init(mZed->getCUDAContext(), mZed->getCUDAStream(), true, err)) {
+  // The data are retrieved on the default stream of the ZED SDK and the copies
+  // wait for its GPU work. Retrieving on the transport stream is not safe: the
+  // ZED SDK reuses the source memory of a retrieve in the following retrieves
+  // and grabs, which do not wait for the transport stream, and the published
+  // left and right images could then be the same image (issue #464).
+  // The copies are made before the next retrieve (`mVdMutex`, `mPcMutex`).
+  if (!mCudaBuffer->init(mZed->getCUDAContext(), mZed->getCUDAStream(), false, err)) {
     RCLCPP_WARN_STREAM(
       get_logger(),
       " * Buffer transport: CPU [CUDA zero-copy initialization failed: " << err << "]");
@@ -3958,20 +3949,6 @@ void ZedCamera::initCudaBufferTransport()
     " * Buffer transport: CPU [CUDA zero-copy not available: it requires ROS 2 "
     "Lyrical or newer with the 'cuda_buffer' package]");
 #endif
-}
-
-cudaStream_t ZedCamera::getRetrieveStream(bool gpu) const
-{
-#ifdef FOUND_CUDA_BUFFER
-  // The images published with NITROS are copied on the legacy default
-  // stream: the callers pass `gpu=false` for them to keep the SDK default.
-  if (gpu && mCudaBufferActive && mCudaBuffer) {
-    return mCudaBuffer->stream();
-  }
-#else
-  (void)gpu;
-#endif
-  return 0;
 }
 
 void ZedCamera::resetCudaBufferTransport()

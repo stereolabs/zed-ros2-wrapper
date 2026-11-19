@@ -298,8 +298,6 @@ protected:
   // `rosidl::Buffer` CUDA transport for the data retrieved on GPU
   void initCudaBufferTransport();
   void resetCudaBufferTransport();
-  // CUDA stream for the retrieve functions of the ZED SDK
-  cudaStream_t getRetrieveStream(bool gpu) const;
   bool publishCudaImage(
     const sl::Mat & img, const adaptedImagePub & pubImg,
     const std::string & imgFrameId, const rclcpp::Time & stamp);

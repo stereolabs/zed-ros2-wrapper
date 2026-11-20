@@ -987,6 +987,44 @@ bool ZedCamera::areVideoDepthSubscribed()
   ) > 0;
 }
 
+void ZedCamera::snapshotVideoDepthSubscribers()
+{
+  mVdFrameSubs.rgb = mRgbSubCount;
+  mVdFrameSubs.rgbRaw = mRgbRawSubCount;
+  mVdFrameSubs.rgbGray = mRgbGraySubCount;
+  mVdFrameSubs.rgbGrayRaw = mRgbGrayRawSubCount;
+  mVdFrameSubs.left = mLeftSubCount;
+  mVdFrameSubs.leftRaw = mLeftRawSubCount;
+  mVdFrameSubs.leftGray = mLeftGraySubCount;
+  mVdFrameSubs.leftGrayRaw = mLeftGrayRawSubCount;
+  mVdFrameSubs.right = mRightSubCount;
+  mVdFrameSubs.rightRaw = mRightRawSubCount;
+  mVdFrameSubs.rightGray = mRightGraySubCount;
+  mVdFrameSubs.rightGrayRaw = mRightGrayRawSubCount;
+  mVdFrameSubs.stereo = mStereoSubCount;
+  mVdFrameSubs.stereoRaw = mStereoRawSubCount;
+  mVdFrameSubs.depth = mDepthSubCount;
+  mVdFrameSubs.depthImage = mDepthImageSubCount;
+  mVdFrameSubs.confMap = mConfMapSubCount;
+  mVdFrameSubs.disparity = mDisparitySubCount;
+  mVdFrameSubs.dispMap = mDispMapSubCount;
+  mVdFrameSubs.dispImg = mDispImgSubCount;
+  mVdFrameSubs.depthInfo = mDepthInfoSubCount;
+
+  // The ZED SDK returns the depth of an older frame, without error and with the
+  // timestamp of this frame, if the grab did not compute the depth: the depth
+  // data are published from the next frame
+  if (!mGrabDepthComputed) {
+    mVdFrameSubs.depth = 0;
+    mVdFrameSubs.depthImage = 0;
+    mVdFrameSubs.confMap = 0;
+    mVdFrameSubs.disparity = 0;
+    mVdFrameSubs.dispMap = 0;
+    mVdFrameSubs.dispImg = 0;
+    mVdFrameSubs.depthInfo = 0;
+  }
+}
+
 bool ZedCamera::updateVideoDepthSubscribers(bool force)
 {
   constexpr auto kSubQueryInterval = std::chrono::milliseconds(200);
@@ -1592,6 +1630,9 @@ void ZedCamera::processVideoDepth()
 
     DEBUG_VD(" * [processVideoDepth] vd_lock -> try_lock");
     if (vd_lock.try_lock()) {
+      // The data of this frame are retrieved and published for these counts
+      snapshotVideoDepthSubscribers();
+
       // Retrieve on GPU the data published with the CUDA transport
       bool gpu = mCudaBufferActive;
 #ifdef FOUND_ISAAC_ROS_NITROS
@@ -1690,7 +1731,7 @@ void ZedCamera::retrieveVideoDepth(bool gpu)
 
 bool ZedCamera::retrieveLeftImage(bool gpu)
 {
-  if (mRgbSubCount + mLeftSubCount + mStereoSubCount > 0) {
+  if (mVdFrameSubs.rgb + mVdFrameSubs.left + mVdFrameSubs.stereo > 0) {
     DEBUG_VD(" * Retrieving Left image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
@@ -1713,7 +1754,7 @@ bool ZedCamera::retrieveLeftImage(bool gpu)
 
 bool ZedCamera::retrieveLeftRawImage(bool gpu)
 {
-  if (mRgbRawSubCount + mLeftRawSubCount + mStereoRawSubCount > 0) {
+  if (mVdFrameSubs.rgbRaw + mVdFrameSubs.leftRaw + mVdFrameSubs.stereoRaw > 0) {
     DEBUG_VD(" * Retrieving Left raw image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
@@ -1735,7 +1776,7 @@ bool ZedCamera::retrieveLeftRawImage(bool gpu)
 
 bool ZedCamera::retrieveRightImage(bool gpu)
 {
-  if (mRightSubCount + mStereoSubCount > 0) {
+  if (mVdFrameSubs.right + mVdFrameSubs.stereo > 0) {
     DEBUG_VD(" * Retrieving Right image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
@@ -1757,7 +1798,7 @@ bool ZedCamera::retrieveRightImage(bool gpu)
 
 bool ZedCamera::retrieveRightRawImage(bool gpu)
 {
-  if (mRightRawSubCount + mStereoRawSubCount > 0) {
+  if (mVdFrameSubs.rightRaw + mVdFrameSubs.stereoRaw > 0) {
     DEBUG_VD(" * Retrieving Right raw image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
@@ -1779,7 +1820,7 @@ bool ZedCamera::retrieveRightRawImage(bool gpu)
 
 bool ZedCamera::retrieveLeftGrayImage(bool gpu)
 {
-  if (mRgbGraySubCount + mLeftGraySubCount > 0) {
+  if (mVdFrameSubs.rgbGray + mVdFrameSubs.leftGray > 0) {
     DEBUG_VD(" * Retrieving Left gray image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
@@ -1796,7 +1837,7 @@ bool ZedCamera::retrieveLeftGrayImage(bool gpu)
 
 bool ZedCamera::retrieveLeftRawGrayImage(bool gpu)
 {
-  if (mRgbGrayRawSubCount + mLeftGrayRawSubCount > 0) {
+  if (mVdFrameSubs.rgbGrayRaw + mVdFrameSubs.leftGrayRaw > 0) {
     DEBUG_VD(" * Retrieving Left gray raw image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
@@ -1815,7 +1856,7 @@ bool ZedCamera::retrieveLeftRawGrayImage(bool gpu)
 
 bool ZedCamera::retrieveRightGrayImage(bool gpu)
 {
-  if (mRightGraySubCount > 0) {
+  if (mVdFrameSubs.rightGray > 0) {
     DEBUG_VD(" * Retrieving Right gray image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
@@ -1832,7 +1873,7 @@ bool ZedCamera::retrieveRightGrayImage(bool gpu)
 
 bool ZedCamera::retrieveRightRawGrayImage(bool gpu)
 {
-  if (mRightGrayRawSubCount > 0) {
+  if (mVdFrameSubs.rightGrayRaw > 0) {
     DEBUG_VD(" * Retrieving Right gray raw image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
@@ -1850,7 +1891,7 @@ bool ZedCamera::retrieveRightRawGrayImage(bool gpu)
 
 bool ZedCamera::retrieveDepthMap(bool gpu)
 {
-  if (mDepthSubCount > 0 || mDepthInfoSubCount > 0) {
+  if (mVdFrameSubs.depth > 0 || mVdFrameSubs.depthInfo > 0) {
     DEBUG_STREAM_VD(" * Retrieving Depth Map");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveMeasure(
@@ -1867,7 +1908,7 @@ bool ZedCamera::retrieveDepthMap(bool gpu)
 
 bool ZedCamera::retrieveDepthImage(bool gpu)
 {
-  if (mDepthImageSubCount > 0) {
+  if (mVdFrameSubs.depthImage > 0) {
     DEBUG_STREAM_VD(" * Retrieving Depth image");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveImage(
@@ -1890,7 +1931,7 @@ bool ZedCamera::retrieveDepthImage(bool gpu)
 
 bool ZedCamera::retrieveDisparityMap()
 {
-  if (mDisparitySubCount > 0 || mDispMapSubCount > 0 || mDispImgSubCount > 0) {
+  if (mVdFrameSubs.disparity > 0 || mVdFrameSubs.dispMap > 0 || mVdFrameSubs.dispImg > 0) {
     DEBUG_STREAM_VD(" * Retrieving Disparity Map");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveMeasure(
@@ -1906,7 +1947,7 @@ bool ZedCamera::retrieveDisparityMap()
 
 bool ZedCamera::retrieveConfidence(bool gpu)
 {
-  if (mConfMapSubCount > 0) {
+  if (mVdFrameSubs.confMap > 0) {
     DEBUG_STREAM_VD(" * Retrieving Confidence");
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->retrieveMeasure(
@@ -1923,7 +1964,7 @@ bool ZedCamera::retrieveConfidence(bool gpu)
 
 bool ZedCamera::retrieveDepthInfo()
 {
-  if (mDepthInfoSubCount > 0) {
+  if (mVdFrameSubs.depthInfo > 0) {
     bool ok = sl::ERROR_CODE::SUCCESS ==
       mZed->getCurrentMinMaxDepth(mMinDepth, mMaxDepth);
     if (ok) {
@@ -1979,7 +2020,7 @@ void ZedCamera::checkRgbDepthSync()
   sl::Timestamp ts_rgb = 0;
   sl::Timestamp ts_depth = 0;
 
-  if (mRgbSubscribed && (mDepthSubCount > 0 || mDepthInfoSubCount > 0)) {
+  if (mRgbSubscribed && (mVdFrameSubs.depth > 0 || mVdFrameSubs.depthInfo > 0)) {
     ts_rgb = mMatLeft.timestamp;
     ts_depth = mMatDepth.timestamp;
 
@@ -2050,8 +2091,8 @@ bool ZedCamera::checkGrabAndUpdateTimestamp(rclcpp::Time & out_pub_ts)
 
 void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
 {
-  if (mLeftSubCount > 0) {
-    DEBUG_STREAM_VD(" * mLeftSubCount: " << mLeftSubCount);
+  if (mVdFrameSubs.left > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.left: " << mVdFrameSubs.left);
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
@@ -2069,8 +2110,8 @@ void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
     publishCameraInfo(mPubLeftCamInfoTrans, mLeftCamInfoMsg, t);
   }
 
-  if (mRgbSubCount > 0) {
-    DEBUG_STREAM_VD(" * mRgbSubCount: " << mRgbSubCount);
+  if (mVdFrameSubs.rgb > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.rgb: " << mVdFrameSubs.rgb);
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
@@ -2091,8 +2132,8 @@ void ZedCamera::publishLeftAndRgbImages(const rclcpp::Time & t)
 
 void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
 {
-  if (mLeftRawSubCount > 0) {
-    DEBUG_STREAM_VD(" * mLeftRawSubCount: " << mLeftRawSubCount);
+  if (mVdFrameSubs.leftRaw > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.leftRaw: " << mVdFrameSubs.leftRaw);
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatLeftRaw, mPubIpcRawLeft, mPubRawLeft,
@@ -2110,8 +2151,8 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
     publishCameraInfo(mPubRawLeftCamInfoTrans, mLeftCamInfoRawMsg, t);
   }
 
-  if (mRgbRawSubCount > 0) {
-    DEBUG_STREAM_VD(" * mRgbRawSubCount: " << mRgbRawSubCount);
+  if (mVdFrameSubs.rgbRaw > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.rgbRaw: " << mVdFrameSubs.rgbRaw);
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatLeftRaw, mPubIpcRawRgb, mPubRawRgb, mPubRawRgbCamInfo, mPubRawRgbCamInfoTrans,
@@ -2131,8 +2172,8 @@ void ZedCamera::publishLeftRawAndRgbRawImages(const rclcpp::Time & t)
 
 void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
 {
-  if (mLeftGraySubCount > 0) {
-    DEBUG_STREAM_VD(" * mLeftGraySubCount: " << mLeftGraySubCount);
+  if (mVdFrameSubs.leftGray > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.leftGray: " << mVdFrameSubs.leftGray);
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
@@ -2151,8 +2192,8 @@ void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
     publishCameraInfo(mPubLeftGrayCamInfoTrans, mLeftCamInfoMsg, t);
   }
 
-  if (mRgbGraySubCount > 0) {
-    DEBUG_STREAM_VD(" * mRgbGraySubCount: " << mRgbGraySubCount);
+  if (mVdFrameSubs.rgbGray > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.rgbGray: " << mVdFrameSubs.rgbGray);
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatLeftGray, mPubIpcRgbGray, mPubRgbGray,
@@ -2173,8 +2214,8 @@ void ZedCamera::publishLeftGrayAndRgbGrayImages(const rclcpp::Time & t)
 
 void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
 {
-  if (mLeftGrayRawSubCount > 0) {
-    DEBUG_STREAM_VD(" * mLeftGrayRawSubCount: " << mLeftGrayRawSubCount);
+  if (mVdFrameSubs.leftGrayRaw > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.leftGrayRaw: " << mVdFrameSubs.leftGrayRaw);
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatLeftRawGray, mPubIpcRawLeftGray, mPubRawLeftGray,
@@ -2192,8 +2233,8 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
     publishCameraInfo(mPubRawLeftGrayCamInfoTrans, mLeftCamInfoRawMsg, t);
   }
 
-  if (mRgbGrayRawSubCount > 0) {
-    DEBUG_STREAM_VD(" * mRgbGrayRawSubCount: " << mRgbGrayRawSubCount);
+  if (mVdFrameSubs.rgbGrayRaw > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.rgbGrayRaw: " << mVdFrameSubs.rgbGrayRaw);
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatLeftRawGray, mPubIpcRawRgbGray, mPubRawRgbGray,
@@ -2214,8 +2255,8 @@ void ZedCamera::publishLeftRawGrayAndRgbRawGrayImages(const rclcpp::Time & t)
 
 void ZedCamera::publishRightImages(const rclcpp::Time & t)
 {
-  if (mRightSubCount > 0) {
-    DEBUG_STREAM_VD(" * mRightSubCount: " << mRightSubCount);
+  if (mVdFrameSubs.right > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.right: " << mVdFrameSubs.right);
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatRight, mPubIpcRight, mPubRight, mPubRightCamInfo, mPubRightCamInfoTrans,
@@ -2235,8 +2276,8 @@ void ZedCamera::publishRightImages(const rclcpp::Time & t)
 
 void ZedCamera::publishRightRawImages(const rclcpp::Time & t)
 {
-  if (mRightRawSubCount > 0) {
-    DEBUG_STREAM_VD(" * mRightRawSubCount: " << mRightRawSubCount);
+  if (mVdFrameSubs.rightRaw > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.rightRaw: " << mVdFrameSubs.rightRaw);
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatRightRaw, mPubIpcRawRight, mPubRawRight,
@@ -2257,8 +2298,8 @@ void ZedCamera::publishRightRawImages(const rclcpp::Time & t)
 
 void ZedCamera::publishRightGrayImages(const rclcpp::Time & t)
 {
-  if (mRightGraySubCount > 0) {
-    DEBUG_STREAM_VD(" * mRightGraySubCount: " << mRightGraySubCount);
+  if (mVdFrameSubs.rightGray > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.rightGray: " << mVdFrameSubs.rightGray);
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatRightGray, mPubIpcRightGray, mPubRightGray,
@@ -2279,8 +2320,8 @@ void ZedCamera::publishRightGrayImages(const rclcpp::Time & t)
 
 void ZedCamera::publishRightRawGrayImages(const rclcpp::Time & t)
 {
-  if (mRightGrayRawSubCount > 0) {
-    DEBUG_STREAM_VD(" * mRightGrayRawSubCount: " << mRightGrayRawSubCount);
+  if (mVdFrameSubs.rightGrayRaw > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.rightGrayRaw: " << mVdFrameSubs.rightGrayRaw);
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatRightRawGray, mPubIpcRawRightGray, mPubRawRightGray,
@@ -2302,8 +2343,8 @@ void ZedCamera::publishRightRawGrayImages(const rclcpp::Time & t)
 
 void ZedCamera::publishStereoImages(const rclcpp::Time & t)
 {
-  if (mStereoSubCount > 0) {
-    DEBUG_STREAM_VD(" * mStereoSubCount: " << mStereoSubCount);
+  if (mVdFrameSubs.stereo > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.stereo: " << mVdFrameSubs.stereo);
     if (mMatLeft.getMemoryType() == sl::MEM::GPU) {
       publishGpuStereoImages(mMatLeft, mMatRight, mPubIpcStereo, mPubStereo, t);
       return;
@@ -2333,8 +2374,8 @@ void ZedCamera::publishStereoImages(const rclcpp::Time & t)
 
 void ZedCamera::publishStereoRawImages(const rclcpp::Time & t)
 {
-  if (mStereoRawSubCount > 0) {
-    DEBUG_STREAM_VD(" * mStereoRawSubCount: " << mStereoRawSubCount);
+  if (mVdFrameSubs.stereoRaw > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.stereoRaw: " << mVdFrameSubs.stereoRaw);
     if (mMatLeftRaw.getMemoryType() == sl::MEM::GPU) {
       publishGpuStereoImages(mMatLeftRaw, mMatRightRaw, mPubIpcRawStereo, mPubRawStereo, t);
       return;
@@ -2364,7 +2405,7 @@ void ZedCamera::publishStereoRawImages(const rclcpp::Time & t)
 
 void ZedCamera::publishDepthImage(const rclcpp::Time & t)
 {
-  if (mDepthSubCount > 0) {
+  if (mVdFrameSubs.depth > 0) {
     publishDepthMapWithInfo(mMatDepth, t);
   } else {
     publishCameraInfo(mPubDepthCamInfo, mLeftCamInfoMsg, t);
@@ -2374,8 +2415,8 @@ void ZedCamera::publishDepthImage(const rclcpp::Time & t)
 
 void ZedCamera::publishDepthColorImage(const rclcpp::Time & t)
 {
-  if (mDepthImageSubCount > 0) {
-    DEBUG_STREAM_VD(" * mDepthImageSubCount: " << mDepthImageSubCount);
+  if (mVdFrameSubs.depthImage > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.depthImage: " << mVdFrameSubs.depthImage);
 
     if (_nitrosDisabled) {
       publishImageWithInfo(
@@ -2396,8 +2437,8 @@ void ZedCamera::publishDepthColorImage(const rclcpp::Time & t)
 
 void ZedCamera::publishConfidenceMap(const rclcpp::Time & t)
 {
-  if (mConfMapSubCount > 0) {
-    DEBUG_STREAM_VD(" * mConfMapSubCount: " << mConfMapSubCount);
+  if (mVdFrameSubs.confMap > 0) {
+    DEBUG_STREAM_VD(" * mVdFrameSubs.confMap: " << mVdFrameSubs.confMap);
     if (_nitrosDisabled) {
       publishImageWithInfo(
         mMatConf, mPubIpcConfMap, mPubConfMap, mPubConfMapCamInfo, mPubConfMapCamInfoTrans,
@@ -2417,14 +2458,14 @@ void ZedCamera::publishConfidenceMap(const rclcpp::Time & t)
 
 void ZedCamera::publishDisparity(const rclcpp::Time & t)
 {
-  if (mDisparitySubCount > 0 || mDispMapSubCount > 0 || mDispImgSubCount > 0) {
+  if (mVdFrameSubs.disparity > 0 || mVdFrameSubs.dispMap > 0 || mVdFrameSubs.dispImg > 0) {
     publishDisparityMap(mMatDispMap, t);
   }
 }
 
 void ZedCamera::publishDepthInfo(const rclcpp::Time & t)
 {
-  if (mDepthInfoSubCount > 0) {
+  if (mVdFrameSubs.depthInfo > 0) {
     auto depthInfoMsg = std::make_unique<zed_msgs::msg::DepthInfoStamped>();
     depthInfoMsg->header.stamp = mUsePubTimestamps ? get_clock()->now() : t;
     depthInfoMsg->header.frame_id = mDepthOptFrameId;
@@ -2788,7 +2829,7 @@ void ZedCamera::publishDisparityMap(
   const sl::Mat & disparity,
   const rclcpp::Time & t)
 {
-  if (mDisparitySubCount > 0 || mDispMapSubCount > 0) {
+  if (mVdFrameSubs.disparity > 0 || mVdFrameSubs.dispMap > 0) {
     sl::CameraInformation zedParam = mZed->getCameraInformation(mMatResol);
     float f = zedParam.camera_configuration.calibration_parameters.left_cam.fx;
     // Use positive baseline and positive disparity convention (standard stereo_msgs expectation).
@@ -2835,8 +2876,8 @@ void ZedCamera::publishDisparityMap(
     DEBUG_STREAM_VD(" * Publishing DISPARITY message");
     try {
       // `mPubDisparity` is the deprecated topic: copied only when both have subscribers
-      const bool disp_map_sub = mPubDispMap && mDispMapSubCount > 0;
-      if (mPubDisparity && mDisparitySubCount > 0) {
+      const bool disp_map_sub = mPubDispMap && mVdFrameSubs.dispMap > 0;
+      if (mPubDisparity && mVdFrameSubs.disparity > 0) {
         mPubDisparity->publish(
           disp_map_sub ? std::make_unique<stereo_msgs::msg::DisparityImage>(*disparityMsg) :
           std::move(disparityMsg));
@@ -2851,7 +2892,7 @@ void ZedCamera::publishDisparityMap(
     }
   }
 
-  if (mDispImgSubCount > 0) {
+  if (mVdFrameSubs.dispImg > 0) {
     // Normalize F32_C1 disparity to MONO8: near objects → 255 (bright), far → 0 (dark).
     int width = static_cast<int>(disparity.getWidth());
     int height = static_cast<int>(disparity.getHeight());
@@ -2914,6 +2955,13 @@ void ZedCamera::processPointCloud()
   DEBUG_PC("=== Process Point Cloud ===");
 
   if (isPointCloudSubscribed()) {
+    if (!mGrabDepthComputed) {
+      // The grab did not compute the depth: the ZED SDK would return the point
+      // cloud of an older frame (see `mGrabDepthComputed`)
+      DEBUG_PC(" * [processPointCloud] Depth not computed for this frame");
+      return;
+    }
+
     // Run the point cloud conversion asynchronously to avoid slowing down
     // all the program
     // Retrieve raw pointCloud data if latest Pointcloud is ready

@@ -321,6 +321,7 @@ protected:
   void processVideoDepth();
   bool updateVideoDepthSubscribers(bool force = false);
   bool areVideoDepthSubscribed();
+  void snapshotVideoDepthSubscribers();
   void retrieveVideoDepth(bool gpu);
   bool retrieveLeftImage(bool gpu);
   bool retrieveLeftRawImage(bool gpu);
@@ -1206,6 +1207,39 @@ private:
   size_t mDispImgSubCount = 0;
   size_t mDepthInfoSubCount = 0;
   size_t mPcSubCount = 0;
+  // Subscriber counts of the frame being retrieved and published, copied under
+  // `mVdMutex` before the retrieve. The grab thread refreshes the counts above
+  // while the previous frame is published: using them could publish data that
+  // was not retrieved for this frame (empty or old data with a new timestamp).
+  struct VideoDepthSubCounts
+  {
+    size_t rgb = 0;
+    size_t rgbRaw = 0;
+    size_t rgbGray = 0;
+    size_t rgbGrayRaw = 0;
+    size_t left = 0;
+    size_t leftRaw = 0;
+    size_t leftGray = 0;
+    size_t leftGrayRaw = 0;
+    size_t right = 0;
+    size_t rightRaw = 0;
+    size_t rightGray = 0;
+    size_t rightGrayRaw = 0;
+    size_t stereo = 0;
+    size_t stereoRaw = 0;
+    size_t depth = 0;
+    size_t depthImage = 0;
+    size_t confMap = 0;
+    size_t disparity = 0;
+    size_t dispMap = 0;
+    size_t dispImg = 0;
+    size_t depthInfo = 0;
+  };
+  VideoDepthSubCounts mVdFrameSubs;
+  // True if the last grab computed the depth. The depth is enabled before the
+  // grab from the subscriber counts of that time: a node that subscribes
+  // during the grab must not receive the depth of an older frame.
+  bool mGrabDepthComputed = false;
   std::chrono::steady_clock::time_point mLastVideoDepthSubCountQuery;
   bool mVideoDepthSubCountInit = false;
   size_t mPosTrackingSubCount = 0;

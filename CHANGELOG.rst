@@ -6,6 +6,7 @@ v5.6.1-dev
 
 - Fixed the stereo node publishing, on a topic that a node starts subscribing to while other image or depth topics are published, one empty image or one image from a previous subscription with the current timestamp. All the image, depth, depth info, confidence and disparity topics were affected.
 - Fixed the stereo node publishing, on a depth, depth info, confidence, disparity, colorized depth or point cloud topic that a node starts subscribing to, data of an older frame with the current timestamp, when no other node was using the depth: the depth of the frame was not computed. These topics are now published from the first frame whose depth is computed.
+- Fixed the stereo node publishing the same image on the left and right image topics with the CUDA zero-copy transport (`general.buffer_backend: 'cuda'`, ROS 2 Lyrical), when the GPU is busy (#464). The images, depth maps and point clouds are now retrieved on the default CUDA stream of the ZED SDK, as in the mono node. `general.buffer_backend: 'cpu'` was not affected.
 
 v5.6.0
 ------

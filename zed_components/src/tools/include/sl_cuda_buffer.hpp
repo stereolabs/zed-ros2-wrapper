@@ -112,9 +112,12 @@ public:
   //  - true: the caller retrieves the data on `stream()`, which orders the
   //    copies after the retrieve without depending on the GPU work that the
   //    SDK queues afterwards (e.g. the next `grab()`).
-  //  - false: the retrieve API has no stream parameter, so each copy waits for
-  //    all the GPU work queued on the SDK stream and on the legacy default
-  //    stream. Use it only when the data are copied before the next `grab()`.
+  //  - false: the data are retrieved on the default stream of the SDK, so each
+  //    copy waits for all the GPU work queued on the SDK stream and on the
+  //    legacy default stream. Use it when the retrieve API has no stream
+  //    parameter, or when the SDK can reuse the source memory of a retrieve
+  //    before the copies run on `stream()`. The retrieved `sl::Mat` must not
+  //    be retrieved again before the copies are done.
   bool init(
     CUcontext sdk_ctx, CUstream sdk_stream, bool retrieve_on_stream,
     std::string & err);

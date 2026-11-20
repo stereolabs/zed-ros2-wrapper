@@ -1010,6 +1010,19 @@ void ZedCamera::snapshotVideoDepthSubscribers()
   mVdFrameSubs.dispMap = mDispMapSubCount;
   mVdFrameSubs.dispImg = mDispImgSubCount;
   mVdFrameSubs.depthInfo = mDepthInfoSubCount;
+
+  // The ZED SDK returns the depth of an older frame, without error and with the
+  // timestamp of this frame, if the grab did not compute the depth: the depth
+  // data are published from the next frame
+  if (!mGrabDepthComputed) {
+    mVdFrameSubs.depth = 0;
+    mVdFrameSubs.depthImage = 0;
+    mVdFrameSubs.confMap = 0;
+    mVdFrameSubs.disparity = 0;
+    mVdFrameSubs.dispMap = 0;
+    mVdFrameSubs.dispImg = 0;
+    mVdFrameSubs.depthInfo = 0;
+  }
 }
 
 bool ZedCamera::updateVideoDepthSubscribers(bool force)
@@ -2942,6 +2955,13 @@ void ZedCamera::processPointCloud()
   DEBUG_PC("=== Process Point Cloud ===");
 
   if (isPointCloudSubscribed()) {
+    if (!mGrabDepthComputed) {
+      // The grab did not compute the depth: the ZED SDK would return the point
+      // cloud of an older frame (see `mGrabDepthComputed`)
+      DEBUG_PC(" * [processPointCloud] Depth not computed for this frame");
+      return;
+    }
+
     // Run the point cloud conversion asynchronously to avoid slowing down
     // all the program
     // Retrieve raw pointCloud data if latest Pointcloud is ready

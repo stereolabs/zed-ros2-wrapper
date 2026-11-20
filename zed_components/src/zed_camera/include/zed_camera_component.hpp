@@ -1236,6 +1236,10 @@ private:
     size_t depthInfo = 0;
   };
   VideoDepthSubCounts mVdFrameSubs;
+  // True if the last grab computed the depth. The depth is enabled before the
+  // grab from the subscriber counts of that time: a node that subscribes
+  // during the grab must not receive the depth of an older frame.
+  bool mGrabDepthComputed = false;
   std::chrono::steady_clock::time_point mLastVideoDepthSubCountQuery;
   bool mVideoDepthSubCountInit = false;
   size_t mPosTrackingSubCount = 0;
